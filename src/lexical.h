@@ -1376,6 +1376,20 @@ escape.
 			   text of a macro argument.  (Used to prevent such
 			   commas from delimiting macro arguments when the
 			   expansion is rescanned.) */
+#define LE_TEMPORARILY_INERT_MACRO 8
+			/* Like LE_INERT_MACRO, except that it is removed
+			   by expand_top_level_pcc_macro.  It is used to
+			   support Microsoft-mode macros in which the left
+			   parenthesis of a macro invocation appears in a
+			   macro expansion in a macro argument and the
+			   corresponding right parenthesis appears in the
+			   text following the outermost macro invocation
+			   (which violates the Standard requirement that
+			   macro arguments are expanded in isolation).  A
+			   macro with a "missing" right parenthesis is
+			   marked as temporarily inert so it will only be
+			   expanded after the expansion of the top-level
+			   macro invocation is complete. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1708,6 +1722,12 @@ EXTERN a_boolean
 			   is the name of a macro that was found within its
 			   own expansion and therefore should not be expanded
 			   again.  Not used in pcc preprocessing mode. */
+EXTERN a_boolean
+		curr_token_is_temporarily_inert_macro;
+			/* TRUE when curr_token_is_inert_macro is TRUE and
+			   the lexical escape indicating inertness is
+			   LE_TEMPORARILY_INERT_MACRO instead of
+			   LE_INERT_MACRO. */
 
 EXTERN a_boolean
 		any_initial_get_token_tests_needed;

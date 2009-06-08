@@ -1,5 +1,23 @@
 Version 4.1
 
+6/8/09   [EDGcpfe/8933]
+Microsoft compatibility: unterminated macro invocations inside macro arguments
+
+Although the C and C++ Standards require that macro arguments be expanded
+as if they comprised the entire file, in isolation from the text following
+the top-level macro invocation, the Microsoft preprocessor allows the
+opening parenthesis of a macro invocation to appear in a macro argument and
+the corresponding closing parenthesis in the following text.  The front
+end now emulates this behavior in Microsoft mode.  For example:
+
+  #define M1(x) x
+  #define M2 M1
+  #define M3 M2(a
+  #define M4(x) x
+
+  M4(M3))    // Previously an error, now accepted
+
+
 6/8/09   [EDGcpfe/9879]
 Subscripting operations with invalid subscripts can again be constant addresses
 

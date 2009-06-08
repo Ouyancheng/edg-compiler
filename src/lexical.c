@@ -2152,7 +2152,11 @@ higher than any actual offset.
   int                        result;
 
   if (offset >= mtmep[0].start_of_region &&
-      offset < mtmep[1].start_of_region) {
+      (offset < mtmep[1].start_of_region ||
+       /* Treat the offset of the map's terminating entry as belonging to
+          the next-to-last entry. */
+       (offset == mtmep[1].start_of_region &&
+        mtmep[1].corresponding_source_pos.seq == 0))) {
     /* The offset is in the range of this entry. */
     result = 0;
   } else if (offset < mtmep->start_of_region) {
@@ -2897,7 +2901,8 @@ is TRUE.
              and process it. */
           walk_into_insertion(slmp, ins_slmp, loc_in_line);
           if (loc_in_line[0] == LE_ESCAPE &&
-              loc_in_line[1] == LE_INERT_MACRO) {
+              (loc_in_line[1] == LE_INERT_MACRO ||
+               loc_in_line[1] == LE_TEMPORARILY_INERT_MACRO)) {
             /* If the insertion starts with an inert macro indication, do not
                consider it the start of a new token.  This makes some
                undefined-behavior token-pasting cases work slightly better
@@ -2912,7 +2917,8 @@ is TRUE.
             /* Do not output end-of-token markers. */
             token_start = TRUE;
             loc_in_line += LE_ESCAPE_LEN;
-          } else if (ch == LE_INERT_MACRO) {
+          } else if (ch == LE_INERT_MACRO ||
+                     ch == LE_TEMPORARILY_INERT_MACRO) {
             /* Do not output inert-macro markers. */
             loc_in_line += LE_ESCAPE_LEN;
           } else if (ch == LE_END_OF_INSERTION) {
@@ -3315,6 +3321,7 @@ the calls to this routine.
         ch = loc_in_line[1];
         if (ch == LE_END_OF_TOKEN ||
             ch == LE_INERT_MACRO ||
+            ch == LE_TEMPORARILY_INERT_MACRO ||
             ch == LE_COMMA_FROM_ARGUMENT) {
           /* Do not output end-of-token, inert-macro, or comma markers. */
           token_start = TRUE;
@@ -6818,7 +6825,8 @@ white_space_loop:
            At this level, should be ignored.  Note that kind_skipped is not
            set, since this is not white space. */
         curr_char_loc += LE_ESCAPE_LEN;
-      } else if (ch == LE_INERT_MACRO) {
+      } else if (ch == LE_INERT_MACRO ||
+                 ch == LE_TEMPORARILY_INERT_MACRO) {
         /* Marker put into text to indicate that the following macro name
            should not be expanded.  Return to caller. */
         goto end_skip;
@@ -8628,6 +8636,7 @@ non-NULL, also append the characters in the comment, through but not including
         ch = curr_char[1];
         if (ch == LE_END_OF_TOKEN ||
             ch == LE_INERT_MACRO ||
+            ch == LE_TEMPORARILY_INERT_MACRO ||
             ch == LE_NULL ||
             ch == LE_COMMA_FROM_ARGUMENT) {
           /* Marker put into text by preprocessing of macros, to force the
@@ -9765,10 +9774,12 @@ and end_of_curr_token will be set to point to the beginning and end of
 the current token, and len_of_curr_token will be set to its length.
 
 If expand_macros is TRUE, preprocessing macros are expanded as they are
-scanned.  The caller sees only the tokens after expansion.  If a
-macro name is preceded by an LE_INERT_MACRO escape sequence, the
-macro is not expanded and the identifier is returned to the caller with
-curr_token_is_inert_macro set to TRUE.
+scanned.  The caller sees only the tokens after expansion.  If a macro name
+is preceded by an LE_INERT_MACRO or LE_TEMPORARILY_INERT_MACRO escape
+sequence, the macro is not expanded and the identifier is returned to the
+caller with curr_token_is_inert_macro set to TRUE; in addition, if the
+escape sequence is LE_TEMPORARILY_INERT_MACRO,
+curr_token_is_temporarily_inert_macro is set to TRUE.
 
 When fetch_pp_tokens is FALSE, do_string_literal_concatenation controls
 whether adjacent string literals are concatenated.
@@ -9817,6 +9828,7 @@ to speed in some cases.
   register a_symbol_ptr	assoc_symbol;
   a_symbol_kind		id_kind;
   a_boolean		rescan, is_inert_macro = FALSE;
+  a_boolean             is_temporarily_inert_macro = FALSE;
   a_boolean		continue_scan;
   a_boolean             gotten_from_cache = FALSE;
   a_boolean		contains_ucn_or_multibyte_char;
@@ -9966,12 +9978,15 @@ return_end_of_source_token:
            At this level, should be ignored. */
         curr_char_loc += LE_ESCAPE_LEN;
         goto rescan_token;
-      } else if (ch == LE_INERT_MACRO) {
+      } else if (ch == LE_INERT_MACRO || ch == LE_TEMPORARILY_INERT_MACRO) {
         /* Marker put into text preceding a macro name to indicate that the
            macro name should not be expanded. */
         curr_char_loc += LE_ESCAPE_LEN;
         record_start_of_curr_token();
         is_inert_macro = TRUE;
+        if (ch == LE_TEMPORARILY_INERT_MACRO) {
+          is_temporarily_inert_macro = TRUE;
+        }  /* if */
         goto id_scan;
       } else if (ch == LE_NULL) {
         /* Null (zero) character.  Let the white-space routine figure it
@@ -10767,6 +10782,7 @@ return_from_token_scan:
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
+  curr_token_is_temporarily_inert_macro = is_temporarily_inert_macro;
   curr_token = ctoken;
   if (curr_lexical_state_stack_entry->cache_tokens) {
     /* A copy of each new token fetched should be saved in a token cache.
@@ -10796,7 +10812,9 @@ return_from_token_scan:
         fprintf(f_debug, " (%d bytes)", (int)len_of_curr_token);
       }  /* if */
     }  /* if */
-    if (curr_token_is_inert_macro) {
+    if (curr_token_is_temporarily_inert_macro) {
+      fprintf(f_debug, " (temporarily inert)");
+    } else if (curr_token_is_inert_macro) {
       fprintf(f_debug, " (inert)");
     }  /* if */
     /* Dump constants only if they have been converted. */

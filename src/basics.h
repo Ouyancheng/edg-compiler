@@ -722,6 +722,13 @@ following, indicating something special:
   (pos).column = (pos).orig_column = (col);   \
   set_macro_context_to_no_parent((pos));      \
 }
+
+/* Macro to extract the macro context from a source position. */
+#if MACRO_INVOCATION_TREE_IN_IL
+#define macro_context_of(pos) ((pos).macro_context)
+#else /* !MACRO_INVOCATION_TREE_IN_IL */
+#define macro_context_of(pos) (NO_PARENT_MACRO_INVOCATION)
+#endif /* MACRO_INVOCATION_TREE_IN_IL */
 #else /* !FULLY_RESOLVED_MACRO_POSITIONS */
 #define set_position_to(pos, seqno, col)    \
 { (pos).seq = (seqno); (pos).column = (col); }
