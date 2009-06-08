@@ -1,5 +1,29 @@
 Version 4.1
 
+6/8/09   [EDGcpfe/9858]
+eok_reference_to/eok_ref_indirect in mangled expression causes internal error
+
+With the expression changes introduced in 4.0, it is now possible for an
+expression for a template parameter to contain an eok_reference_to or
+eok_ref_indirect operation.  This had caused an internal error
+("mangled_encoding_for_expression: bad operator") in IA-64 ABI mode when the
+expression was mangled.  These operations are now ignored for the purposes
+of mangling.  This regression was introduced in 4.0 and is now fixed.  For
+example:
+
+  int i;
+  template<class T, int& I> struct B {
+    B() {}
+    template <class T1, int& I1> B(const B<T1, I1>&) {}
+  };
+  template <class T> struct A : T {
+    A() {
+       B<int, i>(*this);
+    }
+  };
+  A<B<void, i> > a;
+
+
 6/8/09   [EDGcpfe/9876]
 GNU compatibility: __builtin_isnan and __builtin_isinf
 

@@ -2779,7 +2779,9 @@ part of a template-dependent expression.
       op = expr->variant.operation.kind;
       if (op == (an_expr_operator_kind)eok_lvalue ||
           op == (an_expr_operator_kind)eok_lvalue_adjust ||
-          op == (an_expr_operator_kind)eok_class_rvalue_adjust
+          op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
+          op == (an_expr_operator_kind)eok_reference_to ||
+          op == (an_expr_operator_kind)eok_ref_indirect
 #if IA64_ABI
           /* Also drop implicit casts in the IA-64 ABI. */
                                                                ||
