@@ -5344,7 +5344,7 @@ address_escapes and template_constant are as for constant_lvalue_address
     } else {
       do_padd(&ptr_con, expr->variant.operation.kind, int_con, con,
               &err_code, &err_severity);
-      if (err_code == ec_no_error) {
+      if (err_code == ec_no_error || err_severity == es_warning) {
         is_constant = TRUE;
       }  /* if */
     }  /* if */

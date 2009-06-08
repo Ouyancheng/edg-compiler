@@ -1,5 +1,21 @@
 Version 4.1
 
+6/8/09   [EDGcpfe/9879]
+Subscripting operations with invalid subscripts can again be constant addresses
+
+As part of the expression changes in version 4.0, subscript operations
+with an invalid subscript (one that falls outside the base object) were
+deliberately not folded to constant addresses, with the thought that
+back ends might appreciate not having to represent such address
+constants.  This turned out to be the wrong choice, particularly in
+C mode where such things would get errors when used in constant
+initializers, so such operations are once again considered to have
+constant addresses.
+
+  int array[] = { 1, 2 };
+  int *p = &array[-1];  /* Once again accepted in C mode */
+
+
 6/6/09   [EDGcpfe/9844]
 Conversion of string literal to pointer to other character type allowed again
 

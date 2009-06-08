@@ -6368,7 +6368,18 @@ constant subscript.  If so, check the subscript and return FALSE if it's not
 valid.  Return *just_past_end TRUE if the subscript is just past the end
 of the array (which is legal when the address is used, but not when the
 value is used).  The node can be an lvalue or an rvalue.  Pointer additions
-are also checked (e.g., a + 5, where 5 is beyond the end of the array a).
+and subtractions are also checked (e.g., a + 5, where 5 is beyond the end
+of the array a).  This routine checks these operations when the
+pointer operand is not constant; when it is, the folding routines
+(e.g., do_padd) do the check.  It is important that the check be done
+only once, so that a warning is issued only once.  Therefore, it is done
+immediately when the operator is scanned, either in the constant
+folding or here.  Subscript operations are always lvalues initially,
+and therefore not constant, and are therefore always checked here.
+When a constant addressing expression is folded to a constant later,
+no warning is generated for an invalid subscript or pointer operation,
+on the assumption that the warning was already generated when the
+operator was scanned.
 */
 {
   a_boolean        valid = TRUE;
@@ -6901,8 +6912,9 @@ operator_position indicates the operator position.
         build_binary_result_operand_full(operand_1, operand_2, op,
                                          result_type, result_is_lvalue,
                                          result);
-        /* Check for invalid constant subscripts when the first operand
-           is not a constant (as happens when the array is an auto array). */
+        /* Check for invalid constant subscripts.  Also check for invalid
+           pointer addition and subtraction when the pointer operand is
+           not constant. */
         if (is_expression_operand(result)) {
           if (!valid_node_if_subscript(result->variant.expression,
                                        &just_past_end)) {
