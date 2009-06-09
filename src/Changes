@@ -23,8 +23,9 @@ For example:
 eok_reference_to/eok_ref_indirect in mangled expression causes internal error
 
 With the expression changes introduced in 4.0, it is now possible for an
-expression for a template parameter to contain an eok_reference_to or
-eok_ref_indirect operation.  This had caused an internal error
+expression for a template parameter to contain a compiler generated
+eok_reference_to or eok_ref_indirect operation when used with reference-typed
+arguments or parameters.  This had caused an internal error
 ("mangled_encoding_for_expression: bad operator") in IA-64 ABI mode when the
 expression was mangled.  These operations are now ignored for the purposes
 of mangling.  This regression was introduced in 4.0 and is now fixed.  For
