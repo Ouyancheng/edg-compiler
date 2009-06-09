@@ -99,7 +99,7 @@ as if they comprised the entire file, in isolation from the text following
 the top-level macro invocation, the Microsoft preprocessor allows the
 opening parenthesis of a macro invocation to appear in a macro argument and
 the corresponding closing parenthesis in the following text.  The front
-end now emulates this behavior in Microsoft mode.  For example:
+end now emulates this behavior in Microsoft bugs mode.  For example:
 
   #define M1(x) x
   #define M2 M1

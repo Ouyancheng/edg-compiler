@@ -4559,7 +4559,7 @@ end_arg_expansion:;
          below. */
       if (curr_token != tok_rparen) {
         if (curr_token == tok_end_of_source && macro_depth > 1 &&
-            microsoft_mode) {
+            microsoft_bugs) {
           /* This invocation occurs within a macro argument.  The Microsoft
              preprocessor allows the closing parenthesis to occur in the
              text following the outermost macro invocation.  We support
