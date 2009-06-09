@@ -4331,6 +4331,13 @@ the file could not be opened if the open fails.
                                               open_result,
                                               unicode_source_kind);
     file_found = *new_input_file != NULL;
+    /* If the file is not found, continue looking for a preinclude file
+       using the search path. */
+    use_search_path = use_search_path && is_preinclude;
+  }  /* if */
+  if (file_found || !use_search_path) {
+    /* Don't search any further if the file was found or if we should not use
+       the search path. */
   } else if (search_path == NULL) {
     /* No search path, so file can't be found.  Issue a catastrophic error.
        Use special message to make it clearer, since problem may be that
