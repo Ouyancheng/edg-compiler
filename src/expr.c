@@ -1714,13 +1714,18 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
 #if TARG_HAS_IEEE_FLOATING_POINT
         case bfk_isnan:
         case bfk_isinf:
+          /* Unlike other functions handled here, __builtin_isnan and
+             __builtin_isinf are ellipsis functions, and hence ordinary call
+             processing will not diagnose invalid arguments.  GCC, however,
+             does check that there is exactly one argument of a real floating-
+             point type. */
           if (args == NULL || args2 != NULL) {
             pos_error(ec_call_requires_one_argument, &op->position);
             make_error_operand(op);
           } else if (!is_real_floating_type(args->type)) {
             pos_error(ec_call_requires_floating_point_argument,
                       &op->position);
-            make_error_operand(op);
+            conv_to_error_operand(op);
           } else {
             folded = fold_fptest_if_possible(rp, args, &result);
           }  /* if */
