@@ -1,5 +1,24 @@
 Version 4.1
 
+6/8/09   [EDGcpfe/9417]
+Microsoft compatibility: trailing whitespace in quoted header names
+
+The Microsoft preprocessor ignores trailing whitespace in the quoted form
+of header names.  The front end, however, preserved that whitespace for
+its internal processing, although a #include with a header name containing
+trailing blanks often succeeded, depending on the characteristics of the
+C stdio library with which the front end was built.  This is now fixed.
+For example:
+
+  /* File x.h: */
+  #pragma once;
+  int i = 5;
+
+  /* File x.cpp: */
+  #include "x.h"
+  #include "x.h "    // Previously included twice in spite of #pragma once
+
+
 6/8/09   [EDGcpfe/9858]
 eok_reference_to/eok_ref_indirect in mangled expression causes internal error
 

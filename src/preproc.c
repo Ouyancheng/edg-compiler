@@ -894,27 +894,37 @@ end_of_header_name:
 }  /* get_header_name */
 
 
-static void trim_leading_and_trailing_blanks_from_header_name(char      **name,
-                                                              sizeof_t  *len)
+static void trim_leading_and_trailing_blanks_from_header_name(
+                                                 char      **name,
+                                                 sizeof_t  *len,
+                                                 a_boolean trim_leading_blanks)
 /*
 The header name consists of *len characters starting at *name.  This routine
-modifies those quantities to trim leading and trailing whitespace.
-E.g., "    stdio   " becomes "stdio".
+modifies those quantities to trim leading and trailing whitespace (only
+trailing whitespace is trimmed if trim_leading_blanks is FALSE).
+E.g., "    stdio   " becomes "stdio" with trim_leading_blanks TRUE.
 */
 {
   char		*ptr;
   char		*last_nonblank;
-  char		*end;
+  char		*end = *name + *len - 1;
+  char		*begin = *name;
+  sizeof_t	len_without_leading_blanks = *len;
 
-  /* Skip leading whitespace. */
-  while (*len > 0 && (**name == ' ' || **name == '\t')) {
-    ++(*name);
-    --(*len);
+  /* Scan past leading whitespace. */
+  while (len_without_leading_blanks > 0 && (*begin == ' ' || *begin == '\t')) {
+    ++begin;
+    --len_without_leading_blanks;
   }  /* while */
-  if (*len > 0) {
+  if (trim_leading_blanks || len_without_leading_blanks == 0) {
+    /* Copy local results to caller. */
+    *name = begin;
+    *len = len_without_leading_blanks;
+  }  /* if */
+  if (len_without_leading_blanks > 0) {
     /* Find the last nonblank character of the name. */
-    for (ptr = *name, end = ptr + *len - 1, last_nonblank = ptr;
-         ptr <= end; increment_mbc_ptr(ptr)) {
+    for (ptr = begin, last_nonblank = ptr; ptr <= end;
+         increment_mbc_ptr(ptr)) {
        if (*ptr != ' ' && *ptr != '\t') last_nonblank = ptr;
     }  /* for */
     /* Trim trailing whitespace. */
@@ -946,10 +956,13 @@ translation of certain characters to UTF-8.
   centity_mask = centity_mask | (centity_mask-1);
   name_len = len_of_curr_token - 2;  /* Drop quoting characters. */
   in_pos = start_of_curr_token+1;
-  if (microsoft_mode && *start_of_curr_token == '<') {
+  if (microsoft_mode) {
     /* Microsoft compilers ignore leading and trailing whitespace inside
-       #include <...> directives. */
-    trim_leading_and_trailing_blanks_from_header_name(&in_pos, &name_len);
+       #include <...> directives and trailing whitespace inside
+       #include "..." directives. */
+    trim_leading_and_trailing_blanks_from_header_name(
+                                                  &in_pos, &name_len,
+                                                  *start_of_curr_token == '<');
   }  /* if */
   reset_text_buffer(buf);
   /* Copy the string, processing escapes if appropriate.  The copy is done
