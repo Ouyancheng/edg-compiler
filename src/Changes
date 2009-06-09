@@ -1,5 +1,25 @@
 Version 4.1
 
+6/9/09   [EDGcpfe/9877]
+Microsoft compatibility: Out-of-namespace template redeclaration
+
+In Microsoft mode, a template may be redeclared outside of its class or
+namespace.  Previously, this was restricted to when microsoft_version <= 1300
+(see Changes entry of 11/1/05), but the case of a namespace member class is
+also accepted more recent Microsoft compilers: The front end now emulates
+that behavior.  For example:
+
+  namespace A {
+    template <class T> struct B {};
+  }
+  template <class T> struct A::B;  // Now accepted in all Microsoft C++ modes.
+
+  struct C {
+    template <class T> struct D {};
+  };
+  template <class T> struct C::D;  // Still requires microsoft_version <= 1300.
+
+
 6/8/09   [EDGcpfe/9864]
 Folding of constant addressing expression cast to an integral type
 
