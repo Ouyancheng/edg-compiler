@@ -1,5 +1,19 @@
 Version 4.1
 
+6/8/09   [EDGcpfe/9864]
+Folding of constant addressing expression cast to an integral type
+
+Constant-valued addressing expressions cast to an integral type
+are now almost always folded to a constant value.  Some changes in version
+4.0 had caused such expressions not to be folded in certain contexts.
+
+  int i;
+  int main() {
+    int z = (int)&i;  // Was folded in version 4.0
+    z = (int)&i;      // Was not folded in version 4.0, now folded again
+  }
+
+
 6/9/09   [EDGcpfe/8594]
 GNU compatibility: __COUNTER__ and __TIMESTAMP__ macros
 

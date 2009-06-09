@@ -11463,18 +11463,26 @@ static a_boolean is_cast_of_nonconstant_address_to_smaller_integer(
                                                        an_operand *operand,
                                                        a_type_ptr type_cast_to)
 /*
-Return TRUE if operand is the address of a variable or routine expressed
-in expression form (possibly with casts on top, but not casts that reduce
-the size) and type_cast_to is an integral type that is smaller than an
-address.
+operand is being cast to the type type_cast to.  Return TRUE if operand is
+a nonconstant address in expression form (possibly with casts on top, but not
+casts that reduce the size) and type_cast_to is an integral type that is
+smaller than an address.  This is used to issue a warning about truncating
+a pointer.  Note that single-step truncating casts get a warning from
+the conversion_possible routines (and this routine is not called if
+that warning has been issued), and cases where the underlying entity
+has a constant address get a warning from the folding routines (and
+this routine returns FALSE for those cases).
 */
 {
   a_boolean result = FALSE;
 
   if (is_integral_type(type_cast_to) &&
+      /* A cast to bool does truncate, but in a well-defined way. */
+      !is_bool_type(type_cast_to) &&
       is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     a_targ_size_t    smallest_size = ~(a_targ_size_t)0;
+    a_constant       con;
     /* Skip over any casts to integral or pointer types. */
     while (is_operation_node(expr) &&
            expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
@@ -11484,13 +11492,14 @@ address.
       if (cast_size < smallest_size) smallest_size = cast_size;
       expr = skip_parens(expr->variant.operation.operands);
     }  /* while */
-    /* See if the thing underneath is the address of something.  Note that
-       the fully-constant case is handled in folding. */
+    /* See if the thing underneath is the address of something, and it's
+       not a constant address (the fully-constant case is handled in
+       folding). */
     if (!expr->is_lvalue &&
-        (is_routine_node(expr) ||
-         (is_operation_node(expr) &&
-          node_operator_is(expr, eok_address_of)))) {
-      /* Yes, it's a "&" operation or the address of a function. */
+        is_pointer_type(expr->type) &&
+        !constant_rvalue_pointer(expr, &con, /*address_escapes=*/FALSE,
+                                 (a_boolean *)NULL)) {
+      /* Yes, it's a nonconstant address. */
       a_targ_size_t addr_size = f_skip_typerefs(expr->type)->size;
       /* Drop out if an intermediate cast was to a smaller size, because
          a warning was already issued for that one. */
@@ -11726,14 +11735,21 @@ indicates which.
             if (warning_suggested != ec_no_error) {
               pos_warning(warning_suggested, start_position);
             }  /* if */
-            if (warning_suggested != ec_pointer_conversion_loses_bits &&
-                is_cast_of_nonconstant_address_to_smaller_integer(
+            if (warning_suggested != ec_pointer_conversion_loses_bits) {
+              if (is_cast_of_nonconstant_address_to_smaller_integer(
                                                                operand,
                                                                type_cast_to)) {
-              /* A cast of the address of a local variable to a small
-                 integer.  Issue a warning about truncation.  The warning for
-                 static cases comes out of folding. */
-              pos_warning(ec_integer_truncated, start_position);
+                /* A cast of a nonconstant pointer to a small integer.  Issue
+                   a warning about truncation.  The warning for constant cases
+                   comes out of folding. */
+                pos_warning(ec_integer_truncated, start_position);
+              } else if (is_pointer_type(operand->type) &&
+                         !is_pointer_type(type_cast_to) &&
+                         !cast_to_reference) {
+                /* Force an addressing expression to a constant if possible so
+                   that we can produce a constant as the result of the cast. */
+                force_operand_to_constant_if_possible(operand);
+              }  /* if */
             }  /* if */
             /* Do the actual cast. */
             if (!cast_to_reference) {
