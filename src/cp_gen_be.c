@@ -12483,8 +12483,11 @@ handle_as_definition:
       is_specialization = !old_specializations_for_generated_instances;
       in_generated_instance = TRUE;
     }  /* if */
-    if (rout->assoc_scope == NULL_region_number && !rout->is_deleted) {
-      /* A member function of a template class might not be instantiated. */
+    if (rout->assoc_scope == NULL_region_number &&
+        !rout->is_deleted && !rout->is_defaulted) {
+      /* A member function of a template class might not be instantiated.
+         (On the other hand, deleted and defaulted functions should always be
+         treated as "definitions".) */
 #if !STANDALONE_UTILITY_PROGRAM
       check_assertion_str(rout->is_template_function ||
                           (rout->is_prototype_instantiation &&

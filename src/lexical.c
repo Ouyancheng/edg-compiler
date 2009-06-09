@@ -16025,11 +16025,15 @@ not be returned.
     if (next_tok == tok_delete || next_tok == tok_default) {
       /* Cache "= delete" or "= default" (leave the semicolon for the
          caller). */
+      if (start_pos != NULL) *start_pos = pos_curr_token;
       cache_curr_token(p_token_cache);
       (void)get_token();
       cache_curr_token(p_token_cache);
       (void)get_token();
       if (curr_token == tok_semicolon) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (end_pos != NULL) *end_pos = end_pos_curr_token;
+#endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
         result = TRUE;
       } else if (missing_end != NULL) {
         *missing_end = TRUE;

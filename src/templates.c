@@ -3433,13 +3433,14 @@ user later during real instantiations.
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
   } else if (func_info_ptr->is_defaulted) {
-    /* The instantiation of defaulted functions is done elsewhere, but we may
-       end up here if a "= default;" definition was provided on a declaration
-       that cannot be defaulted.  In such error cases, the is_defaulted flag
-       is not set in the routine entry, but *func_info_ptr still reflects that
-       the "= default;" definition was seen: Don't attempt to call
-       scan_function_body since that will just trigger syntax errors. */
-    expect_error();
+    /* No prototype instantiation is needed for a "= default;" definition.
+       We may also end up here if a "= default;" definition was provided on a
+       declaration that cannot be defaulted.  In such error cases, the
+       is_defaulted flag is not set in the routine entry, but *func_info_ptr
+       still reflects that the "= default;" definition was seen.  In any case,
+       don't attempt to call scan_function_body since that will just trigger
+       syntax errors. */
+    if (!rout_ptr->is_defaulted) expect_error();
   } else {
     if (rout_ptr->storage_class != (a_storage_class)sc_static) {
       /* Set the linkage for the definition of an externally linked routine. */
@@ -15243,7 +15244,6 @@ caller.
   a_template_param_ptr             template_param_list =
                                            decl_state->decl_info->parameters;
   a_routine_ptr			   rout_ptr = NULL;
-  a_boolean                        is_defaulted_or_deleted = FALSE;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -15260,8 +15260,6 @@ caller.
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
     rout_ptr = tssp->variant.function.routine;
-    is_defaulted_or_deleted = tssp->variant.function.func_info.is_defaulted ||
-                              tssp->variant.function.func_info.is_deleted;
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend) {
@@ -15429,7 +15427,8 @@ caller.
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace (or the final semicolon if this is a
        "= delete;" or "= default" function). */
-    if (is_defaulted_or_deleted) {
+    if (tssp->variant.function.func_info.is_defaulted ||
+        tssp->variant.function.func_info.is_deleted) {
       *(decl_state->final_token_ptr) = tok_semicolon;
     } else {
       *(decl_state->final_token_ptr) = tok_rbrace;
