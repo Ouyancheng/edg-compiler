@@ -1,5 +1,14 @@
 Version 4.1
 
+6/9/09   [EDGcpfe/8594]
+GNU compatibility: __COUNTER__ and __TIMESTAMP__ macros
+
+Recent versions of gcc and g++ implement the __COUNTER__ and __TIMESTAMP__
+macros (see the 7/15/04 and 6/27/03 entries below, respectively).  The
+front end has been changed to define these macros in GNU emulation modes
+as well, without regard to the value of gnu_version.
+
+
 6/8/09   [EDGcpfe/9417]
 Microsoft compatibility: trailing whitespace in quoted header names
 

@@ -196,15 +196,15 @@ static a_symbol_ptr
 static a_symbol_ptr
 		timestamp_macro_symbol;
 			/* Pointer to the symbol entry for the Microsoft
-			   __TIMESTAMP__ macro. */
+			   and GNU __TIMESTAMP__ macro. */
 static a_symbol_ptr
 		counter_macro_symbol;
 			/* Pointer to the symbol entry for the Microsoft
-			   __COUNTER__ macro. */
+			   and GNU __COUNTER__ macro. */
 static unsigned long
 		counter_macro_number;
-			/* The current value for the Microsoft __COUNTER__
-			   macro. */
+			/* The current value for the Microsoft/GNU
+			   __COUNTER__ macro. */
 
 static a_symbol_ptr
 		stdc_macro_symbol;
@@ -3935,13 +3935,13 @@ end_scan_for_macro_modifs:;
         }  /* if */
         goto return_point;
       } else if (macro_symbol == counter_macro_symbol) {
-        /* The Microsoft __COUNTER__ macro.  This returns a different
+        /* The Microsoft/GNU __COUNTER__ macro.  This returns a different
            integer value each time it is used, starting with zero. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
         (void)sprintf(repl_text, "%lu", counter_macro_number++);
       } else if (macro_symbol == timestamp_macro_symbol) {
-        /* The Microsoft __TIMESTAMP__ macro.  This returns the modification
-           time of the current input file. */
+        /* The Microsoft/GNU __TIMESTAMP__ macro.  This returns the
+           modification time of the current input file. */
         char	*time_str;
         size_t	length;
         time_str = get_file_modification_time_string(curr_ise->full_name,
@@ -8164,6 +8164,8 @@ command line -D options.
                                             (char *)NULL, "__pragma",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+  if (microsoft_mode || gnu_mode) {
     counter_macro_symbol = enter_predef_macro(
                                             (char *)NULL, "__COUNTER__",
                                             /*cannot_be_redefined=*/TRUE,
