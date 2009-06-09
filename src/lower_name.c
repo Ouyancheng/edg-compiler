@@ -3380,7 +3380,7 @@ literals.
          an "X". */
       add_to_mangled_name('X', mctl);
 #else /* IA64_ABI */
-      /* If this is argument is an expression, mark it accordingly. */
+      /* If this argument is an expression, mark it accordingly. */
       con = tap->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_template_param ||
           con->kind == (a_constant_repr_kind)ck_ptr_to_member ||
