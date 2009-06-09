@@ -6361,7 +6361,8 @@ array is multi-dimensional.  Return the array type in *array_type.
 
 
 static a_boolean valid_node_if_subscript(an_expr_node_ptr node,
-                                         a_boolean        *just_past_end)
+                                         a_boolean        *just_past_end,
+                                         an_error_code    *err_code)
 /*
 Check the given node to see if it represents a subscript operation with a
 constant subscript.  If so, check the subscript and return FALSE if it's not
@@ -6379,7 +6380,9 @@ and therefore not constant, and are therefore always checked here.
 When a constant addressing expression is folded to a constant later,
 no warning is generated for an invalid subscript or pointer operation,
 on the assumption that the warning was already generated when the
-operator was scanned.
+operator was scanned.  *err_code is set to the error code for an
+appropriate warning (the pointer +/- cases use a different message than
+the subscript case).
 */
 {
   a_boolean        valid = TRUE;
@@ -6392,6 +6395,7 @@ operator was scanned.
   a_boolean        prev_subsc_just_past_end = FALSE;
 
   *just_past_end = FALSE;
+  *err_code = ec_no_error;
   node = skip_parens(node);
   if (is_operation_node(node) &&
       node_operator_is(node, eok_indirect)) {
@@ -6455,6 +6459,7 @@ operator was scanned.
             /* We can get the array if the top operation on the pointer
                operand is an array-to-pointer decay. */
             if (node_operator_is(ptr_node, eok_array_to_pointer)) {
+              an_error_code local_err_code;
               ptr_node = ptr_node->variant.operation.operands;
               underlying_type = ptr_node->type;
               /* Check for a subscript at the next level down (i.e.,
@@ -6463,7 +6468,8 @@ operator was scanned.
                  validity of just-past-the-end subscripts on the
                  earlier subscripts. */
               (void)valid_node_if_subscript(ptr_node,
-                                            &prev_subsc_just_past_end);
+                                            &prev_subsc_just_past_end,
+                                            &local_err_code);
             }  /* if */
           }  /* if */
           if (underlying_type != NULL) {
@@ -6481,10 +6487,15 @@ operator was scanned.
               element_type = array_element_type(array_type);
               element_type = skip_typerefs(element_type);
               if (identical_types(ptr_element_type, element_type)) {
-                /* Everything's as we want it.  Check the subscript.
-                   For the pointer "-" case negate the constant. */
+                /* Everything's as we want it.  Check the subscript. */
                 a_constant_ptr eff_sub_con = sub_con;
                 a_constant     local_con;
+                if (node_operator_is(node, eok_subscript)) {
+                  *err_code = ec_subscript_out_of_range;
+                } else {
+                  *err_code = ec_pointer_outside_base_object;
+                }  /* if */
+                /* For the pointer "-" case negate the constant. */
                 if (node_operator_is(node, eok_psubtract)) {
                   a_boolean err;
                   if (!int_constant_is_signed(sub_con)) goto invalid_subscript;
@@ -6934,9 +6945,10 @@ operator_position indicates the operator position.
            pointer addition and subtraction when the pointer operand is
            not constant. */
         if (is_expression_operand(result)) {
+          an_error_code err_code;
           if (!valid_node_if_subscript(result->variant.expression,
-                                       &just_past_end)) {
-            pos_warning(ec_subscript_out_of_range, operator_position);
+                                       &just_past_end, &err_code)) {
+            pos_warning(err_code, operator_position);
           }  /* if */
         }  /* if */
         if (template_constant) {
@@ -9546,9 +9558,11 @@ element, but it's not okay to actually reference it.
   if (is_expression_operand(operand)) {
     /* Lvalue given by an expression.  Check for a subscript just past
        the end of an array. */
-    (void)valid_node_if_subscript(operand->variant.expression, &just_past_end);
+    an_error_code err_code;
+    (void)valid_node_if_subscript(operand->variant.expression, &just_past_end,
+                                  &err_code);
     if (just_past_end) {
-      pos_warning(ec_subscript_out_of_range, &operand->position);
+      pos_warning(err_code, &operand->position);
     }  /* if */
   }  /* if */
 }  /* using_lvalue */
