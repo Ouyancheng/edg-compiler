@@ -8241,15 +8241,19 @@ done:;
 
 
 static a_boolean constructor_can_be_defaulted(a_symbol_ptr  sym,
-                                              a_boolean     *is_default_ctor)
+                                              a_boolean     *is_default_ctor,
+                                              a_boolean     *has_default_arg)
 /*
 sym is a constructor.  Return whether it can be "defaulted".  I.e., if its
-parent class is X, it must have on of the following signatures:
+parent class is X, it must have on of the following signatures and not include
+a default argument:
 	X()
 	X(X&)
 	X(X const&)
 If the signature is the first in the list above, set *is_default_ctor to TRUE;
-otherwise set it to FALSE.
+otherwise set it to FALSE.  If the signature is one of the latter two and
+the parameter has an associated default argument set *has_default_arg to TRUE
+(and return FALSE); otherwise, set *has_default_arg to FALSE.
 */
 {
   a_boolean         result = FALSE;
@@ -8257,6 +8261,7 @@ otherwise set it to FALSE.
   a_param_type_ptr  params;
 
   *is_default_ctor = FALSE;
+  *has_default_arg = FALSE;
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
                   (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
@@ -8281,6 +8286,12 @@ otherwise set it to FALSE.
       if (identical_types(param_type, params->type)) {
         result = TRUE;
       }  /* if */
+    }  /* if */
+    if (result && params->has_default_arg) {
+      /* Don't allow a copy constructor with a default argument to be
+         defaulted. */
+      result = FALSE;
+      *has_default_arg = TRUE;
     }  /* if */
   }  /* if */
   return result;
@@ -8375,8 +8386,9 @@ update the routine's IL entry accordingly.
       /* Templates (and member templates) cannot be defaulted. */
       err_code = ec_function_template_cannot_be_defaulted;
     } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-      a_boolean  is_default_ctor;
-      if (constructor_can_be_defaulted(sym, &is_default_ctor)) {
+      a_boolean  is_default_ctor, has_default_arg;
+      if (constructor_can_be_defaulted(sym, &is_default_ctor,
+                                       &has_default_arg)) {
         rp->is_defaulted = TRUE;
         if (is_default_ctor && dps->in_class_scope) {
           /* The "= default" declaration appeared on the in-class declaration
@@ -8385,7 +8397,9 @@ update the routine's IL entry accordingly.
           rp->is_trivial_default_constructor = TRUE;
         }  /* if */
       } else {
-        err_code = ec_invalid_constructor_to_be_defaulted;
+        err_code = has_default_arg ?
+                             ec_copy_ctor_with_default_arg_cannot_be_defaulted
+                           : ec_invalid_constructor_to_be_defaulted;
       }  /* if */
     } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
       rp->is_defaulted = TRUE;
