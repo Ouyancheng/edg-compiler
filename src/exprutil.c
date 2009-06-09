@@ -3245,19 +3245,21 @@ is being done via an explicit cast; otherwise, it's implicit by context.
 }  /* cast_overloaded_function */
 
 
-void cast_operand_full(a_type_ptr new_type,
-                       an_operand *operand,
-                       a_boolean  check_cast_access,
-                       a_boolean  check_ambiguity,
-                       a_boolean  is_implicit_cast,
-                       a_boolean  is_reinterpret_cast,
-                       a_boolean  reinterpret_semantics)
+void cast_operand_full(a_type_ptr        new_type,
+                       an_operand        *operand,
+                       a_source_position *err_pos,
+                       a_boolean         check_cast_access,
+                       a_boolean         check_ambiguity,
+                       a_boolean         is_implicit_cast,
+                       a_boolean         is_reinterpret_cast,
+                       a_boolean         reinterpret_semantics)
 /*
 Cast the operand to the new type.  Check access on the cast if
 check_cast_access is TRUE.  Check ambiguity on the cast if check_ambiguity
 is TRUE.  If is_implicit_cast is TRUE, this is an implicit cast rather
 than an explicit one.  If there are any warnings detected on the
-type change, issue them only if is_implicit_cast is TRUE.
+type change, issue them only if is_implicit_cast is TRUE.  Issue
+those diagnostics at err_pos (if err_pos is NULL, use operand's position).
 If is_reinterpret_cast is TRUE, this cast appeared as reinterpret_cast in
 the source.  If reinterpret_semantics is TRUE, the operation has the same
 meaning as a reinterpret_cast, but it may come from another construct.
@@ -3282,6 +3284,7 @@ user-defined conversions.
   new_type = rvalue_type(new_type);
   /* Save the operand's source position, etc. */
   orig_operand = *operand;
+  if (err_pos == NULL) err_pos = &orig_operand.position;
   if (m_is_error_type(new_type)) {
     /* Casting to an error type.  Produce an error operand. */
     conv_to_error_operand(operand);
@@ -3317,7 +3320,7 @@ user-defined conversions.
             cast_node(&con_expr, new_type,
                       check_cast_access, check_ambiguity, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
-                      &operand->position);
+                      err_pos);
             if (con_expr != orig_con_expr) {
               overwrite_node(orig_con_expr, con_expr);
             }  /* if */
@@ -3342,7 +3345,7 @@ user-defined conversions.
             cast_node(&node, new_type,
                       check_cast_access, check_ambiguity, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
-                      &operand->position);
+                      err_pos);
           }  /* if */
         }
         make_expression_operand(node, operand);
@@ -3360,7 +3363,7 @@ user-defined conversions.
                                   check_ambiguity,
                                   reinterpret_semantics,
                                   /*maintain_expression=*/FALSE,/*Done below*/
-                                  &did_not_fold, &operand->position);
+                                  &did_not_fold, err_pos);
         if (did_not_fold) {
           /* Cast of a constant did not fold. */
           if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
@@ -3378,7 +3381,7 @@ user-defined conversions.
             add_cast_to_node(&node, new_type,
                              check_cast_access, check_ambiguity,
                              is_implicit_cast, is_reinterpret_cast,
-                             reinterpret_semantics, &operand->position);
+                             reinterpret_semantics, err_pos);
             make_expression_operand(node, operand);
           }  /* if */
         } else {
@@ -3411,7 +3414,7 @@ user-defined conversions.
                                /*check_ambiguity=*/FALSE,
                                is_implicit_cast,
                                is_reinterpret_cast, reinterpret_semantics,
-                               &operand->position);
+                               err_pos);
               error_threshold = saved_error_threshold;
             }  /* if */
           }  /* if */
@@ -3447,7 +3450,7 @@ Simplified interface to cast_operand_full.  See that routine for descriptions
 of the parameters.
 */
 {
-  cast_operand_full(new_type, operand,
+  cast_operand_full(new_type, operand, (a_source_position *)NULL,
                     /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
                     is_implicit_cast,
                     /*is_reinterpret_cast=*/FALSE,
@@ -3455,12 +3458,13 @@ of the parameters.
 }  /* cast_operand */
 
 
-void cast_operand_special(a_type_ptr new_type,
-                          an_operand *operand,
-                          a_boolean  check_cast_access,
-                          a_boolean  is_implicit_cast,
-                          a_boolean  is_reinterpret_cast,
-                          a_boolean  reinterpret_semantics)
+void cast_operand_special(a_type_ptr        new_type,
+                          an_operand        *operand,
+                          a_source_position *err_pos,
+                          a_boolean         check_cast_access,
+                          a_boolean         is_implicit_cast,
+                          a_boolean         is_reinterpret_cast,
+                          a_boolean         reinterpret_semantics)
 /*
 Another interface to cast_operand_full.  The "special" in this case
 is a Microsoft-bugs-mode weirdness that it's okay to cast or convert a
@@ -3482,7 +3486,7 @@ is called only in those contexts that allow this special laxity.
       check_ambiguity = FALSE;
     }  /* if */
   }  /* if */
-  cast_operand_full(new_type, operand,
+  cast_operand_full(new_type, operand, err_pos,
                     check_cast_access, check_ambiguity,
                     is_implicit_cast,
                     is_reinterpret_cast,

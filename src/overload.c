@@ -7092,7 +7092,7 @@ wondering if it's available.
                                                    sym_parent_class(fund_sym),
                                                    underlying_this_type);
         member_ptr = make_pointer_type(member_ptr);
-        cast_operand_full(member_ptr, result,
+        cast_operand_full(member_ptr, result, (a_source_position *)NULL,
                           /*check_cast_access=*/FALSE,
                           /*check_ambiguity=*/FALSE,
                           /*is_implicit_cast=*/TRUE,
@@ -12792,7 +12792,7 @@ The conversion is assumed not to be due to an explicit cast.
                          /*force_copy_to_temp=*/FALSE);
   } else {
     /* Cast the operand to the result type. */
-    cast_operand_special(dest_type, source_operand,
+    cast_operand_special(dest_type, source_operand, (a_source_position *)NULL,
                          /*check_cast_access=*/TRUE,
                          /*is_implicit_cast=*/TRUE,
                          /*is_reinterpret_cast=*/FALSE,

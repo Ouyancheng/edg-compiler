@@ -1419,24 +1419,28 @@ extern void cast_overloaded_function(a_type_ptr type_cast_to,
                                      an_operand *operand,
                                      a_boolean  is_cast);
 
-extern void cast_operand_full(a_type_ptr new_type,
-                              an_operand *operand,
-                              a_boolean  check_cast_access,
-                              a_boolean  check_ambiguity,
-                              a_boolean  is_implicit_cast,
-                              a_boolean  is_reinterpret_cast,
-                              a_boolean  reinterpret_semantics);
+extern
+void cast_operand_full(a_type_ptr        new_type,
+                       an_operand        *operand,
+                       a_source_position *err_pos,
+                       a_boolean         check_cast_access,
+                       a_boolean         check_ambiguity,
+                       a_boolean         is_implicit_cast,
+                       a_boolean         is_reinterpret_cast,
+                       a_boolean         reinterpret_semantics);
 
 extern void cast_operand(a_type_ptr new_type,
                          an_operand *operand,
                          a_boolean  is_implicit_cast);
 
-extern void cast_operand_special(a_type_ptr new_type,
-                                 an_operand *operand,
-                                 a_boolean  check_cast_access,
-                                 a_boolean  is_implicit_cast,
-                                 a_boolean  is_reinterpret_cast,
-                                 a_boolean  reinterpret_semantics);
+extern
+void cast_operand_special(a_type_ptr        new_type,
+                          an_operand        *operand,
+                          a_source_position *err_pos,
+                          a_boolean         check_cast_access,
+                          a_boolean         is_implicit_cast,
+                          a_boolean         is_reinterpret_cast,
+                          a_boolean         reinterpret_semantics);
 
 extern void conv_selector_to_object_pointer(an_operand *operand,
                                             a_boolean  *is_arrow_operator);

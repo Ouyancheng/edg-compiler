@@ -33,6 +33,10 @@ are now almost always folded to a constant value.  Some changes in version
     z = (int)&i;      // Was not folded in version 4.0, now folded again
   }
 
+As part of this change, the position on diagnostics issued due to
+conversions or constant folding in casts has been changed to point to
+the beginning of the cast rather than the operand of the cast.
+
 
 6/9/09   [EDGcpfe/8594]
 GNU compatibility: __COUNTER__ and __TIMESTAMP__ macros
