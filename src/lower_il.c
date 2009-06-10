@@ -13502,24 +13502,21 @@ cast.  See lower_expr for typical invocation.
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
         } else if (var_is_return_value_variable(var)) {
           /* The variable is the return value optimization variable for the
-             current function, so rewrite it as a reference to the implicit
-             parameter through which the return address is passed by the
-             caller. */
-          if (!expr->is_lvalue) {
-            /* Rewrite rvalue reference as value-of-pointer-parameter. */
-            expr->variant.variable = return_value_pointer_variable;
-          } else {
-            /* Rewrite lvalue reference as indirection through
-               return-value-parameter.  This comes up when the class has
-               a copy constructor but no assignment operator function. */
-            operand_node = var_rvalue_expr(return_value_pointer_variable);
-            /* Make sure the types are consistent (cv-qualification can
-               be mismatched here). */
-            operand_node = add_cast_if_necessary(operand_node,
-                                                make_pointer_type(expr->type));
-            change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
-                                     expr->type, operand_node,
-                                     /*is_lvalue=*/TRUE);
+             current function, so rewrite it as an indirection through the
+             implicit parameter through which the return address is passed by
+             the caller. */
+          a_boolean expr_is_lvalue = expr->is_lvalue;
+          operand_node = var_rvalue_expr(return_value_pointer_variable);
+          /* Make sure the types are consistent (cv-qualification can
+             be mismatched here). */
+          operand_node = add_cast_if_necessary(operand_node,
+                                               make_pointer_type(expr->type));
+          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
+                                   expr->type, operand_node,
+                                   /*is_lvalue=*/TRUE);
+          if (!expr_is_lvalue) {
+            /* Retain lvalueness. */
+            expr = rvalue_expr_for_lvalue(expr);
           }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 #if ASSIGNMENT_TO_THIS_ALLOWED
