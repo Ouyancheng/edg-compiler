@@ -12473,7 +12473,8 @@ is used only in C++ mode.
 static void set_up_for_constructor_call(an_operand       *operand,
                                         a_routine_ptr    ctor_routine,
                                         a_conv_descr     *ctor_arg_conversion,
-                                        an_expr_node_ptr *arg_expr_list)
+                                        an_expr_node_ptr *arg_expr_list,
+                                        a_boolean        *class_bitwise_copy)
 /*
 Prepare for generating a call of a one-argument constructor (i.e.,
 a copy constructor or a constructor used as a conversion function),
@@ -12482,43 +12483,69 @@ the call.  Check accessibility of the routine and adjust the
 operand type if necessary so that it will be appropriate for the call.
 If ctor_arg_conversion is non-NULL, it points to the conversion to be
 used for the constructor argument.  Return an argument list for the
-call in *arg_expr_list.  This routine is used only in C++ mode.
+call in *arg_expr_list.  If the constructor being called is a trivial
+bitwise copy constructor, set up *arg_expr_list so it can be the source
+for the bitwise copy and return *class_bitwise_copy TRUE.  This routine
+is used only in C++ mode.
 */
 {
-  a_symbol_ptr     ctor_symbol;
-  a_type_ptr       routine_type;
-  a_param_type_ptr param_list;
-  a_routine_type_supplement_ptr
-                   rtsp;
+  a_type_ptr ctor_class = parent_class_of(ctor_routine);
 
-  /* Check that the constructor is accessible and mark it as referenced. */
-  ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
-  expr_reference_to_implicitly_invoked_function(ctor_symbol,
-                                                &operand->position,
-                                                parent_class_of(ctor_routine),
-                                                /*honor_virtual=*/FALSE);
-  routine_type = skip_typerefs(ctor_routine->type);
-  /* Convert the operand to the proper type to be an argument of the
-     constructor. */
-  rtsp = routine_type->variant.routine.extra_info;
-  param_list = rtsp->param_type_list;
+  *class_bitwise_copy = FALSE;
+  if (ctor_routine->is_trivial_copy_function &&
+      ctor_arg_conversion != NULL) {
+    /* The constructor is a trivial bitwise copy constructor. */
+    *class_bitwise_copy = TRUE;
+    reference_to_trivial_copy_constructor(ctor_class, &operand->position);
+    if (is_null_user_conv_descr(ctor_arg_conversion)) {
+      /* No user-defined conversion on the argument, so this is a simple
+         copy (or bitwise slice from a derived to a base class object). */
+      prep_class_bitwise_copy_operand(operand, ctor_class);
+    } else {
+      /* There is a user-defined conversion on the argument. */
+      ctor_arg_conversion->result_is_an_lvalue = FALSE;
+      user_convert_operand(operand,
+                           ctor_class,
+                           ctor_arg_conversion,
+                           (a_conv_descr *)NULL,
+                           /*force_copy_to_temp=*/FALSE);
+    }  /* if */
+    *arg_expr_list = make_node_from_operand(operand);
+  } else {
+    /* Normal case, not a bitwise copy constructor. */
+    /* Check that the constructor is accessible and mark it as referenced. */
+    a_type_ptr       routine_type;
+    a_param_type_ptr param_list;
+    a_routine_type_supplement_ptr
+                     rtsp;
+    a_symbol_ptr     ctor_symbol = symbol_for(ctor_routine);
+    expr_reference_to_implicitly_invoked_function(ctor_symbol,
+                                                  &operand->position,
+                                                  ctor_class,
+                                                  /*honor_virtual=*/FALSE);
+    routine_type = skip_typerefs(ctor_routine->type);
+    /* Convert the operand to the proper type to be an argument of the
+       constructor. */
+    rtsp = routine_type->variant.routine.extra_info;
+    param_list = rtsp->param_type_list;
 #if CHECKING
-  if (param_list == NULL && !rtsp->has_ellipsis) {
-    internal_error("set_up_for_constructor_call: no first parameter");
-  }  /* if */
+    if (param_list == NULL && !rtsp->has_ellipsis) {
+      internal_error("set_up_for_constructor_call: no first parameter");
+    }  /* if */
 #endif  /* CHECKING */
-  /* Convert the argument to the right type.  We don't expect an error
-     here, since presumably we've chosen the proper function to call
-     through overload resolution. */
-  prep_possible_ellipsis_argument_operand(operand, param_list,
-                                          ctor_arg_conversion);
-  /* Make an expression for the argument. */
-  *arg_expr_list = make_node_from_operand(operand);
-  /* If the constructor has default arguments after the first, add
-     arguments for them. */
-  if (param_list != NULL) {
-    (*arg_expr_list)->next = expr_copy_default_arg_expr_list(ctor_routine,
+    /* Convert the argument to the right type.  We don't expect an error
+       here, since presumably we've chosen the proper function to call
+       through overload resolution. */
+    prep_possible_ellipsis_argument_operand(operand, param_list,
+                                            ctor_arg_conversion);
+    /* Make an expression for the argument. */
+    *arg_expr_list = make_node_from_operand(operand);
+    /* If the constructor has default arguments after the first, add
+       arguments for them. */
+    if (param_list != NULL) {
+      (*arg_expr_list)->next = expr_copy_default_arg_expr_list(ctor_routine,
                                                              param_list->next);
+    }  /* if */
   }  /* if */
 }  /* set_up_for_constructor_call */
 
@@ -12527,6 +12554,7 @@ static void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
                                           an_expr_node_ptr  arg_expr_list,
                                           a_type_ptr        temp_type,
                                           a_boolean         result_is_lvalue,
+                                          a_boolean         class_bitwise_copy,
                                           a_boolean         is_explicit_cast,
                                           a_source_position *position,
                                           an_operand        *result)
@@ -12534,6 +12562,7 @@ static void make_constructor_dynamic_init(a_routine_ptr     ctor_routine,
 Create an enk_temp_init node that calls the constructor ctor_routine with
 the argument list arg_expr_list.  Set *result to an lvalue for the
 resulting temporary if result_is_lvalue is TRUE, or an rvalue otherwise.
+The constructor is a bitwise copy constructor if class_bitwise_copy is TRUE.
 The argument list has already been prepared for the call (default
 arguments have been added, the argument types have been adjusted, etc.).
 temp_type is the type of the temporary; its cv-unqualified version must
@@ -12545,8 +12574,9 @@ non-NULL in that case.  is_explicit_cast is TRUE if this node represents
 an explicit cast.  *position gives the source position.
 */
 {
-  a_dynamic_init_ptr dip;
-  an_expr_node_ptr   temp_init_node;
+  a_dynamic_init_ptr  dip;
+  an_expr_node_ptr    temp_init_node;
+  a_dynamic_init_kind kind;
 
   if (ctor_routine == NULL) {
     check_assertion(temp_type != NULL);
@@ -12565,17 +12595,24 @@ an explicit cast.  *position gives the source position.
     }  /* if */
   }  /* if */
   /* Create the dynamic initialization entry and the enk_temp_init node. */
+  kind = (class_bitwise_copy ? (a_dynamic_init_kind)dik_expression :
+                               (a_dynamic_init_kind)dik_constructor);
   temp_init_node = create_expr_temporary(temp_type,
                                          result_is_lvalue,
                                          is_explicit_cast,
                                          /*suppress_abstract_test=*/FALSE,
-                                         (a_dynamic_init_kind)dik_constructor,
+                                         kind,
                                          position,
                                          &dip);
-  /* Use a dik_constructor to call the constructor routine. */
-  dip->variant.constructor.ptr = ctor_routine;
-  dip->variant.constructor.args = arg_expr_list;
-  dip->variant.constructor.value_initialization = FALSE;
+  if (class_bitwise_copy) {
+    /* Use a dik_expression to do a bitwise copy. */
+    dip->variant.expression = arg_expr_list;
+  } else {
+    /* Use a dik_constructor to call the constructor routine. */
+    dip->variant.constructor.ptr = ctor_routine;
+    dip->variant.constructor.args = arg_expr_list;
+    dip->variant.constructor.value_initialization = FALSE;
+  }  /* if */
   /* Make an operand for the overall expression. */
   make_expression_operand(temp_init_node, result);
   if (result_is_lvalue) set_lvalue_operand_state(result);
@@ -12748,6 +12785,7 @@ the temporary.
       }  /* if */
     }  /* if */
   } else {
+    a_boolean class_bitwise_copy;
 #if CHECKING
     if (conversion_routine->special_kind !=
                                     (a_special_function_kind)sfk_constructor) {
@@ -12758,10 +12796,11 @@ the temporary.
     /* Make a constructor dynamic init into a temporary, and an operand for
        the value it produces. */
     set_up_for_constructor_call(operand, conversion_routine,
-                                ctor_arg_conversion, &arg_expr_list);
+                                ctor_arg_conversion, &arg_expr_list,
+                                &class_bitwise_copy);
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                   dest_type, /*result_is_lvalue=*/FALSE,
-                                  is_explicit_cast,
+                                  class_bitwise_copy, is_explicit_cast,
                                   &orig_operand.position, operand);
   }  /* if */
   /* Restore the original source position, etc. */
@@ -13283,16 +13322,24 @@ happen only in C++ mode.
                                        /*implied_source=*/FALSE);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
+    a_dynamic_init_kind kind;
     set_up_for_constructor_call(source_operand, conversion_routine,
-                                ctor_arg_conversion, &arg_expr_list);
-    /* Use a dik_constructor entry to call the constructor. */
-    dip = alloc_dynamic_init_possibly_with_dtor(
-                                          (a_dynamic_init_kind)dik_constructor,
-                                          fill_in_dtor,
-                                          class_type,
-                                          &source_operand->position);
-    dip->variant.constructor.ptr = conversion_routine;
-    dip->variant.constructor.args = arg_expr_list;
+                                ctor_arg_conversion, &arg_expr_list,
+                                &class_bitwise_copy);
+    kind = (class_bitwise_copy ? (a_dynamic_init_kind)dik_expression :
+                                 (a_dynamic_init_kind)dik_constructor);
+    dip = alloc_dynamic_init_possibly_with_dtor(kind,
+                                                fill_in_dtor,
+                                                class_type,
+                                                &source_operand->position);
+    if (class_bitwise_copy) {
+      /* Use a dik_expression entry to do a bitwise copy. */
+      dip->variant.expression = arg_expr_list;
+    } else {
+      /* Use a dik_constructor entry to call the constructor. */
+      dip->variant.constructor.ptr = conversion_routine;
+      dip->variant.constructor.args = arg_expr_list;
+    }  /* if */
   } else {
     /* Some error. */
     dip = NULL;
@@ -13608,9 +13655,12 @@ temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
         /* Make the dynamic init call the copy constructor. */
         cctor_case = TRUE;
         set_up_for_constructor_call(operand, cctor_routine,
-                                    (a_conv_descr *)NULL, &cctor_arg);
+                                    (a_conv_descr *)NULL, &cctor_arg,
+                                    &class_bitwise_copy);
+        check_assertion(!class_bitwise_copy);
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
                                       result_is_lvalue,
+                                      class_bitwise_copy,
                                       /*is_explicit_cast=*/FALSE,
                                       &orig_operand.position,
                                       operand);
