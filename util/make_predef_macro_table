@@ -163,8 +163,9 @@ mode,!mode,mode   cannot_redefine   macro_name   macro_value
     gnu:	gcc or g++ mode
     gcc:	gcc mode
     gpp:	g++ mode
-    cpp:	any C++ mode
+    microsoft:	Microsoft mode
     strict:	strict C or C++ mode
+    cpp:	any C++ mode
     all:	all modes
 
 - cannot_redefine indicates whether the predefined macro may later be
