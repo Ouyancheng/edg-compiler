@@ -15427,8 +15427,9 @@ caller.
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace (or the final semicolon if this is a
        "= delete;" or "= default" function). */
-    if (tssp->variant.function.func_info.is_defaulted ||
-        tssp->variant.function.func_info.is_deleted) {
+    if (tssp != NULL &&
+        (tssp->variant.function.func_info.is_defaulted ||
+         tssp->variant.function.func_info.is_deleted)) {
       *(decl_state->final_token_ptr) = tok_semicolon;
     } else {
       *(decl_state->final_token_ptr) = tok_rbrace;
