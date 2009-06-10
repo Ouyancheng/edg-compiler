@@ -7766,10 +7766,10 @@ of the front end.
   num_c99_inline_definition_locators_allocated = 0;
   num_function_shareable_constants_tables_allocated = 0;
 #endif /* DEBUG */
-#if MODULE_ID_NEEDED
+#if DO_IL_LOWERING && MODULE_ID_NEEDED
   waiting_for_module_id_list_head = NULL;
   waiting_for_module_id_list_tail = NULL;
-#endif /* MODULE_ID_NEEDED */
+#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 
