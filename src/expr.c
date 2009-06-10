@@ -11753,7 +11753,7 @@ indicates which.
             }  /* if */
             /* Do the actual cast. */
             if (!cast_to_reference) {
-              cast_operand_special(type_cast_to, operand, start_position,
+              cast_operand_special(type_cast_to, operand, type_position,
                                    /*check_cast_access=*/FALSE,
                                    /*is_implicit_cast=*/FALSE, 
                                    /*is_reinterpret_cast=*/FALSE,
@@ -11796,7 +11796,7 @@ indicates which.
                                                     operand,
                                                     /*will_call=*/FALSE,
                                                     (a_source_position *)NULL);
-            cast_operand_full(type_cast_to, operand, start_position,
+            cast_operand_full(type_cast_to, operand, type_position,
                               /*check_cast_access=*/FALSE,
                               /*check_ambiguity=*/FALSE,
                               /*is_implicit_cast=*/FALSE, 
@@ -12254,7 +12254,7 @@ Syntax:
             }  /* if */
             /* Do the actual cast. */
             if (!cast_to_reference) {
-              cast_operand_special(type_cast_to, result, &start_position,
+              cast_operand_special(type_cast_to, result, &type_position,
                                    /*check_cast_access=*/TRUE,
                                    /*is_implicit_cast=*/FALSE,
                                    /*is_reinterpret_cast=*/FALSE,
@@ -12449,7 +12449,7 @@ Syntax:
         } else {
           /* Do the actual cast. */
           if (!cast_to_reference) {
-            cast_operand_full(type_cast_to, result, &start_position,
+            cast_operand_full(type_cast_to, result, &type_position,
                               /*check_cast_access=*/FALSE,
                               /*check_ambiguity=*/FALSE,
                               /*is_implicit_cast=*/FALSE,
