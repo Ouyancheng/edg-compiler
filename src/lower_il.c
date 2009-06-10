@@ -18684,7 +18684,7 @@ Do IL lowering of the indicated scope and everything under it.
         /* Drop the top-level "const" on the "this" parameter because it has
            to be modifiable.  Do this in a way that preserves "restrict" if
            that's present. */
-        param_var->type = implicit_this_param_type_of(routine_type);;
+        param_var->type = implicit_this_param_type_of(routine_type);
       }  /* if */
     }  /* if */
     lower_variable_list(scope->variant.routine.parameters);
