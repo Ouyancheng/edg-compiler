@@ -2880,9 +2880,15 @@ using IL lowering or the C generating back end.
          !STANDALONE_UTILITY_PROGRAM */
 
 #if MODULE_ID_NEEDED
+
 extern void change_non_id_characters(char *str);
+
 extern void set_module_id(char *new_module_id);
-extern char *make_module_id(void);
+
+extern char *get_module_id(void);
+
+extern char *make_module_id(char *external_name);
+
 #endif /* MODULE_ID_NEEDED */
 
 extern unsigned long write_file_name(char      *name,

@@ -1391,9 +1391,16 @@ extern void db_decl_pos_info(a_symbol_ptr sym);
 extern unsigned long db_show_scope_stack_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 
+#if DO_IL_LOWERING
+#if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
+extern void lower_functions_waiting_for_module_id(void);
+#endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
+
 extern a_boolean should_delay_lowering_on_function(
                                            a_routine_ptr routine,
                                            a_boolean     at_initial_scope_pop);
+
+#endif /* DO_IL_LOWERING */
 
 #endif /* ifndef SCOPE_STK_H */
 

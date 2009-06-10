@@ -15216,7 +15216,8 @@ reflect an export keyword present on the current declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (tssp->il_template_entry->is_exported && is_defined) {
+  if (tssp->il_template_entry->is_exported && is_defined &&
+      !decl_state->decl_scope_err) {
     /* Add the template to the list of exported templates. */
     add_to_exported_templates_list(sym);
   }  /* if */
@@ -17438,6 +17439,7 @@ keyword.
     if (scope_stack[depth_scope_stack].within_unnamed_namespace) {
       /* A template in an unnamed namespace cannot be declared export. */
       pos_error(ec_exported_in_unnamed_namespace, export_pos);
+      decl_state.decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
   if (decl_state.is_full_specialization) {
@@ -20151,8 +20153,10 @@ Create the exported template information file.
      some template names were written above. */
   if (f_exported_template != NULL) {
 #if MODULE_ID_NEEDED
+    char *module_id = get_module_id();
+    check_assertion(module_id != NULL);
     /* Write the module ID. */
-    write_to_exported_template_file(etlt_module_id, make_module_id());
+    write_to_exported_template_file(etlt_module_id, module_id);
 #endif /* MODULE_ID_NEEDED */
     /* Output information about command-line macro definitions. */
     write_macro_information_to_exported_template_file(defs_from_cmd_line);

@@ -13895,6 +13895,14 @@ if one is present.
   add_src_seq_end_of_variable_if_needed(state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_use_of_auto_type(state);
+#if MODULE_ID_NEEDED
+  if (var_ptr != NULL && is_variable_def) {
+    /* See if the variable that is being defined can be used as the basis
+       for a unique module id for the current module. */
+    use_variable_or_routine_for_module_id_if_needed(&var_ptr->source_corresp,
+                                                    iek_variable);
+  }  /* if */
+#endif /* MODULE_ID_NEEDED */
 }  /* variable_declaration */
 
 

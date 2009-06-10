@@ -6096,6 +6096,60 @@ the scope stack is no longer available.
 }  /* finish_function_body_processing */
 
 #if DO_IL_LOWERING
+#if MODULE_ID_NEEDED
+
+/*
+A list of memory regions (containing functions) that are waiting for a
+module id to be generated before they can be lowered.  The list is kept in
+the order in which the functions are originally processed (which is the
+order in which the functions are subsequently lowered).
+*/
+typedef struct a_lowering_entry *a_lowering_entry_ptr;
+typedef struct a_lowering_entry {
+  a_lowering_entry_ptr
+                next;   
+                        /* Pointer to the next entry on the list (or NULL
+                           if this is the last entry). */
+  a_memory_region_number
+                region_number;
+                        /* The memory region number of a function whose
+                           lowering has been delayed. */
+} a_lowering_entry;
+
+static a_lowering_entry_ptr
+                waiting_for_module_id_list_head;
+                        /* The head of the list of functions whose lowering
+                           has been delayed because no module id was
+                           available. */
+
+static a_lowering_entry_ptr
+                waiting_for_module_id_list_tail;
+                        /* The tail of the list of functions whose lowering
+                           has been delayed because no module id was
+                           available. */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+void lower_functions_waiting_for_module_id(void)
+/*
+Finish function processing (which includes lowering) for all memory regions
+whose lowering was delayed due to lack of a module id.  Process the functions
+in the same order in which they were originally encountered.
+*/
+{
+  check_assertion(innermost_function_scope == NULL);
+  for (; waiting_for_module_id_list_head != NULL;
+         waiting_for_module_id_list_head =
+                                       waiting_for_module_id_list_head->next) {
+    finish_function_processing_for_memory_region(
+                                waiting_for_module_id_list_head->region_number,
+                                /*only_inline=*/FALSE);
+  }  /* for */
+  waiting_for_module_id_list_tail = NULL;
+}  /* lower_functions_waiting_for_module_id */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* MODULE_ID_NEEDED */
 
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
                                             a_boolean     at_initial_scope_pop)
@@ -6103,11 +6157,13 @@ a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
 The scope for the body of the indicated routine is either being popped
 (when at_initial_scope_pop is TRUE) or has already been popped (otherwise).
 Return TRUE if there is a reason why the lowering of the function should
-be delayed until the end of the compilation.
+be delayed.  In some cases below, lowering is delayed until the end of
+compilation, but in the case of lowering being delayed solely due to the
+lack of a module id, the function will be lowered as soon as a module id
+becomes available.
 */
 {
   a_boolean   delay_lowering = FALSE;
-  a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
 
   check_assertion(!in_secondary_trans_unit(routine));
   if (secondary_translation_unit_seen()) {
@@ -6121,16 +6177,6 @@ be delayed until the end of the compilation.
     /* Lambda bodies are scanned while the parent closure class is still
        on the scope stack.  The lowering of the lambda body must be delayed
        until the closure class has been completed. */
-    delay_lowering = TRUE;
-  } else if (!C_mode() && export_template_allowed &&
-             routine->storage_class == (a_storage_class)sc_static &&
-             (scope->variables != NULL || scope->types != NULL ||
-              scope->scopes != NULL)) {
-    /* When exported templates are allowed, a static function might be
-       externalized because it might be referenced by a template.
-       If it has local static variables, they might have to be
-       externalized too, and we can't generate the externalized name
-       now because we don't have the module id yet. */
     delay_lowering = TRUE;
 #if GNU_EXTENSIONS_ALLOWED && COMPILE_MULTIPLE_TRANSLATION_UNITS
   } else if (routine->is_weak) {
@@ -6150,6 +6196,29 @@ be delayed until the end of the compilation.
        vtables will be handled properly. */
     delay_lowering = TRUE;
   }  /* if */
+#if MODULE_ID_NEEDED
+  if (!delay_lowering &&
+      get_module_id() == NULL &&
+      !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Delay lowering if a module id is not yet available.  A module id is
+       needed during mangling of certain entities (static functions that are
+       externalized because they might be referenced by a template (and
+       static variables therein), unnamed namespaces).  Prototype
+       instantiations are not lowered, so there is no need to delay them. */
+    /* Queue functions waiting for a module id on a separate list (which
+       will be drained as soon as a module id becomes available). */
+    a_lowering_entry *entry = alloc_fe_of_type(a_lowering_entry);
+    entry->region_number = routine->assoc_scope;
+    entry->next = NULL;
+    if (waiting_for_module_id_list_head == NULL) {
+      waiting_for_module_id_list_head = entry;
+    } else {
+      waiting_for_module_id_list_tail->next = entry;
+    }  /* if */
+    waiting_for_module_id_list_tail = entry;
+    delay_lowering = TRUE;
+  }  /* if */
+#endif /* MODULE_ID_NEEDED */
   if (delay_lowering) {
     /* Set a flag to delay lowering on all enclosing function scopes
        (if any). */
@@ -7697,6 +7766,10 @@ of the front end.
   num_c99_inline_definition_locators_allocated = 0;
   num_function_shareable_constants_tables_allocated = 0;
 #endif /* DEBUG */
+#if MODULE_ID_NEEDED
+  waiting_for_module_id_list_head = NULL;
+  waiting_for_module_id_list_tail = NULL;
+#endif /* MODULE_ID_NEEDED */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 

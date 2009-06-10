@@ -126,13 +126,12 @@ are instantiated.
   }  /* if */
 
 #if MODULE_ID_NEEDED
-  /* Make sure the module id is generated for this translation unit.  This
-     must be done after all non-templates have been compiled (because the
-     module id uses the name of an external symbol sometimes), and before
-     finalize_instantiation_wrapup is called (because the mangled names
-     for some members of unnamed namespaces may have to be determined,
-     and the mangled name for an unnamed namespace uses the module id). */
-  (void)make_module_id();
+  /* Make sure the module id is generated for this translation unit if it
+     hasn't been generated already.  The module id is used in the mangling
+     of unnamed namespaces as well as externalized routines and as such
+     lowering is delayed until a module id is available (by definition of a
+     suitable variable or routine). */
+  (void)make_module_id(NULL);
 #endif /* MODULE_ID_NEEDED */
 
   if (!C_mode() && !is_primary_translation_unit && !do_preprocessing_only) {
@@ -632,6 +631,8 @@ static void finish_processing_for_function_bodies(void)
 Call finish_function_body_processing for all functions not yet processed.
 This mainly handles functions copied from secondary translation units, but
 there may be some functions in the primary IL for which lowering was delayed.
+Functions whose lowering was delayed due to lack of a module id have already
+been lowered (by lower_functions_waiting_for_module_id).
 */
 {
   if (function_body_processing_delayed_on_some_func_in_primary_il) {

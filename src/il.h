@@ -1990,6 +1990,14 @@ EXTERN a_upc_block_size
 			/* The maximum allowable UPC block size. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+#if MODULE_ID_NEEDED
+
+extern void use_variable_or_routine_for_module_id_if_needed(
+                                             a_source_correspondence_ptr scp,
+                                             an_il_entry_kind            kind);
+
+#endif /* MODULE_ID_NEEDED */
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

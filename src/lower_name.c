@@ -3117,26 +3117,23 @@ that name.
 }  /* give_unnamed_class_or_enum_a_name */
 
 
-static char *module_id_for_translation_unit(a_translation_unit_ptr tup)
+static char *module_id_for_source_corresp(a_source_correspondence *scp)
 /*
-Return the module id for the specified translation unit.  If the translation
-unit doesn't have a module id yet, generate one if it's for the current
-translation unit, otherwise abort.
+Return the module id for the translation unit which the given source
+correspondence is part of.  For a source correspondence with no
+associated symbol, use the current translation unit.
 */
 {
-  char *module_id;
+  a_translation_unit_ptr tup;
+  char                   *module_id;
 
-  if (curr_translation_unit == tup) {
-    /* Normal case -- the current translation unit. */
-    module_id = make_module_id();
-  } else {
-    /* A translation unit other than the current one. */
-    module_id = *(tup->module_id_ptr);
-    /* The module id must have been generated already. */
-    check_assertion(module_id != NULL);
-  }  /* if */
+  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
+                                    curr_translation_unit;
+  module_id = *tup->module_id_ptr;
+  /* The module id must have been created previously. */
+  check_assertion(module_id != NULL);
   return module_id;
-}  /* module_id_for_translation_unit */
+}  /* module_id_for_source_corresp */
 
 
 static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
@@ -3163,10 +3160,8 @@ If the indicated namespace is unnamed, give it a name.
          Just use __N.  The name will be unique within the parent namespace. */
       module_id = "";
     } else {
-      a_translation_unit_ptr tup;
       check_assertion(!nsp->is_namespace_alias);
-      tup = trans_unit_for_scope[nsp->variant.assoc_scope->number];
-      module_id = module_id_for_translation_unit(tup);
+      module_id = module_id_for_source_corresp(&nsp->source_corresp);
     }  /* if */
 #if IA64_ABI
     /* g++ uses "_GLOBAL__N_" and recognizes that in its demangler. */
@@ -5444,25 +5439,6 @@ mangled without parameter encoding.
 }  /* function_name_mangling_needed */
 
 #if DO_IL_LOWERING
-
-static char *module_id_for_source_corresp(a_source_correspondence *scp)
-/*
-Return the module id for the translation unit which the given source
-correspondence is part of.  For a source correspondence with no
-associated symbol, use the current translation unit.
-*/
-{
-  a_translation_unit_ptr tup;
-  char                   *module_id;
-
-  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
-                                    curr_translation_unit;
-  module_id = *tup->module_id_ptr;
-  /* The module id must have been created previously. */
-  check_assertion(module_id != NULL);
-  return module_id;
-}  /* module_id_for_source_corresp */
-
 
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- is_variable is not used in that case. */

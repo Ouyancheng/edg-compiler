@@ -5259,7 +5259,8 @@ for variables with the GNU init_priority set to that value.
     /* Combine the prefix and an identifier for the current module to make
        a name that is likely to be unique. */
     char	*module_id, *end;
-    module_id = make_module_id();
+    module_id = get_module_id();
+    check_assertion(module_id != NULL);
     prefix_len = strlen(prefix);
     alloc_length = prefix_len + strlen(module_id) + 1;
 #if ONE_INSTANTIATION_PER_OBJECT

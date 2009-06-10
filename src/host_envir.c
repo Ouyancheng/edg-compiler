@@ -2620,161 +2620,47 @@ Change any non-identifier characters in the indicated string to underscores.
 }  /* change_non_id_characters */
 
 
-static char *find_external_name_in_scope(a_scope_ptr	scope)
-/*
-Go through the variables and routines lists of "scope" to find an external
-definition whose name can be used as part of the module ID.
-*/
-{
-  a_variable_ptr	variable;
-  a_routine_ptr		routine;
-  char			*name = NULL;
-
-  /* Find an externally visible variable or routine definition whose name
-     can be used as part of the module ID. */
-  for (variable = scope->variables;
-       variable != NULL; variable = variable->next) {
-    /* Only consider variables that are defined.  Make sure that the
-       init_kind is not none -- this eliminates tentative definitions. */
-    if (variable->storage_class == (a_storage_class)sc_unspecified &&
-        variable->init_kind != (an_init_kind)initk_none) {
-      /* Don't use template static data members.  Some implementations
-         may generate these in multiple files. */
-      if (variable->is_template_static_data_member) continue;
-#if DO_IL_LOWERING
-      /* Don't include variables that were originally static and have
-         been promoted or variables that were generated during the lowering
-         process. */
-      if (variable->promoted_local_static || variable->lowering_generated) {
-        continue;
-      }  /* if */
-#endif /* DO_IL_LOWERING */
-#if GNU_EXTENSIONS_ALLOWED
-      if (variable->is_weak) {
-        /* Weak variable definitions may appear in multiple translation units.
-           We therefore don't consider them for use in the module ID. */
-        continue;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (variable->decl_modifiers & (a_decl_modifier)DM_SELECTANY) {
-        /* Variables defined as "selectany" may be defined in multiple
-           translation units.  Do not use them for the module ID. */
-        continue;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* If the variable is a namespace member, get its mangled name;
-         otherwise use unmangled name. */
-      if (scope->kind == (a_scope_kind)sck_file) {
-        name = variable->source_corresp.name;
-      } else {
-        name = get_mangled_member_variable_name(variable);
-      }  /* if */
-      check_assertion(name != NULL);
-      break;
-    }  /* if */
-  }  /* for */
-  if (name == NULL) {
-    /* No external variable was found, look for an external routine.
-       Make sure its type does not involve an unnamed namespace (otherwise
-       its mangled name would involve the module ID). */
-    for (routine = scope->routines;
-         routine != NULL; routine = routine->next) {
-      if (routine->storage_class == (a_storage_class)sc_unspecified &&
-          !routine->is_inline &&
-          !is_or_contains_unnamed_namespace_type(routine->type)) {
-        /* Don't use template functions.  Some implementations
-           may generate these in multiple files. */
-        if (routine->is_template_function) continue;
-#if GNU_EXTENSIONS_ALLOWED
-        if (routine->is_weak) {
-          /* Weak routine definitions may appear in multiple translation units.
-             We therefore don't consider them for use in the module ID. */
-          continue;
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if !STANDALONE_UTILITY_PROGRAM
-        /* Avoid routines with an associated error symbol. */
-        if (in_front_end &&
-            ((a_symbol_ptr)routine->source_corresp.assoc_info) != NULL &&
-            ((a_symbol_ptr)routine->source_corresp.assoc_info)->is_error) {
-          check_assertion(total_errors != 0);
-          continue;
-        }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-        if (C_mode()) {
-          name = routine->source_corresp.name;
-        } else {
-          name = get_mangled_function_name(routine);
-        }  /* if */
-        check_assertion(name != NULL);
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (name == NULL) {
-      /* No name was found in the scope.  Look through any namespace scopes. */
-    a_namespace_ptr	nsp;
-    for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-      /* Ignore namespace alias entries. */
-      if (nsp->is_namespace_alias) continue;
-      /* Ignore unnamed namespaces. */
-      if (unmangled_name_of(&nsp->source_corresp) == NULL) continue;
-      /* Look for an external name in this namespace. */
-      name = find_external_name_in_scope(nsp->variant.assoc_scope);
-      if (name != NULL) break;
-    }  /* for */
-  }  /* if */
-  if (name == NULL && !C_mode()) {
-    /* We have still not found a name.  Look through any class scopes. */
-    a_type_ptr tp;
-    for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp)) {
-        a_scope_ptr	sp =
-                        tp->variant.class_struct_union.extra_info->assoc_scope;
-        if (sp != NULL) {
-          name = find_external_name_in_scope(sp);
-          if (name != NULL) break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return name;
-}  /* find_external_name_in_scope */
-
-
 static char	*module_id;
 			/* A string used to qualify static names that are put
 			   out as external names to make them unique. */
 
 void set_module_id(char *new_module_id)
 /*
-Set the module ID for the current translation unit to the value specified
+Set the module id for the current translation unit to the value specified
 by new_module_id.
 */
 {
-  /* Make sure a module ID has not already been assigned. */
+  /* Make sure a module id has not already been assigned. */
   check_assertion(module_id == NULL);
   module_id = new_module_id;
 }  /* set_module_id */
 
 
-char *make_module_id(void)
+char *get_module_id(void)
+/*
+Return the module id.
+*/
+{
+  return module_id;
+}  /* get_module_id */
+
+
+char *make_module_id(char *external_name)
 /*
 Make a string that is based on the name of the current module and is used to
 qualify static names that are put out as external names, to make them unique.
-Set module_id to the string.
+external_name is the mangled name of an external variable or routine name
+defined in this translation unit (or NULL if no such definition exists).
+Set module_id to the string and return it.
 */
 {
   char			*file_name;
   sizeof_t		file_name_len;
-  a_scope_ptr		scope = il_header.primary_scope;
-  char			*external_name = NULL;
   char			*str1;
   char			*str2;
   char			crc_buf[9];
 
-  /* Only generate the module ID the first time that this routine is called
+  /* Only generate the module id the first time that this routine is called
      for a given translation unit. */
   if (module_id == NULL) {
     if (in_front_end) {
@@ -2787,9 +2673,6 @@ Set module_id to the string.
          units. */
       file_name = il_header.primary_source_file->file_name;
     }  /* if */
-    /* Try to find an external variable or routine name that can be used to
-       make the module ID unique. */
-    external_name = find_external_name_in_scope(scope);
     if (external_name == NULL) {
       /* In the very unlikely event that the file does not define any
          externally visible variables or routines, use the modification
@@ -2826,8 +2709,8 @@ Set module_id to the string.
         /* The string (not including the file name) is longer than 8
            characters.  Use a CRC of the string instead. */
         unsigned long	crc;
-	crc = crc_32(str1, (unsigned long)0);
-	if (len2 != 0) crc = crc_32(str2, crc);
+        crc = crc_32(str1, (unsigned long)0);
+        if (len2 != 0) crc = crc_32(str2, crc);
         sprintf(crc_buf, "%08lx", crc);
         str1 = crc_buf;
         len1 = 8;
@@ -2860,6 +2743,12 @@ Set module_id to the string.
       fprintf(f_debug, "make_module_id: final string = %s\n", module_id);
     }  /* if */
 #endif /* DEBUG */
+#if !STANDALONE_UTILITY_PROGRAM
+    /* There may be functions whose lowering has been delayed because a
+       suitable module id had not yet been created.  If so, lower those
+       functions now. */
+    lower_functions_waiting_for_module_id();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   }  /* if */
   return module_id;
 }  /* make_module_id */

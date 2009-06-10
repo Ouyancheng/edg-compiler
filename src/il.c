@@ -43,6 +43,9 @@ il.c -- Construction of intermediate language trees.
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */
+#if MODULE_ID_NEEDED
+#include "lower_name.h"
+#endif /* MODULE_ID_NEEDED */
 #include "trans_copy.h"
 
 
@@ -20704,6 +20707,97 @@ after IL lowering.
 }  /* fix_type_list_ordering_problems */
 
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
+#if MODULE_ID_NEEDED
+
+void use_variable_or_routine_for_module_id_if_needed(
+                                              a_source_correspondence_ptr scp,
+                                              an_il_entry_kind            kind)
+/*
+If a module id has not been selected for the current translation unit, see if
+the routine or variable referred to by scp (of kind iek_routine or iek_variable
+respectively) can be used as the basis for a repeatable module id that will be
+unique across the entire program.  Generally speaking, a routine or variable
+definition with unspecified storage class at the file/namespace/class scope can
+be used, but there are exceptions.
+*/
+{
+  if (get_module_id() == NULL) {
+    char *name = NULL;
+    check_assertion(scp != NULL &&
+                    (kind == (an_il_entry_kind)iek_variable ||
+                     kind == (an_il_entry_kind)iek_routine));
+    if (scp->parent_scope == il_header.primary_scope ||
+        (scp_is_class_or_namespace_member(scp) &&
+         !is_member_of_unnamed_namespace(scp))) {
+      /* Only consider definitions in file/namespace/class scopes. */
+      if (kind == (an_il_entry_kind)iek_variable) {
+        a_variable_ptr variable = (a_variable_ptr)scp;
+        if (variable->storage_class != (a_storage_class)sc_unspecified ||
+            variable->init_kind == (an_init_kind)initk_none) {
+          /* Only consider variables that are defined.  Make sure that the
+             init_kind is not none -- this eliminates tentative definitions. */
+        } else if (variable->is_template_static_data_member) {
+          /* Don't use template static data members.  Some implementations
+             may generate these in multiple files. */
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (variable->is_weak) {
+          /* Weak variable definitions may appear in multiple translation
+             units.  We therefore don't consider them for use in the
+             module id. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (variable->decl_modifiers & (a_decl_modifier)DM_SELECTANY) {
+          /* Variables defined as "selectany" may be defined in multiple
+             translation units.  Do not use them for the module id. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else {
+          /* If the variable is a namespace member, get its mangled name;
+             otherwise use unmangled name. */
+          if (scp_is_class_or_namespace_member(scp)) {
+            name = get_mangled_member_variable_name(variable);
+          } else {
+            name = variable->source_corresp.name;
+          }  /* if */
+          check_assertion(name != NULL);
+        }  /* if */
+      } else if (kind == (an_il_entry_kind)iek_routine) {
+        a_routine_ptr  routine = (a_routine_ptr)scp;
+        if (routine->storage_class != (a_storage_class)sc_unspecified ||
+            routine->is_inline) {
+          /* Only external routines.  Externalized routines are disqualified
+             because they have static linkage. */
+        } else if (routine->is_template_function) {
+          /* Don't use template functions.  Some implementations
+             may generate these in multiple files. */
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (routine->is_weak) {
+          /* Weak routine definitions may appear in multiple translation units.
+             We therefore don't consider them for use in the module id. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        } else if (is_or_contains_unnamed_namespace_type(routine->type)) {
+          /* Make sure its type does not involve an unnamed namespace
+             (otherwise its mangled name would involve the module id). */
+        } else {
+          /* This routine definition fits the bill.  Get the appropriate
+             name. */
+          if (C_mode()) {
+            name = routine->source_corresp.name;
+          } else {
+            name = get_mangled_function_name(routine);
+          }  /* if */
+          check_assertion(name != NULL);
+        }  /* if */
+      }  /* if */
+      if (name != NULL) {
+        /* We've found a suitable candidate, create the module id for the
+           translation unit. */
+        (void)make_module_id(name);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* use_variable_or_routine_for_module_id_if_needed */
+
+#endif /* MODULE_ID_NEEDED */
 
 void il_one_time_init(void)
 /*

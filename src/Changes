@@ -1,5 +1,21 @@
 Version 4.1
 
+6/10/09  [EDGcpfe/9904]
+Delay lowering of function scopes until a module id can be created
+
+A "module id" is used during name mangling to provide a unique and repeatable
+mangling for certain entities.  If possible, a variable or routine with
+an external definition is used as a portion of the module id.  Previously,
+lowering of certain functions (i.e., some static functions when exported
+templates are allowed) was delayed for concern that a module id had not yet
+been generated.  In the case of unnamed namespaces, a request to generate
+a mangled name for a member of an unnamed namespace caused creation of a
+(possibly inferior) module id.  In preparation for increased reliance on
+the module id in C++0x mangling, a change has been made to delay the lowering
+of all functions until a suitable variable or routine definition has
+occurred, in which case the queued functions are immediately lowered.
+
+
 6/10/09  [EDGcpfe/9884]
 Assertion failure when return value optimization variable used as an rvalue
 

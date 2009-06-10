@@ -1907,6 +1907,16 @@ member declaration (allowed in Microsoft mode only).
     if ((dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
       flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
     }  /* if */
+#if MODULE_ID_NEEDED
+    /* If a module id for the current translation unit has not yet been
+       created, see if the name of this routine is suitable.  Do this before
+       scanning the function body to increase the chance that a module id
+       is in place early (as lowering is delayed until a module id has
+       been selected). */
+    use_variable_or_routine_for_module_id_if_needed(
+                                                  &routine_ptr->source_corresp,
+                                                  iek_routine);
+#endif /* MODULE_ID_NEEDED */
     scan_function_body(routine_ptr, func_info, flags);
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
     /* Save the symbol associated with the most recent constructor or
