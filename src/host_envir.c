@@ -2739,12 +2739,12 @@ Set module_id to the string and return it.
       fprintf(f_debug, "make_module_id: final string = %s\n", module_id);
     }  /* if */
 #endif /* DEBUG */
-#if !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
     /* There may be functions whose lowering has been delayed because a
        suitable module id had not yet been created.  If so, lower those
        functions now. */
     lower_functions_waiting_for_module_id();
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
   }  /* if */
   return module_id;
 }  /* make_module_id */
