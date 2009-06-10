@@ -147,6 +147,7 @@ extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 
 extern a_boolean is_assignment_operator_for_copy(
                                    a_symbol_ptr          sym,
+                                   a_boolean             move_assign_okay,
                                    a_boolean             *is_ref_arg,
                                    a_type_qualifier_set  *qualifiers,
                                    a_boolean             *is_base_class_match);

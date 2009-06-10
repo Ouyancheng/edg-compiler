@@ -7210,8 +7210,7 @@ is returned TRUE if the parameter is not a reference parameter.
 
   *ambiguous = FALSE;
   cssp = symbol_supplement_for_class(class_type);
-  if (cssp->assignment_by_bitwise_copy_allowed ||
-      cssp->assignment_operator == NULL) {
+  if (cssp->assignment_operator == NULL) {
     /* A NULL assignment operator when bitwise copies are not allowed can
        occur in certain error cases and in Microsoft mode.  Return NULL. */
     check_assertion(cssp->assignment_by_bitwise_copy_allowed ||
@@ -7257,9 +7256,9 @@ is returned TRUE if the parameter is not a reference parameter.
              can also be ignored, since using-declarations cannot introduce
              a copy assignment operator from a base class into a derived
              class (see member_using_declaration in class_decl.c). */
-        } else if (is_assignment_operator_for_copy(sym, &is_ref_arg,
-                                                   &qualifiers,
-                                                   &is_base_class_match)) {
+        } else if (is_assignment_operator_for_copy(
+                                 sym, /*move_assign_okay=*/FALSE, &is_ref_arg,
+                                 &qualifiers, &is_base_class_match)) {
           viable_sym = sym;
         }  /* if */
         if (viable_sym != NULL) {

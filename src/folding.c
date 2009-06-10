@@ -6288,8 +6288,9 @@ constant will be set as well.
           if (sym->kind == (a_symbol_kind)sk_member_function) {
             a_type_qualifier_set  qualifiers;
             a_boolean             ref_param, is_base_class_match;
-            if (is_assignment_operator_for_copy(sym, &ref_param, &qualifiers,
-                                                &is_base_class_match)) {
+            if (is_assignment_operator_for_copy(
+                        sym, /*move_assign_okay=*/FALSE, &ref_param,
+                        &qualifiers, &is_base_class_match)) {
               a_routine_ptr  rp = sym->variant.routine.ptr;
               if (kind == (a_builtin_operation_kind)bok_has_assign) {
                 /* __has_assign returns true for any user-declared or

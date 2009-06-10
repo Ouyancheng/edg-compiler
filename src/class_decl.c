@@ -8097,11 +8097,13 @@ explicit overrider (which means this routine will return TRUE).
 
 static a_boolean assignment_operator_for_copy_exists(
                                             a_symbol_ptr  sym,
+                                            a_boolean     move_assign_okay,
                                             a_boolean     *p_is_user_provided,
                                             a_boolean     *p_const_okay)
 /*
 Return TRUE if sym is not NULL and qualifies as an assignment operator that
-can copy a class object.  If sym is an overloaded function, return TRUE if at
+can copy a class object (if move_assign_okay is TRUE, also consider move
+assignment operators).  If sym is an overloaded function, return TRUE if at
 least one of the functions qualifies.  Set *p_const_okay TRUE if a const object
 can be copied.  If p_is_user_provided is non-NULL, set *p_is_user_provided to
 whether one of the operators is user-provided.
@@ -8124,7 +8126,7 @@ whether one of the operators is user-provided.
       a_symbol_ptr  viable_sym = NULL;
       qualifiers_accepted = TQ_NONE;
       if (sym->kind == (a_symbol_kind)sk_member_function &&
-          is_assignment_operator_for_copy(sym, &is_ref_arg,
+          is_assignment_operator_for_copy(sym, move_assign_okay, &is_ref_arg,
                                           &qualifiers_accepted,
                                           &is_base_class_match)) {
         viable_sym = sym;
@@ -8200,6 +8202,7 @@ classes and fields of the given class.
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
       if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                              /*move_assign_okay=*/FALSE,
                                               (a_boolean*)NULL, &const_okay) &&
           !const_okay) {
         /* There is a default assignment operator for this base class type,
@@ -8221,6 +8224,7 @@ classes and fields of the given class.
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
         if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                /*move_assign_okay=*/FALSE,
                                                 (a_boolean*)NULL,
                                                 &const_okay) &&
             !const_okay) {
@@ -9811,16 +9815,18 @@ specific information about the member declaration, respectively.
 
 a_boolean is_assignment_operator_for_copy(
                                    a_symbol_ptr          sym,
+                                   a_boolean             move_assign_okay,
                                    a_boolean             *is_ref_arg,
                                    a_type_qualifier_set  *qualifiers,
                                    a_boolean             *is_base_class_match)
 /*
 Return TRUE if sym, an sk_member_function symbol for an operator= function,
-qualifies as a "copy assignment operator" (WP 12.8) that can copy a class
-object.  It qualifies if its first parameter has a type of "A", "A&", or
-"const A&", where "A" is the class of which it is a member.  (In cfront
-compatibility mode, sym also qualifies if the first parameter involves type
-B where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
+qualifies as a "copy assignment operator" that can copy a class object.
+It qualifies if its first parameter has a type of "A", "A&", or "A const&",
+where "A" is the class of which it is a member.  If move_assign_okay is TRUE,
+the parameter can also have type "A&&" or "A const&&".  (In cfront
+compatibility mode, sym also qualifies if the first parameter involves type B
+where B is a base class of A.)  Set *is_ref_arg to TRUE if the first
 parameter is a reference type.  Set *qualifiers based on how the first
 parameter is qualified.  Return *is_base_class_match set to TRUE for the
 cfront compatibility case.
@@ -9838,9 +9844,8 @@ cfront compatibility case.
   ptp = rtsp->param_type_list;
   check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
-  /* Note that an operator= with an rvalue reference parameter is not
-     considered a copy assignment operator. */
-  if (is_lvalue_reference_type(tp)) {
+  if (move_assign_okay ? is_reference_type(tp)
+                       : is_lvalue_reference_type(tp)) {
     /* Reference argument. */
     tp = type_pointed_to(tp);
     /* Don't do a skip_typerefs on what's returned from type_pointed_to,
@@ -9903,8 +9908,9 @@ is_assignment_operator_for_copy.
 
   for (; inst != NULL; inst = inst->next) {
     if (inst->instance_sym->variant.routine.ptr->is_specialized &&
-        is_assignment_operator_for_copy(inst->instance_sym, is_ref_arg,
-                                        qualifiers, is_base_class_match)) {
+        is_assignment_operator_for_copy(
+                               inst->instance_sym, /*move_assign_okay=*/FALSE,
+                               is_ref_arg, qualifiers, is_base_class_match)) {
       result = inst->instance_sym;
       break;
     }  /* if */
@@ -12455,9 +12461,10 @@ The routine body is not generated until it is known to be needed.
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
   pos = &class_type->source_corresp.decl_position;
-  /* Check for a user-declared copy assignment operator. */
+  /* Check for a user-declared copy assignment or move assignment operator. */
   user_declared_copy_assignment_op = assignment_operator_for_copy_exists(
                                           cssp->assignment_operator,
+                                          /*move_assign_okay=*/TRUE,
                                           &user_provided_copy_assignment_op,
                                           &dummy_flag);
   if (user_provided_copy_assignment_op) {
