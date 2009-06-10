@@ -12482,9 +12482,15 @@ The routine body is not generated until it is known to be needed.
   ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
-  declare_copy_ctor = (ctsp->is_lambda_closure_class ||
-                       (cssp->constructor != NULL &&
-                        !cssp->has_copy_constructor));
+  /* If no copy constructor has been declared, we generally declare one
+     implicitly.  An exception occurs for classes that are trivially copyable,
+     provided there are no other constructors (in which case the trivial copy
+     constructor must be represented so it can compete in overload resolution)
+     and the class is not a closure type. */
+  declare_copy_ctor = !cssp->has_copy_constructor &&
+                      (ctsp->is_lambda_closure_class ||
+                       cssp->constructor != NULL ||
+                       !cssp->construction_by_bitwise_copy_allowed);
   declare_dtor = (class_state->member_destruction_required ||
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
