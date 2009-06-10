@@ -26,10 +26,6 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if !STANDALONE_UTILITY_PROGRAM
-#include "lower_name.h"
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 #if EDG_WIN32
 /* Disable unneeded features of <windows.h> for efficiency. */
 #define NOGDICAPMASKS
