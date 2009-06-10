@@ -9039,6 +9039,7 @@ implicitly declared member functions.
             cssp->has_user_declared_default_constructor = TRUE;
             if (!rtn->is_defaulted) {
               cssp->has_user_provided_default_constructor = TRUE;
+              class_state->POD_ruled_out = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
