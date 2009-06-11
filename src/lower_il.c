@@ -13515,7 +13515,7 @@ cast.  See lower_expr for typical invocation.
                                    expr->type, operand_node,
                                    /*is_lvalue=*/TRUE);
           if (!expr_is_lvalue) {
-            /* Retain lvalueness. */
+            /* Convert to an rvalue if necessary. */
             expr = rvalue_expr_for_lvalue(expr);
           }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
