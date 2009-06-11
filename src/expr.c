@@ -11753,7 +11753,7 @@ indicates which.
             }  /* if */
             /* Do the actual cast. */
             if (!cast_to_reference) {
-              cast_operand_special(type_cast_to, operand, type_position,
+              cast_operand_special(type_cast_to, operand, start_position,
                                    /*check_cast_access=*/FALSE,
                                    /*is_implicit_cast=*/FALSE, 
                                    /*is_reinterpret_cast=*/FALSE,
