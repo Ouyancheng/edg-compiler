@@ -5813,11 +5813,13 @@ or struct definition.  The syntax is
       }  /* if */
       /* The current derived class cannot be copy-constructed or assigned by
          bitwise copying if the base class does not allow it or is a virtual
-         base class. */
+         base class.  (If the base class is nonreal, assume its type does not
+         affect bitwise copyability.) */
       if (is_virtual) {
         cssp->construction_by_bitwise_copy_allowed = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
-      } else {
+      } else if (!base_class_type
+                              ->variant.class_struct_union.is_nonreal_class) {
         if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
           cssp->construction_by_bitwise_copy_allowed = FALSE;
         }  /* if */
@@ -11638,12 +11640,15 @@ be entered.
           class_state->member_destruction_required = TRUE;
         }  /* if */
         /* The parent class cannot be copy-constructed or assigned by bitwise
-           copying if the member class does not allow it. */
-        if (!member_cssp->construction_by_bitwise_copy_allowed) {
-          cssp->construction_by_bitwise_copy_allowed = FALSE;
-        }  /* if */
-        if (!member_cssp->assignment_by_bitwise_copy_allowed) {
-          cssp->assignment_by_bitwise_copy_allowed = FALSE;
+           copying if the member class does not allow it.  (If the member
+           class is nonreal, assume it doesn't affect this.) */
+        if (!tp->variant.class_struct_union.is_nonreal_class) {
+          if (!member_cssp->construction_by_bitwise_copy_allowed) {
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
+          }  /* if */
+          if (!member_cssp->assignment_by_bitwise_copy_allowed) {
+            cssp->assignment_by_bitwise_copy_allowed = FALSE;
+          }  /* if */
         }  /* if */
         /* If the member type has mutable members, set the flag in the parent
            type. */
