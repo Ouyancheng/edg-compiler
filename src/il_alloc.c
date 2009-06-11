@@ -2289,6 +2289,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->ctor_dtor_kind              = (a_ctor_or_dtor_kind)cdk_none;
   rp->is_alias_entry              = FALSE;
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if DO_IL_LOWERING
+  rp->lowering_delayed_on_nested_function = FALSE;
+#endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   rp->statics_have_been_promoted  = FALSE;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */

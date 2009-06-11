@@ -10235,6 +10235,12 @@ typedef struct a_routine {
 			   call the primary routine passing the same
 			   parameters. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if DO_IL_LOWERING
+  a_bit_field	lowering_delayed_on_nested_function:1;
+			/* TRUE if the lowering for this routine is to be
+			   delayed because lowering of a nested function was
+			   delayed. */
+#endif /* DO_IL_LOWERING */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   a_bit_field	statics_have_been_promoted:1;
 			/* TRUE if, in C++, statics have already been promoted

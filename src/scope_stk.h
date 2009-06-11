@@ -499,12 +499,6 @@ typedef struct a_scope_stack_entry {
 			   when popped.  Specifically, this is used for
 			   function scopes of duplicate definitions of explicit
 			   specializations in some Microsoft modes. */
-#if DO_IL_LOWERING
-  a_bit_field	lowering_delayed_on_nested_function:1;
-			/* TRUE if this is a function scope that contains
-			   a nested function scope has had its lowering
-			   delayed. */
-#endif /* DO_IL_LOWERING */
   a_bit_field	fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
   a_bit_field	fenv_access_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
   a_bit_field	cx_limited_range_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
