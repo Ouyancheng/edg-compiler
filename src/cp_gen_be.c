@@ -12765,7 +12765,8 @@ handle_as_definition:
            not necessary to put out the keyword.  This is needed to avoid
            a bug in the Sun C++ 5.0 compiler regarding "inline" on
            constructor definitions. */
-        !(decl_within_class && is_definition)) {
+        !(decl_within_class &&
+          (is_definition || rout->is_defaulted || rout->is_deleted))) {
       if (gcc_is_generated_code_target && il_header.source_language == sl_C) {
         if (rout->suppress_inline_body &&
             storage_class == (a_storage_class)sc_unspecified) {
@@ -12841,7 +12842,13 @@ handle_as_definition:
     gen_microsoft_function_modifiers(rout, &abstract_generated);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (!is_definition) {
+  if (rout->is_deleted) {
+    /* A deleted function definition. */
+    write_tok_str(" = delete;");
+  } else if (rout->is_defaulted) {
+    /* A defaulted function definition. */
+    write_tok_str(" = default;");
+  } else if (!is_definition) {
     /* A declaration of the routine. */
 #if GNU_EXTENSIONS_ALLOWED
     /* Emit any user-specified assembly symbol for this routine. */
@@ -12867,12 +12874,6 @@ handle_as_definition:
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                          rout->surrounding_name_linkage_state);
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
-  } else if (rout->is_deleted) {
-    /* A deleted function definition. */
-    write_tok_str(" = delete;");
-  } else if (rout->is_defaulted) {
-    /* A defaulted function definition. */
-    write_tok_str(" = default;");
   } else {
     /* The definition of the routine. */
     /* Push a name context for the function. */
