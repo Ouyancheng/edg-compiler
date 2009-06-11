@@ -14893,9 +14893,6 @@ cases where bitwise copying applies.
   if (!C_mode() && is_class_struct_union_type(dest_type)) {
     a_type_ptr class_type = skip_typerefs(dest_type), param_type;
     /* C++ assignment of a class. */
-    check_assertion_str(symbol_supplement_for_class(class_type)->
-                                            assignment_by_bitwise_copy_allowed,
-                        "prep_assignment_operand: class not bitwise copyable");
     if ((strict_ansi_mode || microsoft_mode) && is_qualified_type(dest_type)) {
       /* The bitwise copy is defined in terms of a notional generated copy
          assignment operator which is not cv-qualified and therefore cannot
