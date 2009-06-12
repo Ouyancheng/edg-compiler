@@ -340,6 +340,58 @@ not, call bad_mangled_name.  In either case, return the updated value of p.
   return advance_past('_', p, dctl);
 }  /* advance_past_underscore */
 
+#if IA64_ABI
+static char *get_number(char                       *p,
+                        long                       *num,
+                        a_decode_control_block_ptr dctl);
+#else /* !IA64_ABI */
+static char *get_number(char                       *p,
+                        unsigned long              *num,
+                        a_decode_control_block_ptr dctl);
+#endif /* IA64_ABI */
+
+static char *demangle_module_id(char                       *ptr,
+                                long                       num,
+                                a_decode_control_block_ptr dctl)
+/*
+Demangle a module id name (an EDG extension), which has the form
+
+        _ <file-name-length> _ <file-name> _ <str1> [ _ <str2> ]
+
+Only the file name part is parsed and put out.  num specifies the number of
+characters in the entire module id.  Return a pointer to the character position
+following the entire module id.
+*/
+{
+#if IA64_ABI
+  long		num_chars_to_output;
+#else /* IA64_ABI */
+  unsigned long num_chars_to_output;
+#endif /* IA64_ABI */
+
+  if (*ptr != '_' || !isdigit((unsigned char)ptr[1])) {
+    bad_mangled_name(dctl);
+  } else {
+    char *end_num = get_number(ptr+1, &num_chars_to_output, dctl);
+    if (!dctl->err_in_id) {
+      long prefix_len = (end_num-ptr)+1;
+      if (*end_num != '_' ||
+#if IA64_ABI
+          num_chars_to_output <= 0 ||
+#endif /* IA64_ABI */
+          num < (num_chars_to_output + prefix_len)) {
+        bad_mangled_name(dctl);
+      } else {
+        /* Skip the underscore. */
+        end_num++;
+        /* Write the filename. */
+        while (num_chars_to_output-- > 0) write_id_ch(*end_num++, dctl);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return ptr+num;
+}  /* demangle_module_id */
+
 #if !IA64_ABI
 
 static char *get_length(char                       *p,
@@ -1372,6 +1424,12 @@ template parameters.
       is_special_name = TRUE;
       write_id_str("<unnamed>", dctl);
       end_ptr = p + nchars - 2;
+    } else if (nchars != 0 && start_of_id_is("INTERNAL", p, dctl)) {
+      /* __INTERNAL<module_id>: An individuated namespace name. */
+      is_special_name = TRUE;
+      write_id_str("[local to ", dctl);
+      end_ptr = demangle_module_id(p+8, nchars-(8+2), dctl);
+      write_id_str("]", dctl);
     } else {
       /* Something unrecognized. */
     }  /* if */
@@ -1561,10 +1619,10 @@ static char *demangle_type_name_with_preceding_length(
                                    a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
 /*
-Demangle a type name that is preceded by a length, e.g., "3abc" for the type
-name "abc".  The name can include template parameters or a function-local
-indication but is not a nested type.  If nchars is non-zero on input, the
-length has already been scanned and nchars gives its value.  In that
+Demangle a type name (or namespace name) that is preceded by a length, e.g.,
+"3abc" for the type name "abc".  The name can include template parameters or a
+function-local indication but is not a nested type.  If nchars is non-zero on
+input, the length has already been scanned and nchars gives its value.  In that
 case, not all nchars characters of input need be taken, scanning will
 stop on a "__", and *nchars_left is set to the number of characters not
 taken.  Return a pointer to the character position following what was
@@ -4061,36 +4119,26 @@ part.  Just put out the file name part (continue scanning, but do not
 output the rest of the string).  This is used for an EDG extension.
 */
 {
-  long      num, num_chars_to_output;
+  long      num;
   a_boolean output_chars = TRUE;
 
   ptr = get_number(ptr, &num, dctl);
   if (num <= 0) {
     bad_mangled_name(dctl);
+  } else if (is_module_id) {
+    /* A module id name (an EDG extension), which has the form
+         <length> _ <file-name-length> _ <file-name> <rest-of-module-id>
+       Only the file name part is put out. */
+    ptr = demangle_module_id(ptr, num, dctl);
+  } else if (num >= 9 && start_of_id_is("_INTERNAL", ptr)) {
+    /* An EDG extension to individuate certain entities so they don't
+       collide with similarly named (or unnamed) entities in other
+       translation units. */
+    write_id_str("[local to ", dctl);
+    ptr = demangle_module_id(ptr+9, num-9, dctl);
+    write_id_str("]", dctl);
   } else {
-    if (is_module_id) {
-      /* A module id name (an EDG extension), which has the form
-           <length> _ <file-name-length> _ <file-name> <rest-of-module-id>
-         Only the file name part is put out.  The rest is passed over
-         but not output. */
-      if (*ptr != '_' || !isdigit((unsigned char)ptr[1])) {
-        bad_mangled_name(dctl);
-      } else {
-        char *end_num = get_number(ptr+1, &num_chars_to_output, dctl);
-        if (!dctl->err_in_id) {
-          long prefix_len = (end_num-ptr)+1;
-          if (*end_num != '_' ||
-              num_chars_to_output <= 0 ||
-              num < (num_chars_to_output + prefix_len)) {
-            bad_mangled_name(dctl);
-          } else {
-            num -= prefix_len;
-            ptr += prefix_len;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (dctl->err_in_id) is_module_id = FALSE;
-    } else if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
+    if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
       /* g++ uses names beginning with "_GLOBAL__N_" to identify unnamed
          namespaces, and the EDG C++ Front End does also to be compatible
          with that. */
@@ -4113,10 +4161,6 @@ output the rest of the string).  This is used for an EDG extension.
         }  /* if */
       } else if (output_chars) {
         write_id_ch(*ptr, dctl);
-        if (is_module_id) {
-          num_chars_to_output--;
-          if (num_chars_to_output == 0) output_chars = FALSE;
-        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

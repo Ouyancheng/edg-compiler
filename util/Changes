@@ -1,5 +1,40 @@
 Version 4.1
 
+6/12/09  [EDGcpfe/9428]
+Demangling of individuated entities
+
+In C++0x, local and unnamed types can now be used as template type arguments,
+meaning that local and unnamed types can now appear in the mangled names of
+functions.  To ensure that these unnamed classes/enums as well as types defined
+in static functions are differentiated from similar constructs in other
+translation units, the type names are "individuated" by the front end.
+Individuated entities are mangled "as if" they are part of a translation unit
+specific namespace (this fabricated "namespace" incorporates the translation
+unit's module id to provide a unique symbol).  Mangled names that are
+individuated are now recognized during demangling and the individuated
+namespace name is replaced with "[local to <filename>]" in the demangled
+output.  This mangling scheme is used in both IA-64 and Cfront ABIs (and is an
+EDG extension to the IA-64 ABI).
+
+For example, these are mangled names for a function template that
+takes an unnamed struct and an unnamed enum as template type arguments:
+
+  _Z1fIN22_INTERNAL_3_x_c__Z2f1v4__C1ENS0_4__E2EEvT_T0_
+
+is now demangled as (IA-64 ABI):
+
+  f<[local to x_c]::__C1, [local to x_c]::__E2>(T1, T2)
+
+and
+
+  __CPR87__f__tm__67_Q2_23__INTERNAL_3_x_c_f1__Fv4__C1Q2_J13J4__E2__FZ1ZZ2Z_v
+
+is demangled as (Cfront ABI):
+
+ void f<T1, T2>(T1, T2) [with T1=[local to x_c]::__C1, T2=[local to x_c]::__E2]
+
+
+
 3/13/09  [EDGcpfe/8056]
 Demangling of rvalue references
 
