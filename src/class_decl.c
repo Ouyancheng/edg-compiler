@@ -8348,17 +8348,19 @@ parent class is X, it must have one of the following signatures:
 
 void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
                                          a_func_info_block   *func_info,
-                                         a_source_position   *diag_pos)
+                                         a_source_position   *def_pos)
 /*
 *dps and *func_info describe a function declaration.  If func_info indicates
-that the function is being defined with "= default" or "= delete", check that
-it is appropriate (and issue an error at the given position if it is not), and
-update the routine's IL entry accordingly.
+that the function is being defined with "= default;" or "= delete;", check that
+it is appropriate (and issue an error if it is not), and update the routine's
+IL entry accordingly.  def_pos is the position of the "= default;" or
+"= delete;" construct.
 */
 {
-  an_error_code  err_code = ec_no_error;
-  a_symbol_ptr   sym = dps->sym;
-  a_routine_ptr  rp;
+  an_error_code      err_code = ec_no_error;
+  a_symbol_ptr       sym = dps->sym;
+  a_routine_ptr      rp;
+  a_source_position  *diag_pos = def_pos;
 
   /* Retrieve the appropriate IL routine entry. */
   if (is_simple_function_symbol(sym)) {
@@ -8406,6 +8408,7 @@ update the routine's IL entry accordingly.
         err_code = has_default_arg ?
                              ec_copy_ctor_with_default_arg_cannot_be_defaulted
                            : ec_invalid_constructor_to_be_defaulted;
+        diag_pos = &dps->declarator_pos;
       }  /* if */
     } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
       rp->is_defaulted = TRUE;
@@ -8415,6 +8418,7 @@ update the routine's IL entry accordingly.
         rp->is_defaulted = TRUE;
       } else {
         err_code = ec_invalid_assignment_operator_to_be_defaulted;
+        diag_pos = &dps->declarator_pos;
       }  /* if */
     } else {
       /* Not a constructor, destructor, or assignment operator. */
