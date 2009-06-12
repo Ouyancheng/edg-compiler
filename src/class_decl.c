@@ -8251,15 +8251,15 @@ static a_boolean constructor_can_be_defaulted(a_symbol_ptr  sym,
                                               a_boolean     *has_default_arg)
 /*
 sym is a constructor.  Return whether it can be "defaulted".  I.e., if its
-parent class is X, it must have on of the following signatures and not include
+parent class is X, it must have one of the following signatures and not include
 a default argument:
 	X()
 	X(X&)
 	X(X const&)
 If the signature is the first in the list above, set *is_default_ctor to TRUE;
-otherwise set it to FALSE.  If the signature is one of the latter two and
-the parameter has an associated default argument set *has_default_arg to TRUE
-(and return FALSE); otherwise, set *has_default_arg to FALSE.
+otherwise set it to FALSE.  If the signature is one of the latter two and the
+parameter has an associated default argument set *has_default_arg to TRUE (and
+return FALSE); otherwise, set *has_default_arg to FALSE.
 */
 {
   a_boolean         result = FALSE;
