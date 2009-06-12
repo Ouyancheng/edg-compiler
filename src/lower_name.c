@@ -4045,8 +4045,8 @@ needs_to_be_individuated == FALSE.
       /* We need to drop the nested type name prefix if present, and
          construct the correct "Q" qualifier with the right total nesting
          level, ignoring the one on the saved mangled name. */
-      name = type->source_corresp.name;
       unsigned long type_nesting_level=nesting_level_of(&type->source_corresp);
+      name = type->source_corresp.name;
       /* Skip the prefix. */
       check_assertion(strncmp(name,
                               PREFIX_ON_NESTED_TYPE_NAME,

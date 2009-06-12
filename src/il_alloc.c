@@ -3336,8 +3336,8 @@ to it.
 }  /* alloc_object_lifetime */
 
 
-a_namespace_ptr clear_namespace(a_namespace_ptr nsp,
-                                a_boolean       is_alias)
+void clear_namespace(a_namespace_ptr nsp,
+                     a_boolean       is_alias)
 /*
 Initialize the namespace pointed to by nsp.  The namespace is an alias if
 is_alias is TRUE.
@@ -3354,7 +3354,6 @@ is_alias is TRUE.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
   nsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-  return nsp;
 }  /* clear_namespace */
 
 
