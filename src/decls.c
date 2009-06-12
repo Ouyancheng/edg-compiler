@@ -7773,6 +7773,14 @@ definition of a member function of a class template.
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* This is the symbol for a member template function.  Use
              this symbol. */
+          /* Ordinarily, an out-of-class member declaration is not the "first
+             declaration" of the member template, but if this is an explicit
+             specialization, it can be seen as the first declaration of that
+             member (for a particular parent class):
+               template<class> struct S { template<class> void f(); };
+               template<> template<class T> void S<int>::f() {}
+             */
+          dps->first_decl = decl_state->is_specialization;
         } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
           /* This is a member function symbol of a prototype instantiation.
              Get the associated function template. */
