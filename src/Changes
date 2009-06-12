@@ -1,5 +1,13 @@
 Version 4.1
 
+6/12/09  [EDGcpfe/9910]
+Unused flag case_fallthrough_label removed
+
+The field case_fallthrough_label of a_label has been removed since it was no
+longer used in any way after the switch statement representation changes of
+version 4.0 (see Changes entry of 4/15/08).
+
+
 6/12/09  [EDGcpfe/9862]
 GNU C++ compatibility: namespace and class in the same scope
 

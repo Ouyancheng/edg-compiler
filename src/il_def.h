@@ -10502,10 +10502,6 @@ typedef struct a_label {
 			/* TRUE if this is a compiler-generated label that
 			   is the target of a "__leave" statement. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_bit_field	case_fallthrough_label:1;
-			/* TRUE if this is a compiler-generated label that
-			   is used for a fall-through from one case of a
-			   switch to the next. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	address_taken:1;
 			/* TRUE if this label had its address taken

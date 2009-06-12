@@ -2481,7 +2481,6 @@ to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   lp->leave_label = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  lp->case_fallthrough_label = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   lp->address_taken = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
