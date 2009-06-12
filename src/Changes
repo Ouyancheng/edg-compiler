@@ -44,7 +44,7 @@ Microsoft compatibility: Out-of-namespace template redeclaration
 In Microsoft mode, a template may be redeclared outside of its class or
 namespace.  Previously, this was restricted to when microsoft_version <= 1300
 (see Changes entry of 11/1/05), but the case of a namespace member class is
-also accepted more recent Microsoft compilers: The front end now emulates
+also accepted by more recent Microsoft compilers: The front end now emulates
 that behavior.  For example:
 
   namespace A {
