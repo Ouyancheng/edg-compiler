@@ -3263,7 +3263,10 @@ this is not allowed, an error will be issued by the caller.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (!C_mode()) {
     /* Some checks specific to C++ mode. */
-    if (is_namespace_symbol(new_sym) || is_namespace_symbol(old_sym)) {
+    a_boolean	new_is_namespace = is_namespace_symbol(new_sym);
+    a_boolean	old_is_namespace = is_namespace_symbol(old_sym);
+    if ((new_is_namespace || old_is_namespace) &&
+        (!gpp_mode || gnu_version >= 40300)) {
       /* A namespace name must be unique in its scope. */
       /* err = TRUE; */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3364,16 +3367,28 @@ this is not allowed, an error will be issued by the caller.
                  !is_class_template_symbol(fund_old_sym)) {
         /* The new symbol is a tag symbol and the old symbol is a non-type
            name.  Be sure the new symbol inserted into the list after the
-           old one. */
+           old one.  old_is_namespace can only be TRUE in g++ mode, where
+           a namespace and class can be declared with the same name.  In
+           that case, the class should go on the front of the list because
+           it should be found instead of the namespace by normal lookups. */
         err = FALSE;
-        if (insert_sym != NULL) *insert_sym = old_sym;
+        if (!old_is_namespace) {
+          if (insert_sym != NULL) *insert_sym = old_sym;
+        }  /* if */
       } else if (is_tag_symbol(fund_old_sym) &&
                  !is_type_symbol(fund_new_sym) &&
                  !is_class_template_symbol(fund_new_sym)) {
         /* The old symbol is a tag symbol and the new one is not a type
            symbol or a class template name.  It will be placed at the front
-           of the list automatically. */
+           of the list automatically.  new_is_namespace can only be TRUE in
+           g++ mode, where a namespace and class can be declared with the
+           same name.  In that case, the namespace should go on the list after
+           the class because the class should be found instead of the
+           namespace by normal lookups. */
         err = FALSE;
+        if (new_is_namespace) {
+          if (insert_sym != NULL) *insert_sym = old_sym;
+        }  /* if */
       } else if (!strict_ansi_mode &&
                  old_sym->kind == (a_symbol_kind)sk_projection &&
                  !old_sym->variant.projection.is_using_decl &&

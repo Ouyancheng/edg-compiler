@@ -1,5 +1,19 @@
 Version 4.1
 
+6/12/09  [EDGcpfe/9862]
+GNU C++ compatibility: namespace and class in the same scope
+
+In g++ mode when gnu_version is < 40300, a class and a namespace can be
+declared with the same name in a given scope.  A lookup of the name finds
+the class, except when a namespace is required.
+
+  namespace N { typedef int X; };
+  struct N { typedef int Y; };  // g++ accepts this
+  N::X x;  // error N has no X
+  N::Y y;  // okay
+  namespace N {}  // okay
+
+
 6/10/09  [EDGcpfe/9904]
 Delay lowering of function scopes until a module id can be created
 
