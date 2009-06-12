@@ -1285,16 +1285,16 @@ is the name of the file, which is used for diagnostic purposes.
         is_bom = TRUE;
         *unicode_source_kind = usk_utf16BE;
       }  /* if */
-    }  /* if */
-    if (!is_bom) {
-      /* The file did not begin with a byte order mark.  Reset the file
-         position to the start of the file. */
-      if (fseek(f_file, 0L, SEEK_SET) != 0) {
-        /* The seek could not be done.  This implies some change
-           in the file since last it was opened. */
-        an_open_file_result	open_result;
-        clear_open_file_result(&open_result);
-        file_open_error(es_catastrophe, ec_source, file_name, &open_result);
+      if (!is_bom) {
+        /* The file did not begin with a byte order mark.  Reset the file
+           position to the start of the file. */
+        if (fseek(f_file, 0L, SEEK_SET) != 0) {
+          /* The seek could not be done.  This implies some change
+             in the file since last it was opened. */
+          an_open_file_result	open_result;
+          clear_open_file_result(&open_result);
+          file_open_error(es_catastrophe, ec_source, file_name, &open_result);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
