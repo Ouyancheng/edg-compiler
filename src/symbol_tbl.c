@@ -1604,7 +1604,7 @@ return NULL.
     }  /* if */
   }  /* while */
   return result;
-}  /* underlying_routine_type */
+}  /* underlying_function_type */
 
 
 a_boolean overload_set_contains_template(a_symbol_ptr sym)
