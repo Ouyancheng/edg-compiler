@@ -565,6 +565,9 @@ a pointer to the entry created.
   tup->specified_on_command_line = FALSE;
   tup->additional_instantiation_wrapup_required = TRUE;
   tup->file_scope_region_number = NULL_region_number;
+#if NEED_NAME_MANGLING
+  tup->individuated_namespace = NULL;
+#endif /* NEED_NAME_MANGLING */
   /* Translation unit fields that are maintained by the mechanism that
      saves and restores translation unit variables.  They point to whichever
      copy of the information is currently active (either the global variable

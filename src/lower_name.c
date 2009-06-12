@@ -384,9 +384,11 @@ static char *compress_mangled_name(char                     *mangled_name,
 static char *truncate_mangled_name(char                     *mangled_name,
                                    a_source_correspondence  *scp,
                                    a_mangling_control_block *mctl);
-static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
-                                       unsigned long            nesting_level,
-                                       a_mangling_control_block *mctl);
+static void r_mangled_parent_qualifier(
+                             a_source_correspondence  *scp,
+                             unsigned long            nesting_level,
+                             a_boolean                needs_to_be_individuated,
+                             a_mangling_control_block *mctl);
 #if IA64_ABI
 static void mangled_ia64_parent_qualifier(
                               a_source_correspondence  *scp,
@@ -409,11 +411,13 @@ static a_boolean function_name_mangling_needed(
 
 #if !IA64_ABI
 /*
-Interface to r_mangled_parent_qualifier, to provide nesting_level == 1.
-For the IA-64 ABI, see mangled_ia64_parent_qualifier.
+Interface to r_mangled_parent_qualifier, to provide nesting_level == 1 and
+needs_to_be_individuated == FALSE.  For the IA-64 ABI,
+see mangled_ia64_parent_qualifier.
 */
 #define mangled_parent_qualifier(parent, mctl)                        \
-  r_mangled_parent_qualifier((parent), (unsigned long)1, (mctl))
+  r_mangled_parent_qualifier((parent), (unsigned long)1,              \
+                             /*needs_to_be_individuated=*/FALSE, (mctl))
 #endif /* !IA64_ABI */
 
 
@@ -3828,19 +3832,139 @@ template argument lists, and types promoted out of functions.
        ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling))
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
+#if DO_IL_LOWERING
+static char *module_id_for_source_corresp(a_source_correspondence *scp);
+#endif /* DO_IL_LOWERING */
 
-static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
-                                       unsigned long            nesting_level,
-                                       a_mangling_control_block *mctl)
+
+static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
+                                                 an_il_entry_kind        kind)
 /*
-Add to the mangled name the encoding for the parent qualifier needed in
-the mangled name for a member of a class, namespace member, or scoped
-enumerator whose source correspondence is pointed to by scp.  nesting_level is
-used to track recursive calls of this routine to deal with multiple levels of
-parents.  nesting_level == 1 refers to the innermost qualifier of a type,
-nesting_level == 2 is the next level out, etc.  The value is not used in the
-IA-64 ABI.  See the macro mangled_parent_qualifier, which supplies the usual
-nesting_level == 1.
+Returns TRUE if the specified entity (as indicated by scp and kind) needs to
+have an "individuated" mangled name.  Such names are needed to prevent
+collisions of similarly named (or unnamed) entities in multiple translation
+units.  This can occur when an unnamed type (or named type of a static
+function) is used as a template type argument.  Unnamed types that are class
+members or local to a function are already mangled in a unique manner (relative
+to their class or function).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (local_types_as_template_args_enabled &&
+      ((kind == iek_type &&
+        is_originally_unnamed_type((a_type_ptr)scp) &&
+        !scp->is_class_member &&
+        !scp->is_local_to_function) ||
+       (kind == iek_routine &&
+        !is_class_or_namespace_member((a_routine_ptr)scp) &&
+        ((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static &&
+        !routine_should_be_externalized_for_exported_templates(
+                                                       (a_routine_ptr)scp)))) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* entity_needs_to_be_individuated */
+
+
+static a_boolean ttt_type_needs_to_be_individuated(a_type_ptr tp,
+                                                   a_boolean  *end_traversal)
+/*
+Return TRUE (and stop the type traversal) if the specified type (tp)
+needs to be individuated.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (entity_needs_to_be_individuated(&tp->source_corresp, iek_type)) {
+    result = TRUE;
+    *end_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_type_needs_to_be_individuated */
+
+
+a_boolean routine_contains_an_individuated_entity(a_routine_ptr routine)
+/*
+Returns TRUE if the specified routine needs to be individuated, or contains
+any components that need to be individuated.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (entity_needs_to_be_individuated(&routine->source_corresp, iek_routine)) {
+    result = TRUE;
+  } else {
+    /* Do a type traversal to see if any elements of the type need to be
+       individuated. */
+    a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_EXCEPTION_SPECS |
+                                               TTT_SKIP_TYPEREFS;
+    result = traverse_type_tree(routine->type,
+                                ttt_type_needs_to_be_individuated, tt_flags);
+  }  /* if */
+  return result;
+}  /* routine_contains_an_individuated_entity */
+
+
+static a_namespace_ptr make_individuated_namespace(
+                                                  a_source_correspondence *scp)
+/*
+Return a pointer to a dummy namespace used for mangling of entities that
+need to be individuated.  These entities are mangled "as if" they were part
+of a top-level namespace whose name is the concatenation of "_INTERNAL"
+(or "__INTERNAL" for the Cfront ABI) and the module id.  This is an EDG
+extension.  scp is the source correspondence of (a component) of the entity and
+is used to generate the correct module id for the entity.
+*/
+{
+  static a_namespace_ptr nsp;
+  a_translation_unit_ptr tup;
+
+  /* Each translation unit is individuated with a different name, make
+     sure we use the correct one. */
+  tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
+                                    curr_translation_unit;
+  if (tup->individuated_namespace == NULL) {
+    char *name, *module_id = module_id_for_source_corresp(scp);
+    nsp = alloc_fe_of_type(a_namespace);
+    clear_namespace(nsp, /*is_alias=*/FALSE);
+#if IA64_ABI
+    name = (char *)alloc_general(strlen(module_id)+1+9);
+    (void)strcpy(name, "_INTERNAL");
+#else /* !IA64_ABI */
+    name = (char *)alloc_general(strlen(module_id)+1+10);
+    (void)strcpy(name, "__INTERNAL");
+#endif /* IA64_ABI */
+    (void)strcat(name, module_id);
+    nsp->source_corresp.name = name;
+    tup->individuated_namespace = nsp;
+  }  /* if */
+  return tup->individuated_namespace;
+}  /* make_individuated_namespace */
+
+
+static void r_mangled_parent_qualifier(
+                             a_source_correspondence  *scp,
+                             unsigned long            nesting_level,
+                             a_boolean                needs_to_be_individuated,
+                             a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the parent qualifier needed in the
+mangled name for an entity whose source correspondence is pointed to by scp.
+Typically, scp is a member of a class, namespace member, or scoped enumerator,
+but when needs_to_be_individuated is TRUE, the entity can be a type or routine.
+nesting_level is used to track recursive calls of this routine to deal with
+multiple levels of parents.  nesting_level == 1 refers to the innermost
+qualifier of a type, nesting_level == 2 is the next level out, etc.  The value
+is not used in the IA-64 ABI.  needs_to_be_individuated is TRUE when then
+entity needs to be "individuated", that is, mangled "as if" the entity were
+part of a top-level namespace with a unique name.  See the macro
+mangled_parent_qualifier, which supplies the usual nesting_level == 1 and
+needs_to_be_individuated == FALSE.
 */
 {
   a_type_ptr              type = NULL;
@@ -3851,6 +3975,8 @@ nesting_level == 1.
   a_boolean               show_partial_spec_args = FALSE;
   a_boolean               is_template_specialization = FALSE;
   a_boolean               is_specialization = FALSE;
+  a_boolean               use_individuated_namespace = FALSE;
+  char                    *name;
 
   /* See if the present level is nested inside some other class or
      namespace. */
@@ -3919,7 +4045,7 @@ nesting_level == 1.
       /* We need to drop the nested type name prefix if present, and
          construct the correct "Q" qualifier with the right total nesting
          level, ignoring the one on the saved mangled name. */
-      char          *name = type->source_corresp.name;
+      name = type->source_corresp.name;
       unsigned long type_nesting_level=nesting_level_of(&type->source_corresp);
       /* Skip the prefix. */
       check_assertion(strncmp(name,
@@ -3953,17 +4079,29 @@ nesting_level == 1.
     parent_scp = &type->source_corresp;
     more_levels = entity_needs_parent_qualifier(&type->source_corresp,
                                                 iek_type);
-  } else {
+  } else if (scp_is_namespace_member(scp)) {
     /* Namespace member. */
-    check_assertion(scp_is_namespace_member(scp));
     parent_scp = &scp_parent_namespace(scp)->source_corresp;
     more_levels = scp_is_namespace_member(parent_scp);
+    if (!more_levels && needs_to_be_individuated) {
+      /* This is the topmost namespace, but the entity needs to
+         be individuated, so recurse once more to add the individuated
+         namespace. */
+      more_levels = TRUE;
+    }  /* if */
+  } else {
+    /* A topmost entity needing individuation. */
+    check_assertion(needs_to_be_individuated);
+    more_levels = FALSE;
+    parent_scp = NULL;
+    use_individuated_namespace = TRUE;
   }  /* if */
 #if !IA64_ABI
   if (more_levels) {
     /* This level is nested inside something else.  Do a recursive call
        to put out all of the parents. */
-    r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+    r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
+                               needs_to_be_individuated, mctl);
   } else {
     /* This is the topmost qualifier. */
     if (nesting_level > 1) {
@@ -3993,7 +4131,8 @@ nesting_level == 1.
       if (more_levels) {
         /* This level is nested inside something else.  Do a recursive call to
            deal with all of the parents. */
-        r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+        r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
+                                   needs_to_be_individuated, mctl);
       }  /* if */
       if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
@@ -4024,7 +4163,6 @@ new_substitution:
 #if !IA64_ABI
     a_length_reservation  length_reservation;
 #endif /* !IA64_ABI */
-    char *name;
     name = unmangled_name_of(&type->source_corresp);
     if (name == NULL) {
       /* For an unnamed enum, generate a name (or use the name previously
@@ -4038,7 +4176,8 @@ new_substitution:
       if (more_levels) {
         /* This level is nested inside something else.  Do a recursive call to
            deal with all of the parents. */
-        r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+        r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
+                                   needs_to_be_individuated, mctl);
       }  /* if */
     }  /* if */
     /* Put out the enum name along with its length. */
@@ -4060,17 +4199,36 @@ new_substitution:
     }  /* if */
     fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
-  } else {
-    /* Namespace name. */
-    a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
-    char            *name;
+  } else if (scp_is_namespace_member(scp) ||
+             use_individuated_namespace) {
+    /* Namespace or "individuated" namespace name. */
+    a_namespace_ptr nsp;
+    if (use_individuated_namespace) {
+      /* Use a dummy namespace pointer for all individuated namespace
+         manglings.  Having a namespace pointer ensures that substitutions
+         (for the IA-64 ABI) will be handled properly. */
+      nsp = make_individuated_namespace(scp);
+    } else {
+      nsp = scp_parent_namespace_or_null(scp);
+    }  /* if */
 #if IA64_ABI
+    if (needs_to_be_individuated &&
+        substitution_available((char *)nsp, iek_namespace, mctl) &&
+        is_namespace_std(nsp)) {
+      /* This is an entity in the std namespace that needs to be individuated
+         (e.g., "namespace std { enum {} e; }").  The "St" substitution is
+         typically used to mangle this, but we need to add the individuated
+         namespace first before that substitution is performed below. */
+      a_namespace_ptr insp = make_individuated_namespace(scp);
+      mangled_name_with_length(unmangled_name_of(&insp->source_corresp), mctl);
+    }  /* if */
     if (add_substitution_if_available((char *)nsp, iek_namespace, mctl)) {
       goto done;
     } else if (more_levels) {
       /* This level is nested inside something else.  Do a recursive call to
          deal with all of the parents. */
-      r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+      r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
+                                 needs_to_be_individuated, mctl);
     }  /* if */
 #endif /* IA64_ABI */
     name = unmangled_name_of(&nsp->source_corresp);
@@ -4123,10 +4281,21 @@ entities that indicates the enclosing function.
   }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
     /* Special encoding for "std::".*/
+    if (entity_needs_to_be_individuated(scp, kind)) {
+      /* This is an entity in the std namespace that needs to be individuated
+         (e.g., "namespace std { enum {} e; }").  The "St" substitution is
+         typically used to mangle this, but we need to add the individuated
+         namespace first before that substitution is performed below. */
+      a_namespace_ptr nsp = make_individuated_namespace(scp);
+      add_to_mangled_name('N', mctl);
+      *need_nested_name_close = TRUE;
+      mangled_name_with_length(unmangled_name_of(&nsp->source_corresp), mctl);
+    }  /* if */
     add_str_to_mangled_name("St", mctl);
-  } else if (entity_needs_parent_qualifier(scp, kind)) {
+  } else if (entity_needs_parent_qualifier(scp, kind) ||
+             entity_needs_to_be_individuated(scp, kind)) {
     /* The entity is a class member, namespace member, or scoped enumerator
-       and needs a parent qualifier. */
+       and needs a parent qualifier or the entity needs to be individuated. */
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
     *need_nested_name_close = TRUE;
@@ -4139,7 +4308,9 @@ entities that indicates the enclosing function.
     /* Put out the components of the nested name except for the final one.
        The caller will put out the final name and then close the nested
        name. */
-    r_mangled_parent_qualifier(scp, (unsigned long)1, mctl);
+    r_mangled_parent_qualifier(scp, (unsigned long)1,
+                               entity_needs_to_be_individuated(scp, kind),
+                               mctl);
   }  /* if */
 }  /* mangled_ia64_parent_qualifier */
 
@@ -4177,6 +4348,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   a_template_ptr              tmpl;
   a_class_type_supplement_ptr ctsp;
   a_boolean                   need_nested_name_close = FALSE;
+#else /* !IA64_ABI */
+  a_length_reservation        length_reservation;
 #endif /* IA64_ABI */
 
   /* cv-qualifiers are not allowed here. */
@@ -4243,12 +4416,16 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     name += sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
     add_str_to_mangled_name(name, mctl);
     goto done;
-  } else if (entity_needs_parent_qualifier(&type->source_corresp, iek_type)) {
-    /* The type is a member of a class or namespace, so put out a qualifier.
-       Note that the count starts at 2 because the type name itself is level
-       1. */
+  } else if (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
+             entity_needs_to_be_individuated(&type->source_corresp, iek_type))
+                                                                              {
+    /* The type is a member of a class or namespace (or an entity that needs
+       to be individuated), so put out a qualifier.  Note that the count starts
+       at 2 because the type name itself is level 1. */
     r_mangled_parent_qualifier(&type->source_corresp,
                                (unsigned long)2,
+                               entity_needs_to_be_individuated(
+                                              &type->source_corresp, iek_type),
                                mctl);
   }  /* if */
 #endif /* IA64_ABI */
@@ -4274,9 +4451,22 @@ and for unnamed classes and enums.  Nested types are encoded as such.
       check_assertion(is_enum_type(type));
       name = give_unnamed_class_or_enum_a_name(type);
     }  /* if */
-    mangled_name_with_length(name, mctl);
 #if IA64_ABI
+    mangled_name_with_length(name, mctl);
     add_discriminator_if_necessary(&type->source_corresp, mctl);
+#else /* !IA64_ABI */
+    reserve_space_for_length(&length_reservation, mctl);
+    add_str_to_mangled_name(name, mctl);
+    if (is_enum_type(type) &&
+        type->source_corresp.is_local_to_function &&
+        !type->source_corresp.is_class_member) {
+      /* If the enum is a local (non-member) enum, put out a suffix identifying
+         the function.  The id_number is arbitrarily specified as zero, relying
+         on the name above to differentiate from other local enums. */
+      a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
+      add_local_name_suffix((unsigned long)0, enclosing_routine, mctl);
+    }  /* if */
+    fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
   }  /* if */
 #if IA64_ABI
@@ -5341,6 +5531,12 @@ mangle_template:
       }  /* if */
     }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (!suppress_parent_encoding &&
+             entity_needs_to_be_individuated(&routine->source_corresp,
+                                             iek_routine)) {
+    /* Add individuation. */
+    r_mangled_parent_qualifier(&routine->source_corresp, /*nesting_level=*/1,
+                               /*needs_to_be_individuated=*/TRUE, mctl);
   }  /* if */
 #endif /* !IA64_ABI */
 #if IA64_ABI

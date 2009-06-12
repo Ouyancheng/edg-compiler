@@ -3336,6 +3336,28 @@ to it.
 }  /* alloc_object_lifetime */
 
 
+a_namespace_ptr clear_namespace(a_namespace_ptr nsp,
+                                a_boolean       is_alias)
+/*
+Initialize the namespace pointed to by nsp.  The namespace is an alias if
+is_alias is TRUE.
+*/
+{
+  set_default_source_corresp(nsp->source_corresp);
+  nsp->next = NULL;
+  nsp->is_namespace_alias = is_alias;
+  if (is_alias) {
+    nsp->variant.assoc_namespace = NULL;
+  } else {
+    nsp->variant.assoc_scope = NULL;
+  }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+  nsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+  return nsp;
+}  /* clear_namespace */
+
+
 a_namespace_ptr alloc_namespace(a_boolean  is_alias)
 /*
 Allocate a namespace entry, initialize its fields, and return a pointer to
@@ -3350,17 +3372,7 @@ creating an entry for a local namespace alias).
 #if DEBUG
   num_namespaces_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(nsp->source_corresp);
-  nsp->next = NULL;
-  nsp->is_namespace_alias = is_alias;
-  if (is_alias) {
-    nsp->variant.assoc_namespace = NULL;
-  } else {
-    nsp->variant.assoc_scope = NULL;
-  }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
-  nsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+  clear_namespace(nsp, is_alias);
   db_exit();
   return nsp;
 }  /* alloc_namespace */

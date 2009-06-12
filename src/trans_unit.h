@@ -119,6 +119,12 @@ typedef struct a_translation_unit {
 		file_scope_region_number;
 			/* The memory region number for the file scope of
 			   this translation unit. */
+#if NEED_NAME_MANGLING
+  a_namespace_ptr
+		individuated_namespace;
+			/* A dummy namespace used during mangling for the
+			   individuation of entities. */
+#endif /* NEED_NAME_MANGLING */
 } a_translation_unit;
 
 

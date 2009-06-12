@@ -20777,6 +20777,10 @@ be used, but there are exceptions.
         } else if (is_or_contains_unnamed_namespace_type(routine->type)) {
           /* Make sure its type does not involve an unnamed namespace
              (otherwise its mangled name would involve the module id). */
+        } else if (routine_contains_an_individuated_entity(routine)) {
+          /* Make sure the routine is not an individuated entity nor
+             contains an individuated entity as part of its type.
+             (otherwise its mangled name would involve the module id). */
         } else {
           /* This routine definition fits the bill.  Get the appropriate
              name. */

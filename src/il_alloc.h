@@ -196,6 +196,9 @@ extern void set_scope_kind(a_scope_ptr    sp,
                            a_scope_kind   kind,
                            a_routine_ptr  assoc_routine);
 
+extern a_namespace_ptr clear_namespace(a_namespace_ptr nsp,
+                                       a_boolean       is_alias);
+
 extern a_namespace_ptr alloc_namespace(a_boolean  is_alias);
 
 extern a_using_decl_ptr alloc_using_decl(void);
