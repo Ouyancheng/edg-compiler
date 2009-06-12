@@ -81,7 +81,8 @@ specifier.
 static void init_null_decl_parse_state(void)
 /*
 Create a "null" sample of a variable of type a_decl_parse_state for convenient
-and efficient initialization.
+and efficient initialization.  Changes in this routine must often also be
+reflected in start_secondary_declarator.
 */
 {
   a_decl_parse_state  *ps = &null_decl_parse_state;
@@ -124,6 +125,7 @@ and efficient initialization.
   ps->restore_name_linkage = FALSE;
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;
+  ps->first_decl_of_predeclared_entity = FALSE;
   clear_decl_modifiers_block(&ps->decl_modifiers);
   ps->ms_attributes = NULL;
   ps->asm_name = NULL;
@@ -7219,6 +7221,7 @@ skip_overloading:;
       /* Since the flag is cleared here, we're guaranteed that this is the
          first time we see the declaration in this translation unit. */
       dps->first_decl = TRUE;
+      dps->first_decl_of_predeclared_entity = TRUE;
       /* Don't diagnose linkage mismatches either. */
       suppress_diagnostic = TRUE;
       /* Record the new source position, both in the symbol and in the
@@ -14299,6 +14302,8 @@ related-fields of *ps prior to scanning the next declarator.
   ps->declarator_pos = null_source_position;
   ps->nested_ptr_or_ref_seen = FALSE;
   ps->has_initializer = FALSE;
+  ps->first_decl = FALSE;
+  ps->first_decl_of_predeclared_entity = FALSE;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;
   ps->storage_class = ps->declared_storage_class;

@@ -401,6 +401,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	first_decl:1;
 			/* TRUE if this is the first declaration of a variable
 			   or function. */
+  a_bit_field	first_decl_of_predeclared_entity:1;
+			/* TRUE if this is the first declaration of a variable
+			   or function that was predeclared by the front
+			   end. */
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Extended declaration information (most of it

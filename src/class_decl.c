@@ -8378,6 +8378,8 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
   if (func_info->is_deleted) {
     if (!dps->first_decl) {
       err_code = ec_deleted_function_definition_must_be_first_declaration;
+    } else if (dps->first_decl_of_predeclared_entity) {
+      err_code = ec_predeclared_function_cannot_be_deleted;
     } else {
       /* A deleted definition is implicitly "inline". */
       rp->is_deleted = TRUE;
