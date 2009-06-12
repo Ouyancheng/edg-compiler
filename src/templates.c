@@ -16819,11 +16819,22 @@ that follows.
         scp = &rp->source_corresp;
         already_specialized = rp->is_specialized;
         is_constructor = is_constructor_symbol(sym);
+        /* Check for "= default" or "= delete". */
+        if (curr_token == tok_assign) {
+          a_token_kind  next_tok = next_token();
+          if (deleted_functions_enabled && next_tok == tok_delete) {
+            func_info.is_deleted = TRUE;
+          } else if (defaulted_special_members_enabled &&
+                     next_tok == tok_default) {
+            func_info.is_defaulted = TRUE;
+          }  /* if */
+        }  /* if */
         is_definition = (curr_token == tok_lbrace ||
                          curr_token == tok_try ||
-                         (curr_token == tok_colon &&
-                          is_constructor));
+                         (curr_token == tok_colon && is_constructor) ||
+                         func_info.is_deleted || func_info.is_defaulted);
       }  /* if */
+      dps->first_decl = !already_specialized;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
       if (already_specialized) first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -17214,7 +17225,11 @@ that follows.
             }  /* for */
           }  /* if */
           /* Scan the function body. */
-          if (decl_state->is_member_decl) {
+          if (func_info.is_deleted || func_info.is_defaulted) {
+            /* Scan "= default;" or "= delete;" (the first two tokens were
+               already detected above), and adjust the IL entry accordingly. */
+            scan_defaulted_or_deleted_definition(dps, &func_info);
+          } else if (decl_state->is_member_decl) {
             /* A Microsoft mode specialization that appears in a class context.
                Cache the function body now and scan it later during the class
                fixup process. */

@@ -64,6 +64,10 @@ extern a_boolean check_function_return_type(a_type_ptr         return_type,
                                             a_boolean          evaluated,
                                             a_routine_ptr      rout_ptr);
 
+extern void scan_defaulted_or_deleted_definition(
+                                            a_decl_parse_state    *dps,
+                                            a_func_info_block     *func_info);
+
 extern void function_definition(a_symbol_locator      *locator,
                                 a_decl_parse_state    *dps,
                                 a_func_info_block     *func_info,
