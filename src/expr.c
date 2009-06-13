@@ -1722,7 +1722,8 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           if (args == NULL || args2 != NULL) {
             pos_error(ec_call_requires_one_argument, &op->position);
             conv_to_error_operand(op);
-          } else if (!is_real_floating_type(args->type)) {
+          } else if (!is_real_floating_type(args->type) &&
+                     !is_template_param_type(args->type)) {
             pos_error(ec_call_requires_floating_point_argument,
                       &op->position);
             conv_to_error_operand(op);
