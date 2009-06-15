@@ -306,6 +306,22 @@ is not supposed to affect validity of any programs).  Now fixed.
   }
 
 
+6/5/09   [EDGcpfe/9800]
+Handling of braces in default arguments
+
+In C++98/03 it was not possible for default argument expressions to
+contain braces.  That is no longer true as a result of some C++0x features
+(e.g., lambdas) and GNU features (compound literals in C++).  Braces
+are now handled properly in default argument expressions.
+
+  struct A {
+    int i;
+    void f(A = (A){0}){}  // now accepted (in g++ mode)
+  };
+  void g(int);
+  void f(void (*p)(int) = []{return &g;}()) {}  // now accepted (C++0x mode)
+
+
 6/4/09   [EDGcpfe/8916]
 Treatment of potential dependent cast followed by +, -, *, or & when using
 implicit typename
