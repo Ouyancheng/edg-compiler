@@ -14047,6 +14047,9 @@ indicates how processing should proceed after the call.
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
+    } else if (cpp0x_mode && curr_token == tok_semicolon) {
+      /* C++0x allows empty declarations. */
+      end_of_decl_action = eoda_check_semicolon;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
          issue diagnostics on pragmas that are trying to bind to an overload

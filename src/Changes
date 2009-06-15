@@ -1,5 +1,15 @@
 Version 4.1
 
+6/15/09  [EDGcpfe/9617]
+C++0x: Empty declarations
+
+In strict C++0x mode, the front end now accepts empty declarations in file
+and namespace scopes.  (They were previously accepted with a remark in non-
+strict modes; now no remark is issued in any C++0x mode.)  For example:
+
+  ;  // Now accepted in strict C++0x mode.
+  
+
 6/15/09  [EDGcpfe/9826]
 Empty substatements in if-statements
 
