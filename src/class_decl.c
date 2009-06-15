@@ -2216,6 +2216,22 @@ translation unit.
 }  /* check_trans_unit_for_fixup */
 
 
+static void define_defaulted_special_member_functions(a_type_ptr  class_type)
+/*
+Generate the definitions of any special members defined with "= default" in
+the definition of the given class type.
+*/
+{
+  a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->is_defaulted) {
+      force_definition_of_compiler_generated_routine(rp);
+    }  /* if */
+  }  /* for */
+}  /* define_defaulted_special_member_functions */
+
+
 static void process_deferred_class_fixups(a_boolean	for_instantiation)
 /*
 Do the delayed scanning of default arguments and inline function bodies.
@@ -2268,6 +2284,8 @@ after a class instantiation.
       for (; cfp != NULL; cfp = next_cfp) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+        /* Define any defaulted member functions. */
+        define_defaulted_special_member_functions(cfp->class_type);
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
         next_cfp = cfp->next_in_inline_function_list;
@@ -8165,22 +8183,6 @@ whether one of the operators is user-provided.
   db_exit();
   return found_assignment_operator_for_copy;
 }  /* assignment_operator_for_copy_exists */
-
-
-static void define_defaulted_special_member_functions(a_type_ptr  class_type)
-/*
-Generate the definitions of any special members defined with "= default" in
-the definition of the given class type.
-*/
-{
-  a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
-
-  for (; rp != NULL; rp = rp->next) {
-    if (rp->is_defaulted) {
-      force_definition_of_compiler_generated_routine(rp);
-    }  /* if */
-  }  /* for */
-}  /* define_defaulted_special_member_functions */
 
 
 static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
@@ -16541,13 +16543,6 @@ next_declaration:
        operate on this class type. */
     if (!C_mode()) determine_operator_lookup_namespaces(class_type);
     if (C_dialect == C_dialect_cplusplus) {
-      if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
-        /* Something went wrong.  (See also call of complete_class_definition
-           above.) */
-      } else {
-        /* Generate the definition of any "= default" members. */
-        define_defaulted_special_member_functions(class_type);
-      }  /* if */
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if ((!tag_sym->is_class_member || delayed_nested_class_def ||
