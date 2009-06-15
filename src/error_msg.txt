@@ -1859,6 +1859,8 @@ ec_call_requires_one_argument;;"function call requires one argument"
 ec_call_requires_floating_point_argument;;"function call requires a real floating-point argument"
 ec_copy_ctor_with_default_arg_cannot_be_defaulted;;"a copy constructor with a default argument cannot be defaulted"
 ec_predeclared_function_cannot_be_deleted;;"a predeclared function cannot be deleted"
+ec_empty_then_statement;;"empty substatement in if-statement"
+ec_empty_else_statement;;"empty substatement in \"else\" clause of if-statement"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

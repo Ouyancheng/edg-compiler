@@ -1,5 +1,19 @@
 Version 4.1
 
+6/15/09  [EDGcpfe/9826]
+Empty substatements in if-statements
+
+The front end now issues a remark when the "then" or "else" branch of an
+if-statement is an empty statement (i.e., a semicolon), except if an empty
+"then" branch is followed by an "else" branch.  For example:
+
+  void g(int i) {
+    if (i);        // Now triggers a remark.
+    if (i);        // No remark because an "else" follows.
+    else;          // Now triggers a remark.
+  }
+
+
 6/12/09  [EDGcpfe/9428]
 Unnamed types and static routines are given globally unique names
 
