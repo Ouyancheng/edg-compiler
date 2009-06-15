@@ -3858,9 +3858,12 @@ to their class or function).
         !scp->is_local_to_function) ||
        (kind == iek_routine &&
         !is_class_or_namespace_member((a_routine_ptr)scp) &&
-        ((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static &&
-        !routine_should_be_externalized_for_exported_templates(
-                                                       (a_routine_ptr)scp)))) {
+        ((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static
+#if DO_IL_LOWERING
+        && !routine_should_be_externalized_for_exported_templates(
+                                                       (a_routine_ptr)scp)
+#endif /* DO_IL_LOWERING */
+                                                                          ))) {
     result = TRUE;
   }  /* if */
   return result;
