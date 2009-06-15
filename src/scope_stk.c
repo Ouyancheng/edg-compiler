@@ -3920,8 +3920,10 @@ associated template.
 {
   a_boolean	result = FALSE;
 
-  if (rp->is_template_function &&
-      !rp->is_specialized && !rp->compiler_generated) {
+  if (rp->is_defaulted || rp->is_deleted) {
+    result = TRUE;
+  } else if (rp->is_template_function &&
+             !rp->is_specialized && !rp->compiler_generated) {
     a_template_symbol_supplement_ptr	tssp;
     a_symbol_ptr			sym;
     a_symbol_ptr			template_sym;
