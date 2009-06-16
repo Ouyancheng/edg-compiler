@@ -7921,6 +7921,26 @@ linkage is encountered).
 }  /* ttt_is_type_with_no_name_linkage */
 
 
+static a_boolean ttt_is_trans_unit_specific_type(
+                                           a_type_ptr  type_ptr,
+                                           a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It is a wrapper routine that passes type_ptr
+and force_end_of_traversal to ttt_is_type_with_no_name_linkage and
+ttt_is_unnamed_namespace_type.
+*/
+{
+  a_boolean  result = FALSE;
+
+  result = ttt_is_type_with_no_name_linkage(type_ptr, force_end_of_traversal);
+  if (!result && !*force_end_of_traversal) {
+    result = ttt_is_unnamed_namespace_type(type_ptr, force_end_of_traversal);
+  }  /* if */
+  return result;
+}  /* ttt_is_type_with_no_name_linkage */
+
+
 /* A pointer to the specific template parameter type to be found by
    ttt_is_or_contains_template_param. */
 static a_type_ptr
@@ -8810,6 +8830,30 @@ This function considers nonreal class and enum types to have linkage.
                                ttt_flags));
   return result;
 }  /* is_or_contains_type_with_no_name_linkage */
+
+
+a_boolean is_or_contains_trans_unit_specific_type(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr contains a local type,
+unnamed type, or type defined in an unnamed namespace.
+*/
+{
+  a_boolean			  result;
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_THIS_PARAM_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_TEMPLATE_ARGS |
+                                                 TTT_PARENT_CLASSES);
+
+  /* Clear the variables that are used to return status information
+     from ttt_is_type_with_no_name_linkage, which is called by
+     ttt_is_trans_unit_specific_type. */
+  is_local_type = FALSE;
+  is_unnamed_type = FALSE;
+  result = (traverse_type_tree(type_ptr, ttt_is_trans_unit_specific_type,
+                               ttt_flags));
+  return result;
+}  /* is_or_contains_trans_unit_specific_type */
 
 
 a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,

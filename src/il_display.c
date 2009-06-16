@@ -4128,6 +4128,9 @@ Display the indicated template.
   if (ptr->is_exported) {
     disp_boolean("is_exported", (a_boolean)ptr->is_exported);
   }  /* if */
+  if (ptr->ignore_export) {
+    disp_boolean("ignore_export", (a_boolean)ptr->ignore_export);
+  }  /* if */
   if (ptr->template_decl != NULL) {
     disp_ptr("template_decl", (char *)ptr->template_decl, iek_template_decl);
   }  /* if */

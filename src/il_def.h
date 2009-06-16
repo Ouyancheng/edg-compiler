@@ -12543,6 +12543,13 @@ typedef struct a_template {
 			   export keyword, or because it is a member of
 			   a class declared export.  This is set only on
 			   the canonical entry. */
+  a_byte_boolean
+		ignore_export;
+			/* TRUE for templates that have is_exported TRUE
+			   but that are static or are declared using
+			   types that make it impossible for them to be
+			   referenced outside of the translation unit (e.g.,
+			   types from an unnamed namespace). */
 #if RECORD_TEMPLATE_STRINGS
   char		*text;
 			/* A null-terminated string representing the text of

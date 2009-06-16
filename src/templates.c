@@ -625,7 +625,9 @@ Return TRUE if the template specified by sym is exported.
 
   tssp = template_supplement_for_symbol(sym);
   check_assertion(tssp != NULL);
-  return tssp->il_template_entry->is_exported;
+  /* If the ignore_export flag is set, don't treat the template as exported. */
+  return tssp->il_template_entry->is_exported &&
+         !tssp->il_template_entry->ignore_export;
 } /* template_is_exported */
 
 
@@ -15233,7 +15235,21 @@ reflect an export keyword present on the current declaration.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (tssp->il_template_entry->is_exported) {
+    /* Determine whether the export flag should be ignored.  It is ignored
+       for entities that cannot be referenced from outside of the translation
+       unit.  This includes static functions and functions whose types
+       make use of types that are not available in other translation units. */
+    a_boolean	ignore_export = FALSE;
+    if (rout_ptr->storage_class == (a_storage_class)sc_static) {
+      ignore_export = TRUE;
+    } else if (is_or_contains_trans_unit_specific_type(rout_ptr->type)) {
+      ignore_export = TRUE;
+    }  /* if */
+    if (ignore_export) tssp->il_template_entry->ignore_export = TRUE;
+  }  /* if */
   if (tssp->il_template_entry->is_exported && is_defined &&
+      !tssp->il_template_entry->ignore_export &&
       !decl_state->decl_scope_err) {
     /* Add the template to the list of exported templates. */
     add_to_exported_templates_list(sym);

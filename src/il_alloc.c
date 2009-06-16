@@ -3813,6 +3813,7 @@ fields, and return a pointer to it.
   tp->next = NULL;
   tp->kind = (a_template_kind)templk_none;
   tp->is_exported = FALSE;
+  tp->ignore_export = FALSE;
 #if RECORD_TEMPLATE_STRINGS
   tp->text = NULL;
 #endif /* RECORD_TEMPLATE_STRINGS */
