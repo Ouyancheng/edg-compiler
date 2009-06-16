@@ -3370,29 +3370,6 @@ the generated block statement pushed by push_c99_statement_scope.
 }  /* pop_c99_statement_scope */
 
 
-static a_boolean is_empty_dependent_statement(a_statement_ptr  stmt)
-/*
-Return TRUE if the given statement is an empty statement, possibly wrapped in
-a compiler-generated block statement.
-*/
-{
-  if (stmt != NULL && stmt->kind == (a_statement_kind)stmk_block) {
-    a_seq_number  seq;
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-    seq = stmt->position.seq;
-#else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
-    seq = stmt->position;
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
-    if (seq == 0) {
-      /* This block was compiler-generated.  Look at the statement in it. */
-      stmt = stmt->variant.block.statements;
-    }  /* if */
-  }  /* if */
-  check_assertion_or_expect_error(stmt != NULL);
-  return stmt != NULL && stmt->kind == (a_statement_kind)stmk_empty;
-}  /* is_empty_dependent_statement */
-
-
 static void if_statement(void)
 /*
 Scan an "if" statement (with or without else) and add it to the current
@@ -3408,7 +3385,6 @@ See also 3.6.4.1.
   a_statement_ptr               sp;
   a_struct_stmt_stack_entry_ptr sssep;
   a_boolean                     is_condition_decl = FALSE;
-  a_source_position             then_stmt_pos, else_stmt_pos;
 
   db_enter(3, "if_statement");
 
@@ -3436,8 +3412,11 @@ See also 3.6.4.1.
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
-  /* Scan the "then" statement. */
-  then_stmt_pos = pos_curr_token;
+  /* Scan the "then" statement.  If it is an empty statement not followed by
+     an "else" clause, issue a remark. */
+  if (curr_token == tok_semicolon && next_token() != tok_else) {
+    remark(ec_empty_then_statement);
+  }  /* if */
   add_stop_token(tok_else);
   dependent_statement();
   remove_stop_token(tok_else);
@@ -3448,6 +3427,10 @@ See also 3.6.4.1.
                              pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
+    /* Issue a remark if the "else" statement is an empty statement. */
+    if (curr_token == tok_semicolon) {
+      remark(ec_empty_else_statement);
+    }  /* if */
     /* Getting the address of the struct_stmt_stack entry is done late
        because the stack might be reallocated while scanning the contained
        statement. */
@@ -3455,21 +3438,10 @@ See also 3.6.4.1.
     term_stmt_clause(sssep);
     sssep->in_else_of_if = TRUE;
     start_stmt_clause(sssep);
-    else_stmt_pos = pos_curr_token;
     dependent_statement();
     /* There should always be a non-NULL else-statement pointer. */
     check_assertion_str(sp->variant.if_stmt.else_statement != NULL,
                         "if_statement: else-stmt pointer is NULL");
-    if (is_empty_dependent_statement(sp->variant.if_stmt.else_statement)) {
-      pos_remark(ec_empty_else_statement, &else_stmt_pos);
-    }  /* if */
-  } else {
-    /* No else statement.  Issue a remark if the "then" branch was empty: It
-       was likely unintended (if there is an "else" branch, the empty "then"
-       is likely intentional). */
-    if (is_empty_dependent_statement(sp->variant.if_stmt.then_statement)) {
-      pos_remark(ec_empty_then_statement, &then_stmt_pos);
-    }  /* if */
   }  /* if */
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
