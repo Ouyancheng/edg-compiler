@@ -1,5 +1,21 @@
 Version 4.1
 
+6/16/09  [EDGcpfe/9916]
+Partial ordering and array types
+
+Partial ordering would fail to consider two templates as ordered if the
+deduction process resulted in a function type with an invalid return
+type (in this example an array type).  The return type should not be
+considered for partial ordering purposes.  Now fixed.
+
+  template <class T> T f(T t);
+  template <class U, int N> U * f(U (&r)[N]) { return r; }
+  int main() {
+    int arr[3] = { 1, 2, 3 };
+    f(arr);  // formerly resulted in spurious ambiguity
+  }       
+
+
 6/15/09  [EDGcpfe/9617]
 C++0x: Empty declarations
 

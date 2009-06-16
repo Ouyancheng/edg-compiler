@@ -1311,6 +1311,9 @@ typedef int a_ctws_options_set;
 #define CTWS_NON_CONSTANT_EXPR		0x4
 			/* TRUE when copying a non-constant expression,
 			   which can come up under a sizeof. */
+#define CTWS_IS_PARTIAL_ORDER_CHECK	0x8
+			/* TRUE when creating the substituted routine type
+			   as part of the partial ordering process. */
 
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_constant_ptr           con,

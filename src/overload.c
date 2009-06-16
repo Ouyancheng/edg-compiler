@@ -3046,7 +3046,8 @@ the point of call.
            each template considered. */
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
-                         &local_template_arg_list, (a_template_param_ptr)NULL);
+                         &local_template_arg_list, (a_template_param_ptr)NULL,
+                         /*is_partial_order_check=*/FALSE);
         /* Bail out if there is a mismatch. */
         if (routine_type == NULL) goto reject_function;
       }  /* if */

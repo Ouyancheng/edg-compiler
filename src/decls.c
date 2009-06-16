@@ -8161,7 +8161,8 @@ definition of a member function of a class template.
       a_type_ptr          new_type;
       new_type = substitute_template_arguments(
                       sym, locator->template_arg_list, &new_arg_list,
-                      tssp->variant.function.decl_cache.decl_info->parameters);
+                      tssp->variant.function.decl_cache.decl_info->parameters,
+                      /*is_partial_order_check=*/FALSE);
       template_args_okay = new_type != NULL;
       free_template_arg_list(new_arg_list);
     }  /* if */

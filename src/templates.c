@@ -1705,7 +1705,8 @@ compare_function_templates.
                                          is_partial_order_check)) {
     new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
-                                             templ_param_list);
+                                             templ_param_list,
+                                             is_partial_order_check);
     if (new_type != NULL && (microsoft_mode || gpp_mode)) {
       /* Normally, a function type will have been considered invalid if
          a parameter or return type was an abstract class type, but in
@@ -7341,6 +7342,7 @@ a pointer over a reference type or creating an array of references.
   a_param_type_ptr		new_ptp;
   a_param_type_ptr		prev_ptp;
   a_class_symbol_supplement_ptr	cssp;
+  a_boolean			is_partial_order_check;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -7496,22 +7498,29 @@ a pointer over a reference type or creating an array of references.
         /* We can reuse "type" as long as we can reuse the return type and all
            its param types.  Otherwise we will need to allocate a new type
            entry. Go through "type" until we find that a new type was returned
-           from copy_type_with_substitution. */
+           from copy_type_with_substitution.  Clear the partial order check
+           flag so that it will not be applied to recursive calls. */
+        is_partial_order_check = (options & CTWS_IS_PARTIAL_ORDER_CHECK) != 0;
+        options = options & ~CTWS_IS_PARTIAL_ORDER_CHECK;
         reusable_param_types = 0;
         first_new_type_for_param_types_list = NULL;
-        new_return_type = copy_type_with_substitution(
-                                        type->variant.routine.return_type,
+        new_return_type = type->variant.routine.return_type;
+        /* Don't substitute the return type when doing partial ordering. */
+        if (!is_partial_order_check) {
+          new_return_type = copy_type_with_substitution(
+                                        new_return_type,
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error);
-        if (new_return_type != type->variant.routine.return_type) {
-          /* Check for a function returning a function, a function
-             returning an array type, or a function returning an abstract
-             class type. */
-          if (is_array_type(new_return_type) ||
-              is_function_type(new_return_type) ||
-              (!microsoft_mode && !gpp_mode &&
-               is_abstract_class_type(new_return_type))) {
-            *copy_error = TRUE;
+          if (new_return_type != type->variant.routine.return_type) {
+            /* Check for a function returning a function, a function
+               returning an array type, or a function returning an abstract
+               class type. */
+            if (is_array_type(new_return_type) ||
+                is_function_type(new_return_type) ||
+                (!microsoft_mode && !gpp_mode &&
+                 is_abstract_class_type(new_return_type))) {
+              *copy_error = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         this_class = type->variant.routine.extra_info->this_class;
@@ -7866,7 +7875,8 @@ a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
 				a_template_arg_ptr	*new_arg_list,
-				a_template_param_ptr	templ_param_list)
+				a_template_param_ptr	templ_param_list,
+				a_boolean		is_partial_order_check)
 /*
 In the function template specified by templ_sym, replace the template
 parameters in the function type with the values specified by
@@ -7880,6 +7890,8 @@ list to be used.  If a NULL pointer is provided, the template
 parameter list from the template symbol supplement is used.  The
 parameter is supplied because some calls of this routine occur before
 the field in the template symbol supplement has been set.
+is_partial_order_check is TRUE when this function is called (indirectly)
+during wrapup processing by compare_function_templates.
 */
 {
   a_boolean				copy_error = FALSE;
@@ -7910,12 +7922,14 @@ the field in the template symbol supplement has been set.
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
+      a_ctws_options_set	ctws_options = CTWS_NO_OPTIONS;
+      if (is_partial_order_check) ctws_options |= CTWS_IS_PARTIAL_ORDER_CHECK;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       templ_rout_type = copy_type_with_substitution(templ_rout_type,
                                                     templ_arg_list,
                                                     templ_param_list,
 	       					    &templ_sym->decl_position,
-						    CTWS_NO_OPTIONS,
+						    ctws_options,
 						    &copy_error);
       if (!copy_error) {
         /* If possible, check that any template template parameters that
@@ -8320,7 +8334,8 @@ declared and before the partial instantiation of the function was done.
   substituted_type = substitute_template_arguments(
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
-                                  (a_template_param_ptr)NULL);
+                                  (a_template_param_ptr)NULL,
+                                  /*is_partial_order_check=*/FALSE);
   if (substituted_type == NULL ||
       !types_are_compatible(substituted_type, type)) {
     if (!is_or_contains_error_type(type) &&
@@ -9282,7 +9297,8 @@ matching process.
     a_template_arg_ptr	new_arg_list;
     templ_rout_type = substitute_template_arguments(
                                   templ_sym, explicit_arg_list, &new_arg_list,
-                                  (a_template_param_ptr)NULL);
+                                  (a_template_param_ptr)NULL,
+                                  /*is_partial_order_check=*/FALSE);
     *templ_arg_list = new_arg_list;
     /* A NULL type will be returned if the copy could not be done because
        the substitution of the template arguments would result in an invalid
@@ -9495,8 +9511,9 @@ matches, a new argument list is returned in *new_arg_list.
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = template_supplement_for_symbol(template_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
-  result_type = substitute_template_arguments(template_sym, templ_arg_list,
-                                              new_arg_list, templ_param_list);
+  result_type = substitute_template_arguments(
+                           template_sym, templ_arg_list, new_arg_list,
+                           templ_param_list, /*is_partial_order_check=*/FALSE);
   if (result_type != NULL) {
     /* The template argument list matches the template and the substitution
        of arguments was successful.  If all of the template parameters have
