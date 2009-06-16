@@ -3376,17 +3376,20 @@ Return TRUE if the given statement is an empty statement, possibly wrapped in
 a compiler-generated block statement.
 */
 {
-  if (stmt->kind == (a_statement_kind)stmk_block) {
+  if (stmt != NULL && stmt->kind == (a_statement_kind)stmk_block) {
     a_seq_number  seq;
 #if FULL_SOURCE_POS_IN_IL_STATEMENT
     seq = stmt->position.seq;
 #else /* !FULL_SOURCE_POS_IN_IL_STATEMENT */
     seq = stmt->position;
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
-    if (seq == 0) stmt = stmt->variant.block.statements;
-    check_assertion(stmt != NULL);
+    if (seq == 0) {
+      /* This block was compiler-generated.  Look at the statement in it. */
+      stmt = stmt->variant.block.statements;
+    }  /* if */
   }  /* if */
-  return stmt->kind == (a_statement_kind)stmk_empty;
+  check_assertion_or_expect_error(stmt != NULL);
+  return stmt != NULL && stmt->kind == (a_statement_kind)stmk_empty;
 }  /* is_empty_dependent_statement */
 
 
