@@ -7782,7 +7782,7 @@ definition of a member function of a class template.
              member (for a particular parent class):
                template<class> struct S { template<class> void f(); };
                template<> template<class T> void S<int>::f() {}
-             */
+          */
           dps->first_decl = decl_state->is_specialization;
         } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
           /* This is a member function symbol of a prototype instantiation.
