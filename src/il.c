@@ -20765,8 +20765,9 @@ be used, but there are exceptions.
         if (routine->storage_class != (a_storage_class)sc_unspecified ||
             routine->is_inline) {
           /* Only external, non-inline routines may be used for a module id.
-             Note that this check also disqualifies externalized routines
-             (because they have static linkage). */
+             Note that this check also disqualifies routines that may be
+             externalized in the future (they have static linkage while
+             the declaration is being scanned). */
         } else if (routine->is_template_function) {
           /* Don't use template functions.  Some implementations
              may generate these in multiple files. */

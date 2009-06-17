@@ -6103,9 +6103,10 @@ module id to be generated before they can be lowered.  The list is kept in
 the order in which the functions are originally processed (which is the
 order in which the functions are subsequently lowered).
 */
-typedef struct a_lowering_entry *a_lowering_entry_ptr;
-typedef struct a_lowering_entry {
-  a_lowering_entry_ptr
+typedef struct a_delayed_lowering_list_entry
+                                            *a_delayed_lowering_list_entry_ptr;
+typedef struct a_delayed_lowering_list_entry {
+  a_delayed_lowering_list_entry_ptr
                 next;   
                         /* Pointer to the next entry on the list (or NULL
                            if this is the last entry). */
@@ -6113,15 +6114,15 @@ typedef struct a_lowering_entry {
                 region_number;
                         /* The memory region number of a function whose
                            lowering has been delayed. */
-} a_lowering_entry;
+} a_delayed_lowering_list_entry;
 
-static a_lowering_entry_ptr
+static a_delayed_lowering_list_entry_ptr
                 waiting_for_module_id_list_head;
                         /* The head of the list of functions whose lowering
                            has been delayed because no module id was
                            available. */
 
-static a_lowering_entry_ptr
+static a_delayed_lowering_list_entry_ptr
                 waiting_for_module_id_list_tail;
                         /* The tail of the list of functions whose lowering
                            has been delayed because no module id was
@@ -6207,7 +6208,8 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        instantiations are not lowered, so there is no need to delay them. */
     /* Queue functions waiting for a module id on a separate list (which
        will be drained as soon as a module id becomes available). */
-    a_lowering_entry *entry = alloc_fe_of_type(a_lowering_entry);
+    a_delayed_lowering_list_entry *entry =
+                               alloc_fe_of_type(a_delayed_lowering_list_entry);
 #if DEBUG
     num_lowering_list_entries_allocated++;
 #endif /* DEBUG */
@@ -7642,7 +7644,8 @@ routines is reported as part of the symbol table memory used.
                      a_c99_inline_definition_locator);
 #if DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   db_space_used("wait for mod. id entries",
-                num_lowering_list_entries_allocated, a_lowering_entry);
+                num_lowering_list_entries_allocated,
+                a_delayed_lowering_list_entry);
 #endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   return grand_total;
 }  /* db_show_scope_stack_space_used */
