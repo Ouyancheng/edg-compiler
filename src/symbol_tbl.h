@@ -950,15 +950,18 @@ typedef struct a_class_symbol_supplement {
 			   declared for this class, and the first declaration
 			   was not defaulted. */
   a_bit_field	has_copy_constructor:1;
-			/* TRUE if a copy constructor has either been declared
-			   or generated for the class. */
+			/* TRUE if a copy constructor (possibly a move
+			   constructor) has either been declared or generated
+			   for the class. */
   a_bit_field	has_copy_constructor_for_const_object:1;
-			/* TRUE if there is a copy constructor for the class
-			   and it can be used to copy a const object. */
+			/* TRUE if there is a copy constructor (possibly a move
+			   constructor) for the class and it can be used to
+			   copy a const object. */
   a_bit_field	has_user_provided_copy_constructor:1;
-			/* TRUE if a copy constructor has been user-provided
-			   (i.e., explicitly declared, and the first
-			   declaration was not defaulted). */
+			/* TRUE if a copy constructor (possibly a move
+			   constructor) has been user-provided (i.e.,
+			   explicitly declared, and the first declaration was
+			   not defaulted). */
   a_bit_field	has_trivial_destructor:1;
 			/* TRUE if the destructor is trivial.  This could be
 			   an implicitly-declared destructor (destructor will
