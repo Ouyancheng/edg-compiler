@@ -109,7 +109,7 @@ longer used in any way after the switch statement representation changes of
 version 4.0 (see Changes entry of 4/15/08).
 
 
-6/12/09  [EDGcpfe/9862]
+6/12/09  [EDGcpfe/9862,EDGcpfe/9920]
 GNU C++ compatibility: namespace and class in the same scope
 
 In g++ mode when gnu_version is < 40300, a class and a namespace can be
@@ -121,6 +121,13 @@ the class, except when a namespace is required.
   N::X x;  // error N has no X
   N::Y y;  // okay
   namespace N {}  // okay
+
+  namespace M {
+    struct S { enum E { }; };
+    namespace S {}
+  }
+  using namespace M;
+  S::E f() { return S::E(0); }  // okay
 
 
 6/10/09  [EDGcpfe/9904]

@@ -1490,6 +1490,19 @@ In Sun compatibility mode, the symbols need not be from the same scope.
          This is okay. */
       a_boolean  must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
       result = TRUE;
+      if (gpp_mode && gnu_version < 40300) {
+        /* Some versions of g++ allow a class and namespace with the same
+           name in a given scope.  The class name should be used as the
+           result of the lookup. */
+        a_boolean	new_is_namespace;
+        a_boolean	curr_is_namespace;
+        new_is_namespace = !new_is_tag && is_namespace_symbol(new_sym);
+        curr_is_namespace = !curr_is_tag && is_namespace_symbol(fund_curr_sym);
+        if (new_is_namespace || curr_is_namespace) {
+          /* Set must_be_tag so that the non-namespace symbol will be used. */
+          must_be_tag = TRUE;
+        }  /* if */
+      }  /* if */
       if (curr_is_tag != must_be_tag) {
         /* The current symbol is a tag and we prefer a nontag, or the current
            symbol is a nontag and we are looking for a tag.  Update the
