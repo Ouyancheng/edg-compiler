@@ -7938,7 +7938,7 @@ ttt_is_unnamed_namespace_type.
     result = ttt_is_unnamed_namespace_type(type_ptr, force_end_of_traversal);
   }  /* if */
   return result;
-}  /* ttt_is_type_with_no_name_linkage */
+}  /* ttt_is_trans_unit_specific_type */
 
 
 /* A pointer to the specific template parameter type to be found by
