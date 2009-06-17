@@ -12891,9 +12891,10 @@ void prescan_function_template_default_arg_expr(
 					unsigned long	  param_number)
 /*
 Scan a default argument expression and add it to the list of arguments
-pointed to by the template symbol supplement.  "ptp" can be NULL if
-the tokens should be scanned and discarded.  param_number specifies the
-position of the parameter in the parameter list.
+pointed to by curr_default_args.  ptp is the parameter for which the
+default argument is being scanned and can be NULL if the tokens should
+be scanned and discarded.  param_number specifies the position of the
+parameter in the parameter list.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;

@@ -1217,7 +1217,7 @@ references.
 
 
 /*
-Get a token and, if it is a tok_identifier and coalesc_ids is TRUE, call
+Get a token and, if it is a tok_identifier and coalesce_ids is TRUE, call
 is_generalized_identifier_start to coalesce it in case it is the beginning
 of something like a qualified name.
 */
@@ -10971,7 +10971,7 @@ static void pop_stop_token_stack_full(a_boolean	final_pop)
 /*
 Pop the current entry off of the stop token stack.  If final_pop is
 TRUE, this call pops the last entry off of the stack.  This is used
-to alter the constancy check at the end of the routine.
+to alter the consistency check at the end of the routine.
 */
 {
   a_stop_token_stack_entry_ptr	stsep;
@@ -11065,7 +11065,7 @@ static void pop_lexical_state_stack_full(a_boolean	final_pop)
 /*
 Pop the current entry off of the lexical state stack.  If final_pop is
 TRUE, this call pops the last entry off of the stack.  This is used
-to alter the constancy check at the end of the routine.
+to alter the consistency check at the end of the routine.
 */
 {
   a_lexical_state_stack_entry_ptr	lssep;
@@ -11083,7 +11083,7 @@ to alter the constancy check at the end of the routine.
                       "pop_lexical_state_stack: wrong number of pops");
   /* Pop the stop token stack too. */
   pop_stop_token_stack_full(final_pop);
-}  /* pop_lexical_state_stack */
+}  /* pop_lexical_state_stack_full */
 
 
 void pop_lexical_state_stack(void)

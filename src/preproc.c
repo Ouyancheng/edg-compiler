@@ -3075,8 +3075,8 @@ execute the preprocessor directive.
   expand_macros = FALSE;
   do_string_literal_concatenation = FALSE;
   actual_include_was_suppressed = FALSE;
-  /* Start a lexical context that will stop flushing on error, and
-     put the newline token into it. */
+  /* Start a lexical context.  This includes a new stop token set that will
+     stop flushing on error.  Put the newline token in the stop token set. */
   push_lexical_state_stack();
   add_stop_token(tok_newline);
   /* Identify the keyword and go to the right processing routine. */

@@ -1828,7 +1828,7 @@ typedef struct a_stop_token_stack_entry {
 		next;
 			/* Pointer to the previous stack entry (e.g., the
 			   entry that should become the current entry when
-			   this one is popped off of the stack. */
+			   this one is popped off of the stack). */
   a_token_set_array
 		stop_tokens;
 			/* The set of tokens that will terminate a flush on
@@ -1853,7 +1853,7 @@ typedef struct a_lexical_state_stack_entry {
 		next;
 			/* Pointer to the previous stack entry (e.g., the
 			   entry that should become the current entry when
-			   this one is popped off of the stack. */
+			   this one is popped off of the stack). */
   int		cache_tokens;
 			/* Non-zero if tokens fetched by get_token should also
 			   be cached.  This is incremented by each caller that
