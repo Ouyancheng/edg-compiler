@@ -1861,6 +1861,7 @@ ec_copy_ctor_with_default_arg_cannot_be_defaulted;;"a copy constructor with a de
 ec_predeclared_function_cannot_be_deleted;;"a predeclared function cannot be deleted"
 ec_empty_then_statement;;"empty dependent statement in if-statement"
 ec_empty_else_statement;;"empty dependent statement in \"else\" clause of if-statement"
+ec_deleted_elided_cctor;;"%nfd, required for copy that was eliminated, cannot be referenced -- it is a deleted function"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

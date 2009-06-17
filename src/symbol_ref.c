@@ -1882,7 +1882,10 @@ copy constructor.
       a_type_ptr class_type = parent_class_of(rout);
       pos_ty_diagnostic(sev, ec_deleted_default_constructor, pos, class_type);
     } else {
-      pos_sy_diagnostic(sev, ec_deleted_function, pos, rout_sym);
+      pos_sy_diagnostic(sev,
+                        elided_ref ? ec_deleted_elided_cctor :
+                                     ec_deleted_function,
+                        pos, rout_sym);
     }  /* if */
   }  /* if */
 }  /* check_use_of_deleted_function */
