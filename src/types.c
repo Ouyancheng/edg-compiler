@@ -8463,8 +8463,12 @@ attribute or using a Microsoft declspec specifier).  Also set
   if (type_ptr->source_corresp.is_deprecated) {
     *force_end_of_traversal = found = TRUE;
     check_use_of_deprecated_entity(&type_ptr->source_corresp, &error_position);
-  } else if (type_ptr->kind == (a_type_kind)tk_typeref &&
-             typeref_is_typedef(type_ptr)) {
+  } else if ((type_ptr->kind == (a_type_kind)tk_typeref &&
+              typeref_is_typedef(type_ptr)) ||
+             is_template_param_or_nonreal_class_type(type_ptr)) {
+    /* Stop at typedefs, since those are declared using a distinct
+       declaration.  Also stop at nonreal types since their deprecation status
+       isn't known. */
     *force_end_of_traversal = TRUE;
   }  /* if */
   return found;
