@@ -49,7 +49,7 @@ local types to be used in the mangled name of a globally visible function.
 This could result in linker conflicts because instantiations of distinct
 functions could be given the same name.  To prevent this, unnamed classes and
 enums in namespaces (including the global namespace), as well as static
-functions, are now "individuated", that is, their mangled names have been
+functions, are now "individuated", that is, their mangled names are now
 adjusted to appear "as if" they are part of a translation unit specific
 namespace (this fabricated "namespace" incorporates the translation unit's
 module id to provide a unique symbol).  The resulting mangled names should
