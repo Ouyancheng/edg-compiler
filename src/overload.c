@@ -12961,6 +12961,7 @@ processed_arg, see conversion_to_class_possible.
 
 
 void check_access_to_elided_copy_constructor(a_type_ptr        source_type,
+                                             a_routine_ptr     elided_cctor,
                                              a_source_position *err_pos)
 /*
 A conversion from source_type (a possibly-qualified class type) is being done
@@ -12968,24 +12969,30 @@ by eliding a copy constructor.  Check that the copy constructor that would
 have been referenced exists and is accessible (ARM 12.6.1) and callable
 (we assume that the thing being copied is an rvalue because it's the result
 of a constructor call).  Issue an error (or a warning, depending on the
-mode) at *err_pos if not.
+mode) at *err_pos if not.  If the caller has already determined the copy
+constructor that was elided, it is passed in as elided_cctor; otherwise,
+elided_cctor is passed as NULL.
 */
 {
   a_type_ptr   class_type = skip_typerefs(source_type);
   a_symbol_ptr cctor_sym;
-  a_boolean    ambiguous, uncallable;
-  a_boolean    class_bitwise_copy;
+  a_boolean    ambiguous = FALSE, uncallable = FALSE;
+  a_boolean    class_bitwise_copy = FALSE;
 
   /* The diagnostics here are issued only in strict mode. */
   /* Avoid problems when the source is an error. */
   if (strict_ansi_mode && !is_error_type(source_type)) {
-    cctor_sym = select_overloaded_copy_constructor(
+    if (elided_cctor != NULL) {
+      cctor_sym = symbol_for(elided_cctor);
+    } else {
+      cctor_sym = select_overloaded_copy_constructor(
                                       class_type,
                                       get_type_qualifiers(source_type),
                                       /*source_is_rvalue=*/TRUE,
                                       err_pos,
                                       &ambiguous, &uncallable,
                                       &class_bitwise_copy);
+    }  /* if */
     if (class_bitwise_copy) {
       /* A bitwise copy is allowed.  The trivial copy constructor is usually
          public, but it can be nonpublic if it's user-declared and
@@ -13163,6 +13170,7 @@ happen only in C++ mode.
   a_routine_ptr      conversion_routine;
   an_expr_node_ptr   arg_expr_list, temp_init_node;
   a_boolean          class_bitwise_copy, elision_done = FALSE;
+  a_routine_ptr      elided_cctor = NULL;
   a_type_ptr         class_type = skip_typerefs(dest_type);
   a_type_ptr         elision_source_type;
 
@@ -13224,6 +13232,7 @@ happen only in C++ mode.
                                                 &dip)) {
           elision_done = TRUE;
           elision_source_type = source_operand->type;
+          elided_cctor = conversion_routine;
         }  /* if */
       } else {
         /* The conversion routine is a non-copy constructor, so copy
@@ -13282,6 +13291,7 @@ happen only in C++ mode.
     /* Copy constructor elision is being done.  Check access to the elided
        copy constructor. */
     check_access_to_elided_copy_constructor(elision_source_type,
+                                            elided_cctor,
                                             &source_operand->position);
   }  /* if */
   /* Allocate the dynamic initialization entry. */
@@ -14438,6 +14448,8 @@ been found to be acceptable, and *conversion describes it.
          being elided. */
       if (strict_ansi_mode && !cpp0x_mode) {
         check_access_to_elided_copy_constructor(orig_source_type,
+                                                /*elided_cctor=*/
+                                                             (a_routine *)NULL,
                                                 &source_operand->position);
       }  /* if */
     }  /* if */

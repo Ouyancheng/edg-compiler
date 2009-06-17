@@ -7635,6 +7635,7 @@ added and result is updated.
     /* In strict mode, issue an error if the copy constructor that would
        have been called is not accessible. */
     check_access_to_elided_copy_constructor(result->type,
+                                            /*elided_cctor=*/(a_routine *)NULL,
                                             &result->position);
   }  /* if */
   /* Make the enk_temp_init node and the dynamic-init entry under it. */

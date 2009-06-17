@@ -711,6 +711,7 @@ extern void user_convert_operand(an_operand   *operand,
 
 extern void check_access_to_elided_copy_constructor(
                                              a_type_ptr        source_type,
+                                             a_routine_ptr     elided_cctor,
                                              a_source_position *err_pos);
 
 extern a_boolean operand_is_temp_init(an_operand *operand);

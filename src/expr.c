@@ -1194,7 +1194,8 @@ source position is after the closing parenthesis of the argument list.
            same cv-unqualified type as the destination, so copy constructor
            elision can be done.  In this case the dynamic init entry already
            present is reused. */
-        check_access_to_elided_copy_constructor(source_type, source_pos);
+        check_access_to_elided_copy_constructor(source_type, routine,
+                                                source_pos);
         optimized = TRUE;
       } else if (!microsoft_bugs && 
                  (conv_routine = arg_match->conversion.routine) != NULL &&
@@ -1264,7 +1265,10 @@ source position is after the closing parenthesis of the argument list.
                                                /*suppress_dtor=*/!fill_in_dtor,
                                                &temp_init_node,
                                                &dip);
-          check_access_to_elided_copy_constructor(source_type, source_pos);
+          check_access_to_elided_copy_constructor(source_type,
+                                                  /*elided_cctor=*/
+                                                             (a_routine *)NULL,
+                                                  source_pos);
           /* The dynamic init we now have is the result of the overall
              operation. */
           check_assertion(dip != NULL);
