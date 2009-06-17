@@ -11286,7 +11286,6 @@ processing.  If there is no next such field, return NULL.
   return field;
 }  /* next_initializable_field */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_compound_assignment_operator(an_expr_operator_kind  op)
 /*
@@ -11317,6 +11316,7 @@ Return TRUE if and only if the given operator is a compound assignment.
   return result;
 }  /* is_compound_assignment_operator */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if FIXED_POINT_ALLOWED
 
 a_fixed_point_type_descr make_fixed_point_type_descr(
