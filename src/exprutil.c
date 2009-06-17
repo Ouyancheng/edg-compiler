@@ -10899,6 +10899,12 @@ it might produce an error).
     /* Function designator (C) or function lvalue (C++): the conversion to
        rvalue adds a "pointer to". */
     rvalue_node_type = make_pointer_type(node->type);
+  } else if (is_array_type(node->type)) {
+    /* In the unlikely event we convert an array lvalue to an array rvalue
+       (we do that with the result of a function call that returns an
+       rvalue reference to array, for example), keep the array type as
+       it is -- don't drop cv-qualifiers on the element type. */
+    rvalue_node_type = node->type;
   } else {
     rvalue_node_type = rvalue_type(node->type);
   } /* if */
