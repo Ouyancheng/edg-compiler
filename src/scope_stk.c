@@ -7669,6 +7669,10 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(num_string_literal_table_entries_allocated),
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+#if DO_IL_LOWERING && MODULE_ID_NEEDED
+      pch_saved_var_array_elem(waiting_for_module_id_list_head),
+      pch_saved_var_array_elem(waiting_for_module_id_list_tail),
+#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED */
       pch_saved_var_array_elem(c99_inline_definition_locators_to_check),
       pch_saved_var_array_elem(avail_c99_inline_definition_locators),
 #if DEBUG
