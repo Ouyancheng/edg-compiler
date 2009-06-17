@@ -6130,7 +6130,7 @@ static a_delayed_lowering_list_entry_ptr
 
 #if DEBUG
 static unsigned long
-                num_lowering_list_entries_allocated;
+                num_delayed_lowering_list_entries_allocated;
 #endif /* DEBUG */
 
 void lower_functions_waiting_for_module_id(void)
@@ -6211,7 +6211,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
     a_delayed_lowering_list_entry *entry =
                                alloc_fe_of_type(a_delayed_lowering_list_entry);
 #if DEBUG
-    num_lowering_list_entries_allocated++;
+    num_delayed_lowering_list_entries_allocated++;
 #endif /* DEBUG */
     entry->region_number = routine->assoc_scope;
     entry->next = NULL;
@@ -7644,7 +7644,7 @@ routines is reported as part of the symbol table memory used.
                      a_c99_inline_definition_locator);
 #if DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   db_space_used("wait for mod. id entries",
-                num_lowering_list_entries_allocated,
+                num_delayed_lowering_list_entries_allocated,
                 a_delayed_lowering_list_entry);
 #endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   return grand_total;
@@ -7685,7 +7685,7 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(waiting_for_module_id_list_head),
       pch_saved_var_array_elem(waiting_for_module_id_list_tail),
 #if DEBUG
-      pch_saved_var_array_elem(num_lowering_list_entries_allocated),
+      pch_saved_var_array_elem(num_delayed_lowering_list_entries_allocated),
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
       pch_saved_var_array_elem(c99_inline_definition_locators_to_check),
@@ -7789,7 +7789,7 @@ of the front end.
   waiting_for_module_id_list_head = NULL;
   waiting_for_module_id_list_tail = NULL;
 #if DEBUG
-  num_lowering_list_entries_allocated = 0;
+  num_delayed_lowering_list_entries_allocated = 0;
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
