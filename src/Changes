@@ -1,5 +1,13 @@
 Version 4.1
 
+6/16/09  [EDGcpfe/9917]
+Severe compilation slowdown due to checking of GNU "deprecated" attribute
+
+In certain complex template cases, the checking of GNU "deprecated" attributes
+(function warn_about_use_of_deprecated_type in types.c) could dominate overall
+compile time.  This is now fixed.
+
+
 6/16/09  [EDGcpfe/9916]
 Partial ordering and array types
 
