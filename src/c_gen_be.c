@@ -9190,7 +9190,7 @@ The IL is already available when this routine is called.
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* Make a string based on the module name that is used to qualify
      static names to make them unique. */
-  module_id = make_module_id(NULL);
+  module_id = make_module_id((char *)NULL);
   /* Get module name for use in name of file-scope init routine. */
   module_init_id = module_id;
   module_list_for_union_init = NULL;

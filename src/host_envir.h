@@ -2862,22 +2862,24 @@ also used as a factor in determining whether name mangling is needed.
 
 
 /*
-Determine whether the module ID routines are needed.  They are needed
+Determine whether the module id routines are needed.  They are needed
 if IL lowering or name mangling are used, when the C generating back end
 is not generating ANSI C, when the automatic template instantiation
 mechanism is enabled, or when the front end is configured to compile
 multiple translation units (because name mangling is used for export
 template support in such cases).  The name mangling test is sufficient to
 cover the C generating back end case because name mangling is required when
-using IL lowering or the C generating back end.
+using IL lowering or the C generating back end.  In cases where the C
+generating back end is being used as a standalone utility, the module id
+routines are needed when C_GEN_BE_GENERATES_ANSI_C is FALSE.
 */
 #if (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && \
-    !STANDALONE_UTILITY_PROGRAM
+    (!STANDALONE_UTILITY_PROGRAM || \
+     (BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C))
 #define MODULE_ID_NEEDED TRUE
-#else /* !(NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) */
+#else /* !((NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && ...) */
 #define MODULE_ID_NEEDED FALSE
-#endif /* (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && \
-         !STANDALONE_UTILITY_PROGRAM */
+#endif /* (NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) && ... */
 
 #if MODULE_ID_NEEDED
 

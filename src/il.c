@@ -20764,8 +20764,9 @@ be used, but there are exceptions.
         a_routine_ptr  routine = (a_routine_ptr)scp;
         if (routine->storage_class != (a_storage_class)sc_unspecified ||
             routine->is_inline) {
-          /* Only external routines.  Externalized routines are disqualified
-             because they have static linkage. */
+          /* Only external, non-inline routines may be used for a module id.
+             Note that this check also disqualifies externalized routines
+             (because they have static linkage). */
         } else if (routine->is_template_function) {
           /* Don't use template functions.  Some implementations
              may generate these in multiple files. */
@@ -20793,7 +20794,7 @@ be used, but there are exceptions.
         }  /* if */
       }  /* if */
       if (name != NULL) {
-        /* We've found a suitable candidate, create the module id for the
+        /* We've found a suitable candidate; create the module id for the
            translation unit. */
         (void)make_module_id(name);
       }  /* if */

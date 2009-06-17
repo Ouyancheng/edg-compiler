@@ -120,15 +120,18 @@ Delay lowering of function scopes until a module id can be created
 
 A "module id" is used during name mangling to provide a unique and repeatable
 mangling for certain entities.  If possible, a variable or routine with
-an external definition is used as a portion of the module id.  Previously,
-lowering of certain functions (i.e., some static functions when exported
-templates are allowed) was delayed for concern that a module id had not yet
-been generated.  In the case of unnamed namespaces, a request to generate
-a mangled name for a member of an unnamed namespace caused creation of a
-(possibly inferior) module id.  In preparation for increased reliance on
-the module id in C++0x mangling, a change has been made to delay the lowering
-of all functions until a suitable variable or routine definition has
-occurred, in which case the queued functions are immediately lowered.
+an external definition is used as a portion of the module id.  If a request
+to mangle a name were to occur too early in the compilation process (before
+a suitable variable or routine definition had been found), either an inferior
+module name would be generated (in the case of unnamed namespaces), or an
+assertion (in module_id_for_source_corresp) would fail.  Therefore, we had
+delayed lowering of certain functions (i.e., some static functions when
+exported templates are allowed) to ensure getting a better module id.
+
+In preparation for increased reliance on the module id in C++0x mangling, a
+change has been made to delay the lowering of all functions until a suitable
+variable or routine definition has occurred, at which time the queued functions
+are immediately lowered.
 
 
 6/10/09  [EDGcpfe/9884]

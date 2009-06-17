@@ -127,11 +127,12 @@ are instantiated.
 
 #if MODULE_ID_NEEDED
   /* Make sure the module id is generated for this translation unit if it
-     hasn't been generated already.  The module id is used in the mangling
-     of unnamed namespaces as well as externalized routines and as such
-     lowering is delayed until a module id is available (by definition of a
-     suitable variable or routine). */
-  (void)make_module_id(NULL);
+     hasn't been generated already.  If this is the first time make_module_id
+     has been called for this translation unit, an inferior module id
+     will be generated (i.e., no suitable variable or routine definition
+     was found).  This may also trigger the lowering of functions that have
+     been waiting for the definition of a module id. */
+  (void)make_module_id((char *)NULL);
 #endif /* MODULE_ID_NEEDED */
 
   if (!C_mode() && !is_primary_translation_unit && !do_preprocessing_only) {

@@ -6095,7 +6095,7 @@ the scope stack is no longer available.
 }  /* finish_function_body_processing */
 
 #if DO_IL_LOWERING
-#if MODULE_ID_NEEDED
+#if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
 
 /*
 A list of memory regions (containing functions) that are waiting for a
@@ -6127,7 +6127,10 @@ static a_lowering_entry_ptr
                            has been delayed because no module id was
                            available. */
 
-#if !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
+static unsigned long
+                num_lowering_list_entries_allocated;
+#endif /* DEBUG */
 
 void lower_functions_waiting_for_module_id(void)
 /*
@@ -6147,8 +6150,7 @@ in the same order in which they were originally encountered.
   waiting_for_module_id_list_tail = NULL;
 }  /* lower_functions_waiting_for_module_id */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-#endif /* MODULE_ID_NEEDED */
+#endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
                                             a_boolean     at_initial_scope_pop)
@@ -6158,8 +6160,8 @@ The scope for the body of the indicated routine is either being popped
 Return TRUE if there is a reason why the lowering of the function should
 be delayed.  In some cases below, lowering is delayed until the end of
 compilation, but in the case of lowering being delayed solely due to the
-lack of a module id, the function will be lowered as soon as a module id
-becomes available.
+lack of a module id, the function is added to a list of functions that will
+be lowered as soon as a module id becomes available (and TRUE is returned).
 */
 {
   a_boolean   delay_lowering = FALSE;
@@ -6194,7 +6196,7 @@ becomes available.
        vtables will be handled properly. */
     delay_lowering = TRUE;
   }  /* if */
-#if MODULE_ID_NEEDED
+#if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   if (!delay_lowering &&
       get_module_id() == NULL &&
       !scope_stack[depth_scope_stack].in_prototype_instantiation) {
@@ -6206,6 +6208,9 @@ becomes available.
     /* Queue functions waiting for a module id on a separate list (which
        will be drained as soon as a module id becomes available). */
     a_lowering_entry *entry = alloc_fe_of_type(a_lowering_entry);
+#if DEBUG
+    num_lowering_list_entries_allocated++;
+#endif /* DEBUG */
     entry->region_number = routine->assoc_scope;
     entry->next = NULL;
     if (waiting_for_module_id_list_head == NULL) {
@@ -6216,7 +6221,7 @@ becomes available.
     waiting_for_module_id_list_tail = entry;
     delay_lowering = TRUE;
   }  /* if */
-#endif /* MODULE_ID_NEEDED */
+#endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   if (delay_lowering) {
     /* Set a flag to delay lowering on all enclosing function scopes
        (if any). */
@@ -7635,6 +7640,10 @@ routines is reported as part of the symbol table memory used.
                      avail_c99_inline_definition_locators,
                      num_c99_inline_definition_locators_allocated,
                      a_c99_inline_definition_locator);
+#if DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
+  db_space_used("wait for mod. id entries",
+                num_lowering_list_entries_allocated, a_lowering_entry);
+#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   return grand_total;
 }  /* db_show_scope_stack_space_used */
 
@@ -7669,10 +7678,13 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(num_string_literal_table_entries_allocated),
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-#if DO_IL_LOWERING && MODULE_ID_NEEDED
+#if DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
       pch_saved_var_array_elem(waiting_for_module_id_list_head),
       pch_saved_var_array_elem(waiting_for_module_id_list_tail),
-#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED */
+#if DEBUG
+      pch_saved_var_array_elem(num_lowering_list_entries_allocated),
+#endif /* DEBUG */
+#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
       pch_saved_var_array_elem(c99_inline_definition_locators_to_check),
       pch_saved_var_array_elem(avail_c99_inline_definition_locators),
 #if DEBUG
@@ -7770,10 +7782,13 @@ of the front end.
   num_c99_inline_definition_locators_allocated = 0;
   num_function_shareable_constants_tables_allocated = 0;
 #endif /* DEBUG */
-#if DO_IL_LOWERING && MODULE_ID_NEEDED
+#if DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   waiting_for_module_id_list_head = NULL;
   waiting_for_module_id_list_tail = NULL;
-#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED */
+#if DEBUG
+  num_lowering_list_entries_allocated = 0;
+#endif /* DEBUG */
+#endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 
