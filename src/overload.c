@@ -12984,6 +12984,22 @@ elided_cctor is passed as NULL.
   if (strict_ansi_mode && !is_error_type(source_type)) {
     if (elided_cctor != NULL) {
       cctor_sym = symbol_for(elided_cctor);
+      { a_param_type_ptr     ptp = elided_cctor->type->
+                                   variant.routine.extra_info->param_type_list;
+        a_type_qualifier_set qualifiers;
+        a_type_ptr           under_type;
+        check_assertion(ptp != NULL && is_reference_type(ptp->type));
+        under_type = type_pointed_to(ptp->type);
+        qualifiers = get_type_qualifiers(under_type);
+        if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
+                          (TQ_CONST | TQ_VOLATILE)) {
+          /* A copy constructor with a parameter of type reference to const
+             volatile cannot copy an rvalue.  Due to a standards quirk this is
+             not checked for in overload resolution, but it still makes the
+             copy constructor uncallable. */
+          uncallable = TRUE;
+        }  /* if */
+      }
     } else {
       cctor_sym = select_overloaded_copy_constructor(
                                       class_type,
