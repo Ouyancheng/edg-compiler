@@ -1675,7 +1675,9 @@ void scan_defaulted_or_deleted_definition(a_decl_parse_state    *dps,
 /*
 A "= default;" or "= delete;" definition is next (although the semicolon may
 be missing) and func_info reflects this already.  Update the associated IL
-entry and scan past the tokens.
+entry and scan past the tokens.  This is called for non-member functions and
+for out-of-class definitions of member functions (not for in-class definitions
+of member functions).
 */
 {
   a_routine_ptr  routine_ptr = dps->sym->variant.routine.ptr;
