@@ -1490,7 +1490,7 @@ In Sun compatibility mode, the symbols need not be from the same scope.
          This is okay. */
       a_boolean  must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
       result = TRUE;
-      if (gpp_mode && gnu_version < 40300) {
+      if (gnu_namespace_and_class_in_same_scope) {
         /* Some versions of g++ allow a class and namespace with the same
            name in a given scope.  The class name should be used as the
            result of the lookup. */
@@ -2373,6 +2373,7 @@ that do normal id lookup processing.
            scope. */
         a_symbol_ptr	type_tag_symbol = NULL;
         a_symbol_ptr	tag_symbol = NULL;
+        a_symbol_ptr	namespace_symbol = NULL;
         sym = NULL;
         for (sym = inactive_symbol_list_from_locator(*locator);
              sym != NULL; sym = sym->next) {
@@ -2396,8 +2397,17 @@ that do normal id lookup processing.
                 if (is_tag_symbol(fund_sym)) {
                   tag_symbol = sym;
                 } else {
-                  /* Take the symbol. */
-                  break;
+                  if (is_namespace_symbol(sym) &&
+                      gnu_namespace_and_class_in_same_scope) {
+                    /* Some versions of g++ allow a namespace and class
+                       with the same name in a scope.  The class name
+                       should be preferred.  If we found the namespace
+                       keep looking in case we find a class. */
+                    namespace_symbol = sym;
+                  } else {
+                    /* Take the symbol. */
+                    break;
+                  }  /* if */
                 }  /* if */
               } else {
                 /* A tag lookup. */
@@ -2419,6 +2429,9 @@ that do normal id lookup processing.
           } else if (tag_symbol != NULL) {
             /* If there is a tag symbol saved within the loop, use it. */
             sym = tag_symbol;
+          } else if (namespace_symbol != NULL) {
+            /* If a namespace symbol was saved, use it. */
+            sym = namespace_symbol;
           }  /* if */
         }  /* if */
         /* If this is a namespace scope, also look for any symbols that

@@ -891,6 +891,12 @@ EXTERN a_boolean
 			   Microsoft modes). */
 
 EXTERN a_boolean
+		gnu_namespace_and_class_in_same_scope;
+			/* TRUE if the g++ bug of allowing a namespace and
+			   a class with the same name to be declared in a
+			   given scope should be emulated. */
+
+EXTERN a_boolean
 		long_lifetime_temps;
 			/* If FALSE, temporaries have lifetimes that end at
 			   end of full expression.  If TRUE, temporaries

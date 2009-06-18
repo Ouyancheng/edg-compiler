@@ -3266,7 +3266,7 @@ this is not allowed, an error will be issued by the caller.
     a_boolean	new_is_namespace = is_namespace_symbol(new_sym);
     a_boolean	old_is_namespace = is_namespace_symbol(old_sym);
     if ((new_is_namespace || old_is_namespace) &&
-        (!gpp_mode || gnu_version >= 40300)) {
+        !gnu_namespace_and_class_in_same_scope) {
       /* A namespace name must be unique in its scope. */
       /* err = TRUE; */
 #if MICROSOFT_EXTENSIONS_ALLOWED
