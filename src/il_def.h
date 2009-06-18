@@ -6822,7 +6822,7 @@ typedef struct a_variable {
 			   this variable is the "parent object" of which the
 			   anonymous union members are subobjects.  For
 			   example, given
-			     union { int i, j };
+			     union { int i, j; };
 			   the IL to represent the source construct "i" is
 			   "<anonymous-parent-object>.i". */
   a_bit_field	is_member_constant:1;
@@ -7094,7 +7094,7 @@ typedef struct a_field {
 			   this field is the "parent object" of which the
 			   anonymous union members are subobjects.  For
 			   example, given
-			     class A { union { int i, j }; } x;
+			     class A { union { int i, j; }; } x;
 			   the IL to represent the source construct "x.i" is
 			   "x.<anonymous-parent-object>.i". */
   a_bit_field	is_mutable:1;
