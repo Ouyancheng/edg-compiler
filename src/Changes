@@ -171,6 +171,30 @@ This is a 4.0 regression and is now fixed.  For example:
   }
 
 
+6/10/09  [EDGcpfe/9852]
+Bitwise copies when default bitwise copy constructor is overloaded
+
+In cases where the generated trivial (bitwise) copy constructor of a
+class is overloaded with other user-written constructors, there were
+some cases where the front end generated a call to the copy constructor
+instead of implementing that call as a bitwise copy.  Such cases were
+unusual (the normal cases were optimized), and were usually inlined
+anyway, resulting in essentially identical code.  Now, however, the
+bitwise copy is generated directly.
+
+  struct A {
+    int i;
+    A();
+    ~A();
+  };
+  struct B : public A {
+  };
+  int main() {
+    B b;
+    A a = b;  // The copy constructor was called previously; now, bitwise copy
+  }
+
+
 6/9/09   [EDGcpfe/9877]
 Microsoft compatibility: Out-of-namespace template redeclaration
 
