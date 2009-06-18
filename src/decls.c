@@ -11556,7 +11556,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
           ns_sym = (a_symbol_ptr)
              skip_namespace_aliases(ns_sym->variant.namespace_info.ptr)->
                                                     source_corresp.assoc_info;
-        } else if (gpp_mode && gnu_version < 40300 && is_tag_symbol(ns_sym)) {
+        } else if (gnu_namespace_and_class_in_same_scope &&
+                   is_tag_symbol(ns_sym)) {
           /* Versions of g++ before 4.3 allow a namespace and class to be
              declared with the same name. */
           ns_sym = NULL;
