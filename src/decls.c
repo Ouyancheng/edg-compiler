@@ -7112,7 +7112,9 @@ skip_overloading:;
                           func_info->is_definition;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   *ext_sym = NULL;
-  if (linkage != idl_none && !redeclaration) {
+  if (linkage != idl_none && !redeclaration &&
+      !(scope_stack[depth_scope_stack].in_prototype_instantiation &&
+        is_template_dependent_type(type_ptr))) {
     /* Create an external symbol for the present linkable declaration. */
     *ext_sym = create_external_symbol_for_routine(
                    locator, type_ptr, &idlb, microsoft_specialization_redef,

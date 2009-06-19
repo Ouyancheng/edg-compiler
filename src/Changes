@@ -1,5 +1,21 @@
 Version 4.1
 
+6/19/08  [EDGcpfe/9922]
+Spurious incompatibility error for template-dependent block-extern declaration
+
+When PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the front end sometimes issued a
+spurious "declaration is incompatible" error on block-extern declarations of
+functions with a template-dependent type.  (This happened in modes, like
+strict mode, where templates are parsed in their generic form.)  For example:
+
+  void f() {}
+  template <class T> void g() {
+    T f();  // Previously triggered a spurious error.
+  }
+
+This is now fixed.
+
+
 6/16/09  [EDGcpfe/9917]
 Severe compilation slowdown due to checking of GNU "deprecated" attribute
 
