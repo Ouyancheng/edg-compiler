@@ -1,5 +1,30 @@
 Version 4.1
 
+6/19/09  [EDGcpfe/5922]
+Incorrect mangling of nested local entities with same name in IA-64 ABI
+
+The IA-64 ABI manglings of nested local entities with the same name were
+incorrect; the discriminator (used to differentiate between entities of the
+same name) had been emitted after the initial entity name rather than at the
+end of the nested entity.  The resulting mangled names couldn't be properly
+decoded and were incompatible with those produced by g++.  This is now fixed.
+The previous behavior can be restored by setting ABI_COMPATIBILITY_VERSION <
+401.  No changes have been made to the Cfront ABI.  For example:
+
+  void x() {
+    { struct X {}; }
+    struct X {
+      void f() { f(); }    // was _ZZ1xvEN1X_01fEv, now _ZZ1xvEN1X1fE_0v
+    } x1;
+    x1.f();
+    { struct X {
+        void f() { f(); }  // was _ZZ1xvEN1X_11fEv, now _ZZ1xvEN1X1fE_1v
+      } x2;
+      x2.f();
+    }
+  }
+
+
 6/19/09  [EDGcpfe/9922]
 Spurious incompatibility error for template-dependent block-extern declaration
 

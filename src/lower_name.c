@@ -388,15 +388,18 @@ static void r_mangled_parent_qualifier(
                              a_source_correspondence  *scp,
                              unsigned long            nesting_level,
                              a_boolean                needs_to_be_individuated,
+                             a_source_correspondence  **top_most_scp,
                              a_mangling_control_block *mctl);
 #if IA64_ABI
 static void mangled_ia64_parent_qualifier(
                               a_source_correspondence  *scp,
                               an_il_entry_kind         kind,
                               a_boolean                *need_nested_name_close,
+                              a_source_correspondence  **discriminator_scp,
                               a_mangling_control_block *mctl);
 static void close_ia64_nested_name(
                               a_boolean                 need_nested_name_close,
+                              a_source_correspondence  *discriminator_scp,
                               a_mangling_control_block *mctl);
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
@@ -417,7 +420,9 @@ see mangled_ia64_parent_qualifier.
 */
 #define mangled_parent_qualifier(parent, mctl)                        \
   r_mangled_parent_qualifier((parent), (unsigned long)1,              \
-                             /*needs_to_be_individuated=*/FALSE, (mctl))
+                             /*needs_to_be_individuated=*/FALSE,      \
+                             (a_source_correspondence **)NULL,        \
+                             (mctl))
 #endif /* !IA64_ABI */
 
 
@@ -2054,6 +2059,8 @@ but it represents a routine, and rinfo points to the information
 describing it.
 */
 {
+  a_source_correspondence
+             *discriminator_scp;
   a_type_ptr parent_class = (scp->is_class_member ? scp_parent_class(scp) :
                                                     NULL);
   a_boolean  use_sr = parent_class != NULL &&
@@ -2081,7 +2088,8 @@ describing it.
         /* g++ 3.2 puts a parent qualifier on member references if the
            parent type is not a template parameter. */
         mangled_ia64_parent_qualifier(scp, kind,
-                                      &need_nested_name_close, mctl);
+                                      &need_nested_name_close, 
+                                      &discriminator_scp, mctl);
       }  /* if */
       if (rinfo != NULL) {
         /* Not a routine entry, but it represents a routine (this might be
@@ -2105,7 +2113,7 @@ describing it.
         /* Not a routine of any kind. */
         mangled_name_with_length(unmangled_name_of(scp), mctl);
       }  /* if */
-      close_ia64_nested_name(need_nested_name_close, mctl);
+      close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
     }  /* if */
   } else {
     /* Use a name as a literal instead of "sr", because the parent class
@@ -2124,7 +2132,8 @@ describing it.
       /* Add a parent qualifier for a member if needed. */
       a_boolean need_nested_name_close = FALSE;
       mangled_ia64_parent_qualifier(scp, kind,
-                                    &need_nested_name_close, mctl);
+                                    &need_nested_name_close, 
+                                    &discriminator_scp, mctl);
       if (rinfo != NULL) {
         /* Not a routine entry, but it represents a routine (this might be
            the address of an overloaded function, and we can't tell which
@@ -2147,7 +2156,7 @@ describing it.
         /* Not a routine of any kind. */
         mangled_name_with_length(scp->name, mctl);
       }  /* if */
-      close_ia64_nested_name(need_nested_name_close, mctl);
+      close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
     }  /* if */
     add_to_mangled_name('E', mctl);
   }  /* if */
@@ -3288,12 +3297,14 @@ given by tap.
 #else /* IA64_ABI */
     if (!add_substitution_if_available((char *)temp, iek_template, mctl)) {
       a_boolean need_nested_name_close = FALSE;
+      a_source_correspondence *discriminator_scp;
       /* Add a parent qualifier if needed. */
       mangled_ia64_parent_qualifier(scp, iek_template,
-                                    &need_nested_name_close, mctl);
+                                    &need_nested_name_close, 
+                                    &discriminator_scp, mctl);
       /* Add the name for the template itself. */
       mangled_name_with_length(scp->name, mctl);
-      close_ia64_nested_name(need_nested_name_close, mctl);
+      close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
       alloc_substitution((char *)temp, iek_template, mctl);
     }  /* if */
 #endif /* IA64_ABI */
@@ -3625,7 +3636,11 @@ should be put out.
     add_local_name_suffix(ssp->local_class_number, enclosing_routine, mctl);
   }  /* if */
 #else /* IA64 */
+#if ABI_COMPATIBILITY_VERSION < 401
+  /* Earlier versions of the ABI mistakenly emitted a discriminator at this
+     point (rather than at the end of the nested name of a local type). */
   add_discriminator_if_necessary(&type->source_corresp, mctl);
+#endif /* ABI_COMPATIBILITY_VERSION < 401 */
 #endif /* !IA64_ABI */
 }  /* mangled_full_class_name */
 
@@ -3954,6 +3969,7 @@ static void r_mangled_parent_qualifier(
                              a_source_correspondence  *scp,
                              unsigned long            nesting_level,
                              a_boolean                needs_to_be_individuated,
+                             a_source_correspondence  **top_most_scp,
                              a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the parent qualifier needed in the
@@ -3967,7 +3983,10 @@ is not used in the IA-64 ABI.  needs_to_be_individuated is TRUE when then
 entity needs to be "individuated", that is, mangled "as if" the entity were
 part of a top-level namespace with a unique name.  See the macro
 mangled_parent_qualifier, which supplies the usual nesting_level == 1 and
-needs_to_be_individuated == FALSE.
+needs_to_be_individuated == FALSE.  If top_most_scp is not NULL, *top_most_scp
+is set to the source correspondence of the top most level of the scp entity.
+This is used by the caller in the IA-64 ABI to emit a discriminator (if
+necessary) if the entity is local to a function.
 */
 {
   a_type_ptr              type = NULL;
@@ -3981,6 +4000,10 @@ needs_to_be_individuated == FALSE.
   a_boolean               use_individuated_namespace = FALSE;
   char                    *name;
 
+  if (top_most_scp != NULL) {
+    /* Assume that this is the top most level (may be overwritten later). */
+    *top_most_scp = scp;
+  }  /* if */
   /* See if the present level is nested inside some other class or
      namespace. */
   if (scp->is_class_member) {
@@ -4099,12 +4122,16 @@ needs_to_be_individuated == FALSE.
     parent_scp = NULL;
     use_individuated_namespace = TRUE;
   }  /* if */
+  if (!more_levels && top_most_scp != NULL) {
+    /* No more levels, return the source correspondence of top most level. */
+    *top_most_scp = parent_scp;
+  }  /* if */
 #if !IA64_ABI
   if (more_levels) {
     /* This level is nested inside something else.  Do a recursive call
        to put out all of the parents. */
     r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                               needs_to_be_individuated, mctl);
+                               needs_to_be_individuated, top_most_scp, mctl);
   } else {
     /* This is the topmost qualifier. */
     if (nesting_level > 1) {
@@ -4135,7 +4162,8 @@ needs_to_be_individuated == FALSE.
         /* This level is nested inside something else.  Do a recursive call to
            deal with all of the parents. */
         r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                   needs_to_be_individuated, mctl);
+                                   needs_to_be_individuated, top_most_scp,
+                                   mctl);
       }  /* if */
       if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
@@ -4180,7 +4208,8 @@ new_substitution:
         /* This level is nested inside something else.  Do a recursive call to
            deal with all of the parents. */
         r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                   needs_to_be_individuated, mctl);
+                                   needs_to_be_individuated, top_most_scp,
+                                   mctl);
       }  /* if */
     }  /* if */
     /* Put out the enum name along with its length. */
@@ -4231,7 +4260,7 @@ new_substitution:
       /* This level is nested inside something else.  Do a recursive call to
          deal with all of the parents. */
       r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                 needs_to_be_individuated, mctl);
+                                 needs_to_be_individuated, top_most_scp, mctl);
     }  /* if */
 #endif /* IA64_ABI */
     name = unmangled_name_of(&nsp->source_corresp);
@@ -4258,6 +4287,7 @@ static void mangled_ia64_parent_qualifier(
                               a_source_correspondence  *scp,
                               an_il_entry_kind         kind,
                               a_boolean                *need_nested_name_close,
+                              a_source_correspondence  **discriminator_scp,
                               a_mangling_control_block *mctl)
 /*
 Add to the IA-64 mangled name the encoding for a parent qualifier if
@@ -4267,19 +4297,31 @@ correspondence is pointed to by scp and whose kind is given by "kind".
 started and must be closed later.  This routine is used at the top
 level for a complete name, and not recursively for each level of the
 parent qualifiers.  It also handles the qualifier for local
-entities that indicates the enclosing function.
+entities that indicates the enclosing function.  When a qualifier has been
+added for a local entity, return (in *discriminator_scp) the source
+correspondence of the entity that should be used when emitting a
+discriminator (if necessary).
 */
 {
+  a_type_ptr              local_type = NULL;
+  a_source_correspondence *top_most_scp = NULL;
+
+  check_assertion(discriminator_scp != NULL);
+  *discriminator_scp = NULL;
   *need_nested_name_close = FALSE;
   /* Add the encoding for the function if this is a local type,
      member of a local class, or a scoped enumerator. */
   if (scp->is_local_to_function) {
     if (kind == iek_type) {
-      add_prefix_for_local_type((a_type_ptr)scp, mctl);
+      local_type = (a_type_ptr)scp;
     } else if (scp->is_class_member) {
-      add_prefix_for_local_type(scp_parent_class(scp), mctl);
+      local_type = (a_type_ptr)scp_parent_class(scp);
     } else if (scp_is_enum_member(scp)) {
-      add_prefix_for_local_type(scp_parent_scoped_enum_type(scp), mctl);
+      local_type = (a_type_ptr)scp_parent_scoped_enum_type(scp);
+    }  /* if */
+    if (local_type != NULL) {
+      add_prefix_for_local_type(local_type, mctl);
+      top_most_scp = scp;
     }  /* if */
   }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
@@ -4313,22 +4355,39 @@ entities that indicates the enclosing function.
        name. */
     r_mangled_parent_qualifier(scp, (unsigned long)1,
                                entity_needs_to_be_individuated(scp, kind),
-                               mctl);
+                               &top_most_scp, mctl);
+  }  /* if */
+  if (local_type != NULL && top_most_scp != NULL) {
+    /* If we added a prefix for a local type above, its possible that we
+       might also need to add a discriminator as a suffix.  The discriminator
+       is based upon the outermost type of a nested local type, so return
+       that to the caller (for use when the mangled name is closed). */
+    *discriminator_scp = top_most_scp;
   }  /* if */
 }  /* mangled_ia64_parent_qualifier */
 
 
 static void close_ia64_nested_name(
                                a_boolean                need_nested_name_close,
+                               a_source_correspondence  *discriminator_scp,
                                a_mangling_control_block *mctl)
 /*
 If need_nested_name_close is TRUE, put out the sequence to close a
-nested name in the IA-64 ABI encoding.
+nested name in the IA-64 ABI encoding.  If we're closing a nested name
+that is an entity in a local scope, discriminator_scp (if non-NULL) will
+point to the source correspondence of an entity to be used as a discriminator.
 */
 {
   if (need_nested_name_close) {
     add_to_mangled_name('E', mctl);
   }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 401
+  if (discriminator_scp != NULL) {
+    /* In versions of the ABI prior to 401, the discriminator was mistakenly
+       emitted earlier in the mangling. */
+    add_discriminator_if_necessary(discriminator_scp, mctl);
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 401 */
 }  /* close_ia64_nested_name */
 
 #endif /* IA64_ABI */
@@ -4348,6 +4407,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 {
   char                        *name;
 #if IA64_ABI
+  a_source_correspondence     *discriminator_scp;
   a_template_ptr              tmpl;
   a_class_type_supplement_ptr ctsp;
   a_boolean                   need_nested_name_close = FALSE;
@@ -4398,7 +4458,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     }  /* if */
   }  /* if */
   mangled_ia64_parent_qualifier(&type->source_corresp, iek_type,
-                                &need_nested_name_close, mctl);
+                                &need_nested_name_close, 
+                                &discriminator_scp, mctl);
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
   if (type->source_corresp.name_has_been_mangled &&
@@ -4429,7 +4490,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
                                (unsigned long)2,
                                entity_needs_to_be_individuated(
                                               &type->source_corresp, iek_type),
-                               mctl);
+                               (a_source_correspondence **)NULL, mctl);
   }  /* if */
 #endif /* IA64_ABI */
   /* Put out the type name itself. */
@@ -4456,7 +4517,11 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     }  /* if */
 #if IA64_ABI
     mangled_name_with_length(name, mctl);
+#if ABI_COMPATIBILITY_VERSION < 401
+    /* Earlier versions of the ABI mistakenly emitted a discriminator at this
+       point (rather than at the end of the nested name of a local type). */
     add_discriminator_if_necessary(&type->source_corresp, mctl);
+#endif /* ABI_COMPATIBILITY_VERSION < 401 */
 #else /* !IA64_ABI */
     reserve_space_for_length(&length_reservation, mctl);
     add_str_to_mangled_name(name, mctl);
@@ -4473,7 +4538,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 #endif /* IA64_ABI */
   }  /* if */
 #if IA64_ABI
-  close_ia64_nested_name(need_nested_name_close, mctl);
+  close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #endif /* IA64_ABI */
 done:;
 }  /* mangled_type_name_full */
@@ -5377,6 +5442,8 @@ to the point where the base name appears.
 #else /* IA64_ABI */
   a_boolean        need_nested_name_close = FALSE;
   a_template_ptr   tmpl = NULL;
+  a_source_correspondence
+                   *discriminator_scp = NULL;
 #endif /* !IA64_ABI */
   unsigned int     num_operands;
   a_param_type_ptr ptp;
@@ -5438,7 +5505,8 @@ to the point where the base name appears.
   if (!suppress_parent_encoding) {
     /* Add a parent qualifier for a member if needed. */
     mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
-                                  &need_nested_name_close, mctl);
+                                  &need_nested_name_close, 
+                                  &discriminator_scp, mctl);
   }  /* if */
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #endif /* IA64_ABI */
@@ -5539,11 +5607,12 @@ mangle_template:
                                              iek_routine)) {
     /* Add individuation. */
     r_mangled_parent_qualifier(&routine->source_corresp, /*nesting_level=*/1,
-                               /*needs_to_be_individuated=*/TRUE, mctl);
+                               /*needs_to_be_individuated=*/TRUE,
+                               (a_source_correspondence **)NULL, mctl);
   }  /* if */
 #endif /* !IA64_ABI */
 #if IA64_ABI
-  close_ia64_nested_name(need_nested_name_close, mctl);
+  close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* If this function explicitly overrides a function, add the name of
      the overridden function. */
@@ -6046,13 +6115,15 @@ scoped enumerators, and class and namespace member constants.
     mangled_parent_qualifier(scp, mctl);
   }  /* if */
 #else /* IA64_ABI */
-  a_boolean need_nested_name_close = FALSE;
+  a_boolean               need_nested_name_close = FALSE;
+  a_source_correspondence *discriminator_scp;
   /* Add a parent qualifier for a member if needed. */
   mangled_ia64_parent_qualifier(scp, kind,
-                                &need_nested_name_close, mctl);
+                                &need_nested_name_close, 
+                                &discriminator_scp, mctl);
   /* Output the name of the member. */
   mangled_name_with_length(unmangled_name_of(scp), mctl);
-  close_ia64_nested_name(need_nested_name_close, mctl);
+  close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_member_name */
 
