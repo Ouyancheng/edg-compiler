@@ -1,6 +1,6 @@
 Version 4.1
 
-6/19/08  [EDGcpfe/9922]
+6/19/09  [EDGcpfe/9922]
 Spurious incompatibility error for template-dependent block-extern declaration
 
 When PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the front end sometimes issued a
