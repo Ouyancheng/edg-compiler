@@ -3639,13 +3639,15 @@ extern void make_predeclared_bool_symbol(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
-                                             a_boolean   *ambiguous);
+                                             a_boolean   *ambiguous,
+                                             a_boolean   *trivial);
 
 extern a_routine_ptr select_default_constructor
 					(a_type_ptr        class_type,
                                          a_source_position *err_pos,
 					 a_type_ptr	   object_class_type,
-                                         a_boolean         evaluated);
+                                         a_boolean         evaluated,
+                                         a_boolean         *err);
 
 extern a_routine_ptr select_destructor(a_type_ptr       class_type,
 				       a_type_ptr       object_class_type,

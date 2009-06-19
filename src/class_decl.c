@@ -7453,7 +7453,8 @@ function, set *ambiguous to TRUE.
       case sfk_constructor:
         if (first_param == NULL) {
           /* Default constructor. */
-          sym = find_default_constructor(class_type, ambiguous);
+          sym = find_default_constructor(class_type, ambiguous,
+                                         (a_boolean *)NULL);
         } else {
           /* Copy constructor. */
           sym = find_copy_constructor(class_type, qualifiers,

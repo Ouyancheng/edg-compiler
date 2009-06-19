@@ -9811,6 +9811,7 @@ specification allow a variable-sized array as the top type.
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
       if (ctor_sym != NULL) {
+        a_boolean     def_ctor_err;
         a_routine_ptr ctor_routine;
         /* The class has one or more constructors.  Look for a default
            constructor.  The call issues an error and returns NULL
@@ -9823,11 +9824,16 @@ specification allow a variable-sized array as the top type.
         ctor_routine = select_default_constructor(base_new_type,
                                                   &type_position,
                                                   base_new_type,
-                                         curr_expr_is_potentially_evaluated());
-        if (ctor_routine != NULL) {
+                                          curr_expr_is_potentially_evaluated(),
+                                                  &def_ctor_err);
+        if (!def_ctor_err) {
           do_const_test = TRUE;
-          is_generated_ctor = ctor_routine->compiler_generated;
-          if (!ctor_routine->is_trivial_default_constructor) {
+          if (ctor_routine == NULL) {
+            /* A user-declared defaulted trivial default constructor. */
+            is_generated_ctor = TRUE;
+          } else {
+            /* A non-trivial constructor. */
+            is_generated_ctor = ctor_routine->compiler_generated;
             needs_initialization = TRUE;
             warn_about_missing_delete_if(TRUE);
             /* Make the dynamic initialization entry. */

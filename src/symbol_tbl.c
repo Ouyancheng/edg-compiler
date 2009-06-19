@@ -6965,23 +6965,35 @@ are recorded in the file scope.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
-                                      a_boolean   *ambiguous)
+                                      a_boolean   *ambiguous,
+                                      a_boolean   *trivial)
 /*
 Find and return a pointer to a symbol representing a default constructor for
 the class indicated by class_type.  (A default constructor is a constructor
 that requires no arguments.)  If more than one acceptable constructor is
 found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
-if no default constructor is found.  A trivial default constructor that's
-not user-declared is considered no constructor at all, so return NULL
-also in that case.  This routine is only used in C++ mode.
+if no default constructor is found.  For a trivial default constructor that's
+not user-declared, there's no symbol, so return NULL; for a user-declared
+default constructor that's defaulted and trivial, return the symbol.
+In either of those cases, if trivial is non-NULL return *trivial set to TRUE. 
 */
 {
   a_symbol_ptr  sym, ctor_sym = NULL;
   a_boolean     is_overloaded_function;
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(class_type);
 
   *ambiguous = FALSE;
-  sym = (symbol_supplement_for_class(class_type))->constructor;
-  if (sym != NULL) {
+  if (trivial != NULL) *trivial = FALSE;
+  sym = cssp->constructor;
+  if (sym == NULL) {
+    /* No user-declared constructors.  The class might have an implicit
+       trivial default constructor. */
+    if (trivial != NULL) {
+      *trivial = has_trivial_default_constructor(cssp);
+    }  /* if */
+  } else {
+    /* Some user-declared or non-trivial constructors. */
     /* If sym is an overloaded function symbol we need to go through the whole
        list. */
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -7011,6 +7023,9 @@ also in that case.  This routine is only used in C++ mode.
         }  /* if */
       }  /* if */
     }  /* for */
+    if (trivial != NULL && ctor_sym != NULL) {
+      *trivial = ctor_sym->variant.routine.ptr->is_trivial_default_constructor;
+    }  /* if */
   }  /* if */
   return ctor_sym;
 }  /* find_default_constructor */
@@ -7018,16 +7033,19 @@ also in that case.  This routine is only used in C++ mode.
 
 a_routine_ptr select_default_constructor(a_type_ptr        class_type,
                                          a_source_position *err_pos,
-					 a_type_ptr        object_class_type,
-                                         a_boolean         evaluated)
+                                         a_type_ptr        object_class_type,
+                                         a_boolean         evaluated,
+                                         a_boolean         *err)
 /*
 Find and return a pointer to a routine representing a default constructor for
 the class indicated by class_type.  (A default constructor is a constructor
-that requires no arguments.)  If no acceptable constructor is found, issue
-a diagnostic and return NULL.  If more than one acceptable constructor is
-found, issue a (different) diagnostic and return NULL.  Check access
-to the constructor and issue an error if the constructor is not
-accessible.  object_class_type points to the type of the object being
+that requires no arguments.)  If the class has no default constructor,
+or a trivial default constructor, return NULL.  If no acceptable constructor
+is found, issue a diagnostic and return NULL.  If more than one acceptable
+constructor is found, issue a (different) diagnostic and return NULL.
+On the error cases, if err is non-NULL return *err set to TRUE.
+Check access to the constructor and issue an error if the constructor is
+not accessible.  object_class_type points to the type of the object being
 created; class_type may be a base class of object_class_type.  This is
 needed for protected member access checking.  If evaluated is FALSE,
 the reference is within an unevaluated expression.  This routine is
@@ -7036,17 +7054,25 @@ only used in C++ mode.
 {
   a_routine_ptr ctor_routine = NULL;
   a_symbol_ptr  ctor_sym;
-  a_boolean     ambiguous;
+  a_boolean     local_err = FALSE, ambiguous, trivial;
 
   /* This routine is similar to select_overloaded_function. */
   class_type = skip_typerefs(class_type);
-  ctor_sym = find_default_constructor(class_type, &ambiguous);
+  ctor_sym = find_default_constructor(class_type, &ambiguous, &trivial);
   if (ctor_sym == NULL) {
-    /* No default constructor. */
-    pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+    if (trivial) {
+      /* The class has an implicit (not user-declared) trivial default
+         constructor. */
+      ctor_routine = NULL;
+    } else {
+      /* No default constructor at all. */
+      pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+      local_err = TRUE;
+    }  /* if */
   } else if (ambiguous) {
     /* More than one default constructor. */
     pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
+    local_err = TRUE;
   } else {
     /* Exactly one default constructor. */
     ctor_routine = ctor_sym->variant.routine.ptr;
@@ -7054,6 +7080,8 @@ only used in C++ mode.
       /* The constructor is a trivial default constructor.  Check access
          but do not mark it as referenced (because there will be no call). */
       evaluated = FALSE;
+      /* Return NULL from this routine. */
+      ctor_routine = NULL;
     }  /* if */
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(ctor_sym, err_pos,
@@ -7062,6 +7090,7 @@ only used in C++ mode.
                                              evaluated,
                                              /*instantiate=*/TRUE);
   }  /* if */
+  if (err != NULL) *err = local_err;
   return ctor_routine;
 }  /* select_default_constructor */
 
@@ -7104,6 +7133,10 @@ if necessary.  *position is the source position of the reference.
                            position, class_type, object_class_type);
       } else {
         /* Check that the destructor is accessible and mark it referenced. */
+        if (cssp->has_trivial_destructor) {
+          /* A defaulted trivial destructor is not actually called. */
+          evaluated = FALSE;
+        }  /* if */
         reference_to_implicitly_invoked_function(dtor_sym, position,
                                                  object_class_type,
                                                  honor_virtual, evaluated,

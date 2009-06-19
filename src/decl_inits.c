@@ -763,29 +763,30 @@ routine is called in C++ mode only.
       }  /* if */
     } else {
       /* Initialization is required. */
-      if (trivial_ctor) {
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-        init_done = TRUE;
+      if (cssp == NULL) {
+        /* Non-class (or nonreal class) element type. */
+        ctor_rp = NULL;
       } else {
         /* Get the default constructor.  Note that it is an error if it
            is missing. */
         ctor_rp = select_default_constructor(element_type, &pos_curr_token,
-                                             element_type, /*evaluated=*/TRUE);
-        if (ctor_rp == NULL) {
-          /* Error of some sort. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          init_done = TRUE;
-        } else  {
-          /* If there's a constructor routine create a dik_constructor
-             dynamic init entry. */
-          dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
-          /* If the default constructor is generated and some component of the
-             class requires zeroing, initialization is not really done because
-             the value-initialization rules require that the zeroing occurs. */
-          init_done = !(ctor_rp->compiler_generated &&
-                        element_type
+                                             element_type, /*evaluated=*/TRUE,
+                                             (a_boolean *)NULL);
+      }  /* if */
+      if (ctor_rp == NULL) {
+        /* Trivial default constructor, non-class type, or error. */
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+        init_done = TRUE;
+      } else  {
+        /* For a non-trivial constructor, create a dik_constructor
+           dynamic init entry. */
+        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+        /* If the default constructor is generated and some component of the
+           class requires zeroing, initialization is not really done because
+           the value-initialization rules require that the zeroing occurs. */
+        init_done = !(ctor_rp->compiler_generated &&
+                      element_type
                         ->variant.class_struct_union.has_zero_init_component);
-        }  /* if */
       }  /* if */
       if (cssp != NULL) {
         if (exceptions_enabled && has_nontrivial_destructor(cssp)) {
@@ -872,25 +873,25 @@ This routine is called in C++ mode only.
       } else {
         cssp = NULL;
       }  /* if */
-      if (cssp == NULL || has_trivial_default_constructor(cssp)) {
+      if (cssp == NULL) {
+        /* Non-class (or nonreal class) field. */
         /* Zero-initialize the field and then continue looping.  There is
            a field later in the list for which the default constructor has to
            be called, but we can't leave this field uninitialized. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
       } else {
-        /* Default initialization is required -- this must be the field found
-           by the call to any_constructible_fields_remaining. */
-        found_constructible_field = TRUE;
         /* Get the default constructor.  Note that it is an error if it
            is missing. */
         ctor_rp = select_default_constructor(tp, &pos_curr_token, tp,
-                                             /*evaluated=*/TRUE);
+                                             /*evaluated=*/TRUE,
+                                             (a_boolean *)NULL);
         if (ctor_rp == NULL) {
-          /* Error of some sort. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+          /* Trivial default constructor, or error of some sort. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
         } else  {
-          /* If there's a constructor routine create a dik_constructor
-             dynamic init entry. */
+          /* Default initialization is required -- this must be the field found
+             by the call to any_constructible_fields_remaining. */
+          found_constructible_field = TRUE;
           dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
           /* If the default constructor for the field was not user-written,
              a part of the field might need to be zeroed according to the
@@ -3918,7 +3919,12 @@ the default constructor (if one exists) is called.
     /* Default initialization is done only for non-POD class objects that
        are defined in the current translation unit (i.e., storage class
        other than "extern"). */
-    if (cssp != NULL && !cssp->is_POD &&
+    /* We don't test just is_POD because we want to catch cases where there
+       is a user-declared defaulted constructor or destructor that's not
+       accessible. */
+    if (cssp != NULL &&
+        (!cssp->is_POD ||
+         cssp->constructor != NULL || cssp->destructor != NULL) &&
         var->storage_class != (a_storage_class)sc_extern &&
         !is_incomplete_type(var_type)) {
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
@@ -3945,10 +3951,15 @@ the default constructor (if one exists) is called.
       if (cssp->constructor != NULL) {
         /* There are user-declared constructor(s) and/or implicitly-declared
            nontrivial constructors.  Look for a default constructor. */
+        a_boolean err;
         ctor = select_default_constructor(tp, err_pos, tp,
-                                          /*evaluated=*/TRUE);
-        if (is_const && ctor != NULL && ctor->compiler_generated) {
-          /* A default constructor was found, but it isn't a user-declared
+                                          /*evaluated=*/TRUE,
+                                          &err);
+        if (err) {
+          /* Some error, already diagnosed, e.g., no default constructor. */
+        } else if (is_const &&
+                   (ctor == NULL || ctor->compiler_generated)) {
+          /* A default constructor was found, but it isn't a user-provided
              constructor, which is required for a const-qualified variable. */
           if (any_cfront_mode() || microsoft_mode) {
             /* In cfront and Microsoft modes silently use the generated
@@ -3974,7 +3985,7 @@ the default constructor (if one exists) is called.
            set to NULL, but do generate dynamic initializers in the IL. */
         def_init_performed = TRUE;
       } else {
-        /* The class has no non-trivial constructors. */
+        /* The class has no user-declared constructors. */
         if (is_const) {
           /* Since this is a non-POD class, a user-declared default
              constructor should have been provided.  Leave def_init_performed
@@ -5342,12 +5353,9 @@ scan_paren:
           }  /* if */
           continue;
         }  /* if */
-        if (has_trivial_default_constructor(cssp)) {
-          rp = NULL;
-        } else {
-          rp = select_default_constructor(tp, &err_pos, object_class_type,
-                                          /*evaluated=*/TRUE);
-        }  /* if */
+        rp = select_default_constructor(tp, &err_pos, object_class_type,
+                                        /*evaluated=*/TRUE,
+                                        (a_boolean *)NULL);
         if (rp == NULL) {
           /* No constructor to call. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
