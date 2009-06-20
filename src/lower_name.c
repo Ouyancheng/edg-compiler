@@ -2060,7 +2060,7 @@ describing it.
 */
 {
   a_source_correspondence
-             *discriminator_scp;
+             *discriminator_scp = NULL;
   a_type_ptr parent_class = (scp->is_class_member ? scp_parent_class(scp) :
                                                     NULL);
   a_boolean  use_sr = parent_class != NULL &&
