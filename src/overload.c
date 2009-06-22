@@ -11265,6 +11265,7 @@ select_best_function:
           arg_operand_list_not_used = TRUE;
         } else {
           /* Exactly one function applies and is best. */
+          a_symbol_ptr overloaded_function_symbol;
           proj_function_symbol = candidate_functions->function_symbol;
 #if BACK_END_IS_CP_GEN_BE
           found_through_adl = candidate_functions->found_through_adl;
@@ -11317,6 +11318,11 @@ select_best_function:
             *processed = TRUE;
             function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
+            member_is_best_match = 
+                       routine_type_is_nonstatic_member_function(routine_type);
+            overloaded_function_symbol = member_is_best_match ?
+                                                    member_functions_symbol :
+                                                    nonmember_functions_symbol;
             if (do_dependent_name_processing &&
                 is_prototype_instantiation_context()) {
               /* Record the outcome of overload resolution for a nondependent
@@ -11335,6 +11341,7 @@ select_best_function:
                                                     is_trivial_copy_function) {
               /* This function is the default bitwise copy assignment
                  operator, so generate an assignment instead of a call. */
+              a_boolean access_error_reported;
 #if DEBUG
               if (debug_level >= 4 || db_flag_is_set("overload")) {
                 db_display_overload_level();
@@ -11346,11 +11353,19 @@ select_best_function:
               check_use_of_deleted_function(function_symbol,
                                             /*elided_ref=*/FALSE,
                                             operator_position);
+              /* Check access and record the reference (but no call). */
+              overloaded_function_catch_up(function_symbol,
+                                           overloaded_function_symbol,
+                                           (an_operand *)NULL,
+                                           operator_position,
+                                           /*elided_reference=*/TRUE,
+                                           /*result_is_lvalue=*/FALSE,
+                                           /*address_taken=*/FALSE,
+                                           (an_operand *)NULL,
+                                           &access_error_reported);
             }  /* if */
             arg_operand = arg_operand_list;
             bound_function_selector = NULL;
-            member_is_best_match = 
-                       routine_type_is_nonstatic_member_function(routine_type);
             if (member_is_best_match) {
               /* The function selected is a non-static member function.
                  Therefore, the first argument is to be used as the selector
@@ -11434,9 +11449,7 @@ select_best_function:
                  an operand for the function. */
               make_resolved_overloaded_function_operand(
                                           proj_function_symbol,
-                                          member_is_best_match ?
-                                                    member_functions_symbol :
-                                                    nonmember_functions_symbol,
+                                          overloaded_function_symbol,
                                           (an_operand *)NULL,
                                           operator_position,
                                           &have_selector,
