@@ -3637,8 +3637,8 @@ should be put out.
   }  /* if */
 #else /* IA64 */
 #if ABI_COMPATIBILITY_VERSION < 401
-  /* Earlier versions of the ABI mistakenly emitted a discriminator at this
-     point (rather than at the end of the nested name of a local type). */
+  /* Earlier versions mistakenly emitted a discriminator at this point
+     (rather than at the end of the nested name of a local type). */
   add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* ABI_COMPATIBILITY_VERSION < 401 */
 #endif /* !IA64_ABI */
@@ -4518,8 +4518,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
 #if IA64_ABI
     mangled_name_with_length(name, mctl);
 #if ABI_COMPATIBILITY_VERSION < 401
-    /* Earlier versions of the ABI mistakenly emitted a discriminator at this
-       point (rather than at the end of the nested name of a local type). */
+    /* Earlier versions mistakenly emitted a discriminator at this point
+       (rather than at the end of the nested name of a local type). */
     add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* ABI_COMPATIBILITY_VERSION < 401 */
 #else /* !IA64_ABI */
