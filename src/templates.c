@@ -7632,6 +7632,8 @@ make_new_type:
           new_ptp = make_param_type(tp, &null_source_position);
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
+            new_ptp->default_arg_appeared_in_class_definition =
+                                 ptp->default_arg_appeared_in_class_definition;
           }  /* if */
           if (ptp->has_unevaluated_template_default) {
             new_ptp->has_unevaluated_template_default = TRUE;
@@ -8120,6 +8122,8 @@ instantiated.
       }  /* if */
       if (ptp->default_arg_expr == NULL) {
         ptp->has_default_arg = TRUE;
+        ptp->default_arg_appeared_in_class_definition =
+                  daefp->param_type->default_arg_appeared_in_class_definition;
         ptp->default_arg_expr =
               duplicate_default_arg_expr(daefp->param_type->default_arg_expr);
       }  /* if */
@@ -8184,6 +8188,8 @@ is needed for a call.
            templ_ptp->default_arg_expr_fixup will be NULL here for some
            cases involving member templates, which is why we use daefp. */
         ptp->has_default_arg = TRUE;
+        ptp->default_arg_appeared_in_class_definition =
+                          templ_ptp->default_arg_appeared_in_class_definition;
         ptp->has_unevaluated_template_default = TRUE;
         ptp->default_arg_expr_fixup = daefp;
         daefp = daefp->next;

@@ -7408,6 +7408,8 @@ make_new_comp_type:
              undone (e.g., by calling disentangle_default_args). */
           if (ptp1->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
+            new_ptp->default_arg_appeared_in_class_definition =
+                                ptp1->default_arg_appeared_in_class_definition;
             new_ptp->has_unevaluated_template_default =
                                         ptp1->has_unevaluated_template_default;
             new_ptp->default_arg_expr_fixup = ptp1->default_arg_expr_fixup;
@@ -7418,6 +7420,8 @@ make_new_comp_type:
             }  /* if */
           } else if (ptp2->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
+            new_ptp->default_arg_appeared_in_class_definition =
+                                ptp2->default_arg_appeared_in_class_definition;
             new_ptp->has_unevaluated_template_default =
                                         ptp2->has_unevaluated_template_default;
             new_ptp->default_arg_expr_fixup = ptp2->default_arg_expr_fixup;
@@ -9768,6 +9772,8 @@ make_new_type:
         new_ptp = make_param_type(tp, &null_source_position);
         if (ptp->has_default_arg) {
           new_ptp->has_default_arg = TRUE;
+          new_ptp->default_arg_appeared_in_class_definition =
+                                 ptp->default_arg_appeared_in_class_definition;
           new_ptp->has_unevaluated_template_default =
                                          ptp->has_unevaluated_template_default;
           new_ptp->default_arg_expr_fixup = ptp->default_arg_expr_fixup;

@@ -10031,6 +10031,8 @@ from_type to to_type.  This should be called only in C++ mode.
     if (from_ptp == NULL) break;
     if (from_ptp->has_default_arg) {
       to_ptp->has_default_arg = TRUE;
+      to_ptp->default_arg_appeared_in_class_definition =
+                            from_ptp->default_arg_appeared_in_class_definition;
       if (from_ptp->default_arg_expr != NULL) {
         check_assertion(to_ptp->default_arg_expr == NULL || total_errors != 0);
         to_ptp->default_arg_expr =

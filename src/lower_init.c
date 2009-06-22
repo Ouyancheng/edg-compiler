@@ -4029,6 +4029,8 @@ modified; if not, only the new parameters are modified.
     }  /* if */
     param_type = alloc_param_type(pass_through_param_type);
     param_type->has_default_arg = src_param_type->has_default_arg;
+    param_type->default_arg_appeared_in_class_definition =
+                     src_param_type->default_arg_appeared_in_class_definition;
     /* It is not necessary to clear il_lowering_flag; the entry does not need
        to be lowered.  Also note that the parameter types will be lowered
        when the original function is lowered, and do not need to be

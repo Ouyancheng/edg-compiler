@@ -2144,6 +2144,12 @@ if this is the function declarator in a friend function declaration.
           if (default_arg_allowed_on_curr_param &&
               !ignore_disallowed_default_arg) {
             ptp->has_default_arg = TRUE;
+            if (is_member_or_friend_function) {
+              /* Record that the default argument appeared in a class
+                 definition.  This matters because such default arguments are
+                 subject to different "one-definition-rule" constraints. */
+              ptp->default_arg_appeared_in_class_definition = TRUE;
+            }  /* if */
             func_info->any_default_args = TRUE;
           }  /* if */
         }  /* if */

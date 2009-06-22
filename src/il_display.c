@@ -1146,6 +1146,9 @@ Display a_param_type entry.
   if (ptr->has_default_arg) {
     disp_boolean("has_default_arg", TRUE);
   }  /* if */
+  if (ptr->default_arg_appeared_in_class_definition) {
+    disp_boolean("default_arg_appeared_in_class_definition", TRUE);
+  }  /* if */
   if (ptr->has_unevaluated_template_default) {
     disp_boolean("has_unevaluated_template_default", TRUE);
   }  /* if */

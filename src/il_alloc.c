@@ -877,6 +877,7 @@ at file scope.
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
+  ptp->default_arg_appeared_in_class_definition = FALSE;
   ptp->has_unevaluated_template_default = FALSE;
   ptp->default_being_instantiated = FALSE;
   ptp->type_involves_deduced_template_param = FALSE;

@@ -3427,6 +3427,10 @@ typedef struct a_param_type {
 			   of default arguments for member functions, this
 			   flag may be set even though default_arg_expr
                            remains NULL. */
+  a_bit_field	default_arg_appeared_in_class_definition:1;
+			/* TRUE if has_default_arg is TRUE, and the default
+			   argument appeared on the in-class declaration of a
+			   member function. */
   a_bit_field	has_unevaluated_template_default:1;
 			/* Default arguments of template functions and
 			   member functions of class templates are evaluated

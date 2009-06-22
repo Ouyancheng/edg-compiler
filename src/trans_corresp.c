@@ -2540,10 +2540,12 @@ set_corresp_for_routines).  Issue diagnostics as appropriate.
 */
 {
   a_type_ptr  rtp1 = rp1->type, rtp2 = rp2->type;
+  a_boolean   inline_or_template_case;
 
-  if ((!rp1->is_inline || !rp2->is_inline) &&
-      (!rp1->is_template_function || !rp2->is_template_function) &&
-      !rp1->source_corresp.is_class_member) {
+  inline_or_template_case =
+                     (rp1->is_inline && rp2->is_inline) ||
+                     (rp1->is_template_function && rp2->is_template_function);
+  if (!inline_or_template_case && !rp1->source_corresp.is_class_member) {
     /* Not a case where default arguments must match. */
     check_assertion(!rp2->source_corresp.is_class_member);
   } else if (rtp1->kind == (a_type_kind)tk_routine &&
@@ -2552,18 +2554,11 @@ set_corresp_for_routines).  Issue diagnostics as appropriate.
     a_param_type_ptr  ptp2 = rtp2->variant.routine.extra_info->param_type_list;
     for (; ptp1 != NULL && ptp2 != NULL;
            ptp1 = ptp1->next, ptp2 = ptp2->next) {
-      if (ptp1->entities_defined_in_default_arg == NULL ||
-          ptp2->entities_defined_in_default_arg == NULL) {
-        /* It is currently not always possible to determine whether a parameter
-           having entities defined in one translation unit but not in the other
-           results in a valid program.  For example:
-             TU#1: struct S { void f(int = []{return 1;}()); }; 
-             TU#2: struct S { void f(int); }; 
-           is invalid (differing class definitions), but
-             TU#1: struct S { void f(int); }; 
-                   void S::f(int = []{return 1;}()) {}
-             TU#2: struct S { void f(int); }; 
-           is valid.  However, it is harmless to permit such invalid cases. */
+      if (!inline_or_template_case &&
+          !ptp1->default_arg_appeared_in_class_definition &&
+          !ptp2->default_arg_appeared_in_class_definition) {
+        /* Any entities defined in the default arguments associated with this
+           parameter pair aren't required to correspond. */
       } else {
         verify_corresp_for_entities_list(
                                ptp1->entities_defined_in_default_arg,
@@ -3913,11 +3908,13 @@ correspond.
 */
 {
   a_type_ptr  rtp1 = rp1->type, rtp2 = rp2->type;
+  a_boolean   inline_or_template_case;
 
   set_trans_unit_corresp(iek_routine, rp1, rp2);
-  if ((!rp1->is_inline || !rp2->is_inline) &&
-      (!rp1->is_template_function || !rp2->is_template_function) &&
-      !rp1->source_corresp.is_class_member) {
+  inline_or_template_case =
+                     (rp1->is_inline && rp2->is_inline) ||
+                     (rp1->is_template_function && rp2->is_template_function);
+  if (!inline_or_template_case && !rp1->source_corresp.is_class_member) {
     /* Not a case where default arguments must match. */
     check_assertion(!rp2->source_corresp.is_class_member);
   } else if (rtp1->kind == (a_type_kind)tk_routine &&
@@ -3928,19 +3925,11 @@ correspond.
            ptp1 = ptp1->next, ptp2 = ptp2->next) {
       an_il_entity_list_entry_ptr  ep1 = ptp1->entities_defined_in_default_arg;
       an_il_entity_list_entry_ptr  ep2 = ptp2->entities_defined_in_default_arg;
-      if (ep1 == NULL || ep2 == NULL) {
-        /* It is currently not always possible to determine whether a parameter
-           having entities defined in one translation unit but not in the other
-           results in a valid program.  For example:
-             TU#1: struct S { void f(int = []{return 1;}()); }; 
-             TU#2: struct S { void f(int); }; 
-           is invalid (differing class definitions), but
-             TU#1: struct S { void f(int); }; 
-                   void S::f(int = []{return 1;}()) {}
-             TU#2: struct S { void f(int); }; 
-           is valid.  However, it is harmless to permit such invalid cases. */
-        set_no_corresp_for_entities_list(ep1);
-        set_no_corresp_for_entities_list(ep2);
+      if (!inline_or_template_case &&
+          !ptp1->default_arg_appeared_in_class_definition &&
+          !ptp2->default_arg_appeared_in_class_definition) {
+        /* Any entities defined in the default arguments associated with this
+           parameter pair aren't required to correspond. */
       } else {
         set_corresp_for_entities_list(ep1, ep2);
       }  /* if */

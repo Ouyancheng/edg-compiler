@@ -277,6 +277,8 @@ may be spread between several declarations).
           err = TRUE;
         }  /* if */
         ptp->has_default_arg = TRUE;
+        ptp->default_arg_appeared_in_class_definition =
+                    param_type_entry->default_arg_appeared_in_class_definition;
         ptp->default_arg_expr = error_node();
       }  /* if */
     }  /* for */
