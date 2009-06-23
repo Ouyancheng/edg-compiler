@@ -17212,14 +17212,15 @@ For example:
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
   finish_lambda_routine_processing(&lambda);
-#if IA64_ABI && NEED_NAME_MANGLING
-  if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-    /* A local lambda.  The IA-64 ABI sometimes requires that a discriminator
-       be appended to its mangled name if two or more local closure types
-       within the same function have the same call operator type.  Now that
-       the operator is declared, we can compute that discriminator. */
-    compute_name_collision_discriminator(symbol_for(closure_class));
-  }  /* if */
+#if NEED_NAME_MANGLING
+  /* A local lambda.  The IA-64 ABI sometimes requires that a discriminator be
+     appended to the mangled name of local closure types if two or more local
+     closure types within the same function have the same call operator type.
+     Now that the operator is declared, we can compute that discriminator.
+     The ABI also requires a discriminator in some other cases (e.g., closure
+     classes in initializers of template static data members), and a different
+     discriminator value is computed for cases not covered by the ABI. */
+  compute_name_collision_discriminator(symbol_for(closure_class), decl_level);
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Restore the previous default declaration scope. */
   decl_scope_level = saved_decl_scope_level;

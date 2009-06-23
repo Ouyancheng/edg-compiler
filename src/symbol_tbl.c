@@ -2700,9 +2700,9 @@ state.
 #endif /* DEBUG */
         sym_ptr->variant.enumeration.extra_info = essp;
         essp->dependent_type_fixup_list = NULL;
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
         essp->discriminator = 0;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
       }
       break;
     case sk_class_or_struct_tag:
@@ -2745,9 +2745,9 @@ state.
         cssp->name_qualifiers = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         cssp->prev_entry_on_types_list = NULL;
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
         cssp->discriminator = 0;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
         cssp->has_nontrivial_default_constructor = FALSE;
         cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_user_provided_default_constructor = FALSE;

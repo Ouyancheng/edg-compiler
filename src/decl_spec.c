@@ -3573,14 +3573,14 @@ Microsoft attributes preceding the class specifier (if any).
       clear_source_corresp_name(&class_type->source_corresp);
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
-#if IA64_ABI && NEED_NAME_MANGLING
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-      /* This is a nonnested local class.  The IA-64 ABI sometimes requires
-         that a discriminator be appended to its mangled name if two or more
-         such classes share the same name within the same function.  It is
-         convenient to compute this discriminator at this time. */
-      compute_name_collision_discriminator(tag_sym);
-    }  /* if */
+#if NEED_NAME_MANGLING
+    /* The IA-64 ABI sometimes requires that a discriminator be appended to
+       the mangled name of a nonlocal class if two or more such classes share
+       the same name within the same function.  It is convenient to compute
+       this discriminator at this time.  A similar discriminator is used for
+       mangling other classes not covered by an ABI (e.g., unnamed classes in
+       file scope). */
+    compute_name_collision_discriminator(tag_sym, effective_decl_level);
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
     if (is_friend_decl && is_class_definition) {
       /* Issuing the diagnostic was deferred till now. */
@@ -4643,15 +4643,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = TRUE;
       set_source_corresp(&(enum_type->source_corresp), tag_sym);
       tag_sym->variant.enumeration.type = enum_type;
-#if IA64_ABI && NEED_NAME_MANGLING
-      if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-        /* This is a nonnested local enum.  The IA-64 ABI sometimes requires
-           that a discriminator be appended to its mangled name if two or more
-           such classes share the same name within the same function.  It is
-           convenient to compute this discriminator at this time. */
-        compute_name_collision_discriminator(tag_sym);
-      }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
     } else {
       /* Unnamed enum.  Create a symbol to represent it. */
       tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
@@ -4665,6 +4656,15 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.decl_position = locator.source_position;
       enum_type->variant.integer.originally_unnamed = TRUE;
     }  /* if */
+#if NEED_NAME_MANGLING
+      /* The IA-64 ABI sometimes requires that a discriminator be appended to
+         the mangled name of a nonnested local enum if two or more such enum
+         types share the same name within the same function.  It is convenient
+         to compute this discriminator at this time.  A similar discriminator
+         is used for mangling other enums not covered by an ABI (e.g., unnamed
+         enums in file scope).  */
+      compute_name_collision_discriminator(tag_sym, effective_decl_level);
+#endif /* NEED_NAME_MANGLING */
     /* If this declaration is associated with a declaration statement, update
        the associated stmk_decl statement. */
     record_entity_in_decl_stmt_if_needed(tag_sym);

@@ -374,7 +374,8 @@ debugging).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
 
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
+#if IA64_ABI
 
 #define LOCAL_NAME_COLLISION_TABLE_SIZE 16
 
@@ -405,13 +406,13 @@ entry.
 */
 {
   if (avail_collision_tables == NULL) {
-    ssep->local_name_collision_table = (a_collision_table_ptr)
-                                           alloc_fe(sizeof(a_collision_table));
+    ssep->name_discr.local_name_collision_table =
+                    (a_collision_table_ptr)alloc_fe(sizeof(a_collision_table));
   } else {
-    ssep->local_name_collision_table = avail_collision_tables;
+    ssep->name_discr.local_name_collision_table = avail_collision_tables;
     avail_collision_tables = avail_collision_tables->next_avail;
   }  /* if */
-  memzero((char *)ssep->local_name_collision_table->buckets,
+  memzero((char*)ssep->name_discr.local_name_collision_table->buckets,
           size_t_arg(
             sizeof(a_symbol_list_entry_ptr[LOCAL_NAME_COLLISION_TABLE_SIZE])));
 }  /* initialize_local_name_collision_table */
@@ -423,19 +424,25 @@ Release the storage allocated for the name collision table associated with
 the given scope stack entry.
 */
 {
-  int  k;
-  a_symbol_list_entry_ptr  *sleps = ssep->local_name_collision_table->buckets;
-
-  /* First free up the lists. */
-  for (k = 0; k<LOCAL_NAME_COLLISION_TABLE_SIZE; ++k) {
-    if (sleps[k] != NULL) {
-      free_list_of_symbol_list_entries(sleps[k]);
-    }  /* if */
-  }  /* for */
-  /* Return the table entry to the available list. */
-  ssep->local_name_collision_table->next_avail = avail_collision_tables;
-  avail_collision_tables = ssep->local_name_collision_table;
-  ssep->local_name_collision_table = NULL;
+  if ((ssep->kind == (a_scope_kind)sck_function ||
+       ssep->kind == (a_scope_kind)sck_block ||
+       ssep->kind == (a_scope_kind)sck_condition) &&
+      ssep->name_discr.local_name_collision_table != NULL) {
+    int  k;
+    a_symbol_list_entry_ptr
+         *sleps = ssep->name_discr.local_name_collision_table->buckets;
+    /* First free up the lists. */
+    for (k = 0; k<LOCAL_NAME_COLLISION_TABLE_SIZE; ++k) {
+      if (sleps[k] != NULL) {
+        free_list_of_symbol_list_entries(sleps[k]);
+      }  /* if */
+    }  /* for */
+    /* Return the table entry to the available list. */
+    ssep->name_discr.local_name_collision_table->next_avail =
+                                                       avail_collision_tables;
+    avail_collision_tables = ssep->name_discr.local_name_collision_table;
+    ssep->name_discr.local_name_collision_table = NULL;
+  }  /* if */
 }  /* free_local_name_collision_table */
 
 
@@ -453,38 +460,42 @@ function call operators have the same parameter types; FALSE otherwise.
 }  /* distinct_lambda_signatures */
 
 
-void compute_name_collision_discriminator(a_symbol_ptr  sym)
+static void compute_local_name_collision_discriminator(a_symbol_ptr   sym,
+                                                       a_scope_depth  depth)
 /*
 Look in the name collision table associated with current function scope for a
-symbol that has the same name (i.e., header) as the given symbol sym.  If
-there is one, the current symbol is assigned a discriminator value one higher
-than that of the symbol found, and it replaces that symbol in the table.
-Otherwise the discriminator value of sym remain zero, and the symbol is added
-to the table.  (Closure types are handled specially: They are considered to be
-"colliding" only if the associated lambda routines have the same type.) This
-information is used to generate distinct mangled names of function-local
-entities in the IA-64 ABI.
+symbol that has the same name (i.e., header) as the given symbol sym (declared
+at the given scope depth).  If there is one, the current symbol is assigned a
+discriminator value one higher than that of the symbol found, and it replaces
+that symbol in the table.  Otherwise the discriminator value of sym remain
+zero, and the symbol is added to the table.  (Closure types are handled
+specially: They are considered to be "colliding" only if the associated lambda
+routines have the same type.)  This information is used to generate distinct
+mangled names of function-local entities in the IA-64 ABI.
 */
 {
   unsigned                 hash_index;
   a_scope_stack_entry_ptr  ssep;
   a_symbol_list_entry_ptr  sep;
   a_symbol_header_ptr      header = sym->header;
+  a_collision_table_ptr    table;
 
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[depth_innermost_function_scope];
-  if (ssep->local_name_collision_table == NULL) {
+  depth = scope_stack[depth].depth_innermost_function_scope;
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth];
+  if (ssep->name_discr.local_name_collision_table == NULL) {
     initialize_local_name_collision_table(ssep);
   }  /* if */
+  table = ssep->name_discr.local_name_collision_table;
   /* Symbols corresponding to identical names have identical symbol headers.
      So we use the symbol header pointer value as a basis for a hash value.
      The three least significant bits are discarded because they are possibly
      always zero due to alignment requirements. */
   hash_index = (unsigned)((((unsigned long)header) >> 3) %
                                               LOCAL_NAME_COLLISION_TABLE_SIZE);
-  sep = ssep->local_name_collision_table->buckets[hash_index];
+  sep = table->buckets[hash_index];
   for (; sep != NULL; sep = sep->next) {
-    if (sep->symbol->header == header &&
+    if (sep->symbol->header == header && sep->symbol != sym &&
         (sep->symbol->kind == sym->kind ||
          (is_tag_symbol_kind(sep->symbol->kind) &&
           is_tag_symbol_kind(sym->kind)))) {
@@ -547,13 +558,54 @@ entities in the IA-64 ABI.
   if (sep == NULL) {
     /* There were no collisions.  Record this symbol in the collision table. */
     a_symbol_list_entry_ptr  new_entry = alloc_symbol_list_entry();
-    new_entry->next = ssep->local_name_collision_table->buckets[hash_index];
-    ssep->local_name_collision_table->buckets[hash_index] = new_entry;
+    new_entry->next = table->buckets[hash_index];
+    table->buckets[hash_index] = new_entry;
     new_entry->symbol = sym;
+  }  /* if */
+}  /* compute_local_name_collision_discriminator */
+
+#endif /* IA64_ABI */
+
+void compute_name_collision_discriminator(a_symbol_ptr   sym,
+                                          a_scope_depth  scope_depth)
+/*
+Assign a distinguishing "discriminator" value to the given entity desclared in
+the indicated scope (which must be a local scope, a namespace scope, or the
+file scope).  In non-local scopes, this only applies to unnamed class and
+enumeration types.  In local scopes, additional possibilities exist: See
+compute_local_name_collision_discriminator.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
+
+  if (ssep->kind == (a_scope_kind)sck_function ||
+      ssep->kind == (a_scope_kind)sck_block ||
+      ssep->kind == (a_scope_kind)sck_condition) {
+#if IA64_ABI
+    compute_local_name_collision_discriminator(sym, scope_depth);
+#endif /* IA64_ABI */
+  } else if (is_unnamed_tag_symbol(sym) &&
+             (ssep->kind == (a_scope_kind)sck_file ||
+              ssep->kind == (a_scope_kind)sck_namespace ||
+              ssep->kind == (a_scope_kind)sck_namespace_extension)) {
+    if (is_real_class_symbol(sym)) {
+      a_type_ptr  class_type = sym->variant.class_struct_union.type;
+      if (!has_name(class_type)  &&
+          sym->variant.class_struct_union.extra_info->discriminator == 0) {
+        sym->variant.class_struct_union.extra_info->discriminator =
+                                  ++ssep->name_discr.last_unnamed_type_number;
+      }  /* if */
+    } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
+      if (!has_name(sym->variant.enumeration.type) &&
+          sym->variant.enumeration.extra_info->discriminator == 0) {
+        sym->variant.enumeration.extra_info->discriminator =
+                                  ++ssep->name_discr.last_unnamed_type_number;
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* compute_name_collision_discriminator */
 
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 
@@ -2152,9 +2204,17 @@ the scope being pushed.
   ssep->fx_fract_overflow_state = curr_fx_fract_overflow_state;
   ssep->fx_accum_overflow_state = curr_fx_accum_overflow_state;
 #endif /* FIXED_POINT_ALLOWED */
-#if IA64_ABI && NEED_NAME_MANGLING
-  ssep->local_name_collision_table = NULL;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#if NEED_NAME_MANGLING
+  if (ssep->kind == (a_scope_kind)sck_function ||
+      ssep->kind == (a_scope_kind)sck_block ||
+      ssep->kind == (a_scope_kind)sck_condition) {
+#if IA64_ABI
+    ssep->name_discr.local_name_collision_table = NULL;
+#endif /* IA64_ABI */
+  } else {
+    ssep->name_discr.last_unnamed_type_number = 0;
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -6922,9 +6982,7 @@ End a name scope by popping an entry off the scope stack.
      value in the scope stack entry. */
   depth_of_initial_lookup_scope = ssep->saved_depth_of_initial_lookup_scope;
 #if IA64_ABI && NEED_NAME_MANGLING
-  if (ssep->local_name_collision_table != NULL) {
-    free_local_name_collision_table(ssep);
-  }  /* if */
+  free_local_name_collision_table(ssep);
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   /* If a string literal table was allocated for the scope, free it now. */

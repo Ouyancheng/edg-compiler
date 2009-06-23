@@ -269,13 +269,21 @@ typedef struct a_generated_entity_block {
 } a_generated_entity_block;
 
 
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
+/* Type of a discriminator, which is an identifying number used to
+   distinguish multiple entities with the same name in the same function
+   in the name mangling for the IA-64 ABI. */
+typedef unsigned long
+                a_discriminator;
+
+#if IA64_ABI 
 /*
 A hash table type to detect name collisions between declarations in function
 scope.  The type is defined in scope_stk.c.
 */
 typedef union a_collision_table *a_collision_table_ptr;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* IA64_ABI */
+#endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 /*
@@ -917,16 +925,23 @@ typedef struct a_scope_stack_entry {
 			   with the call of the conversion operator.  This is
 			   used to do the required dual-lookup of the name
 			   following the operator keyword. */
-#if IA64_ABI && NEED_NAME_MANGLING
-  a_collision_table_ptr
+#if NEED_NAME_MANGLING
+  union {
+#if IA64_ABI
+    a_collision_table_ptr
 		local_name_collision_table;
 			/* A hash table of local symbols to detect local
-			   entities with a same name.  Such entities must
-			   have a discriminator appended to their mangled
-			   name.  (Non-NULL only for function scopes.)
-			   The union type a_collision_table is defined in
-			   scope_stk.c. */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+			   entities with a same name.  Such entities must have
+			   a discriminator appended to their mangled name.
+			   (Non-NULL only for function scopes.) The union type
+			   a_collision_table is defined in scope_stk.c. */
+#endif /* IA64_ABI */
+    a_discriminator
+		last_unnamed_type_number;
+			/* In non-local scopes, the last "discriminator" value
+			   assigned to an unnamed enum or class type. */
+  } name_discr;
+#endif /* NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   a_string_literal_table_ptr
 		string_literal_table;
@@ -1213,7 +1228,8 @@ EXTERN a_boolean
 
 
 #if IA64_ABI && NEED_NAME_MANGLING
-void compute_name_collision_discriminator(a_symbol_ptr  sym);
+void compute_name_collision_discriminator(a_symbol_ptr   sym,
+                                          a_scope_depth  scope_depth);
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 
 extern void check_c99_inline_definition(a_variable_ptr     var,

@@ -742,15 +742,6 @@ typedef struct a_namespace_list_entry {
 typedef struct a_template_symbol_supplement *a_template_symbol_supplement_ptr;
 
 
-#if IA64_ABI && NEED_NAME_MANGLING
-/* Type of a discriminator, which is an identifying number used to
-   distinguish multiple entities with the same name in the same function
-   in the name mangling for the IA-64 ABI. */
-typedef unsigned long
-                a_discriminator;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
-
-
 typedef struct a_class_symbol_supplement *a_class_symbol_supplement_ptr;
 typedef struct a_class_symbol_supplement {
   /* Additional information about a C++ class, struct, or union, supplementing
@@ -930,14 +921,16 @@ typedef struct a_class_symbol_supplement {
 			   to have the associated class type as its "next"
 			   pointer.  This is used to optimize the performance
 			   of move_to_end_of_types_list. */
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
   a_discriminator
 		discriminator;
 			/* An identifying number used to distinguish multiple
 			   entities with the same name in the same function
-			   in the name mangling for the IA-64 ABI.  Zero if
-			   not needed. */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+			   in the name mangling for the IA-64 ABI.  In file,
+			   namespace, and class scopes, a sequence number used
+			   to distinguish unnammed class types (in both ABIs).
+			   Zero if not needed. */
+#endif /* NEED_NAME_MANGLING */
   a_bit_field	has_nontrivial_default_constructor:1;
 			/* TRUE if a default constructor has been explicitly
 			   declared or a nontrivial default constructor has
@@ -1081,14 +1074,16 @@ typedef struct an_enum_symbol_supplement {
 			   dependent on it and require fixup when it is
 			   completed.  Once the enum is defined, the pointer
 			   is cleared. */
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
   a_discriminator
 		discriminator;
 			/* An identifying number used to distinguish multiple
 			   entities with the same name in the same function
-			   in the name mangling for the IA-64 ABI.  Zero if
-			   not needed. */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+			   in the name mangling for the IA-64 ABI.  In file,
+			   namespace, and class scopes, a sequence number used
+			   to distinguish unnammed enum types (in both ABIs).
+			   Zero if not needed. */
+#endif /* NEED_NAME_MANGLING */
 } an_enum_symbol_supplement;
 
 /*
