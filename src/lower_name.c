@@ -4123,7 +4123,8 @@ necessary) if the entity is local to a function.
     use_individuated_namespace = TRUE;
   }  /* if */
   if (!more_levels && top_most_scp != NULL) {
-    /* No more levels, return the source correspondence of top most level. */
+    /* No more levels, return the source correspondence of the top most
+       level. */
     *top_most_scp = parent_scp;
   }  /* if */
 #if !IA64_ABI
@@ -4358,7 +4359,7 @@ discriminator (if necessary).
                                &top_most_scp, mctl);
   }  /* if */
   if (local_type != NULL && top_most_scp != NULL) {
-    /* If we added a prefix for a local type above, its possible that we
+    /* If we added a prefix for a local type above, it's possible that we
        might also need to add a discriminator as a suffix.  The discriminator
        is based upon the outermost type of a nested local type, so return
        that to the caller (for use when the mangled name is closed). */
