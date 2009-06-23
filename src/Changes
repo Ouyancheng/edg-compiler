@@ -1,5 +1,23 @@
 Version 4.1
 
+6/23/09  [EDGcpfe/9820]
+Abort on complete object type determination for multi-dimensional array
+
+A change in version 4.0 caused an assertion failure in types.c, in
+examine_expr_for_complete_object_type, while attempting to determine
+the complete object type for an expression involving a multi-dimensional
+array.  Now fixed.
+
+  struct A {
+    virtual void f();
+  };
+  A a[5][4];
+  int main() {
+    int i = 1, j = 2;
+    a[i][j].f();
+  }
+
+
 6/23/09  [EDGcpfe/9929]
 Initialization guard variable of static variable in unused extern inline
 

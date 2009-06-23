@@ -2893,13 +2893,13 @@ object or an rvalue that is a pointer to an object.
                an array of same-sized elements (e.g., an array of a base
                class type), we wouldn't want the analysis here to assume
                we know the type of the array elements.  So use a recursive
-               call on the first operand. If the first operand is an
+               call on the first operand.  If the first operand is an
                rvalue array, give up. */
             if (operand1->is_lvalue) {
               traverse_expr(operand1, tblock);
               complete_object_type = tblock->complete_object_type;
-              if (complete_object_type != NULL) {
-                check_assertion(is_array_type(complete_object_type));
+              if (complete_object_type != NULL &&
+                  is_array_type(complete_object_type)) {
                 complete_object_type =
                            underlying_array_element_type(complete_object_type);
                 tblock->complete_object_type = complete_object_type;
