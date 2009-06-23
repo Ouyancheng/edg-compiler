@@ -1,5 +1,23 @@
 Version 4.1
 
+6/23/09  [EDGcpfe/9929]
+Initialization guard variable of static variable in unused extern inline
+
+Previously, when lowering created an external initialization guard variable
+for a static variable in an unused extern inline function, the definition
+of the initialization guard variable was maintained in the IL.  Such a
+definition is now marked as unneeded.  For example:
+
+  struct A {
+    A(int) {}
+  };
+  inline void f(void) {
+    static A a = 5;   // Initialization guard variable (_ZGVZ1fvE1a in the
+                      // IA-64 ABI or __LSG__a__L0__f__Fv in the Cfront ABI)
+                      // is now marked as unneeded.
+  }
+
+
 6/19/09  [EDGcpfe/5922]
 Incorrect mangling of nested local entities with same name in IA-64 ABI
 

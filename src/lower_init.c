@@ -6083,6 +6083,11 @@ location is the insert_location2 value (after the assignment statement).
 #endif /* IA64_ABI */
                                                    int_kind,
                                                  &guarded_var->source_corresp);
+    /* Treat the guard variable as a promoted local static so that it will
+       be removed during needed flag processing if the static variable ends
+       up not beeing needed (e.g., because the inline routine that contains
+       it is not invoked). */
+    (*test_var)->promoted_local_static = TRUE;
 #if IA64_ABI
     if (guarded_var->comdat_group != NULL) {
       (*test_var)->comdat_group = guarded_var->comdat_group;
