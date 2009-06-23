@@ -11606,8 +11606,13 @@ mode.
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
      is checked for below.  A bitwise copy cannot be done if the source
      has a volatile type (the generated notional bitwise copy constructor
-     has a reference-to-const parameter and cannot copy a volatile object). */
-  cctor_is_bitwise_copy = cssp->construction_by_bitwise_copy_allowed;
+     has a reference-to-const parameter and cannot copy a volatile object).
+     Note that bitwise_copy_okay is TRUE only when no overload resolution
+     is required in order to decide how to do the copy, and also only when
+     there is no symbol for the copy constructor so that access checking and
+     similar checks need not be done. */
+  cctor_is_bitwise_copy = (cssp->construction_by_bitwise_copy_allowed &&
+                           cssp->constructor == NULL);
   bitwise_copy_okay = try_bitwise_copy &&
                       cctor_is_bitwise_copy &&
                       !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
@@ -12503,15 +12508,24 @@ for the bitwise copy and return *class_bitwise_copy TRUE.  This routine
 is used only in C++ mode.
 */
 {
-  a_type_ptr ctor_class = parent_class_of(ctor_routine);
+  a_type_ptr       ctor_class = parent_class_of(ctor_routine);
+  a_type_ptr       routine_type = skip_typerefs(ctor_routine->type);
+  a_routine_type_supplement_ptr
+                   rtsp = routine_type->variant.routine.extra_info;
+  a_param_type_ptr param_list = rtsp->param_type_list;
 
+  check_assertion_str(param_list != NULL || rtsp->has_ellipsis,
+                      "set_up_for_constructor_call: no first parameter");
   *class_bitwise_copy = FALSE;
   if (ctor_routine->is_trivial_copy_function &&
-      ctor_arg_conversion != NULL) {
+      (ctor_arg_conversion != NULL ||
+       is_same_class_or_base_class_thereof(operand->type,
+                                         type_pointed_to(param_list->type)))) {
     /* The constructor is a trivial bitwise copy constructor. */
     *class_bitwise_copy = TRUE;
     reference_to_trivial_copy_constructor(ctor_class, &operand->position);
-    if (is_null_user_conv_descr(ctor_arg_conversion)) {
+    if (ctor_arg_conversion == NULL ||
+        is_null_user_conv_descr(ctor_arg_conversion)) {
       /* No user-defined conversion on the argument, so this is a simple
          copy (or bitwise slice from a derived to a base class object). */
       prep_class_bitwise_copy_operand(operand, ctor_class);
@@ -12528,25 +12542,10 @@ is used only in C++ mode.
   } else {
     /* Normal case, not a bitwise copy constructor. */
     /* Check that the constructor is accessible and mark it as referenced. */
-    a_type_ptr       routine_type;
-    a_param_type_ptr param_list;
-    a_routine_type_supplement_ptr
-                     rtsp;
-    a_symbol_ptr     ctor_symbol = symbol_for(ctor_routine);
-    expr_reference_to_implicitly_invoked_function(ctor_symbol,
+    expr_reference_to_implicitly_invoked_function(symbol_for(ctor_routine),
                                                   &operand->position,
                                                   ctor_class,
                                                   /*honor_virtual=*/FALSE);
-    routine_type = skip_typerefs(ctor_routine->type);
-    /* Convert the operand to the proper type to be an argument of the
-       constructor. */
-    rtsp = routine_type->variant.routine.extra_info;
-    param_list = rtsp->param_type_list;
-#if CHECKING
-    if (param_list == NULL && !rtsp->has_ellipsis) {
-      internal_error("set_up_for_constructor_call: no first parameter");
-    }  /* if */
-#endif  /* CHECKING */
     /* Convert the argument to the right type.  We don't expect an error
        here, since presumably we've chosen the proper function to call
        through overload resolution. */
@@ -12812,10 +12811,14 @@ the temporary.
     set_up_for_constructor_call(operand, conversion_routine,
                                 ctor_arg_conversion, &arg_expr_list,
                                 &class_bitwise_copy);
-    make_constructor_dynamic_init(conversion_routine, arg_expr_list,
-                                  dest_type, /*result_is_lvalue=*/FALSE,
-                                  class_bitwise_copy, is_explicit_cast,
-                                  &orig_operand.position, operand);
+    if (class_bitwise_copy && !force_copy_to_temp) {
+      /* We don't need to force a bitwise copy; we can use the copy we have. */
+    } else {
+      make_constructor_dynamic_init(conversion_routine, arg_expr_list,
+                                    dest_type, /*result_is_lvalue=*/FALSE,
+                                    class_bitwise_copy, is_explicit_cast,
+                                    &orig_operand.position, operand);
+    }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
@@ -13207,7 +13210,8 @@ happen only in C++ mode.
   conversion_routine = conversion->routine;
   class_bitwise_copy = conversion->class_identity_or_bitwise_copy;
   if (class_bitwise_copy) {
-    /* The operation is a class bitwise copy. */
+    /* The operation is a class bitwise copy (of the simplest kind, where
+       the copy constructor is implicit and not user-declared). */
     if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
                         !C_mode()) {
       /* The source and destination types are the same, so the bitwise copy
