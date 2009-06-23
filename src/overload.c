@@ -12508,19 +12508,13 @@ for the bitwise copy and return *class_bitwise_copy TRUE.  This routine
 is used only in C++ mode.
 */
 {
-  a_type_ptr       ctor_class = parent_class_of(ctor_routine);
-  a_type_ptr       routine_type = skip_typerefs(ctor_routine->type);
-  a_routine_type_supplement_ptr
-                   rtsp = routine_type->variant.routine.extra_info;
-  a_param_type_ptr param_list = rtsp->param_type_list;
+  a_type_ptr ctor_class = parent_class_of(ctor_routine);
 
-  check_assertion_str(param_list != NULL || rtsp->has_ellipsis,
-                      "set_up_for_constructor_call: no first parameter");
   *class_bitwise_copy = FALSE;
   if (ctor_routine->is_trivial_copy_function &&
       (ctor_arg_conversion != NULL ||
-       is_same_class_or_base_class_thereof(operand->type,
-                                         type_pointed_to(param_list->type)))) {
+       (is_class_struct_union_type(operand->type) &&
+        is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {
     /* The constructor is a trivial bitwise copy constructor. */
     *class_bitwise_copy = TRUE;
     reference_to_trivial_copy_constructor(ctor_class, &operand->position);
@@ -12541,6 +12535,13 @@ is used only in C++ mode.
     *arg_expr_list = make_node_from_operand(operand);
   } else {
     /* Normal case, not a bitwise copy constructor. */
+    a_type_ptr       routine_type = skip_typerefs(ctor_routine->type);
+    a_routine_type_supplement_ptr
+                     rtsp = routine_type->variant.routine.extra_info;
+    a_param_type_ptr param_list = rtsp->param_type_list;
+
+    check_assertion_str(param_list != NULL || rtsp->has_ellipsis,
+                        "set_up_for_constructor_call: no first parameter");
     /* Check that the constructor is accessible and mark it as referenced. */
     expr_reference_to_implicitly_invoked_function(symbol_for(ctor_routine),
                                                   &operand->position,
