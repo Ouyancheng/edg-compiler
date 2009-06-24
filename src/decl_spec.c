@@ -3573,7 +3573,7 @@ Microsoft attributes preceding the class specifier (if any).
       clear_source_corresp_name(&class_type->source_corresp);
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
-#if NEED_NAME_MANGLING
+#if IA64_ABI && NEED_NAME_MANGLING
     /* The IA-64 ABI sometimes requires that a discriminator be appended to
        the mangled name of a nonlocal class if two or more such classes share
        the same name within the same function.  It is convenient to compute
