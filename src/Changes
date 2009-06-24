@@ -1,5 +1,19 @@
 Version 4.1
 
+6/24/09  [EDGcpfe/9934]
+GNU C++ compatibility: specialization after use of static data member
+
+The diagnostic issued when a template static data member is explicitly
+specialized after it has been used has been reduced to a warning in
+g++ mode.
+
+  template <class T> struct A {
+    static int i;
+  };
+  int j = A<int>::i;
+  template <> int A<int>::i = 1;
+
+
 6/23/09  [EDGcpfe/9820]
 Abort on complete object type determination for multi-dimensional array
 

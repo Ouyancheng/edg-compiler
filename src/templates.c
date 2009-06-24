@@ -16884,10 +16884,7 @@ that follows.
         check_specialization_scope(sym, &locator.source_position);
       }  /* if */
       if (scp->referenced && !already_specialized) {
-        /* The entity has already been referenced and cannot be specialized.
-           This is accepted for class members in Microsoft bugs mode
-           through version 1300.  Later Microsoft versions also accept this
-           if the template has not yet been defined. */
+        /* The entity has already been referenced and cannot be specialized. */
         if (microsoft_nonstd_specialization) {
           /* No reference position is available for Microsoft nonstandard
              specializations. */
@@ -16895,13 +16892,23 @@ that follows.
                          &locator.source_position, sym);
         } else {
           a_template_instance_ptr	tip;
-          an_error_severity	severity;
+          an_error_severity	severity = es_error;
           tip = template_instance_for_symbol(sym);
           check_assertion(tip != NULL);
-          severity = microsoft_bugs && sym->is_class_member &&
-                     (microsoft_version <= 1300 ||
-                      !tip->template_sym->defined) ? es_warning
-                                                   : es_error;
+          if (microsoft_bugs) {
+            /* This is accepted for class members in Microsoft bugs mode
+               through version 1300.  Later Microsoft versions also accept this
+               if the template has not yet been defined. */
+            if (sym->is_class_member &&
+                (microsoft_version <= 1300 || !tip->template_sym->defined)) {
+              severity = es_warning;
+            }  /* if */
+          } else if (gpp_mode) {
+            /* g++ allows this for static data members. */
+            if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+              severity = es_warning;
+            }  /* if */
+          }  /* if */
           pos2_sy_diagnostic(severity,
                              ec_specialization_of_referenced_entity_pos,
                              &locator.source_position,
