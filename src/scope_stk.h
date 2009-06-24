@@ -1227,10 +1227,10 @@ EXTERN a_boolean
 			   was delayed for some function in the primary IL. */
 
 
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
 void compute_name_collision_discriminator(a_symbol_ptr   sym,
                                           a_scope_depth  scope_depth);
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 
 extern void check_c99_inline_definition(a_variable_ptr     var,
                                         a_source_position  *pos);

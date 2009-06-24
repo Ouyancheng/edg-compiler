@@ -5804,13 +5804,13 @@ for use in generating cross-reference output describing this declaration.
     if (c99_mode && !gcc_mode) {
       check_c99_inline_definition(variable_ptr, &locator->source_position);
     }  /* if */
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
     /* Local static variables may need to be mangled.  If two (or more) such
        variables in a function have the same name, a discriminator must be
        appended to the mangled name (for the IA-64 ABI).  It is convenient
        to compute this discriminator at this time. */
     compute_name_collision_discriminator(sym, decl_scope_level);
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
   }  /* if */
   if (vla_enabled) {
     if (is_variably_modified_type(type_ptr)) {
@@ -9155,7 +9155,7 @@ symbol entry, and return a pointer to it in state->sym.
                               &locator->source_position,
                               state->source_sequence_entry);
     reload_source_sequence_entry(state);
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
     if (tp->source_corresp.is_local_to_function &&
         !tp->source_corresp.is_class_member) {
       /* Local typedefs may need to be mangled.  If two (or more) such types
@@ -9164,7 +9164,7 @@ symbol entry, and return a pointer to it in state->sym.
          our use of a C-generating back end). */
       compute_name_collision_discriminator(sym, decl_scope_level);
     }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this type.  This is used by the
        C++-generating back end to decide when to emit extern "C". */
