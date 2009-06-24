@@ -4656,7 +4656,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.decl_position = locator.source_position;
       enum_type->variant.integer.originally_unnamed = TRUE;
     }  /* if */
-#if NEED_NAME_MANGLING
+#if IA64_ABI && NEED_NAME_MANGLING
       /* The IA-64 ABI sometimes requires that a discriminator be appended to
          the mangled name of a nonnested local enum if two or more such enum
          types share the same name within the same function.  It is convenient
@@ -4664,7 +4664,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
          is used for mangling other enums not covered by an ABI (e.g., unnamed
          enums in file scope).  */
       compute_name_collision_discriminator(tag_sym, effective_decl_level);
-#endif /* NEED_NAME_MANGLING */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
     /* If this declaration is associated with a declaration statement, update
        the associated stmk_decl statement. */
     record_entity_in_decl_stmt_if_needed(tag_sym);
