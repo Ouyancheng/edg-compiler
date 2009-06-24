@@ -3621,6 +3621,9 @@ associated global variables will also have been set).
   /* One we begin rescanning a macro, don't allow a PCH to be generated
      at this point. */
   num_macro_invocations_in_process++;
+  /* Push a new lexical state for tokens scanned as part of the macro
+     argument list (if any). */
+  push_lexical_state_stack();
   copy_source_position(pos_curr_token, start_pos);
   /* If possible, clear the macro buffer (a buffer where characters of
      expansions are put).  This is tricky in that we can't clear the
@@ -5202,6 +5205,8 @@ return_point:
 #endif /* DEBUG */
   macro_depth = saved_macro_depth;
   num_macro_invocations_in_process--;
+  /* Restore the lexical state. */
+  pop_lexical_state_stack();
   db_exit();
   return (ctoken);
 }  /* macro_invocation */
