@@ -17212,7 +17212,7 @@ For example:
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
   finish_lambda_routine_processing(&lambda);
-#if NEED_NAME_MANGLING
+#if IA64_ABI && NEED_NAME_MANGLING
   /* A local lambda.  The IA-64 ABI sometimes requires that a discriminator be
      appended to the mangled name of local closure types if two or more local
      closure types within the same function have the same call operator type.
