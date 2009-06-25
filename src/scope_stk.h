@@ -941,6 +941,11 @@ typedef struct a_scope_stack_entry {
 			/* In non-local scopes, the last "discriminator" value
 			   assigned to an unnamed enum or class type. */
   } name_discr;
+  a_discriminator
+		last_closure_type_number;
+			/* The last "discriminator" value assigned to a closure
+			   type in this scope.  (This value may be "swapped
+			   out" in certain initializer contexts.) */
 #endif /* NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   a_string_literal_table_ptr
@@ -1228,8 +1233,11 @@ EXTERN a_boolean
 
 
 #if NEED_NAME_MANGLING
-void compute_name_collision_discriminator(a_symbol_ptr   sym,
-                                          a_scope_depth  scope_depth);
+extern void compute_name_collision_discriminator(a_symbol_ptr   sym,
+                                                 a_scope_depth  scope_depth);
+
+extern
+void compute_default_arg_name_collision_discriminators(a_param_type_ptr  ptp);
 #endif /* NEED_NAME_MANGLING */
 
 extern void check_c99_inline_definition(a_variable_ptr     var,

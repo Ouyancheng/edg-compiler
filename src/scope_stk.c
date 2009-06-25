@@ -570,17 +570,30 @@ void compute_name_collision_discriminator(a_symbol_ptr   sym,
                                           a_scope_depth  scope_depth)
 /*
 Assign a distinguishing "discriminator" value to the given entity desclared in
-the indicated scope (which must be a local scope, a namespace scope, or the
-file scope).  In non-local scopes, this only applies to unnamed class and
-enumeration types.  In local scopes, additional possibilities exist: See
-compute_local_name_collision_discriminator.
+the indicated scope (which must be a local scope, a class scope, a namespace
+scope, or the file scope).  In non-local scopes, this only applies to unnamed
+class and enumeration types.  In local scopes, additional possibilities exist:
+See compute_local_name_collision_discriminator.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
 
-  if (ssep->kind == (a_scope_kind)sck_function ||
-      ssep->kind == (a_scope_kind)sck_block ||
-      ssep->kind == (a_scope_kind)sck_condition) {
+  if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
+      class_type_supp(sym->variant.class_struct_union.type) 
+                                                  ->is_lambda_closure_class) {
+    /* Closure types have their own numbering. */
+    a_class_symbol_supplement_ptr
+                            cssp = sym->variant.class_struct_union.extra_info;
+    if (cssp->lambda_immediately_inside_default_arg_expression) {
+      /* The discriminator is determined later (in
+         compute_default_arg_name_collision_discriminators). */
+      check_assertion(cssp->discriminator == 0);
+    } else {
+      cssp->discriminator = ++ssep->last_closure_type_number;
+    } 
+  } else if (ssep->kind == (a_scope_kind)sck_function ||
+             ssep->kind == (a_scope_kind)sck_block ||
+             ssep->kind == (a_scope_kind)sck_condition) {
 #if IA64_ABI
     compute_local_name_collision_discriminator(sym, scope_depth);
 #endif /* IA64_ABI */
@@ -604,6 +617,31 @@ compute_local_name_collision_discriminator.
     }  /* if */
   }  /* if */
 }  /* compute_name_collision_discriminator */
+
+
+void compute_default_arg_name_collision_discriminators(a_param_type_ptr  ptp)
+/*
+If the given parameter description has a default argument that defines entities
+that require discriminators for name mangling purposes, assign those
+discriminators now.  (Currently, this only applies to closure types.)
+*/
+{
+  an_il_entity_list_entry_ptr  elp = ptp->entities_defined_in_default_arg;
+  a_discriminator              last_n = 0;
+
+  for (; elp != NULL; elp = elp->next) {
+    if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      a_type_ptr                     tp = (a_type_ptr)elp->entity.ptr;
+      a_class_symbol_supplement_ptr  cssp;
+      check_assertion(is_immediate_class_type(tp));
+      cssp = symbol_supplement_for_class(tp);
+      check_assertion(cssp->lambda_immediately_inside_default_arg_expression);
+      cssp->discriminator = ++last_n;
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+}  /* compute_default_arg_name_collision_discriminators */
 
 #endif /* NEED_NAME_MANGLING */
 
@@ -2214,6 +2252,7 @@ the scope being pushed.
   } else {
     ssep->name_discr.last_unnamed_type_number = 0;
   }  /* if */
+  ssep->last_closure_type_number = 0;
 #endif /* NEED_NAME_MANGLING */
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;

@@ -20249,6 +20249,9 @@ in a template instantiation) just do the scan.
     /* Stop the recording of entities defined in the expression (not strictly
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
+    /* Assign discriminator values to closure types defined in the
+       expression. */
+    compute_default_arg_name_collision_discriminators(ptp);
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
