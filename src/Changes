@@ -1,5 +1,31 @@
 Version 4.1
 
+6/25/09  [EDGcpfe/9835]
+Call new runtime routine on invocation of a deleted virtual function
+
+As a result of the C++0x feature to delete a function (see Changes entry of
+4/1/09), it is now possible to delete a virtual function.  As specified
+by recent modifications to the IA-64 ABI, the virtual table entry
+corresponding to the deleted virtual function now points to the new
+__cxa_deleted_virtual runtime routine.  A similar routine (named
+__deleted_virtual_called) is invoked under the same circumstances in the
+Cfront ABI.  The expectation is that these runtime routines will terminate the
+program after optionally producing a diagnostic.  See also the corresponding
+entry in the lib_src Changes file.  For example:
+
+  struct B {
+    virtual void f() = delete;
+  } b;
+  struct D {
+    virtual void f() {}
+  };
+  int main() {
+    D *d = (D*) &b;
+    d->f();
+    return 0;
+  }
+
+
 6/26/09  [EDGcpfe/9935]
 inline user replacement for operator new[]
 

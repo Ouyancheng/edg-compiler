@@ -6065,6 +6065,15 @@ pure virtual functions.  NULL until allocated.
 static a_routine_ptr
 		pure_virtual_called_routine;
 
+/*
+Pointer to routine entry for the runtime routine that is to be called when a
+deleted virtual function is invoked.  A pointer to this function is placed in
+virtual function table slots for deleted virtual functions.  NULL until
+allocated.
+*/
+static a_routine_ptr
+		deleted_virtual_called_routine;
+
 
 static void add_init(a_constant_ptr *first_con,
                      a_constant_ptr *last_con,
@@ -6206,6 +6215,17 @@ class_type is the class type whose vtbl is being constructed
                                           "__cxa_pure_virtual",
 #endif /* IA64_ABI */
                                           &pure_virtual_called_routine,
+                                          void_type());
+    } else if (func_to_call->is_deleted) {
+      /* A deleted virtual function.  Put the address of a special runtime
+         routine (that presumably causes termination) in the table. */
+      func_to_call = make_runtime_routine(
+#if !IA64_ABI
+                                          "__deleted_virtual_called",
+#else /* IA64_ABI */
+                                          "__cxa_deleted_virtual",
+#endif /* IA64_ABI */
+                                          &deleted_virtual_called_routine,
                                           void_type());
     }  /* if */
     /* Put the pointer to the function into the table. */
@@ -19552,6 +19572,7 @@ Do one-time initialization of variables related to IL lowering.
       pch_saved_var_array_elem(avail_temporary_list_entries),
       pch_saved_var_array_elem(avail_scopeless_compound_stmts),
       pch_saved_var_array_elem(pure_virtual_called_routine),
+      pch_saved_var_array_elem(deleted_virtual_called_routine),
       pch_saved_var_array_elem(vptp_type),
       pch_saved_var_array_elem(mptr_type),
       pch_saved_var_array_elem(mptr_d_field),
@@ -19585,6 +19606,7 @@ Do one-time initialization of variables related to IL lowering.
   /* Register variables that must be saved and restored when switching
      between translation units. */
   register_trans_unit_variable(pure_virtual_called_routine);
+  register_trans_unit_variable(deleted_virtual_called_routine);
   register_trans_unit_variable(vptp_type);
   register_trans_unit_variable(mptr_type);
   register_trans_unit_variable(mptr_d_field);
@@ -19625,6 +19647,7 @@ for each translation unit.
   curr_context = NULL;
   return_value_pointer_variable = NULL;
   pure_virtual_called_routine = NULL;
+  deleted_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
   mptr_d_field = NULL;
