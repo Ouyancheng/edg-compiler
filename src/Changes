@@ -1,5 +1,17 @@
 Version 4.1
 
+6/26/09  [EDGcpfe/9935]
+inline user replacement for operator new[]
+
+The C++ standard allows the user to write his own replacement for
+the default operator new and operator new[]; however, it does not allow
+that replacement to be inline (see core isue 412).  As a concession to
+users, however, the front end now generates code that will call an
+inline replacement operator new[] at runtime.  This worked formerly
+(accidentally) when exceptions were enabled and the entity being
+allocated has a destructor, but now it works in all cases.
+
+
 6/24/09  [EDGcpfe/9934]
 GNU C++ compatibility: specialization after use of static data member
 
