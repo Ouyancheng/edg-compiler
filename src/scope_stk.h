@@ -1238,9 +1238,6 @@ extern void compute_name_collision_discriminator(a_symbol_ptr   sym,
 
 extern
 void compute_default_arg_name_collision_discriminators(a_param_type_ptr  ptp);
-
-extern
-void compute_data_member_name_collision_discriminators(a_symbol_ptr  sym);
 #endif /* NEED_NAME_MANGLING */
 
 extern void check_c99_inline_definition(a_variable_ptr     var,
