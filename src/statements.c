@@ -3472,10 +3472,9 @@ The syntax is:
 See also 3.6.4.2.
 */
 {
-  a_statement_ptr                sp;
-  a_control_flow_descr_ptr       cfdp;
-  a_struct_stmt_stack_entry_ptr  sssep;
-  a_boolean                      is_condition_decl = FALSE;
+  a_statement_ptr           sp;
+  a_control_flow_descr_ptr  cfdp;
+  a_boolean                 is_condition_decl = FALSE;
 
   db_enter(3, "switch_statement");
 
@@ -3519,8 +3518,7 @@ See also 3.6.4.2.
   }  /* if */
   /* Save the selector expression type for checking of the case label
      values. */
-  sssep = &struct_stmt_stack[depth_stmt_stack];
-  sssep->switch_selector_type = sp->expr->type;
+  struct_stmt_stack[depth_stmt_stack].switch_selector_type = sp->expr->type;
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
@@ -3532,7 +3530,7 @@ See also 3.6.4.2.
   dependent_statement();
   /* If any switch case was template-dependent, discard the sorted list since
      its semantics are marginal. */
-  if (sssep->switch_has_dependent_case) {
+  if (struct_stmt_stack[depth_stmt_stack].switch_has_dependent_case) {
     a_switch_case_entry_ptr  scep = sp->variant.switch_stmt.extra_info->cases;
     for (; scep != NULL; scep = scep->next) {
       scep->next_on_sorted_list = NULL;
