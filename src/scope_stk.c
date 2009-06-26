@@ -569,7 +569,7 @@ mangled names of function-local entities in the IA-64 ABI.
 void compute_name_collision_discriminator(a_symbol_ptr   sym,
                                           a_scope_depth  scope_depth)
 /*
-Assign a distinguishing "discriminator" value to the given entity desclared in
+Assign a distinguishing "discriminator" value to the given entity declared in
 the indicated scope (which must be a local scope, a class scope, a namespace
 scope, or the file scope).  In non-local scopes, this only applies to unnamed
 class and enumeration types.  In local scopes, additional possibilities exist:

@@ -928,7 +928,7 @@ typedef struct a_class_symbol_supplement {
 			   entities with the same name in the same function
 			   in the name mangling for the IA-64 ABI.  In file,
 			   namespace, and class scopes, a sequence number used
-			   to distinguish unnammed class types (in both ABIs).
+			   to distinguish unnamed class types (in both ABIs).
 			   Zero if not needed. */
 #endif /* NEED_NAME_MANGLING */
   a_bit_field	has_nontrivial_default_constructor:1;
