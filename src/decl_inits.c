@@ -5688,7 +5688,7 @@ though neither constructors nor initialization is involved here.)
         pos_error(ec_no_default_delete_in_virtual_dtor,
                   &source_pos);
       } else {
-        /* There is an unambiguous operator delete.  Make sure it is accesible
+        /* There is an unambiguous operator delete.  Make sure it is accessible
            and not "deleted". */
         check_assertion(is_simple_function_symbol(del_sym));
         if (del_sym->variant.routine.ptr->is_deleted) {
