@@ -5554,12 +5554,6 @@ Finally, this routine also updates the control flow data structures as needed.
           check_assertion(prev_value->kind ==
                                             (a_constant_repr_kind)ck_integer);
           cmp_result = cmp_integer_constants(value, prev_value);
-          if (cmp_result < 0) {
-            /* The current position in the list is a larger case than the new
-               switch case, and since the ones further down the list are larger
-               still, we can end the search here. */
-            break;
-          }  /* if */
           if (cmp_result == 0
 #if GNU_EXTENSIONS_ALLOWED
               || (gnu_mode && conflicting_switch_case_ranges(scep, *ptr))
@@ -5567,6 +5561,12 @@ Finally, this routine also updates the control flow data structures as needed.
                                                                       ) {
             pos2_diagnostic(es_error, ec_case_label_conflict, &scep->position,
                             &(*ptr)->position);
+          }  /* if */
+          if (cmp_result < 0) {
+            /* The current position in the list is a larger case than the new
+               switch case, and since the ones further down the list are larger
+               still, we can end the search here. */
+            break;
           }  /* if */
           ptr = &(*ptr)->next_on_sorted_list;
         }  /* while */

@@ -1,5 +1,24 @@
 Version 4.1
 
+6/26/09  [EDGcpfe/9932]
+Missing error on GNU case range conflict
+
+In some cases, the front end failed to issue an error when a GNU case range
+conflicted with another case in the same switch statement.  This is a
+regression introduced in version 4.0 (see also Changes entry of 4/15/08).
+For example:
+
+  void g(int i) {
+    switch (i) {
+      case 2:
+      case 1 ... 3:  // Previously no error, even though this conflicts
+        break;       // with "case 2:".
+    }
+  }
+
+This is now fixed.
+
+
 6/26/09  [EDGcpfe/9719]
 Instantiation loop on template static data member needed only for its size
 
