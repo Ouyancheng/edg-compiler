@@ -6085,7 +6085,7 @@ location is the insert_location2 value (after the assignment statement).
                                                  &guarded_var->source_corresp);
     /* Treat the guard variable as a promoted local static so that it will
        be removed during needed flag processing if the static variable ends
-       up not beeing needed (e.g., because the inline routine that contains
+       up not being needed (e.g., because the inline routine that contains
        it is not invoked). */
     (*test_var)->promoted_local_static = TRUE;
 #if IA64_ABI
