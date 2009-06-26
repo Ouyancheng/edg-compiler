@@ -30,6 +30,7 @@ typedef enum /* an_error_code */ {
   ec_terminate_called_more_than_once,
   ec_negative_vla_size,
   ec_vla_allocation_failed,
+  ec_deleted_virtual_called,
   ec_last
 } an_error_code;
 

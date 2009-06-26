@@ -1,5 +1,14 @@
 Version 4.1
 
+6/25/09  [EDGcpfe/9835]
+New runtime routine for invocation of a deleted virtual function
+
+A new runtime routine (__cxa_deleted_virtual in the IA-64 ABI and
+__deleted_virtual_called in the Cfront ABI) is provided to catch instances
+where a deleted virtual function is erroneously invoked.  The new function
+issues a diagnostic and terminates the application.
+
+
 1/14/09  [EDGcpfe/8065]
 IA-64 ABI: Incorrect return status from __cxa_atexit
 

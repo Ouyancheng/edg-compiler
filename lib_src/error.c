@@ -61,6 +61,9 @@ Return the string associated with the specified error code.
     case ec_vla_allocation_failed:
       s = "VLA allocation failed";
       break;
+    case ec_deleted_virtual_called:
+      s = "a deleted virtual function was called";
+      break;
     case ec_main_called_more_than_once:
     default:
       unexpected_condition();
