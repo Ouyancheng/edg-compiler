@@ -18570,7 +18570,8 @@ void complete_template_static_data_member_type_is_needed(a_variable_ptr vp)
 "vp" is the variable entry for a template static data member with an incomplete
 type.  If the type of "vp" can be made complete by instantiating the static
 data member, and such an instantiation can be done (a definition is available),
-do the instantiation now.
+do the instantiation now.  Note that this implies "I need the type of this
+entity", not "I need a definition of this entity".
 */
 {
   a_template_instance_ptr	tip;

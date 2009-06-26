@@ -515,6 +515,9 @@ already been copied over.
        translation unit can invalidate some placeholders in the latter. */
     eliminate_invalid_placeholders_in_file_scope(
                                             translation_units->primary_scope);
+    /* Remove the definitions of any static data members instantiated only for
+       the purpose of determining their size. */
+    remove_unneeded_static_data_member_instantiations();
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
@@ -547,9 +550,6 @@ already been copied over.
        was done in part 2. */
     file_scope_il_wrapup_needed_flag_processing();
     file_scope_il_wrapup_keep_in_il_processing();
-    /* Remove the definitions of any static data members instantiated only for
-       the purpose of determining their size. */
-    remove_unneeded_static_data_member_instantiations();
 #if MANGLE_ALL_NAMES
     if (name_mangling_needed()) {
       /* Do final name mangling, which can make names that can no longer

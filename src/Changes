@@ -1,5 +1,26 @@
 Version 4.1
 
+6/26/09  [EDGcpfe/9719]
+Instantiation loop on template static data member needed only for its size
+
+In a case where a template static data member is instantiated only to
+determine its size (i.e., it's not otherwise used) and the static
+data member requires dynamic initialization, the front end was confused
+about whether the template static data member is really needed, and
+as a result the template prelinker got into an instantiation loop.
+Now fixed.
+
+  template <class T> struct A {
+    static T tab[];
+  };
+  int ff();
+  template <class T> T A<T>::tab[] = { ff() };
+  const int N = sizeof(A<wchar_t>::tab) / sizeof(wchar_t);
+  int main() {
+    A<wchar_t> a;
+  }
+
+
 6/26/09  [EDGcpfe/9941]
 Abort in PI-in-IL version on lambda referencing constant in enclosing function
 
