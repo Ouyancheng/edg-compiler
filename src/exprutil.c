@@ -2003,18 +2003,26 @@ expression node.
       break;
     case ok_constant:
       con = &operand->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_template_param &&
-          con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-        /* For a ck_template_param case that represents an expression,
-           return a copy of the expression. */
+      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        /* For ck_template_param constants, copy the subtree, because they
+           may be in a different memory region. */
         an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
         if (!curr_expr_is_potentially_evaluated()) {
           options |= CE_COPY_NOT_EVALUATED;
         }  /* if */
-        node = copy_expr_tree(con->variant.template_param.variant.expr,
-                              options);
+        if (con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+          /* For a ck_template_param case that represents an expression,
+             return a copy of the expression. */
+          node = copy_expr_tree(con->variant.template_param.variant.expr,
+                                options);
+        } else {
+          con = copy_constant_full(con, (a_constant *)NULL, options);
+          node = alloc_node_for_allocated_constant(con);
+          copy_operand_position_to_expr(operand, node);
+        }  /* if */
       } else {
+        /* Cases other than template parameter constants. */
         /* Create a constant node and copy the constant in the operand to the
            node. */
         node = alloc_node_for_constant(con);

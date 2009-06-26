@@ -1,5 +1,16 @@
 Version 4.1
 
+6/26/09  [EDGcpfe/9941]
+Abort in PI-in-IL version on lambda referencing constant in enclosing function
+
+An abort in remap_ptr_to_entry_number ("pointer in secondary trans unit")
+could occur in a case where a nested function (a lambda) used the
+constant-expresison value of a static variable from the enclosing function,
+in a configuration that keeps prototype instantiations in the IL
+(PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE), and a mode that parses
+templates (e.g., strict mode).  Now fixed.
+
+
 6/25/09  [EDGcpfe/9835]
 Call new runtime routine on invocation of a deleted virtual function
 
