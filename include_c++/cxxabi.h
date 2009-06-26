@@ -111,6 +111,9 @@ namespace __cxxabiv1 {
     /* Pure virtual function calls. */
     void __cxa_pure_virtual();
 
+    /* Deleted virtual function calls. */
+    void __cxa_deleted_virtual();
+
     /* Constructors return void in the IA-64 ABI.  But in the ARM EABI
        variant, they return void*. */
 #ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
