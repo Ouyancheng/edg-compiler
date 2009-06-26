@@ -2568,7 +2568,7 @@ void put_str_to_temp_text_buffer_octl(
                                char                                  *str,
                                an_il_to_str_output_control_block_ptr octl)
 /*
-Wraper for put_str_to_temp_text_buffer for use with the il-to-str routines.
+Wrapper for put_str_to_temp_text_buffer for use with the il-to-str routines.
 */
 {
   put_str_to_temp_text_buffer(str);

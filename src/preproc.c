@@ -2631,7 +2631,7 @@ executable file.
       (void)get_token();
       if (curr_token == tok_string_literal) {
         if (is_error_constant(&const_for_curr_token)) {
-          /* A diagnosic was already issued. */
+          /* A diagnostic was already issued. */
           err = TRUE;
         } else if (!is_normal_character_kind(
                                         const_for_curr_token.character_kind)) {
