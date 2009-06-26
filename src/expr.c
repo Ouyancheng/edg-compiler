@@ -9721,7 +9721,7 @@ specification allow a variable-sized array as the top type.
             function_symbol == find_default_operator_new_sym(sym, &ambiguous)&&
             /* See core issue 412: avoid problems if user-provided new is
                inline. */
-            !new_routine->is_inline){
+            !new_routine->is_inline) {
           new_routine = NULL;
         }  /* if */
       }  /* if */
