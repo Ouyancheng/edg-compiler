@@ -1756,6 +1756,77 @@ specified after the point of definition of the template.
 }  /* set_active_using_list_scope_depths */
 
 
+static a_boolean prototype_inst_is_for_class_in_real_instance(
+                                                        a_type_ptr  proto_type)
+/*
+This is a helper function for push_scope_full.  A template instantiation scope
+is being pushed, and it is in the context of a prototype instantiation.  If
+the instantiation is that of a class template, proto_type will be non-NULL.
+If so, return TRUE if the prototype instantiation is the result of a real
+instantiation.  Otherwise, return FALSE.  For example, if X<T>::N describes a
+template, X<int>::N<U> is a prototype instantiation of the nested template
+X<T>::N inside the real instantiation X<int>.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(scope_stack_top().in_prototype_instantiation);
+  if (proto_type != NULL) {
+    /* The prototype instantiation is for a class. */
+    a_scope_ptr  parent_scope = get_parent_scope_of(proto_type);
+    a_template_symbol_supplement_ptr
+                 tssp = template_supplement_for_symbol(symbol_for(proto_type));
+    if (tssp != NULL && tssp->is_specific_definition) {
+      /* proto_type is the prototype instantiation for a member template that
+         is being specialized.  E.g.:
+           template<class> struct A { template<class> struct B; };
+           template<> template<class U> struct A <int>::B { };
+         This is not treated as a prototype instantiation resulting from a
+         real instance. */
+    } else {
+       /* Check if a parent class or function is a real template instance. */
+      while (parent_scope != NULL &&
+             (parent_scope->kind == (a_scope_kind)sck_class_struct_union ||
+              parent_scope->kind == (a_scope_kind)sck_function)) {
+        a_source_correspondence  *scp;
+        if (parent_scope->kind == (a_scope_kind)sck_class_struct_union) {
+          a_type_ptr  class_type = parent_scope->variant.assoc_type;
+          if (class_type->variant.class_struct_union.is_template_class &&
+              !class_type->variant.class_struct_union.is_nonreal_class &&
+              !class_type->variant.class_struct_union.is_specialized) {
+            /* A parent scope corresponding to a real class template
+               instance. */
+            result = TRUE;
+            break;
+          }  /* if */
+          scp = &class_type->source_corresp;
+        } else {
+          a_routine_ptr  routine = parent_scope->variant.routine.ptr;
+          if (routine->is_template_function &&
+              !routine->is_prototype_instantiation &&
+              !routine->is_specialized) {
+            /* A parent scope corresponding to a real function template
+               instance. */
+            result = TRUE;
+            break;
+          }  /* if */
+          scp = &routine->source_corresp;
+        }  /* if */
+        /* Move to the parent scope, except that block and condition scopes
+           should be skipped. */
+        if (scp->parent_via_local_scope_ref) {
+          parent_scope =
+             il_header.region_scope_entry[scp->enclosing_routine->assoc_scope];
+        } else {
+          parent_scope = scp->parent_scope;
+        }  /* if */
+      }  /* while */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* prototype_inst_is_for_class_in_real_instance */
+
+
 void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
 /*
 Initialize the fields in a scope-pointers-block substructure.
@@ -2650,24 +2721,21 @@ the scope being pushed.
          entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
     } else if (ssep->in_prototype_instantiation) {
-      /* If prototype instantiations are not recorded in the IL, source
-         sequence entries are normally not generated during a prototype
-         instantiation.  (When they are, they are placed on a list that
-         is not part of the IL proper.) */
-      a_boolean  prototype_in_real_instance = FALSE;
-      /* assoc_type != NULL means we're in a class template scope. */
-      if (assoc_type != NULL) {
+      if (!prototype_instantiations_in_il) {
+        /* If prototype instantiations are not recorded in the IL, source
+           sequence entries are normally not generated during a prototype
+           instantiation.  (When they are, they are placed on a list that
+           is not part of the IL proper.) */
+        source_sequence_entries_disallowed = TRUE;
+      } else if (prototype_inst_is_for_class_in_real_instance(assoc_type)) {
         /* Prototype instantiations inside real instantiations should not
            generate source sequence entries. */
-        a_template_symbol_supplement_ptr tssp =
-                     template_supplement_for_symbol(
-                         (a_symbol_ptr)assoc_type->source_corresp.assoc_info);
-        prototype_in_real_instance = tssp != NULL &&
-                                     (tssp->prototype_template != NULL &&
-                                      !tssp->is_specific_definition);
+        source_sequence_entries_disallowed = TRUE;
+      } else {
+        /* In all other cases, produce source sequence entries for the
+           prototype instantiation. */
+        source_sequence_entries_disallowed = FALSE;
       }  /* if */
-      source_sequence_entries_disallowed = !prototype_instantiations_in_il ||
-                                           prototype_in_real_instance;
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
                                     source_sequence_entries_disallowed) {
       check_assertion(source_sequence_entries_disallowed == TRUE);
