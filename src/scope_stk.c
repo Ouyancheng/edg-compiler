@@ -1760,18 +1760,20 @@ static a_boolean prototype_inst_is_for_class_in_real_instance(
                                                         a_type_ptr  proto_type)
 /*
 This is a helper function for push_scope_full.  A template instantiation scope
-is being pushed, and it is in the context of a prototype instantiation.  If
-the instantiation is that of a class template, proto_type will be non-NULL.
-If so, return TRUE if the prototype instantiation is the result of a real
-instantiation.  Otherwise, return FALSE.  For example, if X<T>::N describes a
-template, X<int>::N<U> is a prototype instantiation of the nested template
-X<T>::N inside the real instantiation X<int>.
+is being pushed, and it is in the context of a prototype instantiation.  If the
+instantiation is that of a class template or a class nested in a template,
+proto_type will be non-NULL.  If so, return TRUE if the prototype instantiation
+is the result of the real instantiation of a class template.  Otherwise, return
+FALSE.  For example, if X<T>::N describes a template, X<int>::N<U> is a
+prototype instantiation of the nested template X<T>::N inside the real
+instantiation X<int>.
 */
 {
   a_boolean  result = FALSE;
 
   check_assertion(scope_stack_top().in_prototype_instantiation);
-  if (proto_type != NULL) {
+  if (proto_type != NULL &&
+      proto_type->variant.class_struct_union.is_prototype_instantiation) {
     /* The prototype instantiation is for a class. */
     a_scope_ptr  parent_scope = get_parent_scope_of(proto_type);
     a_template_symbol_supplement_ptr
@@ -1784,42 +1786,19 @@ X<T>::N inside the real instantiation X<int>.
          This is not treated as a prototype instantiation resulting from a
          real instance. */
     } else {
-       /* Check if a parent class or function is a real template instance. */
+       /* Check if a parent class is a real template instance. */
       while (parent_scope != NULL &&
-             (parent_scope->kind == (a_scope_kind)sck_class_struct_union ||
-              parent_scope->kind == (a_scope_kind)sck_function)) {
-        a_source_correspondence  *scp;
-        if (parent_scope->kind == (a_scope_kind)sck_class_struct_union) {
-          a_type_ptr  class_type = parent_scope->variant.assoc_type;
-          if (class_type->variant.class_struct_union.is_template_class &&
-              !class_type->variant.class_struct_union.is_nonreal_class &&
-              !class_type->variant.class_struct_union.is_specialized) {
-            /* A parent scope corresponding to a real class template
-               instance. */
-            result = TRUE;
-            break;
-          }  /* if */
-          scp = &class_type->source_corresp;
-        } else {
-          a_routine_ptr  routine = parent_scope->variant.routine.ptr;
-          if (routine->is_template_function &&
-              !routine->is_prototype_instantiation &&
-              !routine->is_specialized) {
-            /* A parent scope corresponding to a real function template
-               instance. */
-            result = TRUE;
-            break;
-          }  /* if */
-          scp = &routine->source_corresp;
+             parent_scope->kind == (a_scope_kind)sck_class_struct_union) {
+        a_type_ptr  class_type = parent_scope->variant.assoc_type;
+        if (class_type->variant.class_struct_union.is_template_class &&
+            !class_type->variant.class_struct_union.is_nonreal_class &&
+            !class_type->variant.class_struct_union.is_specialized) {
+          /* A parent scope corresponding to a real class template
+             instance. */
+          result = TRUE;
+          break;
         }  /* if */
-        /* Move to the parent scope, except that block and condition scopes
-           should be skipped. */
-        if (scp->parent_via_local_scope_ref) {
-          parent_scope =
-             il_header.region_scope_entry[scp->enclosing_routine->assoc_scope];
-        } else {
-          parent_scope = scp->parent_scope;
-        }  /* if */
+        parent_scope = class_type->source_corresp.parent_scope;
       }  /* while */
     }  /* if */
   }  /* if */
