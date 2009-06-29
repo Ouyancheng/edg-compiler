@@ -19581,6 +19581,9 @@ a specialized instance.
   if (!export_template_allowed) {
     /* We are not doing export processing. */
     result = FALSE;
+  } else if (tssp->il_template_entry->ignore_export) {
+    /* The template is exported but cannot be referenced from elsewhere. */
+    result = FALSE;
   } else if (tip->exported_template_file != NULL) {
     /* If we already found the exported template file, skip the remaining
        processing. */
