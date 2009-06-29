@@ -7326,7 +7326,22 @@ Generate code for a new or delete operation.
        type. */
     if (!is_incomplete_type(unqual_type)) {
       /* Normal case. */
+      a_routine_type_supplement_ptr  rtsp = NULL;
+      an_exception_specification_ptr saved_exception_specification;
+      if (is_pointer_type(type) &&
+          type_pointed_to(type)->kind == (a_type_kind)tk_routine) {
+        /* Make sure not to include an exception specification when putting
+           out the type.  (This can occur if the original source form was
+           something like "new auto(f)", where "f" is the name of a function
+           with an exception specification.) */
+        rtsp = type_pointed_to(type)->variant.routine.extra_info;
+        saved_exception_specification = rtsp->exception_specification;
+        rtsp->exception_specification = NULL;
+      }  /* if */
       gen_type(type);
+      if (rtsp != NULL) {
+        rtsp->exception_specification = saved_exception_specification;
+      }  /* if */
     } else {
       /* Harder case: a variable-length array.  The first argument expression
          gives the size of the array, which is the number of elements times
