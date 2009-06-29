@@ -11570,7 +11570,11 @@ typedef struct an_expr_node {
 			/* If the argument of the typeid operator is an
 			   expression with one of the special forms (*p or
 			   p[x]), and the type is a polymorphic class type,
-			   this is the expression specified; otherwise NULL. */
+			   or if the expression is in a prototype
+			   instantiation and the operand has a dependent
+			   type that was specified using the "auto"
+			   type-specifier, this is the expression
+			   specified; otherwise NULL. */
     } typeid_info;
     /* When kind == enk_runtime_sizeof: */
     /* Used for a sizeof whose size is not known at compile time (e.g.,

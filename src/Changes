@@ -1,5 +1,22 @@
 Version 4.1
 
+6/29/09  [EDGcpfe/9939]
+typeid of variable with dependent "auto" type in prototype instantiation
+
+When the typeid operator is applied to a variable with a dependent type
+declared using the "auto" type-specifier in a function template and the
+front end is configured to include prototype instantiations in the IL, the
+resulting enk_typeid node referred to the "auto" type placeholder with no
+indication of what that type might be.  This has now been changed so that
+the node refers to the original expression operand.  For example:
+
+  #include <typeinfo>
+  template <typename T> void f(T t) {
+    auto x(t);
+    typeid(x);    // Formerly effectively "typeid(auto)"
+  }
+
+
 6/26/09  [EDGcpfe/9932]
 Missing error on GNU case range conflict
 

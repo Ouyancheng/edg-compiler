@@ -7736,6 +7736,18 @@ Syntax:
           expr = operand.variant.expression;
         }  /* if */
       }  /* if */
+    } else if (typeid_type->kind == (a_type_kind)tk_template_param &&
+               typeid_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+               typeid_type->
+                        variant.template_param.extra_info->coordinates.depth ==
+                                                     AUTO_TYPE_NESTING_DEPTH) {
+      /* The type is the "auto" type-specifier, so we need to keep the
+         expression.  (This can only occur in a prototype instantiation;
+         otherwise, the type would have been resolved to an actual type.) */
+      check_assertion(is_prototype_instantiation_context());
+      check_assertion(is_expression_operand(&operand));
+      expr = operand.variant.expression;
     }  /* if */
     if (microsoft_template_arg_case) {
       if (expr != NULL) {
