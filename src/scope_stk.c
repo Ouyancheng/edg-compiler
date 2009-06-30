@@ -1755,6 +1755,7 @@ specified after the point of definition of the template.
   }  /* for */
 }  /* set_active_using_list_scope_depths */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static a_boolean prototype_inst_is_for_class_in_real_instance(
                                                         a_type_ptr  proto_type)
@@ -1762,11 +1763,12 @@ static a_boolean prototype_inst_is_for_class_in_real_instance(
 This is a helper function for push_scope_full.  A template instantiation scope
 is being pushed, and it is in the context of a prototype instantiation.  If the
 instantiation is that of a class template or a class nested in a template,
-proto_type will be non-NULL.  If so, return TRUE if the prototype instantiation
-is the result of the real instantiation of a class template.  Otherwise, return
-FALSE.  For example, if X<T>::N describes a template, X<int>::N<U> is a
-prototype instantiation of the nested template X<T>::N inside the real
-instantiation X<int>.
+proto_type will point to the associated prototype instantiation; otherwise,
+proto_type will be NULL.  Return TRUE if proto_type is non-NULL and the
+prototype instantiation is the result of the real instantiation of a class
+template.  Otherwise, return FALSE.  For example, if X<T>::N describes a
+template, X<int>::N<U> is a prototype instantiation of the nested template
+X<T>::N inside the real instantiation X<int>.
 */
 {
   a_boolean  result = FALSE;
@@ -1805,6 +1807,7 @@ instantiation X<int>.
   return result;
 }  /* prototype_inst_is_for_class_in_real_instance */
 
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp)
 /*
