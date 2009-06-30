@@ -7182,13 +7182,15 @@ constructor is found, issue a diagnostic and return NULL.  If more than
 one acceptable copy constructor is found, issue a (different) diagnostic and
 return NULL.  object_class_type points to the type of the object being
 copied; class_type may be a base class of object_class_type.  This is needed
-for protected member access checking.  If a bitwise copy is allowed, return
-NULL and *class_bitwise_copy TRUE.  If record_ref is TRUE, a reference
-is recorded against the copy constructor selected; as a side effect,
-access to the copy constructor is checked, and an error issued if
-the copy constructor is inaccessible.  If evaluated is FALSE, the reference is
-within an unevaluated expression.  If class_type has no copy constructor
-because its declaration was suppressed, no diagnostic will be emitted if
+for protected member access checking.  If the copy constructor selected
+is implicit (not user-declared, i.e., there's no associated symbol)
+and performs a bitwise copy, return NULL and *class_bitwise_copy TRUE.
+If record_ref is TRUE, a reference is recorded against the copy
+constructor selected; as a side effect, access to the copy constructor
+is checked, and an error issued if the copy constructor is
+inaccessible.  If evaluated is FALSE, the reference is within an
+unevaluated expression.  If class_type has no copy constructor because
+its declaration was suppressed, no diagnostic will be emitted if
 allow_suppressed_ctor is TRUE.  This routine is only used in C++ mode.
 */
 {

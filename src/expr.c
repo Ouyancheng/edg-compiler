@@ -22371,10 +22371,11 @@ source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
 rvalueness of the source is irrelevant).  If no acceptable copy
 constructor is found, return NULL.  If more than one acceptable copy
 constructor is found and only one of them is the best match, return
-that one; otherwise set *ambiguous to TRUE and return NULL.  If a
-bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
-This routine is used only in C++ mode.  It does not do access checking
-on the copy constructor.
+that one; otherwise set *ambiguous to TRUE and return NULL.  If the
+copy constructor selected is implicit (not user-declared, i.e.,
+there's no associated symbol) and performs a bitwise copy, return NULL
+and *class_bitwise_copy TRUE.  This routine is used only in C++ mode.
+It does not do access checking on the copy constructor.
 */
 {
   a_symbol_ptr            cctor_sym;

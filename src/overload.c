@@ -13702,7 +13702,6 @@ temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
         set_up_for_constructor_call(operand, cctor_routine,
                                     (a_conv_descr *)NULL, &cctor_arg,
                                     &class_bitwise_copy);
-        check_assertion(!class_bitwise_copy);
         make_constructor_dynamic_init(cctor_routine, cctor_arg, temp_type,
                                       result_is_lvalue,
                                       class_bitwise_copy,
