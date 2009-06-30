@@ -13458,7 +13458,9 @@ name lookup options.
     if (!is_address) {
       /* The value of a static data member is acceptable as a result if
          the data member can be used as a constant. */
-      con_copy = var_constant_value(var);
+      con_copy = var_constant_value_full(var,
+                                         /*copy_for_reuse=*/TRUE,
+                                         /*clear_backing_expr=*/TRUE);
       if (con_copy == NULL) err = TRUE;
     } else {
       /* Address of a static data member. */

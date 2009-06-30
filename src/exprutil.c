@@ -1990,7 +1990,6 @@ expression node.
 */
 {
   an_expr_node_ptr node;
-  a_constant_ptr   con;
 
   switch (operand->kind) {
     case ok_error:
@@ -2002,32 +2001,10 @@ expression node.
       node = operand->variant.expression;
       break;
     case ok_constant:
-      con = &operand->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_template_param) {
-        /* For ck_template_param constants, copy the subtree, because they
-           may be in a different memory region. */
-        an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
-        if (!curr_expr_is_potentially_evaluated()) {
-          options |= CE_COPY_NOT_EVALUATED;
-        }  /* if */
-        if (con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-          /* For a ck_template_param case that represents an expression,
-             return a copy of the expression. */
-          node = copy_expr_tree(con->variant.template_param.variant.expr,
-                                options);
-        } else {
-          con = copy_constant_full(con, (a_constant *)NULL, options);
-          node = alloc_node_for_allocated_constant(con);
-          copy_operand_position_to_expr(operand, node);
-        }  /* if */
-      } else {
-        /* Cases other than template parameter constants. */
-        /* Create a constant node and copy the constant in the operand to the
-           node. */
-        node = alloc_node_for_constant(con);
-        copy_operand_position_to_expr(operand, node);
-      }  /* if */
+      /* Create a constant node and copy the constant in the operand to the
+         node. */
+      node = alloc_node_for_constant(&operand->variant.constant);
+      copy_operand_position_to_expr(operand, node);
       node->is_lvalue = is_an_lvalue(operand);
       break;
 #if CHECKING
@@ -8197,12 +8174,22 @@ is done in var_constant_value.
 }  /* is_const_variable */
 
 
-a_constant_ptr var_constant_value(a_variable_ptr var)
+a_constant_ptr var_constant_value_full(a_variable_ptr var,
+                                       a_boolean      copy_for_reuse,
+                                       a_boolean      clear_backing_expr)
 /*
 If the variable var has a constant initial value, return a pointer to it;
 otherwise, return NULL.  A variable with an aggregate initial value is
 considered to have no initial value.  Also, a variable with an address-
 constant initial value is treated as having a nonconstant initial value.
+If copy_for_reuse is TRUE, the constant returned will be a copy that
+can be reused by putting it in an_operand entry and later allocating it;
+when copy_for_reuse is FALSE, the copy returned can be examined but
+it should be considered read-only and shouldn't be allowed to survive
+beyond the short term.  If copy_for_reuse is TRUE and clear_backing_expr
+is also TRUE, the backing expression pointer will be cleared, if necessary,
+by copying the constant (otherwise, a copy will not be done merely to clear
+the backing expression).
 */
 {
   a_constant_ptr     con_val = NULL;
@@ -8255,6 +8242,43 @@ constant initial value is treated as having a nonconstant initial value.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (copy_for_reuse && con_val != NULL) {
+    /* Make a copy that can be reused. */
+    a_constant_ptr   new_con;
+    an_expr_node_ptr backing_expr = con_val->expr;
+    /* Clear the backing expression in the original constant so the copy
+       will not have one.  The pointer will be restored below. */
+    con_val->expr = NULL;
+    if (con_val->kind == (a_constant_repr_kind)ck_template_param) {
+      /* For template parameter constants, do a deep copy because there might
+         be an expression subtree. */
+      an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
+      new_con = copy_constant_full(con_val, (a_constant *)NULL, options);
+    } else if (backing_expr != NULL && clear_backing_expr) {
+      /* Copy to allow clearing the backing expression.  This is a shallow
+         copy. */
+      new_con = alloc_shareable_constant(con_val);
+    } else {
+      /* No copy needed. */
+      new_con = con_val;
+    }  /* if */
+    /* Restore the backing expression in the original constant. */
+    con_val->expr = backing_expr;
+    con_val = new_con;
+  }  /* if */
+  return con_val;
+}  /* var_constant_value_full */
+
+
+a_constant_ptr var_constant_value(a_variable_ptr var)
+/*
+Interface to var_constant_value_full for the usual case.  The constant
+returned should only be used locally and not linked into the IL tree.
+*/
+{
+  a_constant_ptr con_val = var_constant_value_full(var,
+                                                 /*copy_for_reuse=*/FALSE,
+                                                 /*clear_backing_expr=*/FALSE);
   return con_val;
 }  /* var_constant_value */
 
@@ -10756,13 +10780,19 @@ See is_rvalue_reference_object_expr for a definition of that term.
 
 
 static a_constant_ptr value_of_constant_var_lvalue_expr(
-                                                       an_expr_node_ptr node,
-                                                       a_variable_ptr   *p_var)
+                                               an_expr_node_ptr node,
+                                               a_boolean        copy_for_reuse,
+                                               a_variable_ptr   *p_var)
 /*
 node is an expression for an lvalue.  If it is an lvalue for a constant-valued
 variable, return a pointer to the constant that is the variable's value.
-Otherwise, return NULL.  If p_var is non-NULL and the expression is an lvalue
-for a variable, *p_var is set to point to the variable.
+Otherwise, return NULL.  If copy_for_reuse if TRUE, copy the constant if
+necessary so it's suitable for later incorporation in the IL tree, and not
+merely for short-term inspection.  The constant is not copied merely
+to clear its backing expression; it's assumed the caller will put the
+constant in an_operand and clear the backing expression in that copy.
+If p_var is non-NULL and the expression is an lvalue for a variable,
+*p_var is set to point to the variable.
 */
 {
   a_constant_ptr con_var_value = NULL;
@@ -10775,7 +10805,9 @@ for a variable, *p_var is set to point to the variable.
     a_variable_ptr var = node->variant.variable;
     if (p_var != NULL) *p_var = var;
     /* See if the variable has a constant value known at compile time. */
-    con_var_value = var_constant_value(var);
+    con_var_value = var_constant_value_full(var,
+                                            copy_for_reuse,
+                                            /*clear_backing_expr=*/FALSE);
   }  /* if */
   return con_var_value;
 }  /* value_of_constant_var_lvalue_expr */
@@ -10785,7 +10817,8 @@ a_constant_ptr value_of_constant_var_lvalue_operand(an_operand *operand)
 /*
 operand is an operand for an lvalue.  If it is an lvalue for a constant-valued
 variable, return a pointer to the constant that is the variable's value.
-Otherwise, return NULL.
+Otherwise, return NULL.  The constant returned should only be used locally
+and not linked into the IL tree.
 */
 {
   a_constant_ptr con_var_value = NULL;
@@ -10793,6 +10826,7 @@ Otherwise, return NULL.
   if (is_expression_operand(operand)) {
     con_var_value =
                  value_of_constant_var_lvalue_expr(operand->variant.expression,
+                                                   /*copy_for_reuse=*/FALSE,
                                                    (a_variable **)NULL);
   }  /* if */
   return con_var_value;
@@ -10922,7 +10956,9 @@ it might produce an error).
     if (constant_case != NULL && !C_mode()) {
       /* Look for constant-valued variables in C++. */
       a_variable_ptr variable;
-      con_expr_value = value_of_constant_var_lvalue_expr(node, &variable);
+      con_expr_value = value_of_constant_var_lvalue_expr(node,
+                                                       /*copy_for_reuse=*/TRUE,
+                                                         &variable);
       if (con_expr_value != NULL) {
         /* Below, we'll record the expression for the constant, so make the
            rvalue version of the expression. */

@@ -1000,6 +1000,11 @@ extern void discard_constant_expr_object_lifetime(void);
 
 extern void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip);
 
+extern
+a_constant_ptr var_constant_value_full(a_variable_ptr var,
+                                       a_boolean      copy_for_reuse,
+                                       a_boolean      clear_backing_expr);
+
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
 extern void using_lvalue(an_operand *operand);
