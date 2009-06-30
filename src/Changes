@@ -1,5 +1,22 @@
 Version 4.1
 
+6/30/09  [EDGcpfe/9707]
+Abort creating virtual function tables for class with dllimport attribute
+
+In IA-64 ABI configurations when using Microsoft emulation mode, an
+attempt to create a virtual function table for a class with the dllimport
+attribute with a virtual base class that also specified the dllimport attribute
+had resulted in an assertion failure (in define_one_virtual_function_table).
+This is now fixed.  For example:
+
+  struct __declspec(dllimport) B {
+    virtual ~B();
+    int i;
+  };
+  struct __declspec(dllimport) D : virtual B {};
+  D d;
+
+
 6/29/09  [EDGcpfe/9918]
 C++-generating back end: Abort or nonterminating loop with Microsoft-mode
 in-class specialization

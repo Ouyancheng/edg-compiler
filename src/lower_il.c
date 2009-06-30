@@ -7274,7 +7274,11 @@ for the same virtual function table variable; see note below.
 #endif /* IA64_ABI */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
-  if (definition_needed) {
+  if (definition_needed
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && ((vtbl_var->decl_modifiers & DM_DLLIMPORT) == 0)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                         ) {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "\nDefining virtual function table for ");
