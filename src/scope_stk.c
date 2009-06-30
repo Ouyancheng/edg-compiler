@@ -620,11 +620,13 @@ See compute_local_name_collision_discriminator.
 
 
 static void assign_discriminators_to_entities_list(
-                                             an_il_entity_list_entry_ptr  elp)
+                                         an_il_entity_list_entry_ptr  elp,
+                                         a_boolean                    sdm_init)
 /*
 Assign consecutive discriminator values (starting with one) to the entities
 in the given list when appropriate (currently, this is only for closure types
-in the list).
+in the list).  If sdm_init is TRUE, the entities list is one associated with a
+static data member initializer.
 */
 {
   a_discriminator              last_n = 0;
@@ -634,7 +636,12 @@ in the list).
       a_type_ptr  tp = (a_type_ptr)elp->entity.ptr;
       check_assertion(is_immediate_class_type(tp));
       if (class_type_supp(tp)->is_lambda_closure_class) {
-        symbol_supplement_for_class(tp)->discriminator = ++last_n;
+        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+        cssp->discriminator = ++last_n;
+        if (sdm_init) {
+          cssp->lambda_immediately_inside_static_data_member_initializer =
+                                                                         TRUE;
+        }  /* if */
       }  /* if */
     } else {
       unexpected_condition();
@@ -650,7 +657,8 @@ that require discriminators for name mangling purposes, assign those
 discriminators now.  (Currently, this only applies to closure types.)
 */
 {
-  assign_discriminators_to_entities_list(ptp->entities_defined_in_default_arg);
+  assign_discriminators_to_entities_list(ptp->entities_defined_in_default_arg,
+                                         /*sdm_init=*/FALSE);
 }  /* compute_default_arg_name_collision_discriminators */
 
 
@@ -665,7 +673,8 @@ possible.)
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr sdm_var = sym->variant.variable.ptr;
     assign_discriminators_to_entities_list(
-                                    sdm_var->entities_defined_in_initializer);
+                                    sdm_var->entities_defined_in_initializer,
+                                    /*sdm_init=*/TRUE);
   } else {
     unexpected_condition();
   }  /* if */

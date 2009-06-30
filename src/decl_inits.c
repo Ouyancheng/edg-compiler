@@ -60,6 +60,13 @@ non-recursive) call to get_initializer.
 */
 typedef struct an_aggregate_init_info *an_aggregate_init_info_ptr;
 typedef struct an_aggregate_init_info {
+  a_decl_parse_state
+		*dps;
+			/* If this is an initializer associated with a
+			   declaration (as opposed to, e.g., one associated
+			   with a compound literal), this points to the state
+			   information for that declaration.  Otherwise,
+			   NULL. */
   a_boolean	static_lifetime;
 			/* TRUE when the variable being initialized has
 			   static lifetime. */
@@ -79,6 +86,9 @@ typedef struct an_aggregate_init_info {
   a_boolean	has_flexible_array_initializer;
 			/* Set to TRUE when get_initializer encounters values
 			   that initialize a flexible array member. */
+  a_boolean     uses_designated_initializers;
+                        /* Set to TRUE if any member of the aggregate was
+                           initialized by a designated initializer. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		init_end_position;
@@ -88,9 +98,6 @@ typedef struct an_aggregate_init_info {
                 designation_state;
                         /* Have we just collected a partial or complete
                            designation? */
-  a_boolean     uses_designated_initializers;
-                        /* Set to TRUE if any member of the aggregate was
-                           initialized by a designated initializer. */
 } an_aggregate_init_info;
 
 
@@ -100,17 +107,18 @@ static void initialize_init_info(an_aggregate_init_info_ptr  init_info,
 Initialize an entry of type an_aggregrate_init_info.
 */
 {
+  init_info->dps = NULL;
   init_info->static_lifetime = static_lifetime;
   init_info->any_uninitialized_member = FALSE;
   init_info->any_uninitialized_const_or_ref_member = FALSE;
   init_info->comma_seen = FALSE;
   init_info->compound_literal = FALSE;
   init_info->has_flexible_array_initializer = FALSE;
+  init_info->uses_designated_initializers = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_info->designation_state = ds_no_designation;
-  init_info->uses_designated_initializers = FALSE;
 }  /* initialize_init_info */
 
 
@@ -2066,7 +2074,7 @@ IL a_constant entity.
       microsoft_enum_case = TRUE;
     }  /* if */
     constant = scan_initializer_of_simple_object(
-                                     (a_decl_parse_state*)NULL,
+                                     init_info->dps,
                                      nonconst_allowed,
                                      (a_boolean)init_info->static_lifetime,
                                      /*force_object_lifetime=*/FALSE,
@@ -2831,7 +2839,8 @@ function get_initializer does all the hard work.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_initializer_list(a_type_ptr            *type,
+static a_boolean scan_initializer_list(a_decl_parse_state    *dps,
+                                       a_type_ptr            *type,
                                        a_variable_ptr        vp,
                                        a_boolean             static_lifetime,
                                        a_constant_ptr        *init_con,
@@ -2841,7 +2850,8 @@ static a_boolean scan_initializer_list(a_type_ptr            *type,
 /*
 Scan an initializer list for an aggregate initialization.  Usually it is a
 brace-enclosed list of initializers, but the case of initializing an
-array-of-char with a string is also handled here.  *type points to the type
+array-of-char with a string is also handled here.  *dps describes general
+properties of the declaration (and its initializer).  *type points to the type
 of the variable being initialized, and vp (which may be NULL in error cases)
 points to the variable.  (*type is passed independently because it may be
 modified as part of initializer processing, but the variable should not
@@ -2874,6 +2884,7 @@ detection of uninitialized fields).
   }  /* if */
 #endif /* DEBUG */
   initialize_init_info(&init_info, static_lifetime);
+  init_info.dps = dps;
   *init_con = get_initializer(type, &init_info,
                               (an_aggregate_init_context_ptr)NULL,
                               &nothing_taken, &any_dynamic_init);
@@ -3650,7 +3661,7 @@ returned set to TRUE.
       /* Ordinary C-style aggregate initialization, usually with a brace-
          enclosed list of values.  Except that in C++ such lists may include
          non-constants. */
-      if (scan_initializer_list(&vp_type, vp, static_lifetime, &init_con,
+      if (scan_initializer_list(dps, &vp_type, vp, static_lifetime, &init_con,
                                 &init_dip, source_pos, decl_pos_block)) {
         /* The scan was successful. */
         if (!var_err && vp != NULL &&
@@ -3795,6 +3806,12 @@ returned set to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (symbol_ptr->is_class_member) {
+#if NEED_NAME_MANGLING
+    /* Assign discriminator values to embedded closure classes if needed. */
+    if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+      compute_data_member_name_collision_discriminators(dps->sym);
+    }  /* if */
+#endif /* NEED_NAME_MANGLING */
     /* The initializer of a static data member was scanned with the original
        class reactivated (if we're parsing a prototype instantiation, this was
        done elsewhere).  Restore the scope to what it was before.  (We may

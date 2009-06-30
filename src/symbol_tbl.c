@@ -2782,6 +2782,9 @@ state.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         cssp->lambda_inside_default_arg_expression = FALSE;
         cssp->lambda_immediately_inside_default_arg_expression = FALSE;
+#if NEED_NAME_MANGLING
+        cssp->lambda_immediately_inside_static_data_member_initializer = FALSE;
+#endif /* NEED_NAME_MANGLING */
         cssp->lambda_in_invalid_scope = FALSE;
 #if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;

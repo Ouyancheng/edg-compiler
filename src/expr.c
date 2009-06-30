@@ -21534,11 +21534,6 @@ scan_aggregate_initializer_expression.
     /* Stop the recording of entities defined in the expression (not strictly
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
-#if NEED_NAME_MANGLING
-    /* Assign discriminator values to closure types defined in the
-       expression. */
-    compute_data_member_name_collision_discriminators(dps->sym);
-#endif /* NEED_NAME_MANGLING */
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
