@@ -102,10 +102,13 @@ Abort in PI-in-IL version on lambda referencing constant in enclosing function
 
 An abort in remap_ptr_to_entry_number ("pointer in secondary trans unit")
 could occur in a case where a nested function (a lambda) used the
-constant-expresison value of a static variable from the enclosing function,
+constant-expression value of a static variable from the enclosing function,
 in a configuration that keeps prototype instantiations in the IL
 (PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE), and a mode that parses
-templates (e.g., strict mode).  Now fixed.
+templates (e.g., strict mode).  That abort reflects the fact that the
+IL included a pointer from one function-scope memory region to another,
+which is not allowed; in configurations without IL writing/reading, the
+problem might manifest itself it other ways.  Now fixed.
 
 
 6/25/09  [EDGcpfe/9835]
