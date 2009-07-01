@@ -7645,6 +7645,11 @@ skip_overloading:;
        applicable construct). */
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   }  /* if */
+#if NEED_NAME_MANGLING
+  if (func_info->any_default_args) {
+    set_parent_routine_for_closure_types_in_default_args(type_ptr, sym);
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
 #if GNU_EXTENSIONS_ALLOWED
   /* Restore dps->type, since it may have been modified by type-transforming
      attributes. */

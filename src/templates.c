@@ -3573,7 +3573,7 @@ user later during real instantiations.
     }  /* if */
     /* Reactivate the tokens comprising the function body and scan them. */
     rescan_reusable_cache(&daefp->cache.tokens);
-    delayed_scan_of_default_arg_expr(daefp->param_type,
+    delayed_scan_of_default_arg_expr(daefp->param_type, rout_sym,
                                      /*check_for_errors=*/FALSE);
     record_default_arg_instantiation(rout_ptr, daefp->param_type);
     /* Pop the reactivated function prototype scope off the stack. */
@@ -8104,7 +8104,7 @@ instantiated.
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     num_pending_default_arg_instantiations++;
-    delayed_scan_of_default_arg_expr(daefp->param_type,
+    delayed_scan_of_default_arg_expr(daefp->param_type, rout_sym,
                                      /*check_for_errors=*/FALSE);
     num_pending_default_arg_instantiations--;
     record_default_arg_instantiation(rout_ptr, ptp);

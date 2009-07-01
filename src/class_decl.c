@@ -1582,7 +1582,7 @@ Process the default argument expressions for the indicated class.
                  */
               ptp = corresponding_param_type(routine_symbol_type(sym), ptp);
             }  /* if */
-            delayed_scan_of_default_arg_expr(ptp,
+            delayed_scan_of_default_arg_expr(ptp, sym,
                                             /*check_for_errors=*/!is_friend);
           }  /* for */
           /* Pop the reactivated function prototype scope off the stack. */

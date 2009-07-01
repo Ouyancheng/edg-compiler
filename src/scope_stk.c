@@ -680,6 +680,50 @@ possible.)
   }  /* if */
 }  /* compute_data_member_name_collision_discriminators */
 
+
+void set_parent_entity_for_closure_types(
+                                      an_il_entity_list_entry_ptr  elp,
+                                      a_symbol_ptr                 parent_sym)
+/*
+Record the given symbol as the parent entity for name mangling purposes in
+each of the non-nested closure types in the given list of entities.
+*/
+{
+  for (; elp != NULL; elp = elp->next) {
+    if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      a_type_ptr  tp = (a_type_ptr)elp->entity.ptr;
+      check_assertion(is_immediate_class_type(tp));
+      if (class_type_supp(tp)->is_lambda_closure_class) {
+        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+        cssp->lambda_parent_entity = parent_sym;
+      }  /* if */
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+}  /* set_parent_entity_for_closure_types */
+
+
+void set_parent_routine_for_closure_types_in_default_args(
+                                                       a_type_ptr    rtp,
+                                                       a_symbol_ptr  rout_sym)
+/*
+The given routine was declared with the given type.  Make sure that any
+closure types defined in default arguments have the routine recorded as a
+parent for name mangling purposes.
+*/
+{
+  if (rtp->kind == (a_type_kind)tk_routine) {
+    a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
+    for (; ptp != NULL; ptp = ptp->next) {
+      if (ptp->entities_defined_in_default_arg != NULL) {
+        set_parent_entity_for_closure_types(
+                              ptp->entities_defined_in_default_arg, rout_sym);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* set_parent_routine_for_closure_types_in_default_args */
+
 #endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS

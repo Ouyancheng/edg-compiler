@@ -922,6 +922,13 @@ typedef struct a_class_symbol_supplement {
 			   pointer.  This is used to optimize the performance
 			   of move_to_end_of_types_list. */
 #if NEED_NAME_MANGLING
+  a_symbol_ptr
+		lambda_parent_entity;
+			/* For closure types appearing in default arguments or
+			   in initializers for static data members, this is
+			   the function/variable with which the default
+			   argument/initializer is associated.  Otherwise,
+			   NULL. */
   a_discriminator
 		discriminator;
 			/* An identifying number used to distinguish multiple

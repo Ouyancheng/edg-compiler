@@ -243,7 +243,11 @@ scan the default argument expression but discard the token cache.
 }  /* prescan_default_function_arg_expr */
 
 
+#if !NEED_NAME_MANGLING
+/*ARGSUSED*/  /* rout_sym is unused in some configurations. */
+#endif /* !NEED_NAME_MANGLING */
 void delayed_scan_of_default_arg_expr(a_param_type_ptr param_type_entry,
+                                      a_symbol_ptr     rout_sym,
                                       a_boolean	       check_for_errors)
 /*
 Do the delayed scan of the default argument expression for a parameter.  The
@@ -255,6 +259,9 @@ The error checks are suppressed when this routine is called for a
 function template because the checks are done elsewhere (and cannot
 be done here because the default arguments for a given function template
 may be spread between several declarations).
+
+param_type_entry describes the parameter of the given routine (rout_sym) with
+which the default argument is associated.
 */
 {
   a_param_type_ptr  ptp;
@@ -285,6 +292,10 @@ may be spread between several declarations).
   }  /* if */
   /* We scan the expression whether an error was detected or not. */
   scan_default_arg_expr(param_type_entry);
+#if NEED_NAME_MANGLING
+  set_parent_entity_for_closure_types(
+                 param_type_entry->entities_defined_in_default_arg, rout_sym);
+#endif /* NEED_NAME_MANGLING */
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token
      stream. */

@@ -2746,6 +2746,7 @@ state.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         cssp->prev_entry_on_types_list = NULL;
 #if NEED_NAME_MANGLING
+        cssp->lambda_parent_entity = NULL;
         cssp->discriminator = 0;
 #endif /* NEED_NAME_MANGLING */
         cssp->has_nontrivial_default_constructor = FALSE;

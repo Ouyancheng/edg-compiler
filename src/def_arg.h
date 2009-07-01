@@ -72,9 +72,10 @@ void prescan_default_function_arg_expr(
 			a_boolean			is_friend_decl,
 			unsigned long			param_number);
 
-extern void delayed_scan_of_default_arg_expr
-				(a_param_type_ptr param_type_entry,
-                                 a_boolean        check_for_errors);
+extern void delayed_scan_of_default_arg_expr(
+                                           a_param_type_ptr param_type_entry,
+                                           a_symbol_ptr     rout_sym,
+                                           a_boolean        check_for_errors);
 
 extern void delayed_scan_of_template_default_arg_expr(a_type_ptr     type,
 					              a_constant_ptr constant);
