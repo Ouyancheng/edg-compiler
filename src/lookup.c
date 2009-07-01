@@ -4723,6 +4723,7 @@ namespace_qualified_id_lookup.
   a_symbol_ptr	sym;
   a_symbol_ptr	tag_symbol = NULL;
   a_symbol_ptr	type_tag_symbol = NULL;
+  a_symbol_ptr	namespace_symbol = NULL;
   a_boolean   	must_be_class_or_namespace
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG);
@@ -4777,8 +4778,17 @@ namespace_qualified_id_lookup.
         if (is_tag_symbol(fund_sym)) {
           tag_symbol = sym;
         } else {
-          /* Take the symbol. */
-          break;
+          if (is_namespace_symbol(sym) &&
+              gnu_namespace_and_class_in_same_scope) {
+            /* Some versions of g++ allow a namespace and class
+               with the same name in a scope.  The class name
+               should be preferred.  If we found the namespace
+               keep looking in case we find a class. */
+            namespace_symbol = sym;
+          } else {
+            /* Take the symbol. */
+            break;
+          }  /* if */
         }  /* if */
       } else {
         /* A tag lookup. */
@@ -4799,6 +4809,9 @@ namespace_qualified_id_lookup.
     } else if (tag_symbol != NULL) {
       /* If there is a tag symbol saved within the loop, use it. */
       sym = tag_symbol;
+    } else if (namespace_symbol != NULL) {
+      /* If a namespace symbol was saved, use it. */
+      sym = namespace_symbol;
     }  /* if */
   }  /* if */
   if (sym == NULL) {
