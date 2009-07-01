@@ -12703,6 +12703,8 @@ diagnostics.
       *declared_storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
   }  /* if */
+  /* Check for one of the standard signatures and issue remarks if
+     declared differently. */
   if (rtsp->param_type_list != NULL) {
     a_param_type_ptr ptp = rtsp->param_type_list;
     if (!identical_types(skip_typerefs(ptp->type), int_type)) {
@@ -12712,19 +12714,22 @@ diagnostics.
     if (ptp == NULL) {
       pos_remark(ec_main_wrong_num_params, pos);
     } else {
-      a_type_ptr p2type = skip_typerefs(ptp->declared_type);
-      a_boolean  is_unbounded_array_of_char_ptr = FALSE;
-      if (is_incomplete_array_type(p2type)) {
-        a_type_ptr elem_type = f_skip_typerefs(array_element_type(p2type));
-        if (is_pointer_type(elem_type)) {
+      /* The type of the second parameter should be declared as char *[]
+         or char **, both of which appear as char ** in the transformed
+         type. */
+      a_boolean  p2type_is_correct = FALSE;
+      if (is_pointer_type(ptp->type)) {
+        a_type_ptr targ_type = type_pointed_to(ptp->type);
+        if (is_pointer_type(targ_type)) {
           a_type_ptr char_type = integer_type((an_integer_kind)ik_char);
-          if (identical_types(type_pointed_to(elem_type), char_type)) {
-            is_unbounded_array_of_char_ptr = TRUE;
+          targ_type = f_skip_typerefs(type_pointed_to(targ_type));
+          if (identical_types(targ_type, char_type)) {
+            p2type_is_correct = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!is_unbounded_array_of_char_ptr) {
-        pos_ty_remark(ec_main_second_param_not_char_array, pos,
+      if (!p2type_is_correct) {
+        pos_ty_remark(ec_main_second_param_wrong_type, pos,
                       ptp->declared_type);
       }  /* if */
       if (ptp->next != NULL) {
