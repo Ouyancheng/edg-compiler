@@ -32,7 +32,7 @@ of the main() function: with no parameters or as main(int, char *[]).
 (Other forms are permitted as extensions.)  The front end now issues
 remarks if main() is declared with a different number of parameters or
 with parameter types different from those mentioned in the Standards.  For
-exammple:
+example:
 
   int main(char *p) {    // Now results in remarks for wrong parameter type
   }                      // and wrong number of parameters.
