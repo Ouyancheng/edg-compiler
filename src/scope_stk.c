@@ -4166,7 +4166,11 @@ body.  Only called in C++ mode.
   }  /* for */
   /* If this is a file, function, or block scope, do nothing more.  If it's
      a class scope, check its member functions. */
-  if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+  if (scope->kind == (a_scope_kind)sck_class_struct_union &&
+      /* Don't process classes promoted out of functions by IL lowering a
+         second time when the file scope list is scanned. */
+      scope->variant.assoc_type->source_corresp.is_local_to_function ==
+                                                           is_function_local) {
     /* Now go though each routine entry for the current class. */
     for (rp = scope->routines; rp != NULL; rp = rp->next) {
       sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
@@ -4192,8 +4196,10 @@ body.  Only called in C++ mode.
               /* Diagnostic has already been issued. */
             } else if (is_function_local) {
               /* An undefined member function of a local class. */
-              if (rp->is_virtual) {
-                /* Diagnostic has already been put out. */
+              if (rp->is_virtual && !rp->pure_virtual) {
+                /* Diagnostic has already been put out in
+                   class_member_declaration (virtual functions are considered
+                   referenced immediately). */
               } else {
                 pos_sy_error(ec_local_class_function_def_missing,
                              &sym->decl_position, sym);

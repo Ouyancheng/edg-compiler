@@ -1,5 +1,29 @@
 Version 4.1
 
+7/1/09   [EDGcpfe/9944]
+Missing diagnostic for referenced local class pure virtual destructor
+
+The front end sometimes failed to issue an error for the failure to define
+a pure virtual destructor of a local class when the destructor is referenced.
+This happened when the local class was nested more than one level deep
+in the containing function.  The failure to issue an error could
+cause link-time errors or back end aborts later.  Now fixed.
+
+  void f() {
+    struct AA {
+      void g() {
+        struct A {
+          virtual ~A() = 0;  // Formerly, no error was issued
+        };
+        struct B : A { };
+        new B;
+      }
+    };
+    AA aa;
+    aa.g();
+  }
+
+
 6/30/09  [EDGcpfe/9402]
 Diagnostics for nonstandard parameters to main()
 
