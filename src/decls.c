@@ -12712,7 +12712,7 @@ diagnostics.
      declared differently. */
   if (rtsp->param_type_list != NULL) {
     a_param_type_ptr ptp = rtsp->param_type_list;
-    if (!identical_types(skip_typerefs(ptp->type), int_type)) {
+    if (!identical_types(ptp->type, int_type)) {
       pos_ty_remark(ec_main_first_param_not_int, pos, ptp->declared_type);
     }  /* if */
     ptp = ptp->next;
@@ -12727,8 +12727,7 @@ diagnostics.
         a_type_ptr targ_type = type_pointed_to(ptp->type);
         if (is_pointer_type(targ_type)) {
           a_type_ptr char_type = integer_type((an_integer_kind)ik_char);
-          targ_type = f_skip_typerefs(type_pointed_to(targ_type));
-          if (identical_types(targ_type, char_type)) {
+          if (identical_types(type_pointed_to(targ_type), char_type)) {
             p2type_is_correct = TRUE;
           }  /* if */
         }  /* if */
