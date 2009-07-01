@@ -17276,6 +17276,8 @@ that follows.
             /* Scan "= default;" or "= delete;" (the first two tokens were
                already detected above), and adjust the IL entry accordingly. */
             scan_defaulted_or_deleted_definition(dps, &func_info);
+            /* Leave it to the caller to advance past the final semicolon. */
+            *(decl_state->final_token_ptr) = tok_semicolon;
           } else if (decl_state->is_member_decl) {
             /* A Microsoft mode specialization that appears in a class context.
                Cache the function body now and scan it later during the class
@@ -17306,15 +17308,17 @@ that follows.
                                          rp, decl_state->class_declared_in,
                                          /*compiler_generated=*/FALSE);
             }  /* if */
+            /* Leave it to the caller to advance past the closing brace. */
+            *(decl_state->final_token_ptr) = tok_rbrace;
           } else {
             if (rp->source_corresp.is_class_member) {
               rp->defined_outside_of_parent = TRUE;
             }  /* if */
             scan_function_body(rp, &func_info,
                                SFB_NEW_STRUCT_STMT_STACK_REQUIRED);
+            /* Leave it to the caller to advance past the closing brace. */
+            *(decl_state->final_token_ptr) = tok_rbrace;
           }  /* if */
-          /* Leave it to the caller to advance past the closing right brace. */
-          *(decl_state->final_token_ptr) = tok_rbrace;
         } else {
           /* Update xref info on param ids. */
           record_param_id_list_declarations(&func_info);

@@ -1675,9 +1675,9 @@ void scan_defaulted_or_deleted_definition(a_decl_parse_state    *dps,
 /*
 A "= default;" or "= delete;" definition is next (although the semicolon may
 be missing) and func_info reflects this already.  Update the associated IL
-entry and scan past the tokens.  This is called for non-member functions and
-for out-of-class definitions of member functions, but not for in-class
-definitions of member functions.
+entry and scan past the first two tokens.  This is called for non-member
+functions and for out-of-class definitions of member functions, but not for
+in-class definitions of member functions.
 */
 {
   a_routine_ptr  routine_ptr = dps->sym->variant.routine.ptr;
@@ -1688,7 +1688,6 @@ definitions of member functions.
   force_definition_of_compiler_generated_routine(routine_ptr);
   check_assertion(curr_token == tok_delete || curr_token == tok_default);
   (void)get_token();
-  (void)required_token(tok_semicolon, ec_exp_semicolon);
 }  /* scan_defaulted_or_deleted_definition */
 
 
@@ -1919,6 +1918,7 @@ member declaration (allowed in Microsoft mode only).
     check_assertion(!gpp_mode || routine_ptr->is_specialized);
   } else if (func_info->is_deleted || func_info->is_defaulted) {
     scan_defaulted_or_deleted_definition(dps, func_info);
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
   } else {
     flags = SFB_NO_FLAGS;
     if ((dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
