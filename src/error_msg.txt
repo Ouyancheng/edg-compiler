@@ -1862,6 +1862,9 @@ ec_predeclared_function_cannot_be_deleted;;"a predeclared function cannot be del
 ec_empty_then_statement;;"empty dependent statement in if-statement"
 ec_empty_else_statement;;"empty dependent statement in \"else\" clause of if-statement"
 ec_deleted_elided_cctor;;"%nfd, required for copy that was eliminated, cannot be referenced -- it is a deleted function"
+ec_main_first_param_not_int;;"the first parameter of \"main\" must be \"int\", not %t"
+ec_main_wrong_num_params;;"\"main\" must have zero or two parameters"
+ec_main_second_param_not_char_array;;"the second parameter of \"main\" must be \"char *[]\", not %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

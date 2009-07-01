@@ -12683,8 +12683,8 @@ diagnostics.
       *is_inline = FALSE;
     }  /* if */
   }  /* if */
+  rtsp = skip_typerefs(type)->variant.routine.extra_info;
   if (!C_mode()) {
-    rtsp = skip_typerefs(type)->variant.routine.extra_info;
     if (rtsp->routine_name_linkage_is_explicit) {
       pos_warning(ec_linkage_specifier_not_allowed, pos);
       rtsp->routine_name_linkage_is_explicit = FALSE;
@@ -12701,6 +12701,35 @@ diagnostics.
     if (*declared_storage_class == (a_storage_class)sc_static) {
       pos_error(ec_static_not_allowed, pos);
       *declared_storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
+  }  /* if */
+  if (rtsp->param_type_list != NULL) {
+    a_param_type_ptr ptp = rtsp->param_type_list;
+    if (!identical_types(skip_typerefs(ptp->type), int_type)) {
+      pos_ty_remark(ec_main_first_param_not_int, pos, ptp->declared_type);
+    }  /* if */
+    ptp = ptp->next;
+    if (ptp == NULL) {
+      pos_remark(ec_main_wrong_num_params, pos);
+    } else {
+      a_type_ptr p2type = skip_typerefs(ptp->declared_type);
+      a_boolean  is_unbounded_array_of_char_ptr = FALSE;
+      if (is_incomplete_array_type(p2type)) {
+        a_type_ptr elem_type = f_skip_typerefs(array_element_type(p2type));
+        if (is_pointer_type(elem_type)) {
+          a_type_ptr char_type = integer_type((an_integer_kind)ik_char);
+          if (identical_types(type_pointed_to(elem_type), char_type)) {
+            is_unbounded_array_of_char_ptr = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!is_unbounded_array_of_char_ptr) {
+        pos_ty_remark(ec_main_second_param_not_char_array, pos,
+                      ptp->declared_type);
+      }  /* if */
+      if (ptp->next != NULL) {
+        pos_remark(ec_main_wrong_num_params, pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_main_function */

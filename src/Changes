@@ -1,5 +1,19 @@
 Version 4.1
 
+6/30/09  [EDGcpfe/9402]
+Diagnostics for nonstandard parameters to main()
+
+The C and C++ Standards recognize two acceptable forms for the definition
+of the main() function: with no parameters or as main(int, char *[]).
+(Other forms are permitted as extensions.)  The front end now issues
+remarks if main() is declared with a different number of parameters or
+with parameter types different from those mentioned in the Standards.  For
+exammple:
+
+  int main(char *p) {    // Now results in remarks for wrong parameter type
+  }                      // and wrong number of parameters.
+
+
 6/30/09  [EDGcpfe/9707]
 Abort creating virtual function tables for class with dllimport attribute
 

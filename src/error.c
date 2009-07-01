@@ -4629,8 +4629,6 @@ Report the indicated remark at the position indicated by error_position.
   pos_st_remark(error_code, &error_position, (char *)NULL);
 }  /* remark */
 
-#if 0
-/* These routines are not currently used by the compiler. */
 
 void pos_ty_remark(an_error_code     error_code,
                    a_source_position *error_pos,
@@ -4645,6 +4643,9 @@ indicated position.
   diag_message(error_code, error_pos, es_remark, dck_standalone);
 }  /* pos_ty_remark */
 
+
+#if 0
+/* These routines are not currently used by the compiler. */
 
 void pos_ty2_remark(an_error_code     error_code,
                     a_source_position *error_pos,
