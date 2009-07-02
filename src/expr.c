@@ -8717,6 +8717,12 @@ Syntax:
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
+        } if (!strict_ansi_mode &&
+              is_prototype_instantiation_context()) {
+          /* The type might be complete at some later point when a real
+             instantiation is done, so let it by. */
+          cast_type_okay = TRUE;
+          template_param_case = TRUE;
         }  /* if */
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
@@ -8775,6 +8781,12 @@ Syntax:
           complete_class_type_is_needed(underlying_operand_type);
           if (!is_incomplete_type(underlying_operand_type)) {
             operand_type_okay = TRUE;
+          } if (!strict_ansi_mode &&
+                is_prototype_instantiation_context()) {
+            /* The type might be complete at some later point when a real
+               instantiation is done, so let it by. */
+            operand_type_okay = TRUE;
+            template_param_case = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */

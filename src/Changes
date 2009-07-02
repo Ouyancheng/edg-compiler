@@ -1,5 +1,29 @@
 Version 4.1
 
+7/2/09   [EDGcpfe/9946]
+dynamic_cast to pointer to incomplete class in prototype instantiation
+
+The front end no longer issues an error on a dynamic_cast to a pointer
+to an incomplete class type during the prototype instantiation of a
+template (except in strict mode).  An error would of course be issued
+during a real instantiation if the type remains incomplete.  This
+relaxation makes it slightly easier to compile real-world template
+code, where the underlying type gets defined before any instantiation
+is done.
+
+  struct A;
+  template <class T> void f(T *t) {
+    A *p = dynamic_cast<A *>(t);  // No error now with --parse_templates
+  }
+  struct A { };
+  struct B : A {} b;
+  int main() {
+    f(&b);  // No error, before or now
+  }
+
+The same relaxation is applied to the type of the operand.
+
+
 7/1/09   [EDGcpfe/9944]
 Missing diagnostic for referenced local class pure virtual destructor
 
