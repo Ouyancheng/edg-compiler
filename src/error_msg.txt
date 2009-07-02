@@ -1865,6 +1865,7 @@ ec_deleted_elided_cctor;;"%nfd, required for copy that was eliminated, cannot be
 ec_main_first_param_not_int;;"nonstandard first parameter %t of \"main\", expected \"int\""
 ec_main_wrong_num_params;;"nonstandard number of parameters for \"main\", expected zero or two parameters"
 ec_main_second_param_wrong_type;;"nonstandard second parameter %t of \"main\", expected \"char *[]\" or \"char **\""
+ec_incl_dir_both_sys_and_nonsys;;"%sq was specified as both a system and non-system include directory -- the non-system entry will be ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1,5 +1,22 @@
 Version 4.1
 
+7/209    [EDGcpfe/9948]
+GNU compatibility: include directory specified as both system and non-system
+
+Beginning with version 3.3, gcc and g++ ignore a non-system include search
+directory if that directory is also being used as a system include directory.
+We now emulate this behavior in GNU mode when gnu_version is >= 30300.  A
+warning is issued.
+
+The command:
+
+  edgcpfe -I/usr/include -I. --sys_include=/usr/include t.c
+
+is treated as:
+
+  edgcpfe -I. --sys_include=/usr/include t.c
+
+
 7/2/09   [EDGcpfe/9946]
 dynamic_cast to pointer to incomplete class in prototype instantiation
 

@@ -474,6 +474,55 @@ The space is allocated in general (not IL or FE) memory.
 }  /* alloc_directory_name_entry */
 
 
+a_boolean remove_duplicate_system_includes(void)
+/*
+Go through the search path and remove any non-system include directories that
+are also specified as system include directories.
+*/
+{
+  a_directory_name_entry_ptr	dnep1;
+  a_directory_name_entry_ptr	prev_dnep1 = NULL;
+  a_directory_name_entry_ptr	next_dnep1;
+  a_boolean			result = FALSE;
+
+  for (dnep1 = incl_search_path; dnep1 != NULL; dnep1 = next_dnep1) {
+    next_dnep1 = dnep1->next;
+    /* Only process non-system include entries. */
+    if (!dnep1->system_include_dir) {
+      a_directory_name_entry_ptr	dnep2;
+      for (dnep2 = incl_search_path; dnep2 != NULL; dnep2 = dnep2->next) {
+        /* Look for a system include directory with the same name. */
+        if (dnep2->system_include_dir &&
+            compare_dir_names(dnep1->dir_name, dnep2->dir_name,
+                             /*is_partial_file_name=*/FALSE) == 0) {
+          /* Remove the non-system entry from the list. */
+          if (prev_dnep1 != NULL) {
+            prev_dnep1->next = dnep1->next;
+          } else {
+            incl_search_path = dnep1->next;
+          }  /* if */
+#if DEBUG
+          if (db_flag_is_set("incl_search_path")) {
+            fprintf(f_debug, "Removing %s, which duplicates a system incl\n",
+                    dnep1->dir_name);
+          }  /* if */
+#endif /* DEBUG */
+          pos_st_warning(ec_incl_dir_both_sys_and_nonsys,
+                         &null_source_position, dnep1->dir_name);
+          free_directory_name_entry(dnep1);
+          break;
+        }  /* if */
+      }  /* for */
+      /* If we broke out of the loop above, skip to the next entry in
+         the outer loop without updating prev_dnep1 below. */
+      if (dnep2 != NULL) continue;
+    }  /* if */
+    prev_dnep1 = dnep1;
+  }  /* for */
+  return result;
+}  /* remove_duplicate_system_includes */
+
+
 void add_to_specified_include_search_path(
 			char				*dir_name,
 			a_boolean			system_include_dir,

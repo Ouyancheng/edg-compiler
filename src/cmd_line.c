@@ -8115,7 +8115,11 @@ enable_microsoft_mode:
   } else {
     sys_incl_search_path = incl_search_path;
   }  /* if */
-
+  if (gnu_mode && gnu_version >= 30300) {
+    /* In GNU mode, if a -I option specifies a name specified by a
+       --sys_include, the -I is ignored. */
+    remove_duplicate_system_includes();
+  }  /* if */
   /* Pick up the source file name. */
   if (opt_ind >= argc) {
     /* No source file name is given. */
