@@ -4358,7 +4358,7 @@ initialized.  These are addressed in the course of the processing.
   is_generated_cctor = !user_defined &&
                        is_copy_constructor(ctor_rout, class_type,
                                            &required_qualifiers,
-                                           /*include_move_ctors=*/TRUE,
+                                           rvalue_ctor_is_copy_ctor,
                                            /*is_declarative_context=*/TRUE);
   /* Move constructors are currently not generated. */
   check_assertion(!is_generated_cctor || !copy_ctor_is_move_ctor(ctor_rout));

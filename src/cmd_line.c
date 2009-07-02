@@ -1204,6 +1204,14 @@ Initialize the option information table.
   add_option_description(optk_rvalue_references, "no_rvalue_refs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_rvalue_ctor_is_copy_ctor,
+                         "rvalue_ctor_is_copy_ctor",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_rvalue_ctor_is_copy_ctor,
+                         "rvalue_ctor_is_not_copy_ctor",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_auto_type, "auto_type", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_auto_type, "no_auto_type", '\0', /*value=*/FALSE,
@@ -1872,6 +1880,11 @@ by a command line option.
       if (!option_kind_used[(int)optk_rvalue_references]) {
         rvalue_references_enabled = TRUE;
       }  /* if */
+      if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+        /* Microsoft MSVC++10 generates an implicit traditional copy
+           constructor even when a move constructor was explicitly declared. */
+        rvalue_ctor_is_copy_ctor = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2169,6 +2182,7 @@ process.
   type_traits_helpers_enabled = FALSE;
   lambdas_enabled = FALSE;
   rvalue_references_enabled = FALSE;
+  rvalue_ctor_is_copy_ctor = FALSE;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
   auto_type_specifier_enabled = FALSE;
@@ -2308,6 +2322,10 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_rvalue_references]) {
     command_line_error(ec_cl_rvalue_references_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+    command_line_error(
+                     ec_cl_rvalue_ctor_is_copy_ctor_option_only_in_cplusplus);
+  }  /* if */
   if (option_kind_used[(int)optk_auto_type]) {
     command_line_error(ec_cl_auto_type_option_only_in_cplusplus);
   }  /* if */
@@ -2363,6 +2381,9 @@ the next standard).
   }  /* if */
   if (!option_kind_used[(int)optk_rvalue_references]) {
     rvalue_references_enabled = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
+    rvalue_ctor_is_copy_ctor = TRUE;
   }  /* if */
   local_types_as_template_args_enabled = TRUE;
   decls_using_types_without_linkage_allowed = TRUE;
@@ -7826,6 +7847,9 @@ enable_microsoft_mode:
       case optk_rvalue_references:
         rvalue_references_enabled = opt_value;
         break;
+      case optk_rvalue_ctor_is_copy_ctor:
+        rvalue_ctor_is_copy_ctor = opt_value;
+        break;
       case optk_auto_type:
         auto_type_specifier_enabled = opt_value;
         break;
@@ -8596,6 +8620,7 @@ variables declared in cmd_line.h.
   enum_qualifiers_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
+  rvalue_ctor_is_copy_ctor = TRUE;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
   defaulted_special_members_enabled = FALSE;

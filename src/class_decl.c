@@ -7814,7 +7814,7 @@ Update the flags in the class symbol supplement accordingly.
 
   cssp = symbol_supplement_for_class(class_type);
   if (is_copy_constructor(rout_ptr, class_type, &qualifiers,
-                          /*include_move_ctors=*/TRUE,
+                          rvalue_ctor_is_copy_ctor,
                           /*is_declarative_context=*/TRUE)) {
     cssp->has_copy_constructor = TRUE;
     if (qualifiers & TQ_CONST) {
@@ -8218,8 +8218,7 @@ classes and fields of the given class.
     }  /* if */
   }  /* for */
   /* Base classes are okay.  Now check the nonstatic data members. */
-  sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
-                         variant.class_struct_union.extra_info->symbols;
+  sym = symbol_for(class_type)->variant.class_struct_union.extra_info->symbols;
   for (; sym != NULL; sym = sym->next_in_scope) {
     if (sym->kind == (a_symbol_kind)sk_field) {
       fp = sym->variant.field.ptr;
@@ -8233,7 +8232,7 @@ classes and fields of the given class.
                                                 (a_boolean*)NULL,
                                                 &const_okay) &&
             !const_okay) {
-          /* There is a default assignment operator for this static data
+          /* There is a default assignment operator for this nonstatic data
              member's class type, but it does not accept a const object.
              No need to look any further. */
           goto done;
@@ -12430,6 +12429,10 @@ member functions.)
             is_copy_constructor(rp, (a_type*)NULL, &tqs,
                                 /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/TRUE)) {
+          /* The call to is_copy_constructor could set the include_move_ctors
+             parameter TRUE or FALSE in this case.  We choose TRUE to allow an
+             additional consistency check: A move constructor is never
+             defaulted or compiler-generated. */
           check_assertion(!copy_ctor_is_move_ctor(rp));
           rp->is_trivial_copy_function =
                                    cssp->construction_by_bitwise_copy_allowed;
@@ -12479,7 +12482,7 @@ The routine body is not generated until it is known to be needed.
   /* Check for a user-declared copy assignment or move assignment operator. */
   user_declared_copy_assignment_op = assignment_operator_for_copy_exists(
                                           cssp->assignment_operator,
-                                          /*move_assign_okay=*/TRUE,
+                                          rvalue_ctor_is_copy_ctor,
                                           &user_provided_copy_assignment_op,
                                           &dummy_flag);
   if (user_provided_copy_assignment_op) {

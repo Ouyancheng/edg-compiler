@@ -1,5 +1,29 @@
 Version 4.1
 
+7/2/09   [EDGcpfe/9949]
+C++0x: Move constructors and copy constructors
+
+By default, we currently disable the generation of an implicit copy constructor
+when a move constructor (see the Changes entry of 4/9/09 for rvalue references)
+is declared in a class.  For example:
+
+  struct S { S(S&&); } s;
+  S c(s);  //  An error by default in C++0x mode.
+
+However, this language rule is still pending a decision of the C++ committee,
+and some other implementations do not disable the copy constructor in such
+cases.  Therefore, new command-line options --rvalue_ctor_is_copy_ctor and
+--rvalue_ctor_is_not_copy_ctor allow the behavior of the front end to be
+controlled manually (e.g., with the option --rvalue_ctor_is_not_copy_ctor the
+example above is accepted in C++0x mode).  In addition, in Microsoft mode with
+microsoft_version >= 1600, the default behavior corresponds to the option
+--rvalue_ctor_is_not_copy_ctor (which reflects our understanding of what the
+forthcoming version of Microsoft Visual C++ will do).
+
+The same uncertainty applies to move assignment operators and copy assignment
+operators: The options just described affect these in the same way.
+
+
 7/2/09   [EDGcpfe/9954]
 GNU C++ compatibility: typename followed by a qualified constructor name
 
@@ -24,7 +48,7 @@ was already accepted when gnu_version is < 30400).
   }
 
 
-7/209    [EDGcpfe/9948]
+7/2/09   [EDGcpfe/9948]
 GNU compatibility: include directory specified as both system and non-system
 
 Beginning with version 3.3, gcc and g++ ignore a non-system include search

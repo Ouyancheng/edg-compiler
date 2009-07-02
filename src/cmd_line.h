@@ -266,6 +266,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* UNICODE_SOURCE_SUPPORTED */
   optk_lambdas,
   optk_rvalue_references,
+  optk_rvalue_ctor_is_copy_ctor,
   optk_auto_type,
   optk_auto_storage,
   optk_last		/* Must be last. */
@@ -932,6 +933,13 @@ EXTERN a_boolean
 		rvalue_references_enabled;
 			/* TRUE if C++0x rvalue references should be accepted
 			   in C++. */
+
+EXTERN a_boolean
+		rvalue_ctor_is_copy_ctor;
+			/* TRUE if a move constructor/move assignment operator
+			   is considered a copy constructor/copy assignment
+			   operator.  If so, declaring the former disables the
+			   implicit generation of the latter. */
 
 EXTERN a_boolean
 		defaulted_special_members_enabled;
