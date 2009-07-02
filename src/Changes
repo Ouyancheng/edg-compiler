@@ -1,5 +1,29 @@
 Version 4.1
 
+7/2/09   [EDGcpfe/9954]
+GNU C++ compatibility: typename followed by a qualified constructor name
+
+A name like A::A is defined as referring to the constructor and not the
+injected class name.  If such a name is prefixed by "typename", g++
+treats it as naming the injected class name (note there is never a reason
+to say A::A to name a type as it is sufficient to just say A).  We now
+emulate this behavior in g++ mode when gnu_version is >= 30400 (this example
+was already accepted when gnu_version is < 30400).
+
+  template <class T> struct A {
+    A();
+  };
+  template <class T> struct B {
+    B(A<T>);
+  };
+  template <class T> void f() {
+    new B<T>(typename A<T>::A()); // should be new B<T>(A<T>())
+  }
+  int main() {
+    f<int>();
+  }
+
+
 7/209    [EDGcpfe/9948]
 GNU compatibility: include directory specified as both system and non-system
 

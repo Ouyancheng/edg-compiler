@@ -3886,6 +3886,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                 (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
   a_boolean    dependent_conversion_operator = FALSE;
   a_boolean    is_prototype_instantiation_lookup = FALSE;
+  a_boolean    is_typename_lookup = (options & IDL_TYPENAME_LOOKUP) != 0;
 
 /* Local macro that tests whether or not a symbol is acceptable.  An
    injected class name symbol is only acceptable when the injected symbol
@@ -3897,10 +3898,11 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    accepted in g++ mode, but not in prototype instantiation contexts to
    avoid a problem with names like A<T>::A<T>.  Starting with g++ 3.4,
    injected class names are returned in fewer contexts.  We emulate this
-   by returning them only for tentative type lookups. */
+   by returning them only for tentative type lookups and typename lookups. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
+    (gpp_mode && is_typename_lookup) ||           \
     (gpp_mode && !is_prototype_instantiation_lookup &&		      \
      !is_using_declaration &&					      \
        (gnu_version < 30400 ||               			      \
