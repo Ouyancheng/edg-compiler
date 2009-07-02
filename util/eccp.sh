@@ -776,6 +776,8 @@ check_abbreviation()
 --report_gnu_extensions
 --restrict
 --rtti
+--rvalue_ctor_is_copy_ctor
+--rvalue_ctor_is_not_copy_ctor
 --rvalue_refs
 --set_flag
 --short_enums
@@ -1328,6 +1330,8 @@ process_option()
          --no_check_concatenations | \
          --rvalue_refs | \
          --no_rvalue_refs | \
+         --rvalue_ctor_is_copy_ctor | \
+         --rvalue_ctor_is_not_copy_ctor | \
          --auto_type | \
          --no_auto_type | \
          --auto_storage | \
