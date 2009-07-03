@@ -473,6 +473,7 @@ The space is allocated in general (not IL or FE) memory.
   return (entry_ptr);
 }  /* alloc_directory_name_entry */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean remove_duplicate_system_includes(void)
 /*
@@ -522,6 +523,7 @@ are also specified as system include directories.
   return result;
 }  /* remove_duplicate_system_includes */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void add_to_specified_include_search_path(
 			char				*dir_name,
