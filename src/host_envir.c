@@ -475,7 +475,7 @@ The space is allocated in general (not IL or FE) memory.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_boolean remove_duplicate_system_includes(void)
+void remove_duplicate_system_includes(void)
 /*
 Go through the search path and remove any non-system include directories that
 are also specified as system include directories.
@@ -484,7 +484,6 @@ are also specified as system include directories.
   a_directory_name_entry_ptr	dnep1;
   a_directory_name_entry_ptr	prev_dnep1 = NULL;
   a_directory_name_entry_ptr	next_dnep1;
-  a_boolean			result = FALSE;
 
   for (dnep1 = incl_search_path; dnep1 != NULL; dnep1 = next_dnep1) {
     next_dnep1 = dnep1->next;
@@ -520,7 +519,6 @@ are also specified as system include directories.
     }  /* if */
     prev_dnep1 = dnep1;
   }  /* for */
-  return result;
 }  /* remove_duplicate_system_includes */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

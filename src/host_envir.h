@@ -2570,7 +2570,9 @@ extern void pop_primary_include_search_dir(char	*dir_name,
                                            a_boolean	system_include_dir);
 
 extern void add_to_template_search_path(char		*dir_name);
-extern a_boolean remove_duplicate_system_includes(void);
+#if !STANDALONE_UTILITY_PROGRAM
+extern void remove_duplicate_system_includes(void);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 EXTERN a_boolean
 		stack_referenced_include_directories;
