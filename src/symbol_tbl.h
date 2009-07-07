@@ -4137,7 +4137,7 @@ symbol found by the lookup is semantically valid.
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr))) ||		\
-   (!enum_qualifiers_enabled && is_enum_symbol(sym)))
+   (enum_qualifiers_enabled && is_enum_symbol(sym)))
   
 
 /* Return TRUE if a symbol is a class symbol, a class template symbol,

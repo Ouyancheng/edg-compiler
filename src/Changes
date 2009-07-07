@@ -1,5 +1,18 @@
 Version 4.1
 
+7/7/09   [EDGcpfe/9956]
+Spurious error on vacuous destructor call of enum type
+
+A spurious error was issued on certain uses of enum types in vacuous
+destructor calls.  Now fixed.
+
+  enum E {};
+  int main() {
+    E e;
+    e.::E::~E();
+  }
+
+
 7/7/09   [EDGcpfe/9803]
 Reachability analysis with comma expressions
 
