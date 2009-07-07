@@ -1,5 +1,22 @@
 Version 4.1
 
+7/7/09   [EDGcpfe/9803]
+Reachability analysis with comma expressions
+
+When determining whether a given statement is reachable, the front end
+considers constant-valued expressions in the conditions of loop and "if"
+statements.  It previously failed to take into account comma expressions in
+which the second operand is such an expression.  This is now fixed.  For
+example, the front end failed to recognize that the loop in the following
+code does not exit:
+
+  int f(int j) {
+    for (int i=0; ++j, true; ++i) {
+      if (i == 5) return 0;
+    }
+  }    // Previously warned of missing "return" statement here
+
+
 7/7/09   [EDGcpfe/9958]
 GNU compatibility: #include_next in file included using an absolute path name
 
