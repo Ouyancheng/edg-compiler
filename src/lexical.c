@@ -4542,9 +4542,11 @@ a catastrophic error is not issued, FALSE is returned.
   if (use_search_path) {
     /* Determine the list of directories to be searched when opening
        the file. */
-    if (is_include_next) {
+    if (is_include_next && curr_ise->dir_entry != NULL) {
       /* For #include_next, start at the search path entry after the one
-         in which the current file was found. */
+         in which the current file was found.  If the current file was
+         not found via a search path (i.e., the name was specified using
+         an absolute path name) treat the include_next as a normal include. */
       search_path = curr_ise->dir_entry;
       if (search_path != NULL) search_path = search_path->next;
     } else if (is_system_include) {

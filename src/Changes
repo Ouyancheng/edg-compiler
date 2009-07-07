@@ -1,5 +1,14 @@
 Version 4.1
 
+7/7/09   [EDGcpfe/9958]
+GNU compatibility: #include_next in file included using an absolute path name
+
+If an #include_next directive is used in a source file that was included
+using an absolute path name we now treat the directive as a normal include
+(emulating the GNU behavior).  Formerly, an empty search path would be used,
+resulting in a catastrophic error.
+
+
 7/2/09   [EDGcpfe/9949]
 C++0x: Move constructors and copy constructors
 
