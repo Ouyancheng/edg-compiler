@@ -14552,6 +14552,7 @@ been found to be acceptable, and *conversion describes it.
     /* A reference can be bound directly to an rvalue reference
        object.  Only non-class cases get here. */
     conv_rvalue_reference_object_to_lvalue(source_operand);
+    adjust_lvalue_type(source_operand, adj_base_dest_type);
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */
