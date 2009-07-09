@@ -2784,6 +2784,9 @@ The safe answer, if the truth cannot be discovered, is FALSE.
   a_boolean is_true_constant;
 
   expr = skip_parens(expr);
+  if (is_operation_node(expr) && node_operator_is(expr, eok_bool_cast)) {
+    expr = expr->variant.operation.operands;
+  }  /* if */
   while (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
     expr = skip_parens(expr->variant.operation.operands->next);
   }  /* while */
