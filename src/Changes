@@ -1,27 +1,5 @@
 Version 4.1
 
-7/8/09   [EDGcpfe/9950]
-Effect of packing/alignment directives on zero-length bit fields
-
-Previously, zero-length bit fields were subject to packing/alignment
-directives (pragmas or attributes) like any other fields.  However, since
-zero-length bit fields exist specifically to force alignment boundaries it is
-useful to ignore packing/alignment directives on those fields.  The latter
-behavior is now followed unless:
-  (b) gnu_abi_version < 40000 in GNU modes with the IA-64 ABI, or
-  (a) ABI_COMPATIBILITY_VERSION < 401 otherwise.
-This matches the fact that GCC 4.0 and later implements the new behavior, while
-GCC 3.4.x implements our older behavior.  (Older versions of GCC behave yet
-differently, but we do not implement that variant.)  For example:
-
-  #pragma pack(1)
-  struct S {
-    char c1;
-    short :0;  // Now by default aligned on a "short int" boundary (unless
-    char c2;   // ABI_COMPATIBILITY_VERSION < 401).
-  };
-
-
 7/7/09   [EDGcpfe/9956]
 Spurious error on vacuous destructor call of enum type
 

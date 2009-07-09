@@ -870,22 +870,6 @@ explicit alignment value was specified, return FALSE.
 }  /* apply_explicit_field_alignment_directive */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
-Macro that determines whether zero-length bit fields are subject to class-level
-alignment/packing directives.  Since zero-length bit fields exist precisely
-for alignment purposes, it is natural for this macro to return FALSE (i.e.,
-zero-length bit fields should not be packed or realigned), but we did not do
-this prior to version 4.1 of the front end (nor did GCC versions prior to 4.0).
-*/
-#if IA64_ABI
-#define pack_zero_length_bit_fields()                                        \
-  (gnu_mode ? gnu_abi_version < 40000                                        \
-            : ABI_COMPATIBILITY_VERSION < 401)
-#else /* !IA64_ABI */
-#define pack_zero_length_bit_fields()                                        \
-  (ABI_COMPATIBILITY_VERSION < 401)
-#endif /* IA64_ABI */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static a_targ_alignment alignment_of_field(a_field_ptr  field)
@@ -899,15 +883,10 @@ GNU attributes specified on that field.
 
   class_type = skip_typerefs(class_type);
 #if USER_CONTROL_OF_STRUCT_PACKING
-  /* Adjust the alignment for packing directives, etc. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (apply_explicit_field_alignment_directive(field, &field_alignment)) {
     /* An explicit field alignment was specified.  field_alignment will have
        been updated as needed.  Nothing more to be done. */
-  } else if (!pack_zero_length_bit_fields() &&
-             field->is_bit_field && field->bit_size == 0) {
-    /* Zero-length bit fields should not be subject to class-level
-       alignment/packing directives. */
 #if IA64_ABI
   } else if (emulate_gnu_abi_bugs && field->is_bit_field &&
              field->bit_size == 0 && !is_union_type(class_type)) {
@@ -1374,15 +1353,15 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
      adjustment is made later on. */
-  if (field->is_bit_field &&
-      ((field->bit_size == 0 && !pack_zero_length_bit_fields())
-#if IA64_ABI
-       || (gnu_mode && field->alignment != 0)
-#endif /* IA64_ABI */
-                                             )) {
-    /* Zero-length bit fields are often not packed and in GNU mode a field-
-       level alignment specification trumps class-level packing. */
-  } else if (targ_user_control_of_struct_packing_affects_bit_fields) {
+#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
+  if (gnu_mode && field->is_bit_field &&
+      (field->bit_size == 0 || field->alignment != 0)) {
+    /* The GNU IA-64 ABI does not apply packing directives to zero-length
+       bit fields or bit fields with an explicit alignment directive. */
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
+  /* Do not insert code here. */
+  if (targ_user_control_of_struct_packing_affects_bit_fields) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
 #if IA64_ABI
@@ -2585,7 +2564,6 @@ there's no overflow TRUE is returned.
       /* Do any necessary alignment for a bit-field. */
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
       if (curr_max_member_alignment == 0 &&
-          (field->bit_size != 0 || pack_zero_length_bit_fields()) &&
           ((field->is_packed && field->alignment == 0)
 #if ABI_COMPATIBILITY_VERSION >= 307
            || (class_type->variant.class_struct_union.is_packed &&
