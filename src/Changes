@@ -8,11 +8,11 @@ directives (pragmas or attributes) like any other fields.  However, since
 zero-length bit fields exist specifically to force alignment boundaries it is
 useful to ignore packing/alignment directives on those fields.  The latter
 behavior is now followed unless:
-  (a) ABI_COMPATIBILITY_VERSION < 401 and emulate_gnu_abi_bugs is FALSE, or
-  (b) gnu_abi_version < 40000 and emulate_gnu_abi_bugs is TRUE.
-GCC 4.0 and later also implements the new behavior; GCC 3.4.x implements our
-older behavior; older versions of GCC behave yet differently, but we do not
-implement that variant.  For example:
+  (b) gnu_abi_version < 40000 in GNU modes with the IA-64 ABI, or
+  (a) ABI_COMPATIBILITY_VERSION < 401 otherwise.
+This matches the fact that GCC 4.0 and later implements the new behavior, while
+GCC 3.4.x implements our older behavior.  (Older versions of GCC behave yet
+differently, but we do not implement that variant.)  For example:
 
   #pragma pack(1)
   struct S {

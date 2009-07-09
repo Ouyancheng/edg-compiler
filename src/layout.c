@@ -880,8 +880,8 @@ this prior to version 4.1 of the front end (nor did GCC versions prior to 4.0).
 */
 #if IA64_ABI
 #define pack_zero_length_bit_fields()                                        \
-  (emulate_gnu_abi_bugs ? gnu_abi_version < 40000                            \
-                        : ABI_COMPATIBILITY_VERSION < 401)
+  (gnu_mode ? gnu_abi_version < 40000                                        \
+            : ABI_COMPATIBILITY_VERSION < 401)
 #else /* !IA64_ABI */
 #define pack_zero_length_bit_fields()                                        \
   (ABI_COMPATIBILITY_VERSION < 401)
@@ -1374,15 +1374,15 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
      adjustment is made later on. */
-#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
-  if (gnu_mode && field->is_bit_field &&
-      (field->bit_size == 0 || field->alignment != 0)) {
-    /* The GNU IA-64 ABI does not apply packing directives to zero-length
-       bit fields or bit fields with an explicit alignment directive. */
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
-  /* Do not insert code here. */
-  if (targ_user_control_of_struct_packing_affects_bit_fields) {
+  if (field->is_bit_field &&
+      ((field->bit_size == 0 && !pack_zero_length_bit_fields())
+#if IA64_ABI
+       || (gnu_mode && field->alignment != 0)
+#endif /* IA64_ABI */
+                                             )) {
+    /* Zero-length bit fields are often not packed and in GNU mode a field-
+       level alignment specification trumps class-level packing. */
+  } else if (targ_user_control_of_struct_packing_affects_bit_fields) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
 #if IA64_ABI
