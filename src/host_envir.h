@@ -2050,12 +2050,16 @@ and trigraphs can be made more efficient.  For the Japanese EUC encoding,
 for example, those character codes never appear as part of other sequences,
 and these switches should be set to FALSE.  The safe answer, in all cases,
 is TRUE: it may be slower than necessary, but it always gets the right answer.
+Those characters cannot appear as part of a Unicode sequence, so the
+fast setting can be used unless native multibyte characters are also
+supported with Unicode.
 */
-#if UNICODE_SOURCE_SUPPORTED
+#if UNICODE_SOURCE_SUPPORTED && !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 /* These characters do not appear in UTF-8 encoding. */
 #define BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR FALSE
 #define QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR FALSE
-#endif /* UNICODE_SOURCE_SUPPORTED */
+#endif /* UNICODE_SOURCE_SUPPORTED &&
+          !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE*/
 #ifndef BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
 #define BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
 #endif /* ifndef BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */

@@ -3462,7 +3462,7 @@ are assumed to be Latin-1.
 #if EDG_WIN32
     /* Note that this code is Windows-specific and must be customized for
        other platforms. */
-    len = _mblen_l(ptr, MB_CUR_MAX, native_multibyte_locale);
+    len = _mblen_l(ptr, MB_LEN_MAX, native_multibyte_locale);
 #else /* !EDG_WIN32 */
 #if EDG_NATIVE_MULTIBYTE_TEST_MODE
     /* Use standard C library routines. */
@@ -3621,7 +3621,7 @@ are assumed to be Latin-1.
        other platforms.  _mbtowc_l converts a multibyte character sequence
        in the locale specified by native_multibyte_locale to a Unicode
        value. */
-    numch = _mbtowc_l(&wchar, mb, MB_CUR_MAX, native_multibyte_locale);
+    numch = _mbtowc_l(&wchar, mb, MB_LEN_MAX, native_multibyte_locale);
 #else /* !EDG_WIN32 */
 #if EDG_NATIVE_MULTIBYTE_TEST_MODE
     /* Use standard C library routines.  Note that this does not do

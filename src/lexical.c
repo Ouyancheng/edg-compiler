@@ -5636,10 +5636,11 @@ curr_source_line is resized.
   int           numch;
 
 #if UNICODE_SOURCE_SUPPORTED
-/* This routine is not expected to be needed for UTF-8.  If it were needed,
-   there's a more efficient way of finding the beginning of a character --
-   just back up while the current character has "10" as the top two bits. */
-  #error -- did not expect UNICODE_SOURCE_SUPPORTED
+  /* This routine is not expected to be called for Unicode source.  If it
+     were needed, there's a more efficient way of finding the beginning of
+     a character -- just back up while the current character has "10" as
+     the top two bits. */
+  check_assertion(curr_file_unicode_source_kind == usk_none);
 #endif /* UNICODE_SOURCE_SUPPORTED */
   /* If we're already too far in the line, start over. */
   if (curr_source_line+offset > new_char) offset = 0;
@@ -6191,10 +6192,13 @@ entry_for_possible_trigraph:
               /* See whether the first question mark is actually a question
                  mark, or a character after the first in a multibyte
                  sequence. */
-              && (!multibyte_chars_in_source_enabled ||
-                  (find_offset_for_source_line_mbc_including(loc_in_line-1,
-                                                             &mbc_offset),
-                   mbc_offset == loc_in_line-1-curr_source_line))
+              && (!multibyte_chars_in_source_enabled || (
+#if UNICODE_SOURCE_SUPPORTED
+                  curr_file_unicode_source_kind == usk_none &&
+#endif /* UNICODE_SOURCE_SUPPORTED */
+                   (find_offset_for_source_line_mbc_including(loc_in_line-1,
+                                                              &mbc_offset),
+                   mbc_offset == loc_in_line-1-curr_source_line)))
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
@@ -6336,7 +6340,11 @@ entry_for_expand_buffer:
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
-        if (multibyte_chars_in_source_enabled) {
+        if (multibyte_chars_in_source_enabled
+#if UNICODE_SOURCE_SUPPORTED
+            && curr_file_unicode_source_kind == usk_none
+#endif /* UNICODE_SOURCE_SUPPORTED */
+                                                        ) {
           /* See whether the backslash is actually a backslash, or a character
              after the first in a multibyte sequence. */
           find_offset_for_source_line_mbc_including(loc_in_line-1,

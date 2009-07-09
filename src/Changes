@@ -1,5 +1,29 @@
 Version 4.1
 
+7/9/09   [EDGcpfe/9947]
+Problems with native multibyte character support on Windows
+
+Two problems that occur when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+is TRUE on Windows have been fixed.  An incorrect "count" parameter was
+passed to mblen_l and mbtowc_l, so these calls would fail if the default
+locale was not a multibyte locale.  In addition, special code that determines
+whether a character sequence that ends with a backslash is in fact a backslash
+or the end of a multibyte character was not enabled, causing some multibyte
+characters to be erroneously treated as line splices.  These have been fixed.
+Both of these problems have the effect of causing the declaration of "i"
+to be treated as part of the previous comment line, resulting in "i" being
+undefined in the printf call in the example below.
+
+  #pragma setlocale(".932")
+  extern "C" int printf(const char *, ...);
+  int main(void) {
+    // The characters after the // below are 0x8b 0x40 0x94 0x5c
+    //‹@”\
+    int i=10;
+    printf("%d\n", i);
+  }
+
+
 7/7/09   [EDGcpfe/9956]
 Spurious error on vacuous destructor call of enum type
 
