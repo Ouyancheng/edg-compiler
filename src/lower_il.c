@@ -6333,10 +6333,12 @@ yet.
 #endif /* IA64_ABI */
 
 #if IA64_ABI
-  if (overriding_function->pure_virtual) {
-    /* If the overriding function is pure, there is no need for a thunk.
-       Instead, we just use the overriding function itself; elsewhere, that
-       will be replaced with __cxa_pure_virtual. */
+  if (overriding_function->pure_virtual ||
+      overriding_function->is_deleted) {
+    /* If the overriding function is pure or deleted, there is no need for a
+       thunk.  Instead, we just use the overriding function itself; elsewhere,
+       that will be replaced with __cxa_pure_virtual or __cxa_deleted_virtual
+       as appropriate. */
     entry_routine = overriding_function;
     goto end_of_routine;
   }  /* if */
