@@ -1,5 +1,16 @@
 Version 4.1
 
+7/10/09  [EDGcpfe/9951]
+Default locale for multibyte processing under Windows
+
+When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE on Windows
+the default locale used for translating multibyte characters was the
+locale associated with the current ANSI code page.  This has been changed
+to use the locale associated with the current system default code page
+so that, for example, on a Japanese system, the Japanese locale will
+be used by default.
+
+
 7/9/09   [EDGcpfe/9947]
 Problems with native multibyte character support on Windows
 

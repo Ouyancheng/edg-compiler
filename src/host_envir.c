@@ -427,11 +427,16 @@ static a_text_buffer_ptr
 			   result. */
 
 #if EDG_WIN32
+static a_text_buffer_ptr
+		locale_name_buffer;
+			/* A text buffer used by
+			   get_system_default_locale_name. */
+
 static _locale_t
-		ansi_code_page_locale;
-			/* The locale object for the Windows ANSI code page.
-			   This is the default locale used for converting
-			   multibyte characters to UTF-8. */
+		system_default_locale;
+			/* The locale object for the Windows system default
+			   locale.  This is the default locale used for
+			   converting multibyte characters to UTF-8. */
 
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
@@ -2178,10 +2183,10 @@ is returned. If no conversion is required, the original string is returned.
 #if UNICODE_SOURCE_SUPPORTED
 #if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   /* In case the native multibyte locale has been changed (e.g., by the
-     setlocale pragma) set it back to the ANSI code page locale for purposes
+     setlocale pragma) set it back to the system default locale for purposes
      of file name translation. */
   _locale_t	saved_locale = native_multibyte_locale;
-  native_multibyte_locale = ansi_code_page_locale;
+  native_multibyte_locale = system_default_locale;
 #endif /* !(EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE) */
   if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
     /* The environment uses a non-Unicode encoding.  Go through the file
@@ -4378,6 +4383,50 @@ directives and error messages.
   return len;
 }  /* write_file_name */
 
+#if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+
+static char *get_system_default_locale_name(void)
+/*
+Construct a locale name that can be used to create a locale object for
+the system default locale.  Return a pointer to the resulting string.
+
+This routine separately fetches the language, country, and codepage and then
+constructs a locale name with the components.  For a typical U.S. system,
+this will return "English_United States.1252".  A Japanese system would
+return "Japanese_Japan.932".
+*/
+{
+#define TMP_BUF_SIZE 256
+  char	buf[TMP_BUF_SIZE];
+  sizeof_t	chars;
+  locale_name_buffer = alloc_text_buffer(128);
+  /* Each call returns the size of the resulting string, incuding the
+     null terminator. */
+  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SENGLANGUAGE,
+                        buf, TMP_BUF_SIZE);
+  check_assertion(chars != 0);
+  add_to_text_buffer(locale_name_buffer, buf, chars-1);
+  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SENGCOUNTRY,
+                        buf, TMP_BUF_SIZE);
+  check_assertion(chars != 0);
+  add_char_to_text_buffer(locale_name_buffer, '_');
+  add_to_text_buffer(locale_name_buffer, buf, chars-1);
+  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_IDEFAULTANSICODEPAGE,
+                        buf, TMP_BUF_SIZE);
+  check_assertion(chars != 0);
+  add_char_to_text_buffer(locale_name_buffer, '.');
+  add_to_text_buffer(locale_name_buffer, buf, chars);
+#if DEBUG
+  if (db_flag_is_set("locale")) {
+    fprintf(f_debug, "System default locale is %s\n",
+            locale_name_buffer->buffer);
+  }  /* if */
+#endif /* DEBUG */
+  return locale_name_buffer->buffer;
+#undef TMP_BUF_SIZE
+}  /* get_system_default_locale_name */
+
+#endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
 void host_envir_one_time_init(void)
 /*
@@ -4398,7 +4447,9 @@ is done after command line processing.
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 #if EDG_WIN32
   /* Create a locale object to be used for multibyte character conversions. */
-  ansi_code_page_locale = _create_locale(LC_ALL, ".ACP");
+  system_default_locale = _create_locale(LC_ALL,
+                                         get_system_default_locale_name());
+  check_assertion(system_default_locale != NULL);
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -4415,7 +4466,7 @@ Initialize variables that are specific to a given translation unit.
 #endif /* MODULE_ID_NEEDED */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 #if EDG_WIN32
-  native_multibyte_locale = ansi_code_page_locale;
+  native_multibyte_locale = system_default_locale;
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 }  /* host_envir_trans_unit_init */
@@ -4485,6 +4536,9 @@ This is done before command line processing.
   file_read_buffer = NULL;
   dir_and_file_buffer = NULL;
   write_file_name_buffer = NULL;
+#if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  locale_name_buffer = NULL;
+#endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   utf8_buffer = NULL;
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
