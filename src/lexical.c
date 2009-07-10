@@ -6192,13 +6192,13 @@ entry_for_possible_trigraph:
               /* See whether the first question mark is actually a question
                  mark, or a character after the first in a multibyte
                  sequence. */
-              && (!multibyte_chars_in_source_enabled || (
+              && (!multibyte_chars_in_source_enabled ||
 #if UNICODE_SOURCE_SUPPORTED
-                  curr_file_unicode_source_kind == usk_none &&
+                  curr_file_unicode_source_kind != usk_none ||
 #endif /* UNICODE_SOURCE_SUPPORTED */
                    (find_offset_for_source_line_mbc_including(loc_in_line-1,
                                                               &mbc_offset),
-                   mbc_offset == loc_in_line-1-curr_source_line)))
+                   mbc_offset == loc_in_line-1-curr_source_line))
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
