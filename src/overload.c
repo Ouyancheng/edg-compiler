@@ -2536,6 +2536,18 @@ it is always NULL.
          produce a parameter type that is an lvalue reference. */
       arg_operand = NULL;
       arg_type = make_reference_type(arg_type);
+    } else if (gpp_mode &&
+               arg_operand != NULL &&
+               is_expression_operand(arg_operand) &&
+               is_variable_node(arg_operand->variant.expression) &&
+               arg_operand->variant.expression->variant.variable->
+                                                           is_this_parameter &&
+               !is_rvalue_ref &&
+               is_template_param_type(param_type) &&
+               !is_qualified_type(param_type)) {
+      /* g++ allows "T &" to match "this".  The T is deduced to a const type
+         to allow the binding.  Checked in g++ 3.2 and 4.4. */
+      arg_type = make_qualified_type(arg_type, TQ_CONST);
     } else {
       /* Check and adjust the top-level type qualifiers. */
       check_template_arg_type_qualifiers(&arg_type, &param_type);
