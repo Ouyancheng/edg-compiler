@@ -200,8 +200,8 @@ Output the comments that appear at the top of the generated files.
 }  /* me_write_file_header */
 
 
-static me_write_include_guard_test(FILE  *file,
-                                   char  *guard_name)
+static void me_write_include_guard_test(FILE  *file,
+                                        char  *guard_name)
 /*
 Write an include guard test to the specified file.  guard_name is the string
 to be used for the guard.
@@ -211,8 +211,8 @@ to be used for the guard.
 }  /* me_write_include_guard_test */
 
 
-static me_write_include_guard_end(FILE  *file,
-                                  char  *guard_name)
+static void me_write_include_guard_end(FILE  *file,
+                                       char  *guard_name)
 /*
 Write the "#endif" of an include guard test to the specified file.
 guard_name is the string to be used for the guard.
