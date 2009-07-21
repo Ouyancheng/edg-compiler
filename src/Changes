@@ -1,5 +1,21 @@
 Version 4.1
 
+7/21/09  [EDGcpfe/9966]
+Abort of Microsoft-mode out-of-class member function declaration in block scope
+
+In Microsoft mode, a member function can be redeclared without an associated
+definition outside its parent class.  Previously, such a redeclaration could
+result in an abort in pop_stmt_stack (in statements.c) if it appeared in a
+block scope (which is an error in itself) with an invalid type.  For example:
+
+  struct S { void f(); };
+  int main() {
+    int S::f();  // This invalid redeclaration previously triggered an abort
+  }              // in statements.c.
+
+This is now fixed.
+
+
 7/18/09  [EDGcpfe/9874]
 GNU C++ compatibility: "T &" in template can be deduced to match "this"
 

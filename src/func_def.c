@@ -1913,9 +1913,10 @@ member declaration (allowed in Microsoft mode only).
   routine_ptr = dps->sym->variant.routine.ptr;
   if (curr_token == tok_semicolon &&
       (microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
-      locator->is_class_member) {
+      (locator->is_class_member || locator->is_error)) {
     /* There is no definition. */
-    check_assertion(!gpp_mode || routine_ptr->is_specialized);
+    check_assertion(!gpp_mode || routine_ptr->is_specialized ||
+                    locator->is_error);
   } else if (func_info->is_deleted || func_info->is_defaulted) {
     scan_defaulted_or_deleted_definition(dps, func_info);
     (void)required_token(tok_semicolon, ec_exp_semicolon);
