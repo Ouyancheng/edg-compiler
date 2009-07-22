@@ -1243,8 +1243,9 @@ extern
 void compute_data_member_name_collision_discriminators(a_symbol_ptr  sym);
 
 extern void set_parent_entity_for_closure_types(
-                                      an_il_entity_list_entry_ptr  elp,
-                                      a_symbol_ptr                 parent_sym);
+                   an_il_entity_list_entry_ptr  elp,
+                   a_symbol_ptr                 parent_sym,
+                   a_boolean                    subject_to_trans_unit_corresp);
 
 extern void set_parent_routine_for_closure_types_in_default_args(
                                                        a_type_ptr    rtp,

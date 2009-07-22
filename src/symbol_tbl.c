@@ -2791,6 +2791,7 @@ state.
         cssp->lambda_immediately_inside_static_data_member_initializer = FALSE;
 #endif /* NEED_NAME_MANGLING */
         cssp->lambda_in_invalid_scope = FALSE;
+        cssp->lambda_subject_to_trans_unit_corresp = FALSE;
 #if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

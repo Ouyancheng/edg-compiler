@@ -688,8 +688,9 @@ possible.)
 
 
 void set_parent_entity_for_closure_types(
-                                      an_il_entity_list_entry_ptr  elp,
-                                      a_symbol_ptr                 parent_sym)
+                   an_il_entity_list_entry_ptr  elp,
+                   a_symbol_ptr                 parent_sym,
+                   a_boolean                    subject_to_trans_unit_corresp)
 /*
 Record the given symbol as the parent entity for name mangling purposes in
 each of the non-nested closure types in the given list of entities.
@@ -702,6 +703,9 @@ each of the non-nested closure types in the given list of entities.
       if (class_type_supp(tp)->is_lambda_closure_class) {
         a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
         cssp->lambda_parent_entity = parent_sym;
+        if (subject_to_trans_unit_corresp) {
+          cssp->lambda_subject_to_trans_unit_corresp = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       unexpected_condition();
@@ -724,7 +728,8 @@ parent for name mangling purposes.
     for (; ptp != NULL; ptp = ptp->next) {
       if (ptp->entities_defined_in_default_arg != NULL) {
         set_parent_entity_for_closure_types(
-                              ptp->entities_defined_in_default_arg, rout_sym);
+                              ptp->entities_defined_in_default_arg, rout_sym,
+                              ptp->default_arg_appeared_in_class_definition);
       }  /* if */
     }  /* for */
   }  /* if */

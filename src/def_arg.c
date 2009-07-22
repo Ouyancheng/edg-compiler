@@ -294,7 +294,8 @@ which the default argument is associated.
   scan_default_arg_expr(param_type_entry);
 #if NEED_NAME_MANGLING
   set_parent_entity_for_closure_types(
-                 param_type_entry->entities_defined_in_default_arg, rout_sym);
+                 param_type_entry->entities_defined_in_default_arg, rout_sym,
+                 param_type_entry->default_arg_appeared_in_class_definition);
 #endif /* NEED_NAME_MANGLING */
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token

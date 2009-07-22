@@ -1072,6 +1072,14 @@ typedef struct a_class_symbol_supplement {
 			   been issued that the lambda cannot appear in a
 			   constant expression, but this flag is used to
 			   improve the error recovery for such cases. */
+  a_bit_field	lambda_subject_to_trans_unit_corresp:1;
+			/* TRUE for the closure class of a lambda expression
+			   that is subject to ODR ("one-definition rule")
+			   constraints across translation units.  Specifically,
+			   these are lambdas appearing in a class definition,
+			   in the initializer for a static data member of a
+			   class template, in an inline function body, or in
+			   a function template body. */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 

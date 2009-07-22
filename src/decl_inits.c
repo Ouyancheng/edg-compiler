@@ -3811,7 +3811,8 @@ returned set to TRUE.
     if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
       compute_data_member_name_collision_discriminators(symbol_ptr);
       set_parent_entity_for_closure_types(
-                             vp->entities_defined_in_initializer, symbol_ptr);
+                vp->entities_defined_in_initializer, symbol_ptr,
+                symbol_ptr->variant.static_data_member.instance_ptr != NULL);
     }  /* if */
 #endif /* NEED_NAME_MANGLING */
     /* The initializer of a static data member was scanned with the original

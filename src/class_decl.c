@@ -1185,6 +1185,17 @@ the fields implied by the lambda's capture list).
      be cleared later if this is not the case. */
   cssp->construction_by_bitwise_copy_allowed = TRUE;
   cssp->lambda_in_invalid_scope = bad_scope;
+  if (scope_stack[decl_level].depth_innermost_function_scope !=
+                                                             NO_SCOPE_DEPTH) {
+    /* If the lambda is local to an inline function or a function template
+       instantiation, it is subject to the one-definition rule (ODR). */
+    a_routine_ptr  prp;
+    prp = scope_stack[scope_stack[decl_level].depth_innermost_function_scope]
+                                                               .assoc_routine;
+    check_assertion(prp != NULL);
+    cssp->lambda_subject_to_trans_unit_corresp =
+        prp->is_inline || (prp->is_template_function && !prp->is_specialized);
+  }  /* if */
   return type;
 }  /* make_closure_class */
 
