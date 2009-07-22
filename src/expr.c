@@ -20285,9 +20285,13 @@ in a template instantiation) just do the scan.
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
 #if NEED_NAME_MANGLING
-    /* Assign discriminator values to closure types defined in the
-       expression. */
-    compute_default_arg_name_collision_discriminators(ptp);
+    if (innermost_function_scope != NULL) {
+      /* Assign discriminator values to closure types defined in the
+         expression.  (Don't do this if the default argument appeared in
+         function scope, because closure types in that context are mangled
+         like other local closure types.) */
+      compute_default_arg_name_collision_discriminators(ptp);
+    }  /* if */
 #endif /* NEED_NAME_MANGLING */
   }  /* if */
   pop_expr_stack();

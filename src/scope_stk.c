@@ -584,16 +584,16 @@ See compute_local_name_collision_discriminator.
     /* Closure types have their own numbering. */
     a_class_symbol_supplement_ptr
                             cssp = sym->variant.class_struct_union.extra_info;
-    if (cssp->lambda_immediately_inside_default_arg_expression) {
-      /* The discriminator is determined later (in
-         compute_default_arg_name_collision_discriminators). */
-      check_assertion(cssp->discriminator == 0);
-    } else if (ssep->kind == (a_scope_kind)sck_function ||
-               ssep->kind == (a_scope_kind)sck_block ||
-               ssep->kind == (a_scope_kind)sck_condition) {
+    if (ssep->kind == (a_scope_kind)sck_function ||
+        ssep->kind == (a_scope_kind)sck_block ||
+        ssep->kind == (a_scope_kind)sck_condition) {
 #if IA64_ABI
       compute_local_name_collision_discriminator(sym, scope_depth);
 #endif /* IA64_ABI */
+    } else if (cssp->lambda_immediately_inside_default_arg_expression) {
+      /* The discriminator is determined later (in
+         compute_default_arg_name_collision_discriminators). */
+      check_assertion(cssp->discriminator == 0);
     } else {
       cssp->discriminator = ++ssep->last_closure_type_number;
     } 
