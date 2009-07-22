@@ -2340,6 +2340,20 @@ typedef struct a_namespace_symbol_supplement {
 			   used to find a previously allocated entry so that it
 			   can be reused. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if NEED_NAME_MANGLING
+  a_discriminator
+		last_unnamed_type_number;
+			/* The last number ("discriminator") assigned to an
+			   unnamed enum or class type in this namespace
+			   (closure types have a separate counter).  This
+			   value is saved when the namespace scope is popped,
+			   and retrieved into the scope stack when a namespace
+			   extension is encountered. */
+  a_discriminator
+		last_closure_type_number;
+			/* Same as last_unnamed_type_number, but for closure
+			   types. */
+#endif /* NEED_NAME_MANGLING */
   a_bit_field	visited_by_qualified_lookup:1;
 			/* Used by the qualified lookup routines to indicate
 			   that this namespace has already been visited. */

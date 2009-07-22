@@ -588,6 +588,12 @@ See compute_local_name_collision_discriminator.
       /* The discriminator is determined later (in
          compute_default_arg_name_collision_discriminators). */
       check_assertion(cssp->discriminator == 0);
+    } else if (ssep->kind == (a_scope_kind)sck_function ||
+               ssep->kind == (a_scope_kind)sck_block ||
+               ssep->kind == (a_scope_kind)sck_condition) {
+#if IA64_ABI
+      compute_local_name_collision_discriminator(sym, scope_depth);
+#endif /* IA64_ABI */
     } else {
       cssp->discriminator = ++ssep->last_closure_type_number;
     } 
@@ -671,7 +677,7 @@ possible.)
 */
 {
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    a_variable_ptr sdm_var = sym->variant.variable.ptr;
+    a_variable_ptr  sdm_var = sym->variant.static_data_member.variable;
     assign_discriminators_to_entities_list(
                                     sdm_var->entities_defined_in_initializer,
                                     /*sdm_init=*/TRUE);
@@ -2703,20 +2709,27 @@ the scope being pushed.
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* Set the scope-pointers-block pointer to refer to the namespace
          symbol supplement. */
-      a_symbol_ptr  sym =
-                      (a_symbol_ptr)assoc_namespace->source_corresp.assoc_info;
-      ssep->assoc_pointers_block =
-                     &sym->variant.namespace_info.extra_info->pointers_block;
+      a_symbol_ptr  sym = symbol_for(assoc_namespace);
+      a_namespace_symbol_supplement_ptr
+                    nssp = sym->variant.namespace_info.extra_info;
+      ssep->assoc_pointers_block = &nssp->pointers_block;
       if (kind != (a_scope_kind)sck_namespace_reactivation) {
         /* If this is a namespace scope that affects the declarative level
            (i.e., not just a reactivation) update the information about
            the current namespace. */
-        ssep->within_unnamed_namespace =
-              sym->variant.namespace_info.extra_info->within_unnamed_namespace;
+        ssep->within_unnamed_namespace = nssp->within_unnamed_namespace;
         /* Maintain the depth of the innermost namespace scope. */
         depth_innermost_namespace_scope =
               ssep->depth_innermost_namespace_scope = depth_scope_stack;
       }  /* if */
+#if NEED_NAME_MANGLING
+      if (kind == (a_scope_kind)sck_namespace_extension) {
+        /* Restore the discriminator counters. */
+        ssep->name_discr.last_unnamed_type_number =
+                                               nssp->last_unnamed_type_number;
+        ssep->last_closure_type_number = nssp->last_closure_type_number;
+      }  /* if */
+#endif /* NEED_NAME_MANGLING */
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
@@ -6872,6 +6885,17 @@ End a name scope by popping an entry off the scope stack.
                            "pop_scope: curr_object_lifetime is not that of",
                            "file scope");
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
+#if NEED_NAME_MANGLING
+    } else if (kind == (a_scope_kind)sck_namespace ||
+               kind == (a_scope_kind)sck_namespace_extension) {
+        /* Save the discriminator counters. */
+        a_symbol_ptr  ns_sym = symbol_for(ssep->assoc_namespace);
+        a_namespace_symbol_supplement_ptr
+                      nssp = ns_sym->variant.namespace_info.extra_info;
+        nssp->last_unnamed_type_number =
+                                    ssep->name_discr.last_unnamed_type_number;
+        nssp->last_closure_type_number = ssep->last_closure_type_number;
+#endif /* NEED_NAME_MANGLING */
     }  /* if */
     /* Dispose of the list of entries of type a_name_hidden_by_old_for_init.
        They are no longer needed once the scope has been completed. */

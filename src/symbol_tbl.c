@@ -2520,6 +2520,10 @@ return a pointer to it.
 #if RECORD_FORM_OF_NAME_REFERENCE
   nssp->name_qualifiers = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if NEED_NAME_MANGLING
+  nssp->last_unnamed_type_number = 0;
+  nssp->last_closure_type_number = 0;
+#endif /* NEED_NAME_MANGLING */
   nssp->visited_by_qualified_lookup = FALSE;
   nssp->within_unnamed_namespace = FALSE;
 #if DEBUG
