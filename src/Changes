@@ -1,5 +1,21 @@
 Version 4.1
 
+7/22/09  [EDGcpfe/9980]
+Spurious warning on guiding declaration of static template
+
+A spurious warning was issued on a predeclared guiding declaration of a
+static function template.  Now fixed.  For more information about guiding
+declarations, see the 10/9/02 entry "Guiding declarations disabled in
+default mode".
+
+  static void f(int);
+  template <class T> static void f(T);
+  int main() {
+    f(1);
+  }
+  static void f(int){}
+
+
 7/21/09  [EDGcpfe/9966]
 Abort of Microsoft-mode out-of-class member function declaration in block scope
 

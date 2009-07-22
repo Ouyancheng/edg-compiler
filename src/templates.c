@@ -9651,7 +9651,7 @@ is the template entry for the template being declared.
           rp->storage_class = (a_storage_class)sc_static;
           rp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
         }  /* if */
-      } if (rp->storage_class == (a_storage_class)sc_static) {
+      } else if (rp->storage_class == (a_storage_class)sc_static) {
         sym_warning(ec_template_and_instance_linkage_conflict, rout_sym);
         rp->storage_class = (a_storage_class)sc_unspecified;
         rp->source_corresp.name_linkage =
