@@ -4371,7 +4371,7 @@ flag when is_declaration is TRUE.
       check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
       vp = sym->variant.static_data_member.variable;
     }  /* if */
-    type = sym->variant.variable.ptr->type;
+    type = vp->type;
     scp = &vp->source_corresp;
     type_without_linkage_flag_set = vp->declared_using_type_without_linkage;
   }  /* if */
