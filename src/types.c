@@ -7591,8 +7591,9 @@ calling disentangle_default_args).
           { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             modifiers = base_type_1->variant.pointer.modifiers;
-            check_assertion(
-                         modifiers == base_type_2->variant.pointer.modifiers);
+            check_assertion(equiv_pointer_modifiers(
+                                     modifiers,
+                                     base_type_2->variant.pointer.modifiers));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Pointer and reference types.  The composite type is a pointer
 	       or reference to the composite of the types pointed to. */
