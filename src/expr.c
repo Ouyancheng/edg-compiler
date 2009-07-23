@@ -11520,6 +11520,7 @@ this routine returns FALSE for those cases).
       is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     a_targ_size_t    smallest_size = ~(a_targ_size_t)0;
+    a_boolean        is_temp;
     /* Skip over any casts to integral or pointer types. */
     while (is_operation_node(expr) &&
            expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
@@ -11537,22 +11538,15 @@ this routine returns FALSE for those cases).
        small integer to a pointer type.  And since all functions have constant
        addresses, this boils down to checking for addresses of stack-based
        variables. */
-    if (!expr->is_lvalue &&
-        is_operation_node(expr) &&
-        (node_operator_is(expr, eok_address_of) ||
-         node_operator_is(expr, eok_array_to_pointer))) {
-      an_expr_node_ptr op1 = expr->variant.operation.operands; 
-      if (is_variable_node(op1) &&
-          !variable_has_constant_address(op1->variant.variable)) {
-        /* Yes, it's the nonconstant address of a variable. */
-        a_targ_size_t addr_size = f_skip_typerefs(expr->type)->size;
-        /* Drop out if an intermediate cast was to a smaller size, because
-           a warning was already issued for that one. */
-        if (addr_size <= smallest_size) {
-          if (f_skip_typerefs(type_cast_to)->size < addr_size) {
-            /* Yes, this cast truncates the address. */
-            result = TRUE;
-          }  /* if */
+    if (is_address_of_auto_object(expr, &is_temp)) {
+      /* Yes, it's the nonconstant address of an auto variable. */
+      a_targ_size_t addr_size = f_skip_typerefs(expr->type)->size;
+      /* Drop out if an intermediate cast was to a smaller size, because
+         a warning was already issued for that one. */
+      if (addr_size <= smallest_size) {
+        if (f_skip_typerefs(type_cast_to)->size < addr_size) {
+          /* Yes, this cast truncates the address. */
+          result = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
