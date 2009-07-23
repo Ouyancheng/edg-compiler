@@ -590,9 +590,10 @@ See compute_local_name_collision_discriminator.
 #if IA64_ABI
       compute_local_name_collision_discriminator(sym, scope_depth);
 #endif /* IA64_ABI */
-    } else if (cssp->lambda_immediately_inside_default_arg_expression) {
+    } else if (entities_are_recorded_for_current_expression()) {
       /* The discriminator is determined later (in
-         compute_default_arg_name_collision_discriminators). */
+         compute_default_arg_name_collision_discriminators or
+         compute_data_member_name_collision_discriminators). */
       check_assertion(cssp->discriminator == 0);
     } else {
       cssp->discriminator = ++ssep->last_closure_type_number;

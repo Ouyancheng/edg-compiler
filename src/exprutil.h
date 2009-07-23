@@ -989,6 +989,8 @@ extern void record_entity_defined_in_expression(
                                              an_il_entry_kind  kind,
                                              a_boolean         in_file_scope);
 
+extern a_boolean entities_are_recorded_for_current_expression(void);
+
 extern void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
                                 an_operand                *operand);
 

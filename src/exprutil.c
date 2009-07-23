@@ -965,6 +965,17 @@ allocated in file scope memory; otherwise, the current memory region is used.
 }  /* record_entity_defined_in_expression */
 
 
+a_boolean entities_are_recorded_for_current_expression(void)
+/*
+Return TRUE if there is an active expression stack and it currently is set up
+to record entities defined in expressions.
+*/
+{
+  return (expr_stack != NULL &&
+          expr_stack->p_end_of_entities_defined_in_expression != NULL);
+}  /* entities_are_recorded_for_current_expression */
+
+
 void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
                          an_operand                *operand)
 /*
