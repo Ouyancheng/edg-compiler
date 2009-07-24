@@ -207,6 +207,8 @@ the data structures that will be written out.
      performing all scheduled moves prior to writing the precompiled header
      file. */
   perform_scheduled_routine_moves();
+  /* Ensure that any pending deferred access checks have been performed. */
+  end_deferral_of_access_checks();
 }  /* prepare_to_write_precompiled_header_file */
 
 

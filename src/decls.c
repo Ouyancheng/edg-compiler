@@ -14826,10 +14826,9 @@ advance_past_final_token:
 return_point:
   check_pending_qualifiers_used(&state);
   if (access_checks_deferred) {
-    /* We are processing a declaration for which access checks were
-       deferred.  Normally, any deferred checks will have already been
-       performed.  In error cases, they may not have been.  If any
-       remain, do them now. */
+    /* We are processing a declaration for which access checks were deferred.
+       In many cases deferred checks will have already been performed.  For
+       the remaining cases, do them now. */
     end_deferral_of_access_checks();
   }  /* if */
   if (state.is_linkage_spec_decl) {
