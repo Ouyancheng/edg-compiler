@@ -12860,7 +12860,7 @@ handle_as_definition:
   if (rout->is_deleted) {
     /* A deleted function definition. */
     write_tok_str(" = delete;");
-  } else if (rout->is_defaulted) {
+  } else if (rout->is_defaulted && is_definition) {
     /* A defaulted function definition. */
     write_tok_str(" = default;");
   } else if (!is_definition) {
