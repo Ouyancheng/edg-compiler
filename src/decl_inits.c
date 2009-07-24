@@ -5484,16 +5484,16 @@ scan_paren:
     end_error();
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-  if (ctor_rout->is_trivial_default_constructor) {
-    /* IL will not be put out for a trivial default constructor anyway, so
-       there's no need to deal with default operator new. */
+  if (ctor_rout->is_trivial_default_constructor && !ctor_rout->is_defaulted) {
+    /* IL will not be put out for an implicitly-generated trivial default
+       constructor anyway, so there's no need to deal with default operator
+       new. */
   } else {
     /* Determine and remember the default operator new() routine for the
        class.  This is done here because we are working out the "wrapper"
        code that will be required, and the "new" routine will be called from
        the wrapper. */
     a_routine_ptr new_routine;
-
     set_class_assoc_operator_new_routine(class_type);
     new_routine = ctsp->assoc_operator_new_routine;
     if (new_routine != NULL) {
