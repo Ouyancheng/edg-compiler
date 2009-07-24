@@ -14811,13 +14811,6 @@ advance_past_final_token:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_stmt != NULL) decl_stmt->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (access_checks_deferred) {
-    /* We are processing a declaration for which access checks were deferred.
-       Normally, any deferred checks will have already been performed.  In
-       error cases, they may not have been.  If any remain, do them now. */
-    end_deferral_of_access_checks();
-    access_checks_deferred = FALSE;
-  }  /* if */
   if (state.is_linkage_spec_decl) {
     pop_name_linkage();
     state.restore_name_linkage = FALSE;
