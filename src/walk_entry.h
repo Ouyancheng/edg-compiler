@@ -324,6 +324,65 @@ to nothing.  In other modes, expands to a simple walk_list.
 #endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
 
+
+#undef simple_walk_param_list_default_arg_exprs
+#undef walk_param_list_default_arg_exprs
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+/*
+Walk any default argument expressions associated with the given
+parameter type list.
+*/
+#define simple_walk_param_list_default_arg_exprs(param_list) \
+{ a_param_type_ptr ptp; \
+  for (ptp = (param_list); ptp != NULL; ptp = ptp->next) { \
+    walk_ptr(ptp->default_arg_expr, an_expr_node_ptr, iek_expr_node); \
+  }  /* for */ \
+}  /* simple_walk_param_list_default_arg_exprs */
+
+/*
+For the needed-flag or keep-in-il walk, walk any default argument
+expressions associated with the given parameter type list, but if
+we're doing the needed-flag traversal in a mode where lowering is
+expected to be done, do nothing.  In a simple world, this special
+traversal would not be needed: lowering clears default argument
+expression pointers to NULL, and the needed and keep-in-il walks are
+done after lowering, so those walks should see only NULL pointers and
+never mark the expressions as needed.  However, when a (lowered) call
+in a function scope memory region is walked, the function type in the
+file scope is still unlowered and therefore still has attached default
+argument expressions.  We don't want to mark something referenced in
+such an expression as needed merely because it appears in a default
+argument expression, because the default argument expression may not
+be used if all the calls provide a full set of arguments.  That
+suggests that we should just pretend that the default argument
+pointers are NULL already, because eventually they will be, but that
+doesn't work either, because there are some function types that do not
+get lowered, e.g., in prototype instantiations and in casts in backing
+expressions, and those default argument pointers will never be cleared
+(and might have associated object lifetimes pointing to them).  Also,
+it turns out to be impractical to know in general whether a given
+function type will eventually be lowered.  So the pragmatic solution
+is to mark the default argument expression as keep-in-il but not as
+needed, which produces correct IL that possibly includes some unneeded
+entities.  To improve the odds on the normal cases, default arguments
+associated with function definitions are handled when the function
+type is walked, which guarantees that any lowering that will occur has
+already happened, and therefore that we never in that case mark
+something as keep-in-il when it's not actually required.
+*/
+#if NEEDED_FLAG_WALK && !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
+#define walk_param_list_default_arg_exprs(param_list) \
+{ if (!il_lowering_needed() || walking_secondary_trans_unit) { \
+    simple_walk_param_list_default_arg_exprs(param_list); \
+  }  /* if */ \
+}  /* walk_param_list_default_arg_exprs */
+#else /* !(NEEDED_FLAG_WALK && !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING)*/
+#define walk_param_list_default_arg_exprs(param_list) \
+{ simple_walk_param_list_default_arg_exprs(param_list); }
+#endif /* NEEDED_FLAG_WALK && !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+
+
 /*
 Set the definition_needed or keep_definition_in_il flag in a type if the
 type is a class type.  Used to indicate cases that require the full type
@@ -816,28 +875,12 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         walk_string_ptr(ptr->name, iek_id_name, 0);
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
-        /* When IL lowering gets done default_arg_expr is set to NULL, so
-           do not follow it unless we're in a secondary translation unit
-           (where lowering is not done).  This suppression is important
-           if we're processing a call in a function memory region and the
-           type of the function, in the file scope, has not been lowered
-           yet. */
-        /* For recorded constant expressions, the expressions under the
-           constants are unlowered.  If that's true when IL lowering
-           is done (unusual, but okay), there may be some default_arg_expr
-           pointers that are not cleared to NULL.  A back end shouldn't be
-           looking at them, but clear the pointer on an IL read to make
-           sure nothing bad happens (e.g., in the IL display program). */
-        if (!C_mode() && il_lowering_needed() &&
-            !walking_secondary_trans_unit) {
-          conditionally_clear_fe_pointer(ptr->default_arg_expr);
-        } else
-#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
-        /* Do not add code here. */
-        {
-          walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
-        }  /* if */
+        /* The default_arg_expr field is not walked at this level in the
+           needed and keep-in-il walks, because we don't know enough about
+           the context.  See the uses of walk_param_list_default_arg_exprs. */
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         conditionally_clear_fe_pointer(ptr->default_arg_expr_fixup);
         walk_list(ptr->entities_defined_in_default_arg,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
@@ -860,6 +903,13 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* Default argument expressions are not walked at the iek_param_type
+           level for the needed and keep-in-il walks.  Do them now, except
+           if we know we can do them later as part of processing a routine.
+           See the comment on walk_param_list_default_arg_exprs. */
+        if (!C_mode() && ptr->assoc_routine == NULL) {
+          walk_param_list_default_arg_exprs(ptr->param_type_list);
+        }  /* if */
         /* Do not walk the assoc_routine pointer for the needed or keep-in-il
            traversal.  We don't want this to force keeping of the routine
            definition if it's not otherwise needed. */
@@ -1227,6 +1277,16 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* Default argument expressions are not walked at the iek_param_type
+           level for the needed and keep-in-il walks.  Do them now.
+           See the comment on walk_param_list_default_arg_exprs. */
+        if (!C_mode()) {
+          a_routine_type_supplement_ptr rtsp =
+                          skip_typerefs(ptr->type)->variant.routine.extra_info;
+          walk_param_list_default_arg_exprs(rtsp->param_type_list);
+        }  /* if */
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
         /* The routines pointed to are not marked definition_needed at
            this point.  The overridden function definition is not
@@ -3198,6 +3258,8 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_list_not_needed
 #undef walk_needed_on_list
 #undef walk_list_with_keep_in_il_reset
+#undef simple_walk_param_list_default_arg_exprs
+#undef walk_param_list_default_arg_exprs
 #undef definition_needed_if_class
 #undef set_proper_definition_needed_flag
 #undef set_proper_routine_definition_needed_flag
