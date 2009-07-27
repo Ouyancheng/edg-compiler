@@ -7773,10 +7773,10 @@ be embedded in other mangled names.
       }  /* if */
       if (scp_is_enum_member(scp)) {
         /* Add the scoped enumeration type name. */
-        check_assertion(kind == iek_constant);
         a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
         char *scoped_enum_type_name = unmangled_name_of(
                                             &scoped_enum_type->source_corresp);
+        check_assertion(kind == iek_constant);
         if (scoped_enum_type_name == NULL) {
           /* A scoped enumerator whose enumeration is unnamed can't be
              directly referenced but must be uniquely mangled to avoid another
