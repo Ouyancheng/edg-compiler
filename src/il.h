@@ -1596,6 +1596,16 @@ or is marked as being originally unnamed.
     (tag_type)->variant.class_struct_union.originally_unnamed))
 
 /*
+Macro that returns TRUE if the type is a class or enum type that was
+originally unnamed.
+*/
+#define is_originally_unnamed_type(type)                                \
+  ((is_immediate_enum_type(type) &&                                     \
+    (type)->variant.integer.originally_unnamed) ||                      \
+   (is_immediate_class_type(type) &&                                    \
+    (type)->variant.class_struct_union.originally_unnamed))
+
+/*
 Return TRUE if type is a lambda closure class.
 */
 #define type_is_lambda_closure(type)					\
