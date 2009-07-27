@@ -14827,8 +14827,9 @@ return_point:
   check_pending_qualifiers_used(&state);
   if (access_checks_deferred) {
     /* We are processing a declaration for which access checks were deferred.
-       In many cases deferred checks will have already been performed.  For
-       the remaining cases, do them now. */
+       In some cases (like out-of-class member definitions) deferred checks
+       will have already been performed.  For the remaining cases, do them
+       now. */
     end_deferral_of_access_checks();
   }  /* if */
   if (state.is_linkage_spec_decl) {
