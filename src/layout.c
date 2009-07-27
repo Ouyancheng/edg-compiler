@@ -578,10 +578,9 @@ curr_max_member_alignment.
                        "pop", size_t_arg(3)) == 0) {
       is_pop = TRUE;
       if (pack_alignment_stack == NULL) {
-        /* In Microsoft mode we issue a warning on specifying "pop" when the
-           stack is empty.  In default mode it's an error. */
+        /* In Microsoft and GNU modes we issue a warning on specifying "pop"
+           when the stack is empty.  In default mode it's an error. */
         diagnostic(severity, ec_empty_pack_alignment_stack);
-        curr_max_member_alignment = 0;
       }  /* if */
       /* Advance past "pop". */
       (void)get_token();
