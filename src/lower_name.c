@@ -3895,9 +3895,9 @@ handles this).  A length is prefixed to named classes in the IA-64 ABI (but
 not in the Cfront ABI -- this is typically handled by the caller).
 */
 {
+  char *name = unmangled_name_of(&type->source_corresp);
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
-  char *name = unmangled_name_of(&type->source_corresp);
   if (name == NULL) {
     /* For an unnamed type, special encodings apply. */
     mangled_unnamed_type_encoding(type, mctl);
@@ -7773,8 +7773,8 @@ be embedded in other mangled names.
       }  /* if */
       if (scp_is_enum_member(scp)) {
         /* Add the scoped enumeration type name. */
-        a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
         check_assertion(kind == iek_constant);
+        a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
         char *scoped_enum_type_name = unmangled_name_of(
                                             &scoped_enum_type->source_corresp);
         if (scoped_enum_type_name == NULL) {
