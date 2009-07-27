@@ -1482,8 +1482,10 @@ as well as whether or not the type is extern "C", are emitted.  The type
 must not have been lowered (lowering can modify the parameters or return type).
 */
 {
-  check_assertion(type->kind == (a_type_kind)tk_routine &&
-                  il_lowering_flag_of(type) == FALSE);
+  check_assertion(type->kind == (a_type_kind)tk_routine);
+#if DO_IL_LOWERING
+  check_assertion(il_lowering_flag_of(type) == FALSE);
+#endif /* DO_IL_LOWERING */
 #if !IA64_ABI
   /* We always emit markers in the Cfront-like ABI. */
   check_assertion(do_markers);
