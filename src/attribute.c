@@ -2878,6 +2878,36 @@ differently and we emulate that different behavior (elsewhere).
 }  /* apply_attribute_to_routine_type */
 
 
+static a_boolean check_class_type_can_be_packed(a_type_ptr        tp,
+                                                an_attribute_ptr  ap)
+/*
+tp is a class_type on which the given "packed" attribute has been specified.
+Return TRUE if the type can indeed be packed; otherwise, return FALSE and
+issue diagnostics as appropriate.
+*/
+{
+  a_boolean  result = TRUE;
+
+  check_assertion(is_immediate_class_type(tp));
+  if (gpp_mode && gnu_version >= 30400) {
+    /* Check that all the data members are PODs. */
+    a_field_ptr  fp = tp->variant.class_struct_union.field_list;
+    for (; fp != NULL; fp = fp->next) {
+      if (!fp->compiler_generated && !fp->is_anonymous_parent_object &&
+          is_class_struct_union_type(fp->type)) {
+        a_type_ptr  ftp = skip_typerefs(fp->type);
+        if (!symbol_supplement_for_class(ftp)->is_POD) {
+          pos_sy_warning(ec_packed_attribute_on_class_with_non_POD_field,
+                         &ap->position, symbol_for(fp));
+          result = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* check_class_type_can_be_packed */
+
+
 static void apply_one_attribute_to_type(an_attribute_ptr  ap,
                                         a_type_ptr        type,
                                         a_boolean         is_typedef)
@@ -2908,8 +2938,10 @@ a typedef, is_typedef is TRUE.
         /* A packed class is one where all of the members are aligned on
            a 1-byte boundary.  In addition, bit fields may straddle
            container boundaries. */
-        tp->variant.class_struct_union.is_packed = TRUE;
-        tp->variant.class_struct_union.max_member_alignment = 1;
+        if (check_class_type_can_be_packed(tp, ap)) {
+          tp->variant.class_struct_union.is_packed = TRUE;
+          tp->variant.class_struct_union.max_member_alignment = 1;
+        }  /* if */
       } else {
         pos_ty_error(ec_attribute_does_not_apply_to_type, 
                      &ap->position, tp);

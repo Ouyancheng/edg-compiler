@@ -1,5 +1,20 @@
 Version 4.1
 
+7/27/09  [EDGcpfe/9970]
+GNU C++ compatibility: __attribute((packed)) on class type with non-POD field
+
+In GNU C++ mode with gnu_version >= 30400, the front end now ignores attribute
+"packed" applied to a class type with a member that is a non-POD field.  A
+warning is issued in such cases.  For example:
+
+  struct N { N() {} int i; };
+  struct S {
+    char a;
+    N n;
+  } __attribute((packed));  // This attribute is now ignored with a warning
+                            // because field n is not a POD.
+
+
 7/27/09  [EDGcpfe/9963]
 #pragma pack(pop) with no corresponding "push"
 
