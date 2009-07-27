@@ -4247,6 +4247,7 @@ routine will be the same as the one passed in.
       new_routine->primary_ctor_or_dtor = routine;
       new_routine->compiler_generated = TRUE;
       new_routine->pure_virtual = routine->pure_virtual;
+      new_routine->is_deleted = routine->is_deleted;
 #if ONE_INSTANTIATION_PER_OBJECT
       new_routine->instantiation_needed_bit_number =
                                       routine->instantiation_needed_bit_number;
