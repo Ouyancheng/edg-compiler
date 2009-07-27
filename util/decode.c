@@ -223,6 +223,20 @@ Add the indicated string to the demangled version of the current identifier.
 }  /* write_id_str */
 
 
+static void write_id_number(unsigned long              num,
+                            a_decode_control_block_ptr dctl)
+/*
+Utility to write the specified non-negative number to the demangled version
+of the current identifier.
+*/
+{
+  char          buffer[50];
+
+  (void)sprintf(buffer, "%lu", num);
+  write_id_str(buffer, dctl);
+}  /* write_id_number */
+
+
 static void bad_mangled_name(a_decode_control_block_ptr dctl)
 /*
 A bad name mangling has been encountered.  Record an error.
@@ -368,14 +382,17 @@ following the entire module id.
 #else /* IA64_ABI */
   unsigned long num_chars_to_output;
 #endif /* IA64_ABI */
+  char          *start;
 
   if (*ptr != '_' || !isdigit((unsigned char)ptr[1])) {
-    bad_mangled_name(dctl);
+    /* May not be an EDG module_id, in which case, emit the entire string. */
+    num_chars_to_output = num;
+    start = ptr;
   } else {
-    char *end_num = get_number(ptr+1, &num_chars_to_output, dctl);
+    start = get_number(ptr+1, &num_chars_to_output, dctl);
     if (!dctl->err_in_id) {
-      long prefix_len = (end_num-ptr)+1;
-      if (*end_num != '_' ||
+      long prefix_len = (start-ptr)+1;
+      if (*start != '_' ||
 #if IA64_ABI
           num_chars_to_output <= 0 ||
 #endif /* IA64_ABI */
@@ -383,12 +400,12 @@ following the entire module id.
         bad_mangled_name(dctl);
       } else {
         /* Skip the underscore. */
-        end_num++;
-        /* Write the filename. */
-        while (num_chars_to_output-- > 0) write_id_ch(*end_num++, dctl);
+        start++;
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Write the filename (or entire module id). */
+  while (num_chars_to_output-- > 0) write_id_ch(*start++, dctl);
   return ptr+num;
 }  /* demangle_module_id */
 
@@ -939,9 +956,7 @@ position following what was demangled.
       if (kind > 99) {
         bad_mangled_name(dctl);
       } else {
-        char buffer[3];
-        (void)sprintf(buffer, "%d", kind);
-        write_id_str(buffer, dctl);
+        write_id_number(kind, dctl);
       }  /* if */
       p = advance_past_underscore(p, dctl);
       write_id_ch('(', dctl);
@@ -1329,6 +1344,57 @@ a block of information related to template parameter processing.
 }  /* note_specialization */
 
 
+static char *demangle_function_local_indication(
+                                             char                       *ptr,
+                                             unsigned long              nchars,
+                                             a_decode_control_block_ptr dctl)
+/*
+Demangle the function name and block number in a function-local indication:
+
+    __L2__f__Fv
+               ^-- returned pointer points here
+          ^------- mangled function name
+       ^---------- block number within function (ptr points here on entry)
+
+ptr points to the character after the "__L".  If nchars is non-zero, it
+indicates the length of the string, starting from ptr.  Return a pointer
+to the character following the mangled function name.  Output a function
+indication like "f(void)::".
+*/
+{
+  char          *p = ptr, *prev_end = NULL;
+  unsigned long block_number;
+
+  if (nchars != 0) {
+    prev_end = dctl->end_of_name;
+    dctl->end_of_name = ptr + nchars;
+  }  /* if */
+  /* Get the block number. */
+  p = get_number(ptr, &block_number, dctl);
+  /* Check for the two underscores following the block number.  For local
+     class names in some older versions of the mangling scheme, there is no
+     following function name. */
+  if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
+    p += 2;
+    /* Put out the function name. */
+    if (nchars != 0) nchars -= (p - ptr);
+    p = full_demangle_identifier(p, nchars,
+                                 /*suppress_parent_and_local_info=*/FALSE,
+                                 dctl);
+    /* Put out the block number if needed.  Block 0 is the top-level block
+       of the function, and need not be identified. */
+    if (block_number != 0) {
+      write_id_str("[block ", dctl);
+      write_id_number(block_number, dctl);
+      write_id_ch(']', dctl);
+    }  /* if */
+    write_id_str("::", dctl);
+  }  /* if */
+  if (prev_end != NULL) dctl->end_of_name = prev_end;
+  return p;
+}  /* demangle_function_local_indication */
+
+
 static char *demangle_name(char                       *ptr,
                            unsigned long              nchars,
                            a_boolean                  stop_on_underscores,
@@ -1360,11 +1426,12 @@ it points to a block that controls output of extra information on
 template parameters.
 */
 {
-  char      *p, *end_ptr = NULL, *prev_end = NULL;
-  a_boolean is_special_name = FALSE, is_pt, is_partial_spec = FALSE;
-  a_boolean partial_spec_output_suppressed = FALSE;
-  char      *demangled_name;
-  int       mangled_length;
+  char          *p, *end_ptr = NULL, *prev_end = NULL;
+  a_boolean     is_special_name = FALSE, is_pt, is_partial_spec = FALSE;
+  a_boolean     partial_spec_output_suppressed = FALSE;
+  char          *demangled_name;
+  int           mangled_length;
+  unsigned long discriminator;
 
   if (nchars != 0) {
     prev_end = dctl->end_of_name;
@@ -1430,6 +1497,68 @@ template parameters.
       write_id_str("[local to ", dctl);
       end_ptr = demangle_module_id(p+8, nchars-(8+2), dctl);
       write_id_str("]", dctl);
+    } else if (start_of_id_is("Ut", p, dctl)) {
+      /* __Utnn: An unnamed type. */
+      is_special_name = TRUE;
+      write_id_str("[unnamed type", dctl);
+      end_ptr = get_number(p+2, &discriminator, dctl);
+      if (discriminator > 0) {
+        write_id_str(" (instance ", dctl);
+        write_id_number(discriminator, dctl);
+        write_id_str(")", dctl);
+      }  /* if */
+      write_id_str("]", dctl);
+    } else if (start_of_id_is("Ul", p, dctl)) {
+      /* __Ulnn_<function-type>: Lambda closure. */
+      p = get_number(p+2, &discriminator, dctl);
+      if (get_char(p, dctl) == '_') {
+        write_id_str("[lambda", dctl);
+        end_ptr = demangle_type(p+1, dctl);
+        is_special_name = TRUE;
+        if (discriminator > 0) {
+          write_id_str(" (instance ", dctl);
+          write_id_number(discriminator, dctl);
+          write_id_str(")", dctl);
+        }  /* if */
+        write_id_str("]", dctl);
+      }  /* if */
+    } else if (start_of_id_is("Um", p, dctl)) {
+      /* __Umnn_<function-type>: Lambda closure in member initializer. */
+      p = get_number(p+2, &discriminator, dctl);
+      if (get_char(p, dctl) == '_') {
+        write_id_str("[lambda", dctl);
+        end_ptr = demangle_type(p+1, dctl);
+        write_id_str(" in member initializer", dctl);
+        is_special_name = TRUE;
+        if (discriminator > 0) {
+          write_id_str(" (instance ", dctl);
+          write_id_number(discriminator, dctl);
+          write_id_str(")", dctl);
+        }  /* if */
+        write_id_str("]", dctl);
+      }  /* if */
+    } else if (start_of_id_is("Ud", p, dctl)) {
+      /* __Udnn_p_<function-type>: Lambda closure in default argument.
+         Note that this will always appear in a local function context, but
+         that is handled at a higher level. */
+      unsigned long param_num;
+      p = get_number(p+2, &discriminator, dctl);
+      if (get_char(p, dctl) == '_') {
+        p = get_number(p+1, &param_num, dctl);
+        if (get_char(p, dctl) == '_') {
+          write_id_str("[lambda", dctl);
+          end_ptr = demangle_type(p+1, dctl);
+          write_id_str(" in trailing default argument ", dctl);
+          write_id_number(param_num, dctl);
+          is_special_name = TRUE;
+          if (discriminator > 0) {
+            write_id_str(" (instance ", dctl);
+            write_id_number(discriminator, dctl);
+            write_id_str(")", dctl);
+          }  /* if */
+          write_id_str("]", dctl);
+        }  /* if */
+      }  /* if */
     } else {
       /* Something unrecognized. */
     }  /* if */
@@ -1556,59 +1685,6 @@ template parameters.
   if (prev_end != NULL) dctl->end_of_name = prev_end;
   return end_ptr;
 }  /* demangle_name */
-
-
-static char *demangle_function_local_indication(
-                                             char                       *ptr,
-                                             unsigned long              nchars,
-                                             a_decode_control_block_ptr dctl)
-/*
-Demangle the function name and block number in a function-local indication:
-
-    __L2__f__Fv
-               ^-- returned pointer points here
-          ^------- mangled function name
-       ^---------- block number within function (ptr points here on entry)
-
-ptr points to the character after the "__L".  If nchars is non-zero, it
-indicates the length of the string, starting from ptr.  Return a pointer
-to the character following the mangled function name.  Output a function
-indication like "f(void)::".
-*/
-{
-  char          *p = ptr, *prev_end = NULL;
-  unsigned long block_number;
-
-  if (nchars != 0) {
-    prev_end = dctl->end_of_name;
-    dctl->end_of_name = ptr + nchars;
-  }  /* if */
-  /* Get the block number. */
-  p = get_number(ptr, &block_number, dctl);
-  /* Check for the two underscores following the block number.  For local
-     class names in some older versions of the mangling scheme, there is no
-     following function name. */
-  if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
-    p += 2;
-    /* Put out the function name. */
-    if (nchars != 0) nchars -= (p - ptr);
-    p = full_demangle_identifier(p, nchars,
-                                 /*suppress_parent_and_local_info=*/FALSE,
-                                 dctl);
-    /* Put out the block number if needed.  Block 0 is the top-level block
-       of the function, and need not be identified. */
-    if (block_number != 0) {
-     char buffer[30];
-      write_id_str("[block ", dctl);
-      (void)sprintf(buffer, "%lu", block_number);
-      write_id_str(buffer, dctl);
-      write_id_ch(']', dctl);
-    }  /* if */
-    write_id_str("::", dctl);
-  }  /* if */
-  if (prev_end != NULL) dctl->end_of_name = prev_end;
-  return p;
-}  /* demangle_function_local_indication */
 
 
 static char *demangle_type_name_with_preceding_length(
@@ -2558,7 +2634,7 @@ the one after the double underscore.
   if (isdigit((unsigned char)get_char(p, dctl))) {
     /* Skip over the number. */
     do { p++; } while (isdigit((unsigned char)get_char(p, dctl)));
-    /* The next character must be alphabetic. */
+    /* The next character is typically alphabetic. */
     if (isalpha((unsigned char)get_char(p, dctl))) {
       /* This doesn't have to be a full recognizer; it just has to distinguish
          the two cases given above.  To do that, look for the double underscore
@@ -2569,6 +2645,15 @@ the one after the double underscore.
           break;
         }  /* if */
       }  /* for */
+    } else if (get_char(p, dctl) == '_' &&
+               get_char(p+1, dctl) == '_' &&
+               get_char(p+2, dctl) == 'U' &&
+               (get_char(p+3, dctl) == 't' ||
+                get_char(p+3, dctl) == 'l' ||
+                get_char(p+3, dctl) == 'm' ||
+                get_char(p+3, dctl) == 'd')) {
+      /* An unnamed type or lambda. */
+      is_type_name = TRUE;
     }  /* if */
   }  /* if */
   return is_type_name;
@@ -4168,6 +4253,81 @@ output the rest of the string).  This is used for an EDG extension.
 }  /* demangle_source_name */
 
 
+static char *advance_past_underscore_or_instance_number(
+                                          char                       *p,
+                                          unsigned long              *instance,
+                                          a_decode_control_block_ptr dctl)
+/*
+An underscore optionally preceded by a non-negative instance number is
+expected at *p.  Advance past the underscore.  Return the instance number
+(non-negative number plus two -- or one if no number is present) in *instance.
+*/
+{
+  *instance = 1;
+  if (isdigit((unsigned char)*p)) {
+    long num;
+    p = get_number(p, &num, dctl);
+    if (num < 0) {
+      bad_mangled_name(dctl);
+    } else {
+      *instance = num+2;
+    }  /* if */
+  }  /* if */
+  if (*p == '_') {
+    p += 1;
+  } else {
+    bad_mangled_name(dctl);
+  }  /* if */
+  return p;
+}  /* advance_past_underscore_or_instance_number */
+
+
+static char *demangle_unnamed_type(char                       *ptr,
+                                   a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 <unnamed-type-name>.  Return a pointer to the character
+position following what was demangled.
+
+  <unnamed-type-name> ::= Ut [ <nonnegative number> ] _ 
+                      ::= <closure-type-name>
+  <closure-type-name> ::= Ul <lambda-sig> E [ <nonnegative number> ] _ 
+  <lambda-sig> ::= <parameter type>+  
+                      # Parameter types or "v" if the lambda has no parameters
+
+                            
+*/
+{
+  unsigned long instance;
+
+  if (*ptr == 'U' && ptr[1] == 't') {
+    /* An unnamed type has an optional instance number followed by an
+       underscore. */
+    ptr = advance_past_underscore_or_instance_number(ptr+2, &instance, dctl);
+    write_id_str("[unnamed type (instance ", dctl);
+    write_id_number(instance, dctl);
+    write_id_str(")]", dctl);
+  } else if (*ptr == 'U' && ptr[1] == 'l') {
+    /* A lambda has the encoding for the operator() bare function type (without
+       the return type) and an optional instance number followed by an
+       underscore. */
+    write_id_str("[lambda", dctl);
+    ptr = demangle_bare_function_type(ptr+2, /*no_return_type=*/TRUE, dctl);
+    if (*ptr == 'E') {
+      ptr = advance_past_underscore_or_instance_number(ptr+1, &instance, dctl);
+      write_id_str(" (instance ", dctl);
+      write_id_number(instance, dctl);
+      write_id_str(")", dctl);
+    } else {
+      bad_mangled_name(dctl);
+    }  /* if */
+    write_id_str("]", dctl);
+  } else {
+    bad_mangled_name(dctl);
+  }  /* if */
+  return ptr;
+}  /* demangle_unnamed_type */
+
+
 static char *demangle_unqualified_name(
                                  char                       *ptr,
                                  a_boolean                  *is_no_return_name,
@@ -4181,6 +4341,7 @@ An <unqualified-name> encodes a name that is not qualified, e.g.,
     <unqualified-name> ::= <operator-name>
                        ::= <ctor-dtor-name>  # Not handled here
                        ::= <source-name>   
+                       ::= <unnamed-type-name>   
 
 Constructor and destructor names do not get here; see
 demangle_nested_name_components.  *is_no_return_name is returned TRUE
@@ -4194,6 +4355,11 @@ caller does not need the value.
     /* A <source-name>, which has a length followed by the characters
        of the identifier, as in "3abc". */
     ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+  } else if (*ptr == 'U' &&
+             (ptr[1] == 't' ||
+              ptr[1] == 'l')) {
+    /* <unnamed-type-name> */
+    ptr = demangle_unnamed_type(ptr, dctl);
   } else {
     /* <operator-name> */
     write_id_str("operator ", dctl);
@@ -4672,6 +4838,10 @@ substitution, the name of the last component in the substitution is used.
     } else if (*ptr == 'T') {
       /* A <template-param>. */
       ptr = demangle_template_param(ptr, dctl);
+    } else if (*ptr == 'M') {
+      /* A <data-member-prefix>. */
+      write_id_str("[member initializer]", dctl);
+      ptr++;
     } else {
       /* Not a substitution or template parameter, so an <unqualified-name>. */
       if (*ptr != 'C' && *ptr != 'D') {
@@ -4764,9 +4934,11 @@ The syntax is:
              ::= <template-param>
              ::= # empty
              ::= <substitution>
+             ::= <data-member-prefix>
     <template-prefix> ::= <prefix> <template unqualified-name>
                       ::= <template-param>
                       ::= <substitution>
+    <data-member-prefix> := <member source-name> M
 
 For function names, additional information is returned in *func_block.
 */
@@ -4811,9 +4983,11 @@ A <local-name> represents an entity local to a function, and
 includes the mangled name of the enclosing function.
 The syntax is:
 
-  <local-name> := Z <function encoding> E <entity name> [<discriminator>]
+  <local-name> := Z <function encoding> E [d [<trailing-param number>] _]
+                  <entity name> [<discriminator>]
                := Z <function encoding> E s [<discriminator>]
-  <discriminator> := _ <non-negative number> 
+  <discriminator> := _ <non-negative number>     # when number <= 9
+                  := __ <non-negative number> _  # when number >= 10
 
 For function names, additional information is returned in *func_block.
 */
@@ -4830,20 +5004,47 @@ For function names, additional information is returned in *func_block.
     write_id_str("string", dctl);
     ptr++;
   } else {
+    if (*ptr == 'd') {
+      /* Demangle the optional trailing parameter number. */
+      long param = -1;
+      ptr += 1;
+      if (*ptr != '_') {
+        ptr = get_number(ptr, &param, dctl);
+        if (param < 0 || *ptr != '_') {
+          bad_mangled_name(dctl);
+        }  /* if */
+      }  /* if */
+      ptr += 1;
+      if (!dctl->err_in_id) {
+        write_id_str("[trailing default argument ", dctl);
+        write_id_number(param+2, dctl);
+        write_id_str("]::", dctl);
+      }  /* if */
+    }  /* if */
     /* Demangle the entity name. */
     ptr = demangle_name(ptr, func_block, dctl);
   }  /* if */
-  if (*ptr == '_') {
+  if (!dctl->err_in_id && *ptr == '_') {
     /* Demangle the discriminator. */
-    long num;
-    ptr = get_number(ptr+1, &num, dctl);
+    long num = -1;
+    if (isdigit((unsigned char)ptr[1])) {
+      /* _n (n is single digit) case: */
+      num = (char)ptr[1] - '0';
+      ptr += 2;
+    } else if (ptr[1] == '_' && isdigit((unsigned char)ptr[2])) {
+      /* __nn_ (nn is at least two digits) case: */
+      ptr = get_number(ptr+2, &num, dctl);
+      if (*ptr == '_') {
+        ptr += 1;
+      } else {
+        num = -1;
+      }  /* if */
+    }  /* if */
     if (num < 0) {
       bad_mangled_name(dctl);
     } else {
-      char buffer[50];
       write_id_str(" (instance ", dctl);
-      (void)sprintf(buffer, "%ld", num+2);
-      write_id_str(buffer, dctl);
+      write_id_number(num+2, dctl);
       write_id_ch(')', dctl);
     }  /* if */
   }  /* if */
@@ -4965,7 +5166,6 @@ virtual function.  The syntax is:
 */
 {
   long      num;
-  char      buffer[50];
   a_boolean v_form = FALSE;
 
   if (*ptr != 'h' && *ptr != 'v') {
@@ -4974,14 +5174,12 @@ virtual function.  The syntax is:
     v_form = (*ptr == 'v');
     write_id_str("(offset ", dctl);
     ptr = get_number(ptr+1, &num, dctl);
-    (void)sprintf(buffer, "%ld", num);
-    write_id_str(buffer, dctl);
+    write_id_number(num, dctl);
     if (v_form) {
       write_id_str(", virtual offset ", dctl);
       ptr = advance_past_underscore(ptr, dctl);
       ptr = get_number(ptr, &num, dctl);
-      (void)sprintf(buffer, "%ld", num);
-      write_id_str(buffer, dctl);
+      write_id_number(num, dctl);
     }  /* if */
     ptr = advance_past_underscore(ptr, dctl);
     write_id_str(") ", dctl);

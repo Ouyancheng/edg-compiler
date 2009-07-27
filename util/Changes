@@ -1,5 +1,44 @@
 Version 4.1
 
+7/27/09  [EDGcpfe/9554]
+Demangling of lambdas and unnamed types
+
+A change has been made to demangle the lambda and unnamed class/struct/union
+and enum type encodings that are now emitted by the front end.  The Cfront
+encodings are an EDG extension (though encoding-wise, they appear as any
+user defined type -- except that they begin with "__U").  The IA-64 ABI
+specification details the encoding of such types in C++0x.  Here is an
+example that shows the original unnamed types, their encodings in both
+ABIs as well as the decoded output in each case:
+
+  int module_id = 0;
+  struct { int i; } s;
+      // IA-64:  _ZN25_INTERNAL_4_ex_c_afc2b591Ut_E
+      //         [local to ex_c]::[unnamed type (instance 1)]
+      // Cfront: __Q2_26__INTERNAL_4_ex_c_afc2b5915__Ut1
+      //         [local to ex_c]::[unnamed type (instance 1)]
+  struct A {
+    enum { e = 1 } E;
+      // IA-64:  _ZN1AUt_E
+      //         A::[unnamed type (instance 1)]
+      // Cfront: __Q2_1A5__Ut1
+      //         A::[unnamed type (instance 1)]
+    static int m;
+  } a;
+  int A::m = [](float x) { return (int)x; }(2.0);
+      // IA-64:  _ZN1A1mMUlfE_E
+      //         A::m::[member initializer]::[lambda(float) (instance 1)]
+      // Cfront: __Q3_1A1m8__Um1_Ff
+      //         A::m::[lambda(float) in member initializer (instance 1)]
+  void f(int i = [](char a, char b) { return a - b; }('1', '0')) {}
+      // IA-64:  _ZZ1fiEd_N25_INTERNAL_4_ex_c_afc2b591UlccE_E
+      //         f(int)::[trailing default argument 1]::[local to ex_c]::
+      //                                      [lambda(char, char) (instance 1)]
+      // Cfront: __Q2_26__INTERNAL_4_ex_c_afc2b59123__Ud1_1_FcT1__L0__f__Fi
+      //         [local to ex_c]::f(int)::[lambda(char, char) 
+      //                           in trailing default argument 1 (instance 1)]
+
+
 6/12/09  [EDGcpfe/9428]
 Demangling of individuated entities
 
