@@ -250,6 +250,10 @@ typedef struct a_substitution {
     a_template_ptr
 		template_ptr;
 			/* The template to which this substitution applies. */
+    /* When kind == iek_variable */
+    a_variable_ptr
+		variable_ptr;
+			/* The variable to which this substitution applies. */
   } variant;
 } a_substitution;
 
@@ -386,6 +390,7 @@ static char *truncate_mangled_name(char                     *mangled_name,
                                    a_mangling_control_block *mctl);
 static void r_mangled_parent_qualifier(
                              a_source_correspondence  *scp,
+                             an_il_entry_kind         kind,
                              unsigned long            nesting_level,
                              a_boolean                needs_to_be_individuated,
                              a_source_correspondence  **top_most_scp,
@@ -418,8 +423,8 @@ Interface to r_mangled_parent_qualifier, to provide nesting_level == 1 and
 needs_to_be_individuated == FALSE.  For the IA-64 ABI,
 see mangled_ia64_parent_qualifier.
 */
-#define mangled_parent_qualifier(parent, mctl)                        \
-  r_mangled_parent_qualifier((parent), (unsigned long)1,              \
+#define mangled_parent_qualifier(parent, kind, mctl)                  \
+  r_mangled_parent_qualifier((parent), (kind), (unsigned long)1,      \
                              /*needs_to_be_individuated=*/FALSE,      \
                              (a_source_correspondence **)NULL,        \
                              (mctl))
@@ -504,6 +509,9 @@ mctl->first_substitution/mctl->last_substitution.
       break;
     case iek_template:
       sp->variant.template_ptr = (a_template_ptr)entity;
+      break;
+    case iek_variable:
+      sp->variant.variable_ptr = (a_variable_ptr)entity;
       break;
     default:
       unexpected_condition();
@@ -1089,6 +1097,12 @@ is available; do not put it out.
               result = TRUE;
             }  /* if */
             break;
+          case iek_variable:
+            if (same_entities((a_variable_ptr)entity,
+                              sp->variant.variable_ptr)) {
+              result = TRUE;
+            }  /* if */
+            break;
           default:
             unexpected_condition();
         }  /* switch */
@@ -1172,6 +1186,74 @@ the type, for the IA-64 ABI.
 }  /* add_prefix_for_local_type */
 
 #endif /* IA64_ABI */
+
+static void add_mangling_for_default_arg_in_local_type(
+                                   a_type_ptr               type,
+                                   a_routine_ptr            *enclosing_routine,
+                                   a_mangling_control_block *mctl)
+/*
+type is a lambda closure defined in a default argument.  Output the mangling
+(a prefix in the IA-64 ABI, a suffix in the Cfront ABI) indicating the routine
+containing the type (IA-64 ABI only) as well as the default argument number.
+Return the routine in which the lambda appears a default argument in
+*enclosing_routine if enclosing_routine is not NULL.
+*/
+{
+  a_routine_ptr                 routine;
+  a_routine_type_supplement_ptr rtsp;
+  a_param_type_ptr              param;
+  an_il_entity_list_entry_ptr   entry;
+  unsigned long                 param_num;
+  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+  a_symbol_ptr                  sym;
+
+  check_assertion(type_is_lambda_closure(type) &&
+                  cssp != NULL &&
+                  cssp->lambda_immediately_inside_default_arg_expression);
+  sym = cssp->lambda_parent_entity;
+  check_assertion(sym != NULL &&
+                  (sym->kind == (a_symbol_kind)sk_routine ||
+                   sym->kind == (a_symbol_kind)sk_member_function));
+  routine = sym->variant.routine.ptr;
+  if (enclosing_routine != NULL) *enclosing_routine = routine;
+  check_assertion(routine != NULL);
+  rtsp = routine->type->variant.routine.extra_info;
+  check_assertion(rtsp != NULL && rtsp->prototyped);
+  /* Count number of parameters. */
+  for (param = rtsp->param_type_list, param_num = 0;
+       param != NULL;
+       param = param->next, param_num++) {}
+  /* For each parameter. */
+  for (param = rtsp->param_type_list;
+       param != NULL;
+       param = param->next, param_num--) {
+    /* For each entity defined in a default arg (currently only lambdas). */
+    for (entry = param->entities_defined_in_default_arg;
+         entry != NULL;
+         entry = entry->next) {
+      if (type == (a_type_ptr)entry->entity.ptr) {
+#if IA64_ABI
+        /* Mangle with the routine and parameter number. */
+        add_prefix_for_local_entity(routine, mctl);
+        add_to_mangled_name('d', mctl);
+        if (param_num > 1) {
+          add_number_to_mangled_name(param_num-2, mctl);
+        }  /* if */
+        add_to_mangled_name('_', mctl);
+#else /* !IA64_ABI */
+        /* Add default argument number (routine is added by the caller). */
+        add_number_to_mangled_name(param_num, mctl);
+#endif /* IA64_ABI */
+        goto done;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+  /* Didn't find lambda in the parameter list. */
+  unexpected_condition();
+done:
+  return;
+}  /* add_mangling_for_default_arg_in_local_type */
+
 #if !IA64_ABI
 
 /*
@@ -1396,10 +1478,12 @@ static void mangled_encoding_for_function_type(
 Add to the mangled name the encoding for the function type "type".
 The return type of the function is encoded if do_return_type is TRUE.  If
 do_markers is TRUE, markers indicating the start and end of the function type,
-as well as whether or not the type is extern "C", are emitted.
+as well as whether or not the type is extern "C", are emitted.  The type
+must not have been lowered (lowering can modify the parameters or return type).
 */
 {
-  check_assertion(type->kind == (a_type_kind)tk_routine);
+  check_assertion(type->kind == (a_type_kind)tk_routine &&
+                  il_lowering_flag_of(type) == FALSE);
 #if !IA64_ABI
   /* We always emit markers in the Cfront-like ABI. */
   check_assertion(do_markers);
@@ -2419,7 +2503,7 @@ has an explicit template argument list, given by template_arg_list.
   if (is_class_or_namespace_member(con)) {
     /* Add a parent qualifier for a member. */
     add_str_to_mangled_name("__", mctl);
-    mangled_parent_qualifier(&con->source_corresp, mctl);
+    mangled_parent_qualifier(&con->source_corresp, iek_constant, mctl);
   }  /* if */
 #else /* IA64_ABI */
   {
@@ -3043,53 +3127,171 @@ first named field; leave it unchanged if there is no named field.
 
 #endif /* DO_IL_LOWERING */
 
-static unsigned long number_of_field_using_unnamed_type(a_type_ptr class_type,
-                                                        a_type_ptr type)
+
+static a_type_ptr call_operator_function_type_for_lambda(a_type_ptr lambda)
 /*
-If class_type has a field whose cv-unqualified type is "type", return
-its number, where the number counts only fields of the class with
-unnamed class or enum types, and the first number is 1.  Return zero
-if no such field was found (always a safe answer).
+Returns the type of the operator() member function of the specified
+lambda closure type.
 */
 {
-  a_field_ptr   field;
-  unsigned long num = 1;
+  a_type_ptr      type = NULL;
+  a_routine_ptr   rp;
+  a_class_type_supplement_ptr
+                  ctsp = class_type_supp(lambda);
 
-  for (field = class_type->variant.class_struct_union.field_list;
-       field != NULL;
-       field = field->next) {
-    a_type_ptr ftype = f_skip_typerefs(find_bottom_of_type(field->type));
-    if (ftype == type) goto have_number;
-    /* Count only fields with unnamed class or enum types. */
-    if ((is_immediate_class_type(ftype) &&
-         ftype->variant.class_struct_union.originally_unnamed) ||
-        (is_immediate_enum_type(ftype) &&
-         ftype->variant.integer.originally_unnamed)) {
-      num++;
+  check_assertion(ctsp != NULL &&
+                  ctsp->assoc_scope != NULL &&
+                  ctsp->assoc_scope->routines != NULL);
+  for (rp = ctsp->assoc_scope->routines; rp != NULL; rp = rp->next) {
+    if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+        rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
+      type = rp->type;
+      break;
     }  /* if */
   }  /* for */
-  /* Return zero indicating no field was found. */
-  num = 0;
-have_number:
-  return num;
-}  /* number_of_field_using_unnamed_type */
+  check_assertion(type != NULL);
+  return type;
+}  /* call_operator_function_type_for_lambda */
 
+
+static a_boolean unnamed_type_has_no_discriminator(a_type_ptr type)
+/*
+Returns TRUE if the specified unnamed class type has no discriminator.
+Such class types are assigned a unique __Cnn name (as the encoding
+for unnamed class types relies on a unique discriminator which these types
+are lacking).
+*/
+{
+  a_boolean   result = FALSE;
+
+  check_assertion(is_immediate_class_type(type) &&
+                  (symbol_for(type) == NULL ||
+                   is_originally_unnamed_type(type)));
+  if (symbol_for(type) == NULL) {
+    /* A compiler generated type (e.g., exception handling, typeinfo). */
+    result = TRUE;
+  } else if (is_immediate_class_type(type) &&
+             class_type_supp(type)->anonymous_union_kind !=
+                                           (an_anonymous_union_kind)auk_none) {
+    /* An anonymous union.  The front end does not generate discriminators
+       for these. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* unnamed_type_has_no_discriminator */
+
+
+static a_boolean type_is_lambda_in_initializer(a_type_ptr type)
+/*
+Returns TRUE if the specified type is a lambda closure that was defined
+in a static data member initializer.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is_lambda_closure(type)) {
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    check_assertion(cssp != NULL);
+    if (cssp->lambda_immediately_inside_static_data_member_initializer) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_is_lambda_in_initializer */
+
+
+static a_boolean type_is_lambda_in_default_argument(a_type_ptr type)
+/*
+Returns TRUE if the specified type is a lambda closure that was defined
+in a default argument of a function.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is_lambda_closure(type)) {
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    check_assertion(cssp != NULL);
+    if (cssp->lambda_immediately_inside_default_arg_expression) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_is_lambda_in_default_argument */
 
 /*
-Seed number for unnamed class and enum names.
+Returns TRUE if the specified type is a lambda that is defined in a
+default argument and the mangling produced should reflect that.  Lambdas
+that are defined in default arguments in declarations at function scope,
+are mangled as though the lambda is defined in the local scope (this avoids
+a potential conflict with lambdas defined in default arguments in other
+functions with the same signature).
+*/
+
+#define mangle_as_lambda_in_default_argument(type)                      \
+  (type_is_lambda_in_default_argument((type)) &&                        \
+   !(type)->source_corresp.is_local_to_function)
+
+#if !IA64_ABI
+
+static void mangled_specialization_indication(a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding qualifier that indicates specialization.
+*/
+{
+  add_str_to_mangled_name("__S", mctl);
+}  /* mangled_specialization_indication */
+
+
+static void add_local_name_suffix(unsigned long            id_number,
+                                  a_routine_ptr            routine,
+                                  a_mangling_control_block *mctl)
+/*
+Add a suffix to the current name for a function-local entity.  id_number
+is an id number for the entity (usually a scope number within the routine)
+and "routine" is the routine to which the entity is local.
+*/
+{
+  /* The mangling is "__Lnn", where "nn: is the id number, followed by the
+     mangled name of the function. */
+  add_str_to_mangled_name("__L", mctl);
+  add_number_to_mangled_name(id_number, mctl);
+  add_str_to_mangled_name("__", mctl);
+  if (routine->source_corresp.name != NULL) {
+    mangled_function_name_externalized_if_necessary(
+                                         routine,
+                                         /*suppress_param_encoding=*/FALSE,
+                                         /*suppress_parent_encoding=*/FALSE,
+                                         /*force_primary_name=*/TRUE,
+                                         /*base_name_offset=*/(sizeof_t *)NULL,
+                                         mctl);
+  }  /* if */
+}  /* add_local_name_suffix */
+
+#endif /* !IA64_ABI */
+
+/*
+Seed number for unnamed class names.
 */
 static unsigned long
-		unnamed_class_or_enum_seed;
+		unnamed_class_seed;
 
 
 static char *give_unnamed_class_or_enum_a_name(a_type_ptr type)
 /*
-If the indicated class or enum type is unnamed, give it a name and return
-that name.
+If the indicated class or enum type is unnamed, give it a name (if it needs
+one) and return that name.  In the Cfront ABI, all unnamed types are given a
+suitable name here (mangling then uses this name as it would any other class or
+enum type name).  In the IA-64 ABI, only a small set of unnamed types are given
+a name (those generated by the compiler and anonymous unions).  The rest of the
+unnamed types have encodings specified by the IA-64 ABI and are encoded as
+needed.  Can return NULL in the IA-64 ABI.
 */
 {
-  char     *name;
-  char     buffer[50];
+  char            *name;
+  char            buffer[50];
+#if !IA64_ABI
+  unsigned long   discriminator;
+#endif /* !IA64_ABI */
 
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
@@ -3097,34 +3299,109 @@ that name.
      that's okay -- the name in the IL entry is not used by the front end. */
   name = type->source_corresp.name;
   if (name == NULL) {
-    /* The type is unnamed, so make up a name. */
-    /* The name is either __Cnn or __Enn, where nn is a unique number for the
-       class/enum. */
-    unsigned long num = 0;
-    if (type->source_corresp.is_class_member) {
-      /* For a nested type, try to find a field of the parent class that
-         has this type.  If there is one, use the field number of the
-         field in generating the unnamed class name.  Note that the
-         nested classes will have been promoted out of the parent
-         class by this point if the parent class is a local class,
-         so we can't look at the parent class types list. */
-      a_type_ptr parent_type = parent_class_of(type);
-      num = number_of_field_using_unnamed_type(parent_type, type);
-    }  /* if */
-    if (num == 0) {
-      /* By default, just use the next number in sequence. */
-      num = ++unnamed_class_or_enum_seed;
-      /* In this case (only), we set name_has_been_mangled to indicate
-         that the generated name is the complete name.  No parent
-         information, for example, will be added.  The generated name
-         by itself is unique across the whole compilation. */
+    if (is_immediate_class_type(type) &&
+        unnamed_type_has_no_discriminator(type)) {
+      unsigned long num;
+      /* If there is no discriminator, generate a unique __Cnn name using
+         the next number in sequence. */
+      num = ++unnamed_class_seed;
+      /* Set name_has_been_mangled to indicate that the generated name is the
+         complete name.  No parent information, for example, will be added.
+         The generated name by itself is unique across the whole compilation.
+         */
       type->source_corresp.name_has_been_mangled = TRUE;
+      (void)sprintf(buffer, "__C%lu", (unsigned long)num);
+      name = alloc_lowered_name_string(strlen(buffer) + 1);
+      (void)strcpy(name, buffer);
+      type->source_corresp.name = name;
+#if !IA64_ABI
+    } else {
+      /* In the Cfront ABI, all unnamed types are assigned generated names
+         and the normal mangling mechanism for class/enum types is used for
+         the generation of mangled names. */
+      a_mangling_control_block mctl;
+      char                     *generated_name;
+      start_mangling(&mctl);
+      if (type_is_lambda_closure(type)) {
+        /* Generate a class name for the lambda closure class. */
+        a_type_ptr    call_operator_type;
+        call_operator_type = call_operator_function_type_for_lambda(type);
+        check_assertion(symbol_supplement_for_class(type) != NULL);
+        discriminator = symbol_supplement_for_class(type)->discriminator;
+        check_assertion(discriminator != 0);
+        if (mangle_as_lambda_in_default_argument(type)) {
+          /* A lambda used in a default argument is given a name with the
+             following format:
+
+              __Ud1_2_Fv__L0__f__FiT1 <-- name given to lambda in default arg:
+                                          void f(int i=[]{return 0;}(),int k=0)
+                        ^^^^^^^^^^^^^---- Local to function f(int,int).
+                      ^^----------------- Lambda operator() function type.
+                    ^-------------------- Declared in trailing parameter 2.
+                  ^---------------------- Instance 1 (within parameter).
+              ^^^^----------------------- __Ud indicates lambda in default arg.
+
+             Note that not all lambdas defined in default arguments are
+             mangled as such -- lambdas defined in default arguments of
+             functions declared in the function scope are mangled as though
+             they appear in the function scope (to avoid possible conflicts
+             with similarly defined lambdas).
+             */
+          a_routine_ptr enclosing_routine;
+          add_str_to_mangled_name("__Ud", &mctl);
+          add_number_to_mangled_name(discriminator, &mctl);
+          add_to_mangled_name('_', &mctl);
+          add_mangling_for_default_arg_in_local_type(type, &enclosing_routine,
+                                                     &mctl);
+          add_to_mangled_name('_', &mctl);
+          mangled_encoding_for_function_type(call_operator_type,
+                                             /*do_return_type=*/FALSE,
+                                             /*do_markers=*/TRUE,
+                                             &mctl);
+          add_local_name_suffix((unsigned long)0, enclosing_routine, &mctl);
+        } else {
+          /* All other lambdas are given a name with the following format:
+
+               __Ul1_Fif <-- name given to lambda:
+                             [](int, float)->float {return 0.0;}(i, f);
+                     ^^^---- Lambda operator() function type (int, float).
+                   ^-------- Instance (within parent scope).
+               ^^^^--------- "__Ul" indicates lambda, "__Um" indicates
+                             lambda in a member initializer.
+             */
+          if (type_is_lambda_in_initializer(type)) {
+            add_str_to_mangled_name("__Um", &mctl);
+          } else {
+            add_str_to_mangled_name("__Ul", &mctl);
+          }  /* if */
+          add_number_to_mangled_name(discriminator, &mctl);
+          add_to_mangled_name('_', &mctl);
+          mangled_encoding_for_function_type(call_operator_type,
+                                             /*do_return_type=*/FALSE,
+                                             /*do_markers=*/TRUE,
+                                             &mctl);
+        }  /* if */
+      } else {
+        /* All other unnamed types are simply mangled with __Ut followed by
+           the discriminator number (as calculated by the front end). */
+        add_str_to_mangled_name("__Ut", &mctl);
+        if (is_immediate_class_type(type)) {
+          discriminator = symbol_supplement_for_class(type)->discriminator;
+        } else {
+          discriminator =
+               symbol_for(type)->variant.enumeration.extra_info->discriminator;
+        }  /* if */
+        check_assertion(discriminator != 0);
+        add_number_to_mangled_name(discriminator, &mctl);
+      }  /* if */
+      generated_name = end_mangling((a_source_correspondence *)NULL,
+                                    /*final=*/FALSE, &mctl);
+      /* Allocate space for the generated name and copy it. */
+      name = alloc_lowered_name_string(mctl.length);
+      (void)strcpy(name, generated_name);
+      type->source_corresp.name = name;
+#endif /* !IA64_ABI */
     }  /* if */
-    (void)sprintf(buffer, is_immediate_class_type(type) ? "__C%lu" : "__E%lu",
-                  (unsigned long)num);
-    name = alloc_lowered_name_string(strlen(buffer) + 1);
-    (void)strcpy(name, buffer);
-    type->source_corresp.name = name;
   }  /* if */
   return name;
 }  /* give_unnamed_class_or_enum_a_name */
@@ -3291,7 +3568,7 @@ given by tap.
       add_str_to_mangled_name("__", mctl);
       /* Put out the name of the class or namespace of which this template
          is a member. */
-      mangled_parent_qualifier(scp, mctl);
+      mangled_parent_qualifier(scp, iek_template, mctl);
     }  /* if */
     fill_in_length(&length_reservation, mctl);
 #else /* IA64_ABI */
@@ -3423,55 +3700,57 @@ literals.
 #endif /* IA64_ABI */
 }  /* mangled_template_arguments */
 
-#if !IA64_ABI
-
-static void mangled_specialization_indication(a_mangling_control_block *mctl)
-/*
-Add to the mangled name the encoding qualifier that indicates specialization.
-*/
-{
-  add_str_to_mangled_name("__S", mctl);
-}  /* mangled_specialization_indication */
-
-
-static void add_local_name_suffix(unsigned long            id_number,
-                                  a_routine_ptr            routine,
-                                  a_mangling_control_block *mctl)
-/*
-Add a suffix to the current name for a function-local entity.  id_number
-is an id number for the entity (usually a scope number within the routine)
-and "routine" is the routine to which the entity is local.
-*/
-{
-  /* The mangling is "__Lnn", where "nn: is the id number, followed by the
-     mangled name of the function. */
-  add_str_to_mangled_name("__L", mctl);
-  add_number_to_mangled_name(id_number, mctl);
-  add_str_to_mangled_name("__", mctl);
-  if (routine->source_corresp.name != NULL) {
-    mangled_function_name_externalized_if_necessary(
-                                         routine,
-                                         /*suppress_param_encoding=*/FALSE,
-                                         /*suppress_parent_encoding=*/FALSE,
-                                         /*force_primary_name=*/TRUE,
-                                         /*base_name_offset=*/(sizeof_t *)NULL,
-                                         mctl);
-  }  /* if */
-}  /* add_local_name_suffix */
-
-#endif /* !IA64_ABI */
 #if IA64_ABI
   
+static a_boolean is_self_discriminated_type(a_type_ptr type)
+/*
+Return TRUE if discrimination for this type "binds tightly".  This is the
+case for unnamed types in the <entity name> portion of <local-rule> where
+the discriminator is closely bound to the unnamed type as opposed to appearing
+at the end of the <entity name> production.
+*/
+{
+  return (is_originally_unnamed_type(type) &&
+          !(is_immediate_class_type(type) &&
+            unnamed_type_has_no_discriminator(type)));
+}  /* is_self_discriminated_type */
+
+
 static void add_discriminator(a_discriminator          discriminator,
+                              a_boolean                emit_underscore,
                               a_mangling_control_block *mctl)
 /*
 Add the encoding for a discriminator (used to distinguish like-named
-local entities in the IA-64 ABI) to the mangled name.
+local entities in the IA-64 ABI) to the mangled name.  If emit_underscore
+is TRUE, a leading underscore is emitted before the discriminator.
+Internally, discriminator is 1-based (zero is used to indicate that a
+discriminator hasn't been assigned), but in the IA-64 ABI mangled name, the
+number n-2 is used to represent the nth occurrence (and no discriminator
+is emitted for the first occurrence).
+
+In some manglings, a discriminator can immediately precede a source name,
+making it impossible to determine which digits belong to the discriminator
+and which to the length of the source name.  As a result, the following rule
+was added:
+
+  <discriminator> := _ <non-negative number>      # when number < 10
+                  := __ <non-negative number> _   # when number >= 10
+
 */
 {
-  if (discriminator > 0) {
-    add_to_mangled_name('_', mctl);
-    add_number_to_mangled_name((unsigned long)(discriminator - 1), mctl);
+  check_assertion(discriminator != 0);
+  if (discriminator > 1) {
+    unsigned long n = discriminator - 2;
+    if (emit_underscore) {
+      add_to_mangled_name('_', mctl);
+#if ABI_COMPATIBILITY_VERSION >= 401
+      if (n >= 10) add_to_mangled_name('_', mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 401 */
+    }  /* if */
+    add_number_to_mangled_name(n, mctl);
+#if ABI_COMPATIBILITY_VERSION >= 401
+    if (emit_underscore && n >= 10) add_to_mangled_name('_', mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 401 */
   }  /* if */
 }  /* add_discriminator */
 
@@ -3508,24 +3787,137 @@ IA-64 ABI to distinguish function-local entities with the same name.
     } else if (sym->kind == (a_symbol_kind)sk_type) {
       discriminator = sym->variant.type.discriminator;
     }  /* if */
-    add_discriminator(discriminator, mctl);
+    add_discriminator(discriminator, /*emit_underscore=*/TRUE, mctl);
   }  /* if */
 }  /* add_discriminator_if_necessary */
 
 #endif /* IA64_ABI */
 
+static a_variable_ptr parent_variable_for_lambda_in_initializer(
+                                                             a_type_ptr lambda)
+/*
+Returns the (static data member) variable in whose initializer the lambda
+is defined.  The variable is used as a "pseudo-parent" for the lambda for
+mangling purposes.
+*/
+{
+  a_variable_ptr              var;
+  a_symbol_ptr                sym;
+  a_class_symbol_supplement_ptr
+                              cssp = symbol_supplement_for_class(lambda);
+
+  check_assertion(type_is_lambda_closure(lambda) &&
+                  cssp != NULL &&
+                  cssp->
+                     lambda_immediately_inside_static_data_member_initializer);
+  sym = cssp->lambda_parent_entity;
+  check_assertion(sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_static_data_member);
+  var = sym->variant.static_data_member.variable;
+  check_assertion(var != NULL);
+  return var;
+}  /* parent_variable_for_lambda_in_initializer */
+
+
+static void mangled_unnamed_type_encoding(a_type_ptr               type,
+                                          a_mangling_control_block *mctl)
+/*
+Generate an encoding for the specified unnamed (class or enum) type.
+*/
+{
+  char *name;
+  check_assertion(is_immediate_class_type(type) ||
+                  is_immediate_enum_type(type));
+#if IA64_ABI
+  if (type_is_lambda_closure(type)) {
+    /* An unnamed lambda closure type is mangled as:
+         Ul <operator() bare-function-type> E [<discriminator>] _ */
+    a_type_ptr    call_operator_type;
+    call_operator_type = call_operator_function_type_for_lambda(type);
+    check_assertion(symbol_supplement_for_class(type) != NULL);
+    add_str_to_mangled_name("Ul", mctl);
+    mangled_encoding_for_function_type(call_operator_type,
+                                       /*do_return_type=*/FALSE,
+                                       /*do_markers=*/FALSE,
+                                       mctl);
+    add_str_to_mangled_name("E", mctl);
+    add_discriminator(symbol_supplement_for_class(type)->discriminator,
+                      /*emit_underscore=*/FALSE, mctl);
+    add_to_mangled_name('_', mctl);
+  } else {
+    if (is_immediate_class_type(type) &&
+        unnamed_type_has_no_discriminator(type)) {
+      name = give_unnamed_class_or_enum_a_name(type);
+      /* For compiler generated classes, generate an encoding based on the
+         unique name that has just been assigned. */
+      add_number_to_mangled_name((unsigned long)strlen(name), mctl);
+      add_str_to_mangled_name(name, mctl);
+    } else {
+      /* Unnamed class or enum type (where a discriminator is available).
+         These are mangled as: Ut [<discriminator>] _ */
+      check_assertion(symbol_supplement_for_class(type) != NULL);
+      add_str_to_mangled_name("Ut", mctl);
+      if (is_immediate_class_type(type)) {
+        add_discriminator(symbol_supplement_for_class(type)->discriminator,
+                          /*emit_underscore=*/FALSE, mctl);
+      } else {
+        add_discriminator(symbol_for(type)->variant.enumeration.extra_info->
+                                                                 discriminator,
+                          /*emit_underscore=*/FALSE, mctl);
+      }  /* if */
+      add_to_mangled_name('_', mctl);
+    }  /* if */
+  }  /* if */
+#else  /* !IA64_ABI */
+  /* In the Cfront ABI, all unnamed types are assigned a name, and then are
+     mangled just like other class/struct/union types (i.e., the type name
+     prefixed with the length of the type).  The length of the type name is
+     added by the caller. */
+  name = unmangled_name_of(&type->source_corresp);
+  if (name == NULL) {
+    name = give_unnamed_class_or_enum_a_name(type);
+    check_assertion(name != NULL);
+  }  /* if */
+  add_str_to_mangled_name(name, mctl);
+#endif /* IA64_ABI */
+}  /* mangled_unnamed_type_encoding */
+
+
+static void mangled_encoding_for_class_or_enum_type(
+                                                a_type_ptr type,
+                                                a_mangling_control_block *mctl)
+/*
+Add to the mangled name the basic mangled encoding for type (a class or enum
+type).  This routine doesn't handle nesting or template parameters (the caller
+handles this).  A length is prefixed to named classes in the IA-64 ABI (but
+not in the Cfront ABI -- this is typically handled by the caller).
+*/
+{
+  check_assertion(is_immediate_class_type(type) ||
+                  is_immediate_enum_type(type));
+  char *name = unmangled_name_of(&type->source_corresp);
+  if (name == NULL) {
+    /* For an unnamed type, special encodings apply. */
+    mangled_unnamed_type_encoding(type, mctl);
+  } else {
+    /* Use the class name (preceded by its length in the IA-64 ABI). */
+#if IA64_ABI
+    add_number_to_mangled_name((unsigned long)strlen(name), mctl);
+#endif /* IA64_ABI */
+    add_str_to_mangled_name(name, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_class_or_enum_type */
+
+
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- show_partial_spec_args, show_template_specialization,
                     and show_specialization are not used in that case. */
-#else /* !IA64_ABI */
-/*ARGSUSED*/ /* <-- show_length is not used in that case. */
 #endif /* IA64_ABI */
 static void mangled_full_class_name(
                          a_type_ptr               type,
                          a_boolean                show_partial_spec_args,
                          a_boolean                show_template_specialization,
                          a_boolean                show_specialization,
-                         a_boolean                show_length,
                          a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the class "type".
@@ -3538,11 +3930,9 @@ specialization should be put out.  show_template_specialization is TRUE
 if the class is generated from a specialization of a template and an
 indication of that fact should be put out.  show_specialization is TRUE
 if the class is itself a specialization and an indication of that fact
-should be put out.  show_length is TRUE if the length of the class name
 should be put out.
 */
 {
-  char                        *name;
   a_class_type_supplement_ptr ctsp;
   a_template_arg_ptr          template_args;
 
@@ -3555,18 +3945,7 @@ should be put out.
   template_args = ctsp->template_arg_list;
   /* Always start with the name of the class, which applies even in the
      template class case. */
-  name = unmangled_name_of(&type->source_corresp);
-  if (name == NULL) {
-    /* For an unnamed class, generate a name (or use the name previously
-       generated). */
-    name = give_unnamed_class_or_enum_a_name(type);
-  }  /* if */
-#if IA64_ABI
-  if (show_length) {
-    add_number_to_mangled_name((unsigned long)strlen(name), mctl);
-  }  /* if */
-#endif /* IA64_ABI */
-  add_str_to_mangled_name(name, mctl);
+  mangled_encoding_for_class_or_enum_type(type, mctl);
 #if !IA64_ABI
 #if ABI_COMPATIBILITY_VERSION < 241
   /* Before this change, all names included partial specialization
@@ -3637,9 +4016,12 @@ should be put out.
   }  /* if */
 #else /* IA64 */
 #if ABI_COMPATIBILITY_VERSION < 401
-  /* Earlier versions mistakenly emitted a discriminator at this point
-     (rather than at the end of the nested name of a local type). */
-  add_discriminator_if_necessary(&type->source_corresp, mctl);
+  if (!type->variant.class_struct_union.originally_unnamed) {
+    /* Unnamed classes have already been discriminated. */
+    /* Earlier versions mistakenly emitted a discriminator at this point
+       (rather than at the end of the nested name of a local type). */
+    add_discriminator_if_necessary(&type->source_corresp, mctl);
+  }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION < 401 */
 #endif /* !IA64_ABI */
 }  /* mangled_full_class_name */
@@ -3648,12 +4030,11 @@ should be put out.
 #if !IA64_ABI
 /*
 Interface to mangled_full_class_name for the case where
-show_partial_spec_args, show_template_specialization, show_specialization and
-show_length are FALSE (meaning no information about those things
-should be put out).
+show_partial_spec_args, show_template_specialization, and show_specialization
+are FALSE (meaning no information about those things should be put out).
 */
 #define mangled_basic_class_name(type, mctl)                          \
-  mangled_full_class_name((type), FALSE, FALSE, FALSE, FALSE, (mctl))
+  mangled_full_class_name((type), FALSE, FALSE, FALSE, (mctl))
 
 #endif /* !IA64_ABI */
 
@@ -3749,7 +4130,6 @@ that fact should be put out.
                               show_partial_spec_args,
                               show_template_specialization,
                               show_specialization,
-                              /*show_length=*/TRUE,
                               mctl);
 #if !IA64_ABI
       fill_in_length(&length_reservation, mctl);
@@ -3759,24 +4139,6 @@ that fact should be put out.
 }  /* mangled_class_encoding */
 
 #if !IA64_ABI
-
-static unsigned long nesting_level_of(a_source_correspondence *scp)
-/*
-Compute the nesting level of the entity with the indicated source
-correspondence.  The nesting level is the count of enclosing class
-and namespace levels.
-*/
-{
-  unsigned long levels = 0;
-
-  if (scp->is_class_member) {
-    levels = nesting_level_of(&scp_parent_class(scp)->source_corresp) + 1;
-  } else if (scp_is_namespace_member(scp)) {
-    levels = nesting_level_of(&scp_parent_namespace(scp)->source_corresp) + 1;
-  }  /* if */
-  return levels;
-}  /* nesting_level_of */
-
 
 static void add_nesting_level_encoding(unsigned long            nesting_level,
                                        a_mangling_control_block *mctl)
@@ -3831,25 +4193,34 @@ template argument lists, and types promoted out of functions.
 
 #endif /* !IA64_ABI */
 
-/* Return TRUE if the indicated entity needs a parent (class, namespace, or
-   scoped enum) qualifier.  scp is an a_source_correspondence pointer for the
-   entity.  kind is the an_il_entry_kind for the entity (unused when
-   CFRONT_2_1_OBJECT_CODE_COMPATIBILITY is FALSE). */
-#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-#define entity_needs_parent_qualifier(scp, kind)                      \
-  (scp_is_class_or_namespace_member(scp) ||                           \
-   scp_is_enum_member(scp))
-#else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#define entity_needs_parent_qualifier(scp, kind)                      \
-  ((scp_is_class_or_namespace_member(scp) ||                          \
-    scp_is_enum_member(scp)) &&                                       \
-     !(((kind) == (an_il_entry_kind)iek_type/*lint --e(506)*/) &&     \
-       ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling))
-#endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+static a_boolean entity_needs_parent_qualifier(a_source_correspondence *scp,
+                                               an_il_entry_kind        kind)
+/*
+Return TRUE if the indicated entity (as identified by scp and kind) needs a
+parent (class, namespace, or scoped enum) qualifier.  In the IA-64 ABI, lambda
+closures defined in default arguments of member functions or functions in a
+namespace don't need their parent entity (their actual class/namespace parent
+is replaced by a reference to a default argument in a local function).
+*/
+{
+  a_boolean result = FALSE;
 
-#if DO_IL_LOWERING
-static char *module_id_for_source_corresp(a_source_correspondence *scp);
-#endif /* DO_IL_LOWERING */
+  if (((scp_is_class_or_namespace_member(scp)
+#if IA64_ABI
+        && !((kind) == (an_il_entry_kind)iek_type &&
+             mangle_as_lambda_in_default_argument((a_type_ptr)(scp)))
+#endif /* IA64_ABI */
+                                                                   ) ||
+    scp_is_enum_member(scp))
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+    && !(((kind) == (an_il_entry_kind)iek_type) &&
+         ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling)
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+                                                                            ) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* entity_needs_parent_qualifier */
 
 
 static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
@@ -3861,25 +4232,46 @@ collisions of similarly named (or unnamed) entities in multiple translation
 units.  This can occur when an unnamed type (or named type of a static
 function) is used as a template type argument.  Unnamed types that are class
 members or local to a function are already mangled in a unique manner (relative
-to their class or function).
+to their class or function -- this includes lambdas defined in default
+arguments or initializers).
 */
 {
   a_boolean result = FALSE;
 
-  if (local_types_as_template_args_enabled &&
-      ((kind == iek_type &&
-        is_originally_unnamed_type((a_type_ptr)scp) &&
-        !scp->is_class_member &&
-        !scp->is_local_to_function) ||
-       (kind == iek_routine &&
-        !is_class_or_namespace_member((a_routine_ptr)scp) &&
-        ((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static
+  if (local_types_as_template_args_enabled) {
+    if (kind == iek_type) {
+      if (is_originally_unnamed_type((a_type_ptr)scp) &&
+          !scp->is_class_member &&
+          !scp->is_local_to_function) {
+        /* An unnamed type that isn't specific to a class or function is
+           individuated. */
+        result = TRUE;
+      }  /* if */
+      if (type_is_lambda_closure((a_type_ptr)scp)) {
+        a_class_symbol_supplement_ptr cssp;
+        cssp = symbol_supplement_for_class((a_type_ptr)scp);
+        check_assertion(cssp != NULL);
+        if (cssp->lambda_subject_to_trans_unit_corresp) {
+          /* The front end has determined that this lambda is used in a context
+             where the closure type must be reproducible across translation
+             units -- don't individuate. */
+          result = FALSE;
+        }  /* if */
+      }  /* if */
+    } else if (kind == iek_routine &&
+               !is_class_or_namespace_member((a_routine_ptr)scp) &&
+               ((a_routine_ptr)scp)->storage_class ==
+                                                     (a_storage_class)sc_static
 #if DO_IL_LOWERING
-        && !routine_should_be_externalized_for_exported_templates(
-                                                       (a_routine_ptr)scp)
+                && !routine_should_be_externalized_for_exported_templates(
+                                                            (a_routine_ptr)scp)
 #endif /* DO_IL_LOWERING */
-                                                                          ))) {
-    result = TRUE;
+                                                                            ) {
+      /* Static (non-member) functions may contain local types that are
+         mangled relative to the function name, so the function name must
+         be individuated to prevent possible name collisions. */
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* entity_needs_to_be_individuated */
@@ -3967,46 +4359,70 @@ is used to generate the correct module id for the entity.
 
 static void r_mangled_parent_qualifier(
                              a_source_correspondence  *scp,
+                             an_il_entry_kind         kind,
                              unsigned long            nesting_level,
                              a_boolean                needs_to_be_individuated,
-                             a_source_correspondence  **top_most_scp,
+                             a_source_correspondence  **discriminator_scp,
                              a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the parent qualifier needed in the
-mangled name for an entity whose source correspondence is pointed to by scp.
-Typically, scp is a member of a class, namespace member, or scoped enumerator,
-but when needs_to_be_individuated is TRUE, the entity can be a type or routine.
-nesting_level is used to track recursive calls of this routine to deal with
-multiple levels of parents.  nesting_level == 1 refers to the innermost
-qualifier of a type, nesting_level == 2 is the next level out, etc.  The value
-is not used in the IA-64 ABI.  needs_to_be_individuated is TRUE when then
-entity needs to be "individuated", that is, mangled "as if" the entity were
-part of a top-level namespace with a unique name.  See the macro
-mangled_parent_qualifier, which supplies the usual nesting_level == 1 and
-needs_to_be_individuated == FALSE.  If top_most_scp is not NULL, *top_most_scp
-is set to the source correspondence of the top most level of the scp entity.
-This is used by the caller in the IA-64 ABI to emit a discriminator (if
-necessary) if the entity is local to a function.
+mangled name for an entity whose source correspondence is pointed to by scp and
+whose kind is given by "kind".  Typically, scp is a member of a class,
+namespace member, or scoped enumerator, but when needs_to_be_individuated is
+TRUE, the entity can be a type or routine.  nesting_level is used to track
+recursive calls of this routine to deal with multiple levels of parents.
+nesting_level == 1 refers to the innermost qualifier of a type, nesting_level
+== 2 is the next level out, etc.  The value is not used in the IA-64 ABI.
+needs_to_be_individuated is TRUE when then entity needs to be "individuated",
+that is, mangled "as if" the entity were part of a top-level namespace with a
+unique name.  See the macro mangled_parent_qualifier, which supplies the usual
+nesting_level == 1 and needs_to_be_individuated == FALSE.  If discriminator_scp
+is not NULL, *discriminator_scp is set to the source correspondence of the
+entity to be used in the IA-64 ABI as a discriminator (if necessary) if the
+entity is local to a function.  Typically this is the topmost entity, unless
+the topmost entity is an unnamed type in which case the discriminator is used
+in differentiating the unnamed type (and *discriminator_scp is set to NULL).
+
+For most cases, the parent entity as specified by the IL is used for
+mangling purposes, but in two special cases the parent processing is
+non-standard.  In the first case (needs_to_be_individuated == TRUE), a
+top-level namespace is used as a parent entity (see above).  In the case
+of a lambda defined in the initializer list of a static data member, the
+static data member is used as the parent entity for mangling purposes.
 */
 {
   a_type_ptr              type = NULL;
   a_class_type_supplement_ptr
                           ctsp;
   a_source_correspondence *parent_scp;
+  an_il_entry_kind        parent_kind;
   a_boolean               more_levels;
   a_boolean               show_partial_spec_args = FALSE;
   a_boolean               is_template_specialization = FALSE;
   a_boolean               is_specialization = FALSE;
   a_boolean               use_individuated_namespace = FALSE;
   char                    *name;
+  a_variable_ptr          var;
 
-  if (top_most_scp != NULL) {
+  if (discriminator_scp != NULL) {
     /* Assume that this is the top most level (may be overwritten later). */
-    *top_most_scp = scp;
+    *discriminator_scp = scp;
   }  /* if */
-  /* See if the present level is nested inside some other class or
-     namespace. */
-  if (scp->is_class_member) {
+  /* See if the present level is nested inside some other level (class,
+     scoped enum, or namespace), or is logically nested inside some other
+     entity (lambdas in initializers, individuated entities) for the purposes
+     of mangling. */
+  if (kind == iek_type &&
+      type_is_lambda_in_initializer((a_type_ptr)scp)) {
+    /* This lambda closure was defined in an initializer for a static data
+       member.  Use the static data member as its "parent" for mangling
+       purposes. */
+    var = parent_variable_for_lambda_in_initializer((a_type_ptr)scp);
+    parent_scp = &var->source_corresp;
+    parent_kind = iek_variable;
+    more_levels = entity_needs_parent_qualifier(&var->source_corresp,
+                                                iek_variable);
+  } else if (scp->is_class_member) {
     /* Class member. */
     type = scp_parent_class(scp);
     ctsp = class_type_supp(type);
@@ -4068,21 +4484,27 @@ necessary) if the entity is local to a function.
          appropriate (but we can't use them if we're in a context where
          all partial specialization information is suppressed, unless
          there are no partial specializations involved). */
-      /* We need to drop the nested type name prefix if present, and
-         construct the correct "Q" qualifier with the right total nesting
-         level, ignoring the one on the saved mangled name. */
-      unsigned long type_nesting_level=nesting_level_of(&type->source_corresp);
+      /* Find the nested type name prefix if present, determine the existing
+         nesting level and construct the correct "Q" qualifier with the right
+         total nesting level. */
+      unsigned long type_nesting_level = 0;
       name = type->source_corresp.name;
       /* Skip the prefix. */
       check_assertion(strncmp(name,
                               PREFIX_ON_NESTED_TYPE_NAME,
                               sizeof(PREFIX_ON_NESTED_TYPE_NAME)-1) == 0);
       name += sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
-      if (type_nesting_level > 0) {
+      if (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
+          entity_needs_to_be_individuated(&type->source_corresp, iek_type)) {
         check_assertion(*name == 'Q');
-        /* Skip the "Q", number of levels, and the underscore. */
+        /* Skip the "Q". */
         name++;
-        while (isdigit((unsigned char)*name)) name++;
+        /* Determine the nesting level of the existing parent type. */
+        while (isdigit((unsigned char)*name)) {
+          type_nesting_level = type_nesting_level * 10 + (*name - '0');
+          name++;
+        }  /* while */
+        type_nesting_level--;
         check_assertion(*name == '_');
         name++;
       }  /* if */
@@ -4097,17 +4519,20 @@ necessary) if the entity is local to a function.
     }  /* if */
 #endif /* !IA64_ABI */
     parent_scp = &type->source_corresp;
+    parent_kind = iek_type;
     more_levels = entity_needs_parent_qualifier(&type->source_corresp,
                                                 iek_type);
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
     type = scp_parent_scoped_enum_type(scp);
     parent_scp = &type->source_corresp;
+    parent_kind = iek_type;
     more_levels = entity_needs_parent_qualifier(&type->source_corresp,
                                                 iek_type);
   } else if (scp_is_namespace_member(scp)) {
     /* Namespace member. */
     parent_scp = &scp_parent_namespace(scp)->source_corresp;
+    parent_kind = iek_namespace;
     more_levels = scp_is_namespace_member(parent_scp);
     if (!more_levels && needs_to_be_individuated) {
       /* This is the topmost namespace, but the entity needs to
@@ -4120,19 +4545,32 @@ necessary) if the entity is local to a function.
     check_assertion(needs_to_be_individuated);
     more_levels = FALSE;
     parent_scp = NULL;
+    parent_kind = iek_none;
     use_individuated_namespace = TRUE;
   }  /* if */
-  if (!more_levels && top_most_scp != NULL) {
-    /* No more levels, return the source correspondence of the top most
-       level. */
-    *top_most_scp = parent_scp;
+  if (!more_levels && discriminator_scp != NULL) {
+#if IA64_ABI
+    if (type != NULL && is_self_discriminated_type(type)) {
+      /* If the topmost entity is an unnamed type, don't bother setting
+         discriminator_scp (the discriminator will be emitted as part of the
+         unnamed type rather than as part of the local-name discriminator). */
+      *discriminator_scp = NULL;
+    } else
+#endif /* IA64_ABI */
+    /* Do not insert code here. */
+    {
+      /* No more levels, return the source correspondence of the top most
+         level. */
+      *discriminator_scp = parent_scp;
+    }  /* if */
   }  /* if */
 #if !IA64_ABI
   if (more_levels) {
     /* This level is nested inside something else.  Do a recursive call
        to put out all of the parents. */
-    r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                               needs_to_be_individuated, top_most_scp, mctl);
+    r_mangled_parent_qualifier(parent_scp, parent_kind, nesting_level + 1,
+                               needs_to_be_individuated, discriminator_scp,
+                               mctl);
   } else {
     /* This is the topmost qualifier. */
     if (nesting_level > 1) {
@@ -4140,10 +4578,33 @@ necessary) if the entity is local to a function.
     }  /* if */
   }  /* if */
 #endif /* !IA64_ABI */
-  /* Put the class or namespace name at this level into the mangled name. */
-  /* The name is preceded by a count of the number of characters in
-     the name. */
-  if (scp->is_class_member) {
+  /* Now that we've identified the proper parent (actual or logical)
+     for the specified entity, emit the proper encoding for the parent. */
+  if (kind == iek_type &&
+      type_is_lambda_in_initializer((a_type_ptr)scp)) {
+    /* Lambda in initializer list.  Simply add the name of the static data
+       member along with its length. */
+#if IA64_ABI
+    if (add_substitution_if_available((char *)var, iek_variable, mctl)) {
+      goto done;
+    } else {
+      if (more_levels) {
+        /* This level is nested inside something else.  Do a recursive call to
+           deal with all of the parents. */
+        r_mangled_parent_qualifier(parent_scp, parent_kind, nesting_level + 1,
+                                   needs_to_be_individuated, discriminator_scp,
+                                   mctl);
+      }  /* if */
+    }  /* if */
+#endif /* IA64_ABI */
+    mangled_name_with_length(unmangled_name_of(&var->source_corresp), mctl);
+#if IA64_ABI
+    /* Mangling for lambda in initializer. */
+    add_to_mangled_name('M', mctl);
+    /* Add a substitution for this variable. */
+    alloc_substitution((char *)var, iek_variable, mctl);
+#endif /* IA64_ABI */
+  } else if (scp->is_class_member) {
     /* Class name. */
 #if IA64_ABI
     if (add_substitution_if_available((char *)type, iek_type, mctl)) {
@@ -4162,8 +4623,8 @@ necessary) if the entity is local to a function.
       if (more_levels) {
         /* This level is nested inside something else.  Do a recursive call to
            deal with all of the parents. */
-        r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                   needs_to_be_individuated, top_most_scp,
+        r_mangled_parent_qualifier(parent_scp, parent_kind, nesting_level + 1,
+                                   needs_to_be_individuated, discriminator_scp,
                                    mctl);
       }  /* if */
       if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
@@ -4175,7 +4636,6 @@ necessary) if the entity is local to a function.
                               show_partial_spec_args,
                               is_template_specialization,
                               is_specialization,
-                              /*show_length=*/TRUE,
                               mctl);
       goto new_substitution;
     }  /* if */
@@ -4192,15 +4652,6 @@ new_substitution:
 #endif /* IA64_ABI */
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
-#if !IA64_ABI
-    a_length_reservation  length_reservation;
-#endif /* !IA64_ABI */
-    name = unmangled_name_of(&type->source_corresp);
-    if (name == NULL) {
-      /* For an unnamed enum, generate a name (or use the name previously
-         generated). */
-      name = give_unnamed_class_or_enum_a_name(type);
-    }  /* if */
 #if IA64_ABI
     if (add_substitution_if_available((char *)type, iek_type, mctl)) {
       goto done;
@@ -4208,20 +4659,20 @@ new_substitution:
       if (more_levels) {
         /* This level is nested inside something else.  Do a recursive call to
            deal with all of the parents. */
-        r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                   needs_to_be_individuated, top_most_scp,
+        r_mangled_parent_qualifier(parent_scp, parent_kind, nesting_level + 1,
+                                   needs_to_be_individuated, discriminator_scp,
                                    mctl);
       }  /* if */
     }  /* if */
-    /* Put out the enum name along with its length. */
-    mangled_name_with_length(name, mctl);
+    mangled_encoding_for_class_or_enum_type(type, mctl);
     /* Add a substitution for this type. */
     alloc_substitution((char *)type, iek_type, mctl);
 #else /* !IA64_ABI */
+    a_length_reservation  length_reservation;
     /* Put out the enum name (and optional unique indicator) along with its
        length. */
     reserve_space_for_length(&length_reservation, mctl);
-    add_str_to_mangled_name(name, mctl);
+    mangled_encoding_for_class_or_enum_type(type, mctl);
     if (scp->is_local_to_function && !type->source_corresp.is_class_member) {
       /* To make a local scoped enumerator unique, add the unique scope
          number of the block that contains it. */
@@ -4260,8 +4711,9 @@ new_substitution:
     } else if (more_levels) {
       /* This level is nested inside something else.  Do a recursive call to
          deal with all of the parents. */
-      r_mangled_parent_qualifier(parent_scp, nesting_level + 1,
-                                 needs_to_be_individuated, top_most_scp, mctl);
+      r_mangled_parent_qualifier(parent_scp, parent_kind, nesting_level + 1,
+                                 needs_to_be_individuated, discriminator_scp,
+                                 mctl);
     }  /* if */
 #endif /* IA64_ABI */
     name = unmangled_name_of(&nsp->source_corresp);
@@ -4305,14 +4757,31 @@ discriminator (if necessary).
 */
 {
   a_type_ptr              local_type = NULL;
-  a_source_correspondence *top_most_scp = NULL;
 
   check_assertion(discriminator_scp != NULL);
   *discriminator_scp = NULL;
   *need_nested_name_close = FALSE;
-  /* Add the encoding for the function if this is a local type,
-     member of a local class, or a scoped enumerator. */
-  if (scp->is_local_to_function) {
+  /* Lambdas defined in default arguments are mangled as though they are
+     local to the function in whose declaration they are defined.  The
+     is_local_to_function flag is not set in the IL, so this case is handled
+     specially here.  Note that lambdas defined in a declaration at function
+     scope are mangled as though they appear at function scope (and not mangled
+     as described above). */
+  if (kind == iek_type &&
+      mangle_as_lambda_in_default_argument((a_type_ptr)scp)) {
+    local_type = (a_type_ptr)scp;
+  } else if (scp->is_class_member &&
+             mangle_as_lambda_in_default_argument(
+                                        (a_type_ptr)scp_parent_class(scp))) {
+    local_type = (a_type_ptr)scp_parent_class(scp);
+  }  /* if */ 
+  if (local_type != NULL) {
+    /* Encode as a local type with default argument information. */
+    add_mangling_for_default_arg_in_local_type(local_type,
+                                               (a_routine_ptr*)NULL, mctl);
+  } else if (scp->is_local_to_function) {
+    /* Add the encoding for the function if this is a local type,
+       member of a local class, or a scoped enumerator. */
     if (kind == iek_type) {
       local_type = (a_type_ptr)scp;
     } else if (scp->is_class_member) {
@@ -4322,7 +4791,10 @@ discriminator (if necessary).
     }  /* if */
     if (local_type != NULL) {
       add_prefix_for_local_type(local_type, mctl);
-      top_most_scp = scp;
+      if (!is_self_discriminated_type(local_type)) {
+        /* We don't discriminate here if it's an unnamed local type. */
+        *discriminator_scp = scp;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
@@ -4354,16 +4826,13 @@ discriminator (if necessary).
     /* Put out the components of the nested name except for the final one.
        The caller will put out the final name and then close the nested
        name. */
-    r_mangled_parent_qualifier(scp, (unsigned long)1,
+    r_mangled_parent_qualifier(scp, kind, (unsigned long)1,
                                entity_needs_to_be_individuated(scp, kind),
-                               &top_most_scp, mctl);
-  }  /* if */
-  if (local_type != NULL && top_most_scp != NULL) {
-    /* If we added a prefix for a local type above, it's possible that we
-       might also need to add a discriminator as a suffix.  The discriminator
-       is based upon the outermost type of a nested local type, so return
-       that to the caller (for use when the mangled name is closed). */
-    *discriminator_scp = top_most_scp;
+                               discriminator_scp, mctl);
+    if (local_type == NULL) {
+      /* If we don't have a local type, we don't need a discriminator. */
+      *discriminator_scp = NULL;
+    }  /* if */
   }  /* if */
 }  /* mangled_ia64_parent_qualifier */
 
@@ -4401,9 +4870,10 @@ static void mangled_type_name_full(a_type_ptr               type,
                                    a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the type "type".
-This routine is used for named types (classes, enums, and typedefs;
-typedefs come up when doing final name mangling for nested types)
-and for unnamed classes and enums.  Nested types are encoded as such.
+This routine is used for named types (classes, enums, template parameters
+members, and typedefs; typedefs come up when doing final name mangling for
+nested types) and for unnamed classes and enums.  Nested types are encoded as
+such.
 */
 {
   char                        *name;
@@ -4487,7 +4957,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     /* The type is a member of a class or namespace (or an entity that needs
        to be individuated), so put out a qualifier.  Note that the count starts
        at 2 because the type name itself is level 1. */
-    r_mangled_parent_qualifier(&type->source_corresp,
+    r_mangled_parent_qualifier(&type->source_corresp, iek_type,
                                (unsigned long)2,
                                entity_needs_to_be_individuated(
                                               &type->source_corresp, iek_type),
@@ -4508,31 +4978,38 @@ and for unnamed classes and enums.  Nested types are encoded as such.
                            /*show_specialization=*/FALSE,
                            mctl);
   } else {
-    /* Not a class name (typedef or enum). */
+    /* Not a class name (typedef, template parameter member or enum). */
+#if !IA64_ABI
+    reserve_space_for_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
     name = unmangled_name_of(&type->source_corresp);
     if (name == NULL) {
-      /* For an unnamed enum, generate a name (or use the name previously
-         generated). */
-      check_assertion(is_enum_type(type));
-      name = give_unnamed_class_or_enum_a_name(type);
-    }  /* if */
+      /* For an unnamed enum type, special encodings apply. */
+      check_assertion(is_immediate_enum_type(type));
+      mangled_unnamed_type_encoding(type, mctl);
+    } else {
+      /* Named class or typedef. */
 #if IA64_ABI
-    mangled_name_with_length(name, mctl);
+      mangled_name_with_length(name, mctl);
 #if ABI_COMPATIBILITY_VERSION < 401
-    /* Earlier versions mistakenly emitted a discriminator at this point
-       (rather than at the end of the nested name of a local type). */
-    add_discriminator_if_necessary(&type->source_corresp, mctl);
+      /* Earlier versions mistakenly emitted a discriminator at this point
+         (rather than at the end of the nested name of a local type). */
+      add_discriminator_if_necessary(&type->source_corresp, mctl);
 #endif /* ABI_COMPATIBILITY_VERSION < 401 */
 #else /* !IA64_ABI */
-    reserve_space_for_length(&length_reservation, mctl);
-    add_str_to_mangled_name(name, mctl);
+      add_str_to_mangled_name(name, mctl);
+#endif /* IA64_ABI */
+    }  /* if */
+#if !IA64_ABI
     if (is_enum_type(type) &&
         type->source_corresp.is_local_to_function &&
         !type->source_corresp.is_class_member) {
-      /* If the enum is a local (non-member) enum, put out a suffix identifying
-         the function.  The id_number is arbitrarily specified as zero, relying
-         on the name above to differentiate from other local enums. */
-      a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
+      /* If the enum is a local (non-member) enum, put out a suffix
+         identifying the function.  The id_number is arbitrarily specified as
+         zero, relying on the name above to differentiate from other local
+         enums.  */
+      a_routine_ptr enclosing_routine =
+                                      enclosing_routine_for_local_type(type);
       add_local_name_suffix((unsigned long)0, enclosing_routine, mctl);
     }  /* if */
     fill_in_length(&length_reservation, mctl);
@@ -5590,7 +6067,7 @@ mangle_template:
   if (is_member) {
     /* Put out the name of the class or namespace of which this function
        is a member. */
-    mangled_parent_qualifier(&routine->source_corresp, mctl);
+    mangled_parent_qualifier(&routine->source_corresp, iek_routine, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If this function explicitly overrides a function, add the class of
        the overridden function. */
@@ -5607,7 +6084,8 @@ mangle_template:
              entity_needs_to_be_individuated(&routine->source_corresp,
                                              iek_routine)) {
     /* Add individuation. */
-    r_mangled_parent_qualifier(&routine->source_corresp, /*nesting_level=*/1,
+    r_mangled_parent_qualifier(&routine->source_corresp, iek_routine,
+                               /*nesting_level=*/1,
                                /*needs_to_be_individuated=*/TRUE,
                                (a_source_correspondence **)NULL, mctl);
   }  /* if */
@@ -5687,8 +6165,7 @@ mangled without parameter encoding.
     /* Compiler-generated routines have no name, and they are left alone.
        But constructors for unnamed classes that got a name for linkage
        purposes should get mangled names. */
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor &&
-        has_name(parent_class_of(routine))) {
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
       mangling_needed = TRUE;
     }  /* if */
   } else if (routine == il_header.main_routine) {
@@ -5971,7 +6448,7 @@ to the point where the base name appears.
   /* Some static entities are potentially referenced from other translation
      units (e.g., because of exported templates) and therefore get
      externalized, which gives them a different kind of mangled name. */
-  needs_to_be_externalized =
+  needs_to_be_externalized = externalize_if_necessary &&
                 routine_should_be_externalized_for_exported_templates(routine);
 #endif /* DO_IL_LOWERING */
   /* Coverity: Part of the test can't be reached when not doing IL lowering. */
@@ -6113,7 +6590,7 @@ scoped enumerators, and class and namespace member constants.
     /* Add two underscores after the name. */
     add_str_to_mangled_name("__", mctl);
     /* Output the mangled parent name. */
-    mangled_parent_qualifier(scp, mctl);
+    mangled_parent_qualifier(scp, kind, mctl);
   }  /* if */
 #else /* IA64_ABI */
   a_boolean               need_nested_name_close = FALSE;
@@ -6229,10 +6706,11 @@ is what mangled_type_name generates, plus a prefix.
   error_position = type->source_corresp.decl_position;
   if (!has_name(type) &&
       !type->source_corresp.name_has_been_mangled) {
-    /* Give an unnamed class or enum a name.  This must be done early because
-       in some cases it suppresses the need for a parent qualifier
+    /* Give an unnamed class a name if necessary.  This must be done early
+       because in some cases it suppresses the need for a parent qualifier
        (name_has_been_mangled is set to TRUE). */
-    if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+    if (is_immediate_class_type(type) &&
+        unnamed_type_has_no_discriminator(type)) {
       (void)give_unnamed_class_or_enum_a_name(type);
     } else if (type->kind == (a_type_kind)tk_template_param &&
                type->variant.template_param.kind == 
@@ -6248,6 +6726,10 @@ is what mangled_type_name generates, plus a prefix.
       (type->kind != (a_type_kind)tk_typeref || typeref_is_typedef(type)) &&
       /* Mangle nested types. */
       (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
+       /* Mangle types that need to be individuated. */
+       entity_needs_to_be_individuated(&type->source_corresp, iek_type) ||
+       /* Mangle unnamed types. */
+       !has_name(type) ||
        /* Mangle class types with template arguments. */
        (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->
@@ -6510,7 +6992,7 @@ also does type name mangling.
   a_variable_ptr  variable;
   a_constant_ptr  con;
 
-  /* Visit all types. */
+  /* Visit all class and enum types. */
   do_type_list_other_name_mangling(scope->types);
   if (scope->kind == (a_scope_kind)sck_file) {
     /* When processing the file scope, also process function-local types. */
@@ -7246,26 +7728,13 @@ be embedded in other mangled names.
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
   }  /* if */
-  /* Leave the name alone if the entity is unnamed or if it has been
-     mangled already (e.g., for a class name-as-subobject).  The lint
-     comment indicates that is_string is known to be FALSE in some
-     configurations. */
   if (!scp->name_has_been_mangled &&
-      (scp->name != NULL || is_string /*lint --e(845)*/)) {
-    char *scoped_enum_type_name = NULL;
-    if (scp_is_enum_member(scp)) {
-      a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
-      /* We're mangling a scoped enumerator.  The name of the scoped
-         enumeration to which it belongs will be part of the mangled name. */
-      check_assertion(kind == iek_constant);
-      scoped_enum_type_name = unmangled_name_of(
-                                            &scoped_enum_type->source_corresp);
-      if (scoped_enum_type_name == NULL) {
-        scoped_enum_type_name =
-                           give_unnamed_class_or_enum_a_name(scoped_enum_type);
-      }  /* if */
-      check_assertion(scoped_enum_type_name != NULL);
-    }  /* if */
+       (scp->name != NULL || is_string /*lint --e(845)*/)) {
+    /* Leave the name alone if the entity is unnamed or if it has been
+       mangled already (e.g., for a class name-as-subobject).  The lint
+       comment indicates that is_string is known to be FALSE in some
+       configurations. */
+    check_assertion(!entity_needs_to_be_individuated(scp, kind));
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
@@ -7275,7 +7744,7 @@ be embedded in other mangled names.
          is the scope number within the function, followed by two underscores,
          followed by the mangled name of the routine. */
       if (kind == iek_type) {
-        /* For types, add a prefix and a length. */
+        /* For types with names, add a prefix and a length. */
         add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
         reserve_space_for_length(&length_reservation, &mctl);
       }  /* if */
@@ -7300,14 +7769,26 @@ be embedded in other mangled names.
         add_str_to_mangled_name("__string", &mctl);
         scope_number = sequence_number;
       }  /* if */
-      if (scoped_enum_type_name != NULL) {
+      if (scp_is_enum_member(scp)) {
         /* Add the scoped enumeration type name. */
+        a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
+        check_assertion(kind == iek_constant);
+        char *scoped_enum_type_name = unmangled_name_of(
+                                            &scoped_enum_type->source_corresp);
+        if (scoped_enum_type_name == NULL) {
+          /* A scoped enumerator whose enumeration is unnamed can't be
+             directly referenced but must be uniquely mangled to avoid another
+             such construct in the same function. */
+          scoped_enum_type_name =
+                           give_unnamed_class_or_enum_a_name(scoped_enum_type);
+        }  /* if */
+        check_assertion(scoped_enum_type_name != NULL);
         add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
         reserve_space_for_length(&length_reservation, &mctl);
         add_str_to_mangled_name(scoped_enum_type_name, &mctl);
       }  /* if */
       add_local_name_suffix(scope_number, routine, &mctl);
-      if (kind == iek_type || scoped_enum_type_name != NULL) {
+      if (kind == iek_type || scp_is_enum_member(scp)) {
         /* Fill in the length for a type or scoped enumerator. */
         fill_in_length(&length_reservation, &mctl);
       }  /* if */
@@ -7325,9 +7806,7 @@ be embedded in other mangled names.
     }  /* if */
     add_prefix_for_local_entity(routine, &mctl);
     if (!is_string) {
-      if (scoped_enum_type_name == NULL) {
-        mangled_name_with_length(scp->name, &mctl);
-      } else {
+      if (scp_is_enum_member(scp)) {
         /* Create a nested name with the scoped enumeration type and the
            scoped enumerator name.  This isn't specified in the IA-64 ABI
            and is mostly to avoid conflicts in generated C code
@@ -7335,21 +7814,32 @@ be embedded in other mangled names.
            enclosing classes or namespaces since the enum type is local
            to a function. */
         add_to_mangled_name('N', &mctl);
-        mangled_name_with_length(scoped_enum_type_name, &mctl);
+        mangled_encoding_for_class_or_enum_type(
+                                      scp_parent_scoped_enum_type(scp), &mctl);
         mangled_name_with_length(scp->name, &mctl);
         /* Close the nested name. */
         add_to_mangled_name('E', &mctl);
+      } else {
+        mangled_name_with_length(scp->name, &mctl);
       }  /* if */
       add_discriminator_if_necessary(scp, &mctl);
     } else {
       /* String literal.  The name is "s" and the discriminator encodes the
-         sequence number.  Note that sequence numbers start with one and
-         discriminator values start with zero. */
+         sequence number.  Note that sequence numbers and discriminator values
+         both start with one. */
       add_to_mangled_name('s', &mctl);
-      add_discriminator((a_discriminator)(sequence_number-1), &mctl);
+      add_discriminator((a_discriminator)sequence_number,
+                        /*emit_underscore=*/TRUE, &mctl);
     }  /* if */
 #endif /* !IA64_ABI */
     (void)end_mangling(scp, final, &mctl);
+#if !IA64_ABI
+  } else if (kind == iek_type &&
+             !scp->name_has_been_mangled &&
+             scp->name == NULL) {
+    /* Mangle unnamed types. */
+    mangle_type_name((a_type_ptr)scp);
+#endif /* !IA64_ABI */
   }  /* if */
 }  /* mangle_promoted_entity_name */
 
@@ -7798,7 +8288,7 @@ Do one-time initialization of variables related to name mangling.
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(unnamed_class_or_enum_seed),
+      pch_saved_var_array_elem(unnamed_class_seed),
       pch_saved_var_array_elem(unnamed_member_variable_name_seed),
 #if IA64_ABI
       pch_saved_var_array_elem(avail_substitutions),
@@ -7809,7 +8299,7 @@ Do one-time initialization of variables related to name mangling.
   }  /* if */
   /* Register variables that must be saved and restored when switching
      between translation units. */
-  register_trans_unit_variable(unnamed_class_or_enum_seed);
+  register_trans_unit_variable(unnamed_class_seed);
   register_trans_unit_variable(unnamed_member_variable_name_seed);
 }  /* name_lower_one_time_init */
 
@@ -7820,7 +8310,7 @@ Initialize static variables related to name mangling that must be
 initialized for each compilation.
 */
 {
-  unnamed_class_or_enum_seed = 0;
+  unnamed_class_seed = 0;
   unnamed_member_variable_name_seed = 0;
 #if !IA64_ABI
   avail_compressible_string_pos = NULL;

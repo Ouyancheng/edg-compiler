@@ -276,13 +276,11 @@ typedef struct a_generated_entity_block {
 typedef unsigned long
                 a_discriminator;
 
-#if IA64_ABI 
 /*
 A hash table type to detect name collisions between declarations in function
 scope.  The type is defined in scope_stk.c.
 */
 typedef union a_collision_table *a_collision_table_ptr;
-#endif /* IA64_ABI */
 #endif /* NEED_NAME_MANGLING */
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
@@ -927,7 +925,6 @@ typedef struct a_scope_stack_entry {
 			   following the operator keyword. */
 #if NEED_NAME_MANGLING
   union {
-#if IA64_ABI
     a_collision_table_ptr
 		local_name_collision_table;
 			/* A hash table of local symbols to detect local
@@ -935,7 +932,6 @@ typedef struct a_scope_stack_entry {
 			   a discriminator appended to their mangled name.
 			   (Non-NULL only for function scopes.) The union type
 			   a_collision_table is defined in scope_stk.c. */
-#endif /* IA64_ABI */
     a_discriminator
 		last_unnamed_type_number;
 			/* In non-local scopes, the last "discriminator" value

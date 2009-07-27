@@ -375,7 +375,6 @@ debugging).
 #endif /* DEBUG */
 
 #if NEED_NAME_MANGLING
-#if IA64_ABI
 
 #define LOCAL_NAME_COLLISION_TABLE_SIZE 16
 
@@ -467,11 +466,11 @@ Look in the name collision table associated with current function scope for a
 symbol that has the same name (i.e., header) as the given symbol sym (declared
 at the given scope depth).  If there is one, the current symbol is assigned a
 discriminator value one higher than that of the symbol found, and it replaces
-that symbol in the table.  Otherwise the discriminator value of sym remain
-zero, and the symbol is added to the table.  (Closure types are handled
-specially: They are considered to be "colliding" only if the associated lambda
-routines have the same type.)  This information is used to generate distinct
-mangled names of function-local entities in the IA-64 ABI.
+that symbol in the table.  Otherwise the discriminator value of sym is
+initialized to one, and the symbol is added to the table.  (Closure types
+are handled specially: They are considered to be "colliding" only if the
+associated lambda routines have the same type.)  This information is used to
+generate distinct mangled names of function-local entities in the IA-64 ABI.
 */
 {
   unsigned                 hash_index;
@@ -561,10 +560,26 @@ mangled names of function-local entities in the IA-64 ABI.
     new_entry->next = table->buckets[hash_index];
     table->buckets[hash_index] = new_entry;
     new_entry->symbol = sym;
+    switch (sym->kind) {
+      case sk_variable:
+        sym->variant.variable.discriminator = 1;
+        break;
+      case sk_class_or_struct_tag:
+      case sk_union_tag:
+        sym->variant.class_struct_union.extra_info->discriminator = 1;
+        break;
+      case sk_enum_tag:
+        sym->variant.enumeration.extra_info->discriminator = 1;
+        break;
+      case sk_type:
+        sym->variant.type.discriminator = 1;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
   }  /* if */
 }  /* compute_local_name_collision_discriminator */
 
-#endif /* IA64_ABI */
 
 void compute_name_collision_discriminator(a_symbol_ptr   sym,
                                           a_scope_depth  scope_depth)
@@ -587,9 +602,7 @@ See compute_local_name_collision_discriminator.
     if (ssep->kind == (a_scope_kind)sck_function ||
         ssep->kind == (a_scope_kind)sck_block ||
         ssep->kind == (a_scope_kind)sck_condition) {
-#if IA64_ABI
       compute_local_name_collision_discriminator(sym, scope_depth);
-#endif /* IA64_ABI */
     } else if (entities_are_recorded_for_current_expression()) {
       /* The discriminator is determined later (in
          compute_default_arg_name_collision_discriminators or
@@ -601,9 +614,7 @@ See compute_local_name_collision_discriminator.
   } else if (ssep->kind == (a_scope_kind)sck_function ||
              ssep->kind == (a_scope_kind)sck_block ||
              ssep->kind == (a_scope_kind)sck_condition) {
-#if IA64_ABI
     compute_local_name_collision_discriminator(sym, scope_depth);
-#endif /* IA64_ABI */
   } else if (is_unnamed_tag_symbol(sym) &&
              (ssep->kind == (a_scope_kind)sck_file ||
               ssep->kind == (a_scope_kind)sck_namespace ||
@@ -2392,9 +2403,7 @@ the scope being pushed.
   if (ssep->kind == (a_scope_kind)sck_function ||
       ssep->kind == (a_scope_kind)sck_block ||
       ssep->kind == (a_scope_kind)sck_condition) {
-#if IA64_ABI
     ssep->name_discr.local_name_collision_table = NULL;
-#endif /* IA64_ABI */
   } else {
     ssep->name_discr.last_unnamed_type_number = 0;
   }  /* if */
@@ -6407,6 +6416,70 @@ in the same order in which they were originally encountered.
 }  /* lower_functions_waiting_for_module_id */
 
 #endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
+#if NEED_NAME_MANGLING
+
+static a_boolean must_wait_for_discriminator(a_routine_ptr routine)
+/*
+Returns TRUE if the specified routine is contained (at some level) within an
+unnamed class type whose discriminator has not yet been computed and it's
+possible that lowering the routine would generate a request for a mangled
+encoding that depends on the (as yet) un-computed discriminator.
+*/
+{
+  a_symbol_ptr  sym;
+  a_type_ptr    type;
+  a_scope_ptr   sp = il_header.region_scope_entry[routine->assoc_scope];
+  a_boolean     result = FALSE;
+  a_boolean     requires_early_mangling = FALSE;
+  a_boolean     has_base_classes = FALSE;
+
+  if (sp->types != NULL || sp->scopes != NULL || sp->variables != NULL) {
+    /* Entities promoted from within scopes may require mangling. */
+    requires_early_mangling = TRUE;
+#if IA64_ABI
+  } else if (routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+             routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+    /* Creating alternate entry points generates mangled names. */
+    requires_early_mangling = TRUE;
+#endif /* IA64_ABI */
+  }  /* if */
+  for (sp = get_parent_scope_of(routine); sp != NULL; ) {
+    if (sp->kind == (a_scope_kind)sck_class_struct_union ||
+        sp->kind == (a_scope_kind)sck_class_reactivation) {
+      type = sp->variant.assoc_type;
+      sym = symbol_for(type);
+      check_assertion(is_immediate_class_type(type) && sym != NULL);
+      if (!has_base_classes &&
+          type->variant.class_struct_union.extra_info->base_classes != NULL) {
+        /* Set a flag if an intermediate class (between the original
+           routine and some outer unnamed class) contains base classes.  Such
+           classes may result in the need to pre-lower the class type which can
+           result in requests to mangle the class (thereby requiring that a
+           mangled name be available for the unnamed class).  */
+        has_base_classes = TRUE;
+      }  /* if */
+      if ((requires_early_mangling ||
+           has_base_classes) &&
+          type->variant.class_struct_union.originally_unnamed &&
+          sym->variant.class_struct_union.extra_info->discriminator == 0) {
+        /* A promoted entity from this scope or pre-lowering of a class
+           would need the discriminator information during mangling, so delay
+           lowering. */
+        result = TRUE;
+        break;
+      }  /* if */
+      /* Get parent scope of the (potentially local) type. */
+      sp = get_parent_scope_of(type);
+    } else {
+      sp = sp->parent;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* must_wait_for_discriminator */
+
+#endif /* NEED_NAME_MANGLING */
 
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
                                             a_boolean     at_initial_scope_pop)
@@ -6435,6 +6508,14 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        on the scope stack.  The lowering of the lambda body must be delayed
        until the closure class has been completed. */
     delay_lowering = TRUE;
+#if NEED_NAME_MANGLING
+  } else if (must_wait_for_discriminator(routine)) {
+    /* The routine is encompassed in an unnamed class whose discriminator has
+       not yet been determined; lowering of the routine may result in requests
+       for mangled encodings that depend on the discriminator being set, so
+       delay lowering. */
+    delay_lowering = TRUE;
+#endif /* NEED_NAME_MANGLING */
 #if GNU_EXTENSIONS_ALLOWED && COMPILE_MULTIPLE_TRANSLATION_UNITS
   } else if (routine->is_weak) {
     /* Correspondence checking can choose a secondary translation unit
@@ -7187,9 +7268,9 @@ End a name scope by popping an entry off the scope stack.
      stack.  Note that this could be different than the previous scope
      value in the scope stack entry. */
   depth_of_initial_lookup_scope = ssep->saved_depth_of_initial_lookup_scope;
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
   free_local_name_collision_table(ssep);
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   /* If a string literal table was allocated for the scope, free it now. */
   if (ssep->string_literal_table != NULL) {
@@ -7934,9 +8015,9 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(avail_function_shareable_constants_tables),
       pch_saved_var_array_elem(
                   function_body_processing_delayed_on_some_func_in_primary_il),
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
       pch_saved_var_array_elem(avail_collision_tables),
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
       pch_saved_var_array_elem(avail_string_literal_tables),
       pch_saved_var_array_elem(avail_string_literal_table_entries),
@@ -8032,9 +8113,9 @@ of the front end.
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
   avail_function_shareable_constants_tables = NULL;
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
   avail_collision_tables = NULL;
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   avail_string_literal_tables = NULL;
   avail_string_literal_table_entries = NULL;

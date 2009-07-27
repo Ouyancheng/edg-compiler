@@ -15576,7 +15576,7 @@ from such interface-like types.)
 }  /* check_if_potentially_interface_like */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
 
 static void assign_discriminators_to_unnamed_nested_types(a_type_ptr  parent)
 /*
@@ -15612,7 +15612,7 @@ for linkage purposes are excluded.
   }  /* for */
 }  /* assign_discriminators_to_unnamed_nested_types */
 
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -15769,9 +15769,9 @@ bits of information that were acquired while parsing.
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if IA64_ABI && NEED_NAME_MANGLING
+#if NEED_NAME_MANGLING
     assign_discriminators_to_unnamed_nested_types(class_type);
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#endif /* NEED_NAME_MANGLING */
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */
