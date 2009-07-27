@@ -4414,6 +4414,7 @@ the outermost class was defined in an unnamed namespace.
     } else if (!rp->source_corresp.referenced &&
                !rp->compiler_generated &&
                !rp->is_virtual &&
+               !rp->is_defaulted &&
                /* Don't warn about members that might be declared
                   to avoid compiler generated declarations. */
                !((rp->special_kind ==
