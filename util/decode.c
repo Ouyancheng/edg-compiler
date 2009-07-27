@@ -4934,7 +4934,7 @@ The syntax is:
              ::= <template-param>
              ::= # empty
              ::= <substitution>
-             ::= <data-member-prefix>
+             ::= <prefix> <data-member-prefix>
     <template-prefix> ::= <prefix> <template unqualified-name>
                       ::= <template-param>
                       ::= <substitution>
