@@ -2663,6 +2663,15 @@ after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #endif /* DO_IL_LOWERING */
         }  /* if */
+#if NEED_NAME_MANGLING
+#if !NEEDED_FLAG_WALK
+        if (ptr->defined_in_static_data_member_initializer) {
+          remap_ptr(ptr->lambda_parent.variable, a_variable_ptr, iek_variable);
+        } else {
+          remap_ptr(ptr->lambda_parent.routine, a_routine_ptr, iek_routine);
+        }  /* if */
+#endif /* !NEEDED_FLAG_WALK */
+#endif /* NEED_NAME_MANGLING */
       }
       break;
     case iek_template_param_type_supplement:
