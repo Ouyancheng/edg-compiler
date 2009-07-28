@@ -1,5 +1,21 @@
 Version 4.1
 
+7/28/09  [EDGcpfe/9987]
+GNU attributes accidentally dropped on certain function templates
+
+In GNU modes attributes were accidentally dropped when they appeared before
+the return type of a function template declaration if that return type was a
+pointer or reference (formed with a "*" or "&" token, rather than indirectly
+through a typedef).  For example:
+
+  template<typename T> __attribute((always_inline)) inline
+  int *f() {    // The attribute was previously ignored on all instances
+    return 0;   // of f.
+  }
+
+This is now fixed.
+
+
 7/27/09  [EDGcpfe/9970]
 GNU C++ compatibility: __attribute((packed)) on class type with non-POD field
 

@@ -3836,9 +3836,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #if GNU_EXTENSIONS_ALLOWED
     /* Attributes may appear after the pointer declarator in some cases. */
     if (attributes != NULL && gnu_mode) {
-      *attributes = scan_attributes();
       /* Advance to the end of the list. */
       attributes = last_attribute_link(attributes);
+      *attributes = scan_attributes();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     ref_to_ref_allowed = FALSE;
