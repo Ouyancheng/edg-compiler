@@ -5437,6 +5437,8 @@ Make an expression that does a rethrow, and return a pointer to it.
   an_expr_node_ptr rethrow_node =
                  make_runtime_rout_call("__rethrow", &rethrow_routine,
                                         void_type(), (an_expr_node_ptr)NULL);
+
+  rethrow_routine->type->variant.routine.extra_info->does_not_return = TRUE;
   return rethrow_node;
 } /* make_rethrow_call */
 
@@ -5452,6 +5454,9 @@ pointer to it.
                  make_runtime_rout_call("__internal_rethrow",
                                         &internal_rethrow_routine,
                                         void_type(), (an_expr_node_ptr)NULL);
+
+  internal_rethrow_routine->type
+                          ->variant.routine.extra_info->does_not_return = TRUE;
   return rethrow_node;
 } /* make_internal_rethrow_call */
 
@@ -5813,6 +5818,7 @@ Lower an enk_throw expression node.
        throw.  It has no arguments. */
     call_node = make_runtime_rout_call("__throw", &throw_routine,
                                        void_type(), (an_expr_node_ptr)NULL);
+    throw_routine->type->variant.routine.extra_info->does_not_return = TRUE;
     /* Overwrite the original node with a comma expression joining the
        __throw_setup and __throw expressions:
          ((temp = __throw_setup(...)), __throw())

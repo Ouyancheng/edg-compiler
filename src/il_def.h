@@ -4300,13 +4300,15 @@ typedef struct a_routine_type_supplement {
 			   In the unmodified front end, only the TQ_RESTRICT
 			   qualifier is recorded here (for restrict-qualified
 			   member functions). */
+  a_bit_field	does_not_return:1;
+			/* TRUE if this is the type of function that is known
+			   not to return normally (it can still "return" via an
+			   exception).  Usually, the type was declared with the
+			   GNU attribute "noreturn" or "volatile". */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	result_should_be_used:1;
 			/* TRUE if the type was declared with the attribute
 			   "warn_unused_result". */ 
-  a_bit_field	does_not_return:1;
-			/* TRUE if the type was declared with the "noreturn"
-			   or "volatile" attribute. */
   a_bit_field	is_const:1;
 			/* TRUE if the type was declared with the "const"
 			   attribute.  Note that this flag is not set on the

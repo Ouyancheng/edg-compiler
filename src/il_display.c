@@ -1259,12 +1259,12 @@ Display a_routine_type_supplement.
       disp_boolean("routine_name_linkage_is_explicit", TRUE);
     }  /* if */
   }  /* if */
+  if (ptr->does_not_return) {
+    disp_boolean("does_not_return", TRUE);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->result_should_be_used) {
     disp_boolean("result_should_be_used", TRUE);
-  }  /* if */
-  if (ptr->does_not_return) {
-    disp_boolean("does_not_return", TRUE);
   }  /* if */
   if (ptr->is_const) {
     disp_boolean("is_const", TRUE);

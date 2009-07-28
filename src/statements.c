@@ -203,30 +203,27 @@ modes) a call of a function that may not return, update the current
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   } else if (microsoft_mode || gnu_mode) {
     if (is_call_node(node)) {
-      a_boolean routine_does_not_return = FALSE;
+      a_boolean   routine_does_not_return = FALSE;
+      a_type_ptr  routine_type = node->type;
       node = node->variant.operation.operands;
+      routine_type = node->type;
+      if (is_pointer_type(routine_type)) {
+        /* Possibly a call through a function pointer. */
+        routine_type = type_pointed_to(routine_type);
+      }  /* if */
+      if (is_function_type(routine_type)) {
+        routine_does_not_return = skip_typerefs(routine_type)
+                                       ->variant.routine.extra_info
+                                       ->does_not_return;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode) {
+      if (microsoft_mode && !routine_does_not_return) {
         a_routine_ptr rout = routine_from_function_expr(node);
         if (rout != NULL && rout->decl_modifiers & DM_NORETURN) {
           routine_does_not_return = TRUE;
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-      if (gnu_mode) {
-        a_type_ptr  routine_type = node->type;
-        if (is_pointer_type(routine_type)) {
-          /* Possibly a call through a function pointer. */
-          routine_type = type_pointed_to(routine_type);
-        }  /* if */
-        if (is_function_type(routine_type)) {
-          routine_does_not_return = skip_typerefs(routine_type)
-                                       ->variant.routine.extra_info
-                                       ->does_not_return;
-        }  /* if */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       if (routine_does_not_return) {
         /* The statement is a call of a routine that is marked as not
            returning.  Treat this like a lint notreached comment -- i.e.,
@@ -1726,7 +1723,6 @@ the current statement sequence.
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
   } else if (kind == (a_statement_kind)stmk_return) {
-#if GNU_EXTENSIONS_ALLOWED
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
@@ -1739,7 +1735,6 @@ the current statement sequence.
                                      : &pos_curr_token);
       rtp->variant.routine.extra_info->does_not_return = FALSE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     check_for_return_in_upc_forall(stmt_pos);
   }  /* if */
 
