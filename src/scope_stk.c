@@ -652,13 +652,14 @@ static data member initializer.
   for (; elp != NULL; elp = elp->next) {
     if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
       a_type_ptr  tp = (a_type_ptr)elp->entity.ptr;
+      a_class_type_supplement_ptr
+                  ctsp;
       check_assertion(is_immediate_class_type(tp));
-      if (class_type_supp(tp)->is_lambda_closure_class) {
-        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-        cssp->discriminator = ++last_n;
+      ctsp = class_type_supp(tp);
+      if (ctsp->is_lambda_closure_class) {
+        symbol_supplement_for_class(tp)->discriminator = ++last_n;
         if (sdm_init) {
-          cssp->lambda_immediately_inside_static_data_member_initializer =
-                                                                         TRUE;
+          ctsp->defined_in_static_data_member_initializer = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -711,12 +712,20 @@ each of the non-nested closure types in the given list of entities.
   for (; elp != NULL; elp = elp->next) {
     if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
       a_type_ptr  tp = (a_type_ptr)elp->entity.ptr;
+      a_class_type_supplement_ptr
+                  ctsp;
       check_assertion(is_immediate_class_type(tp));
-      if (class_type_supp(tp)->is_lambda_closure_class) {
-        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-        cssp->lambda_parent_entity = parent_sym;
+      ctsp = class_type_supp(tp);
+      if (ctsp->is_lambda_closure_class) {
+        if (parent_sym->kind == (a_symbol_kind)sk_static_data_member) {
+          ctsp->lambda_parent.variable =
+                              parent_sym->variant.static_data_member.variable;
+        } else {
+          ctsp->lambda_parent.routine = parent_sym->variant.routine.ptr;
+        }  /* if */
         if (subject_to_trans_unit_corresp) {
-          cssp->lambda_subject_to_trans_unit_corresp = TRUE;
+          symbol_supplement_for_class(tp)
+                                ->lambda_subject_to_trans_unit_corresp = TRUE;
         }  /* if */
       }  /* if */
     } else {

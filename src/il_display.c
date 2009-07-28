@@ -5072,6 +5072,11 @@ Display the indicated class type supplement entry.
   if (ptr->is_lambda_closure_class) {
     disp_boolean("is_lambda_closure_class", TRUE);
   }  /* if */
+#if NEED_NAME_MANGLING
+  if (ptr->defined_in_static_data_member_initializer) {
+    disp_boolean("defined_in_static_data_member_initializer", TRUE);
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {
@@ -5135,6 +5140,15 @@ Display the indicated class type supplement entry.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
   disp_long("min_template_arguments", ptr->min_template_arguments);
+#if NEED_NAME_MANGLING
+  if (ptr->defined_in_static_data_member_initializer) {
+    disp_ptr("lambda_parent.variable", (char*)ptr->lambda_parent.variable,
+             iek_variable);
+  } else if (ptr->lambda_parent.routine != NULL) {
+    disp_ptr("lambda_parent.routine", (char*)ptr->lambda_parent.routine,
+             iek_routine);
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
 }  /* disp_class_type_supplement */
 
 

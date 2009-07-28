@@ -922,13 +922,6 @@ typedef struct a_class_symbol_supplement {
 			   pointer.  This is used to optimize the performance
 			   of move_to_end_of_types_list. */
 #if NEED_NAME_MANGLING
-  a_symbol_ptr
-		lambda_parent_entity;
-			/* For closure types appearing in default arguments or
-			   in initializers for static data members, this is
-			   the function/variable with which the default
-			   argument/initializer is associated.  Otherwise,
-			   NULL. */
   a_discriminator
 		discriminator;
 			/* An identifying number used to distinguish multiple
@@ -1058,13 +1051,6 @@ typedef struct a_class_symbol_supplement {
 			   expression, i.e., this would be FALSE for a lambda
 			   that is nested inside a lambda that is immediately
 			   inside a default argument expression. */
-#if NEED_NAME_MANGLING
-  a_bit_field	lambda_immediately_inside_static_data_member_initializer:1;
-			/* TRUE if this class is the closure class for a lambda
-			   that occurs immediately inside the initializer for a
-			   static data member.  ("immediately" is as opposed to
-			   appearing as a nested lambda.) */
-#endif /* NEED_NAME_MANGLING */
   a_bit_field	lambda_in_invalid_scope:1;
 			/* TRUE for the closure class of a lambda expression
 			   that appeared in an invalid scope (e.g., a

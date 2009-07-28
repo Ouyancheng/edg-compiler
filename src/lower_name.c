@@ -1204,19 +1204,18 @@ Return the routine in which the lambda appears a default argument in
   a_param_type_ptr              param;
   an_il_entity_list_entry_ptr   entry;
   unsigned long                 param_num;
+  a_class_type_supplement_ptr   ctsp = class_type_supp(type);
+#if CHECKING
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-  a_symbol_ptr                  sym;
+#endif /* CHECKING */
 
   check_assertion(type_is_lambda_closure(type) &&
                   cssp != NULL &&
                   cssp->lambda_immediately_inside_default_arg_expression);
-  sym = cssp->lambda_parent_entity;
-  check_assertion(sym != NULL &&
-                  (sym->kind == (a_symbol_kind)sk_routine ||
-                   sym->kind == (a_symbol_kind)sk_member_function));
-  routine = sym->variant.routine.ptr;
-  if (enclosing_routine != NULL) *enclosing_routine = routine;
+  check_assertion(!ctsp->defined_in_static_data_member_initializer);
+  routine = ctsp->lambda_parent.routine;
   check_assertion(routine != NULL);
+  if (enclosing_routine != NULL) *enclosing_routine = routine;
   rtsp = routine->type->variant.routine.extra_info;
   check_assertion(rtsp != NULL && rtsp->prototyped);
   /* Count number of parameters. */
@@ -3189,16 +3188,8 @@ Returns TRUE if the specified type is a lambda closure that was defined
 in a static data member initializer.
 */
 {
-  a_boolean result = FALSE;
-
-  if (type_is_lambda_closure(type)) {
-    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-    check_assertion(cssp != NULL);
-    if (cssp->lambda_immediately_inside_static_data_member_initializer) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
+  return type_is_lambda_closure(type) &&
+         class_type_supp(type)->defined_in_static_data_member_initializer;
 }  /* type_is_lambda_in_initializer */
 
 
@@ -3804,18 +3795,9 @@ mangling purposes.
 */
 {
   a_variable_ptr              var;
-  a_symbol_ptr                sym;
-  a_class_symbol_supplement_ptr
-                              cssp = symbol_supplement_for_class(lambda);
 
-  check_assertion(type_is_lambda_closure(lambda) &&
-                  cssp != NULL &&
-                  cssp->
-                     lambda_immediately_inside_static_data_member_initializer);
-  sym = cssp->lambda_parent_entity;
-  check_assertion(sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_static_data_member);
-  var = sym->variant.static_data_member.variable;
+  check_assertion(type_is_lambda_in_initializer(lambda));
+  var = class_type_supp(lambda)->lambda_parent.variable;
   check_assertion(var != NULL);
   return var;
 }  /* parent_variable_for_lambda_in_initializer */

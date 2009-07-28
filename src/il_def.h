@@ -5183,6 +5183,14 @@ typedef struct a_class_type_supplement {
   a_bit_field	is_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as
 			   the representation of a lambda. */
+#if NEED_NAME_MANGLING
+  a_bit_field	defined_in_static_data_member_initializer:1;
+			/* TRUE if the class is a closure class defined
+			   directly in the initializer for a static data
+			   member (closure classes nested in such closure
+			   classes do not necessarily have this flag set to
+			   TRUE). */
+#endif /* NEED_NAME_MANGLING */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
@@ -5326,6 +5334,22 @@ typedef struct a_class_type_supplement {
 			   default arguments); -1L for non-template classes
 			   and for template classes in which all template
 			   arguments were always explicitly specified. */
+#if NEED_NAME_MANGLING
+  union {
+    a_routine_ptr
+		routine;
+			/* If this entry is for a closure type defined directly
+			   in a default argument, this points to the entry
+			   for the routine that has that default argument. */
+    a_variable_ptr
+		variable;
+			/* If this entry is for a closure type defined directly
+			   in the initializer of a static data member (i.e.,
+			   defined_in_static_data_member_initializer is TRUE),
+			   this points to the entry representing that data
+			   member. */
+  } lambda_parent;
+#endif /* NEED_NAME_MANGLING */
 } a_class_type_supplement;
 
 enum a_template_param_type_kind_tag {

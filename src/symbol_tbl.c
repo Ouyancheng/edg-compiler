@@ -2750,7 +2750,6 @@ state.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         cssp->prev_entry_on_types_list = NULL;
 #if NEED_NAME_MANGLING
-        cssp->lambda_parent_entity = NULL;
         cssp->discriminator = 0;
 #endif /* NEED_NAME_MANGLING */
         cssp->has_nontrivial_default_constructor = FALSE;
@@ -2787,9 +2786,6 @@ state.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         cssp->lambda_inside_default_arg_expression = FALSE;
         cssp->lambda_immediately_inside_default_arg_expression = FALSE;
-#if NEED_NAME_MANGLING
-        cssp->lambda_immediately_inside_static_data_member_initializer = FALSE;
-#endif /* NEED_NAME_MANGLING */
         cssp->lambda_in_invalid_scope = FALSE;
         cssp->lambda_subject_to_trans_unit_corresp = FALSE;
 #if CENTERLINE_CHECKING

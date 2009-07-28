@@ -1288,6 +1288,10 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->hidden_names_processed            = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ctsp->is_lambda_closure_class           = FALSE;
+#if NEED_NAME_MANGLING
+  ctsp->defined_in_static_data_member_initializer
+                                          = FALSE;
+#endif /* NEED_NAME_MANGLING */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->befriending_classes               = NULL;
@@ -1320,6 +1324,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
   ctsp->min_template_arguments            = -1L;
+#if NEED_NAME_MANGLING
+  ctsp->lambda_parent.routine             = NULL;
+#endif /* NEED_NAME_MANGLING */
 }  /* clear_class_type_supplement */
 
 
