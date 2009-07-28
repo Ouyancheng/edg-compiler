@@ -1757,10 +1757,6 @@ extern a_routine_ptr enclosing_routine_for_local_type_or_null(a_type_ptr type);
 extern a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern
-void put_str_into_text_buffer(char                                  *str,
-                              an_il_to_str_output_control_block_ptr octl);
-
 #if DEBUG
 extern void db_template_arg_list(a_template_arg_ptr tap);
 

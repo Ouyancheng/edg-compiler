@@ -308,6 +308,7 @@ static a_text_buffer_ptr
 		db_qualifiers_str_buffer;
 
 
+static
 void put_str_into_text_buffer(char                                  *str,
                               an_il_to_str_output_control_block_ptr octl)
 /*
