@@ -402,9 +402,7 @@ The output includes template arguments on template classes.
 {
   char *name = unmangled_name_of(scp);
 
-  if (name == NULL ||
-      (entry_kind == iek_type &&
-       is_originally_unnamed_type((a_type_ptr)scp))) {
+  if (name == NULL) {
     if (form_name_if_lambda(scp, entry_kind, octl)) {
       /* For a lambda, the name will be emitted by form_name_if_lambda. */
     } else {

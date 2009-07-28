@@ -641,9 +641,9 @@ Display the indicated source correspondence entry.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEED_NAME_MANGLING
   /* Do not print out name_has_been_mangled,
-     mangled_name_cannot_be_included_in_other_name, and
-     final_name_mangling_pending, which are used only in
-     the front end. */
+     mangled_name_cannot_be_included_in_other_name,
+     final_name_mangling_pending, and unnamed_entity_given_fabricated_name,
+     which are used only in the front end. */
 #endif /* NEED_NAME_MANGLING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (scp->is_decl_after_first_in_comma_list) {

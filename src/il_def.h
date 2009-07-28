@@ -1459,6 +1459,12 @@ typedef struct a_source_correspondence {
 			   but the final name mangling, which may or may not
 			   change the name, has not been done yet.  Final name
 			   mangling might do compression or truncation. */
+  a_bit_field	unnamed_entity_given_fabricated_name:1;
+			/* TRUE if a fabricated name has been assigned (as
+			   the "unmangled name") to this otherwise unnamed
+			   entity.  During mangling, the fabricated name is
+			   used (if this field is TRUE), but other parts
+			   of the compiler use the unmangled name (NULL). */
 #endif /* NEED_NAME_MANGLING */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	qualification_needed:1;

@@ -1620,14 +1620,27 @@ Return TRUE if rout_type is a routine type for a lambda.
    (rout_type)->variant.routine.extra_info->assoc_routine->is_lambda_body)
 
 /*
-Return the original unmangled name of an entity, given a pointer to
-its source correspondence entry.
+Return the unmangled name of an entity, given a pointer to its source
+correspondence entry (for unnamed types that have been given a fabricated
+name during mangling, returns NULL).
 */
 #if NEED_NAME_MANGLING
-#define unmangled_name_of(scp) \
-  ((scp)->name_has_been_mangled ? (scp)->unmangled_name : (scp)->name)
+#define unmangled_name_of(scp)                                          \
+  ((scp)->unnamed_entity_given_fabricated_name ? (char *)NULL :         \
+     (((scp)->name_has_been_mangled ? (scp)->unmangled_name : (scp)->name)))
 #else /* !NEED_NAME_MANGLING */
 #define unmangled_name_of(scp) ((scp)->name)
+#endif /* NEED_NAME_MANGLING */
+
+/*
+Return the unmangled or fabricated (name given to unnamed entities during
+mangling) name of an entity.
+*/
+#if NEED_NAME_MANGLING
+#define unmangled_or_fabricated_name_of(scp)                            \
+  ((scp)->name_has_been_mangled ? (scp)->unmangled_name : (scp)->name)
+#else /* !NEED_NAME_MANGLING */
+#define unmangled_or_fabricated_name_of(scp) (unmangled_name_of((scp))
 #endif /* NEED_NAME_MANGLING */
 
 /*
