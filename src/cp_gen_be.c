@@ -12860,8 +12860,13 @@ handle_as_definition:
   if (rout->is_deleted) {
     /* A deleted function definition. */
     write_tok_str(" = delete;");
-  } else if (rout->is_defaulted && is_definition) {
-    /* A defaulted function definition. */
+  } else if (rout->is_defaulted &&
+             (is_definition || !rout->defined_outside_of_parent)) {
+    /* A defaulted function definition.  (The test for
+       !rout->defined_outside_of_parent covers the case when the function
+       is defaulted in the class definition but the definition has been
+       transformed into a non-defining declaration by removal of unneeded
+       entities.) */
     write_tok_str(" = default;");
   } else if (!is_definition) {
     /* A declaration of the routine. */
