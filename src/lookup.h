@@ -176,6 +176,9 @@ represented as a bit set:
 			   A<T>::X should be considered to refer to the
 			   prototype instantiation X, not the nonreal
 			   version of the same name. */
+#define IDL_IS_DECLARATOR 0x8000000
+			/* TRUE when looking up a qualified name in
+			   declarator. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

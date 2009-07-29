@@ -4193,7 +4193,7 @@ be a function.
       }  /* if */
     }  /* if */
     /* The declarator may be a qualified name or a normal name. */
-    if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
+    if (coalesce_and_lookup_qualified_name(options, ilm_declarator, &err)) {
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (locator_for_curr_id.is_qualified_name) {
         *p_member_parent_type = qualifier_class_type(locator_for_curr_id);

@@ -4732,6 +4732,7 @@ namespace_qualified_id_lookup.
   a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean	is_linkage_or_friend_lookup =
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
+  a_boolean	is_declarator_lookup = (options & IDL_IS_DECLARATOR) != 0;
   a_boolean	direct_namespace_members_only = 
                          (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
   a_boolean	check_decl_seq =
@@ -4742,7 +4743,9 @@ namespace_qualified_id_lookup.
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
-  ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
+  ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup ||	      \
+    /* Some versions of g++ find invisible names in qualified declarators. */ \
+    (gpp_mode && is_declarator_lookup && gnu_version < 40300)) &&      \
    (!(sym)->is_class_member) &&                                       \
    /* Note that same_entities must not be used for this test. */      \
    sym_parent_namespace_or_null((sym)) == ns_ptr &&                   \

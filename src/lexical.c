@@ -640,6 +640,7 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_using_declaration */  	IDL_USING_DECLARATION,
   /* ilm_using_typename */      IDL_USING_DECLARATION | IDL_TYPENAME_LOOKUP,
   /* ilm_expr */		IDL_IS_EXPR_CONTEXT,
+  /* ilm_declarator */		IDL_IS_DECLARATOR,
   /* ilm_last */		IDL_NO_OPTIONS
 };
 

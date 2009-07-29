@@ -1,5 +1,21 @@
 Version 4.1
 
+7/29/09  [EDGcpfe/9986]
+GNU C++ compatibility: invisible symbols used in qualified declarators
+
+Friend names are not injected (i.e., are marked as invisible) in g++
+mode when gnu_version is >= 40100.  g++ versions < 4.3 allow such
+invisible names to be used in qualified declarators.   We now emulate
+this behavior in g++ mode when gnu_version is < 40300.
+
+  namespace N {
+    class A {
+      friend int f();
+    };
+  }
+  int N::f() { return 0; }  // okay in g++ mode when gnu_version < 40300
+
+
 7/28/09  [EDGcpfe/9952]
 Run-time support "throw" routines marked as not returning
 

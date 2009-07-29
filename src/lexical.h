@@ -581,6 +581,7 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_using_typename,	/* Uses both IDL_USING_DECLARATION and
 			   IDL_TYPENAME_LOOKUP to do the lookup. */
   ilm_expr,		/* Uses IDL_IS_EXPR_CONTEXT. */
+  ilm_declarator,	/* Uses IDL_IS_DECLARATOR. */
   ilm_last
 } an_identifier_lookup_mode;
 
