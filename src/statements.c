@@ -204,7 +204,7 @@ modes) a call of a function that may not return, update the current
   } else if (microsoft_mode || gnu_mode) {
     if (is_call_node(node)) {
       a_boolean   routine_does_not_return = FALSE;
-      a_type_ptr  routine_type = node->type;
+      a_type_ptr  routine_type;
       node = node->variant.operation.operands;
       routine_type = node->type;
       if (is_pointer_type(routine_type)) {
