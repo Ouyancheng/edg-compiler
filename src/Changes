@@ -1,5 +1,27 @@
 Version 4.1
 
+7/30/09  [EDGcpfe/9730]
+GNU C++ compatibility: missing "template" keyword in member template reference
+
+g++ versions before 4.1.2 allow certain dependent member class template
+references to omit the "template" keyword.  It may be omitted when the
+template argument list matches the implied template argument list of
+the prototype instantiation.  In the example below, in the reference to
+A<T>::B<...> the template parameter T has the same coordinates (position and
+nesting depth) as the T of the prototype instantiation of A, so the
+template keyword can be omitted.
+
+  template <class T> struct A {
+    template <class T2> struct B {};
+  };
+  template <class T, class U> struct C {
+    A<T>::B<T> ab1;  // g++ accepts
+    A<T>::B<U> ab2;  // g++ accepts
+    A<U>::B<T> ab3;  // g++ gives error
+    typename A<U>::template B<T> ab4;  // correct syntax
+  };
+
+
 7/29/09  [EDGcpfe/9986]
 GNU C++ compatibility: invisible symbols used in qualified declarators
 

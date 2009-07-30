@@ -13263,7 +13263,8 @@ otherwise the original "sym" is returned.
       type_wanted = TRUE;
     } else if (next_token() == tok_colon_colon) {
       type_wanted = TRUE;
-    } else if (implicit_typename_enabled &&
+    } else if ((implicit_typename_enabled ||
+                (gpp_mode && gnu_version <= 40100)) &&
                (options & GID_IS_EXPR_CONTEXT) == 0) {
       type_wanted = TRUE;
     } else if ((options & GID_IMPLICIT_TYPE_CONTEXT) != 0) {
@@ -14118,6 +14119,75 @@ permitted to follow the template keyword.
 }  /* sym_can_follow_template_keyword */
 
 
+static a_boolean gpp_omitted_template_okay(a_type_ptr	tp)
+/*
+g++ versions prior to 4.1.2 allow the "template" keyword to be omitted
+in some cases when referring to a member class template.  It may be omitted
+when the template argument list matches the implied template argument
+list of the prototype instantiation.  In the example below, in A<T>::B<...>
+the template parameter T has the same coordinates as the T of the prototype
+instantiation of A.
+
+  template <class T> struct A {
+    template <class T2> struct B {};
+  };
+  template <class T, class U> struct C {
+    A<T>::B<T> ab1;  // g++ accepts
+    A<T>::B<U> ab2;  // g++ accepts
+    A<U>::B<T> ab3;  // g++ gives error
+  };
+
+Return TRUE if it okay to omit the "template" keyword in this case.  tp is
+the qualifier type.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_immediate_class_type(tp)) {
+    /* We only need to check nonreal types that are not prototype
+       instantiations. */
+    if (tp->variant.class_struct_union.is_nonreal_class &&
+        !tp->variant.class_struct_union.is_prototype_instantiation) {
+      a_template_arg_ptr	nonreal_list;
+      nonreal_list =
+                  tp->variant.class_struct_union.extra_info->template_arg_list;
+      /* Only process classes that have template argument lists. */
+      if (nonreal_list != NULL) {
+        a_symbol_ptr				class_sym = symbol_for(tp);
+        a_symbol_ptr				template_sym;
+        a_symbol_ptr				prototype_sym;
+        a_template_symbol_supplement_ptr	tssp;
+        a_template_arg_ptr			prototype_list;
+        /* Get the symbol for the template from which this class was
+           generated. */
+        template_sym = template_symbol_for_class_symbol(class_sym);
+        tssp = template_supplement_for_symbol(template_sym);
+        /* If this is a class template defined within another class template,
+           the prototype instantiation is associated with the definition
+           within the original template.  Get a pointer to the template
+           symbol that is associated with the prototype instantiation. */
+        if (tssp->prototype_template != NULL &&
+            !tssp->is_specific_definition) {
+          template_sym = tssp->prototype_template;
+          tssp = template_supplement_for_symbol(template_sym);
+        }  /* if */
+        /* Get the template argument list from the prototype instantiation. */
+        prototype_sym = tssp->variant.class_template.prototype_instantiation;
+        prototype_list =
+                  prototype_sym->variant.class_struct_union.type->
+                      variant.class_struct_union.extra_info->template_arg_list;
+        /* See if the argument lists match. */
+        if (equiv_template_arg_lists(nonreal_list, prototype_list,
+                                     ETA_IS_NONREAL_MEMBER)) {
+          result = TRUE;
+        }  /* if */
+      }   /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* gpp_omitted_template_okay */
+
+
 /*
 Macro that calls qualifier_delimiter_does_not_follow_token to determine
 whether the next token may be one of the tokens that
@@ -14831,13 +14901,18 @@ selection operator, in which case it points to the type of the left operand.
                   implicit_typename_enabled) {
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
-            } else if (implicit_typename_enabled &&
+            } else if ((implicit_typename_enabled ||
+                              (gpp_mode && gnu_version <= 40100 &&
+                               qualifier_is_type &&
+                               gpp_omitted_template_okay(qualifier_type))) &&
                        (options & GID_IS_EXPR_CONTEXT) == 0) {
               /* If this is a name being used in a declarative context (i.e.,
                  not in an expression, and we are in implicit typename mode,
                  and the name is followed by a "<", set the "treat as template
                  ID" flag to indicate that if a nonreal class member needs
-                 to be created, it should be created as a template name. */
+                 to be created, it should be created as a template name.
+                 This is also done in certain cases in g++ mode (see
+                 gpp_omitted_template_okay for more information). */
               if (next_tok == tok_lt || is_template) {
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
