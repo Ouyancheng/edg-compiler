@@ -1562,6 +1562,12 @@ EXTERN a_boolean
 			   the instantiation of entities. */
 
 EXTERN a_boolean
+		inline_template_allowed;
+			/* TRUE if "inline template" can be used to emulate
+			   the g++ feature used to instantiate the vtable of a
+			   class. */
+
+EXTERN a_boolean
 		standard_form_of_extern_template;
 			/* TRUE if the "extern template" feature should have
 			   the semantics specified by the C++ standard (as

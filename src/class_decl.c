@@ -16345,6 +16345,7 @@ classes.
                template_directive_or_declaration. */
             a_token_kind                 final_token = tok_semicolon;
             a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
+            a_source_position	          directive_start_pos = pos_curr_token;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (ms_attributes != NULL) {
@@ -16357,7 +16358,8 @@ classes.
               (void)get_token();
               td_flags = TDO_EXTERN;
             }  /* if */
-            template_directive_or_declaration(&final_token, td_flags);
+            template_directive_or_declaration(&final_token, td_flags,
+                                              &directive_start_pos);
             /* The terminating token will be either a semicolon or a right
                brace.  The latter has already been checked for, but the former
                has not. */

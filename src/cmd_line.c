@@ -3288,6 +3288,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
      declarations. */
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
   extern_template_allowed = TRUE;
+  inline_template_allowed = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -8818,6 +8819,7 @@ variables declared in cmd_line.h.
   auto_storage_class_specifier_enabled =
                                  DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED;
   extern_template_allowed = FALSE;
+  inline_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;

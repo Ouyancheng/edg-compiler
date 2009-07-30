@@ -21702,6 +21702,18 @@ dllimport or dllexport attribute to a template instance.
        of can instantiate pragmas that will be processed during
        instantiation wrapup. */
     add_to_can_instantiate_list(class_type);
+  } else if (pragma_kind == (a_pragma_kind)pk_inline_template) {
+    /* "inline template" is used in g++ mode to cause the vtable for the
+       class to be emitted.  This is done by requiring definitions of the
+       virtual functions in the class and setting a flag to indicate the
+       virtual function table should be emitted.  Note that no check is
+       done to ensure that the class actually has any virtual functions. */
+    a_class_type_supplement_ptr  ctsp =
+                             class_type->variant.class_struct_union.extra_info;
+    /* Instantiate the class, if not already done. */
+    complete_class_type_is_needed(class_type);
+    require_definitions_of_virtual_functions_in_class(class_type);
+    ctsp->named_in_inline_template_directive = TRUE;
   } else {
     /* Instantiate the class, if not already done. */
     complete_class_type_is_needed(class_type);
@@ -22055,6 +22067,10 @@ instantiation.
 #endif /* SUN_EXTENSIONS_ALLOWED */
     goto final_check;
   } else {
+    if (kind == (a_pragma_kind)pk_inline_template) {
+      /* "inline template" can only be used with a class instantiation. */
+      pos_error(ec_inline_not_allowed, &state.start_pos);
+    }  /* if */
     clear_func_info(&func_info);
     di_flags = DI_REAL_DECLARATOR_ALLOWED |
                DI_QUALIFIED_NAME_ALLOWED |
@@ -22378,19 +22394,23 @@ done:
 }  /* instantiation_pragma */
 
 
-static void explicit_instantiation(a_template_decl_options_set options)
+static void explicit_instantiation(
+			a_template_decl_options_set	options,
+			a_source_position_ptr		directive_start_pos)
 /*
 Process an explicit instantiation directive.  Most of the processing is
 done by instantiation_directive.  This routine makes sure that the current
 scope is a valid one for an instantiation directive and disables any
 access errors that were detected.  options is a bit set of option flags.
+directive_start_pos points to the beginning of the directive (e.g., for
+"extern template", points to the "extern" keyword).
 */
 {
-  a_source_position		start_pos;
   a_template_instantiation_mode
 	 			saved_instantiation_mode = instantiation_mode;
   a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
   a_boolean			extern_template = (options & TDO_EXTERN) != 0;
+  a_boolean			inline_template = (options & TDO_INLINE) != 0;
   a_boolean			discard = FALSE;
 
   db_enter(3, "explicit_instantiation");
@@ -22419,18 +22439,22 @@ access errors that were detected.  options is a bit set of option flags.
        requested as a consequence of scanning the pragma. */
     a_pragma_kind	pragma_kind;
     instantiation_mode = tim_none;
-    /* In Microsoft and GNU modes the "extern" keyword may be used in an
-       explicit instantiation directive to indicate that an entity should not
-       be instantiated. */
     if (extern_template) {
+      /* In Microsoft and GNU modes the "extern" keyword may be used in an
+         explicit instantiation directive to indicate that an entity should not
+         be instantiated. */
       pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
+    } else if (inline_template) {
+      /* In GNU mode the "inline" keyword may be used to cause the vtable for
+         a template class to be emitted. */
+      pragma_kind = (a_pragma_kind)pk_inline_template;
     } else {
       pragma_kind = (a_pragma_kind)pk_instantiate;
     }  /* if */
     /* Note that the "template" keyword is bypassed in the subroutine. */
-    start_pos = pos_curr_token;
     begin_deferral_of_access_checks();
-    instantiation_directive(pragma_kind, /*is_pragma=*/FALSE, &start_pos);
+    instantiation_directive(pragma_kind, /*is_pragma=*/FALSE,
+                            directive_start_pos);
     discard_deferred_access_checks();
     end_deferral_of_access_checks();
   }  /* if */
@@ -22442,7 +22466,8 @@ access errors that were detected.  options is a bit set of option flags.
 
 void template_directive_or_declaration(
 			a_token_kind			*final_token,
-			a_template_decl_options_set	options)
+			a_template_decl_options_set	options,
+			a_source_position_ptr		directive_start_pos)
 /*
 Scan a template declaration of an explicit instantiation.  This routine
 is called to decide whether the current statement is a template
@@ -22450,6 +22475,8 @@ declaration or an explicit instantiation.  It then calls the appropriate
 routine.  Note that the final token is not consumed -- that is left to the
 caller.  For diagnostics, the kind of token expected (semicolon or right
 brace) is returned in *final_token.  options is a bit set of option flags.
+directive_start_pos points to the beginning of the directive or declaration
+(e.g., for "extern template", points to the "extern" keyword).
 */
 {
   a_boolean		export_present = FALSE;
@@ -22502,6 +22529,9 @@ brace) is returned in *final_token.  options is a bit set of option flags.
       /* An "extern" storage class is only permitted on an explicit
          instantiation directive in Microsoft and GNU modes. */
       error(ec_bad_storage_class_on_template_decl);
+    } else if ((options & TDO_INLINE) != 0) {
+      /* "inline" is only allowed on an explicit instantiation in GNU mode. */
+      pos_error(ec_inline_not_allowed, directive_start_pos);
     }  /* if */
     /* Issue an error if this declaration has C linkage. */
     if (ssep->default_name_linkage == (a_name_linkage_kind)nlk_external) {
@@ -22528,7 +22558,7 @@ brace) is returned in *final_token.  options is a bit set of option flags.
       /* An explicit instantiation cannot be exported. */
       pos_error(ec_export_on_instantiation, &export_pos);
     }  /* if */
-    explicit_instantiation(options);
+    explicit_instantiation(options, directive_start_pos);
   }  /* if */
   db_exit();
 }  /* template_directive_or_declaration */

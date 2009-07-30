@@ -5846,6 +5846,11 @@ mode; *optional will be set as usual.
       check_assertion(is_generated_typeinfo_type(class_type));
 #endif /* ABI_CHANGES_FOR_RTTI */
       defined_here = FALSE;
+    } else if (ctsp->named_in_inline_template_directive) {
+      /* A GNU "inline template" directive was used.  An external vtable
+         should be emitted here. */
+      defined_here = TRUE;
+      *force_static = FALSE;
     } else {
       /* The class is defined. */
       /* If the decider function of the class is defined in this compilation,

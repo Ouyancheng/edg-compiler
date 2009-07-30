@@ -38,6 +38,9 @@ typedef int a_template_decl_options_set;
 #define TDO_EXTERN		0x1
 			/* TRUE if the "extern" keyword was specified
 			   before the "template" keyword. */
+#define TDO_INLINE		0x2
+			/* TRUE if the "inline" keyword was specified
+			   before the "template" keyword. */
 
 #if !STANDALONE_UTILITY_PROGRAM
 /*
@@ -592,7 +595,8 @@ extern void set_variable_instantiation_needed_bit_number(
 
 extern void template_directive_or_declaration(
 			a_token_kind			*final_token,
-			a_template_decl_options_set	options);
+			a_template_decl_options_set	options,
+			a_source_position_ptr		directive_start_pos);
 
 extern void update_friend_info_for_specialization(a_type_ptr	class_type);
 

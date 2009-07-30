@@ -1,5 +1,18 @@
 Version 4.1
 
+7/30/09  [EDGcpfe/9705]
+GNU C++ compatibility: "inline template"
+
+The GNU "inline template" feature is now supported in g++ mode.  This may
+be used to cause the vtable for a class to be emitted in a given compilation.
+
+  template <class T> struct A {
+    virtual void f();
+  };
+  template <class T> void A<T>::f(){}
+  inline template class A<int>;  // vtable for A<int> will be emitted
+
+
 7/30/09  [EDGcpfe/9730]
 GNU C++ compatibility: missing "template" keyword in member template reference
 

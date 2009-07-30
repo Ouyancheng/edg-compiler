@@ -433,6 +433,7 @@ possible.
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:
+    case pk_inline_template:
     case pk_diag_suppress:
     case pk_diag_remark:
     case pk_diag_warning:

@@ -1292,6 +1292,8 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->defined_in_static_data_member_initializer
                                           = FALSE;
 #endif /* NEED_NAME_MANGLING */
+  ctsp->named_in_inline_template_directive
+                                          = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->befriending_classes               = NULL;
@@ -3248,6 +3250,7 @@ in the current IL memory region.
     case pk_instantiate:
     case pk_do_not_instantiate:
     case pk_can_instantiate:
+    case pk_inline_template:
     case pk_define_type_info:
       break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

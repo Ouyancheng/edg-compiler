@@ -14053,18 +14053,25 @@ indicates how processing should proceed after the call.
       end_of_decl_action = eoda_done;
     } else if (curr_token == tok_template ||
                curr_token == tok_export ||
-               (extern_template_allowed && curr_token == tok_extern &&
+               (((extern_template_allowed && curr_token == tok_extern) ||
+                 (inline_template_allowed && curr_token == tok_inline)) &&
                 next_token() == tok_template)) {
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
          final token of the declaration. */
       a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
+      a_source_position	           directive_start_pos = pos_curr_token;
       if (curr_token == tok_extern) {
         /* In some modes "extern template ..." is permitted. */
         (void)get_token();
         td_flags = TDO_EXTERN;
+      } else if (curr_token == tok_inline) {
+        /* In some modes "inline template ..." is permitted. */
+        (void)get_token();
+        td_flags = TDO_INLINE;
       }  /* if */
-      template_directive_or_declaration(final_token, td_flags);
+      template_directive_or_declaration(final_token, td_flags,
+                                        &directive_start_pos);
       /* The terminating token will be either a semicolon or a right
          brace.  The latter has already been checked for, but the former
          has not. */

@@ -3576,6 +3576,13 @@ enum a_pragma_kind_tag {
   pk_can_instantiate,	/* Instantiation of the specified template entity
 			   may be done in the current translation unit if
 			   needed; front-end only. */
+  pk_inline_template,	/* An explicit instantiation directive prefixed by
+			   the inline keyword.  Used in g++ mode to cause the
+			   vtable to be emitted.  Used in the front end only.
+			   There is not actually an inline template pragma.
+			   This is used because the instantiation_directive
+			   required a pragma kind to indicate the action to
+			   be performed. */
 #if USER_CONTROL_OF_STRUCT_PACKING
   pk_pack,		/* Establishes maximum alignment of nonstatic data
 			   members of subsequent classes, structs, and
@@ -3694,6 +3701,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_instantiate */		"instantiate",
 /* pk_do_not_instantiate */	"do_not_instantiate",
 /* pk_can_instantiate */	"can_instantiate",
+/* pk_inline_template */	"inline_template",
 #if USER_CONTROL_OF_STRUCT_PACKING
 /* pk_pack */			"pack",
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -5199,6 +5207,11 @@ typedef struct a_class_type_supplement {
 			   classes do not necessarily have this flag set to
 			   TRUE). */
 #endif /* NEED_NAME_MANGLING */
+  a_bit_field	named_in_inline_template_directive:1;
+			/* TRUE if the class was named in a GNU
+			   "inline template" directive, which is used to
+			   cause a vtable to be emitted in a given translation
+			   unit. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
