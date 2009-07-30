@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2028,6 +2028,6 @@ extern void use_variable_or_routine_for_module_id_if_needed(
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

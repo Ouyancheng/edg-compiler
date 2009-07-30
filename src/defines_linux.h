@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1999-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1999-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -148,7 +148,7 @@ Linux.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1999-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1999-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 

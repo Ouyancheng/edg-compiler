@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -161,6 +161,6 @@ extern a_boolean fold_fptest_if_possible(a_routine_ptr     rp,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
