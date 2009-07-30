@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1996-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5513,6 +5513,6 @@ and "user_buffer_size" is set to the new size.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996-2008 Edison Design Group Inc.                   [_]          *
+* Copyright 1996-2009 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
