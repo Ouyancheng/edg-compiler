@@ -10292,12 +10292,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
          but the type and its supplement always are. */
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
     }  /* if */
-#if NEED_NAME_MANGLING
-    /* A discriminator was assigned to the unnamed type, but now it turns out
-       not to be unnamed for mangling purposes after all. */
-    cancel_name_collision_discriminator(symbol_for(assoc_object_type),
-                                        decl_scope_level);
-#endif /* NEED_NAME_MANGLING */
   }  /* if */
   /* Get the list of symbols that are to be either promoted (i.e., reused
      in the new scope) or cloned. */
@@ -15582,6 +15576,43 @@ from such interface-like types.)
 }  /* check_if_potentially_interface_like */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEED_NAME_MANGLING
+
+static void assign_discriminators_to_unnamed_nested_types(a_type_ptr  parent)
+/*
+Assign a "discriminator value" to the unnamed member types of the given class
+type.  The first unnamed type gets value 1, the second gets 2, etc., but
+closure types, anonymous union types, and unnamed types with a typedef name
+for linkage purposes are excluded.
+*/
+{
+  a_type_ptr       mtp = class_type_supp(parent)->assoc_scope->types;
+  a_discriminator  n = 0;
+
+  for (; mtp != NULL; mtp = mtp->next) {
+    a_symbol_ptr  sym = symbol_for(mtp);
+    /* Note: Sym can be null for certain placeholder typerefs. */
+    if (sym != NULL && is_unnamed_tag_symbol(sym) && !has_name(mtp)) {
+      /* An unnamed class or enumeration type.  The !has_name test excludes
+         unnamed types that have a typedef name for linkage purposes. */
+      if (is_immediate_class_type(mtp)) {
+        a_class_type_supplement_ptr  ctsp = class_type_supp(mtp);
+        if (ctsp->is_lambda_closure_class ||
+            ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+          /* Closure types and anonymous union types are not included in the
+             count. */
+          continue;
+        }  /* if */
+        symbol_supplement_for_class(mtp)->discriminator = ++n;
+      } else {
+        check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
+        sym->variant.enumeration.extra_info->discriminator = ++n;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* assign_discriminators_to_unnamed_nested_types */
+
+#endif /* NEED_NAME_MANGLING */
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -15738,6 +15769,9 @@ bits of information that were acquired while parsing.
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEED_NAME_MANGLING
+    assign_discriminators_to_unnamed_nested_types(class_type);
+#endif /* NEED_NAME_MANGLING */
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */
@@ -17192,12 +17226,14 @@ For example:
   /* Declare the call operator for the closure class. */
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
 #if NEED_NAME_MANGLING
-  /* When multiple closure types appear in the same scope or context, their
-     mangled name are distinguished using a unique number ("discriminator").
-     Compute that number now if appropriate (in some contexts, such as
-     default arguments, the number will be determined elsewhere).  The notion
-     of "discriminator" here is a generalization of the one defined in the
-     IA-64 ABI. */
+  /* The IA-64 ABI sometimes requires that a discriminator be appended to the
+     mangled name of local closure types if two or more local closure types
+     within the same function have the same call operator type.  Now that the
+     operator is declared, we can compute that discriminator (the parameter
+     types play a role in the discrimination).  The ABI also requires a
+     discriminator in some other cases (e.g., closure classes in initializers
+     of template static data members), and a different discriminator value is
+     computed for cases not covered by the ABI. */
   compute_name_collision_discriminator(symbol_for(closure_class), decl_level);
 #endif /* NEED_NAME_MANGLING */
   /* Fill in the capture fields information for the explicit captures. */
