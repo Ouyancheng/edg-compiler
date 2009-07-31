@@ -4184,6 +4184,9 @@ template argument lists, and types promoted out of functions.
 
 #endif /* !IA64_ABI */
 
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- kind is only used for the IA-64 ABI. */
+#endif /* !IA64_ABI */
 static a_boolean entity_needs_parent_qualifier(a_source_correspondence *scp,
                                                an_il_entry_kind        kind)
 /*
