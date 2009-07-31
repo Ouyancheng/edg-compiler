@@ -14173,13 +14173,16 @@ the qualifier type.
         }  /* if */
         /* Get the template argument list from the prototype instantiation. */
         prototype_sym = tssp->variant.class_template.prototype_instantiation;
-        prototype_list =
+        /* The will be no prototype instantiation for nonreal templates. */
+        if (prototype_sym != NULL) {
+          prototype_list =
                   prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
-        /* See if the argument lists match. */
-        if (equiv_template_arg_lists(nonreal_list, prototype_list,
-                                     ETA_IS_NONREAL_MEMBER)) {
-          result = TRUE;
+          /* See if the argument lists match. */
+          if (equiv_template_arg_lists(nonreal_list, prototype_list,
+                                       ETA_IS_NONREAL_MEMBER)) {
+            result = TRUE;
+          }  /* if */
         }  /* if */
       }   /* if */
     }  /* if */
