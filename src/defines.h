@@ -965,7 +965,11 @@ switches before this point.
 Overwrite freed memory to detect later uses.
 */
 #ifndef OVERWRITE_FREED_MEM_BLOCKS
+#ifdef DEMO_VERSION
+#define OVERWRITE_FREED_MEM_BLOCKS 0
+#else /* ifndef DEMO_VERSION */
 #define OVERWRITE_FREED_MEM_BLOCKS 1
+#endif /* ifdef DEMO_VERSION */
 #endif /* ifndef OVERWRITE_FREED_MEM_BLOCKS */
 
 /*
