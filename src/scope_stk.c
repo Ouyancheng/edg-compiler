@@ -445,11 +445,42 @@ the given scope stack entry.
 }  /* free_local_name_collision_table */
 
 
+static a_symbol_list_entry_ptr* get_name_collision_list(a_symbol_ptr   sym,
+                                                        a_scope_depth  depth)
+/*
+depth indicates a scope depth that is local to a function.  Return the address
+of the pointer to the bucket list associated with the given symbol in the
+name collision table for that function.  (If no table exists yet for this
+function, one is created.)
+*/
+{
+  unsigned                 hash_index;
+  a_scope_stack_entry_ptr  ssep;
+  a_symbol_header_ptr      header = sym->header;
+  a_collision_table_ptr    table;
+
+  depth = scope_stack[depth].depth_innermost_function_scope;
+  check_assertion(depth != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth];
+  if (ssep->name_discr.local_name_collision_table == NULL) {
+    initialize_local_name_collision_table(ssep);
+  }  /* if */
+  table = ssep->name_discr.local_name_collision_table;
+  /* Symbols corresponding to identical names have identical symbol headers.
+     So we use the symbol header pointer value as a basis for a hash value.
+     The three least significant bits are discarded because they are possibly
+     always zero due to alignment requirements. */
+  hash_index = (unsigned)((((unsigned long)header) >> 3) %
+                                              LOCAL_NAME_COLLISION_TABLE_SIZE);
+  return &table->buckets[hash_index];
+}  /* get_name_collision_list */
+
+
 static a_boolean distinct_lambda_signatures(a_type_ptr  ctp1,
                                             a_type_ptr  ctp2)
 /*
-The two given types must be closure types.  Return TRUE if their respective
-function call operators have the same parameter types; FALSE otherwise.
+The two given types must be closure types.  Return FALSE if their respective
+function call operators have the same parameter types; TRUE otherwise.
 */
 {
   a_type_ptr  rtp1 = lambda_body_for_closure(ctp1)->type;
@@ -469,32 +500,16 @@ discriminator value one higher than that of the symbol found, and it replaces
 that symbol in the table.  Otherwise the discriminator value of sym is
 initialized to one, and the symbol is added to the table.  (Closure types
 are handled specially: They are considered to be "colliding" only if the
-associated lambda routines have the same type.)  This information is used to
-generate distinct mangled names of function-local entities in the IA-64 ABI.
+associated lambda routines have the same type.  Other unnamed types always
+collide with each other.)  This information is used to generate distinct
+mangled names of function-local entities.
 */
 {
-  unsigned                 hash_index;
-  a_scope_stack_entry_ptr  ssep;
-  a_symbol_list_entry_ptr  sep;
-  a_symbol_header_ptr      header = sym->header;
-  a_collision_table_ptr    table;
+  a_symbol_list_entry_ptr  *p_sep, sep;
 
-  depth = scope_stack[depth].depth_innermost_function_scope;
-  check_assertion(depth != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[depth];
-  if (ssep->name_discr.local_name_collision_table == NULL) {
-    initialize_local_name_collision_table(ssep);
-  }  /* if */
-  table = ssep->name_discr.local_name_collision_table;
-  /* Symbols corresponding to identical names have identical symbol headers.
-     So we use the symbol header pointer value as a basis for a hash value.
-     The three least significant bits are discarded because they are possibly
-     always zero due to alignment requirements. */
-  hash_index = (unsigned)((((unsigned long)header) >> 3) %
-                                              LOCAL_NAME_COLLISION_TABLE_SIZE);
-  sep = table->buckets[hash_index];
-  for (; sep != NULL; sep = sep->next) {
-    if (sep->symbol->header == header && sep->symbol != sym &&
+  p_sep = get_name_collision_list(sym, depth);
+  for (sep = *p_sep; sep != NULL; sep = sep->next) {
+    if (sep->symbol->header == sym->header && sep->symbol != sym &&
         (sep->symbol->kind == sym->kind ||
          (is_tag_symbol_kind(sep->symbol->kind) &&
           is_tag_symbol_kind(sym->kind)))) {
@@ -557,8 +572,8 @@ generate distinct mangled names of function-local entities in the IA-64 ABI.
   if (sep == NULL) {
     /* There were no collisions.  Record this symbol in the collision table. */
     a_symbol_list_entry_ptr  new_entry = alloc_symbol_list_entry();
-    new_entry->next = table->buckets[hash_index];
-    table->buckets[hash_index] = new_entry;
+    new_entry->next = *p_sep;
+    *p_sep = new_entry;
     new_entry->symbol = sym;
     switch (sym->kind) {
       case sk_variable:
@@ -587,23 +602,29 @@ void compute_name_collision_discriminator(a_symbol_ptr   sym,
 Assign a distinguishing "discriminator" value to the given entity declared in
 the indicated scope (which must be a local scope, a class scope, a namespace
 scope, or the file scope).  In non-local scopes, this only applies to unnamed
-class and enumeration types.  In local scopes, additional possibilities exist:
-See compute_local_name_collision_discriminator.
+class and enumeration types (which includes closure types).  In local scopes,
+additional possibilities exist: See compute_local_name_collision_discriminator.
+Name collision discriminators may be "taken back" in two cases: (1) when an
+unnamed type acquires a typedef name for linkage purposes, and (2) when an
+unnamed type ends up being an "anonymous union".
 */
 {
-  a_scope_stack_entry_ptr  ssep = &scope_stack[scope_depth];
+  a_scope_stack_entry_ptr
+             ssep = &scope_stack[scope_depth];
+  a_boolean  local_scope = (ssep->kind == (a_scope_kind)sck_function ||
+                            ssep->kind == (a_scope_kind)sck_block ||
+                            ssep->kind == (a_scope_kind)sck_condition);
 
-  if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
+  if (local_scope) {
+    /* Local scope entities use a "collision table". */
+    compute_local_name_collision_discriminator(sym, scope_depth);
+  } else if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
       class_type_supp(sym->variant.class_struct_union.type) 
                                                   ->is_lambda_closure_class) {
-    /* Closure types have their own numbering. */
+    /* Closure types have their own numbering numbering convention. */
     a_class_symbol_supplement_ptr
                             cssp = sym->variant.class_struct_union.extra_info;
-    if (ssep->kind == (a_scope_kind)sck_function ||
-        ssep->kind == (a_scope_kind)sck_block ||
-        ssep->kind == (a_scope_kind)sck_condition) {
-      compute_local_name_collision_discriminator(sym, scope_depth);
-    } else if (entities_are_recorded_for_current_expression()) {
+    if (entities_are_recorded_for_current_expression()) {
       /* The discriminator is determined later (in
          compute_default_arg_name_collision_discriminators or
          compute_data_member_name_collision_discriminators). */
@@ -611,14 +632,8 @@ See compute_local_name_collision_discriminator.
     } else {
       cssp->discriminator = ++ssep->last_closure_type_number;
     } 
-  } else if (ssep->kind == (a_scope_kind)sck_function ||
-             ssep->kind == (a_scope_kind)sck_block ||
-             ssep->kind == (a_scope_kind)sck_condition) {
-    compute_local_name_collision_discriminator(sym, scope_depth);
-  } else if (is_unnamed_tag_symbol(sym) &&
-             (ssep->kind == (a_scope_kind)sck_file ||
-              ssep->kind == (a_scope_kind)sck_namespace ||
-              ssep->kind == (a_scope_kind)sck_namespace_extension)) {
+  } else if (is_unnamed_tag_symbol(sym)) {
+    /* An unnamed enum/class type in file, namespace, or class scope. */
     if (is_real_class_symbol(sym)) {
       a_type_ptr  class_type = sym->variant.class_struct_union.type;
       if (!has_name(class_type)  &&
@@ -635,6 +650,84 @@ See compute_local_name_collision_discriminator.
     }  /* if */
   }  /* if */
 }  /* compute_name_collision_discriminator */
+
+
+void cancel_name_collision_discriminator(a_symbol_ptr   sym,
+                                         a_scope_depth  scope_depth)
+/*
+The given symbol represents an unnamed type to which a discriminator was
+assigned, but which now turns out not to require a discriminator (because it
+either (1) is acquiring a name for linkage purposes through a typedef, or
+(2) it is an anonymous union type).
+Make the discriminator field available for another type, and zero out the
+discriminator field in the symbol supplement.
+*/
+{
+  a_scope_stack_entry_ptr
+              ssep = &scope_stack[scope_depth];
+  a_boolean   local_scope = (ssep->kind == (a_scope_kind)sck_function ||
+                             ssep->kind == (a_scope_kind)sck_block ||
+                             ssep->kind == (a_scope_kind)sck_condition);
+  a_type_ptr  type = type_symbol_type(sym);
+
+  check_assertion(is_unnamed_tag_symbol(sym) &&
+                  !type->source_corresp.name_has_been_mangled);
+  if (local_scope) {
+    a_symbol_list_entry_ptr  *p_sep, sep;
+    p_sep = get_name_collision_list(sym, scope_depth);
+    /* The last symbol put on the list should be sym. */
+    check_assertion(p_sep != NULL && (*p_sep)->symbol == sym);
+    /* Remove and dispose of the list entry. */
+    sep = *p_sep;
+    *p_sep = sep->next;
+    sep->next = NULL;
+    free_list_of_symbol_list_entries(sep);
+    /* Clear the discriminator value in the symbol supplement. */
+    switch (sym->kind) {
+      case sk_class_or_struct_tag:
+      case sk_union_tag:
+        if (class_type_supp(type)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
+          /* An anonymous union: Set the discriminator to "1" to indicate the
+             lack of collision. */
+          sym->variant.class_struct_union.extra_info->discriminator = 1;
+        } else {
+          /* Another anonymous class type: Its discriminator will be
+             recomputed shortly.  Clear it for now. */
+          sym->variant.class_struct_union.extra_info->discriminator = 0;
+        }  /* if */
+        break;
+      case sk_enum_tag:
+        sym->variant.enumeration.extra_info->discriminator = 0;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } else {
+#if CHECKING
+    a_discriminator  prev_value = ssep->name_discr.last_unnamed_type_number;
+#endif  /* CHECKING */
+    ssep->name_discr.last_unnamed_type_number -= 1;
+    if (is_real_class_symbol(sym)) {
+      check_assertion(sym->variant.class_struct_union.extra_info->discriminator
+                        == prev_value);
+      if (class_type_supp(type)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
+        /* An anonymous union: Set the discriminator to "1" to indicate the
+           lack of collision. */
+        sym->variant.class_struct_union.extra_info->discriminator = 1;
+      } else {
+        /* Another anonymous class type: Its discriminator will be
+           recomputed shortly.  Clear it for now. */
+        sym->variant.class_struct_union.extra_info->discriminator = 0;
+      }  /* if */
+    } else if (sym->kind == (a_symbol_kind)sk_enum_tag) {
+      check_assertion(sym->variant.enumeration.extra_info->discriminator
+                        == prev_value);
+      sym->variant.enumeration.extra_info->discriminator = 0;
+    }  /* if */
+  }  /* if */
+}  /* cancel_name_collision_discriminator */
 
 
 static void assign_discriminators_to_entities_list(
@@ -706,7 +799,11 @@ void set_parent_entity_for_closure_types(
                    a_boolean                    subject_to_trans_unit_corresp)
 /*
 Record the given symbol as the parent entity for name mangling purposes in
-each of the non-nested closure types in the given list of entities.
+each of the non-nested closure types in the given list of entities.  If
+subject_to_trans_unit_corresp is TRUE, the lambda expressions defining the
+closure types may appear in multiple translation units and each such lambda
+expression then defines the same closure type (this routine records a flag
+in the symbol supplement for the closure type to indicate this).
 */
 {
   for (; elp != NULL; elp = elp->next) {
@@ -721,12 +818,15 @@ each of the non-nested closure types in the given list of entities.
           ctsp->lambda_parent.variable =
                               parent_sym->variant.static_data_member.variable;
         } else {
+          check_assertion(is_simple_function_symbol(parent_sym));
           ctsp->lambda_parent.routine = parent_sym->variant.routine.ptr;
         }  /* if */
         if (subject_to_trans_unit_corresp) {
           symbol_supplement_for_class(tp)
                                 ->lambda_subject_to_trans_unit_corresp = TRUE;
         }  /* if */
+      } else {
+        unexpected_condition();
       }  /* if */
     } else {
       unexpected_condition();
@@ -744,7 +844,11 @@ closure types defined in default arguments have the routine recorded as a
 parent for name mangling purposes.
 */
 {
-  if (rtp->kind == (a_type_kind)tk_routine) {
+  check_assertion(is_simple_function_symbol(rout_sym));
+  if (rtp->kind != (a_type_kind)tk_routine) {
+    /* If the routine was declared using a typedef type, there are no default
+       arguments and hence no closure types to process. */
+  } else {
     a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
     for (; ptp != NULL; ptp = ptp->next) {
       if (ptp->entities_defined_in_default_arg != NULL) {
@@ -6985,13 +7089,13 @@ End a name scope by popping an entry off the scope stack.
 #if NEED_NAME_MANGLING
     } else if (kind == (a_scope_kind)sck_namespace ||
                kind == (a_scope_kind)sck_namespace_extension) {
-        /* Save the discriminator counters. */
-        a_symbol_ptr  ns_sym = symbol_for(ssep->assoc_namespace);
-        a_namespace_symbol_supplement_ptr
-                      nssp = ns_sym->variant.namespace_info.extra_info;
-        nssp->last_unnamed_type_number =
+      /* Save the discriminator counters. */
+      a_symbol_ptr  ns_sym = symbol_for(ssep->assoc_namespace);
+      a_namespace_symbol_supplement_ptr
+                    nssp = ns_sym->variant.namespace_info.extra_info;
+      nssp->last_unnamed_type_number =
                                     ssep->name_discr.last_unnamed_type_number;
-        nssp->last_closure_type_number = ssep->last_closure_type_number;
+      nssp->last_closure_type_number = ssep->last_closure_type_number;
 #endif /* NEED_NAME_MANGLING */
     }  /* if */
     /* Dispose of the list of entries of type a_name_hidden_by_old_for_init.

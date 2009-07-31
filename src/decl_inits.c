@@ -3807,8 +3807,12 @@ returned set to TRUE.
   }  /* if */
   if (symbol_ptr->is_class_member) {
 #if NEED_NAME_MANGLING
-    /* Assign discriminator values to embedded closure classes if needed. */
     if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
+      /* A static data member initializer.  If the initializer defines closure
+         types (i.e., contains lambda expressions), assign unique numbers
+         ("discriminators") to each one; this numbers will be used by name
+         mangling.  Also record the data member as a "parent entity" for such
+         closure types (this is also used in the mangled encoding). */
       compute_data_member_name_collision_discriminators(symbol_ptr);
       set_parent_entity_for_closure_types(
                 vp->entities_defined_in_initializer, symbol_ptr,

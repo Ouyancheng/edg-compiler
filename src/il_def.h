@@ -5357,11 +5357,13 @@ typedef struct a_class_type_supplement {
 			   arguments were always explicitly specified. */
 #if NEED_NAME_MANGLING
   union {
+    /* When defined_in_static_data_member_initializer is FALSE: */
     a_routine_ptr
 		routine;
 			/* If this entry is for a closure type defined directly
 			   in a default argument, this points to the entry
 			   for the routine that has that default argument. */
+    /* When defined_in_static_data_member_initializer is TRUE: */
     a_variable_ptr
 		variable;
 			/* If this entry is for a closure type defined directly

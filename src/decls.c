@@ -9094,10 +9094,34 @@ symbol entry, and return a pointer to it in state->sym.
                                is_immediate_enum_type(tp)))) {
           /* Note that in non-cfront mode this is done only for types that
              actually do have linkage. */
+#if NEED_NAME_MANGLING
+          a_boolean  recompute_discriminator = FALSE;
+          if (type_to_check == type_ptr &&
+              symbol_for(type_to_check)->decl_scope ==
+                                       scope_stack[decl_scope_level].number) {
+            /* A discriminator was assigned to the unnamed type, but now it
+               turns out not to be unnamed for mangling purposes after all.
+               (The type_to_check == type_ptr check ensures that that this
+               is not the GNU case where a typeof(...) construct renames an
+               anonymous type.  The second test excludes unnamed types that
+               come in as template arguments.) */
+            cancel_name_collision_discriminator(symbol_for(tp),
+                                                decl_scope_level);
+            recompute_discriminator = TRUE;
+          }  /* if */
+#endif /* NEED_NAME_MANGLING */
 #if GNU_EXTENSIONS_ALLOWED
           linkage_name = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
           set_source_corresp_name(&tp->source_corresp, locator->symbol_header);
+#if NEED_NAME_MANGLING
+          if (recompute_discriminator) {
+            /* The new name may cause a collision of its own: Compute a new
+               discriminator if needed. */
+            compute_name_collision_discriminator(symbol_for(tp),
+                                                 decl_scope_level);
+          }  /* if */
+#endif /* NEED_NAME_MANGLING */
           if (!is_class_or_enum && !any_cfront_mode()) {
             tp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
           }  /* if */
