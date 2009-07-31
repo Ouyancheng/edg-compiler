@@ -14121,7 +14121,7 @@ permitted to follow the template keyword.
 
 static a_boolean gpp_omitted_template_okay(a_type_ptr	tp)
 /*
-g++ versions prior to 4.1.2 allow the "template" keyword to be omitted
+g++ versions prior to 4.1.1 allow the "template" keyword to be omitted
 in some cases when referring to a member class template.  It may be omitted
 when the template argument list matches the implied template argument
 list of the prototype instantiation.  In the example below, in A<T>::B<...>

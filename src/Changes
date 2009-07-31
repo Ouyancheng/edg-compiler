@@ -16,7 +16,7 @@ be used to cause the vtable for a class to be emitted in a given compilation.
 7/30/09  [EDGcpfe/9730]
 GNU C++ compatibility: missing "template" keyword in member template reference
 
-g++ versions before 4.1.2 allow certain dependent member class template
+g++ versions before 4.1.1 allow certain dependent member class template
 references to omit the "template" keyword.  It may be omitted when the
 template argument list matches the implied template argument list of
 the prototype instantiation.  In the example below, in the reference to
