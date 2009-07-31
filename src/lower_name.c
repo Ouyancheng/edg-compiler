@@ -3168,7 +3168,7 @@ are lacking).
 
   check_assertion(is_immediate_class_type(type) &&
                   (symbol_for(type) == NULL ||
-                   is_originally_unnamed_type(type)));
+                   is_unnamed_type(type)));
   if (symbol_for(type) == NULL) {
     /* A compiler generated type (e.g., exception handling, typeinfo). */
     result = TRUE;
@@ -3710,7 +3710,7 @@ the discriminator is closely bound to the unnamed type as opposed to appearing
 at the end of the <entity name> production.
 */
 {
-  return (is_originally_unnamed_type(type) &&
+  return (is_unnamed_type(type) &&
           !(is_immediate_class_type(type) &&
             unnamed_type_has_no_discriminator(type)));
 }  /* is_self_discriminated_type */
@@ -4234,7 +4234,7 @@ arguments or initializers).
 
   if (local_types_as_template_args_enabled) {
     if (kind == iek_type) {
-      if (is_originally_unnamed_type((a_type_ptr)scp) &&
+      if (is_unnamed_type((a_type_ptr)scp) &&
           !scp->is_class_member &&
           !scp->is_local_to_function) {
         /* An unnamed type that isn't specific to a class or function is
