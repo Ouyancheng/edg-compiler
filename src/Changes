@@ -1,5 +1,30 @@
 Version 4.1
 
+8/2/09   [EDGcpfe/10001]
+Incorrect mangling for local class in Cfront ABI
+
+In the Cfront ABI, the mangled encoding for a local class type contains the
+enclosing function name as well as "__L" followed by a number meant to 
+uniquely identify the class within the function.  It was possible for such
+a local class to have been given two different mangled encodings (with two
+different "unique" numbers) in the same compilation.  This problem could
+cause an instantiation loop in the prelinker as was the case with this
+example (--c++0x):
+
+  template <class T> void f(T) {}
+  template <typename T> void g(T t) {
+    struct A {} a;
+    struct B {} b;    // mangled with __L0 and __L1, causing prelinker loop
+    f(&b);
+  }
+  int main() {
+    g([]{
+          struct C {} c;
+          f(&c);
+        });
+  }
+
+
 7/30/09  [EDGcpfe/9705]
 GNU C++ compatibility: "inline template"
 
