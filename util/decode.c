@@ -1508,27 +1508,16 @@ template parameters.
         write_id_str(")", dctl);
       }  /* if */
       write_id_str("]", dctl);
-    } else if (start_of_id_is("Ul", p, dctl)) {
-      /* __Ulnn_<function-type>: Lambda closure. */
+    } else if (start_of_id_is("Ul", p, dctl) ||
+               start_of_id_is("Um", p, dctl)) {
+      /* __Ulnn_<function-type> or __Umnn_<function-type>: Lambda closure.
+         For demangling purposes, treat these the same; the member initializer
+         case will be preceeded by the name of the member being initialized,
+         so no further words are necessary. */
       p = get_number(p+2, &discriminator, dctl);
       if (get_char(p, dctl) == '_') {
         write_id_str("[lambda", dctl);
         end_ptr = demangle_type(p+1, dctl);
-        is_special_name = TRUE;
-        if (discriminator > 0) {
-          write_id_str(" (instance ", dctl);
-          write_id_number(discriminator, dctl);
-          write_id_str(")", dctl);
-        }  /* if */
-        write_id_str("]", dctl);
-      }  /* if */
-    } else if (start_of_id_is("Um", p, dctl)) {
-      /* __Umnn_<function-type>: Lambda closure in member initializer. */
-      p = get_number(p+2, &discriminator, dctl);
-      if (get_char(p, dctl) == '_') {
-        write_id_str("[lambda", dctl);
-        end_ptr = demangle_type(p+1, dctl);
-        write_id_str(" in member initializer", dctl);
         is_special_name = TRUE;
         if (discriminator > 0) {
           write_id_str(" (instance ", dctl);
@@ -1548,8 +1537,9 @@ template parameters.
         if (get_char(p, dctl) == '_') {
           write_id_str("[lambda", dctl);
           end_ptr = demangle_type(p+1, dctl);
-          write_id_str(" in trailing default argument ", dctl);
+          write_id_str(" in default argument ", dctl);
           write_id_number(param_num, dctl);
+          write_id_str(" (from end)", dctl);
           is_special_name = TRUE;
           if (discriminator > 0) {
             write_id_str(" (instance ", dctl);
@@ -4817,6 +4807,7 @@ substitution, the name of the last component in the substitution is used.
   for (;;) {
     /* Demangle one level of the nested name. */
     a_boolean is_substitution = FALSE;
+    a_boolean suppress_qualification = FALSE;
     level_num++;
     *is_no_return_name = FALSE;
     *has_templ_arg_list = FALSE;
@@ -4839,8 +4830,10 @@ substitution, the name of the last component in the substitution is used.
       /* A <template-param>. */
       ptr = demangle_template_param(ptr, dctl);
     } else if (*ptr == 'M') {
-      /* A <data-member-prefix>. */
-      write_id_str("[member initializer]", dctl);
+      /* A <data-member-prefix>.  No indication is needed in the
+         demangled output, the member itself is listed as the previous
+         qualified name. */
+      suppress_qualification = TRUE;
       ptr++;
     } else {
       /* Not a substitution or template parameter, so an <unqualified-name>. */
@@ -4911,7 +4904,7 @@ substitution, the name of the last component in the substitution is used.
     if (num_levels != 0 && level_num >= num_levels) break;
     /* Going around again, so the part put out so far is a qualifier and
        needs to be followed by "::". */
-    write_id_str("::", dctl);
+    if (!suppress_qualification) write_id_str("::", dctl);
   }  /* for */
   if (last_component_name != NULL) *last_component_name = prev_component_name;
   return ptr;
@@ -5016,9 +5009,9 @@ For function names, additional information is returned in *func_block.
       }  /* if */
       ptr += 1;
       if (!dctl->err_in_id) {
-        write_id_str("[trailing default argument ", dctl);
+        write_id_str("[default argument ", dctl);
         write_id_number(param+2, dctl);
-        write_id_str("]::", dctl);
+        write_id_str(" (from end)]::", dctl);
       }  /* if */
     }  /* if */
     /* Demangle the entity name. */

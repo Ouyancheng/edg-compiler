@@ -121,19 +121,16 @@ compilers.  For example:
 7/27/09  [EDGcpfe/9554]
 C++0x: Mangling of unnamed types and lambdas
 
-With the advent of C++0x, unnamed types (class/struct/unions, enums, lambdas) 
+With the advent of C++0x, unnamed types (lambdas, class/struct/unions, enums) 
 can appear in contexts where a mangled encoding for the type name is required
 (for example, a local unnamed type used as template type parameter or a lambda
 defined in a default argument of a member function).  Mangled encodings
-for these unnamed types are now produced by the front end in both IA-64 and
+for these unnamed types are now produced by the front end in both the IA-64 and
 Cfront ABIs.  The IA-64 ABI specification has been updated to specify
 manglings for these types (and we follow those rules); mangling in the Cfront
 ABI required an EDG extension (see the C++ front end documentation).  See also
 the Changes entry in the util directory for corresponding demangling changes.
-Note that in contexts where unnamed types and lambdas don't need to correspond
-across translation units, the mangled encodings are "individuated" to avoid
-collisions (see the Changes entry of 6/12/09).  Here are some sample unnamed
-types and their mangled names:
+Here are some sample unnamed types and their mangled names:
 
   int module_id = 0;
   struct { int i; } s;
@@ -149,8 +146,8 @@ types and their mangled names:
       // IA-64:  _ZN1A1mMUlfE_E
       // Cfront: __Q3_1A1m8__Um1_Ff
   void f(int i = [](char a, char b) { return a - b; }('1', '0')) {}
-      // IA-64:  _ZZ1fiEd_N25_INTERNAL_4_ex_c_afc2b591UlccE_E
-      // Cfront: __Q2_26__INTERNAL_4_ex_c_afc2b59123__Ud1_1_FcT1__L0__f__Fi
+      // IA-64:  _ZZ1fiEd_UlccE_
+      // Cfront: __23__Ud1_1_FcT1__L0__f__Fi
 
 
 7/22/09  [EDGcpfe/9980]
