@@ -2804,7 +2804,6 @@ may be emitted at the given position.
       }  /* if */
       check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
       cssp = symbol_supplement_for_class(class_type);
-      cssp->local_class_number = ssep->number_of_local_classes++;
     }  /* if */
   }  /* if */
 }  /* update_membership_of_class */

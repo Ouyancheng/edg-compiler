@@ -2381,7 +2381,6 @@ the scope being pushed.
   ssep->templ_member_class_sym   = NULL;
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
   ssep->num_of_extra_times_pushed = 0;;
-  ssep->number_of_local_classes   = 0;
   ssep->active_using_directives   = NULL;
   ssep->using_directives_that_apply_here = NULL;
   ssep->previous_scope            = NO_SCOPE_DEPTH;
