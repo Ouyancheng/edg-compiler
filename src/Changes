@@ -4,6 +4,16 @@ Version 4.1
 IL version number changed to 4.1
 
 
+8/3/09   [EDGcpfe/10000]
+"stmt" pointer in a_switch_case_entry not walked properly
+
+The "stmt" parent pointer in a_switch_case_entry was not walked in the right
+way, with the consequence that with ALTERNATE_IL_FILE_FORMAT set to 0
+an attempt to read back in an IL file containing a switch case would
+fail if the "stmt" pointer was referenced (the pointer value was not
+remapped in the read, and therefore was essentially random).
+
+
 8/2/09   [EDGcpfe/10001]
 Incorrect mangling for local class in Cfront ABI
 

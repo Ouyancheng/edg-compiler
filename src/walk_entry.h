@@ -1623,7 +1623,9 @@ do_set_proper_definition_needed_flag:
     case iek_switch_case_entry:
       {
         a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->stmt, a_statement_ptr, iek_statement);
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        remap_ptr(ptr->stmt, a_statement_ptr, iek_statement);
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         walk_ptr(ptr->case_value, a_constant_ptr, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
         walk_ptr(ptr->range_end, a_constant_ptr, iek_constant);
