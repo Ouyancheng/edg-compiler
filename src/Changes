@@ -2612,8 +2612,8 @@ result in spurious access errors.  Now fixed.
     A() : x(37) {}
     A(const A&) {}
   };
-  int f(A* = new A){return 0;}  // A::A() in accessible
-  int f(A = A(1)){return 0;}    // A::A(const A&) in accessible (strict mode)
+  int f(A* = new A){return 0;}  // A::A() accessible
+  int f(A = A(1)){return 0;}    // A::A(const A&) accessible (strict mode)
 
 
 4/1/09   [EDGcpfe/9658]
