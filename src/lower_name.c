@@ -3174,7 +3174,7 @@ which these types are lacking).
   check_assertion((is_immediate_class_type(type) ||
                    is_immediate_enum_type(type)) &&
                   (symbol_for(type) == NULL ||
-                   is_unnamed_type(type)));
+                   type_is_unnamed(type)));
   if (symbol_for(type) == NULL) {
     /* A compiler generated type (e.g., exception handling, typeinfo). */
     result = TRUE;
@@ -3716,7 +3716,7 @@ the discriminator is closely bound to the unnamed type as opposed to appearing
 at the end of the <entity name> production.
 */
 {
-  return (is_unnamed_type(type) &&
+  return (type_is_unnamed(type) &&
           !unnamed_type_has_no_discriminator(type));
 }  /* is_self_discriminated_type */
 
@@ -4237,7 +4237,7 @@ arguments or initializers).
 
   if (local_types_as_template_args_enabled) {
     if (kind == iek_type) {
-      if (is_unnamed_type((a_type_ptr)scp) &&
+      if (type_is_unnamed((a_type_ptr)scp) &&
           !scp->is_class_member &&
           !(scp->is_local_to_function ||
             mangle_as_lambda_in_default_argument((a_type_ptr)scp))) {

@@ -1598,7 +1598,7 @@ or is marked as being originally unnamed.
 /*
 Macro that returns TRUE if the type is unnamed.
 */
-#define is_unnamed_type(type)                                           \
+#define type_is_unnamed(type)                                           \
   (unmangled_name_of(&(type)->source_corresp) == NULL)
 
 /*
