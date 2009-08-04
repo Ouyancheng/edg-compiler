@@ -2807,7 +2807,7 @@ Allocate bcp (an empty base class).
     }  /* if */
   }  /* if */
   if (offset == 0 &&
-      !(base_subobject_conflict(bcp, 0) ||
+      !(base_subobject_conflict(bcp, (a_targ_size_t)0) ||
         (emulate_gnu_abi_bugs &&
          gnu_leading_empty_base_conflict(lob->class_type, bcp)))) {
     bcp->offset = 0;
