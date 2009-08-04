@@ -157,19 +157,33 @@ compilers.  For example:
                      // is still in effect.
 
 
-7/27/09  [EDGcpfe/9554]
-C++0x: Mangling of unnamed types and lambdas
+7/27/09  [EDGcpfe/9428, EDGcpfe/9554]
+Mangling of unnamed types and lambdas
 
 With the advent of C++0x, unnamed types (lambdas, class/struct/unions, enums) 
 can appear in contexts where a mangled encoding for the type name is required
 (for example, a local unnamed type used as template type parameter or a lambda
 defined in a default argument of a member function).  Mangled encodings
 for these unnamed types are now produced by the front end in both the IA-64 and
-Cfront ABIs.  The IA-64 ABI specification has been updated to specify
-manglings for these types (and we follow those rules); mangling in the Cfront
-ABI required an EDG extension (see the C++ front end documentation).  See also
-the Changes entry in the util directory for corresponding demangling changes.
-Here are some sample unnamed types and their mangled names:
+Cfront ABIs (in all modes).  The IA-64 ABI specification has been updated to
+specify manglings for these types (and we follow those rules); mangling in the
+Cfront ABI required an EDG extension (see the C++ front end documentation).
+
+In configurations where local types can be used as template type arguments
+(i.e., --c++0x or --microsoft_mode >= 1400), the possibility exists for
+local types to be used in the mangled name of a globally visible function.
+This could result in linker conflicts because instantiations of distinct
+functions could be given the same name.  To prevent this, unnamed classes and
+enums in namespaces (including the global namespace), as well as static
+functions, are now "individuated", that is, their mangled names are now
+adjusted to appear "as if" they are part of a translation unit specific
+namespace (this fabricated "namespace" incorporates the translation unit's
+module id to provide a unique symbol).  The resulting mangled names should
+not collide with names from other translation units and can be used in the
+mangled names of template functions.
+
+See also the Changes entry in the util directory for corresponding demangling
+changes.  Here are some sample unnamed types and their mangled names (--c++0x):
 
   int module_id = 0;
   struct { int i; } s;
@@ -722,59 +736,6 @@ if-statement is an empty statement (i.e., a semicolon), except if an empty
     if (i);        // No remark because an "else" follows.
     else;          // Now triggers a remark.
   }
-
-
-6/12/09  [EDGcpfe/9428]
-Unnamed types and static routines are given globally unique names
-
-In configurations where local types can be used as template type arguments
-(i.e., --c++0x or --microsoft_mode >= 1400), the possibility now exists for
-local types to be used in the mangled name of a globally visible function.
-This could result in linker conflicts because instantiations of distinct
-functions could be given the same name.  To prevent this, unnamed classes and
-enums in namespaces (including the global namespace), as well as static
-functions, are now "individuated", that is, their mangled names are now
-adjusted to appear "as if" they are part of a translation unit specific
-namespace (this fabricated "namespace" incorporates the translation unit's
-module id to provide a unique symbol).  The resulting mangled names should
-not collide with names from other translation units and can be used in the
-mangled names of template functions.  This mangling scheme is used in
-both IA-64 and Cfront ABIs (and is an EDG extension to the IA-64 ABI).
-
-Here is an example (compiled as x.c) that demonstrates some of the new
-manglings:
-
-  template <class T> void f(T) {}
-  template <class T, class T1> void f(T, T1) {}
-  struct {} s;
-  enum {} e;
-  static void f2();
-  void f1() {
-    f2();    /* IA-64: _ZN22_INTERNAL_3_x_c__Z2f1v2f2Ev */
-             /* Cfront: f2__23__INTERNAL_3_x_c_f1__FvFv */
-    f(s);    /* IA-64: _Z1fIN22_INTERNAL_3_x_c__Z2f1v4__C1EEvT_ */
-             /* Cfront: f__tm__34_Q2_23__INTERNAL_3_x_c_f1__Fv4__C1__FZ1Z_v */
-    f(e);    /* IA-64: _Z1fIN22_INTERNAL_3_x_c__Z2f1v4__E2EEvT_ */
-             /* Cfront: f__tm__34_Q2_23__INTERNAL_3_x_c_f1__Fv4__E2__FZ1Z_v */
-    f(s, s); /* IA-64: _Z1fIN22_INTERNAL_3_x_c__Z2f1v4__C1ES1_EvT_T0_ */
-             /* Cfront:
-__CPR87__f__tm__67_Q2_23__INTERNAL_3_x_c_f1__Fv4__C1Q2_J13JJ38J__FZ1ZZ2Z_v */
-    f(e, e); /* IA-64: _Z1fIN22_INTERNAL_3_x_c__Z2f1v4__E2ES1_EvT_T0_ */
-             /* Cfront:
-__CPR87__f__tm__67_Q2_23__INTERNAL_3_x_c_f1__Fv4__E2Q2_J13JJ38J__FZ1ZZ2Z_v */
-    f(s, e); /* IA-64: _Z1fIN22_INTERNAL_3_x_c__Z2f1v4__C1ENS0_4__E2EEvT_T0_ */
-             /* Cfront:
-__CPR87__f__tm__67_Q2_23__INTERNAL_3_x_c_f1__Fv4__C1Q2_J13J4__E2__FZ1ZZ2Z_v */
-  }
-  static void f2() {
-    struct A {} a;
-    f(a);    /* IA-64: _Z1fIZN22_INTERNAL_3_x_c__Z2f1v2f2EvE1AEvT_ */
-             /* Cfront:
-                f__tm__41_38A__L0__f2__23__INTERNAL_3_x_c_f1__FvFv__FZ1Z_v */
-  }
-
-A corresponding change has been made for demangling these entities.  Details
-are available in the Changes file in the util directory.
 
 
 6/12/09  [EDGcpfe/9910]
