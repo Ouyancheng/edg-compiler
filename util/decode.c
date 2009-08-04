@@ -366,6 +366,7 @@ static char *get_number(char                       *p,
 
 static char *demangle_module_id(char                       *ptr,
                                 long                       num,
+                                char                       *prefix,
                                 a_decode_control_block_ptr dctl)
 /*
 Demangle a module id name (an EDG extension), which has the form
@@ -373,8 +374,10 @@ Demangle a module id name (an EDG extension), which has the form
         _ <file-name-length> _ <file-name> _ <str1> [ _ <str2> ]
 
 Only the file name part is parsed and put out.  num specifies the number of
-characters in the entire module id.  Return a pointer to the character position
-following the entire module id.
+characters in the entire module id.  prefix points earlier in the mangled
+name to a prefix that may precede the module id (if no such prefix is used,
+prefix == NULL).  Return a pointer to the character position following the
+entire module id.
 */
 {
 #if IA64_ABI
@@ -385,7 +388,11 @@ following the entire module id.
   char          *start;
 
   if (*ptr != '_' || !isdigit((unsigned char)ptr[1])) {
-    /* May not be an EDG module_id, in which case, emit the entire string. */
+    /* May not be an EDG module_id, in which case, emit the entire string
+       (including any prefix that may have been parsed by the caller). */
+    if (prefix != NULL) {
+      while (prefix != ptr) write_id_ch(*prefix++, dctl);
+    }  /* if */
     num_chars_to_output = num;
     start = ptr;
   } else {
@@ -404,8 +411,10 @@ following the entire module id.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Write the filename (or entire module id). */
-  while (num_chars_to_output-- > 0) write_id_ch(*start++, dctl);
+  if (!dctl->err_in_id) {
+    /* Write the filename (or entire module id). */
+    while (num_chars_to_output-- > 0) write_id_ch(*start++, dctl);
+  }  /* if */
   return ptr+num;
 }  /* demangle_module_id */
 
@@ -1495,36 +1504,44 @@ template parameters.
       /* __INTERNAL<module_id>: An individuated namespace name. */
       is_special_name = TRUE;
       write_id_str("[local to ", dctl);
-      end_ptr = demangle_module_id(p+8, nchars-(8+2), dctl);
+      end_ptr = demangle_module_id(p+8, nchars-(8+2), p, dctl);
       write_id_str("]", dctl);
     } else if (start_of_id_is("Ut", p, dctl)) {
       /* __Utnn: An unnamed type. */
-      is_special_name = TRUE;
       write_id_str("[unnamed type", dctl);
-      end_ptr = get_number(p+2, &discriminator, dctl);
+      p = get_number(p+2, &discriminator, dctl);
       if (discriminator > 0) {
         write_id_str(" (instance ", dctl);
         write_id_number(discriminator, dctl);
         write_id_str(")", dctl);
+        is_special_name = TRUE;
+        end_ptr = p;
+      } else {
+        bad_mangled_name(dctl);
       }  /* if */
       write_id_str("]", dctl);
     } else if (start_of_id_is("Ul", p, dctl) ||
                start_of_id_is("Um", p, dctl)) {
       /* __Ulnn_<function-type> or __Umnn_<function-type>: Lambda closure.
          For demangling purposes, treat these the same; the member initializer
-         case will be preceeded by the name of the member being initialized,
+         case will be preceded by the name of the member being initialized,
          so no further words are necessary. */
       p = get_number(p+2, &discriminator, dctl);
       if (get_char(p, dctl) == '_') {
         write_id_str("[lambda", dctl);
-        end_ptr = demangle_type(p+1, dctl);
-        is_special_name = TRUE;
+        p = demangle_type(p+1, dctl);
         if (discriminator > 0) {
           write_id_str(" (instance ", dctl);
           write_id_number(discriminator, dctl);
           write_id_str(")", dctl);
+          is_special_name = TRUE;
+          end_ptr = p;
+        } else {
+          bad_mangled_name(dctl);
         }  /* if */
         write_id_str("]", dctl);
+      } else {
+        bad_mangled_name(dctl);
       }  /* if */
     } else if (start_of_id_is("Ud", p, dctl)) {
       /* __Udnn_p_<function-type>: Lambda closure in default argument.
@@ -1536,7 +1553,7 @@ template parameters.
         p = get_number(p+1, &param_num, dctl);
         if (get_char(p, dctl) == '_') {
           write_id_str("[lambda", dctl);
-          end_ptr = demangle_type(p+1, dctl);
+          p = demangle_type(p+1, dctl);
           write_id_str(" in default argument ", dctl);
           write_id_number(param_num, dctl);
           write_id_str(" (from end)", dctl);
@@ -1545,8 +1562,14 @@ template parameters.
             write_id_str(" (instance ", dctl);
             write_id_number(discriminator, dctl);
             write_id_str(")", dctl);
+            is_special_name = TRUE;
+            end_ptr = p;
+          } else {
+            bad_mangled_name(dctl);
           }  /* if */
           write_id_str("]", dctl);
+        } else {
+          bad_mangled_name(dctl);
         }  /* if */
       }  /* if */
     } else {
@@ -4204,13 +4227,13 @@ output the rest of the string).  This is used for an EDG extension.
     /* A module id name (an EDG extension), which has the form
          <length> _ <file-name-length> _ <file-name> <rest-of-module-id>
        Only the file name part is put out. */
-    ptr = demangle_module_id(ptr, num, dctl);
+    ptr = demangle_module_id(ptr, num, NULL, dctl);
   } else if (num >= 9 && start_of_id_is("_INTERNAL", ptr)) {
     /* An EDG extension to individuate certain entities so they don't
        collide with similarly named (or unnamed) entities in other
        translation units. */
     write_id_str("[local to ", dctl);
-    ptr = demangle_module_id(ptr+9, num-9, dctl);
+    ptr = demangle_module_id(ptr+9, num-9, ptr, dctl);
     write_id_str("]", dctl);
   } else {
     if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
@@ -4243,10 +4266,9 @@ output the rest of the string).  This is used for an EDG extension.
 }  /* demangle_source_name */
 
 
-static char *advance_past_underscore_or_instance_number(
-                                          char                       *p,
-                                          unsigned long              *instance,
-                                          a_decode_control_block_ptr dctl)
+static char *get_instance_number(char                       *p,
+                                 unsigned long              *instance,
+                                 a_decode_control_block_ptr dctl)
 /*
 An underscore optionally preceded by a non-negative instance number is
 expected at *p.  Advance past the underscore.  Return the instance number
@@ -4269,7 +4291,7 @@ expected at *p.  Advance past the underscore.  Return the instance number
     bad_mangled_name(dctl);
   }  /* if */
   return p;
-}  /* advance_past_underscore_or_instance_number */
+}  /* get_instance_number */
 
 
 static char *demangle_unnamed_type(char                       *ptr,
@@ -4292,10 +4314,12 @@ position following what was demangled.
   if (*ptr == 'U' && ptr[1] == 't') {
     /* An unnamed type has an optional instance number followed by an
        underscore. */
-    ptr = advance_past_underscore_or_instance_number(ptr+2, &instance, dctl);
-    write_id_str("[unnamed type (instance ", dctl);
-    write_id_number(instance, dctl);
-    write_id_str(")]", dctl);
+    ptr = get_instance_number(ptr+2, &instance, dctl);
+    if (!dctl->err_in_id) {
+      write_id_str("[unnamed type (instance ", dctl);
+      write_id_number(instance, dctl);
+      write_id_str(")]", dctl);
+    }  /* if */
   } else if (*ptr == 'U' && ptr[1] == 'l') {
     /* A lambda has the encoding for the operator() bare function type (without
        the return type) and an optional instance number followed by an
@@ -4303,10 +4327,12 @@ position following what was demangled.
     write_id_str("[lambda", dctl);
     ptr = demangle_bare_function_type(ptr+2, /*no_return_type=*/TRUE, dctl);
     if (*ptr == 'E') {
-      ptr = advance_past_underscore_or_instance_number(ptr+1, &instance, dctl);
-      write_id_str(" (instance ", dctl);
-      write_id_number(instance, dctl);
-      write_id_str(")", dctl);
+      ptr = get_instance_number(ptr+1, &instance, dctl);
+      if (!dctl->err_in_id) {
+        write_id_str(" (instance ", dctl);
+        write_id_number(instance, dctl);
+        write_id_str(")", dctl);
+      }  /* if */
     } else {
       bad_mangled_name(dctl);
     }  /* if */
@@ -5005,9 +5031,14 @@ For function names, additional information is returned in *func_block.
         ptr = get_number(ptr, &param, dctl);
         if (param < 0 || *ptr != '_') {
           bad_mangled_name(dctl);
+        } else {
+          /* Advance past underscore. */
+          ptr += 1;
         }  /* if */
+      } else {
+        /* Advance past underscore. */
+        ptr += 1;
       }  /* if */
-      ptr += 1;
       if (!dctl->err_in_id) {
         write_id_str("[default argument ", dctl);
         write_id_number(param+2, dctl);
