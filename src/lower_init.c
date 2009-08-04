@@ -2438,7 +2438,7 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
   } /* if */
   if (padding_size != 0 || even_if_zero) {
     /* Make the expression. */
-    padding_node = node_for_integer_constant(padding_size, 
+    padding_node = node_for_integer_constant((long)padding_size, 
                                              targ_size_t_int_kind);
   }  /* if */
   return padding_node;

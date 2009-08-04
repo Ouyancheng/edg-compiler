@@ -10295,7 +10295,8 @@ has already been lowered.
     if (is_pointer_type(vtbl_class->type)) {
       vtbl_class = add_indirection_to_node(vtbl_class);
     }  /* if */
-    offset_to_top_node = make_vtbl_entry_expr(vtbl_class, -2L);
+    offset_to_top_node = make_vtbl_entry_expr(vtbl_class, 
+                                              (a_virtual_table_index)-2L);
     /* Cast the original pointer to `char *' to avoid scaling when
        performing pointer arithmetic. */
     src_copy = add_cast_to_char_star(src_copy);

@@ -7964,10 +7964,10 @@ pointer, or performs the "this" adjustments.
   } else {
     add_to_mangled_name('h', &mctl);
   }  /* if */
-  add_signed_number_to_mangled_name(entry_routine->delta, &mctl);
+  add_signed_number_to_mangled_name((long)entry_routine->delta, &mctl);
   add_to_mangled_name('_', &mctl);
   if (entry_routine->vcall_index != 0) {
-    add_signed_number_to_mangled_name((entry_routine->vcall_index *
+    add_signed_number_to_mangled_name((long)(entry_routine->vcall_index *
                                        (long)vtbl_entry_size()),
                                       &mctl);
     add_to_mangled_name('_', &mctl);
@@ -7980,10 +7980,11 @@ pointer, or performs the "this" adjustments.
     } else {
       add_to_mangled_name('h', &mctl);
     }  /* if */
-    add_signed_number_to_mangled_name(entry_routine->return_delta, &mctl);
+    add_signed_number_to_mangled_name((long)entry_routine->return_delta,
+                                      &mctl);
     add_to_mangled_name('_', &mctl);
     if (entry_routine->vbase_index != 0) {
-      add_signed_number_to_mangled_name((entry_routine->vbase_index * 
+      add_signed_number_to_mangled_name((long)(entry_routine->vbase_index * 
                                          (long)vtbl_entry_size()), 
                                         &mctl);
       add_to_mangled_name('_', &mctl);
