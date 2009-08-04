@@ -4227,7 +4227,7 @@ output the rest of the string).  This is used for an EDG extension.
     /* A module id name (an EDG extension), which has the form
          <length> _ <file-name-length> _ <file-name> <rest-of-module-id>
        Only the file name part is put out. */
-    ptr = demangle_module_id(ptr, num, NULL, dctl);
+    ptr = demangle_module_id(ptr, num, (char *)NULL, dctl);
   } else if (num >= 9 && start_of_id_is("_INTERNAL", ptr)) {
     /* An EDG extension to individuate certain entities so they don't
        collide with similarly named (or unnamed) entities in other
