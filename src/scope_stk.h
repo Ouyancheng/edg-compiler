@@ -920,6 +920,7 @@ typedef struct a_scope_stack_entry {
 			   following the operator keyword. */
 #if NEED_NAME_MANGLING
   union {
+    /* When kind == sck_function, sck_block, or sck_condition: */
     a_collision_table_ptr
 		local_name_collision_table;
 			/* A hash table of local symbols to detect local
@@ -927,6 +928,8 @@ typedef struct a_scope_stack_entry {
 			   a discriminator appended to their mangled name.
 			   (Non-NULL only for function scopes.) The union type
 			   a_collision_table is defined in scope_stk.c. */
+    /* When kind == sck_file, sck_namespace, sck_namespace_extensions, or
+       sck_class_struct_union: */
     a_discriminator
 		last_unnamed_type_number;
 			/* In non-local scopes, the last "discriminator" value
@@ -1226,6 +1229,9 @@ EXTERN a_boolean
 #if NEED_NAME_MANGLING
 extern void compute_name_collision_discriminator(a_symbol_ptr   sym,
                                                  a_scope_depth  scope_depth);
+
+extern void cancel_name_collision_discriminator(a_symbol_ptr   sym,
+                                                a_scope_depth  scope_depth);
 
 extern
 void compute_default_arg_name_collision_discriminators(a_param_type_ptr  ptp);
