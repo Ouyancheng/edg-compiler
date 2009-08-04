@@ -3376,7 +3376,7 @@ Display and return the amount of space used for preprocessing structures.
                      a_upc_pragma_stack_entry);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  db_space_used_lost("conform(forScope) pragma stack entries",
+  db_space_used_lost("forScope pragma stk ents",
                      avail_forScope_stack_entries,
                      num_forScope_stack_entries_allocated,
                      a_forScope_stack_entry);
