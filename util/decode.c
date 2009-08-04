@@ -1504,7 +1504,7 @@ template parameters.
       /* __INTERNAL<module_id>: An individuated namespace name. */
       is_special_name = TRUE;
       write_id_str("[local to ", dctl);
-      end_ptr = demangle_module_id(p+8, nchars-(8+2), p, dctl);
+      end_ptr = demangle_module_id(p+8, nchars-(8+2), p-2, dctl);
       write_id_str("]", dctl);
     } else if (start_of_id_is("Ut", p, dctl)) {
       /* __Utnn: An unnamed type. */
