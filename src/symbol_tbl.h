@@ -1079,7 +1079,7 @@ typedef struct an_enum_symbol_supplement {
 			   entities with the same name in the same function
 			   in the name mangling for the IA-64 ABI.  In file,
 			   namespace, and class scopes, a sequence number used
-			   to distinguish unnammed enum types (in both ABIs).
+			   to distinguish unnamed enum types (in both ABIs).
 			   Zero if not needed. */
 #endif /* NEED_NAME_MANGLING */
 } an_enum_symbol_supplement;
