@@ -2787,9 +2787,9 @@ may be emitted at the given position.
     if (!is_local_class) {
       /* Nonlocal class. */
       set_name_linkage_for_type(class_type);
+#if CHECKING
     } else {
       /* For a local class, save information about the enclosing function. */
-      a_class_symbol_supplement_ptr	cssp;
       a_scope_stack_entry_ptr		ssep;
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
         ssep = &scope_stack[depth_innermost_function_scope];
@@ -2803,7 +2803,7 @@ may be emitted at the given position.
         }  /* for */
       }  /* if */
       check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
-      cssp = symbol_supplement_for_class(class_type);
+#endif /* CHECKING */
     }  /* if */
   }  /* if */
 }  /* update_membership_of_class */
