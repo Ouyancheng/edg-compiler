@@ -496,18 +496,21 @@ static void compute_local_name_collision_discriminator(a_symbol_ptr   sym,
 Look in the name collision table associated with current function scope for a
 symbol that has the same name (i.e., header) as the given symbol sym (declared
 at the given scope depth).  If there is one, the current symbol is assigned a
-discriminator value one higher than that of the symbol found, and it replaces
-that symbol in the table.  Otherwise the discriminator value of sym is
-initialized to one, and the symbol is added to the table.  (Closure types
-are handled specially: They are considered to be "colliding" only if the
-associated lambda routines have the same type.  Other unnamed types always
-collide with each other.)  This information is used to generate distinct
-mangled names of function-local entities.
+discriminator value one higher than that of the symbol found.  Otherwise the
+discriminator value of sym is initialized to one.  Either way, the symbol is
+added to the table, thereby becoming the symbol that would be found if the
+name would be searched for again.  (Closure types are handled specially: They
+are considered to be "colliding" only if the associated lambda routines have
+the same type.  Other unnamed types always collide with each other.)  This
+information is used to generate distinct mangled names of function-local
+entities.
 */
 {
-  a_symbol_list_entry_ptr  *p_sep, sep, prev_sep = NULL;
+  a_symbol_list_entry_ptr  *p_sep, sep, prev_sep = NULL, new_entry;
+  a_discriminator          value = 1;
 
   p_sep = get_name_collision_list(sym, depth);
+  /* Search for a "collision". */
   for (sep = *p_sep; sep != NULL; prev_sep = sep, sep = sep->next) {
     if (sep->symbol->header == sym->header && sep->symbol != sym &&
         (sep->symbol->kind == sym->kind ||
@@ -516,14 +519,13 @@ mangled names of function-local entities.
       /* A previous declaration does collide with the new one. */
       switch (sym->kind) {
         case sk_variable:
-          sym->variant.variable.discriminator =
-                          sep->symbol->variant.variable.discriminator+1;
+          value = sep->symbol->variant.variable.discriminator+1;
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
           /* Note that enumerations and class types use the same numbering. */
           if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
-            sym->variant.class_struct_union.extra_info->discriminator =
+            value =
                  sep->symbol->variant.enumeration.extra_info->discriminator+1;
           } else {
             a_type_ptr  type, new_type;
@@ -541,67 +543,52 @@ mangled names of function-local entities.
                  are considered to be non-colliding. */
               continue;
             } else {
-              sym->variant.class_struct_union.extra_info->discriminator =
-                            sep->symbol->variant.class_struct_union.extra_info
-                                       ->discriminator+1;
+              value = sep->symbol->variant.class_struct_union.extra_info
+                                 ->discriminator+1;
             }  /* if */
           }  /* if */
           break;
         case sk_enum_tag:
           /* Note that enumerations and class types use the same numbering. */
           if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
-            sym->variant.enumeration.extra_info->discriminator =
-                 sep->symbol->variant.enumeration.extra_info->discriminator+1;
+            value = sep->symbol->variant.enumeration.extra_info
+                               ->discriminator+1;
           } else {
-            sym->variant.enumeration.extra_info->discriminator =
-                            sep->symbol->variant.class_struct_union.extra_info
-                                       ->discriminator+1;
+            value = sep->symbol->variant.class_struct_union.extra_info
+                               ->discriminator+1;
           }  /* if */
           break;
         case sk_type:
-          sym->variant.type.discriminator =
-                            sep->symbol->variant.type.discriminator+1;
+          value = sep->symbol->variant.type.discriminator+1;
           break;
         default:
           unexpected_condition();
       }  /* switch */
-      sep->symbol = sym;
-      if (prev_sep != NULL) {
-        /* Move *sep to the head of the list.  This is done in case the
-           discriminator is canceled later on:  Only the last assigned
-           discriminator can be canceled, and so only the first element on the
-           list is considered for cancelation. */
-        prev_sep->next = sep->next;
-        sep->next = *p_sep;
-        *p_sep = sep;
-      }  /* if */
       break;
     }  /* if */
   }  /* for */
-  if (sep == NULL) {
-    /* There were no collisions.  Record this symbol in the collision table. */
-    a_symbol_list_entry_ptr  new_entry = alloc_symbol_list_entry();
-    new_entry->next = *p_sep;
-    *p_sep = new_entry;
-    new_entry->symbol = sym;
-    switch (sym->kind) {
-      case sk_variable:
-        sym->variant.variable.discriminator = 1;
-        break;
-      case sk_class_or_struct_tag:
-      case sk_union_tag:
-        sym->variant.class_struct_union.extra_info->discriminator = 1;
-        break;
-      case sk_enum_tag:
-        sym->variant.enumeration.extra_info->discriminator = 1;
-        break;
-      case sk_type:
-        sym->variant.type.discriminator = 1;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-  }  /* if */
+  /* Record the new symbol in the collision table. */
+  new_entry = alloc_symbol_list_entry();
+  new_entry->next = *p_sep;
+  *p_sep = new_entry;
+  new_entry->symbol = sym;
+  switch (sym->kind) {
+    case sk_variable:
+      sym->variant.variable.discriminator = value;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      sym->variant.class_struct_union.extra_info->discriminator = value;
+      break;
+    case sk_enum_tag:
+      sym->variant.enumeration.extra_info->discriminator = value;
+      break;
+    case sk_type:
+      sym->variant.type.discriminator = value;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
 }  /* compute_local_name_collision_discriminator */
 
 
