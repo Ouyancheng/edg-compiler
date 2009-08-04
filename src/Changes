@@ -2480,6 +2480,15 @@ ABI CHANGE: New mangling forms have been added for rvalue references.
 The IA-64 ABI form matches the Itanium ABI specification.  The demangler
 has been updated to handle these new encodings.
 
+The standards committee is still unsure about how rvalue references
+to functions should work.  In particular, a cast to an rvalue-reference-
+to-function or a function call returning such a type is said to return
+an rvalue of function type, which is something that otherwise doesn't
+exist in the language.  While we await the committee's decision on
+how that should work, we have made the result in such cases decay to
+a pointer to function, which is at least well defined in the current
+standard.
+
 
 4/9/09   [EDGcpfe/9584]
 Microsoft compatibility: #pragma comment
@@ -3695,10 +3704,8 @@ the DEFAULT_LAMBDAS_ENABLED macro.
 
 The present version implements the mutable keyword of N2658, but not
 the requirement that in certain cases the closure class has
-std::reference_closure as a base class.  The closure class also
-does not have a deleted default constructor (we haven't implemented
-deleted functions yet) and does not have a move constructor (we
-haven't implemented rvalue references yet).
+std::reference_closure as a base class (the standards committee
+eliminated that requirement later).
 
 
 2/13/09  [EDGcpfe/9538]
