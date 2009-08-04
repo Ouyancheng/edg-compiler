@@ -111,6 +111,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
 /*lint -esym(759,clear_type)*/
 /*lint -esym(765,clear_type)*/
+#if !MACRO_INVOCATION_TREE_IN_IL
+/*lint -esym(755,copy_simple_position_to_full_position)*/
+#endif /* !MACRO_INVOCATION_TREE_IN_IL */
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
