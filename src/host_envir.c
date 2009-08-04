@@ -4400,7 +4400,7 @@ return "Japanese_Japan.932".
   char	buf[TMP_BUF_SIZE];
   sizeof_t	chars;
   locale_name_buffer = alloc_text_buffer(128);
-  /* Each call returns the size of the resulting string, incuding the
+  /* Each call returns the size of the resulting string, including the
      null terminator. */
   chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SENGLANGUAGE,
                         buf, TMP_BUF_SIZE);
