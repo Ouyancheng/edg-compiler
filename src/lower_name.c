@@ -3197,7 +3197,7 @@ which these types are lacking).
                   (symbol_for(type) == NULL ||
                    type_is_unnamed(type)));
   if (symbol_for(type) == NULL) {
-    /* A compiler generated type (e.g., exception handling, typeinfo). */
+    /* A compiler generated type (e.g., exception handling). */
     result = TRUE;
   } else if (is_immediate_class_type(type) &&
              class_type_supp(type)->anonymous_union_kind !=
