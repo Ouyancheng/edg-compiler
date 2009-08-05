@@ -19729,6 +19729,9 @@ direct or indirect member of an unnamed namespace.
     } else {
       found = is_member_of_unnamed_namespace(&nsp->source_corresp);
     }  /* if */
+  } else if (scp->is_local_to_function && scp->enclosing_routine != NULL) {
+    found = is_member_of_unnamed_namespace(
+                                      &scp->enclosing_routine->source_corresp);
   }  /* if */
   return found;
 }  /* is_member_of_unnamed_namespace */

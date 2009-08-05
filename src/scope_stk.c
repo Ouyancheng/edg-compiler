@@ -6603,7 +6603,7 @@ a safe return (but may cause excess memory usage).
 {
   a_boolean result = FALSE;
 
-  if (get_module_id() == NULL) {
+  if (!C_mode() && get_module_id() == NULL) {
     a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
     if (export_template_allowed &&
         routine->storage_class == (a_storage_class)sc_static &&
@@ -6620,26 +6620,12 @@ a safe return (but may cause excess memory usage).
          individuated type and therefore require a module id. */
       result = TRUE;
     } else {
-      /* If any parent of the routine is an unnamed namespace,
-         wait for a module id. */
-      for (scope = get_parent_scope_of(routine); scope != NULL; ) {
-        if (scope->kind == (a_scope_kind)sck_namespace ||
-            scope->kind == (a_scope_kind)sck_namespace_extension ||
-            scope->kind == (a_scope_kind)sck_namespace_reactivation) {
-          a_namespace_ptr  nsp = scope->variant.assoc_namespace;
-          check_assertion(nsp != NULL);
-          if (unmangled_name_of(&nsp->source_corresp) == NULL) {
-            result = TRUE;
-            break;
-          }  /* if */
-          scope = scope->parent;
-        } else if (scope->kind == (a_scope_kind)sck_class_struct_union ||
-                   scope->kind == (a_scope_kind)sck_class_reactivation) {
-          scope = get_parent_scope_of(scope->variant.assoc_type);
-        } else {
-          scope = scope->parent;
-        }  /* if */
-      }  /* for */
+      /* If any parent of the routine is an unnamed namespace, or the
+         routine type refers to an unnamed namespace, wait for a module id. */
+      if (is_member_of_unnamed_namespace(&routine->source_corresp) ||
+          is_or_contains_unnamed_namespace_type(routine->type)) {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
