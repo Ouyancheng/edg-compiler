@@ -780,10 +780,14 @@ assertion (in module_id_for_source_corresp) would fail.  Therefore, we had
 delayed lowering of certain functions (i.e., some static functions when
 exported templates are allowed) to ensure getting a better module id.
 
-In preparation for increased reliance on the module id in C++0x mangling, a
-change has been made to delay the lowering of all functions until a suitable
-variable or routine definition has occurred, at which time the queued functions
-are immediately lowered.
+A change has been made to delay the lowering of all functions that may require
+a module id until a suitable variable or routine definition has occurred, at
+which time the queued functions are immediately lowered.  Functions that
+may require a module id are those that need to be externalized (when
+exported templates are enabled), those contained in unnamed namespaces, and
+those that may contain local types that need to be individuated to avoid
+similarly named types in other translation units (in --c++0x mode or when
+microsoft_version >= 1400).
 
 
 6/10/09  [EDGcpfe/9884]

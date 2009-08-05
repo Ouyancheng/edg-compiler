@@ -6589,6 +6589,63 @@ encoding that depends on the (as yet) un-computed discriminator.
 }  /* must_wait_for_discriminator */
 
 #endif /* NEED_NAME_MANGLING */
+#if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
+
+static a_boolean must_wait_for_module_id(a_routine_ptr routine)
+/*
+Returns TRUE if lowering of the routine should be delayed because a module
+id isn't available and the routine may need one.  A module id is needed
+during mangling of certain entities (static functions that are
+externalized because they might be referenced by a template (and static
+variables therein), individuated entities, unnamed namespaces).  TRUE is
+a safe return (but may cause excess memory usage).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (get_module_id() == NULL) {
+    a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
+    if (export_template_allowed &&
+        routine->storage_class == (a_storage_class)sc_static &&
+        (scope->variables != NULL || scope->types != NULL ||
+         scope->scopes != NULL)) {
+    /* When exported templates are allowed, a static function might be
+       externalized because it might be referenced by a template.
+       If it has local static variables, they might have to be
+       externalized too, and we can't generate the externalized name
+       now because we don't have the module id yet. */
+      result = TRUE;
+    } else if (local_types_as_template_args_enabled) {
+      /* To be on the safe side, assume that any routine can generate an
+         individuated type and therefore require a module id. */
+      result = TRUE;
+    } else {
+      /* If any parent of the routine is an unnamed namespace,
+         wait for a module id. */
+      for (scope = get_parent_scope_of(routine); scope != NULL; ) {
+        if (scope->kind == (a_scope_kind)sck_namespace ||
+            scope->kind == (a_scope_kind)sck_namespace_extension ||
+            scope->kind == (a_scope_kind)sck_namespace_reactivation) {
+          a_namespace_ptr  nsp = scope->variant.assoc_namespace;
+          check_assertion(nsp != NULL);
+          if (unmangled_name_of(&nsp->source_corresp) == NULL) {
+            result = TRUE;
+            break;
+          }  /* if */
+          scope = scope->parent;
+        } else if (scope->kind == (a_scope_kind)sck_class_struct_union ||
+                   scope->kind == (a_scope_kind)sck_class_reactivation) {
+          scope = get_parent_scope_of(scope->variant.assoc_type);
+        } else {
+          scope = scope->parent;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* must_wait_for_module_id */
+
+#endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
                                             a_boolean     at_initial_scope_pop)
@@ -6644,13 +6701,11 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
   }  /* if */
 #if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   if (!delay_lowering &&
-      get_module_id() == NULL &&
-      !scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* Delay lowering if a module id is not yet available.  A module id is
-       needed during mangling of certain entities (static functions that are
-       externalized because they might be referenced by a template (and
-       static variables therein), unnamed namespaces).  Prototype
-       instantiations are not lowered, so there is no need to delay them. */
+      !scope_stack[depth_scope_stack].in_prototype_instantiation &&
+      must_wait_for_module_id(routine)) {
+    /* Delay lowering if a module id is not yet available and this routine
+       may need access to it during lowering.  Prototype instantiations
+       aren't currently lowered, so there's no need to delay. */
     /* Queue functions waiting for a module id on a separate list (which
        will be drained as soon as a module id becomes available). */
     a_delayed_lowering_list_entry *entry =
