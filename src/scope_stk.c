@@ -404,6 +404,7 @@ Allocate and initialize a local name collision table for the given scope stack
 entry.
 */
 {
+  check_assertion(ssep->kind == (a_scope_kind)sck_function);
   if (avail_collision_tables == NULL) {
     ssep->name_discr.local_name_collision_table =
                     (a_collision_table_ptr)alloc_fe(sizeof(a_collision_table));
@@ -423,10 +424,13 @@ Release the storage allocated for the name collision table associated with
 the given scope stack entry.
 */
 {
-  if ((ssep->kind == (a_scope_kind)sck_function ||
-       ssep->kind == (a_scope_kind)sck_block ||
-       ssep->kind == (a_scope_kind)sck_condition) &&
-      ssep->name_discr.local_name_collision_table != NULL) {
+  if (ssep->kind != (a_scope_kind)sck_function) {
+    /* No local name collision table should be allocated for anything but a
+       function scope. */
+    check_assertion((ssep->kind != sck_block &&
+                     ssep->kind != sck_condition) ||
+                    ssep->name_discr.local_name_collision_table == NULL);
+  } else if (ssep->name_discr.local_name_collision_table != NULL) {
     int  k;
     a_symbol_list_entry_ptr
          *sleps = ssep->name_discr.local_name_collision_table->buckets;
