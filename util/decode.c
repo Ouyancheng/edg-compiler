@@ -1354,33 +1354,38 @@ a block of information related to template parameter processing.
 
 
 static char *demangle_function_local_indication(
-                                             char                       *ptr,
-                                             unsigned long              nchars,
-                                             a_decode_control_block_ptr dctl)
+                                     char                       *ptr,
+                                     unsigned long              nchars,
+                                     unsigned long              *instance,
+                                     a_decode_control_block_ptr dctl)
 /*
-Demangle the function name and block number in a function-local indication:
+Demangle the function name and id number in a function-local indication:
 
     __L2__f__Fv
                ^-- returned pointer points here
           ^------- mangled function name
-       ^---------- block number within function (ptr points here on entry)
+       ^---------- instance number within function (ptr points here on entry)
 
 ptr points to the character after the "__L".  If nchars is non-zero, it
 indicates the length of the string, starting from ptr.  Return a pointer
 to the character following the mangled function name.  Output a function
-indication like "f(void)::".
+indication like "f(void)::".  The instance number is simply a way of
+differentiating between similarly named entites in the same function and
+may be a discriminator (for class/scoped enums), scope number, or block number
+depending what is being mangled and is returned to the caller in *instance.
+This allows the caller to emit it later (after the name of the entity) or
+suppress it (in cases where it is duplicated).
 */
 {
   char          *p = ptr, *prev_end = NULL;
-  unsigned long block_number;
 
   if (nchars != 0) {
     prev_end = dctl->end_of_name;
     dctl->end_of_name = ptr + nchars;
   }  /* if */
-  /* Get the block number. */
-  p = get_number(ptr, &block_number, dctl);
-  /* Check for the two underscores following the block number.  For local
+  /* Get the identifier. */
+  p = get_number(ptr, instance, dctl);
+  /* Check for the two underscores following the identifier.  For local
      class names in some older versions of the mangling scheme, there is no
      following function name. */
   if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
@@ -1390,18 +1395,28 @@ indication like "f(void)::".
     p = full_demangle_identifier(p, nchars,
                                  /*suppress_parent_and_local_info=*/FALSE,
                                  dctl);
-    /* Put out the block number if needed.  Block 0 is the top-level block
-       of the function, and need not be identified. */
-    if (block_number != 0) {
-      write_id_str("[block ", dctl);
-      write_id_number(block_number, dctl);
-      write_id_ch(']', dctl);
-    }  /* if */
     write_id_str("::", dctl);
   }  /* if */
   if (prev_end != NULL) dctl->end_of_name = prev_end;
   return p;
 }  /* demangle_function_local_indication */
+
+
+static void emit_instance(unsigned long              instance,
+                          a_decode_control_block_ptr dctl)
+/*
+The instance number is part of a local function mangling (used to
+differentiate between entities with the same name within the same function).
+This could represent a discriminator, scope number or block number depending
+on what has been mangled.  Emit it as an instance number.
+*/
+{
+  if (!dctl->err_in_id) {
+    write_id_str(" (instance ", dctl);
+    write_id_number(instance, dctl);
+    write_id_str(")", dctl);
+  }  /* if */
+}  /* emit_instance */
 
 
 static char *demangle_name(char                       *ptr,
@@ -1410,6 +1425,7 @@ static char *demangle_name(char                       *ptr,
                            unsigned long              *nchars_left,
                            char                       *mclass,
                            a_template_param_block_ptr temp_par_info,
+                           a_boolean                  *instance_emitted,
                            a_decode_control_block_ptr dctl)
 /*
 Demangle the name at ptr and output the demangled form.  Return a pointer
@@ -1430,7 +1446,11 @@ the count of remaining characters is placed in *nchars_left.
 mclass, when non-NULL, points to the mangled form of the class of
 which this name is a member.  When it's non-NULL, constructor and
 destructor names will be put out in the proper form (otherwise,
-they are left in their original forms).  When temp_par_info != NULL,
+they are left in their original forms).  If instance_emitted is non-NULL,
+it is set to TRUE if the name has an instance number (as is the case
+with unnamed types and lambdas); this allows the caller to suppress 
+duplicate instance numbers when the type appears in a local environment.
+instance_emitted is set to FALSE othersise.  When temp_par_info != NULL,
 it points to a block that controls output of extra information on
 template parameters.
 */
@@ -1442,6 +1462,7 @@ template parameters.
   int           mangled_length;
   unsigned long discriminator;
 
+  if (instance_emitted != NULL) *instance_emitted = FALSE;
   if (nchars != 0) {
     prev_end = dctl->end_of_name;
     dctl->end_of_name = ptr + nchars;
@@ -1516,6 +1537,7 @@ template parameters.
         write_id_str(")", dctl);
         is_special_name = TRUE;
         end_ptr = p;
+        if (instance_emitted != NULL) *instance_emitted = TRUE;
       } else {
         bad_mangled_name(dctl);
       }  /* if */
@@ -1536,6 +1558,7 @@ template parameters.
           write_id_str(")", dctl);
           is_special_name = TRUE;
           end_ptr = p;
+          if (instance_emitted != NULL) *instance_emitted = TRUE;
         } else {
           bad_mangled_name(dctl);
         }  /* if */
@@ -1564,6 +1587,7 @@ template parameters.
             write_id_str(")", dctl);
             is_special_name = TRUE;
             end_ptr = p;
+            if (instance_emitted != NULL) *instance_emitted = TRUE;
           } else {
             bad_mangled_name(dctl);
           }  /* if */
@@ -1722,8 +1746,9 @@ is TRUE, suppress any function-local information.
 {
   char          *p = ptr, *orig_end, *prev_end;
   char          *p2;
-  unsigned long nchars2;
+  unsigned long nchars2, instance;
   a_boolean     has_function_local_info = FALSE;
+  a_boolean     instance_emitted;
   a_boolean     stop_on_underscores;
 
   if (nchars == 0) {
@@ -1753,7 +1778,7 @@ is TRUE, suppress any function-local information.
         nchars2 -= (p2 - p);
         /* Output the block number and function name. */
         if (base_name_only) dctl->suppress_id_output++;
-        p2 = demangle_function_local_indication(p2, nchars2, dctl);
+        p2 = demangle_function_local_indication(p2, nchars2, &instance, dctl);
         if (base_name_only) dctl->suppress_id_output--;
         break;
       }  /* if */
@@ -1761,8 +1786,12 @@ is TRUE, suppress any function-local information.
   }  /* if */
   /* Demangle the name. */
   p = demangle_name(p, nchars, stop_on_underscores,
-                    nchars_left, (char *)NULL, temp_par_info, dctl);
+                    nchars_left, (char *)NULL, temp_par_info, 
+                    &instance_emitted, dctl);
   if (has_function_local_info) {
+    /* Don't write the instance number in cases where an unnamed type or
+       lambda has already emitted it. */
+    if (!instance_emitted) emit_instance(instance, dctl);
     p = p2;
     if (nchars_left != NULL) *nchars_left = orig_end - p2;
   }  /* if */
@@ -2422,6 +2451,8 @@ information.
   a_template_param_block
                 temp_par_info;
   a_boolean     is_externalized_static = FALSE;
+  a_boolean     has_function_local_info = FALSE;
+  unsigned long instance;
 
   clear_template_param_block(&temp_par_info);
   if (nchars != 0) {
@@ -2446,7 +2477,8 @@ information.
   dctl->suppress_id_output++;
   p = demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
                     (unsigned long *)NULL,
-                    (char *)NULL, &temp_par_info, dctl);
+                    (char *)NULL, &temp_par_info, 
+                    (a_boolean *)NULL, dctl);
   dctl->suppress_id_output--;
   final_specialization = temp_par_info.final_specialization;
   clear_template_param_block(&temp_par_info);
@@ -2460,7 +2492,8 @@ information.
                             /*stop_on_underscores=*/TRUE,
                             (unsigned long *)NULL,
                             (char *)NULL,
-                            (a_template_param_block_ptr)NULL, dctl);
+                            (a_template_param_block_ptr)NULL, 
+                            (a_boolean *)NULL, dctl);
   } else {
     /* There's more.  There should be a "__" between the name and the
        additional mangled information. */
@@ -2502,7 +2535,8 @@ information.
       p++;  /* Points to the block number following "__L". */
       if (nchars2 != 0) nchars2 -= (p - ptr);
       function_local_end_ptr =
-                          demangle_function_local_indication(p, nchars2, dctl);
+              demangle_function_local_indication(p, nchars2, &instance, dctl);
+      has_function_local_info = TRUE;
       p = end_ptr = ptr + nchars;
       is_function = FALSE;
       /* Go on to demangle the name of the local entity. */
@@ -2570,7 +2604,8 @@ information.
     /* Write the name of the member. */
     (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
                         (unsigned long *)NULL,
-                        pname, &temp_par_info, dctl);
+                        pname, &temp_par_info, 
+                        (a_boolean *)NULL, dctl);
     if (oname != NULL) {
       /* Put out the name of the class of the function explicitly overridden,
          if noted above. */
@@ -2609,7 +2644,8 @@ information.
       /* Write the name of the member. */
       (void)demangle_name(ptr, nchars, /*stop_on_underscores=*/TRUE,
                           (unsigned long *)NULL,
-                          pname, &temp_par_info, dctl);
+                          pname, &temp_par_info, 
+                          (a_boolean *)NULL, dctl);
       dctl->suppress_id_output--;
       if (!temp_par_info.first_correspondence) {
         /* End the list of correspondences. */
@@ -2618,6 +2654,9 @@ information.
     }  /* if */
   }  /* if */
 end_of_routine:
+  /* If the identifier had local function information, write the instance
+     number now. */
+  if (has_function_local_info) emit_instance(instance, dctl);
   /* When a function-local indication is scanned, end_ptr has been set
      to the end of the local entity name, and needs to be set to after the
      function-local indication at the end of the whole name. */
