@@ -1383,9 +1383,9 @@ suppress it (in cases where it is duplicated).
     prev_end = dctl->end_of_name;
     dctl->end_of_name = ptr + nchars;
   }  /* if */
-  /* Get the identifier. */
+  /* Get the instance number. */
   p = get_number(ptr, instance, dctl);
-  /* Check for the two underscores following the identifier.  For local
+  /* Check for the two underscores following the instance number.  For local
      class names in some older versions of the mangling scheme, there is no
      following function name. */
   if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
