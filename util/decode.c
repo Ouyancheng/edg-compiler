@@ -1580,7 +1580,6 @@ template parameters.
           write_id_str(" in default argument ", dctl);
           write_id_number(param_num, dctl);
           write_id_str(" (from end)", dctl);
-          is_special_name = TRUE;
           if (discriminator > 0) {
             write_id_str(" (instance ", dctl);
             write_id_number(discriminator, dctl);
@@ -1791,7 +1790,7 @@ is TRUE, suppress any function-local information.
   if (has_function_local_info) {
     /* Don't write the instance number in cases where an unnamed type or
        lambda has already emitted it. */
-    if (!instance_emitted) emit_instance(instance, dctl);
+    if (!instance_emitted && !base_name_only) emit_instance(instance, dctl);
     p = p2;
     if (nchars_left != NULL) *nchars_left = orig_end - p2;
   }  /* if */
