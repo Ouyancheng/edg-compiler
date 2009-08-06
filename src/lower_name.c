@@ -4272,15 +4272,11 @@ arguments or initializers).
          the function name, so the function name must be individuated to
          prevent possible name collisions. */
       result = TRUE;
-    } else if (kind == iek_routine &&
-               scp->is_class_member
-#if DO_IL_LOWERING
-                && !routine_should_be_externalized_for_exported_templates(
-                                                            (a_routine_ptr)scp)
-#endif /* DO_IL_LOWERING */
-                                                                            ) {
-      /* Make sure a member function is individuated if its parent needs
-         individuation. */
+    }  /* if */
+    if (!result && scp->is_class_member) {
+      /* If we haven't determined yet if the entity needs to be individuated
+         and the entity is a class member, recurse to see if the parent needs
+         to be individuated. */
       result = entity_needs_to_be_individuated(
                                         &scp_parent_class(scp)->source_corresp,
                                         iek_type);
@@ -5945,6 +5941,7 @@ to the point where the base name appears.
   a_boolean        is_member;
   a_boolean        is_specialization = FALSE;
   a_boolean        is_template_specialization = FALSE;
+  a_boolean        needs_to_be_individuated;
 #else /* IA64_ABI */
   a_boolean        need_nested_name_close = FALSE;
   a_template_ptr   tmpl = NULL;
@@ -6082,6 +6079,9 @@ mangle_template:
 #endif /* !IA64_ABI */
   }  /* if */
 #if !IA64_ABI
+  needs_to_be_individuated = entity_needs_to_be_individuated(
+                                                      &routine->source_corresp,
+                                                      iek_routine);
   /* See if the function is a class member function or a member of a
      namespace. */
   is_member = is_class_or_namespace_member(routine) &&
@@ -6095,7 +6095,10 @@ mangle_template:
   if (is_member) {
     /* Put out the name of the class or namespace of which this function
        is a member. */
-    mangled_parent_qualifier(&routine->source_corresp, iek_routine, mctl);
+    r_mangled_parent_qualifier(&routine->source_corresp, iek_routine,
+                               /*nesting_level=*/1,
+                               needs_to_be_individuated,
+                               (a_source_correspondence **)NULL, mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If this function explicitly overrides a function, add the class of
        the overridden function. */
@@ -6108,9 +6111,7 @@ mangle_template:
       }  /* if */
     }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (!suppress_parent_encoding &&
-             entity_needs_to_be_individuated(&routine->source_corresp,
-                                             iek_routine)) {
+  } else if (!suppress_parent_encoding && needs_to_be_individuated) {
     /* Add individuation. */
     r_mangled_parent_qualifier(&routine->source_corresp, iek_routine,
                                /*nesting_level=*/1,
