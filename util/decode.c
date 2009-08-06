@@ -1370,7 +1370,7 @@ ptr points to the character after the "__L".  If nchars is non-zero, it
 indicates the length of the string, starting from ptr.  Return a pointer
 to the character following the mangled function name.  Output a function
 indication like "f(void)::".  The instance number is simply a way of
-differentiating between similarly named entites in the same function and
+differentiating between similarly named entities in the same function and
 may be a discriminator (for class/scoped enums), scope number, or block number
 depending what is being mangled and is returned to the caller in *instance.
 This allows the caller to emit it later (after the name of the entity) or
@@ -1450,7 +1450,7 @@ they are left in their original forms).  If instance_emitted is non-NULL,
 it is set to TRUE if the name has an instance number (as is the case
 with unnamed types and lambdas); this allows the caller to suppress 
 duplicate instance numbers when the type appears in a local environment.
-instance_emitted is set to FALSE othersise.  When temp_par_info != NULL,
+instance_emitted is set to FALSE otherwise.  When temp_par_info != NULL,
 it points to a block that controls output of extra information on
 template parameters.
 */
