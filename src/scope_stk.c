@@ -427,8 +427,8 @@ the given scope stack entry.
   if (ssep->kind != (a_scope_kind)sck_function) {
     /* No local name collision table should be allocated for anything but a
        function scope. */
-    check_assertion((ssep->kind != sck_block &&
-                     ssep->kind != sck_condition) ||
+    check_assertion((ssep->kind != (a_scope_kind)sck_block &&
+                     ssep->kind != (a_scope_kind)sck_condition) ||
                     ssep->name_discr.local_name_collision_table == NULL);
   } else if (ssep->name_discr.local_name_collision_table != NULL) {
     int  k;
@@ -449,6 +449,47 @@ the given scope stack entry.
 }  /* free_local_name_collision_table */
 
 
+static char* name_for_linkage_purposes(a_symbol_ptr  sym)
+/*
+Return the "name for linkage purposes" of the given entity.  If the entity is
+unnamed, return the symbol header identifier.
+*/
+{
+  char  *result = NULL;
+
+  if (is_unnamed_tag_symbol(sym)) {
+    /* Unnamed tag types may have acquired a name for linkage purposes through
+       a typedef.  This name will be the unmangled name in the IL entry. */
+    a_type_ptr  type = type_symbol_type(sym);
+    result = unmangled_name_of(&type->source_corresp);
+    if (result == NULL) {
+      /* No name for linkage purposes was given: Fall back on the header
+         identifier. */
+      result = sym->header->identifier;
+    }  /* if */
+  } else {
+    result = sym->header->identifier;
+  }  /* if */
+  check_assertion(result != NULL);
+  return result;
+}  /* name_for_linkage_purposes */
+
+
+static a_boolean same_name_for_linkage_purposes(a_symbol_ptr  sym1,
+                                                a_symbol_ptr  sym2)
+/*
+Return TRUE if the two given entities have the same "name for linkage
+purposes".
+*/
+{
+  char  *name1, *name2;
+
+  name1 = name_for_linkage_purposes(sym1);
+  name2 = name_for_linkage_purposes(sym2);
+  return name1 == name2 || strcmp(name1, name2) == 0;
+}  /* same_name_for_linkage_purposes */
+
+
 static a_symbol_list_entry_ptr* get_name_collision_list(a_symbol_ptr   sym,
                                                         a_scope_depth  depth)
 /*
@@ -460,7 +501,6 @@ function, one is created.)
 {
   unsigned                 hash_index;
   a_scope_stack_entry_ptr  ssep;
-  a_symbol_header_ptr      header = sym->header;
   a_collision_table_ptr    table;
 
   depth = scope_stack[depth].depth_innermost_function_scope;
@@ -470,11 +510,7 @@ function, one is created.)
     initialize_local_name_collision_table(ssep);
   }  /* if */
   table = ssep->name_discr.local_name_collision_table;
-  /* Symbols corresponding to identical names have identical symbol headers.
-     So we use the symbol header pointer value as a basis for a hash value.
-     The three least significant bits are discarded because they are possibly
-     always zero due to alignment requirements. */
-  hash_index = (unsigned)((((unsigned long)header) >> 3) %
+  hash_index = (unsigned)(hash_source_string(name_for_linkage_purposes(sym)) %
                                               LOCAL_NAME_COLLISION_TABLE_SIZE);
   return &table->buckets[hash_index];
 }  /* get_name_collision_list */
@@ -494,81 +530,82 @@ function call operators have the same parameter types; TRUE otherwise.
 }  /* distinct_lambda_signatures */
 
 
+static a_discriminator discriminator_of(a_symbol_ptr  sym)
+/*
+The given symbol must represent a local static variable, a local class or
+enumeration type, or a local typedef.  Return the associated discriminator.
+*/
+{
+  a_discriminator  result = 0;
+
+  switch (sym->kind) {
+    case sk_variable:
+      result = sym->variant.variable.discriminator;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      result = sym->variant.class_struct_union.extra_info->discriminator;
+      break;
+    case sk_enum_tag:
+      result = sym->variant.enumeration.extra_info->discriminator;
+      break;
+    case sk_type:
+      result = sym->variant.type.discriminator;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* discriminator_of */
+
+
 static void compute_local_name_collision_discriminator(a_symbol_ptr   sym,
                                                        a_scope_depth  depth)
 /*
 Look in the name collision table associated with current function scope for a
-symbol that has the same name (i.e., header) as the given symbol sym (declared
-at the given scope depth).  If there is one, the current symbol is assigned a
-discriminator value one higher than that of the symbol found.  Otherwise the
-discriminator value of sym is initialized to one.  Either way, the symbol is
-added to the table, thereby becoming the symbol that would be found if the
-name would be searched for again.  (Closure types are handled specially: They
-are considered to be "colliding" only if the associated lambda routines have
-the same type.  Other unnamed types always collide with each other.)  This
-information is used to generate distinct mangled names of function-local
-entities.
+symbol that has the same name for linkage purposes as the given symbol sym
+(declared at the given scope depth).  If there is one, the current symbol is
+assigned a discriminator value one higher than that of the symbol found.
+Otherwise the discriminator value of sym is initialized to one.  Either way,
+the symbol is added to the table, thereby becoming the symbol that would be
+found if the name would be searched for again.  (Closure types are handled
+specially: They are considered to be "colliding" only if the associated lambda
+routines have the same type.  Other unnamed entities always collide with each
+other.)  This information is used to generate distinct mangled names of
+function-local entities.
 */
 {
-  a_symbol_list_entry_ptr  *p_sep, sep, prev_sep = NULL, new_entry;
+  a_symbol_list_entry_ptr  *p_sep, sep, new_entry;
   a_discriminator          value = 1;
+  a_boolean                sym_is_for_lambda = is_closure_class_symbol(sym);
 
   p_sep = get_name_collision_list(sym, depth);
   /* Search for a "collision". */
-  for (sep = *p_sep; sep != NULL; prev_sep = sep, sep = sep->next) {
-    if (sep->symbol->header == sym->header && sep->symbol != sym &&
-        (sep->symbol->kind == sym->kind ||
-         (is_tag_symbol_kind(sep->symbol->kind) &&
-          is_tag_symbol_kind(sym->kind)))) {
-      /* A previous declaration does collide with the new one. */
-      switch (sym->kind) {
-        case sk_variable:
-          value = sep->symbol->variant.variable.discriminator+1;
-          break;
-        case sk_class_or_struct_tag:
-        case sk_union_tag:
-          /* Note that enumerations and class types use the same numbering. */
-          if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
-            value =
-                 sep->symbol->variant.enumeration.extra_info->discriminator+1;
+  for (sep = *p_sep; sep != NULL; sep = sep->next) {
+    if (sep->symbol == sym) continue;
+    if (same_name_for_linkage_purposes(sym, sep->symbol)) {
+      /* Closure classes and other entities have distinct discriminator
+         sequences. */
+      if (sym_is_for_lambda) {
+        if (is_closure_class_symbol(sep->symbol)) {
+          /* Two closure types. */
+          a_type_ptr  type, new_type;
+          new_type = sym->variant.class_struct_union.type;
+          type = sep->symbol->variant.class_struct_union.type;
+          if (distinct_lambda_signatures(type, new_type)) {
+            /* Two closure types whose call operators have distinct types
+               are considered to be non-colliding. */
           } else {
-            a_type_ptr  type, new_type;
-            new_type = sym->variant.class_struct_union.type;
-            type = sep->symbol->variant.class_struct_union.type;
-            if (class_type_supp(type)->is_lambda_closure_class !=
-                          class_type_supp(new_type)->is_lambda_closure_class) {
-              /* Closure types and ordinary unnamed class types share the same
-                 symbol header, but they're considered distinct for the purpose
-                 of determining "collisions" in this context. */
-              continue;
-            } else if (class_type_supp(type)->is_lambda_closure_class &&
-                       distinct_lambda_signatures(type, new_type)) {
-              /* Two closure types whose call operators have distinct types
-                 are considered to be non-colliding. */
-              continue;
-            } else {
-              value = sep->symbol->variant.class_struct_union.extra_info
-                                 ->discriminator+1;
-            }  /* if */
+            /* A collision between closure types. */
+            value = discriminator_of(sep->symbol)+1;
+            break;
           }  /* if */
-          break;
-        case sk_enum_tag:
-          /* Note that enumerations and class types use the same numbering. */
-          if (sep->symbol->kind == (a_symbol_kind)sk_enum_tag) {
-            value = sep->symbol->variant.enumeration.extra_info
-                               ->discriminator+1;
-          } else {
-            value = sep->symbol->variant.class_struct_union.extra_info
-                               ->discriminator+1;
-          }  /* if */
-          break;
-        case sk_type:
-          value = sep->symbol->variant.type.discriminator+1;
-          break;
-        default:
-          unexpected_condition();
-      }  /* switch */
-      break;
+        }  /* if */
+      } else if (!is_closure_class_symbol(sep->symbol)) {
+        /* A collision between two entities that aren't closure classes. */
+        value = discriminator_of(sep->symbol)+1;
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   /* Record the new symbol in the collision table. */

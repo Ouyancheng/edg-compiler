@@ -5306,7 +5306,7 @@ Return TRUE if sym represents an unnamed class type.
 */
 {
   return (sym->header == unnamed_tag_symbol_header);
-}  /* if */
+}  /* is_unnamed_tag_symbol */
 
 
 a_boolean is_unnamed_namespace_symbol(a_symbol_ptr  sym)
@@ -6256,6 +6256,18 @@ names match and FALSE if they do not match.
   result = (strcmp(destructor_name, class_name) == 0);
   return result;
 }  /* destructor_name_matches_class_name */
+
+
+a_boolean class_sym_is_for_closure_class(a_symbol_ptr  sym)
+/*
+The given symbol is for a class type.  Return TRUE if the class is a closure
+class.
+*/
+{
+  a_type_ptr  type = sym->variant.class_struct_union.type;
+  
+  return class_type_supp(type)->is_lambda_closure_class;
+}  /* class_sym_is_for_closure_class */
 
 
 void change_class_locator_into_constructor_locator(a_symbol_locator  *locator,

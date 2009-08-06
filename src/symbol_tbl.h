@@ -4084,6 +4084,12 @@ Return the master instance pointer of a template instance.
   ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
    (sym)->kind == (a_symbol_kind)sk_union_tag)
 
+extern a_boolean class_sym_is_for_closure_class(a_symbol_ptr  sym);
+
+#define is_closure_class_symbol(sym)                                  \
+  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag &&            \
+   class_sym_is_for_closure_class(sym))
+
 /* Return TRUE if a symbol is a namespace symbol. */
 #define is_namespace_symbol(sym)                                          \
   ((sym)->kind == (a_symbol_kind)sk_namespace)
