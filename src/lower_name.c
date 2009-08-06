@@ -355,7 +355,6 @@ static void mangled_function_name(
                              a_boolean                suppress_param_encoding,
                              a_boolean                suppress_parent_encoding,
                              a_boolean                force_primary_name,
-                             a_boolean                force_individuation,
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl);
 static void mangled_function_name_externalized_if_necessary(
@@ -401,7 +400,6 @@ static void mangled_ia64_parent_qualifier(
                               a_source_correspondence  *scp,
                               an_il_entry_kind         kind,
                               a_boolean                *need_nested_name_close,
-                              a_boolean                force_individuation,
                               a_source_correspondence  **discriminator_scp,
                               a_mangling_control_block *mctl);
 static void close_ia64_nested_name(
@@ -1149,16 +1147,11 @@ return TRUE.  Do not add the substitution to the mangled name.
 }  /* substitution_available */
 
 
-static void add_prefix_for_local_entity(
-                                  a_routine_ptr            routine,
-                                  a_boolean                force_individuation,
-                                  a_mangling_control_block *mctl)
+static void add_prefix_for_local_entity(a_routine_ptr            routine,
+                                        a_mangling_control_block *mctl)
 /*
 Add a prefix indicating the given routine as the containing function
-for a local entity, for the IA-64 ABI.  If force_individuation is TRUE,
-force the function name to be individuated (individuation is needed by
-the mangled entity, but the individuation indicator appears at the top
-level, which in this case is the function).
+for a local entity, for the IA-64 ABI.
 */
 {
   a_boolean suppress_param_encoding = FALSE;
@@ -1175,27 +1168,21 @@ level, which in this case is the function).
                         suppress_param_encoding,
                         suppress_parent_encoding,
                         /*force_primary_name=*/TRUE,
-                        force_individuation,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   add_to_mangled_name('E', mctl);
 }  /* add_prefix_for_local_entity */
 
 
-static void add_prefix_for_local_type(
-                                  a_type_ptr               type,
-                                  a_boolean                force_individuation,
-                                  a_mangling_control_block *mctl)
+static void add_prefix_for_local_type(a_type_ptr               type,
+                                      a_mangling_control_block *mctl)
 /*
 type is a local type.  Output the prefix indicating the routine containing
-the type, for the IA-64 ABI.  If force_individuation is TRUE, force the
-function name to be individuated (individuation is needed by the mangled
-entity, but the individuation indicator appears at the top level, which in this
-case is the function).
+the type, for the IA-64 ABI.
 */
 {
   a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
-  add_prefix_for_local_entity(enclosing_routine, force_individuation, mctl);
+  add_prefix_for_local_entity(enclosing_routine, mctl);
 }  /* add_prefix_for_local_type */
 
 #endif /* IA64_ABI */
@@ -1248,8 +1235,7 @@ Return the routine in which the lambda appears in a default argument in
       if (type == (a_type_ptr)entry->entity.ptr) {
 #if IA64_ABI
         /* Mangle with the routine and parameter number. */
-        add_prefix_for_local_entity(routine, 
-                                    /*force_individuation=*/FALSE, mctl);
+        add_prefix_for_local_entity(routine, mctl);
         add_to_mangled_name('d', mctl);
         if (param_num > 1) {
           add_number_to_mangled_name(param_num-2, mctl);
@@ -2070,7 +2056,6 @@ template classes.
     mangled_function_name(routine, suppress_param_encoding,
                           suppress_parent_encoding,
                           /*force_primary_name=*/TRUE,
-                          /*force_individuation=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2181,7 +2166,6 @@ describing it.
                             /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
                             /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
                             /*force_primary_name=*/TRUE,
-                            /*force_individuation=*/FALSE,
                             /*base_name_offset=*/(sizeof_t *)NULL,
                             mctl);
     } else {
@@ -2192,7 +2176,6 @@ describing it.
            parent type is not a template parameter. */
         mangled_ia64_parent_qualifier(scp, kind,
                                       &need_nested_name_close, 
-                                      /*force_individuation=*/FALSE,
                                       &discriminator_scp, mctl);
       }  /* if */
       if (rinfo != NULL) {
@@ -2229,7 +2212,6 @@ describing it.
                             /*suppress_param_encoding=*/FALSE,
                             /*suppress_parent_encoding=*/FALSE,
                             /*force_primary_name=*/TRUE,
-                            /*force_individuation=*/FALSE,
                             /*base_name_offset=*/(sizeof_t *)NULL,
                             mctl);
     } else {
@@ -2238,7 +2220,6 @@ describing it.
       a_boolean need_nested_name_close = FALSE;
       mangled_ia64_parent_qualifier(scp, kind,
                                     &need_nested_name_close, 
-                                    /*force_individuation=*/FALSE,
                                     &discriminator_scp, mctl);
       if (rinfo != NULL) {
         /* Not a routine entry, but it represents a routine (this might be
@@ -2301,7 +2282,6 @@ Add to the mangled name the name of the routine.  Used in cfront ABI only.
                         /*suppress_param_encoding=*/TRUE,
                         /*suppress_parent_encoding=*/FALSE,
                         /*force_primary_name=*/TRUE,
-                        /*force_individuation=*/FALSE,
                         /*base_name_offset=*/(sizeof_t *)NULL,
                         mctl);
   fill_in_length(&length_reservation, mctl);
@@ -2428,7 +2408,6 @@ specification in the mangling for lengths of literals.
                               /*suppress_param_encoding=*/TRUE, 
                               /*suppress_parent_encoding=*/FALSE,
                               /*force_primary_name=*/TRUE,
-                              /*force_individuation=*/FALSE,
                               /*base_name_offset=*/(sizeof_t *)NULL,
                               mctl);
       } else {
@@ -3605,7 +3584,6 @@ given by tap.
       /* Add a parent qualifier if needed. */
       mangled_ia64_parent_qualifier(scp, iek_template,
                                     &need_nested_name_close, 
-                                    /*force_individuation=*/FALSE,
                                     &discriminator_scp, mctl);
       /* Add the name for the template itself. */
       mangled_name_with_length(scp->name, mctl);
@@ -4295,17 +4273,17 @@ arguments or initializers).
          prevent possible name collisions. */
       result = TRUE;
     } else if (kind == iek_routine &&
-               scp->is_class_member &&
-               scp_parent_class(scp)->source_corresp.name_linkage == 
-                                                  (a_name_linkage_kind)nlk_none
+               scp->is_class_member
 #if DO_IL_LOWERING
                 && !routine_should_be_externalized_for_exported_templates(
                                                             (a_routine_ptr)scp)
 #endif /* DO_IL_LOWERING */
                                                                             ) {
-      /* Member functions of classes with no linkage also need to be
-         individuated to prevent possible name collisions. */
-      result = TRUE;
+      /* Make sure a member function is individuated if its parent needs
+         individuation. */
+      result = entity_needs_to_be_individuated(
+                                        &scp_parent_class(scp)->source_corresp,
+                                        iek_type);
     }  /* if */
   }  /* if */
   return result;
@@ -4778,7 +4756,6 @@ static void mangled_ia64_parent_qualifier(
                               a_source_correspondence  *scp,
                               an_il_entry_kind         kind,
                               a_boolean                *need_nested_name_close,
-                              a_boolean                force_individuation,
                               a_source_correspondence  **discriminator_scp,
                               a_mangling_control_block *mctl)
 /*
@@ -4786,22 +4763,20 @@ Add to the IA-64 mangled name the encoding for a parent qualifier if
 one is needed in the mangled name for the entity whose source
 correspondence is pointed to by scp and whose kind is given by "kind".
 *need_nested_name_close is returned TRUE if a nested name has been
-started and must be closed later.  If force_individuation is TRUE, the
-mangled name is individuated (this is used when mangling the function portion
-of a local entity that needs to be individuated).  This routine is used at the
-top level for a complete name, and not recursively for each level of the parent
-qualifiers.  It also handles the qualifier for local entities that indicates
-the enclosing function.  When a qualifier has been added for a local entity,
-return (in *discriminator_scp) the source correspondence of the entity that
-should be used when emitting a discriminator (if necessary).
+started and must be closed later.  This routine is used at the top
+level for a complete name, and not recursively for each level of the
+parent qualifiers.  It also handles the qualifier for local
+entities that indicates the enclosing function.  When a qualifier has been
+added for a local entity, return (in *discriminator_scp) the source
+correspondence of the entity that should be used when emitting a
+discriminator (if necessary).
 */
 {
   a_type_ptr        local_type = NULL;
   a_boolean         needs_to_be_individuated;
 
   check_assertion(discriminator_scp != NULL);
-  needs_to_be_individuated = force_individuation ||
-                             entity_needs_to_be_individuated(scp, kind);
+  needs_to_be_individuated = entity_needs_to_be_individuated(scp, kind);
   *discriminator_scp = NULL;
   *need_nested_name_close = FALSE;
   /* For entities defined in a type that is local to a function (or mangled
@@ -4840,12 +4815,8 @@ should be used when emitting a discriminator (if necessary).
       local_type = (a_type_ptr)scp_parent_scoped_enum_type(scp);
     }  /* if */
     if (local_type != NULL) {
-      /* Add the prefix for the local type.  If the entity needs to be
-         individuated, the individuation should take place on the function
-         prefix and not the entity name (since individuation appears as
-         a top-level namespace). */
-      add_prefix_for_local_type(local_type, needs_to_be_individuated, mctl);
-      needs_to_be_individuated = FALSE;
+      check_assertion(!needs_to_be_individuated);
+      add_prefix_for_local_type(local_type, mctl);
       if (!is_self_discriminated_type(local_type)) {
         /* We don't discriminate here if it's an unnamed local type. */
         *discriminator_scp = scp;
@@ -4987,7 +4958,6 @@ such.
   }  /* if */
   mangled_ia64_parent_qualifier(&type->source_corresp, iek_type,
                                 &need_nested_name_close, 
-                                /*force_individuation=*/FALSE,
                                 &discriminator_scp, mctl);
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
@@ -5955,7 +5925,6 @@ static void mangled_function_name(
                              a_boolean                suppress_param_encoding,
                              a_boolean                suppress_parent_encoding,
                              a_boolean                force_primary_name,
-                             a_boolean                force_individuation,
                              sizeof_t                 *base_name_offset,
                              a_mangling_control_block *mctl)
 /*
@@ -5965,10 +5934,9 @@ types; just put out the base encoded name.  If suppress_parent_encoding
 is TRUE, suppress the parent qualifier for members of classes and
 namespaces.  If force_primary_name is TRUE, use the primary entry point
 name (instead of any alternate entry point) for a constructor or
-destructor (for the IA-64 ABI).  Individuation is forced on the function
-name if force_individuation is TRUE (this is always FALSE in the Cfront ABI).
-If base_name_offset is not NULL, *base_name_offset is set to the offset from
-the start of the mangling to the point where the base name appears.
+destructor (for the IA-64 ABI).  If base_name_offset is not NULL,
+*base_name_offset is set to the offset from the start of the mangling
+to the point where the base name appears.
 */
 {
   a_type_ptr       conversion_type, routine_type;
@@ -5989,9 +5957,6 @@ the start of the mangling to the point where the base name appears.
   a_ctor_or_dtor_kind
                    ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_none;
 
-#if !IA64_ABI
-  check_assertion(!force_individuation);
-#endif /* !IA64_ABI */
   routine_type = skip_typerefs(routine->type);
   /* See if the function should be mangled as a template.  In the modern C++
      language, template functions are mangled using the template arguments
@@ -6047,9 +6012,7 @@ the start of the mangling to the point where the base name appears.
     /* Add a parent qualifier for a member if needed. */
     mangled_ia64_parent_qualifier(&routine->source_corresp, iek_routine,
                                   &need_nested_name_close, 
-                                  force_individuation,
-                                  &discriminator_scp,
-                                  mctl);
+                                  &discriminator_scp, mctl);
   }  /* if */
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #endif /* IA64_ABI */
@@ -6170,7 +6133,6 @@ mangle_template:
                             /*suppress_param_encoding=*/TRUE,
                             /*suppress_parent_encoding=*/FALSE,
                             /*force_primary_name=*/TRUE,
-                            force_individuation,
                             /*base_name_offset=*/(sizeof_t *)NULL,
                             mctl);
     }  /* if */
@@ -6477,7 +6439,6 @@ externalized, use the encoding for the externalized form.
                         suppress_param_encoding,
                         suppress_parent_encoding,
                         force_primary_name,
-                        /*force_individuation=*/FALSE,
                         base_name_offset,
                         mctl);
 #if DO_IL_LOWERING
@@ -6568,7 +6529,6 @@ to the point where the base name appears.
                                             suppress_param_encoding,
                                             /*suppress_parent_encoding=*/FALSE,
                                             force_primary_name,
-                                            /*force_individuation=*/FALSE,
                                             base_name_offset,
                                             &mctl);
     }  /* if */
@@ -6667,7 +6627,6 @@ scoped enumerators, and class and namespace member constants.
   /* Add a parent qualifier for a member if needed. */
   mangled_ia64_parent_qualifier(scp, kind,
                                 &need_nested_name_close, 
-                                /*force_individuation=*/FALSE,
                                 &discriminator_scp, mctl);
   /* Output the name of the member. */
   mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
@@ -6987,7 +6946,6 @@ Mangle the name of the indicated function, if necessary.
                           suppress_param_encoding, 
                           /*suppress_parent_encoding=*/FALSE,
                           /*force_primary_name=*/FALSE,
-                          /*force_individuation=*/FALSE,
                           base_name_offset,
                           &mctl);
 #if !IA64_ABI
@@ -7888,8 +7846,7 @@ be embedded in other mangled names.
       /* Note that no matching call to end_externalized_name is performed
          because it's a no-op in the IA-64 ABI. */
     }  /* if */
-    add_prefix_for_local_entity(routine, 
-                                /*force_individuation=*/FALSE, &mctl);
+    add_prefix_for_local_entity(routine, &mctl);
     if (!is_string) {
       if (scp_is_enum_member(scp)) {
         /* Create a nested name with the scoped enumeration type and the
@@ -8016,7 +7973,6 @@ pointer, or performs the "this" adjustments.
                           /*suppress_param_encoding=*/FALSE,
                           /*suppress_parent_encoding=*/FALSE,
                           /*force_primary_name=*/FALSE,
-                          /*force_individuation=*/FALSE,
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
   }  /* if */
