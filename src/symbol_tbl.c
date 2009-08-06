@@ -6264,8 +6264,10 @@ The given symbol is for a class type.  Return TRUE if the class is a closure
 class.
 */
 {
-  a_type_ptr  type = sym->variant.class_struct_union.type;
-  
+  a_type_ptr  type;
+
+  check_assertion(is_class_struct_union_symbol(sym));
+  type = sym->variant.class_struct_union.type;
   return class_type_supp(type)->is_lambda_closure_class;
 }  /* class_sym_is_for_closure_class */
 

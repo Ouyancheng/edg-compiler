@@ -452,7 +452,8 @@ the given scope stack entry.
 static char* name_for_linkage_purposes(a_symbol_ptr  sym)
 /*
 Return the "name for linkage purposes" of the given entity.  If the entity is
-unnamed, return the symbol header identifier.
+unnamed, return the symbol header identifier (usually something like
+"<unnamed>").  The returned value is always non-NULL.
 */
 {
   char  *result = NULL;
@@ -579,10 +580,10 @@ function-local entities.
   a_discriminator          value = 1;
   a_boolean                sym_is_for_lambda = is_closure_class_symbol(sym);
 
+  check_assertion(discriminator_of(sym) == 0);
   p_sep = get_name_collision_list(sym, depth);
   /* Search for a "collision". */
   for (sep = *p_sep; sep != NULL; sep = sep->next) {
-    if (sep->symbol == sym) continue;
     if (same_name_for_linkage_purposes(sym, sep->symbol)) {
       /* Closure classes and other entities have distinct discriminator
          sequences. */
