@@ -5809,6 +5809,8 @@ mode; *optional will be set as usual.
   a_scope_ptr                 scope;
   a_routine_ptr               routine;
   a_boolean                   vtable_is_optional = FALSE;
+  a_variable_ptr              vtbl_var =
+                                 primary_vtbl_var_for_class_if_any(class_type);
 
   *force_static = FALSE;
   *first_virtual = NULL;
@@ -5846,6 +5848,12 @@ mode; *optional will be set as usual.
       check_assertion(is_generated_typeinfo_type(class_type));
 #endif /* ABI_CHANGES_FOR_RTTI */
       defined_here = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (vtbl_var != NULL &&
+               (vtbl_var->decl_modifiers & DM_DLLIMPORT) != 0) {
+      /* A virtual table for a dllimport-ed class should not be defined. */
+      defined_here = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (ctsp->named_in_inline_template_directive) {
       /* A GNU "inline template" directive was used.  An external vtable
          should be emitted here. */
@@ -5902,7 +5910,7 @@ mode; *optional will be set as usual.
   if (*force_static) vtable_is_optional = TRUE;
   *optional = vtable_is_optional;
   if (vtable_is_optional && defined_here && il_lowering_underway) {
-    a_variable_ptr vtbl_var = primary_vtbl_var_for_class(class_type);
+    check_assertion(vtbl_var != NULL);
     vtbl_var->is_optional_vtable = vtable_is_optional;
     /* If there aren't any (real) references in this compilation unit, then
        the definition isn't needed here either. */
@@ -7281,7 +7289,11 @@ for the same virtual function table variable; see note below.
 #endif /* IA64_ABI */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
-  if (definition_needed) {
+  if (definition_needed
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      && ((vtbl_var->decl_modifiers & DM_DLLIMPORT) == 0)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                         ) {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "\nDefining virtual function table for ");
