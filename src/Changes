@@ -1,5 +1,24 @@
 Version 4.1, August 6, 2009
 
+8/11/09 [EDGcpfe/10017]
+Incorrect lvalue setting for lowered enk_object_lifetime
+
+In configurations that use lowering, a top-level lvalue enk_object_lifetime
+operation was not being properly rewritten as an rvalue, resulting in
+an lvalue mismatch with the expression it introduces.  This issue was
+introduced in 4.0 and is now fixed.  This example (with -x) illustrates
+the problem:
+
+  struct A {
+    ~A();
+  };
+  A g();
+  void f(void) {
+    A x;
+    x = g();
+  }
+
+
 8/10/09 [EDGcpfe/9995]
 New configuration macro: ASSUME_THIS_CANNOT_BE_NULL
 

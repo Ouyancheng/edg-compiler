@@ -14227,6 +14227,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
     /* A C++ lvalue expression whose value is discarded (because it is
        at the top level).  Rewrite as an rvalue. */
     rewrite_discarded_lvalue_as_rvalue(expr_to_lower);
+    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      expr->is_lvalue = FALSE;
+    }  /* if */
 #if DEBUG
     if (db_flag_is_set("rewrite_expr")) {
       (void)fprintf(f_debug, 
