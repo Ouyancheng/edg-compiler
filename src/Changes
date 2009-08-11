@@ -19,42 +19,6 @@ the problem:
   }
 
 
-8/10/09 [EDGcpfe/9995]
-New configuration macro: ASSUME_THIS_CANNOT_BE_NULL
-
-A new configuration macro, ASSUME_THIS_CANNOT_BE_NULL, has been added to
-give additional control over the assumption that lowering/inlining uses
-about the value of "this" in a member function.  Assuming "this" cannot be NULL
-in a member function allows elimination of the "if (this || (this =
-new(size)))" test from inlined constructors in the Cfront ABI when
-NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  Its effect can also be seen in related
-class casting as well as certain expression folding and dead code removal that
-is performed in lowering and inlining.  Both Microsoft and GNU allow
-(non-virtual) member functions to be invoked through a NULL pointer (resulting
-in undefined behavior).  Regardless of the setting of this macro, it is still
-assumed that "this" cannot be NULL in virtual member functions.  FALSE is a
-safe setting (but may generate more code at the expense of accepting some code
-that has undefined behavior).  Lowering has always made the assumption that
-"this" cannot be NULL, but in 4.0 this assumption was extended to detect and
-remove dead code in certain circumstances (thus causing a difference in some
-cases).  The default value for this macro is TRUE.  This example shows a couple
-of areas where a difference can be seen when the macro is set to TRUE:
-
-  struct B {};
-  struct D : virtual B {
-    D() {}    // in Cfront ABI with NEW_CAN_BE_FOLDED_INTO_CTOR, can eliminate
-              // test for NULL and call to operator new()
-    int f() {
-      B *b = (B*)this;        // test for NULL "this" is eliminated
-      return (this ? 1 : 0);  // dead code is detected and removed
-    }
-  };
-  int main() {
-    D d, *pd = 0;
-    return pd->f();    // allowed at run-time by many GNU/Microsoft compilers
-  }
-
-
 8/7/09  [EDGcpfe/9707]
 Microsoft compatibility: both derived and virtual base classes have dllimport
 attribute

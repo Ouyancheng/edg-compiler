@@ -3786,11 +3786,6 @@ file.
 #else /* !defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
   comment_undefined_macro_name(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS);
 #endif /* defined(ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS) */
-#if defined(ASSUME_THIS_CANNOT_BE_NULL)
-  define_numeric_valued_macro(ASSUME_THIS_CANNOT_BE_NULL);
-#else /* !defined(ASSUME_THIS_CANNOT_BE_NULL) */
-  comment_undefined_macro_name(ASSUME_THIS_CANNOT_BE_NULL);
-#endif /* defined(ASSUME_THIS_CANNOT_BE_NULL) */
 #if defined(ATT_PREPROCESSING_EXTENSIONS_ALLOWED)
   define_numeric_valued_macro(ATT_PREPROCESSING_EXTENSIONS_ALLOWED);
 #else /* !defined(ATT_PREPROCESSING_EXTENSIONS_ALLOWED) */
