@@ -2161,6 +2161,25 @@ and destructors may have to be changed.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED && IA64_ABI && DO_IL_LOWERING */
 
 /*
+Flag that, when TRUE, allows lowering to assume "this" cannot contain a NULL
+value.  A setting of TRUE allows lowering to perform certain optimizations in
+member functions and generate more effecient IL.  In particular, this
+optimization allows elimination of the "if (this || (this = new(size)))"
+test from inlined constructors in the Cfront ABI when
+NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  Its effect can also be seen in related
+class casting as well as certain expression folding and dead code removal
+that is performed in lowering and inlining.  Both Microsoft and GNU allow
+(non-virtual) member functions to be invoked through a NULL pointer (resulting
+in undefined behavior).  Regardless of the setting of this macro, it is still
+assumed that "this" cannot be NULL in virtual member functions.  FALSE is a
+safe setting (but may generate more code at the expense of accepting some code
+that has undefined behavior).
+*/
+#ifndef ASSUME_THIS_CANNOT_BE_NULL
+#define ASSUME_THIS_CANNOT_BE_NULL TRUE
+#endif /* ifndef ASSUME_THIS_CANNOT_BE_NULL */
+
+/*
 Control over whether or not C++ "new" and "delete" operations are allowed
 to be folded into the constructor or destructor if possible.
 */

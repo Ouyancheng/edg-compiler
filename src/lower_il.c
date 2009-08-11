@@ -3122,10 +3122,15 @@ the test means its address cannot be NULL.
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_variable) {
       /* If the expression is the "this" variable for the current function,
-         it cannot be null. */
+         it can never be null if the function is virtual.  For non-virtual
+         member functions, the optimization is configurable. */
       if (innermost_function_scope != NULL &&
           innermost_function_scope->variant.routine.this_param_variable ==
-                                                      expr->variant.variable) {
+                                                      expr->variant.variable
+#if !ASSUME_THIS_CANNOT_BE_NULL
+          && innermost_function_scope->variant.routine.ptr->is_virtual
+#endif /* !ASSUME_THIS_CANNOT_BE_NULL */
+                                                                      ) {
         cannot_be = TRUE;
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_address_of_ellipsis) {
@@ -11530,17 +11535,25 @@ the top node of the indicated statement (which is an expression statement).
   lower_expr(arg_node);
   prev_arg_node = arg_node;
   arg_node = arg_node->next;
+  /* See if we know the specific routine being called. */
+  routine = routine_from_function_expr(first_arg);
   /* If the routine has a "this" parameter, lower it separately. */
   if (rtsp->this_class != NULL) {
+    /* In some cases, "this" can be assumed to be non-NULL, which allows
+       generation of slightly optimized code. */
+    a_boolean assume_expr_is_non_null = 
+#if ASSUME_THIS_CANNOT_BE_NULL
+                                        TRUE;
+#else /* !ASSUME_THIS_CANNOT_BE_NULL */
+                                        routine != (a_routine_ptr)NULL &&
+                                        routine->is_virtual;
+#endif /* ASSUME_THIS_CANNOT_BE_NULL */
+
     /* The "this" argument has been converted into a pointer to class above. */
     check_assertion(is_pointer_type(arg_node->type) &&
                     is_class_struct_union_type(type_pointed_to(
                                                              arg_node->type)));
-    /* Don't bother adding NULL-preservation code for the "this" parameter.
-       If "this" is NULL, dereferencing it is going to cause an error
-       whether or not the NULL-preservation test is added, so generate
-       slightly optimized code. */
-    lower_expr_full(arg_node, /*assume_expr_is_non_null=*/TRUE);
+    lower_expr_full(arg_node, assume_expr_is_non_null);
     if (rtsp->return_value_parameter_follows_this) {
       /* If a return value address argument will be added below, make sure
          it follows the "this" argument. */
@@ -11584,8 +11597,6 @@ the top node of the indicated statement (which is an expression statement).
     temp_node->next = prev_arg_node->next;
     prev_arg_node->next = temp_node;
   }  /* if */
-  /* See if we know the specific routine being called. */
-  routine = routine_from_function_expr(first_arg);
   /* Lower the rest of the arguments. */
   lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL);
   if (routine != NULL) {
@@ -12905,7 +12916,18 @@ that are specific to inlining and therefore yield different results.
          of the call. */
       is_constant_valued = TRUE;
     }  /* if */
-    if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
+    if (is_constant_valued && var->is_this_parameter
+#if !ASSUME_THIS_CANNOT_BE_NULL
+        && innermost_function_scope != NULL
+        && innermost_function_scope->variant.routine.this_param_variable == var
+        && innermost_function_scope->variant.routine.ptr->is_virtual
+#endif /* !ASSUME_THIS_CANNOT_BE_NULL */
+                                                                    ) {
+      /* "this" is always non-null in virtual member functions, and can
+         be assumed non-null in other member functions (depending on the
+         configuration). */
+      *is_non_null = TRUE;
+    }  /* if */
   } else if (is_routine_node(expr)) {
     is_constant_valued = TRUE;
     /* We assume that routines other than extern routines have non-null
