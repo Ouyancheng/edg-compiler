@@ -12833,6 +12833,7 @@ given statement is subsequently modified.
 a_boolean is_constant_valued_expression(an_expr_node_ptr expr,
                                         a_boolean        local_vars_change,
                                         a_boolean        other_vars_change,
+                                        a_boolean        this_cannot_be_null,
                                         a_boolean        *is_non_null)
 /*
 Return TRUE if the indicated expression (which can be an rvalue or lvalue) has
@@ -12845,13 +12846,16 @@ non-NULL, the safe value is FALSE.  local_vars_change is TRUE if the values of
 unaliased local variables of the caller might change (e.g., if the argument
 expressions have side effects).  other_vars_change is TRUE if the values of
 other variables might change (e.g., if the argument expressions or the called
-function body have side effects).  This routine does not investigate all
-possible cases (i.e., it may return FALSE when a more complete inspection would
-return TRUE).  See constant_lvalue_address and constant_rvalue_pointer for
-more definitive determinations of whether or not an expression is constant
-valued, but this routine has some differences in underlying assumptions
-(e.g., "this" is considered constant, addresses of string literals are not)
-that are specific to inlining and therefore yield different results.
+function body have side effects).  When this_cannot_be_null is TRUE, it is
+assumed that the "this" variable in a member function cannot be NULL
+(otherwise, it is only assumed that "this" cannot be NULL in virtual member
+functions).  This routine does not investigate all possible cases (i.e., it may
+return FALSE when a more complete inspection would return TRUE).  See
+constant_lvalue_address and constant_rvalue_pointer for more definitive
+determinations of whether or not an expression is constant valued, but this
+routine has some differences in underlying assumptions (e.g., "this" is
+considered constant, addresses of string literals are not) that are specific to
+inlining and therefore yield different results.
 */
 {
   a_boolean is_constant_valued = FALSE;
@@ -12905,7 +12909,18 @@ that are specific to inlining and therefore yield different results.
          of the call. */
       is_constant_valued = TRUE;
     }  /* if */
-    if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
+    if (is_constant_valued && var->is_this_parameter) {
+      /* "this" is always non-null in virtual functions, and may be assumed
+         to be non-null in other contexts as well (as specified by the
+         caller). */
+      if (this_cannot_be_null ||
+          (innermost_function_scope != NULL &&
+           innermost_function_scope->variant.routine.this_param_variable
+                                                                      == var &&
+           innermost_function_scope->variant.routine.ptr->is_virtual)) {
+        *is_non_null = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (is_routine_node(expr)) {
     is_constant_valued = TRUE;
     /* We assume that routines other than extern routines have non-null
@@ -12930,6 +12945,7 @@ that are specific to inlining and therefore yield different results.
         is_constant_valued = is_constant_valued_expression(operand,
                                                            local_vars_change,
                                                            other_vars_change,
+                                                           this_cannot_be_null,
                                                            is_non_null);
         break;
       case eok_cast:
@@ -12939,9 +12955,10 @@ that are specific to inlining and therefore yield different results.
            constructor or destructor. */
         if (is_pointer_type(expr->type)) {
           is_constant_valued = is_constant_valued_expression(operand,
-                                                             local_vars_change,
-                                                             other_vars_change,
-                                                             is_non_null);
+                                                           local_vars_change,
+                                                           other_vars_change,
+                                                           this_cannot_be_null,
+                                                           is_non_null);
         }  /* if */
         break;
       case eok_padd:
@@ -12954,12 +12971,14 @@ that are specific to inlining and therefore yield different results.
           if (is_constant_valued_expression(operand,
                                             local_vars_change,
                                             other_vars_change,
+                                            this_cannot_be_null,
                                             &op1_is_non_null)) {
             is_constant_valued = is_constant_valued_expression(
-                                                             operand->next,
-                                                             local_vars_change,
-                                                             other_vars_change,
-                                                             &op2_is_non_null);
+                                                           operand->next,
+                                                           local_vars_change,
+                                                           other_vars_change,
+                                                           this_cannot_be_null,
+                                                           &op2_is_non_null);
             if (op == (an_expr_operator_kind)eok_padd ||
                 op == (an_expr_operator_kind)eok_subscript) {
               /* If either operand is non-null, the sum will be non-null
@@ -12976,6 +12995,7 @@ that are specific to inlining and therefore yield different results.
         is_constant_valued = is_constant_valued_expression(operand,
                                                            local_vars_change,
                                                            other_vars_change,
+                                                           this_cannot_be_null,
                                                            is_non_null);
         if (!*is_non_null && operand->next->variant.field->offset != 0) {
           /* If the field offset is non-zero, the entire expression will
@@ -12991,14 +13011,17 @@ that are specific to inlining and therefore yield different results.
 }  /* is_constant_valued_expression */
 
 
-a_boolean bool_value_is_known_at_compile_time(an_expr_node_ptr expr,
-                                              a_boolean        *value)
+a_boolean bool_value_is_known_at_compile_time(
+                                          an_expr_node_ptr expr,
+                                          a_boolean        this_cannot_be_null,
+                                          a_boolean        *value)
 /*
 See if the value of expr can be determined at compile time; if so, determine
-the boolean value of the expression and set *value as appropriate.  Returns
-TRUE if the value of the expression is known.  This routine does not
-investigate all possible cases (i.e., it may return FALSE when a more complete
-inspection would return TRUE).
+the boolean value of the expression and set *value as appropriate.  
+When this_cannot_be_null is TRUE, it can be assumed that "this" cannot
+be NULL in the specified expression.  Returns TRUE if the value of the
+expression is known.  This routine does not investigate all possible cases
+(i.e., it may return FALSE when a more complete inspection would return TRUE).
 */
 {
   a_boolean value_is_known = FALSE;
@@ -13019,6 +13042,7 @@ inspection would return TRUE).
     *value = is_constant_valued_expression(expr,
                                            /*local_vars_change=*/TRUE,
                                            /*other_vars_change=*/TRUE,
+                                           this_cannot_be_null,
                                            &non_null) &&
              non_null;
     value_is_known = *value;
@@ -13097,7 +13121,9 @@ expressions.
   /* Lower the first operand (increases the chance that the value will be
      recognized as known at compile time). */
   lower_any_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
-  if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
+  if (bool_value_is_known_at_compile_time(op1,
+                           assume_this_cannot_be_null_in_conditional_operators,
+                                          &op1_value) &&
       dead_code_expr_can_be_eliminated(op2)) {
     /* The first operand is an expression whose value we know at compile time;
        see if we can eliminate the second operand altogether based upon the
@@ -13171,7 +13197,9 @@ careful to call the appropriate routines when lowering expressions.
   /* Lower the conditional first (increases the chance that the value will be
      recognized as known at compile time). */
   lower_any_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
-  if (bool_value_is_known_at_compile_time(op1, &op1_value)) {
+  if (bool_value_is_known_at_compile_time(op1,
+                           assume_this_cannot_be_null_in_conditional_operators,
+                                          &op1_value)) {
     if (op1_value) {
       /* Condition is true, rewrite expr with second operand if possible. */
       replacement_op = op2;

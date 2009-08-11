@@ -1,5 +1,41 @@
 Version 4.1, August 6, 2009
 
+8/11/09 [EDGcpfe/9995]
+Dead code removal in conditional operators operating on "this"
+
+As a result of the changes of 10/13/08 to remove dead code from conditional
+operators during lowering, conditional operators whose first argument is "this"
+were optimized under the assumption that "this" cannot be NULL in a member
+function.  This assumption is already made in several places in lowering and
+inlining, resulting in resulting in the removal of a NULL pointer check on
+related class casts as well as optimizations in constructors in the Cfront ABI
+when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.  Invoking a member function through a
+NULL pointer is undefined behavior (though GNU and Microsoft compilers allow
+it).  A change has been made to add a variable,
+assume_this_cannot_be_null_in_conditional_operators, to control whether
+lowering can assume that "this" cannot be NULL when performing dead code
+removal on conditional operators.  The initial value for the variable is given
+by the configuration macro ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS
+(and defaults to the setting of DO_IL_LOWERING).  The variable is set to FALSE
+at run-time in GNU and Microsoft modes to emulate their behavior in this area.
+Lowering continues to assume that "this" cannot be NULL in virtual member
+functions.  Here's an example showing the types of expressions that are
+affected:
+
+  struct A {
+    int f(int i) {
+      i = this || 1;    // dead code removed when
+      i = this ? 1 : 0; // assume_this_cannot_be_null_in_conditional_operators
+                        // is TRUE
+      return i;
+    }
+  };
+  int main() {
+    A *a = 0;
+    return a->f(1);    // allowed at run-time by GNU/Microsoft compilers
+  }
+  
+
 8/11/09 [EDGcpfe/10017]
 Incorrect lvalue setting for lowered enk_object_lifetime
 

@@ -1914,6 +1914,9 @@ by a command line option.
     }  /* if */
   }  /* if */
   va_arg_returns_lvalue = TRUE;
+#if DO_IL_LOWERING
+  assume_this_cannot_be_null_in_conditional_operators = FALSE;
+#endif /* DO_IL_LOWERING */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2187,6 +2190,9 @@ process.
   decls_using_types_without_linkage_allowed = FALSE;
   auto_type_specifier_enabled = FALSE;
   auto_storage_class_specifier_enabled = TRUE;
+#if DO_IL_LOWERING
+  assume_this_cannot_be_null_in_conditional_operators = FALSE;
+#endif /* DO_IL_LOWERING */
 }  /* set_c_mode_flags */
 
 
@@ -3289,6 +3295,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   no_access_check_on_friend_declarator_ids = (gnu_version < 30400);
   extern_template_allowed = TRUE;
   inline_template_allowed = TRUE;
+#if DO_IL_LOWERING
+  assume_this_cannot_be_null_in_conditional_operators = FALSE;
+#endif /* DO_IL_LOWERING */
 }  /* check_and_set_gpp_mode_options */
 
 

@@ -400,10 +400,11 @@ set the temporary variables; see finish_variable_remapping_for_inlining.
          invariant over the lifetime of the call). */
       a_boolean is_non_null;
       a_boolean arg_is_constant = is_constant_valued_expression(
-                                                     arg,
-                                                     arg_list_has_side_effects,
-                                                     call_has_side_effects,
-                                                     &is_non_null);
+                                                  arg,
+                                                  arg_list_has_side_effects,
+                                                  call_has_side_effects,
+                                                  /*this_cannot_be_null=*/TRUE,
+                                                  &is_non_null);
       /* See if the parameter is modified. */
       a_boolean param_is_unmodified = FALSE;
       a_boolean param_is_constructor_this = FALSE;
@@ -828,6 +829,7 @@ because of remapped variables.
       if (is_constant_valued_expression(operand,
                                         /*local_vars_change=*/TRUE,
                                         /*other_vars_change=*/TRUE,
+                                        /*this_cannot_be_null=*/TRUE,
                                         &is_non_null) &&
           is_non_null) {
         operand = operand->next;
@@ -883,7 +885,9 @@ otherwise, do no copying and return FALSE.
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
     operand = copy_expr_tree_for_inlining(operand);
-    if (bool_value_is_known_at_compile_time(operand, &op1_value)) {
+    if (bool_value_is_known_at_compile_time(operand,
+                           assume_this_cannot_be_null_in_conditional_operators,
+                                            &op1_value)) {
       /* The first operand is known false or known true, so the operation can
          be simplified. */
       if (op == (an_expr_operator_kind)eok_question) {
@@ -969,6 +973,7 @@ otherwise, do no copying and return FALSE.
         if (is_constant_valued_expression(operand2,
                                           /*local_vars_change=*/TRUE,
                                           /*other_vars_change=*/TRUE,
+                                          /*this_cannot_be_null=*/TRUE,
                                           &is_non_null) &&
             (!var->is_temp_for_constructor_this_inlined_param ||
              is_non_null)) {

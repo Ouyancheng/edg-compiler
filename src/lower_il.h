@@ -1054,13 +1054,16 @@ extern a_boolean is_ptr_to_member_function_constant_expr(
                                                         an_expr_node_ptr expr);
 
 extern a_boolean is_constant_valued_expression(
-                                            an_expr_node_ptr expr,
-                                            a_boolean        local_vars_change,
-                                            a_boolean        other_vars_change,
-                                            a_boolean        *is_non_null);
+                                          an_expr_node_ptr expr,
+                                          a_boolean        local_vars_change,
+                                          a_boolean        other_vars_change,
+                                          a_boolean        this_cannot_be_null,
+                                          a_boolean        *is_non_null);
 
-extern a_boolean bool_value_is_known_at_compile_time(an_expr_node_ptr expr,
-                                                     a_boolean        *value);
+extern a_boolean bool_value_is_known_at_compile_time(
+                                          an_expr_node_ptr expr,
+                                          a_boolean        this_cannot_be_null,
+                                          a_boolean        *value);
 
 extern void lower_logical_operator(an_expr_node_ptr expr);
 

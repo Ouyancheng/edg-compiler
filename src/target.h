@@ -668,6 +668,13 @@ EXTERN a_boolean
 			/* If TRUE, all functions are rewritten to be
 			   unprototyped. */
 
+EXTERN a_boolean
+		assume_this_cannot_be_null_in_conditional_operators;
+			/* If TRUE, assume "this" cannot be null in conditional
+			   operators, allowing some additional optimizations
+			   (i.e., dead code removal) in "?", "&&", and "||"
+			   operations. */
+
 #if DO_FULL_PORTABLE_EH_LOWERING
 
 EXTERN unsigned int
@@ -949,6 +956,7 @@ EXTERN a_boolean
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
 #undef TARG_MINIMUM_PACK_ALIGNMENT
 #undef MAKE_ALL_FUNCTIONS_UNPROTOTYPED
+#undef ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS
 #undef TARG_JMP_BUF_NUM_ELEMENTS
 #undef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
@@ -1069,6 +1077,8 @@ EXTERN a_boolean
 #define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
 #define TARG_MINIMUM_PACK_ALIGNMENT targ_minimum_pack_alignment
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED make_all_functions_unprototyped
+#define ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS             \
+                        assume_this_cannot_be_null_in_conditional_operators
 #define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT targ_jmp_buf_elements_are_float
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind

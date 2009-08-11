@@ -463,6 +463,8 @@ This is done before command line processing.
   force_variable_definition_via_zeroing =
                                          FORCE_VARIABLE_DEFINITION_VIA_ZEROING;
   make_all_functions_unprototyped = MAKE_ALL_FUNCTIONS_UNPROTOTYPED;
+  assume_this_cannot_be_null_in_conditional_operators =
+                           ASSUME_THIS_CANNOT_BE_NULL_IN_CONDITIONAL_OPERATORS;
 #if DO_FULL_PORTABLE_EH_LOWERING
   targ_jmp_buf_num_elements = TARG_JMP_BUF_NUM_ELEMENTS;
   targ_jmp_buf_elements_are_float = TARG_JMP_BUF_ELEMENTS_ARE_FLOAT;
