@@ -3814,15 +3814,15 @@ change that variable, but having a variable makes it possible to have one.
 When this switch is TRUE, lowering (and inlining) can assume that "this" can
 never be NULL in conditional operators (i.e., "?", "&&", "||"), allowing
 expressions such as "(this ? 1 : 0)" to be optimized to remove dead code.  Even
-when this switch is FALSE, the assumption is made that "this" can not be NULL
+when this switch is FALSE, the assumption is made that "this" cannot be NULL
 in the context of a virtual member function.  This is the initial value of the
 variable assume_this_cannot_be_null_in_conditional_operators.  Note that the
 assumption that "this" cannot be NULL is made in other places in lowering
 (irrespective of the value of this variable), resulting in the removal of a
 NULL pointer check on related class casts as well as optimizations in
 constructors in the Cfront ABI when NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE.
-Invoking a member function through a NULL pointer is undefined behavior
-(though GNU and Microsoft compilers allow it), so the
+Invoking a member function through a NULL pointer is undefined behavior, but
+GNU and Microsoft compilers allow it, so the
 assume_this_cannot_be_null_in_conditional_operators variable is set to FALSE at
 run-time in GNU and Microsoft modes.
 */
