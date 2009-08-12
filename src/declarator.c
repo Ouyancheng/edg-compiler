@@ -794,7 +794,10 @@ type.
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
-        } else if (!check_return_type(new_type_ptr, dps, &error_position)) {
+        } else if (!check_return_type(new_type_ptr, dps,
+                                      dps->has_trailing_return_type ?
+                                        &dps->return_type_pos :
+                                        &error_position)) {
           err = TRUE;
         } else if (C_dialect == C_dialect_pcc) {
           /* In pcc mode, promote float functions to double functions.
@@ -1310,29 +1313,32 @@ syntactic properties of the current declaration.
 /*ARGSUSED*/  /* state is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void cplusplus_function_declarator_trailer(
-                        a_decl_parse_state             *state,
-                        a_routine_type_supplement_ptr  rtsp,
-                        a_func_info_block              *func_info,
-                        a_symbol_locator               *locator,
-                        a_type_ptr                     parent_type,
-                        a_boolean                      top_level,
-                        a_boolean                      is_nonstatic_member,
-                        a_boolean                      is_constructor,
-                        a_boolean                      is_destructor,
-                        a_boolean                      disallow_exception_spec,
-                        a_boolean                      is_typedef_decl,
-                        a_decl_pos_block               *decl_pos_block)
+                                   a_decl_parse_state  *state,
+                                   a_type_ptr          rout_type,
+                                   a_func_info_block   *func_info,
+                                   a_symbol_locator    *locator,
+                                   a_type_ptr          parent_type,
+                                   a_boolean           top_level,
+                                   a_boolean           is_nonstatic_member,
+                                   a_boolean           is_constructor,
+                                   a_boolean           is_destructor,
+                                   a_boolean           disallow_exception_spec,
+                                   a_boolean           is_typedef_decl,
+                                   a_decl_pos_block    *decl_pos_block)
 /*
 Parse any C++-specific additions to a function declarator that follow its
 closing right parenthesis (cv-qualifiers and/or exception specifications),
 and update the given routine type supplement accordingly.  top_level is
-TRUE if we're parsing a top-level declarator.  For the other parameters,
-see function_declarator (below) for which this is a helper function.
+TRUE if we're parsing a top-level declarator.  rout_type is the new routine
+type.  For the other parameters, see function_declarator (below) for which
+this is a helper function.
 */
 {
+  a_routine_type_supplement_ptr   rtsp = rout_type->variant.routine.extra_info;
   a_type_ptr                      this_class = NULL;
   a_type_qualifier_set            qualifiers = TQ_NONE;
   a_boolean                       qualifier_err = FALSE;
+  a_boolean                       is_lambda_decl = (func_info->lambda != NULL);
   an_exception_specification_ptr  esp;
 
   /* Create a pointer to the implicit "this" parameter.  This can be done
@@ -1340,7 +1346,7 @@ see function_declarator (below) for which this is a helper function.
      for member function declarations outside a class definition when
      a function qualifier is present.  If there is a function qualifier,
      it is applied to the type pointed to by the this param type. */
-  if (func_info->lambda != NULL) {
+  if (is_lambda_decl) {
     /* Lambdas don't allow a cv-qualifier here, but they are "const" by
        default.  "mutable", however, is allowed here, and means the lambda is
        non-const. */
@@ -1494,6 +1500,39 @@ see function_declarator (below) for which this is a helper function.
   /* Do not insert code here. */
   {
     rtsp->exception_specification = esp;
+  }  /* if */
+  if (curr_token == tok_arrow &&
+      (trailing_return_types_enabled || is_lambda_decl)) {
+    a_decl_parse_state  trt_dps;
+    a_boolean           err = FALSE;
+    if (is_lambda_decl) {
+      /* No special syntax checks are needed. */
+    } else if (!state->auto_type_specifier_seen) {
+      error(ec_trailing_return_type_requires_auto);
+      err = TRUE;
+    } else if (!top_level) {
+      error(ec_trailing_return_type_not_at_top_level);
+      err = TRUE;
+    } else if (state->type != state->auto_type) {
+      pos_error(ec_trailing_return_type_function_without_simple_auto,
+                &state->declarator_start_pos);
+      err = TRUE;
+    }  /* if */
+    (void)get_token();
+    state->return_type_pos = pos_curr_token;
+    init_decl_parse_state(&trt_dps);
+    trt_dps.is_trailing_return_type = TRUE;
+    type_name_full(&trt_dps);
+    if (err) {
+      state->specifiers_type = state->declared_type = state->type =
+                                                                 error_type();
+    } else {
+      state->has_trailing_return_type = TRUE;
+      state->specifiers_type = state->declared_type = state->type =
+                                                                 trt_dps.type;
+    }  /* if */
+  } else {
+    state->return_type_pos = state->specifiers_pos;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && microsoft_version >= 1400 && 
@@ -2397,7 +2436,7 @@ if this is the function declarator in a friend function declaration.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
-    cplusplus_function_declarator_trailer(state, extra_info, func_info,
+    cplusplus_function_declarator_trailer(state, *new_type_ptr, func_info,
                                           locator, parent_type,
                                           is_top_level_declarator,
                                           is_nonstatic_member,
@@ -2442,17 +2481,16 @@ the left parenthesis introducing the declarator-like construct.
   func_info->declared_type = func_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   remove_stop_token(tok_rparen);
-  /* Check for an explicit return type. */
-  if (curr_token == tok_arrow) {
-    a_decl_parse_state  trt_dps;
+  /* Record whether an explicit return type was specified. */
+  if (dps->has_trailing_return_type) {
     lambda->explicit_return_type = TRUE;
-    (void)get_token();
-    init_decl_parse_state(&trt_dps);
-    trt_dps.is_trailing_return_type = TRUE;
-    type_name_full(&trt_dps);
     if (!is_error_type(func_type)) {
+      /* function_declarator doesn't itself "connect" the function type to its
+         return type because of the possibility of complex nested-declarator
+         situations (instead that connection is usually done in r_declarator
+         for non-lambda declarators).  So we do this manually here. */
       a_type_ptr  bottom_derived_type = func_type;
-      add_to_derived_type_list(trt_dps.type, &func_type, &bottom_derived_type,
+      add_to_derived_type_list(dps->type, &func_type, &bottom_derived_type,
                                dps, /*parameter_type=*/FALSE,
                                /*microsoft_property=*/FALSE);
       check_assertion(is_function_type(func_type));
@@ -4712,6 +4750,11 @@ The syntax is:
       /* We scanned a pointer-to-member declarator. */
       *output_flags |= DO_HAS_PTR_TO_MEMBER_COMPONENT;
     }  /* if */
+    if (specifiers_type != NULL) {
+      /* E.g., in "int *(*f)()" set state->type to "int*" just before
+         processing the nested declarator. */
+      state->type = complete_type;
+    }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) {
@@ -5170,6 +5213,10 @@ function_lparen:
                           (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
                           (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
+      if (state->has_trailing_return_type) {
+        check_assertion(complete_type == state->auto_type);
+        complete_type = state->specifiers_type;
+      }  /* if */
       if (local_func_info != NULL &&
           (input_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0 &&
           local_func_info->any_default_args) {
@@ -5557,8 +5604,11 @@ resulting type is neither an array type nor a function type.
   if (is_array_type(state->declared_type)) {
     pos_error(ec_auto_type_in_array_type, &state->auto_pos);
     err = TRUE;
-  } else if (is_function_type(state->declared_type)) {
-    pos_error(ec_auto_type_in_function_type, &state->auto_pos);
+  } else if (!state->has_trailing_return_type &&
+             is_function_type(state->declared_type)) {
+    pos_error(trailing_return_types_enabled ? ec_missing_trailing_return_type
+                                            : ec_auto_type_in_function_type,
+              &state->auto_pos);
     err = TRUE;
   }  /* if */
   if (err) {

@@ -94,6 +94,7 @@ reflected in start_secondary_declarator.
   ps->specifiers_pos = null_source_position;
   ps->declarator_start_pos = null_source_position;
   ps->declarator_pos = null_source_position;
+  ps->return_type_pos = null_source_position;
   ps->qualifiers = TQ_NONE;
   ps->qualifiers_pos = null_source_position;
   ps->restrict_pos = null_source_position;
@@ -102,6 +103,7 @@ reflected in start_secondary_declarator.
   ps->auto_pos = null_source_position;
   ps->in_class_scope = FALSE;
   ps->is_trailing_return_type = FALSE;
+  ps->has_trailing_return_type = FALSE;
   ps->is_new_expr_type = FALSE;
   ps->is_evaluated_sizeof_type_arg = FALSE;
   ps->disallow_variably_modified_type = FALSE;
@@ -14382,6 +14384,16 @@ related-fields of *ps prior to scanning the next declarator.
   ps->do_flags = DO_NO_OUTPUT_FLAGS;
   ps->declarator_start_pos = null_source_position;
   ps->declarator_pos = null_source_position;
+  if (ps->has_trailing_return_type) {
+    /* The previous declarator had a trailing return type, which caused us to
+       to override the "auto" type with the actual return type.  Restore the
+       "auto" type. */
+    ps->has_trailing_return_type = FALSE;
+    ps->specifiers_type = ps->auto_type;
+    ps->declared_type = ps->auto_type;
+    ps->type = ps->auto_type;
+    ps->return_type_pos = null_source_position;
+  }  /* if */
   ps->nested_ptr_or_ref_seen = FALSE;
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;

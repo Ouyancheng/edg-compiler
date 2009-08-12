@@ -266,6 +266,10 @@ typedef struct a_decl_parse_state {
 		declarator_pos;
 			/* The position of the declarator-id if there is one.
 			   Otherwise, same as declarator_start_pos. */
+  a_source_position
+		return_type_pos;
+			/* Position of the trailing return type (if one is
+			   present); otherwise, same as specifiers_pos. */
   a_type_qualifier_set
 		qualifiers;
 			/* Top-level type qualifiers (but not function type
@@ -294,7 +298,13 @@ typedef struct a_decl_parse_state {
   a_bit_field
 		is_trailing_return_type:1;
 			/* TRUE if this information block describes the parsing
-			   of a trailing return type. */
+			   of a trailing return type (this is set before
+			   parsing that type with a call to type_name_full). */
+  a_bit_field
+		has_trailing_return_type:1;
+			/* TRUE if the current declaration has a trailing
+			   return type (this is set after the trailing return
+			   type has been parsed). */
   a_bit_field
 		is_new_expr_type:1;
 			/* TRUE if this information block describes the parsing

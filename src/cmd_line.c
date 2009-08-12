@@ -1885,6 +1885,7 @@ by a command line option.
            constructor even when a move constructor was explicitly declared. */
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
+      trailing_return_types_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2190,6 +2191,7 @@ process.
   decls_using_types_without_linkage_allowed = FALSE;
   auto_type_specifier_enabled = FALSE;
   auto_storage_class_specifier_enabled = TRUE;
+  trailing_return_types_enabled = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -2395,6 +2397,7 @@ the next standard).
   decls_using_types_without_linkage_allowed = TRUE;
   defaulted_special_members_enabled = TRUE;
   deleted_functions_enabled = TRUE;
+  trailing_return_types_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -8640,6 +8643,7 @@ variables declared in cmd_line.h.
   rvalue_ctor_is_copy_ctor = TRUE;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
+  trailing_return_types_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

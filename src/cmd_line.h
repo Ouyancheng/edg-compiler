@@ -965,6 +965,12 @@ EXTERN a_boolean
 			   be used when local and unnamed types can be
 			   used as template arguments. */
 
+EXTERN a_boolean
+		trailing_return_types_enabled;
+			/* TRUE if a function return type may trail the
+			   corresponding function declarator (in syntax like
+			   "(int, int)->int").  This is a C++0x extension. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
