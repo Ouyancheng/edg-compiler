@@ -1,5 +1,20 @@
 Version 4.1, August 6, 2009
 
+8/12/09 [EDGcpfe/10012]
+Lowering generated incorrect cast for assignment to static guard variable
+
+In IA-64 ABI configurations where IA64_ABI_USE_GUARD_ACQUIRE_RELEASE and
+IA64_ABI_USE_INT_STATIC_INIT_GUARD are both FALSE, the generated cast on the
+assignment to the guard variable was incorrect, resulting in a warning when the
+generated code was compiled (in configurations that use the C generating back
+end).  This regression was introduced in 4.0 and is now fixed.  For example:
+
+  extern int f();
+  void g() {
+    static int i = f();
+  }
+
+
 8/11/09 [EDGcpfe/9995]
 Dead code removal in conditional operators operating on "this"
 
