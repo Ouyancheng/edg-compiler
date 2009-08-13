@@ -1,4 +1,4 @@
-Version 4.1, August 6, 2009
+Version 4.2
 
 8/12/09 [EDGcpfe/10012]
 Lowering generated incorrect cast for assignment to static guard variable
@@ -87,6 +87,9 @@ For example:
   struct __declspec(dllimport) D : virtual B {};
   D d;
 
+
+------------------------------------------------------------------------------
+Version 4.1, August 6, 2009
 
 8/3/09
 IL version number changed to 4.1
