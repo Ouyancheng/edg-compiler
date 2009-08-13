@@ -3653,7 +3653,7 @@ stack at which the symbol is being entered, which is needed to determine
 the proper insert location.
 
 Symbols are usually added to the symbol header's active list.  When
-a symbol is added to a a sck_namespace_extension scope, however, the
+a symbol is added to a sck_namespace_extension scope, however, the
 symbol must be added to the inactive list.
 */
 {
