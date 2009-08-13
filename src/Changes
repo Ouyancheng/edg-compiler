@@ -1,5 +1,26 @@
 Version 4.2
 
+8/13/09  [EDGcpfe/9938]
+Incorrect default argument when class is instantiated in default argument
+
+In modes in which nonclass prototype instantiations are performed, if the
+prototype instantiation of a default argument caused an instantiation of
+the enclosing class, the resulting instantiation could be missing default
+argument information for some of its members.  This could result in
+spurious errors or other incorrect behavior.  Now fixed.
+
+  template <class T> struct A {
+    A(){}
+    A(int i, A<double> c = A<double>::invalid()){}
+    static A<T> invalid();
+    void f(T = -1){}
+  };
+  int main() {
+    A<double> a;
+    a.f();  // spurious "too few arguments" error
+  }
+
+
 8/12/09 [EDGcpfe/10012]
 Lowering generated incorrect cast for assignment to static guard variable
 

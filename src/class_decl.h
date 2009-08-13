@@ -78,7 +78,8 @@ extern a_boolean is_lambda(void);
 extern a_lambda_ptr scan_lambda(void);
 
 extern void default_argument_fixup_for_class(a_type_ptr  class_type,
-                                             a_boolean   is_template_based);
+                                             a_boolean   is_template_based,
+                                             a_boolean   template_second_pass);
 
 extern void process_deferred_class_fixups_and_instantiations(
 						a_boolean for_instantiation);

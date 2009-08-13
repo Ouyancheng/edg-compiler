@@ -1308,9 +1308,16 @@ Return TRUE if the given routine fixup is for a friend declaration.
 
 
 void default_argument_fixup_for_class(a_type_ptr  class_type,
-                                      a_boolean   is_template_based)
+                                      a_boolean   is_template_based,
+				      a_boolean   template_second_pass)
 /*
 Process the default argument expressions for the indicated class.
+is_template_based is TRUE if the class is the result of a template
+instantiation.  When nonclass prototype instantiations are performed this
+routine is called twice for each class.   The second pass (when
+template_second_pass is TRUE) does prototype instantiations of default
+arguments for member function templates of both normal and template classes,
+and for member functions of template classes.
 */
 {
   a_routine_fixup_ptr               rfp;
@@ -1359,8 +1366,13 @@ Process the default argument expressions for the indicated class.
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
   if ((rfp = cssp->routine_fixup_list) != NULL &&
-      !cssp->default_arg_fixup_started) {
-    cssp->default_arg_fixup_started = TRUE;
+      !(template_second_pass ? cssp->default_arg_fixup_pass_2_started
+                             : cssp->default_arg_fixup_pass_1_started)) {
+    if (template_second_pass) {
+      cssp->default_arg_fixup_pass_2_started = TRUE;
+    } else {
+      cssp->default_arg_fixup_pass_1_started = TRUE;
+    }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
       fputs("default-arg fixup for class \"", f_debug);
@@ -1392,7 +1404,8 @@ Process the default argument expressions for the indicated class.
        containing the class declaration. */
     if (!instantiations_permitted_in_class_src_seq_list &&
         !is_nonreal_template_instantiation &&
-        !class_type->source_corresp.is_local_to_function) {
+        !class_type->source_corresp.is_local_to_function &&
+        !template_second_pass) {
       /* Set the instantiation insert point so that it precedes the class
          definition. */
       if (class_type->source_corresp.source_sequence_entry != NULL) {
@@ -1450,7 +1463,8 @@ Process the default argument expressions for the indicated class.
            prototype instantiation. */
         if (!fixup_class_is_real_template_instantiation) {
           sym = rfp->symbol;
-          if (daefp != NULL && nonclass_prototype_instantiations) {
+          if (daefp != NULL && nonclass_prototype_instantiations &&
+              template_second_pass) {
             default_arg_prototype_instantiation(
                                      sym, daefp, rfp->prototype_scope_symbols,
                                      /*update_declared_type=*/TRUE);
@@ -1472,50 +1486,62 @@ Process the default argument expressions for the indicated class.
         if (fixup_class_is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
-            a_def_arg_expr_fixup_ptr  daefp_end;
-            a_def_arg_expr_fixup_ptr  daefp_tmp = daefp;
-            a_cached_token_ptr        first_token_ptr;
-
-            /* Make sure that all of the default arguments are at the end of
-               the parameter list. */
-            first_token_ptr = daefp->cache.tokens.first_token;
-            check_assertion(first_token_ptr != NULL);
-            check_default_args_for_param_type(
+            if (!template_second_pass) {
+              a_def_arg_expr_fixup_ptr  daefp_end;
+              a_def_arg_expr_fixup_ptr  daefp_tmp = daefp;
+              a_cached_token_ptr        first_token_ptr;
+              /* Make sure that all of the default arguments are at the end of
+                 the parameter list. */
+              first_token_ptr = daefp->cache.tokens.first_token;
+              check_assertion(first_token_ptr != NULL);
+              check_default_args_for_param_type(
                                            daefp->param_type,
                                            &first_token_ptr->source_position);
-            /* Update the template declaration information to refer to
-               the declaration information of the enclosing class
-               template. */
-            tssp = symbol_supplement_for_class(rfp->class_type)->template_info;
-            while (daefp_tmp != NULL) {
-              check_assertion(tssp->cache.decl_info != NULL);
-              daefp_tmp->cache.decl_info = tssp->cache.decl_info;
-              daefp_tmp = daefp_tmp->next;
-            }  /* while */
-            if (nonclass_prototype_instantiations) {
-              /* Do the prototype instantiations of the default arguments. */
-              default_arg_prototype_instantiation(
+              /* Update the template declaration information to refer to
+                 the declaration information of the enclosing class
+                 template. */
+              tssp = symbol_supplement_for_class(rfp->class_type)->
+                                                                 template_info;
+              while (daefp_tmp != NULL) {
+                check_assertion(tssp->cache.decl_info != NULL);
+                daefp_tmp->cache.decl_info = tssp->cache.decl_info;
+                daefp_tmp = daefp_tmp->next;
+              }  /* while */
+              /* Link the default argument list from the template supplement
+                 onto the end of the list of current default arguments.  The
+                 list in the supplement must be for arguments that follow the
+                 new list (otherwise it would be an error).  Find the end
+                 of the current list and link the existing list to the end. */
+              daefp_end = daefp;
+              if (daefp_end != NULL) {
+                /* Find the end of the list of new default argument entries. */
+                while (daefp_end->next != NULL) {
+                  daefp_end = daefp_end->next;
+                }  /* while */
+                tssp = template_supplement_for_symbol(sym);
+                daefp_end->next = tssp->variant.function.def_arg_expr_list;
+                tssp->variant.function.def_arg_expr_list = daefp;
+              }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+              /* The declared type fixup is suppressed on the first pass
+                 for templates when nonclass_prototype_instantiations are
+                 being performed. */
+              do_declared_type_fixup = !nonclass_prototype_instantiations;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            } else /* if (template_second_pass) */ {
+              if (nonclass_prototype_instantiations) {
+                /* Do the prototype instantiations of the default arguments. */
+                default_arg_prototype_instantiation(
                            sym, daefp, rfp->func_info.prototype_scope_symbols,
                            /*update_declared_type=*/FALSE);
+              }  /* if */
             }  /* if */
-            /* Link the default argument list from the template supplement
-               onto the end of the list of current default arguments.  The
-               list in the supplement must be for arguments that follow the
-               new list (otherwise it would be an error).  Find the end
-               of the current list and link the existing list to the end. */
-            daefp_end = daefp;
-            if (daefp_end != NULL) {
-              /* Find the end of the list of new default argument entries. */
-              while (daefp_end->next != NULL) {
-                daefp_end = daefp_end->next;
-              }  /* while */
-              tssp = template_supplement_for_symbol(sym);
-              daefp_end->next = tssp->variant.function.def_arg_expr_list;
-              tssp->variant.function.def_arg_expr_list = daefp;
+            if (template_second_pass || !nonclass_prototype_instantiations) {
+              /* On the last pass clear the default argument fixup list to
+                 prevent it from being freed. */
+              rfp->def_arg_expr_fixup_list = NULL;
             }  /* if */
-            /* Make sure no further processing will be done here and
-               make sure that the list isn't freed. */
-            rfp->def_arg_expr_fixup_list = NULL;
+            /* Make sure no further processing will be done here. */
             daefp = NULL;
           } else {
             /* The default arg token cache is discarded for declarations
@@ -1527,6 +1553,8 @@ Process the default argument expressions for the indicated class.
           }  /* if */
           goto fixup_declared_type;
         }  /* if */
+        /* The rest of this routine is not needed for the second pass. */
+        if (template_second_pass) continue;
         if (!same_entities(curr_scope_class_type, rfp->class_type)) {
           if (curr_scope_class_type != NULL) {
             /* Pop the reactivated class scope from the scope stack. */
@@ -2260,6 +2288,7 @@ after a class instantiation.
 */
 {
   a_class_fixup_ptr		cfp;
+  a_class_fixup_ptr		def_arg_list;
   a_class_fixup_ptr		next_cfp;
   a_boolean			trans_unit_pushed = FALSE;
   a_class_fixup_header_ptr	cfhp;
@@ -2272,17 +2301,29 @@ after a class instantiation.
        created by the fixup process can be fixed up by a recursive call to
        this routine.  This could happen if a function body contains a
        nested class, for example. */
-    cfp = cfhp->def_arg_list;
+    def_arg_list = cfhp->def_arg_list;
     cfhp->def_arg_list = NULL;
     cfhp->def_arg_list_tail = NULL;
     cfhp->defer_inline_function_fixups++;
     defer_instantiations++;
-    for (; cfp != NULL; cfp = cfp->next) {
+    for (cfp = def_arg_list; cfp != NULL; cfp = cfp->next) {
       /* Make sure we are in the right translation unit. */
       check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
       default_argument_fixup_for_class(cfp->class_type,
-                                       cfp->is_template_instantiation);
+                                       cfp->is_template_instantiation,
+                                       /*template_second_pass=*/FALSE);
     }  /* for */
+    if (nonclass_prototype_instantiations) {
+      /* Do the second pass of default argument fixup to do prototype
+         instantiations of template default arguments. */
+      for (cfp = def_arg_list; cfp != NULL; cfp = cfp->next) {
+        /* Make sure we are in the right translation unit. */
+        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+        default_argument_fixup_for_class(cfp->class_type,
+                                         cfp->is_template_instantiation,
+                                         /*template_second_pass=*/TRUE);
+      }  /* for */
+    }  /* if */
     /* cfhp points into the scope_stack, so refresh the pointer after
        the above processing. */
     cfhp = curr_class_fixup_header(for_instantiation);

@@ -2647,7 +2647,12 @@ might not be able to if the template itself has not yet been defined.
            default argument fixup now. */
         default_argument_fixup_for_class(
                                  type_symbol_type(cssp->corresp_prototype_sym),
-                                 /*is_template_based=*/TRUE);
+                                 /*is_template_based=*/TRUE,
+                                 /*template_second_pass=*/FALSE);
+        default_argument_fixup_for_class(
+                                 type_symbol_type(cssp->corresp_prototype_sym),
+                                 /*is_template_based=*/TRUE,
+                                 /*template_second_pass=*/TRUE);
       }  /* if */
       /* Save the position of the reference that caused the instantiation. */
       cssp->instantiation_position = pos_curr_token;

@@ -1016,10 +1016,14 @@ typedef struct a_class_symbol_supplement {
 			/* For an real instantiation, this is TRUE if the
 			   full instantiation is in the process of being
 			   generated. */
-  a_bit_field	default_arg_fixup_started:1;
-			/* TRUE if the fixup of default arguments of this
-			   class has begun.  This is used to prevent the
-			   fixup process from being called recursively. */
+  a_bit_field	default_arg_fixup_pass_1_started:1;
+			/* TRUE if pass 1 of the fixup of default arguments
+			   of this class has begun.  This is used to prevent
+			   the fixup process from being called recursively. */
+  a_bit_field	default_arg_fixup_pass_2_started:1;
+			/* TRUE if pass 2 of the fixup of default arguments
+			   of this class has begun.  This is used to prevent
+			   the fixup process from being called recursively. */
 #if IA64_ABI
   a_bit_field	has_empty_class_subobject:1;
 			/* TRUE if a (field or base) subobject has an empty
