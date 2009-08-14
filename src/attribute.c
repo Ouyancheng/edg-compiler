@@ -672,6 +672,7 @@ pointed to be "pos" can be freed when this routine returns.
   ap->kind = kind;
   ap->next = NULL;
   copy_source_position(*pos, ap->position);
+  ap->is_declarator_attribute = FALSE;
   switch (kind) {
     case ak_mode:
       ap->variant.mode.kind = (an_attribute_kind)tmk_error;
@@ -2161,6 +2162,9 @@ attributes were specified on a definition.
 */
 {
   an_attribute_ptr  ap;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_boolean         specifier_aligned = (vp->alignment != 0);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
@@ -2169,8 +2173,16 @@ attributes were specified on a definition.
         if (vp->is_parameter) {
           pos_st_error(ec_parameter_attribute_invalid, &ap->position,
                        attribute_kind_names[(int)ap->kind]);
+        } if (specifier_aligned && ap->is_declarator_attribute) {
+          /* Declarator attributes that specify alignment are silently ignored
+             if previous (specifier) attributes had already established an
+             explicit alignment for the variable.  For example:
+               #define A(x)  __attribute((aligned(x)))
+               int A(8) A(16) var A(32) A(64);  // var is 16-byte aligned
+          */
         } else {
           vp->alignment = ap->variant.alignment;
+          if (!ap->is_declarator_attribute) specifier_aligned = TRUE;
         }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */

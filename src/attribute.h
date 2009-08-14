@@ -213,6 +213,10 @@ typedef struct an_attribute {
   a_source_position
                 position;
 			/* Source location for the attribute. */
+  a_byte_boolean
+		is_declarator_attribute;
+			/* TRUE if this attribute was scanned as part of
+			   the declarator. */
   union {
     /* When kind == ak_packed, ak_unused, ak_used, ak_deprecated,
        ak_constructor, or ak_destructor, no variant fields. */

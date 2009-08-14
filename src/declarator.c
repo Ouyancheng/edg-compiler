@@ -5704,6 +5704,16 @@ the parameters.
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
                &state->source_sequence_entry, func_info, decl_pos_block,
                attributes);
+#if GNU_EXTENSIONS_ALLOWED
+  if (*attributes != NULL) {
+    /* Mark the attributes scanned by the call to r_declarator as "declarator
+       attributes". */
+    an_attribute_ptr  ap = *attributes;
+    for (; ap != NULL; ap = ap->next) {
+      ap->is_declarator_attribute = TRUE;
+    }  /* for */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_constructor) {
     state->do_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */

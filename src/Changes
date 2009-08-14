@@ -1,5 +1,17 @@
 Version 4.2
 
+8/14/09  [EDGcpfe/10020]
+GNU compatibility: Effect of multiple "aligned" attributes
+
+In GNU modes, if multiple "aligned" attributes appear on a variable declaration
+those appearing before the variable name now take precedence over those
+appearing after the name (previously, it was the reverse).  For example:
+
+  #define A(x) __attribute((aligned(x)))
+  int A(8) v A(32);  // v is now 8-byte aligned (previously, it was 32-byte
+                     // aligned).
+
+
 8/13/09  [EDGcpfe/9938]
 Incorrect default argument when class is instantiated in default argument
 
