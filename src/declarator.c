@@ -5705,7 +5705,7 @@ the parameters.
                &state->source_sequence_entry, func_info, decl_pos_block,
                attributes);
 #if GNU_EXTENSIONS_ALLOWED
-  if (*attributes != NULL) {
+  if (attributes != NULL && *attributes != NULL) {
     /* Mark the attributes scanned by the call to r_declarator as "declarator
        attributes". */
     an_attribute_ptr  ap = *attributes;
