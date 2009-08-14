@@ -5633,6 +5633,30 @@ list of a template function.  Returns TRUE if a match is found.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Look for an implicit cast directly over a template parameter.  Such casts
+     can sometimes be added by the type substitution process for explicit
+     template arguments.  For example:
+       struct A { int i; };
+       template <typename T, int T::*> struct B {};
+       template <typename T, int T::* v> void f(B<T, v>){}
+       int main() {
+         B<A, &A::i> b;
+         f<A>(b);
+       }
+     After the explicit argument list is substituted, "B<T,v>" becomes
+     "B<A, (int A::*)v>".  Drop the cast in such cases. */
+  if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
+      templ_constant->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast &&
+      !templ_constant->explicit_cast_applied) {
+    a_constant_ptr	const_under_cast;
+    const_under_cast = templ_constant->variant.template_param.variant.constant;
+    if (const_under_cast->kind == (a_constant_repr_kind)ck_template_param &&
+        const_under_cast->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_param) {
+      templ_constant = const_under_cast;
+    }  /* if */
+  }  /* if */
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
       (templ_constant->variant.template_param.kind != 
                              (a_template_param_constant_kind)tpck_param ||

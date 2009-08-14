@@ -1,5 +1,22 @@
 Version 4.2
 
+8/14/09  [EDGcpfe/10027]
+Deduction failure with explicit template arguments and deduced nontype param
+
+In a call of a function template in which some (but not all) of the template
+arguments are explicitly specified, deduction could fail if the type of
+a deduced nontype argument depended on an explicitly specified argument.
+Now fixed.
+
+  struct A { int i; };
+  template <typename T, int T::*> struct B {};
+  template <typename T, int T::* v> void f(B<T, v>){}
+  int main() {
+    B<A, &A::i> b;
+    f<A>(b);  // spurious "no instance matches the argument list"
+  }
+
+
 8/14/09  [EDGcpfe/10020]
 GNU compatibility: Effect of multiple "aligned" attributes
 
