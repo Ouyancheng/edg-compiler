@@ -9427,7 +9427,7 @@ and it is legal for virtual member functions only.
 */
 {
   a_routine_ptr  rout;
-  a_boolean      pure_specifier_allowed;
+  a_boolean      pure_specifier_allowed, pure_specifier_ignored = FALSE;
 
   db_enter(4, "scan_pure_specifier");
   /* A pure specifier is allowed for virtual functions only.  (Check the
@@ -9443,13 +9443,18 @@ and it is legal for virtual member functions only.
     pure_specifier_allowed = rout->is_virtual;
     if (!pure_specifier_allowed &&
         class_type->variant.class_struct_union.is_prototype_instantiation) {
-      /* If class_type has a template-dependent base, the routine might
-         be an overrider of a virtual function in that base, which means
-         the routine would be virtual too.  In such cases we must also
-         allow the pure specifier. */
-      a_class_symbol_supplement_ptr  cssp =
-                                      symbol_supplement_for_class(class_type);
-      pure_specifier_allowed = cssp->any_dependent_base_classes;
+      /* If class_type has a template-dependent base, the routine might be an
+         overrider of a virtual function in that base, which means the routine
+         would be virtual too.  In such cases we must also allow the pure
+         specifier.  GNU, Microsoft, and Sun always allow the pure specifier
+         in class templates. */
+      if (symbol_supplement_for_class(class_type)
+                                               ->any_dependent_base_classes) {
+        pure_specifier_allowed = TRUE;
+      } else if (gpp_mode || microsoft_mode || sun_mode) {
+        pure_specifier_allowed = TRUE;
+        pure_specifier_ignored = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
@@ -9473,7 +9478,7 @@ and it is legal for virtual member functions only.
        "= 00" should elicit an error.  In Microsoft and early GNU modes,
        however, other forms of "zero" are accepted (including "__null" in GNU
        mode). */
-    if (pure_specifier_allowed) {
+    if (pure_specifier_allowed && !pure_specifier_ignored) {
       /* Update the routine and class type entities. */
       make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14297,14 +14302,12 @@ current declarator was preceded by another one sharing the same specifiers
                curr_token == tok_default) {
       func_info->is_defaulted = TRUE;
       func_info->is_definition = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && curr_token == tok_int_constant) {
+    } else if (curr_token == tok_int_constant) {
       /* In Microsoft compatibility mode the pure specifier is permitted
          on a definition; it's usually a syntax error. */
       cache_curr_token(&cache);
       /* Advance past it and see if the next token is a left brace. */
       if (get_token() == tok_lbrace) func_info->is_definition = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Restore the lexical state. */
     rescan_cached_tokens(&cache);
@@ -14943,6 +14946,14 @@ passed via template_decl.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         goto next_declaration;
       } else if (is_member_template) {
+        /* An "= 0" is not valid for a member template, but in some modes
+           such a spurious pure specifier is ignored while parsing the
+           template (but not when the template is instantiated). */
+        if ((microsoft_mode || (gpp_mode && gnu_version < 40200)) &&
+            curr_token == tok_assign && next_token() == tok_int_constant) {
+          (void)get_token();
+          (void)get_token();
+        }  /* if */
         /* Process the member function template. */
         decl_member_function_template(&locator, templ_param_list, &func_info,
                                       class_state, &decl_info);

@@ -8626,6 +8626,12 @@ is the template instance record associated with the instance.
   add_stop_token(tok_end_of_source);
   instance_type = rescan_member_template_declaration(parent_class, tip);
   remove_stop_token(tok_end_of_source);
+  if (curr_token == tok_assign && next_token() == tok_int_constant) {
+    /* A pure specifier on a member template.  In default mode, it wouldn't
+       have made it in the token cache, but in Microsoft and some GNU modes
+       it can. */
+    pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
+  }  /* if */
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
      is not a function type, issue a diagnostic. */
