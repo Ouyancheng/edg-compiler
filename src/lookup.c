@@ -3159,10 +3159,11 @@ that do normal id lookup processing.
     do_not_look_in_common_scopes = TRUE;
   } else {
     if (do_dependent_name_processing || gpp_dependent_name_lookup ||
-        microsoft_mode || sun_mode) {
+        !nonstandard_instantiation_lookup_enabled) {
       /* The referencing context should be not considered in dependent lookup
-         mode, g++, Sun, and Microsoft mode.  This means the common lookup
-         must be suppressed if we've already found a symbol. */
+         mode, g++, and when nonstandard instantiation lookup is not
+         enabled.  This means the common lookup must be suppressed if
+         we've already found a symbol. */
       if (def_sym != NULL) do_not_look_in_common_scopes = TRUE;
     } else {
       /* Only do the referencing context lookup when not doing the

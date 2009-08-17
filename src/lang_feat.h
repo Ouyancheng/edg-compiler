@@ -1710,6 +1710,19 @@ that were either explicitly specified or deduced elsewhere.
 #endif /* ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION */
 
 /*
+Flag that is TRUE if, in modes that do not to dependent lookup 
+processing, a set of nonstandard lookup rules should be used instead.
+These rules were part of the C++98 working paper for some time during
+the development of the C++98 standard.  In this mode, names are looked
+up in both the namespace of the template definition and in the namespace
+in which a template entity was first referenced in a way that would
+require an instantiation.
+*/
+#ifndef DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP
+#define DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP FALSE
+#endif /* ifndef DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP */
+
+/*
 Flag that is TRUE if the default arguments should be retained as part
 of deduced function types.  It is the initial value of the global variable
 nonstandard_default_arg_deduction. 

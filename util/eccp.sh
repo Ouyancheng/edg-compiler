@@ -705,6 +705,7 @@ check_abbreviation()
 --no_namespaces
 --no_nonconst_ref_anachronism
 --no_nonstd_default_arg_deduction
+--no_nonstd_instantiation_lookup
 --no_nonstd_qualifier_deduction
 --no_nonstd_using_decl
 --no_old_specializations
@@ -740,6 +741,7 @@ check_abbreviation()
 --no_wrap_diagnostics
 --nonconst_ref_anachronism
 --nonstd_default_arg_deduction
+--nonstd_instantiation_lookup
 --nonstd_qualifier_deduction
 --nonstd_using_decl
 --old_c
@@ -1248,6 +1250,8 @@ process_option()
          --embedded_c++ | \
          --nonstd_default_arg_deduction | \
          --no_nonstd_default_arg_deduction | \
+         --nonstd_instantiation_lookup | \
+         --no_nonstd_instantiation_lookup | \
          --nonstd_qualifier_deduction | \
          --no_nonstd_qualifier_deduction | \
          --nonstd_using_decl | \

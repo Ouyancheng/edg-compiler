@@ -269,6 +269,7 @@ typedef enum /*an_option_kind*/ {
   optk_rvalue_ctor_is_copy_ctor,
   optk_auto_type,
   optk_auto_storage,
+  optk_nonstandard_instantiation_lookup,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -543,6 +544,12 @@ EXTERN a_boolean
 			   in templates should be done.  This also enables
 			   prototype instantiations of function bodies and
 			   default arguments. */
+
+EXTERN a_boolean
+		nonstandard_instantiation_lookup_enabled;
+			/* TRUE if the instantiation lookup rules in effect
+			   during part of the standardization of C++98
+			   should be used. */
 
 EXTERN a_boolean
 		gpp_dependent_name_lookup;

@@ -1,5 +1,37 @@
 Version 4.2
 
+8/17/09  [EDGcpfe/9961]
+Lookup in template instantiations in default mode
+
+When the C++98 standard was issued, the lookup rules for templates were
+different than those supported by most compilers at the time.  To provide
+better compatibility with those compilers our default mode used nonstandard
+lookup rules that were part of the C++98 working paper for some time during
+the development of the standard.  In this mode, names were looked up in
+both the namespace of the template definition and in the namespace in which
+a template entity was first referenced in a way that would require an
+instantiation.  We have gradually been phasing out the use of these
+rules; they are no longer used in g++, Microsoft or Sun modes.  We have
+now disabled these lookup rules by default in default mode.  The default
+behavior is controlled by the DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP
+macro.  The default behavior can be overridden by the new command-line
+options --[no_]nonstd_instantiation_lookup.  Formerly, the example below
+printed "in ::f(int)" in default mode.  It now prints "in N::f(float").
+
+
+  #include <stdio.h>
+  namespace N {
+    void f(float){printf("in N::f(float)\n");}
+    template<class T> void g(T) {
+      f(2);
+    }
+  }
+  void f(int){printf("in ::f(int)\n");}
+  int main(void) {
+     N::g(1);
+  }
+
+
 8/17/09  [EDGcpfe/9415,EDGcpfe/10021]
 Pure specifier ("= 0") in templates
 

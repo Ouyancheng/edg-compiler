@@ -1222,6 +1222,14 @@ Initialize the option information table.
   add_option_description(optk_auto_storage, "no_auto_storage",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nonstandard_instantiation_lookup,
+                         "nonstd_instantiation_lookup",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonstandard_instantiation_lookup,
+                         "no_nonstd_instantiation_lookup",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1751,6 +1759,11 @@ by a command line option.
     if (!option_kind_used[(int)optk_implicit_typename]) {
       implicit_typename_enabled = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
+      /* If nonstandard instantiation lookup was not set on the command line,
+         turn it off now. */
+      nonstandard_instantiation_lookup_enabled = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_guiding_decls]) {
       /* Guiding declarations are supported by MSVC++ through version 7.0. */
       guiding_decls_allowed = microsoft_version <= 1300;
@@ -2152,6 +2165,8 @@ process.
   arg_dependent_lookup_enabled = FALSE;
   instantiate_extern_inline = FALSE;
   do_dependent_name_processing = FALSE;
+  nonstandard_instantiation_lookup_enabled =
+                                      DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;
   export_template_allowed = FALSE;
   export_keyword_enabled = FALSE;
   va_list_in_std_namespace = FALSE;
@@ -2965,6 +2980,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          turn it off now. */
       nonstandard_default_arg_deduction = FALSE;
     }  /* if */
+    if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
+      /* If nonstandard instantiation lookup was not set on the command line,
+         turn it off now. */
+      nonstandard_instantiation_lookup_enabled = FALSE;
+    }  /* if */
     if (!(option_kind_used[(int)optk_late_tiebreaker])) {
       /* If late tiebreaker was not explicitly set by a command line
          option, force it off. */
@@ -3059,6 +3079,11 @@ checked again here.)
   allow_default_arg_on_template_member_definition = TRUE;
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     type_traits_helpers_enabled = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
+    /* If nonstandard instantiation lookup was not set on the command line,
+       turn it off now. */
+    nonstandard_instantiation_lookup_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_const_string_literals]) {
     string_literals_are_const = TRUE;
@@ -3247,6 +3272,11 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
     /* Default arguments are part of the deduced function type in g++ mode. */
     nonstandard_default_arg_deduction = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
+    /* If nonstandard instantiation lookup was not set on the command line,
+       turn it off now. */
+    nonstandard_instantiation_lookup_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_friend_injection]) {
     /* g++ versions prior to 4.1 do injection of friends. */
@@ -4394,6 +4424,11 @@ file.
 #else /* !defined(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION) */
   comment_undefined_macro_name(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION);
 #endif /* defined(DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION) */
+#if defined(DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP)
+  define_numeric_valued_macro(DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP);
+#else /* !defined(DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP) */
+  comment_undefined_macro_name(DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP);
+#endif /* defined(DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP) */
 #if defined(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION)
   define_numeric_valued_macro(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION);
 #else /* !defined(DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION) */
@@ -7875,6 +7910,9 @@ enable_microsoft_mode:
         break;
       case optk_auto_storage:
         auto_storage_class_specifier_enabled = opt_value;
+        break;
+      case optk_nonstandard_instantiation_lookup:
+        nonstandard_instantiation_lookup_enabled = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
