@@ -1,5 +1,17 @@
 Version 4.2
 
+8/17/09  [EDGcpfe/9999]
+GNU C++ compatibility: qualified name in namespace member declaration
+
+A qualified name may now be used in the initial declaration of a namespace
+member declaration for all gnu_version values.  Formerly, this was only
+allowed when gnu_version is >= 30400.
+
+  namespace N {
+    template <class T> void N::f() {}
+  }
+
+
 8/17/09  [EDGcpfe/10028]
 Instantiation of function declaration should ignore names declared later
 

@@ -4165,6 +4165,7 @@ be a function.
           a_boolean          keep_qualifier = FALSE;
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing &&
+              !gpp_mode &&
               qualifier_namespace_ptr(locator_for_curr_id) != NULL) {
             severity = es_error;
           } else if (is_specialization_or_instantiation && !strict_ansi_mode) {
