@@ -3147,6 +3147,10 @@ that do normal id lookup processing.
     /* Only consider names visible at the point at which the template was
        defined. */
     lookup_state->decl_seq = get_effective_decl_seq();
+  } else if (ssep->force_decl_seq_check) {
+    /* f_get_effective_decl_seq is used to force the declaration sequence
+       to be fetched even when not doing dependent name processing. */
+    lookup_state->decl_seq = f_get_effective_decl_seq();
   }  /* if */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
   if (def_sym != NULL && def_sym->is_class_member) {

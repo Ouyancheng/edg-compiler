@@ -8900,7 +8900,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
        processing. */
     a_source_position		saved_pos_curr_token;
     a_source_position		saved_error_position;
-    a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+    /* PS_FORCE_DECL_SEQ_CHECK is used to ensure that names declared after
+       the declaration of the function template cannot affect the partial
+       instantiation. */
+    a_push_scope_options_set	ps_options = PS_FORCE_DECL_SEQ_CHECK;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

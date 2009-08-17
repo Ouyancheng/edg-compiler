@@ -2441,6 +2441,7 @@ the scope being pushed.
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
+  ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */

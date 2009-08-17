@@ -1,5 +1,26 @@
 Version 4.2
 
+8/17/09  [EDGcpfe/10028]
+Instantiation of function declaration should ignore names declared later
+
+In some modes (e.g., when dependent name processing is not enabled), names
+declared after a declaration of a function template were visible for the
+instantiation of the declaration of a function template instance.  This
+could result in spurious errors.  Such names are now ignored for the
+partial instantiation of a function template.  Note that such names are
+still visible in the body of the function template in such modes.
+
+  namespace N {
+    struct A {};
+    template <class T> void f(N::A, T) {}
+    class N {};  // formerly hid namespace N
+  }
+  int main() {
+    N::A na;
+    f(na, 1);  // formerly "instantiation resulted in invalid function"
+  }
+
+
 8/14/09  [EDGcpfe/10027]
 Deduction failure with explicit template arguments and deduced nontype param
 
