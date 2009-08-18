@@ -225,7 +225,7 @@ extern void decl_spec_one_time_init(void);
 			   sequence "enum E {" and the "{" should not taken to
 			   introduce an enum definition (instead, it is the
 			   beginning of the lambda body). */
-#define DSI_LAST DSI_TRAILING_RETURN_TYPE
+#define DSI_LAST DSI_NO_TAG_DEFINITION
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 
