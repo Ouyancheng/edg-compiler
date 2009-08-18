@@ -1,5 +1,18 @@
 Version 4.2
 
+8/18/09  [EDGcpfe/10025]
+Trimming of string literals in aggregate initializers in C mode
+
+In C mode, string literals are stripped of the terminating null character if
+that character wouldn't fit in the destination type.  In some cases involving
+aggregate initializers, this trimming was not performed.  For example:
+
+  struct { char a[3]; } sa[2] = { "xxx", "yyy" };
+    /* Previously, "xxx" and "yyy" had length 4; now they have length 3. */
+
+This is now fixed.
+
+
 8/17/09  [EDGcpfe/9834]
 Severity of ambiguous class member reference diagnostic in strict mode
 

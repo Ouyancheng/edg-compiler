@@ -21812,7 +21812,9 @@ required_type_determined:
   if (is_aggregate_or_union_type(required_type)) {
     /* The entity being initialized has a class or array type. */
     if (string_case) {
-      check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
+      if (!check_string_constant_initializer(&required_type, string_con)) {
+        unexpected_condition();
+      }  /* if */
       copy_constant(string_con, constant);
       *is_constant = TRUE;
     } else if (gcc_mode && is_an_rvalue(&result) &&
