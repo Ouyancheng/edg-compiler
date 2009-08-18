@@ -8630,7 +8630,7 @@ is the template instance record associated with the instance.
     /* A pure specifier on a member template.  In default mode, it wouldn't
        have made it in the token cache, but in Microsoft and some GNU modes
        it can. */
-    pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
+    pos_error(ec_pure_virtual_member_template, &pos_curr_token);
   }  /* if */
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
