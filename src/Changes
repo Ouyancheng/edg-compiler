@@ -1,5 +1,22 @@
 Version 4.2
 
+8/18/09  [EDGcpfe/10016]
+Binding rvalue reference to lvalue in overload resolution
+
+Overload resolution did not deal correctly with a case where an rvalue
+reference parameter is matched against an lvalue argument.  It mistakenly
+considered that a match if the argument type did not match the underlying
+type of the rvalue reference but could be converted to it.  Now fixed.
+
+  void foo(long&&);
+  void foo(const long&);
+  int main() {
+    int n = 1;
+    foo(n);  // Should match foo(const long &), but foo(long &&) was allowed
+             // and considered a better match, which then provoked an error.
+  }
+
+
 8/18/09  [EDGcpfe/10025]
 Trimming of string literals in aggregate initializers in C mode
 

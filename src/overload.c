@@ -1663,6 +1663,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_base_class_ptr  bcp;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant, arg_converted_to_rvalue = FALSE;
+  a_boolean         arg_originally_an_lvalue = FALSE;
   a_boolean         arg_operand_is_simple_string_literal;
   a_constant_ptr    arg_operand_constant;
   an_operand        implicit_arg_operand;
@@ -1702,6 +1703,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        is done on the string literal. */
     arg_operand_is_simple_string_literal =
                                          arg_operand->is_simple_string_literal;
+    arg_originally_an_lvalue = (is_an_lvalue(arg_operand) ||
+                                is_a_function_designator(arg_operand));
   }  /* if */
   param_is_reference = is_reference_type(param_type);
   param_is_rvalue_reference = is_rvalue_reference_type(param_type);
@@ -1989,8 +1992,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
-      arg_converted_to_rvalue = (arg_operand != NULL &&
-                                 is_an_lvalue(arg_operand));
+      arg_converted_to_rvalue = arg_originally_an_lvalue;
       if (std_conversion.promotion) {
         /* This standard conversion is a promotion. */
         arg_summary->match_level = aml_promotion;
@@ -2162,9 +2164,7 @@ have_level:;
        arguments, based on their lvalueness. */
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue. */
-      if (!arg_converted_to_rvalue &&
-          arg_operand != NULL &&
-          !is_an_rvalue(arg_operand)) {
+      if (arg_originally_an_lvalue) {
         arg_summary->match_level = aml_none;
       }  /* if */
     } else if (!source_can_be_rvalue &&
