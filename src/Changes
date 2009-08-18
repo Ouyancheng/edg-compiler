@@ -1,5 +1,22 @@
 Version 4.2
 
+8/17/09  [EDGcpfe/9834]
+Severity of ambiguous class member reference diagnostic in strict mode
+
+Certain ambiguous class member references were issued as warnings
+instead of as strict ANSI diagnostics (warning or error depending on
+mode).  Now fixed.
+
+  template <class T> class A {};
+  struct B {
+    template <typename T> void A(T);
+  };
+  int main() {
+    B b;
+    b.A<int>(0);  // now strict ANSI diagnostic
+  }
+
+
 8/17/09  [EDGcpfe/9961]
 Lookup in template instantiations in default mode
 

@@ -13930,7 +13930,7 @@ the normal lookup symbol.
         diag_sym_to_use = diag_class_sym;
         specific_symbol = class_sym;
         sym_to_ignore = normal_fund_sym;
-        if (might_be_template) severity = es_warning;
+        if (might_be_template && !strict_ansi_mode) severity = es_warning;
       } else {
         sym_to_use = normal_fund_sym;
         diag_sym_to_use = sym_to_use;
