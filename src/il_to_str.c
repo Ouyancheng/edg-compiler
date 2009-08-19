@@ -2095,11 +2095,12 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")", octl);
     form_function_declarator(type, octl);
-    if (!type->variant.routine.extra_info->trailing_return_type &&
+    if (type->variant.routine.extra_info->trailing_return_type &&
         !octl->c_generating_back_end) {
       /* Suppress the normal return type for trailing return types.  (The C-
          generating back end does not attempt to render routine types with
          trailing return types, since those are a C++ feature.) */
+    } else {
       form_type_second_part(type->variant.routine.return_type,
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);
