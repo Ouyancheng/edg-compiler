@@ -2173,7 +2173,7 @@ attributes were specified on a definition.
         if (vp->is_parameter) {
           pos_st_error(ec_parameter_attribute_invalid, &ap->position,
                        attribute_kind_names[(int)ap->kind]);
-        } if (specifier_aligned && ap->is_declarator_attribute) {
+        } else if (specifier_aligned && ap->is_declarator_attribute) {
           /* Declarator attributes that specify alignment are silently ignored
              if previous (specifier) attributes had already established an
              explicit alignment for the variable.  For example:
