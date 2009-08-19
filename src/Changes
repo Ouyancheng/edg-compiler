@@ -1,5 +1,31 @@
 Version 4.2
 
+8/19/09  [EDGcpfe/9973]
+Spurious ambiguity with built-in operator and multiple conversion functions
+
+Overload resolution gave a spurious ambiguity error when processing
+a built-in operator with class operands when the class of the second
+operand has multiple conversion functions that return essentially the
+same type (this is possible when one returns a type T and the other
+returns T&), and the type returned is not one that is returned by
+any conversion function for the class type of the first operand.
+Now fixed.
+
+  struct A { };
+  struct B {
+    operator A*&();
+    operator A*() const;
+  };
+  struct B_const {
+    operator const A*() const;
+    operator const A*&();
+  };
+  struct C: B_const { };
+  bool f(const B& d1, C& d2) {
+    return d1 == d2;  // Formerly got ambiguity error
+  }
+
+
 8/18/09  [EDGcpfe/10016]
 Binding rvalue reference to lvalue in overload resolution
 

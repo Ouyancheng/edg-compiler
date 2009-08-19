@@ -10101,10 +10101,11 @@ of a previous non-class operand already considered.
          look like an ambiguity). */
       previously_handled = TRUE;
     }  /* if */
-  } else if (class_type != NULL && stop_on != NULL &&
-             find_conversion_function(class_type,
-                                      specific_type,
-                                      stop_on) != NULL) {
+  }  /* if */
+  if (!previously_handled && class_type != NULL && stop_on != NULL &&
+      find_conversion_function(class_type,
+                               specific_type,
+                               stop_on) != NULL) {
     /* The specific type was already handled as the result type of a
        previous conversion function for the current operand class type.
        (For example, a conversion function returning int and one
