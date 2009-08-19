@@ -1719,19 +1719,20 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     }  /* if */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
+    a_boolean  is_lambda = is_lambda_body_routine_type(type);
     /* A qualifier on a function type shouldn't be possible without a
        typedef. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on function type");
-    if (type->variant.routine.extra_info->trailing_return_type &&
+    if ((type->variant.routine.extra_info->trailing_return_type ||
+         is_lambda) &&
         !octl->c_generating_back_end) {
       /* For a routine type specified with a trailing return return type, the 
          type specifiers are simply "auto", except for lambda expressions
          where the specifiers are omitted altogether.  (The C-generating back
          end does not attempt to render routine types with trailing return
          types, since those are a C++ feature.)  */
-      if (!is_lambda_body_routine_type(type) &&
-          !(options & FTO_SUPPRESS_SPECIFIERS)) {
+      if (!is_lambda && !(options & FTO_SUPPRESS_SPECIFIERS)) {
         octl->output_str("auto ", octl);
       }  /* if */
     } else {
@@ -1818,6 +1819,7 @@ in the way described by octl.
   if (octl->output_func_declarator != NULL) {
     octl->output_func_declarator(type);
   } else {
+    a_boolean            is_lambda = is_lambda_body_routine_type(type);
     a_type_qualifier_set qualifiers =
             rtsp->this_class != NULL ? rtsp->qualifiers | rtsp->this_qualifiers
                                      : TQ_NONE;
@@ -1888,7 +1890,7 @@ in the way described by octl.
     } /* if */
     /* Output a cv-qualifier for a member function, if there is one.  For a
        lambda body, however, output "mutable" if the routine is not const. */
-    if (is_lambda_body_routine_type(type)) {
+    if (is_lambda) {
       if ((qualifiers & TQ_CONST) == 0) {
         octl->output_str(" mutable", octl);
       } else {
@@ -1899,7 +1901,8 @@ in the way described by octl.
       form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
                          /*need_trailing_space=*/FALSE, octl);
     }  /* if */
-    if (rtsp->trailing_return_type && !octl->c_generating_back_end) {
+    if ((rtsp->trailing_return_type || is_lambda) &&
+        !octl->c_generating_back_end) {
       octl->output_str("->", octl);
       form_type(type->variant.routine.return_type, octl);
     }  /* if */
@@ -2095,7 +2098,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")", octl);
     form_function_declarator(type, octl);
-    if (type->variant.routine.extra_info->trailing_return_type &&
+    if ((type->variant.routine.extra_info->trailing_return_type ||
+         is_lambda_body_routine_type(type)) &&
         !octl->c_generating_back_end) {
       /* Suppress the normal return type for trailing return types.  (The C-
          generating back end does not attempt to render routine types with

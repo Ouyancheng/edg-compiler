@@ -8186,10 +8186,6 @@ Render code for the given expression node, which represents a lambda.
     gen_function_declarator_with_scope(rp->type, scope,
                                        /*top_level_decl=*/TRUE,
                                        /*suppress_def_args=*/FALSE);
-    if (lambda->explicit_return_type) {
-      write_tok_str("->");
-      gen_type(skip_typerefs(rp->type)->variant.routine.return_type);
-    }  /* if */
     write_space();
   }  /* if */
   push_name_context(scope);
