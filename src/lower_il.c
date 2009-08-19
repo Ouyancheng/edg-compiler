@@ -14234,6 +14234,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
        at the top level).  Rewrite as an rvalue. */
     rewrite_discarded_lvalue_as_rvalue(expr_to_lower);
     if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      /* If the top-level expression is an lvalue object lifetime, it
+         also needs to be rewritten as an rvalue (to match its operand
+         that has just been rewritten as an rvalue). */
       expr->is_lvalue = FALSE;
     }  /* if */
 #if DEBUG
