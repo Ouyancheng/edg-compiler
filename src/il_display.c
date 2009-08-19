@@ -1232,6 +1232,9 @@ Display a_routine_type_supplement.
     disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
   }  /* if */
   disp_boolean("prototyped", (a_boolean)ptr->prototyped);
+  if (ptr->trailing_return_type) {
+    disp_boolean("trailing_return_type", TRUE);
+  }  /* if */
   if (ptr->lint_argsused_flag) {
     disp_boolean("lint_argsused_flag", TRUE);
   }  /* if */

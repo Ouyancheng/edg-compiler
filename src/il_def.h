@@ -4237,6 +4237,12 @@ typedef struct a_routine_type_supplement {
 			   is used and MAKE_ALL_FUNCTIONS_UNPROTOTYPED is
 			   TRUE, there will be functions with prototyped FALSE
 			   and old_style_params_scanned also FALSE. */
+  a_bit_field	trailing_return_type:1;
+			/* TRUE for function declarators specifying a trailing
+			   return type (a C++0x feature).  E.g. "f()->int".
+			   The composite type based on two routine types has
+			   this flag TRUE if either of the two original types
+			   has this flag set to TRUE. */
   a_bit_field	lint_argsused_flag:1;
                         /* TRUE if this function declaration is subject
                            to a lint-style "argsused" flag, indicating that

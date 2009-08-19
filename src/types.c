@@ -7214,7 +7214,7 @@ unique to each type (e.g., by calling disentangle_default_args).
   a_type_ptr                     comp_return_type, tp;
   a_param_type_ptr               param_list1, param_list2, end_of_list;
   a_param_type_ptr               ptp1, ptp2, new_ptp;
-  a_boolean                      comp_prototyped;
+  a_boolean                      comp_prototyped, comp_trailing_return_type;
   a_routine_type_supplement_ptr  rtsp1, rtsp2, rtsp;
   a_boolean                      return_type1_as_comp_type = TRUE;
   a_boolean                      return_type2_as_comp_type = TRUE;
@@ -7235,6 +7235,16 @@ unique to each type (e.g., by calling disentangle_default_args).
   }  /* if */
   if (!same_entities(comp_return_type,
                      rout_type2->variant.routine.return_type)) {
+    return_type2_as_comp_type = FALSE;
+  }  /* if */
+  /* The composite type will have the "trailing_return_type" set to TRUE if
+     either of the original types has it set to TRUE. */
+  comp_trailing_return_type = rtsp1->trailing_return_type ||
+                              rtsp2->trailing_return_type;
+  if (rtsp1->trailing_return_type != comp_trailing_return_type) {
+    return_type1_as_comp_type = FALSE;
+  }  /* if */
+  if (rtsp2->trailing_return_type != comp_trailing_return_type) {
     return_type2_as_comp_type = FALSE;
   }  /* if */
   /* If both function types are not prototyped, the composite type is
@@ -7368,6 +7378,7 @@ make_new_comp_type:
     comp_type = alloc_type((a_type_kind)tk_routine);
     comp_type->variant.routine.return_type = comp_return_type;
     rtsp = comp_type->variant.routine.extra_info;
+    rtsp->trailing_return_type = comp_trailing_return_type;
     if (!comp_prototyped) {
       /* Both types have old-style (non-prototyped) interfaces, so there is
          no real parameter information in the composite. However, if one or

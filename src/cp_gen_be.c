@@ -4568,6 +4568,10 @@ default arguments should be suppressed (needed for template specializations).
   if (rtsp->exception_specification != NULL) {
     gen_exception_specification(rtsp->exception_specification);
   }  /* if */
+  if (rtsp->trailing_return_type) {
+    write_tok_str("->");
+    gen_type(type->variant.routine.return_type);
+  }  /* if */
 }  /* gen_function_declarator_with_scope */
 
 
@@ -12288,7 +12292,11 @@ declarator (or NULL if it wasn't recorded).
                                            !rout->is_prototype_instantiation &&
                                            !rout->is_specialized &&
                                            !decl_within_class));
-    if (return_type_needed) {
+    if (return_type_needed &&
+        !rout_type->variant.routine.extra_info->trailing_return_type) {
+      /* Put out the remainder of the return type.  If the routine type is
+         expressed with a trailing return type, the return type was already
+         emitted as part of the declarator. */
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
     }  /* if */

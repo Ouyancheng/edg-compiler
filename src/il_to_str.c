@@ -1723,8 +1723,18 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
        typedef. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on function type");
-    if (octl->gen_compilable_code || !is_lambda_body_routine_type(type)) {
-      /* Suppress the normal return type for lambda bodies. */
+    if (type->variant.routine.extra_info->trailing_return_type &&
+        !octl->c_generating_back_end) {
+      /* For a routine type specified with a trailing return return type, the 
+         type specifiers are simply "auto", except for lambda expressions
+         where the specifiers are omitted altogether.  (The C-generating back
+         end does not attempt to render routine types with trailing return
+         types, since those are a C++ feature.)  */
+      if (!is_lambda_body_routine_type(type) &&
+          !(options & FTO_SUPPRESS_SPECIFIERS)) {
+        octl->output_str("auto ", octl);
+      }  /* if */
+    } else {
       form_type_first_part(type->variant.routine.return_type,
                            /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
@@ -1862,21 +1872,6 @@ in the way described by octl.
       }  /* if */
     }  /* if */
     octl->output_str(")", octl);
-    if (!octl->gen_compilable_code && is_lambda_body_routine_type(type)) {
-      if (!generating_debug_output(octl)) {
-        /* For a lambda body, output "mutable" if the routine is not const. */
-        if ((qualifiers & TQ_CONST) == 0) {
-          octl->output_str(" mutable", octl);
-        } else {
-          check_assertion(qualifiers == TQ_CONST);
-        }  /* if */
-        /* Suppress the output of the qualifiers below. */
-        qualifiers = TQ_NONE;
-      }  /* if */
-      /* For a lambda body, output the return type. */
-      octl->output_str("->", octl);
-      form_type(type->variant.routine.return_type, octl);
-    }  /* if */
     /* If the function type has a linkage that's not compatible with the
        default, add the linkage string after the closing parenthesis.  This
        is done only for non-compilable code. */
@@ -1891,11 +1886,22 @@ in the way described by octl.
         octl->output_str(name_linkage_kind_names[linkage], octl);
       }  /* if */
     } /* if */
-    /* Output a cv-qualifier for a member function, if there is one. */
-    if (qualifiers != TQ_NONE) {
+    /* Output a cv-qualifier for a member function, if there is one.  For a
+       lambda body, however, output "mutable" if the routine is not const. */
+    if (is_lambda_body_routine_type(type)) {
+      if ((qualifiers & TQ_CONST) == 0) {
+        octl->output_str(" mutable", octl);
+      } else {
+        check_assertion(qualifiers == TQ_CONST);
+      }  /* if */
+    } else if (qualifiers != TQ_NONE) {
       octl->output_str(" ", octl);
       form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
                          /*need_trailing_space=*/FALSE, octl);
+    }  /* if */
+    if (rtsp->trailing_return_type && !octl->c_generating_back_end) {
+      octl->output_str("->", octl);
+      form_type(type->variant.routine.return_type, octl);
     }  /* if */
   }  /* if */
 }  /* form_function_declarator */
@@ -2089,8 +2095,11 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")", octl);
     form_function_declarator(type, octl);
-    if (octl->gen_compilable_code || !is_lambda_body_routine_type(type)) {
-      /* Suppress the normal return type for lambda bodies. */
+    if (!type->variant.routine.extra_info->trailing_return_type &&
+        !octl->c_generating_back_end) {
+      /* Suppress the normal return type for trailing return types.  (The C-
+         generating back end does not attempt to render routine types with
+         trailing return types, since those are a C++ feature.) */
       form_type_second_part(type->variant.routine.return_type,
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);

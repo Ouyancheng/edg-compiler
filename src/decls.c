@@ -14468,7 +14468,12 @@ repeating the diagnostic if additional declarators follow.
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type. */
-    if (dps->sym != NULL && !dps->sym->is_error) {
+    if (dps->has_trailing_return_type) {
+      /* We can get here with a function declaration with a trailing return
+         type when such a return type is not valid (e.g., on a conversion
+         operator).  An error should have been issued elsewhere. */
+      expect_error();
+    } else if (dps->sym != NULL && !dps->sym->is_error) {
       /* A named entity was declared: Issue the error on the declarator (there
          could be more than one sharing the same auto specifier). */
       pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
@@ -14480,7 +14485,7 @@ repeating the diagnostic if additional declarators follow.
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
     dps->specifiers_type = dps->type = error_type();
-    if (dps->sym != NULL) {
+    if (dps->sym != NULL && !dps->has_trailing_return_type) {
       /* Update the IL entry.  Normally it should be a variable or static
          data member, but erroneous uses of "auto" can get here for other
          entities (e.g., fields) as well.  Recording an error type in the

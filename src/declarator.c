@@ -1530,6 +1530,7 @@ this is a helper function.
       state->has_trailing_return_type = TRUE;
       state->specifiers_type = state->declared_type = state->type =
                                                                  trt_dps.type;
+      rtsp->trailing_return_type = TRUE;
     }  /* if */
   } else {
     state->return_type_pos = state->specifiers_pos;

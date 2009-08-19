@@ -1510,6 +1510,7 @@ to default values.
       rtsp->has_ellipsis             = FALSE;
       rtsp->prototyped               = FALSE;
       rtsp->old_style_params_scanned = FALSE;
+      rtsp->trailing_return_type     = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
       rtsp->value_returned_by_cctor  = FALSE;
 #if DO_IL_LOWERING
