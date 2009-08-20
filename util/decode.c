@@ -3319,7 +3319,7 @@ of constructors and destructors.
     if (number >= num_substitutions) {
       /* In situations where we're scanning ahead (not recording any
          substitutions and not emitting characters), just advance over the
-         substitution, otherwise it's an error. */
+         substitution; otherwise it's an error. */
       if (dctl->suppress_substitution_recording > 0 &&
           dctl->suppress_id_output > 0) {
         ptr = advance_past_underscore(ptr, dctl);
@@ -5202,7 +5202,7 @@ as a prefix to specify a module id for an externalized name.
       { char *ptr2;
         /* The return type for template functions needs to be emitted before
            the name of the function, so scan ahead to see if a <template-args>
-           list is present after the <unscoped-name>, if so, emit the return
+           list is present after the <unscoped-name>; if so, emit the return
            type now (it's suppressed later in demangle_bare_function_type). */
         dctl->suppress_substitution_recording++;
         dctl->suppress_id_output++;
