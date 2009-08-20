@@ -62,6 +62,17 @@ aggregate initializers, this trimming was not performed.  For example:
 
 This is now fixed.
 
+Also, in GNU C mode, similar situations with string literals that were too
+long (by more than the terminating null character) were not diagnosed and the
+overlong literals were not trimmed.  This too is now fixed: A warning is
+issued and the IL representation of the string literal is trimmed to the
+length of the destination type.  For example:
+
+  struct { char a[3]; } sb[2] = { "xxxxxx", "yyyyyy" };
+    /* Accepted in GNU C mode.  Previously, no diagnostic was issued and
+       the IL did not reflect the required truncation of the string
+       literals. */
+
 
 8/17/09  [EDGcpfe/9834]
 Severity of ambiguous class member reference diagnostic in strict mode
