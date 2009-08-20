@@ -24,8 +24,14 @@ decl_inits.h -- Declarations related to decl_inits.c (having to do with
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
-extern a_boolean check_string_constant_initializer(a_type_ptr      *var_type,
-                                                   a_constant_ptr  string_con);
+extern a_boolean check_string_constant_initializer_full(
+                                                   a_type_ptr      *dst_type,
+                                                   a_constant_ptr  string_con,
+                                                   a_boolean       *excess);
+
+#define check_string_constant_initializer(dst_type, string_con)              \
+  (check_string_constant_initializer_full(dst_type, string_con,              \
+                                          (a_boolean*)NULL))
 
 extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_type_ptr          array_type,

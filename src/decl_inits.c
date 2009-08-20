@@ -260,32 +260,36 @@ a copy is made and modified.
 }  /* set_initialized_array_size */
 
 
-a_boolean check_string_constant_initializer(a_type_ptr      *var_type,
-                                            a_constant_ptr  string_con)
+a_boolean check_string_constant_initializer_full(a_type_ptr      *dst_type,
+                                                 a_constant_ptr  string_con,
+                                                 a_boolean       *excess)
 /*
-var_type is an array of narrow or wide characters (or an array whose element
-type is template dependent).  Return TRUE if and only if it can be initialized
-with the given string literal.  If necessary, the string literal may be
-truncated and the type may be modified (e.g., to set the length of the string).
+*dst_type is an array of narrow or wide characters (or an array whose element
+type is template dependent).  Return TRUE if and only if a variable or field of
+that type can be initialized with the given string literal.  If excess is non-
+NULL, an overlong string literal is not treated as an error but causes *excess
+to be set to TRUE.  If the string literal is not too long (which includes the
+standard C behavior of trimming the terminating null character if needed),
+*excess is set to FALSE.  If necessary, the string literal is truncated to fit
+*dst_type or *dst_type may be modified (e.g., to set the length of the string).
 */
 {
-  /* The object being initialized has type array of characters, and
-     is being initialized with a string.  Handle this case specially. */
   a_type_ptr     array_type;
   a_character_kind
                  char_kind = string_con->character_kind;
   a_targ_size_t  char_size = character_size[char_kind];
   a_targ_size_t  string_length, num_elems, array_length;
-  a_boolean      is_template_dependent = is_template_dependent_type(*var_type);
+  a_boolean      is_template_dependent = is_template_dependent_type(*dst_type);
   a_boolean      err = FALSE;
 
+  if (excess != NULL) *excess = FALSE;
   check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
   /* The object to be initialized is an array (possibly incomplete) of char,
      wchar_t, char16_t, or char32_t -- i.e., a string or wide string.  During
      prototype instantiations, we assume that any template-dependent array
      type may end up with an appropriate type during a real instantiation. */
-  check_assertion(is_string_type(*var_type) ||
-                  (is_array_type(*var_type) && is_template_dependent));
+  check_assertion(is_string_type(*dst_type) ||
+                  (is_array_type(*dst_type) && is_template_dependent));
   if (!is_template_dependent) {
     /* The constant and the array should have the same underlying character
        element type -- e.g., it's a mismatch if one is a wide string
@@ -293,18 +297,18 @@ truncated and the type may be modified (e.g., to set the length of the string).
     a_type_ptr  var_elem_type;
     switch (string_con->character_kind) {
       case chk_char:
-        err = !is_char_array_type(*var_type);
+        err = !is_char_array_type(*dst_type);
         break;
       case chk_wchar_t:
-        err = !is_wchar_t_array_type(*var_type);
+        err = !is_wchar_t_array_type(*dst_type);
         break;
       case chk_char16_t:
-        var_elem_type  = array_element_type(*var_type);
+        var_elem_type  = array_element_type(*dst_type);
         err = skip_typerefs(var_elem_type)->variant.integer.int_kind !=
                                                        targ_char16_t_int_kind;
         break;
       case chk_char32_t:
-        var_elem_type  = array_element_type(*var_type);
+        var_elem_type  = array_element_type(*dst_type);
         err = skip_typerefs(var_elem_type)->variant.integer.int_kind !=
                                                        targ_char32_t_int_kind;
         break;
@@ -318,12 +322,12 @@ truncated and the type may be modified (e.g., to set the length of the string).
        signedness can be initialized with a string literal: ANSI C 3.5.7.) */
     num_elems = string_length = string_con->variant.string.length;
     num_elems /= char_size;
-    array_type = skip_typerefs(*var_type);
+    array_type = skip_typerefs(*dst_type);
     if (is_incomplete_type(array_type)) {
       /* The array type is incomplete, and therefore the array size
          is set from the string length. */
       set_initialized_array_size(&array_type, num_elems);
-      *var_type = array_type;
+      *dst_type = array_type;
     } else if (array_type->variant.array.is_template_dependent_size_array) {
       /* This should only happen during prototype instantiations where the
          array length is a template parameter dependent constant. */
@@ -336,18 +340,22 @@ truncated and the type may be modified (e.g., to set the length of the string).
         /* The string is longer than the array.  Check to see if the
            string will fit if we drop the final null.  See 3.5.7.  In C++
            the truncation of the final null is not supported (ARM 8.4.2). */
-        if (num_elems-1 == array_length &&
-            C_dialect != C_dialect_cplusplus) {
-          /* Decrement the string length, and change its type,
-             thus "dropping" the final null.  Note that this depends on
-             the string not being shared. */
-          string_con->type = string_literal_type(char_kind, num_elems-1);
-          string_con->variant.string.length = string_length - char_size;
+        if (C_mode() && num_elems-1 == array_length) {
+          /* In C modes, if the string literal would fit without the final
+             null character, that character is just dropped. */
+        } else if (excess != NULL) {
+          /* The caller indicated that (nonstandard) excess characters should
+             not be treated as an error.  Record in *excess that excess
+             characters were seen. */
+          *excess = TRUE;
         } else {
           /* The initializer string is too long for the array being
              initialized. */
           err = TRUE;
         }  /* if */
+        /* Truncate the string literal to fit the destination type. */
+        string_con->type = string_literal_type(char_kind, array_length);
+        string_con->variant.string.length = array_length*char_size;
       }  /* if */
     }  /* if */
   }  /* if */

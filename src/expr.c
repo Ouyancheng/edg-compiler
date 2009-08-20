@@ -21812,8 +21812,14 @@ required_type_determined:
   if (is_aggregate_or_union_type(required_type)) {
     /* The entity being initialized has a class or array type. */
     if (string_case) {
-      if (!check_string_constant_initializer(&required_type, string_con)) {
-        unexpected_condition();
+      a_type_ptr  orig_string_type = string_con->type;
+      a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
+      if (!check_string_constant_initializer_full(&required_type, string_con,
+                                                  p_excess)) {
+        pos_ty2_error(ec_bad_initializer_type, &error_position,
+                      orig_string_type, required_type);
+      } else if (excess) {
+        warning(ec_excess_characters_in_literal_ignored);
       }  /* if */
       copy_constant(string_con, constant);
       *is_constant = TRUE;

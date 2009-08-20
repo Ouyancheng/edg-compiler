@@ -1874,6 +1874,7 @@ ec_trailing_return_type_not_at_top_level;;"a trailing return type cannot appear 
 ec_trailing_return_type_function_without_simple_auto;;"a function declarator with a trailing return type must be preceded by a simple \"auto\" type specifier"
 ec_missing_trailing_return_type;;"\"auto\" function requires a trailing return type"
 ec_pure_virtual_member_template;;"a member template cannot have a pure specifier" 
+ec_excess_characters_in_literal_ignored;;"string literal too long -- excess characters ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
