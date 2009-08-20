@@ -3317,7 +3317,15 @@ of constructors and destructors.
       number++;
     }  /* if */
     if (number >= num_substitutions) {
-      bad_mangled_name(dctl);
+      /* In situations where we're scanning ahead (not recording any
+         substitutions and not emitting characters), just advance over the
+         substitution, otherwise it's an error. */
+      if (dctl->suppress_substitution_recording > 0 &&
+          dctl->suppress_id_output > 0) {
+        ptr = advance_past_underscore(ptr, dctl);
+      } else {
+        bad_mangled_name(dctl);
+      }  /* if */
     } else {
       a_func_block func_block;
       ptr = advance_past_underscore(ptr, dctl);
@@ -5191,6 +5199,27 @@ as a prefix to specify a module id for an externalized name.
       /* An <unscoped-name>, possibly as the whole of an
          <unscoped-template-name>.  */
       char *start = ptr;
+      { char *ptr2;
+        /* The return type for template functions needs to be emitted before
+           the name of the function, so scan ahead to see if a <template-args>
+           list is present after the <unscoped-name>, if so, emit the return
+           type now (it's suppressed later in demangle_bare_function_type). */
+        dctl->suppress_substitution_recording++;
+        dctl->suppress_id_output++;
+        ptr2 = demangle_unscoped_name(ptr, func_block, dctl);
+        if (!dctl->err_in_id && *ptr2 == 'I') {
+          ptr2 = demangle_template_args(ptr2, dctl);
+        } else {
+          ptr2 = NULL;
+        }  /* if */
+        dctl->suppress_id_output--;
+        if (!dctl->err_in_id && ptr2 != NULL && *ptr2 != '\0') {
+          /* Emit the return type (before the template function name). */
+          (void)demangle_type(ptr2, dctl);
+          write_id_ch(' ', dctl);
+        }  /* if */
+        dctl->suppress_substitution_recording--;
+      }
       ptr = demangle_unscoped_name(ptr, func_block, dctl);
       if (*ptr == 'I') {
         /* This is a template because it is followed by a template arguments

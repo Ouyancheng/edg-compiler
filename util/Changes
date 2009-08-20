@@ -1,5 +1,14 @@
 Version 4.1, August 6, 2009
 
+8/20/09  [EDGcpfe/8232, EDGcpfe/9382]
+Emit return type in IA-64 ABI decoding of template functions
+
+The return type of mangled template functions is now emitted when demangling
+IA-64 ABI mangled names (the return type is already emitted in the Cfront
+ABI).  For example, the mangled name _Z1fIiEvf now produces the string
+"void f<int>(float)".
+
+
 7/27/09  [EDGcpfe/9554]
 Demangling of lambdas and unnamed types
 
