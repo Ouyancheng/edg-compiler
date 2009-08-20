@@ -57,9 +57,9 @@ typedef int a_push_scope_options_set;
 			   rescan of a dependent template template
 			   parameter. */
 #define PS_FORCE_DECL_SEQ_CHECK		0x400
-			/* TRUE If, for a template instantiation scope,
+			/* TRUE if, for a template instantiation scope,
 			   declaration sequence numbers should be checked
-			   during the instantiation context lookup even if
+			   during the instantiation context lookup even in
 			   modes where such checks would not normally be
 			   done. */
 
@@ -541,9 +541,9 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if this scope should be skipped during normal
 			   lookups. */
   a_bit_field	force_decl_seq_check:1;
-			/* TRUE If, for a template instantiation scope,
+			/* TRUE if, for a template instantiation scope,
 			   declaration sequence numbers should be checked
-			   during the instantiation context lookup even if
+			   during the instantiation context lookup even in
 			   modes where such checks would not normally be
 			   done. */
   bitfield_to_avoid_codecenter_warnings()
