@@ -1,5 +1,12 @@
 Version 4.2
 
+8/20/09  [EDGcpfe/10019]
+Invalid definition of macro DSI_LAST
+
+The macro DSI_LAST, defined in decl_spec.h, was erroneously defined in terms
+of an undefined identifier DSI_TRAILING_RETURN_TYPE.  This is now fixed.
+
+
 8/19/09  [EDGcpfe/9973]
 Spurious ambiguity with built-in operator and multiple conversion functions
 
