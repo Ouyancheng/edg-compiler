@@ -14303,8 +14303,10 @@ current declarator was preceded by another one sharing the same specifiers
       func_info->is_defaulted = TRUE;
       func_info->is_definition = TRUE;
     } else if (curr_token == tok_int_constant) {
-      /* In Microsoft compatibility mode the pure specifier is permitted
-         on a definition; it's usually a syntax error. */
+      /* A pure virtual specifier (presumably).  If a definition follows,
+         that will usually be diagnosed as an error (elsewhere), but in
+         Microsoft compatibility mode it is valid.  Either way, record
+         whether a definition does in fact follow. */
       cache_curr_token(&cache);
       /* Advance past it and see if the next token is a left brace. */
       if (get_token() == tok_lbrace) func_info->is_definition = TRUE;

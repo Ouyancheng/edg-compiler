@@ -8631,6 +8631,9 @@ is the template instance record associated with the instance.
        have made it in the token cache, but in Microsoft and some GNU modes
        it can. */
     pos_error(ec_pure_virtual_member_template, &pos_curr_token);
+    /* Skip over the two tokens. */
+    (void)get_token();
+    (void)get_token();
   }  /* if */
   /* The rescan of the declaration should have produced a routine
      type.  If not all of the tokens were used, or if the type created
