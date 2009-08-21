@@ -79,7 +79,7 @@ Severity of ambiguous class member reference diagnostic in strict mode
 
 Certain ambiguous class member references were issued as warnings
 instead of as strict ANSI diagnostics (warning or error depending on
-mode).  Now fixed.
+mode) in strict mode.  Now fixed.
 
   template <class T> class A {};
   struct B {
