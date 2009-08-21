@@ -39,7 +39,7 @@ typedef struct a_control_flow_descr a_control_flow_descr_dummy_typedef;
 typedef struct a_tmpl_decl_state a_tmpl_decl_state_dummy_typedef;
 typedef struct an_exception_spec_error_descr
                                           *an_exception_spec_error_descr_ptr;
-typedef struct an_attribute    an_attribute_dummy_typedef;
+typedef struct a_gnu_attribute  a_gnu_attribute_dummy_typedef;
 typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
@@ -1147,7 +1147,7 @@ typedef struct a_param_id {
 			   processing. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-  struct an_attribute
+  struct a_gnu_attribute
   		*attributes;
 			/* The attributes associated with this parameter. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2032,7 +2032,7 @@ typedef struct a_template_symbol_supplement {
 			/* The mangled name of the entity.  Used for exported
 			   templates. */
 #if GNU_EXTENSIONS_ALLOWED
-  struct an_attribute
+  struct a_gnu_attribute
 		*attributes;
 			/* GNU attributes specified on this template.  They
 			   need to be applied to every instantiation. */
@@ -4002,7 +4002,7 @@ extern void add_to_param_id_list(a_symbol_locator            *locator,
                                  a_type_ptr                  type_ptr,
                                  a_source_position           *type_pos,
                                  a_storage_class             storage_class,
-                                 struct an_attribute         *attributes,
+                                 struct a_gnu_attribute      *attributes,
                                  a_func_info_block_ptr       func_info,
                                  a_source_sequence_entry_ptr param_ssep,
                                  a_param_id_ptr              *last_param_id);

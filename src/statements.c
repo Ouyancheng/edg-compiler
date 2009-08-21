@@ -5872,10 +5872,10 @@ it is followed by a colon.)
   (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && curr_token == tok_attribute) {
-    an_attribute_ptr  attributes = scan_attributes();
+    a_gnu_attribute_ptr  attributes = scan_gnu_attributes();
     if (attributes != NULL) {
-      apply_attributes_to_label(attributes, label);
-      free_attribute_list(attributes);
+      apply_gnu_attributes_to_label(attributes, label);
+      free_gnu_attribute_list(attributes);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

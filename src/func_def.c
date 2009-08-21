@@ -622,8 +622,8 @@ pointer decay).
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if GNU_EXTENSIONS_ALLOWED
   if (param_id->attributes != NULL) {
-    apply_attributes_to_variable(param_id->attributes, vp,
-                                 /*is_definition=*/TRUE);
+    apply_gnu_attributes_to_variable(param_id->attributes, vp,
+                                     /*is_definition=*/TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -1257,7 +1257,7 @@ static void define_member_function(a_symbol_locator            *locator,
                                    a_decl_modifiers_block_ptr  decl_modifiers,
                                    a_type_ptr                  *old_type,
                                    a_symbol_ptr                *ext_sym,
-                                   an_attribute_ptr            attributes,
+                                   a_gnu_attribute_ptr         attributes,
                                    a_decl_pos_block_ptr        decl_pos_block)
 /*
 This routine is called in the case of a member function definition.  Its
@@ -1554,7 +1554,7 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
     if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (attributes != NULL) {
-      apply_attributes_to_routine(attributes, rp);
+      apply_gnu_attributes_to_routine(attributes, rp);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1746,7 +1746,7 @@ member declaration (allowed in Microsoft mode only).
     check_assertion(prototyped);
     define_member_function(locator, dps->type, func_info, &dps->sym,
                            &linkage, &dps->decl_modifiers, &old_type, &ext_sym,
-                           dps->attributes, decl_pos_block);
+                           dps->gnu_attributes, decl_pos_block);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_routine scan the

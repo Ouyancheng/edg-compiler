@@ -1880,7 +1880,7 @@ if this is the function declarator in a friend function declaration.
           declarator(di_flags, &param_state, 
                      /*member_parent_type=*/(a_type_ptr)NULL, &param_locator,
                      (a_func_info_block_ptr)NULL, &local_decl_pos_block,
-                     param_state.p_declarator_attributes);
+                     param_state.p_gnu_declarator_attributes);
 #if RECORD_HIDDEN_NAMES_IN_IL
           if (!C_mode() && param_locator.symbol_header != NULL) {
             /* In C++, parameter names may hide names from surrounding
@@ -1899,13 +1899,13 @@ if this is the function declarator in a friend function declaration.
           /* Scan any postfix attributes that apply to the function parameter
              and append them to the (possibly empty) list of attributes already
              scanned. */
-          *last_attribute_link(param_state.p_declarator_attributes) =
-                                                            scan_attributes();
+          *last_gnu_attribute_link(param_state.p_gnu_declarator_attributes) =
+                                                         scan_gnu_attributes();
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Check that the type is legal, and do required adjustments. */
         check_and_adjust_parameter_type(&param_state.type, &param_type_pos,
-                                        param_state.attributes);
+                                        param_state.gnu_attributes);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1949,7 +1949,7 @@ if this is the function declarator in a friend function declaration.
            the param-id list. */
         add_to_param_id_list(&param_locator, param_state.type,
                              &param_type_pos, param_storage_class,
-                             param_state.attributes, func_info,
+                             param_state.gnu_attributes, func_info,
                              param_state.source_sequence_entry,
                              &last_param_id);
         last_param_id->declared_type = param_state.declared_type;
@@ -1966,7 +1966,7 @@ if this is the function declarator in a friend function declaration.
            type) are only allowed on top-level declarators. */
         if (!is_top_level_declarator) {
           check_for_invalid_param_attributes(last_param_id->symbol,
-                                             param_state.attributes);
+                                             param_state.gnu_attributes);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (remove_qualifiers_from_param_types) {
@@ -2391,7 +2391,7 @@ if this is the function declarator in a friend function declaration.
         add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
                              (a_source_position*)NULL,
                              (a_storage_class)sc_unspecified, 
-                             (an_attribute_ptr)NULL,
+                             (a_gnu_attribute_ptr)NULL,
                              func_info, (a_source_sequence_entry_ptr)NULL,
                              &last_param_id);
         /* Update the param-id entry just created with the source position
@@ -3467,7 +3467,7 @@ a_type_ptr pointer_declarator(
                       a_type_qualifier_set  *unbound_qualifiers,
                       a_boolean             *ptr_to_member_scanned,
                       a_decl_pos_block_ptr  decl_pos_block,
-                      an_attribute_ptr      *attributes)
+                      a_gnu_attribute_ptr   *attributes)
 /*
 Scan the pointer component of a declarator.  This is "*", "&", "&&", or "C::*"
 (where C is a class type) optionally followed by "const" and/or "volatile".
@@ -3876,8 +3876,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     /* Attributes may appear after the pointer declarator in some cases. */
     if (attributes != NULL && gnu_mode) {
       /* Advance to the end of the list. */
-      attributes = last_attribute_link(attributes);
-      *attributes = scan_attributes();
+      attributes = last_gnu_attribute_link(attributes);
+      *attributes = scan_gnu_attributes();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     ref_to_ref_allowed = FALSE;
@@ -4606,7 +4606,7 @@ static void r_declarator(
                   a_source_sequence_entry_ptr *declarator_ssep,
                   a_func_info_block           *func_info,
                   a_decl_pos_block_ptr        decl_pos_block,
-                  an_attribute_ptr            *attributes)
+                  a_gnu_attribute_ptr         *attributes)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending on the
 values of real_declarator_allowed and abstract_declarator_allowed (real,
@@ -4697,7 +4697,7 @@ The syntax is:
   a_type_qualifier_set  unbound_qualifiers;
   a_boolean             disallow_default_args, disallow_exception_spec;
   a_func_info_block     *local_func_info;
-  an_attribute_ptr      *last_attribute_ptr = NULL;
+  a_gnu_attribute_ptr   *last_attribute_ptr = NULL;
   a_boolean             threads_dimension_allowed = FALSE;
   a_boolean             pointer_to_member_scanned;
   a_boolean             parenthesized_new_declarator = FALSE;
@@ -4761,7 +4761,7 @@ The syntax is:
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) {
     /* Advance to the end of the attribute list. */
-    last_attribute_ptr = last_attribute_link(attributes);
+    last_attribute_ptr = last_gnu_attribute_link(attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
@@ -4798,12 +4798,12 @@ The syntax is:
        declarator. */
     if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
       check_assertion(last_attribute_ptr != NULL);
-      *last_attribute_ptr = scan_attributes();
+      *last_attribute_ptr = scan_gnu_attributes();
       if (*attributes == NULL) {
         *attributes = *last_attribute_ptr;
       }  /* if */
       /* Advance to the end of the list. */
-      last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+      last_attribute_ptr = last_gnu_attribute_link(last_attribute_ptr);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (abstract_declarator_allowed) {
@@ -4859,7 +4859,7 @@ The syntax is:
                    &inner_left_call_conv, &unbound_call_conv,
                    &inner_left_qualifiers, &unbound_qualifiers,
                    declarator_ssep, func_info, decl_pos_block,
-                   (an_attribute_ptr *)last_attribute_ptr);
+                   (a_gnu_attribute_ptr *)last_attribute_ptr);
       state->qualifiers = saved_qualifiers;
       state->qualifiers_pos = saved_qualifiers_pos;
     }
@@ -4885,7 +4885,7 @@ The syntax is:
       if (*attributes == NULL) {
         *attributes = *last_attribute_ptr;
       }  /* if */
-      last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+      last_attribute_ptr = last_gnu_attribute_link(last_attribute_ptr);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
@@ -5388,7 +5388,7 @@ function_lparen:
   if (attributes != NULL && gnu_mode && curr_token == tok_attribute &&
       specifiers_type != NULL) {
     check_assertion(last_attribute_ptr != NULL);
-    *last_attribute_ptr = scan_attributes();
+    *last_attribute_ptr = scan_gnu_attributes();
     if (*last_attribute_ptr != NULL) {
       if (*attributes == NULL) {
         *attributes = *last_attribute_ptr;
@@ -5396,7 +5396,7 @@ function_lparen:
       *output_flags |= DO_POSTFIX_ATTRIBUTES;
       /* Advance to the end of the list. */
       /* coverity[returned_pointer] - last_attribute_pointer not used later. */
-      last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+      last_attribute_ptr = last_gnu_attribute_link(last_attribute_ptr);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5652,7 +5652,7 @@ void declarator(a_decl_flag_set             input_flags,
                 a_symbol_locator            *locator,
                 a_func_info_block           *func_info,
                 a_decl_pos_block_ptr        decl_pos_block,
-                an_attribute_ptr            *attributes)
+                a_gnu_attribute_ptr         *attributes)
 /*
 Scan a declarator.  This is an interface routine for r_declarator, provided
 so that parameters needed only on recursive calls for nested declarators
@@ -5710,7 +5710,7 @@ the parameters.
   if (attributes != NULL && *attributes != NULL) {
     /* Mark the attributes scanned by the call to r_declarator as "declarator
        attributes". */
-    an_attribute_ptr  ap = *attributes;
+    a_gnu_attribute_ptr  ap = *attributes;
     for (; ap != NULL; ap = ap->next) {
       ap->is_declarator_attribute = TRUE;
     }  /* for */

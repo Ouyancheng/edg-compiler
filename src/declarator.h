@@ -284,7 +284,7 @@ void declarator(a_decl_flag_set             input_flags,
                 a_symbol_locator            *locator,
                 a_func_info_block           *func_info,
                 a_decl_pos_block_ptr        decl_pos_block,
-		an_attribute_ptr            *attributes);
+		a_gnu_attribute_ptr         *attributes);
 
 extern
 a_type_ptr pointer_declarator(
@@ -297,7 +297,7 @@ a_type_ptr pointer_declarator(
                       a_type_qualifier_set  *unbound_qualifiers,
                       a_boolean             *ptr_to_member_scanned,
                       a_decl_pos_block_ptr  decl_pos_block,
-		      an_attribute_ptr      *attributes);
+		      a_gnu_attribute_ptr   *attributes);
 
 extern
 void array_declarator(a_decl_parse_state    *dps,

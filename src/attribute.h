@@ -19,10 +19,10 @@ attribute.h -- Declarations related to attribute.c (having to do with
 #define ATTRIBUTE_H 1
 
 /* This type definition is declared even if GNU extensions are not
-   enabled because some functions take an_attribute_ptr as a parameter
+   enabled because some functions take a_gnu_attribute_ptr as a parameter
    type, and the parameter lists for functions are always the same,
    independent of the configuration of the front end. */
-typedef struct an_attribute *an_attribute_ptr;
+typedef struct a_gnu_attribute *a_gnu_attribute_ptr;
 
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 extern void redefine_extname_pragma(a_pending_pragma_ptr  ppp);
@@ -54,120 +54,120 @@ extern void update_for_default_ELF_visibility(
 /*
 Enumeration of attributes that are accepted.
 */
-enum an_attribute_kind_tag {
-  ak_error,
-  ak_first,
-  ak_mode = ak_first,
+enum a_gnu_attribute_kind_tag {
+  gak_error,
+  gak_first,
+  gak_mode = gak_first,
 #if USER_CONTROL_OF_STRUCT_PACKING
-  ak_aligned,
-  ak_packed,
+  gak_aligned,
+  gak_packed,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  ak_unused,
-  ak_used,
-  ak_deprecated,
-  ak_constructor,
-  ak_destructor,
-  ak_noreturn,
-  ak_volatile,
-  ak_pure,
-  ak_const,
-  ak_weak,
-  ak_weakref,
-  ak_section,
-  ak_alias,
-  ak_malloc,
-  ak_nocommon,
-  ak_transparent_union,
-  ak_format,
-  ak_format_arg,
-  ak_sentinel,
+  gak_unused,
+  gak_used,
+  gak_deprecated,
+  gak_constructor,
+  gak_destructor,
+  gak_noreturn,
+  gak_volatile,
+  gak_pure,
+  gak_const,
+  gak_weak,
+  gak_weakref,
+  gak_section,
+  gak_alias,
+  gak_malloc,
+  gak_nocommon,
+  gak_transparent_union,
+  gak_format,
+  gak_format_arg,
+  gak_sentinel,
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
-  ak_naked,
+  gak_naked,
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-  ak_no_instrument_function,
-  ak_no_check_memory_usage,
+  gak_no_instrument_function,
+  gak_no_check_memory_usage,
 #if GNU_X86_ATTRIBUTES_ALLOWED
-  ak_cdecl,
-  ak_stdcall,
+  gak_cdecl,
+  gak_stdcall,
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  ak_visibility,
+  gak_visibility,
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  ak_init_priority,
+  gak_init_priority,
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  ak_strong,
-  ak_nonnull,
-  ak_noinline,
-  ak_always_inline,
-  ak_cleanup,
-  ak_nothrow,
-  ak_warn_unused_result,
+  gak_strong,
+  gak_nonnull,
+  gak_noinline,
+  gak_always_inline,
+  gak_cleanup,
+  gak_nothrow,
+  gak_warn_unused_result,
 #if GNU_VECTOR_TYPES_ALLOWED
-  ak_vector_size,
+  gak_vector_size,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-  ak_last
+  gak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_attribute_kind;
+typedef a_byte a_gnu_attribute_kind;
 
 /*
 Names of attribute kinds.
 */
-EXTERN char *attribute_kind_names[(int)ak_last + 1]
+EXTERN char *attribute_kind_names[(int)gak_last + 1]
 #if VAR_INITIALIZERS
 = {
-/* ak_error */                      "error",
-/* ak_mode */                       "mode",
+/* gak_error */                      "error",
+/* gak_mode */                       "mode",
 #if USER_CONTROL_OF_STRUCT_PACKING
-/* ak_aligned */                    "aligned",
-/* ak_packed */                     "packed",
+/* gak_aligned */                    "aligned",
+/* gak_packed */                     "packed",
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-/* ak_unused */                     "unused",
-/* ak_used */                       "used",
-/* ak_deprecated */                 "deprecated",
-/* ak_constructor */                "constructor",
-/* ak_destructor */                 "destructor",
-/* ak_noreturn */                   "noreturn",
-/* ak_volatile */                   "volatile",
-/* ak_pure */                       "pure",
-/* ak_const */                      "const",
-/* ak_weak */                       "weak",
-/* ak_weakref */                    "weakref",
-/* ak_section */                    "section",
-/* ak_alias */                      "alias",
-/* ak_malloc */                     "malloc",
-/* ak_nocommon */                   "nocommon",
-/* ak_transparent_union */          "transparent_union",
-/* ak_format */                     "format",
-/* ak_format_arg */                 "format_arg",
-/* ak_sentinel */                   "sentinel",
+/* gak_unused */                     "unused",
+/* gak_used */                       "used",
+/* gak_deprecated */                 "deprecated",
+/* gak_constructor */                "constructor",
+/* gak_destructor */                 "destructor",
+/* gak_noreturn */                   "noreturn",
+/* gak_volatile */                   "volatile",
+/* gak_pure */                       "pure",
+/* gak_const */                      "const",
+/* gak_weak */                       "weak",
+/* gak_weakref */                    "weakref",
+/* gak_section */                    "section",
+/* gak_alias */                      "alias",
+/* gak_malloc */                     "malloc",
+/* gak_nocommon */                   "nocommon",
+/* gak_transparent_union */          "transparent_union",
+/* gak_format */                     "format",
+/* gak_format_arg */                 "format_arg",
+/* gak_sentinel */                   "sentinel",
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
-/* ak_naked */                      "naked",
+/* gak_naked */                      "naked",
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-/* ak_no_instrument_function */     "no_instrument_function",
-/* ak_no_check_memory_usage */      "no_check_memory_usage",
+/* gak_no_instrument_function */     "no_instrument_function",
+/* gak_no_check_memory_usage */      "no_check_memory_usage",
 #if GNU_X86_ATTRIBUTES_ALLOWED
-/* ak_cdecl */                      "cdecl",
-/* ak_stdcall */                    "stdcall",
+/* gak_cdecl */                      "cdecl",
+/* gak_stdcall */                    "stdcall",
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-/* ak_visibility */                 "visibility",
+/* gak_visibility */                 "visibility",
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-/* ak_init_priority */              "init_priority",
+/* gak_init_priority */              "init_priority",
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-/* ak_strong */			    "strong", 
-/* ak_nonnull */		    "nonnull", 
-/* ak_noinline */		    "noinline", 
-/* ak_always_inline */		    "always_inline", 
-/* ak_cleanup */		    "cleanup", 
-/* ak_nothrow */		    "nothrow", 
-/* ak_warn_unused_result */	    "warn_unused_result", 
+/* gak_strong */			    "strong", 
+/* gak_nonnull */		    "nonnull", 
+/* gak_noinline */		    "noinline", 
+/* gak_always_inline */		    "always_inline", 
+/* gak_cleanup */		    "cleanup", 
+/* gak_nothrow */		    "nothrow", 
+/* gak_warn_unused_result */	    "warn_unused_result", 
 #if GNU_VECTOR_TYPES_ALLOWED
-/* ak_vector_size */                "vector_size", 
+/* gak_vector_size */                "vector_size", 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-/* ak_last */                       "last" /* used to check that
+/* gak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -206,8 +206,8 @@ EXTERN char *format_attribute_kind_names[(int)fak_last + 1]
 /* 
 Entry containing information about an attribute.  
 */
-typedef struct an_attribute {
-  an_attribute_kind
+typedef struct a_gnu_attribute {
+  a_gnu_attribute_kind
   		kind;
 			/* Which kind of attribute. */
   a_source_position
@@ -218,16 +218,16 @@ typedef struct an_attribute {
 			/* TRUE if this attribute was scanned as part of
 			   the declarator. */
   union {
-    /* When kind == ak_packed, ak_unused, ak_used, ak_deprecated,
-       ak_constructor, or ak_destructor, no variant fields. */
+    /* When kind == gak_packed, ak_unused, ak_used, ak_deprecated,
+       gak_constructor, or ak_destructor, no variant fields. */
 #if USER_CONTROL_OF_STRUCT_PACKING
-    /* When kind == ak_aligned. */
+    /* When kind == gak_aligned. */
     a_targ_alignment
     		alignment;
 			/* The alignment for the entity to which this
 			   attribute applies. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    /* When kind == ak_mode. */
+    /* When kind == gak_mode. */
     struct {
       a_type_mode_kind
 		kind;
@@ -239,15 +239,15 @@ typedef struct an_attribute {
 			/* The vector length if this is a vector mode.
 			   Otherwise, zero. */
     } mode;
-    /* When kind == ak_section. */
+    /* When kind == gak_section. */
     char        *section;
 			/* The section indicated for the entity to
 			   which this attribute applies. */
-    /* When kind == ak_alias or ak_weakref. */
+    /* When kind == gak_alias or ak_weakref. */
     char        *alias;
 			/* The name of the entity for which this entity is an
 			   alias. */
-    /* When kind == ak_format. */
+    /* When kind == gak_format. */
     struct {
       a_format_attribute_kind
 		kind;
@@ -260,11 +260,11 @@ typedef struct an_attribute {
 			/* The index of the first argument (starting from 1)
 			   that will be substituted into the format string. */
     } format;
-    /* When kind == ak_format_arg. */
+    /* When kind == gak_format_arg. */
     int         fmt_arg;
 			/* The index (starting from 1) of the argument
 			   that is a format string. */
-    /* When kind == ak_sentinel. */
+    /* When kind == gak_sentinel. */
     int		sentinel_pos;
 			/* The sentinel position (counted backward from the
 			   last argument position, which is number one). This
@@ -274,14 +274,14 @@ typedef struct an_attribute {
 			   sentinel_pos == 0 as a representation for "no
 			   sentinel". */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    /* When kind == ak_visibility. */
+    /* When kind == gak_visibility. */
     an_ELF_visibility_kind
 		ELF_visibility;
 			/* The visibility of an entity in an ELF object
 			   file. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    /* When kind == ak_init_priority. */
+    /* When kind == gak_init_priority. */
     a_gnu_init_priority
 		init_priority;
 			/* The initialization priority of a dynamically
@@ -300,66 +300,69 @@ typedef struct an_attribute {
 			/* The size (in bytes) of the requested vector type. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } variant;
-  an_attribute_ptr
+  a_gnu_attribute_ptr
   		next;
 			/* The next attribute in the list. */
-} an_attribute;
+} a_gnu_attribute;
 
-extern an_attribute_ptr f_scan_attributes(a_token_sequence_number  *last_token,
-                                          a_source_position        *end_pos);
+extern a_gnu_attribute_ptr f_scan_gnu_attributes(
+                                         a_token_sequence_number  *last_token,
+                                         a_source_position        *end_pos);
 
-#define scan_attributes()                                                  \
-   f_scan_attributes((a_token_sequence_number*)NULL,                       \
-                     (a_source_position*)NULL)
+#define scan_gnu_attributes()                                              \
+   f_scan_gnu_attributes((a_token_sequence_number*)NULL,                   \
+                         (a_source_position*)NULL)
 
-extern an_attribute_ptr copy_attribute_list(an_attribute_ptr attributes);
+extern a_gnu_attribute_ptr copy_gnu_attribute_list(
+                                              a_gnu_attribute_ptr attributes);
 
-extern void free_attribute_list(an_attribute_ptr  attributes);
+extern void free_gnu_attribute_list(a_gnu_attribute_ptr  attributes);
 
-extern an_attribute_ptr *last_attribute_link(an_attribute_ptr *attributes);
+extern a_gnu_attribute_ptr *last_gnu_attribute_link(
+                                             a_gnu_attribute_ptr *attributes);
 
 extern a_type_ptr get_type_with_mode(a_type_ptr        type,
                                      a_type_mode_kind  mode,
                                      a_source_position *pos);
 
-extern a_type_ptr apply_attributes_to_variable_type(
-                                               an_attribute_ptr  attributes,
+extern a_type_ptr apply_gnu_attributes_to_variable_type(
+                                               a_gnu_attribute_ptr  attributes,
                                                a_type_ptr        type);
 
-extern void apply_attributes_to_variable(an_attribute_ptr  attributes,
-                                         a_variable_ptr    vp,
-                                         a_boolean         is_definition);
+extern void apply_gnu_attributes_to_variable(a_gnu_attribute_ptr  attributes,
+                                             a_variable_ptr    vp,
+                                             a_boolean         is_definition);
 
-extern void apply_attributes_to_field(an_attribute_ptr  attributes,
-                                      a_field_ptr       fp);
+extern void apply_gnu_attributes_to_field(a_gnu_attribute_ptr  attributes,
+                                          a_field_ptr       fp);
 
-extern void apply_attributes_to_routine(an_attribute_ptr  attributes,
-                                        a_routine_ptr     rp);
+extern void apply_gnu_attributes_to_routine(a_gnu_attribute_ptr  attributes,
+                                            a_routine_ptr     rp);
 
-extern void apply_attributes_to_type(an_attribute_ptr attributes,
-                                     a_type_ptr       tp,
-                                     a_boolean        is_typedef);
+extern void apply_gnu_attributes_to_type(a_gnu_attribute_ptr attributes,
+                                         a_type_ptr       tp,
+                                         a_boolean        is_typedef);
 
-extern void apply_attributes_to_typedef(an_attribute_ptr  attributes,
-                                        a_type_ptr        tp,
-                                        a_boolean         linkage_name);
+extern void apply_gnu_attributes_to_typedef(a_gnu_attribute_ptr  attributes,
+                                            a_type_ptr        tp,
+                                            a_boolean         linkage_name);
 
-extern void apply_attributes_to_label(an_attribute_ptr  attributes,
-                                      a_label_ptr       label);
-
-extern
-void apply_attributes_to_using_directive(an_attribute_ptr	attributes,
-					 a_using_decl_ptr	udp,
-					 a_namespace_ptr	nsp);
+extern void apply_gnu_attributes_to_label(a_gnu_attribute_ptr  attributes,
+                                          a_label_ptr       label);
 
 extern
-void apply_attributes_to_current_namespace(an_attribute_ptr  attributes);
+void apply_gnu_attributes_to_using_directive(a_gnu_attribute_ptr  attributes,
+					     a_using_decl_ptr     udp,
+					     a_namespace_ptr      nsp);
+
+extern void apply_gnu_attributes_to_current_namespace(
+                                             a_gnu_attribute_ptr  attributes);
 
 extern a_type_ptr apply_type_transforming_attributes(a_type_ptr        tp,
-                                                     an_attribute_ptr  *ap);
+                                                     a_gnu_attribute_ptr  *ap);
 
 extern void check_for_invalid_param_attributes(a_symbol_ptr     sym,
-                                               an_attribute_ptr attributes);
+                                               a_gnu_attribute_ptr attributes);
 
 extern void check_function_param_attributes(a_func_info_block_ptr func_info);
 

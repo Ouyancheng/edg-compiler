@@ -8737,8 +8737,8 @@ implicitly declared member functions.
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
     /* Apply any GNU attributes to the routine. */
-    if (decl_state->attributes != NULL) {
-      apply_attributes_to_routine(decl_state->attributes, rtn);
+    if (decl_state->gnu_attributes != NULL) {
+      apply_gnu_attributes_to_routine(decl_state->gnu_attributes, rtn);
     }  /* if */
     /* Propagate any class attributes that also apply to its member
        functions. */
@@ -9395,12 +9395,13 @@ declarations.)
                                   (a_boolean)func_info->is_inline);
 #if GNU_EXTENSIONS_ALLOWED
     /* Apply any GNU attributes to the routine. */
-    if (decl_state->attributes != NULL) {
-      apply_attributes_to_routine(decl_info->decl_state.attributes, rtn);
+    if (decl_state->gnu_attributes != NULL) {
+      apply_gnu_attributes_to_routine(
+                                   decl_info->decl_state.gnu_attributes, rtn);
       /* Move the attributes list to the template symbol supplement so it can
          be applied to real instantiations as well. */
-      tssp->attributes = decl_info->decl_state.attributes;
-      decl_info->decl_state.attributes = NULL;
+      tssp->attributes = decl_info->decl_state.gnu_attributes;
+      decl_info->decl_state.gnu_attributes = NULL;
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (rtn->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
@@ -9626,9 +9627,9 @@ specific information about the member declaration, respectively.
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               member_type, &locator->source_position);
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (decl_state->attributes != NULL) {
-    member_type = apply_attributes_to_variable_type(decl_state->attributes,
-                                                    member_type);
+  } else if (decl_state->gnu_attributes != NULL) {
+    member_type = apply_gnu_attributes_to_variable_type(
+                                     decl_state->gnu_attributes, member_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
@@ -9854,10 +9855,10 @@ specific information about the member declaration, respectively.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    if (decl_state->attributes != NULL) {
+    if (decl_state->gnu_attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
-      apply_attributes_to_variable(decl_state->attributes, var,
-                                   /*is_definition=*/FALSE);
+      apply_gnu_attributes_to_variable(decl_state->gnu_attributes, var,
+                                       /*is_definition=*/FALSE);
     }  /* if */
     /* Propagate any class attributes that also apply to its static data
        members. */
@@ -11419,7 +11420,7 @@ be entered.
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr               *last_attribute;
+  a_gnu_attribute_ptr            *last_attribute;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_nonstatic_data_member");
@@ -11429,14 +11430,14 @@ be entered.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Find the last attribute. */
-    last_attribute = last_attribute_link(&decl_state->attributes);
+    last_attribute = last_gnu_attribute_link(&decl_state->gnu_attributes);
     /* Scan the attributes that follow the declarator.  This must happen after
        any bit field size is scanned, but before the type of the field is
        checked. */
-    *last_attribute = scan_attributes();
+    *last_attribute = scan_gnu_attributes();
     /* Apply the attributes to the field. */
-    decl_state->type = apply_attributes_to_variable_type(
-                                    decl_state->attributes, decl_state->type);
+    decl_state->type = apply_gnu_attributes_to_variable_type(
+                                decl_state->gnu_attributes, decl_state->type);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_info->is_member_template) {
@@ -11567,13 +11568,13 @@ be entered.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the field. */
-    apply_attributes_to_field(decl_state->attributes, field);
+    apply_gnu_attributes_to_field(decl_state->gnu_attributes, field);
     /* Check if a deprecated type was involved in this declaration.
        Unlike other similar cases, the warning is issued even when the field
        itself is marked as deprecated. */
     warn_about_use_of_deprecated_type(member_type, &locator->source_position);
     /* We are done with the postfix attributes. */
-    free_attribute_list(*last_attribute);
+    free_gnu_attribute_list(*last_attribute);
     *last_attribute = NULL;
     /* An asm name is not allowed on a field. */
     if (decl_state->asm_name != NULL) {
@@ -14015,8 +14016,9 @@ routine.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-    if (decl_state->attributes != NULL) {
-      pos_warning(ec_attribute_not_allowed, &decl_state->attributes->position);
+    if (decl_state->gnu_attributes != NULL) {
+      pos_warning(ec_attribute_not_allowed,
+                  &decl_state->gnu_attributes->position);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -14673,7 +14675,7 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean                         is_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    an_attribute_ptr                  declarator_attributes = NULL;
+    a_gnu_attribute_ptr               declarator_attributes = NULL;
     a_boolean                         is_function = FALSE;
 
     declarator_start_pos = pos_curr_token;
@@ -14848,7 +14850,7 @@ passed via template_decl.
                                        decl_state->storage_class, is_function);
         /* Combine the specifier and declarator attributes (they are separated
            again at the end of the loop). */
-        *decl_state->p_declarator_attributes = declarator_attributes;
+        *decl_state->p_gnu_declarator_attributes = declarator_attributes;
       }
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -15285,8 +15287,8 @@ passed via template_decl.
     decl_info.is_first_in_declarator_list = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     /* We are done with the declarator attributes. */
-    *decl_state->p_declarator_attributes = NULL;
-    free_attribute_list(declarator_attributes);
+    *decl_state->p_gnu_declarator_attributes = NULL;
+    free_gnu_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     check_use_of_auto_type(decl_state);
     /* Loop for additional declarators. */
@@ -15324,7 +15326,7 @@ next_declaration:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* We are done with the prefix attributes. */
-  free_attribute_list(decl_state->attributes);
+  free_gnu_attribute_list(decl_state->gnu_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected
@@ -15982,7 +15984,7 @@ classes.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr                attributes;
+  a_gnu_attribute_ptr             attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
   a_routine_ptr                   rout;
@@ -16459,8 +16461,8 @@ next_declaration:
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && curr_token == tok_attribute) {
       /* Process attributes that apply to this class. */
-      attributes = f_scan_attributes(&last_token_number_of_definition,
-                                     &end_pos);
+      attributes = f_scan_gnu_attributes(&last_token_number_of_definition,
+                                         &end_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (decl_pos_block != NULL) {
         /* Update the recorded end position to the end of the attributes
@@ -16468,7 +16470,8 @@ next_declaration:
         decl_pos_block->specifiers_range.end = end_pos;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+      apply_gnu_attributes_to_type(attributes, class_type,
+                                   /*is_typedef=*/FALSE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Issue a warning if the current token is in a file different from the

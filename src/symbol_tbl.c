@@ -10541,7 +10541,7 @@ Free the parameter id block pointed to by *ppip, set *ppip to NULL.
 {
   db_enter(5, "free_param_id");
 #if GNU_EXTENSIONS_ALLOWED
-  free_attribute_list((*ppip)->attributes);
+  free_gnu_attribute_list((*ppip)->attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   (*ppip)->next = avail_param_ids;
   avail_param_ids = *ppip;
@@ -10599,7 +10599,7 @@ void add_to_param_id_list(a_symbol_locator            *locator,
                           a_type_ptr                  type_ptr,
                           a_source_position           *type_pos,
                           a_storage_class             storage_class,
-                          an_attribute_ptr            attributes,
+                          a_gnu_attribute_ptr         attributes,
                           a_func_info_block_ptr       func_info,
                           a_source_sequence_entry_ptr param_ssep,
                           a_param_id_ptr              *last_param_id)
@@ -10698,7 +10698,7 @@ parameter.
        stored there, and are freed when the param-id is freed.  If
        there is no param-id, then the attributes are no longer
        needed. */
-    free_attribute_list(attributes);
+    free_gnu_attribute_list(attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* add_to_param_id_list */

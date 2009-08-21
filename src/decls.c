@@ -132,8 +132,8 @@ reflected in start_secondary_declarator.
   ps->ms_attributes = NULL;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;
-  ps->attributes = NULL;
-  ps->p_declarator_attributes = NULL;
+  ps->gnu_attributes = NULL;
+  ps->p_gnu_declarator_attributes = NULL;
   ps->register_id = 0;
   ps->storage_class_pos = null_source_position;
   ps->declared_storage_class = (a_storage_class)sc_unspecified;
@@ -491,8 +491,8 @@ an error diagnostic and return TRUE.
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is not used in this case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-void adjust_parameter_type(a_type_ptr       *type_ptr,
-                           an_attribute_ptr attributes)
+void adjust_parameter_type(a_type_ptr           *type_ptr,
+                           a_gnu_attribute_ptr  attributes)
 /*
 *type_ptr points to the type of a parameter.  Modify the type if
 necessary.  See 3.7.1:  A declaration of a parameter as "array of
@@ -520,7 +520,7 @@ points to a list of GNU C attributes, if applicable.
     *type_ptr = make_pointer_type(*type_ptr);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  *type_ptr = apply_attributes_to_variable_type(attributes, *type_ptr);
+  *type_ptr = apply_gnu_attributes_to_variable_type(attributes, *type_ptr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* adjust_parameter_type */
@@ -602,7 +602,7 @@ DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
 
 void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
                                      a_source_position    *error_pos,
-                                     an_attribute_ptr     attributes)
+                                     a_gnu_attribute_ptr  attributes)
 /*
 This routine is called for all function parameter declarations.  It does
 error checking and type adjustments as required.  attributes points to a
@@ -5129,7 +5129,7 @@ TRUE if a definition preceded the current declaration.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static a_boolean attributes_include_alias(an_attribute_ptr  attributes)
+static a_boolean attributes_include_alias(a_gnu_attribute_ptr  attributes)
 /*
 Return TRUE if the given list of attributes includes one representing the
 "alias" or "weakref" attribute.
@@ -5138,8 +5138,8 @@ Return TRUE if the given list of attributes includes one representing the
   a_boolean  result = FALSE;
 
   for (; attributes != NULL; attributes = attributes->next) {
-    if (attributes->kind == (an_attribute_kind)ak_alias ||
-        attributes->kind == (an_attribute_kind)ak_weakref) {
+    if (attributes->kind == (a_gnu_attribute_kind)gak_alias ||
+        attributes->kind == (a_gnu_attribute_kind)gak_weakref) {
       result = TRUE;
       break;
     }  /* if */
@@ -5350,10 +5350,11 @@ for use in generating cross-reference output describing this declaration.
     set_to_error_locator(*locator);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (dps->attributes != NULL) {
+  if (dps->gnu_attributes != NULL) {
     /* Allow the specified GNU attributes to modify the type with which the
        variable was declared. */
-    type_ptr = apply_attributes_to_variable_type(dps->attributes, type_ptr);
+    type_ptr = apply_gnu_attributes_to_variable_type(dps->gnu_attributes,
+                                                     type_ptr);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
@@ -5659,13 +5660,13 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    if (dps->attributes != NULL) {
+    if (dps->gnu_attributes != NULL) {
       /* Apply the attributes to the variable declaration. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      variable_alias_decl = attributes_include_alias(dps->attributes);
+      variable_alias_decl = attributes_include_alias(dps->gnu_attributes);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      apply_attributes_to_variable(dps->attributes, variable_ptr,
-                                   is_variable_def);
+      apply_gnu_attributes_to_variable(dps->gnu_attributes, variable_ptr,
+                                       is_variable_def);
       if (variable_ptr->cleanup_routine != NULL) {
         /* A variable with a cleanup attribute is implicitly referenced and
            used by the call to the cleanup routine that will occur when the
@@ -6354,7 +6355,7 @@ for use in generating cross-reference output describing this declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                routine_alias_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  an_attribute_ptr         attributes = dps->attributes;
+  a_gnu_attribute_ptr      attributes = dps->gnu_attributes;
   a_type_ptr               orig_type = type_ptr;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || \
@@ -6383,7 +6384,7 @@ for use in generating cross-reference output describing this declaration.
        compatibility in case of a redeclaration.  We cannot modify the
        given list of attributes because it may need to be applied to
        other declarators: Make a copy. */
-    attributes = copy_attribute_list(attributes);
+    attributes = copy_gnu_attribute_list(attributes);
     type_ptr = apply_type_transforming_attributes(type_ptr, &attributes);
     dps->type = type_ptr;
   }  /* if */
@@ -7504,7 +7505,7 @@ skip_overloading:;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       routine_alias_decl = attributes_include_alias(attributes);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      apply_attributes_to_routine(attributes, routine_ptr);
+      apply_gnu_attributes_to_routine(attributes, routine_ptr);
     }  /* if */
     /* Record the assembly name. */
     if (dps->asm_name != NULL) {
@@ -7515,7 +7516,7 @@ skip_overloading:;
     if (attributes != NULL) {
       /* The list of attributes was duplicated earlier: We're responsible
          for freeing it. */
-      free_attribute_list(attributes);
+      free_gnu_attribute_list(attributes);
     }  /* if */
   }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -8340,8 +8341,8 @@ definition of a member function of a class template.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the routine. */
-    if (dps->attributes != NULL) {
-      apply_attributes_to_routine(dps->attributes, rout_ptr);
+    if (dps->gnu_attributes != NULL) {
+      apply_gnu_attributes_to_routine(dps->gnu_attributes, rout_ptr);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -8548,9 +8549,9 @@ the symbol through dps->sym and its linkage (which is always "none") through
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 dps->source_sequence_entry);
 #if GNU_EXTENSIONS_ALLOWED
-      if (dps->attributes != NULL) {
-        apply_attributes_to_variable(dps->attributes, var,
-                                     /*is_definition=*/TRUE);
+      if (dps->gnu_attributes != NULL) {
+        apply_gnu_attributes_to_variable(dps->gnu_attributes, var,
+                                         /*is_definition=*/TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -8781,7 +8782,7 @@ symbol entry, and return a pointer to it in state->sym.
   a_namespace_ptr          nsp;
   a_symbol_ptr             loc_sym;
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr         attributes = state->attributes;
+  a_gnu_attribute_ptr      attributes = state->gnu_attributes;
   a_boolean                linkage_name = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -8799,7 +8800,7 @@ symbol entry, and return a pointer to it in state->sym.
        compatibility in case of a redeclaration.  We cannot modify the
        given list of attributes because it may need to be applied to
        other (typedef) declarators: Make a copy. */
-    attributes = copy_attribute_list(attributes);
+    attributes = copy_gnu_attribute_list(attributes);
     type_ptr = apply_type_transforming_attributes(type_ptr, &attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9241,7 +9242,7 @@ symbol entry, and return a pointer to it in state->sym.
   if (gnu_mode && !is_redecl && !is_error_type(type_ptr)) {
     if (attributes != NULL) {
       /* Applying attributes could change the underlying type. */
-      apply_attributes_to_typedef(attributes, tp, linkage_name);
+      apply_gnu_attributes_to_typedef(attributes, tp, linkage_name);
     }  /* if */
     if (!tp->source_corresp.is_deprecated) {
       /* Check if a deprecated type was involved in this declaration. */
@@ -9251,7 +9252,7 @@ symbol entry, and return a pointer to it in state->sym.
   if (attributes != NULL) {
     /* The list of attributes was duplicated earlier: We're responsible
        for freeing it. */
-    free_attribute_list(attributes);
+    free_gnu_attribute_list(attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9721,12 +9722,12 @@ common cases.
   decl_specifiers(dsi_flags, dps, (a_decl_pos_block_ptr)NULL);
   check_assertion(dps->type != NULL);
 #if GNU_EXTENSIONS_ALLOWED
-  if (dps->attributes != NULL) {
+  if (dps->gnu_attributes != NULL) {
     /* Attributes were scanned that didn't directly directly affect the
        specifiers type: Ignore them with a warning. */
-    pos_warning(ec_gnu_attributes_ignored, &dps->attributes->position);
-    free_attribute_list(dps->attributes);
-    dps->attributes = NULL;
+    pos_warning(ec_gnu_attributes_ignored, &dps->gnu_attributes->position);
+    free_gnu_attribute_list(dps->gnu_attributes);
+    dps->gnu_attributes = NULL;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!(dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
@@ -9747,7 +9748,7 @@ common cases.
     }  /* if */
     declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, (a_func_info_block_ptr)NULL,
-               (a_decl_pos_block_ptr)NULL, (an_attribute_ptr *)NULL);
+               (a_decl_pos_block_ptr)NULL, (a_gnu_attribute_ptr *)NULL);
     if (di_flags & DI_VLA_ALLOWED) {
       /* VLA checking was done. */
       if (is_array_type(dps->type) &&
@@ -9953,7 +9954,7 @@ is_parenthesized comes in FALSE.
                     DI_DIMENSION_EXPRESSION_ALLOWED,
                  state, /*member_parent_type=*/(a_type_ptr)NULL,
                  (a_symbol_locator *)NULL, (a_func_info_block_ptr)NULL,
-                 &decl_pos_block, (an_attribute_ptr *)NULL);
+                 &decl_pos_block, (a_gnu_attribute_ptr *)NULL);
     }  /* if */
     if (state->do_flags & DO_RPAREN_IN_NEW_DECLARATOR) {
       /* We parsed something like "new (int[n])[3]" in a GNU C++ mode.  The
@@ -9982,7 +9983,7 @@ is_parenthesized comes in FALSE.
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        &ptr_to_member_scanned, &decl_pos_block,
-                                       (an_attribute_ptr *)NULL);
+                                       (a_gnu_attribute_ptr *)NULL);
     derived_type = NULL;
     bottom_derived_type = NULL;
     add_stop_token(tok_lbracket);
@@ -10193,7 +10194,7 @@ operator function reference.
                                        (a_type_qualifier_set *)NULL,
                                        (a_type_qualifier_set *)NULL,
                                        &ptr_to_member_scanned, &decl_pos_block,
-                                       (an_attribute_ptr *)NULL);
+                                       (a_gnu_attribute_ptr *)NULL);
     if (any_cfront_mode() &&
         check_member_function_typedef(complete_type, &type_pos)) {
       /* The type is a cfront-style member function typedef -- it is an error
@@ -10703,7 +10704,7 @@ a normal try.
           }  /* if */
           declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, (a_func_info_block_ptr)NULL, &decl_pos_block,
-                     (an_attribute_ptr *)NULL);
+                     (a_gnu_attribute_ptr *)NULL);
           if (state.do_flags & DO_REAL_DECLARATOR_SCANNED) {
             sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
@@ -10721,7 +10722,7 @@ a normal try.
           complete_type_is_needed(state.type);
           /* Adjust the type if necessary (for example, "array of x" becomes
              "pointer to x"). */
-          adjust_parameter_type(&state.type, (an_attribute_ptr)NULL);
+          adjust_parameter_type(&state.type, (a_gnu_attribute_ptr)NULL);
           if (is_invalid_catch_type(state.type, &decl_pos)) {
             /* An appropriate error message will have been issued by
                invalid_catch_type. */
@@ -11152,7 +11153,7 @@ Return a pointer to the variable that is declared.
     declarator(DI_REAL_DECLARATOR_ALLOWED, &state,
                /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                (a_func_info_block_ptr)NULL, &decl_pos_block,
-               (an_attribute_ptr *)NULL);
+               (a_gnu_attribute_ptr *)NULL);
   } else {
     /* No declarator.  Issue a single diagnostic on this malformed
        condition declaration. */
@@ -11349,11 +11350,11 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes is not used in this case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
-void make_using_directive(a_namespace_ptr    nsp,
-			  a_scope_depth	     depth,
-                          a_source_position  *pos,
-			  a_boolean	     compiler_generated,
-			  an_attribute_ptr   attributes) 
+void make_using_directive(a_namespace_ptr      nsp,
+			  a_scope_depth	       depth,
+                          a_source_position    *pos,
+			  a_boolean	       compiler_generated,
+			  a_gnu_attribute_ptr  attributes) 
 /*
 Create a using-decl entry for a using-directive that specifies the indicated
 namespace, add it to the list of using-decl entries for the scope specified
@@ -11390,7 +11391,7 @@ using-directive.
   if (attributes != NULL) {
     /* GNU attributes were specified for this using-directive.  Apply them to
        the using-directive entry. */
-    apply_attributes_to_using_directive(attributes, udp, nsp);
+    apply_gnu_attributes_to_using_directive(attributes, udp, nsp);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_to_using_decls_list(udp, depth);
@@ -11445,7 +11446,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_source_sequence_entry_ptr namespace_ssep = NULL;
   a_boolean		      namespace_scope_pushed = FALSE;
   a_boolean		      initial_decl_of_namespace_std = FALSE;
-  an_attribute_ptr            attributes = NULL;
+  a_gnu_attribute_ptr         attributes = NULL;
 
   db_enter(3, "namespace_declaration");
   /* Save the source position of the declaration. */
@@ -11496,7 +11497,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode && gnu_version >= 40200 && curr_token == tok_attribute) {
-    attributes = scan_attributes();
+    attributes = scan_gnu_attributes();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lbrace) {
@@ -11782,7 +11783,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         /* Do an implicit "using" directive of the unnamed namespace. */
         make_using_directive(nsp, depth_scope_stack, &pos_curr_token,
                              /*compiler_generated=*/TRUE,
-                             (an_attribute_ptr)NULL);
+                             (a_gnu_attribute_ptr)NULL);
         (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
                                    nsp);
         scope_stack[depth_scope_stack].
@@ -11814,7 +11815,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                               namespace_ssep);
 #if GNU_EXTENSIONS_ALLOWED
     if (attributes != NULL) {
-      apply_attributes_to_current_namespace(attributes);
+      apply_gnu_attributes_to_current_namespace(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (!required_token(tok_lbrace, ec_exp_lbrace)) {
@@ -11931,7 +11932,7 @@ A using-directive entry is created and activated for the current scope.
   a_source_position	decl_start_pos;
   a_symbol_ptr		sym;
   a_boolean		err = FALSE;
-  an_attribute_ptr	attributes = NULL;
+  a_gnu_attribute_ptr	attributes = NULL;
 
   db_enter(3, "using_directive");
   decl_start_pos = pos_curr_token;
@@ -11968,7 +11969,7 @@ A using-directive entry is created and activated for the current scope.
 #if GNU_EXTENSIONS_ALLOWED
     /* Scan any GNU attributes that may appear here. */
     if (gpp_mode) {
-      attributes = scan_attributes();
+      attributes = scan_gnu_attributes();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (err) {
@@ -12772,12 +12773,12 @@ diagnostics.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-void scan_gnu_declarator_attributes(char*              *asm_name,
-                                    a_source_position  *asm_name_pos,
-                                    an_attribute_ptr   *attributes,
-                                    a_boolean          *new_attributes,
-                                    a_storage_class    declared_storage,
-                                    a_boolean          is_function)
+void scan_gnu_declarator_attributes(char*                *asm_name,
+                                    a_source_position    *asm_name_pos,
+                                    a_gnu_attribute_ptr  *attributes,
+                                    a_boolean            *new_attributes,
+                                    a_storage_class      declared_storage,
+                                    a_boolean            is_function)
 /*
 Scan asm name constructs and attribute lists preceding or following a
 declarator.  The resulting asm() symbol name tag is returned through
@@ -12814,9 +12815,9 @@ is non-NULL *new_attributes is set to TRUE if there are any).
     }  /* if */
     /* Look for optional (declarator) attributes. */
     if (curr_token == tok_attribute) {
-      an_attribute_ptr  *last_declarator_attribute = 
-                                              last_attribute_link(attributes);
-      *last_declarator_attribute = scan_attributes();
+      a_gnu_attribute_ptr  *last_declarator_attribute = 
+                                          last_gnu_attribute_link(attributes);
+      *last_declarator_attribute = scan_gnu_attributes();
       if (new_attributes != NULL) {
         *new_attributes = TRUE;
       }  /* if */
@@ -12836,21 +12837,21 @@ a variable with such an initializer (which was just scanned).
 */
 {
   if (gpp_mode && curr_token == tok_attribute) {
-    an_attribute_ptr  trailing_attributes;
-    a_source_position  warn_pos;
+    a_gnu_attribute_ptr  trailing_attributes;
+    a_source_position    warn_pos;
     warn_pos = pos_curr_token;
     /* Scan any trailing attributes. */
-    trailing_attributes = scan_attributes();
+    trailing_attributes = scan_gnu_attributes();
     if (gnu_version >= 30100 && gnu_version < 30400) {
       /* Apply the attributes to the variable declaration. */
-      apply_attributes_to_variable(trailing_attributes, var,
-                                   /*is_definition=*/TRUE);
+      apply_gnu_attributes_to_variable(trailing_attributes, var,
+                                       /*is_definition=*/TRUE);
     } else {
       /* Ignore the attributes with a warning. */
       pos_warning(ec_attribute_after_parenthesized_initializer, &warn_pos);
     }  /* if */
     /* Free up the list of attributes. */
-    free_attribute_list(trailing_attributes);
+    free_gnu_attribute_list(trailing_attributes);
   }  /* if */
 }  /* gnu_attributes_after_parenthesized_initializer */
 
@@ -13027,12 +13028,12 @@ preceding function declarator.
       /* We need a copy of the attribute list so that we can apply the
          attributes when we create the variable corresponding to this
          parameter. */
-      param_id->attributes = copy_attribute_list(state->attributes);
+      param_id->attributes = copy_gnu_attribute_list(state->gnu_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Check that the type is legal, and do required adjustments. */
     check_and_adjust_parameter_type(&state->type, &state->start_pos,
-                                    state->attributes);
+                                    state->gnu_attributes);
     /* For pcc compatibility, promote float parameters to double. */
     if (C_dialect == C_dialect_pcc) {
       promote_float_to_double(state->type);
@@ -14683,7 +14684,7 @@ Broadly speaking, three kinds of declarations are handled here:
   /* Scan the declarator list. */
   do {
     an_il_entity_list_entry_ptr  saved_entities = NULL;
-    an_attribute_ptr             declarator_attributes = NULL;
+    a_gnu_attribute_ptr          declarator_attributes = NULL;
     if (!first_declarator) {
       /* We've just skipped a comma separating two declarators. */
       start_secondary_declarator(&state);
@@ -14755,7 +14756,7 @@ Broadly speaking, three kinds of declarations are handled here:
                                    state.declared_storage_class, is_function);
     /* Combine the specifier and declarator attributes (they are separated
        again at the end of the loop). */
-    *state.p_declarator_attributes = declarator_attributes;
+    *state.p_gnu_declarator_attributes = declarator_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (state.p_postfix_entities != NULL) {
       /* If we are in a declaration statement, temporarily put aside any
@@ -14825,8 +14826,8 @@ Broadly speaking, three kinds of declarations are handled here:
     first_declarator = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     /* We are done with the declarator attributes. */
-    *state.p_declarator_attributes = NULL;
-    free_attribute_list(declarator_attributes);
+    *state.p_gnu_declarator_attributes = NULL;
+    free_gnu_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (state.ms_attributes != NULL) {
@@ -14894,7 +14895,7 @@ return_point:
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  free_attribute_list(state.attributes);
+  free_gnu_attribute_list(state.gnu_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */

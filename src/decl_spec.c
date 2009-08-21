@@ -2923,7 +2923,7 @@ Microsoft attributes preceding the class specifier (if any).
   a_boolean               tag_name_access_checks_deferred = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr        attributes = NULL;
+  a_gnu_attribute_ptr     attributes = NULL;
   a_source_position       attr_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -2998,7 +2998,7 @@ Microsoft attributes preceding the class specifier (if any).
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
       attr_pos = pos_curr_token;
-      attributes = scan_attributes();
+      attributes = scan_gnu_attributes();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -3864,11 +3864,12 @@ Microsoft attributes preceding the class specifier (if any).
       }  /* if */
       if (definition_follows ||
           (is_explicit_instantiation && !is_declarator_start())) {
-        apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+        apply_gnu_attributes_to_type(attributes, class_type,
+                                     /*is_typedef=*/FALSE);
       } else {
         pos_warning(ec_attribute_ignored_on_incomplete_class_decl, &attr_pos);
       }  /* if */
-      free_attribute_list(attributes);
+      free_gnu_attribute_list(attributes);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (!C_mode() && is_immediate_class_type(class_type)) {
@@ -4436,7 +4437,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr             attributes = NULL;
+  a_gnu_attribute_ptr          attributes = NULL;
   a_source_position            attr_pos;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -4489,7 +4490,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   if (gnu_mode && curr_token == tok_attribute) {
     /* Look for any attributes that apply to this type. */
     attr_pos = pos_curr_token;
-    attributes = scan_attributes();
+    attributes = scan_gnu_attributes();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
@@ -5161,10 +5162,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
-      *last_attribute_link(&attributes) =
-                  f_scan_attributes((a_token_sequence_number*)NULL, &end_pos);
-      apply_attributes_to_type(attributes, enum_type, /*is_typedef=*/FALSE);
-      free_attribute_list(attributes);
+      *last_gnu_attribute_link(&attributes) =
+              f_scan_gnu_attributes((a_token_sequence_number*)NULL, &end_pos);
+      apply_gnu_attributes_to_type(attributes, enum_type,
+                                   /*is_typedef=*/FALSE);
+      free_gnu_attribute_list(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Issue a warning if the current token is in a file different from the
@@ -5232,7 +5234,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     /* No brace-enclosed list follows. */
     if (attributes != NULL) {
       pos_warning(ec_enum_attribute_ignored, &attr_pos);
-      free_attribute_list(attributes);
+      free_gnu_attribute_list(attributes);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -7592,14 +7594,14 @@ storage_class_specifier:
         specifier_allows_vacuous_decl = TRUE;
         if ((input_flags & DSI_GNU_ATTRIBUTES_ALLOWED) != 0) {
           /* Scan the attributes. */
-          *state->p_declarator_attributes = scan_attributes();
-          state->p_declarator_attributes =
-                          last_attribute_link(state->p_declarator_attributes);
+          *state->p_gnu_declarator_attributes = scan_gnu_attributes();
+          state->p_gnu_declarator_attributes =
+                  last_gnu_attribute_link(state->p_gnu_declarator_attributes);
         } else {
           /* Attributes are not allowed here.  Scan them anyhow, and then
              throw them away. */
           error(ec_attribute_not_allowed);
-          free_attribute_list(scan_attributes());
+          free_gnu_attribute_list(scan_gnu_attributes());
         }  /* if */
         goto no_get_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9054,11 +9056,12 @@ exit_loop:
   state->storage_class = state->declared_storage_class;
   state->decl_specifiers_error = err;
 #if GNU_EXTENSIONS_ALLOWED
-  if (state->attributes != NULL) {
+  if (state->gnu_attributes != NULL) {
     state->specifiers_type =
-                    apply_type_transforming_attributes(state->specifiers_type,
-                                                       &state->attributes);
-    state->p_declarator_attributes = last_attribute_link(&state->attributes);
+                   apply_type_transforming_attributes(state->specifiers_type,
+                                                      &state->gnu_attributes);
+    state->p_gnu_declarator_attributes =
+                              last_gnu_attribute_link(&state->gnu_attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* state->type and state->declared_type may get updated by a subsequent call

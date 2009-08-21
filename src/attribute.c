@@ -634,21 +634,22 @@ process_alias_fixup_list.
 #if GNU_EXTENSIONS_ALLOWED
 
 /* Needed because of forward references: */
-static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
-                                                 a_type_ptr       tp,
-                                                 a_boolean        is_typedef);
+static a_type_ptr copy_type_and_apply_gnu_attributes(
+                                               a_gnu_attribute_ptr attributes,
+                                               a_type_ptr          tp,
+                                               a_boolean           is_typedef);
 
 /* Previously allocated attributes available for reuse. */
-static an_attribute_ptr avail_attributes;
+static a_gnu_attribute_ptr avail_attributes;
 
 #if DEBUG
 static unsigned long
-	num_attributes_allocated;
+	num_gnu_attributes_allocated;
 #endif /* DEBUG */
 
 
-static an_attribute_ptr alloc_attribute(an_attribute_kind  kind,
-                                        a_source_position  *pos)
+static a_gnu_attribute_ptr alloc_gnu_attribute(a_gnu_attribute_kind  kind,
+                                               a_source_position     *pos)
 /*
 Allocate an attribute of the indicated kind, initialize its fields,
 and return a pointer to it.  "pos" gives the source position to
@@ -656,7 +657,7 @@ associate with the attribute.  It is copied here, so the memory
 pointed to be "pos" can be freed when this routine returns.
 */
 {
-  an_attribute_ptr ap;
+  a_gnu_attribute_ptr  ap;
 
   if (avail_attributes != NULL) {
     /* Reuse a previously allocated attribute. */
@@ -664,9 +665,9 @@ pointed to be "pos" can be freed when this routine returns.
     avail_attributes = avail_attributes->next;
   } else {
     /* Allocate memory for a new attribute. */
-    ap = (an_attribute_ptr)alloc_fe(sizeof(an_attribute));
+    ap = (a_gnu_attribute_ptr)alloc_fe(sizeof(a_gnu_attribute));
 #if DEBUG
-    ++num_attributes_allocated;
+    ++num_gnu_attributes_allocated;
 #endif /* DEBUG */
   }  /* if */
   ap->kind = kind;
@@ -674,84 +675,84 @@ pointed to be "pos" can be freed when this routine returns.
   copy_source_position(*pos, ap->position);
   ap->is_declarator_attribute = FALSE;
   switch (kind) {
-    case ak_mode:
-      ap->variant.mode.kind = (an_attribute_kind)tmk_error;
+    case gak_mode:
+      ap->variant.mode.kind = (a_gnu_attribute_kind)tmk_error;
       ap->variant.mode.length = 0;
       break;
 #if USER_CONTROL_OF_STRUCT_PACKING
-    case ak_aligned:
+    case gak_aligned:
       ap->variant.alignment = 0;
       break;
-    case ak_packed:
+    case gak_packed:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    case ak_unused:
-    case ak_used:
-    case ak_deprecated:
+    case gak_unused:
+    case gak_used:
+    case gak_deprecated:
 #if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    case ak_constructor:
-    case ak_destructor:
+    case gak_constructor:
+    case gak_destructor:
 #endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    case ak_noreturn:
-    case ak_volatile:
-    case ak_pure:
-    case ak_const:
-    case ak_weak:
-    case ak_malloc:
-    case ak_nocommon:
-    case ak_transparent_union:
+    case gak_noreturn:
+    case gak_volatile:
+    case gak_pure:
+    case gak_const:
+    case gak_weak:
+    case gak_malloc:
+    case gak_nocommon:
+    case gak_transparent_union:
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
-    case ak_naked:
+    case gak_naked:
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-    case ak_no_instrument_function:
-    case ak_no_check_memory_usage:
+    case gak_no_instrument_function:
+    case gak_no_check_memory_usage:
 #if GNU_X86_ATTRIBUTES_ALLOWED
-    case ak_stdcall:
-    case ak_cdecl:
+    case gak_stdcall:
+    case gak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-    case ak_strong:
-    case ak_noinline:
-    case ak_always_inline:
-    case ak_nothrow:
-    case ak_warn_unused_result:
+    case gak_strong:
+    case gak_noinline:
+    case gak_always_inline:
+    case gak_nothrow:
+    case gak_warn_unused_result:
       break;
-    case ak_section:
+    case gak_section:
       ap->variant.section = NULL;
       break;
-    case ak_alias:
-    case ak_weakref:
+    case gak_alias:
+    case gak_weakref:
       ap->variant.alias = NULL;
       break;
-    case ak_format:
+    case gak_format:
       ap->variant.format.kind = (a_format_attribute_kind)fak_none;
       ap->variant.format.fmt_arg = 0;
       ap->variant.format.first_subst_arg = 0;
       break;
-    case ak_format_arg:
+    case gak_format_arg:
       ap->variant.fmt_arg = 0;
       break;
-    case ak_sentinel:
+    case gak_sentinel:
       ap->variant.sentinel_pos = 0;
       break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    case ak_visibility:
+    case gak_visibility:
       ap->variant.ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    case ak_constructor:
-    case ak_destructor:
-    case ak_init_priority:
+    case gak_constructor:
+    case gak_destructor:
+    case gak_init_priority:
       ap->variant.init_priority = 0;
       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    case ak_nonnull:
+    case gak_nonnull:
       ap->variant.nonnull_param = 0;
       break;
-    case ak_cleanup:
+    case gak_cleanup:
       ap->variant.cleanup_routine = NULL;
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
-    case ak_vector_size:
+    case gak_vector_size:
       ap->variant.vector_size = NULL;
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -760,98 +761,98 @@ pointed to be "pos" can be freed when this routine returns.
   }  /* switch */
 
   return ap;
-}  /* alloc_attribute */
+}  /* alloc_gnu_attribute */
 
 
-an_attribute_ptr copy_attribute_list(an_attribute_ptr attributes)
+a_gnu_attribute_ptr copy_gnu_attribute_list(a_gnu_attribute_ptr  attributes)
 /* 
 Return a copy of the complete attribute list.
 */
 {
-  an_attribute_ptr copy = NULL;
-  an_attribute_ptr *end = &copy;
+  a_gnu_attribute_ptr  copy = NULL;
+  a_gnu_attribute_ptr  *end = &copy;
 
   while (attributes != NULL) {
-    *end = alloc_attribute(attributes->kind, &attributes->position);
+    *end = alloc_gnu_attribute(attributes->kind, &attributes->position);
     switch (attributes->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_packed:
+      case gak_packed:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case ak_unused:
-      case ak_used:
-      case ak_deprecated:
+      case gak_unused:
+      case gak_used:
+      case gak_deprecated:
 #if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-      case ak_constructor:
-      case ak_destructor:
+      case gak_constructor:
+      case gak_destructor:
 #endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-      case ak_noreturn:
-      case ak_volatile:
-      case ak_pure:
-      case ak_const:
-      case ak_weak:
-      case ak_malloc:
-      case ak_nocommon:
-      case ak_transparent_union:
+      case gak_noreturn:
+      case gak_volatile:
+      case gak_pure:
+      case gak_const:
+      case gak_weak:
+      case gak_malloc:
+      case gak_nocommon:
+      case gak_transparent_union:
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
-      case ak_naked:
+      case gak_naked:
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-      case ak_no_instrument_function:
-      case ak_no_check_memory_usage:
+      case gak_no_instrument_function:
+      case gak_no_check_memory_usage:
 #if GNU_X86_ATTRIBUTES_ALLOWED
-      case ak_stdcall:
-      case ak_cdecl:
+      case gak_stdcall:
+      case gak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-      case ak_strong:
-      case ak_noinline:
-      case ak_always_inline:
-      case ak_nothrow:
-      case ak_warn_unused_result:
+      case gak_strong:
+      case gak_noinline:
+      case gak_always_inline:
+      case gak_nothrow:
+      case gak_warn_unused_result:
         /* No variant fields. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
+      case gak_aligned:
         (*end)->variant.alignment = attributes->variant.alignment;
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case ak_mode:
+      case gak_mode:
         (*end)->variant.mode = attributes->variant.mode;
         break;
-      case ak_section:
+      case gak_section:
         (*end)->variant.section = attributes->variant.section;
         break;
-      case ak_alias:
-      case ak_weakref:
+      case gak_alias:
+      case gak_weakref:
         (*end)->variant.alias = attributes->variant.alias;
         break;
-      case ak_format:
+      case gak_format:
         (*end)->variant.format = attributes->variant.format;
         break;
-      case ak_format_arg:
+      case gak_format_arg:
         (*end)->variant.fmt_arg = attributes->variant.fmt_arg;
         break;
-      case ak_sentinel:
+      case gak_sentinel:
         (*end)->variant.sentinel_pos = attributes->variant.sentinel_pos;
         break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      case ak_visibility:
+      case gak_visibility:
         (*end)->variant.ELF_visibility = attributes->variant.ELF_visibility;
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-      case ak_constructor:
-      case ak_destructor:
-      case ak_init_priority:
+      case gak_constructor:
+      case gak_destructor:
+      case gak_init_priority:
         (*end)->variant.init_priority = attributes->variant.init_priority;
         break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-      case ak_nonnull:
+      case gak_nonnull:
         (*end)->variant.nonnull_param = attributes->variant.nonnull_param;
         break;
-      case ak_cleanup:
+      case gak_cleanup:
         (*end)->variant.cleanup_routine = attributes->variant.cleanup_routine;
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
         (*end)->variant.vector_size = attributes->variant.vector_size;
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -864,16 +865,16 @@ Return a copy of the complete attribute list.
   }  /* while */
 
   return copy;
-}  /* copy_attribute_list */
+}  /* copy_gnu_attribute_list */
 
 
-void free_attribute_list(an_attribute_ptr  ap)
+void free_gnu_attribute_list(a_gnu_attribute_ptr  ap)
 /*
 Free the storage associated with the entire list of attributes given by
 ap.  ap may be NULL.
 */
 {
-  an_attribute_ptr  last;
+  a_gnu_attribute_ptr  last;
 
   if (ap != NULL) {
     /* Find the last attribute in the list. */
@@ -882,10 +883,10 @@ ap.  ap may be NULL.
     last->next = avail_attributes;
     avail_attributes = ap;
   }  /* if */
-}  /* free_attribute_list */
+}  /* free_gnu_attribute_list */
 
 
-an_attribute_ptr *last_attribute_link(an_attribute_ptr *attributes)
+a_gnu_attribute_ptr *last_gnu_attribute_link(a_gnu_attribute_ptr *attributes)
 /*
 Return the address of the last "next" pointer in the list given by
 "*attributes". ( If "*attributes" is NULL, return "attributes".)
@@ -899,7 +900,7 @@ If "attributes" itself is NULL, then return NULL.
   }  /* if */
 
   return attributes;
-}  /* last_attribute_link */
+}  /* last_gnu_attribute_link */
 
 
 static a_host_large_integer scan_integral_argument(a_boolean *err,
@@ -926,7 +927,7 @@ to TRUE, but no error message is issued.
 }  /* scan_integral_argument */
 
 
-static a_boolean scan_mode_attribute_arg(an_attribute_ptr  ap)
+static a_boolean scan_mode_attribute_arg(a_gnu_attribute_ptr  ap)
 /*
 Scan and record the mode attribute argument.  If it starts with "V1", "V2",
 "V4" or "V8", this is a vector mode.  Record the mode kind and vector length
@@ -1005,7 +1006,7 @@ done:
 }  /* scan_mode_attribute_arg */
 
 
-static a_boolean scan_attribute_arguments(an_attribute_ptr  attribute)
+static a_boolean scan_gnu_attribute_arguments(a_gnu_attribute_ptr  attribute)
 /*
 Scan the arguments to an attribute, and store them in the attribute
 provided.  Returns FALSE if the arguments are so erroneous that the
@@ -1022,7 +1023,7 @@ that do take arguments.
   /* Different kinds of attributes take different kinds of arguments.  */
   switch (attribute->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-    case ak_aligned:
+    case gak_aligned:
       { a_host_large_integer  alignment;
         a_boolean             ovflo;
         a_boolean             error_occurred;
@@ -1047,13 +1048,13 @@ that do take arguments.
       }
       break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    case ak_mode:
+    case gak_mode:
       result = scan_mode_attribute_arg(attribute);
       if (!result) goto error;
       break;
-    case ak_section:
-    case ak_alias:
-    case ak_weakref:
+    case gak_section:
+    case gak_alias:
+    case gak_weakref:
       /* Look for a string-literal giving the section or alias name. */
       if (curr_token != tok_string_literal) {
         result = FALSE;
@@ -1070,17 +1071,17 @@ that do take arguments.
          everything after the "\0".  So, storing the attribute
          argument as a character pointer, without a length, gives 
          compatibility with GCC. */
-      if (attribute->kind == (an_attribute_kind)ak_section) {
+      if (attribute->kind == (a_gnu_attribute_kind)gak_section) {
         attribute->variant.section = const_for_curr_token.variant.string.value;
       } else {
-        check_assertion(attribute->kind == (an_attribute_kind)ak_alias ||
-                        attribute->kind == (an_attribute_kind)ak_weakref);
+        check_assertion(attribute->kind == (a_gnu_attribute_kind)gak_alias ||
+                        attribute->kind == (a_gnu_attribute_kind)gak_weakref);
         attribute->variant.alias = const_for_curr_token.variant.string.value;
       }  /* if */
       /* Consume the string literal. */
       (void)get_token();
       break;
-    case ak_format:
+    case gak_format:
       { a_host_large_integer  param_number;
         a_boolean             error_occurred;
         a_boolean             ovflo;
@@ -1135,7 +1136,7 @@ that do take arguments.
         }  /* if */
       }
       break;
-    case ak_format_arg:
+    case gak_format_arg:
       { a_host_large_integer  param_number;
         a_boolean             error_occurred;
         a_boolean             ovflo;
@@ -1157,7 +1158,7 @@ that do take arguments.
         result = TRUE;
       }
       break;
-    case ak_sentinel:
+    case gak_sentinel:
       { a_host_large_integer  param_number;
         a_boolean             error_occurred;
         a_boolean             ovflo;
@@ -1183,7 +1184,7 @@ that do take arguments.
       }
       break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    case ak_visibility:
+    case gak_visibility:
       { /* Look for a string-literal specifying the visibility. */
         if (curr_token != tok_string_literal) {
           result = FALSE;
@@ -1208,9 +1209,9 @@ that do take arguments.
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    case ak_constructor:
-    case ak_destructor:
-    case ak_init_priority:
+    case gak_constructor:
+    case gak_destructor:
+    case gak_init_priority:
       { a_host_large_integer  priority;
         a_boolean             error_occurred;
         a_boolean             ovflo;
@@ -1226,10 +1227,11 @@ that do take arguments.
           goto error;
         } else if (priority < 101) {
           /* Priorities 1 through 100 are reserved for internal use. */
-          pos_warning(attribute->kind == (an_attribute_kind)ak_init_priority ?
+          pos_warning(
+                attribute->kind == (a_gnu_attribute_kind)gak_init_priority ?
                         ec_init_priority_reserved :
                         ec_ctor_dtor_priority_reserved,
-                      &attribute->position);
+                &attribute->position);
         }  /* if */
         /* Remember the value. */
         attribute->variant.init_priority = priority;
@@ -1238,11 +1240,11 @@ that do take arguments.
       }
       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    case ak_nonnull:
+    case gak_nonnull:
       { a_host_large_integer  param_number;
         a_boolean             error_occurred;
         a_boolean             ovflo;
-        an_attribute_ptr      ap = attribute;
+        a_gnu_attribute_ptr   ap = attribute;
         /* If things go well, result will be reset to TRUE. */
         result = FALSE;
         do {
@@ -1261,7 +1263,7 @@ that do take arguments.
           if (curr_token == tok_comma) {
             /* Another parameter number follows: Allocate a separate attribute
                entry for it. */
-            ap->next = alloc_attribute(ap->kind, &ap->position);
+            ap->next = alloc_gnu_attribute(ap->kind, &ap->position);
             ap = ap->next;
           }  /* if */
         } while (loop_token(tok_comma));
@@ -1269,7 +1271,7 @@ that do take arguments.
         result = TRUE;
       }
       break;
-    case ak_cleanup:
+    case gak_cleanup:
       result = FALSE;
       if (curr_token != tok_identifier || next_token() != tok_rparen) {
         goto error;
@@ -1286,7 +1288,7 @@ that do take arguments.
       }  /* if */
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
-    case ak_vector_size:
+    case gak_vector_size:
       { a_constant  arg;
         scan_integral_constant_expression(&arg);
         attribute->variant.vector_size = alloc_shareable_constant(&arg);
@@ -1305,72 +1307,72 @@ error:
 
 done:
   return result;
-}  /* scan_attribute_arguments */
+}  /* scan_gnu_attribute_arguments */
 
 
-static void clear_disabled_attributes(an_attribute_kind  *kind)
+static void clear_disabled_attributes(a_gnu_attribute_kind  *kind)
 /*
 Some attributes are only applicable in either GNU C or GNU C++ mode, but
 not both.  Others are only recognized in some configurations or for certain
 values of gnu_version.  If we are in a mode or configuration for which *kind
-is not a recognized kind of attribute, set *kind to ak_last.
+is not a recognized kind of attribute, set *kind to gak_last.
 */
 {
   unsigned long  min_gnu_version = MIN_GNU_VERSION, max_gnu_version = 999999;
 
   switch (*kind) {
-    case ak_deprecated:
+    case gak_deprecated:
       min_gnu_version = 30100;
       break;
-    case ak_nocommon:
-    case ak_transparent_union:
+    case gak_nocommon:
+    case gak_transparent_union:
       if (gpp_mode) {
-        *kind = (an_attribute_kind)ak_last;
+        *kind = (a_gnu_attribute_kind)gak_last;
       }  /* if */
       break;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    case ak_init_priority:
+    case gak_init_priority:
       if (gcc_mode || !gnu_init_priority_attribute_enabled) {
-        *kind = (an_attribute_kind)ak_last;
+        *kind = (a_gnu_attribute_kind)gak_last;
       }  /* if */
       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    case ak_cleanup:
+    case gak_cleanup:
       if (gpp_mode) {
         /* Although various versions of g++ appear to recognize the "cleanup"
            attribute, they either issue a strange diagnostic for it, or they
            silently ignore the attribute.  We therefore do not accept the
            attribute in GNU C++ mode at this time. */
-        *kind = (an_attribute_kind)ak_last;
+        *kind = (a_gnu_attribute_kind)gak_last;
       }  /* if */
       break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    case ak_visibility:
+    case gak_visibility:
       if (gnu_visibility_attribute_enabled) break;
-      *kind = (an_attribute_kind)ak_last;
+      *kind = (a_gnu_attribute_kind)gak_last;
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_X86_ATTRIBUTES_ALLOWED && USE_X86_64
-    case ak_stdcall:
-    case ak_cdecl:
+    case gak_stdcall:
+    case gak_cdecl:
       /* The x86 calling convention attributes are ignored by gcc/g++ on
          x86-64 platforms. */
-      *kind = (an_attribute_kind)ak_last;
+      *kind = (a_gnu_attribute_kind)gak_last;
       break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-    case ak_weakref:
+    case gak_weakref:
       min_gnu_version = 40100;
       break;
     default:
       break;
   }  /* switch */
   if (gnu_version < min_gnu_version || gnu_version > max_gnu_version) {
-    *kind = (an_attribute_kind)ak_last;
+    *kind = (a_gnu_attribute_kind)gak_last;
   }  /* if */
 }  /* clear_disabled_attributes */
 
 
-static an_attribute_ptr *scan_attribute_list(an_attribute_ptr *next)
+static a_gnu_attribute_ptr *scan_gnu_attribute_list(a_gnu_attribute_ptr *next)
 /*
 Scan an (optional) list of attributes.  The syntax varies with the
 particular attribute.  In general, there are two forms:
@@ -1423,9 +1425,9 @@ The attributes are appended at the location pointed to by next.  This
 function returns the address of the last attribute.
 */
 {
-  an_attribute_ptr      attribute;
+  a_gnu_attribute_ptr   attribute;
   char                  *attribute_name;
-  an_attribute_kind     attribute_kind;
+  a_gnu_attribute_kind  attribute_kind;
   int                   i;
   a_source_position     pos;
 
@@ -1454,22 +1456,22 @@ function returns the address of the last attribute.
         attribute_name = locator_for_curr_id.symbol_header->identifier;
       }  /* if */
       /* Look up the attribute name. */
-      for (i = (int)ak_first; i < (int) ak_last; i++) {
+      for (i = (int)gak_first; i < (int) gak_last; i++) {
         if (same_string_ignoring_underscores(attribute_kind_names[i],
                                              attribute_name)) {
           break;
         }  /* if */
       }  /* for */
-      attribute_kind = (an_attribute_kind)i;
+      attribute_kind = (a_gnu_attribute_kind)i;
       clear_disabled_attributes(&attribute_kind);
-      if (attribute_kind == (an_attribute_kind)ak_last) {
+      if (attribute_kind == (a_gnu_attribute_kind)gak_last) {
         /* If the attribute name was not recognized issue a warning. */
         str_warning(ec_unrecognized_attribute, attribute_name);
-        attribute_kind = (an_attribute_kind)ak_error;
+        attribute_kind = (a_gnu_attribute_kind)gak_error;
         attribute = NULL;
       } else {
         /* Create a new attribute. */
-        attribute = alloc_attribute(attribute_kind, &pos);
+        attribute = alloc_gnu_attribute(attribute_kind, &pos);
       }  /* if */
       /* Bypass the attribute name and check if it is followed by arguments. */
       (void)get_token();
@@ -1478,39 +1480,39 @@ function returns the address of the last attribute.
         add_stop_token(tok_rparen);
         switch (attribute_kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-          case ak_aligned:
+          case gak_aligned:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-          case ak_mode:
-          case ak_section:
-          case ak_alias:
-          case ak_weakref:
-          case ak_format:
-          case ak_format_arg:
-          case ak_sentinel:
+          case gak_mode:
+          case gak_section:
+          case gak_alias:
+          case gak_weakref:
+          case gak_format:
+          case gak_format_arg:
+          case gak_sentinel:
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-          case ak_visibility:
+          case gak_visibility:
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-          case ak_constructor:
-          case ak_destructor:
-          case ak_init_priority:
+          case gak_constructor:
+          case gak_destructor:
+          case gak_init_priority:
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-          case ak_nonnull:
-          case ak_cleanup:
+          case gak_nonnull:
+          case gak_cleanup:
 #if GNU_VECTOR_TYPES_ALLOWED
-          case ak_vector_size:
+          case gak_vector_size:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
             /* Bypass the lparen. */
             (void)get_token();
-            if (!scan_attribute_arguments(attribute)) {
+            if (!scan_gnu_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
                  sense to ignore the attribute completely so that we
                  do not issue spurious errors later. */
-              attribute_kind = (an_attribute_kind)ak_error;
-              free_attribute_list(attribute);
+              attribute_kind = (a_gnu_attribute_kind)gak_error;
+              free_gnu_attribute_list(attribute);
             }  /* if */
             break;
-          case ak_error:
+          case gak_error:
             /* Skip over the arguments. */
             flush_until_matching_token();
             break;
@@ -1529,60 +1531,60 @@ function returns the address of the last attribute.
         /* No arguments are provided for this attribute. */
         switch (attribute_kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-          case ak_packed:
+          case gak_packed:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-          case ak_unused:
-          case ak_used:
-          case ak_deprecated:
-          case ak_constructor:
-          case ak_destructor:
-          case ak_error:
-          case ak_noreturn:
-          case ak_volatile:
-          case ak_pure:
-          case ak_const:
-          case ak_weak:
-          case ak_malloc:
-          case ak_nocommon:
-          case ak_transparent_union:
+          case gak_unused:
+          case gak_used:
+          case gak_deprecated:
+          case gak_constructor:
+          case gak_destructor:
+          case gak_error:
+          case gak_noreturn:
+          case gak_volatile:
+          case gak_pure:
+          case gak_const:
+          case gak_weak:
+          case gak_malloc:
+          case gak_nocommon:
+          case gak_transparent_union:
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
-          case ak_naked:
+          case gak_naked:
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-          case ak_no_instrument_function:
-          case ak_no_check_memory_usage:
+          case gak_no_instrument_function:
+          case gak_no_check_memory_usage:
 #if GNU_X86_ATTRIBUTES_ALLOWED
-          case ak_stdcall:
-          case ak_cdecl:
+          case gak_stdcall:
+          case gak_cdecl:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-          case ak_strong:
-          case ak_noinline:
-          case ak_always_inline:
-          case ak_nothrow:
-          case ak_weakref:
-          case ak_nonnull:
-          case ak_warn_unused_result:
+          case gak_strong:
+          case gak_noinline:
+          case gak_always_inline:
+          case gak_nothrow:
+          case gak_weakref:
+          case gak_nonnull:
+          case gak_warn_unused_result:
             /* These attributes do not take arguments (or the arguments are
                optional). */
             break;
 #if USER_CONTROL_OF_STRUCT_PACKING
-          case ak_aligned:
+          case gak_aligned:
             /* If there is no argument to the "aligned" attribute, then
                the maximum alignment useful on the target is implied. */
             attribute->variant.alignment = targ_maximum_intrinsic_alignment;
             break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-          case ak_sentinel:
+          case gak_sentinel:
             /* If there is no argument to the "sentinel" attribute, the
                sentinel position is the last argument (numbered one). */
             attribute->variant.sentinel_pos = 1;
             break;
           default:
             syntax_error(ec_exp_lparen);
-            attribute_kind = (an_attribute_kind)ak_error;
+            attribute_kind = (a_gnu_attribute_kind)gak_error;
             break;
         }  /* switch */
       } /* if */
-      if (attribute_kind != (an_attribute_kind)ak_error) { 
+      if (attribute_kind != (a_gnu_attribute_kind)gak_error) { 
         /* Add the new attributes (usually just one) to the end of the list. */
         *next = attribute;
         /* Update next to point to the last "next" pointer. */
@@ -1601,11 +1603,11 @@ function returns the address of the last attribute.
   } while (loop_token(tok_comma));
 
   return next;
-}  /* scan_attribute_list */
+}  /* scan_gnu_attribute_list */
 
 
-an_attribute_ptr f_scan_attributes(a_token_sequence_number  *last_token,
-                                   a_source_position        *end_pos)
+a_gnu_attribute_ptr f_scan_gnu_attributes(a_token_sequence_number  *last_token,
+                                          a_source_position        *end_pos)
 /*
 Scan an (optional) series of attributes.  Each has the form:
 
@@ -1618,8 +1620,8 @@ template processing).  Similarly, if end_pos is non-NULL, *end_pos is
 set to the position of the final right parenthesis.
 */
 {
-  an_attribute_ptr  attributes = NULL;
-  an_attribute_ptr  *next_attribute;
+  a_gnu_attribute_ptr  attributes = NULL;
+  a_gnu_attribute_ptr  *next_attribute;
 
   if (curr_token == tok_attribute) {
     report_gnu_extension_if_needed(&pos_curr_token,
@@ -1639,7 +1641,7 @@ set to the position of the final right parenthesis.
       /* Presumably an empty attribute. */
     } else {
       /* Scan the attribute-list and attach it to the list we already have. */
-      next_attribute = scan_attribute_list(next_attribute);
+      next_attribute = scan_gnu_attribute_list(next_attribute);
     }  /* if */
     /* There should now be two right parens. */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -1653,7 +1655,7 @@ set to the position of the final right parenthesis.
     remove_stop_token(tok_rparen);
   }  /* while */
   return attributes;
-}  /* f_scan_attributes */
+}  /* f_scan_gnu_attributes */
 
 
 a_type_ptr get_type_with_mode(a_type_ptr        type,
@@ -1755,10 +1757,10 @@ emitted is given by pos.
 }  /* get_type_with_mode */
 
 
-static a_type_ptr apply_mode_attribute(a_type_ptr        type,
-                                       an_attribute_ptr  ap)
+static a_type_ptr apply_mode_attribute(a_type_ptr           type,
+                                       a_gnu_attribute_ptr  ap)
 /*
-Apply the given ak_mode attribute to the given type and return the resulting
+Apply the given gak_mode attribute to the given type and return the resulting
 type.  If the given type is not a tk_integer or a tk_float, issue an error
 and return the given type.
 */
@@ -1785,8 +1787,8 @@ and return the given type.
 
 #if GNU_VECTOR_TYPES_ALLOWED
 
-static a_type_ptr apply_vector_size_attribute(a_type_ptr        elem_type,
-                                              an_attribute_ptr  ap)
+static a_type_ptr apply_vector_size_attribute(a_type_ptr           elem_type,
+                                              a_gnu_attribute_ptr  ap)
 /*
 Apply the given vector_size attribute to the given (element) type, and return
 the resulting type.  If the attribute is invalid, or if it does not apply to
@@ -1863,26 +1865,27 @@ a tk_vector type is returned.
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
-a_type_ptr apply_attributes_to_variable_type(an_attribute_ptr  attributes,
-                                             a_type_ptr        type)
+a_type_ptr apply_gnu_attributes_to_variable_type(
+                                              a_gnu_attribute_ptr  attributes,
+                                              a_type_ptr           type)
 /*
 A variable or field is being declared with the indicated type.  The
 attributes apply to the variable.  Return the type, appropriately
 adjusted for the attributes.  Diagnostics are not issued for invalid
 attributes.  */
 {
-  an_attribute_ptr ap;
+  a_gnu_attribute_ptr ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
+      case gak_aligned:
         /* The aligned attribute is handled by setting the alignment
            field in the variable directly, not by modifying the type of
            the variable. */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case ak_mode:
+      case gak_mode:
         /* The __mode__ attribute is used to specify the width of an
            integer, pointer, or floating-point type independent of the
            type-specifier used.  For example,
@@ -1896,16 +1899,16 @@ attributes.  */
            on a machine where sizeof(int) == 4. */
         type = apply_mode_attribute(type, ap);
         break;
-      case ak_noreturn:
-      case ak_volatile:
-      case ak_const:
+      case gak_noreturn:
+      case gak_volatile:
+      case gak_const:
 #if GNU_X86_ATTRIBUTES_ALLOWED
-      case ak_cdecl:
-      case ak_stdcall:
+      case gak_cdecl:
+      case gak_stdcall:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-      case ak_nonnull:
-      case ak_warn_unused_result:
-      case ak_format:
+      case gak_nonnull:
+      case gak_warn_unused_result:
+      case gak_format:
         /* GCC allows "nonnull", "noreturn", "volatile", "const", "cdecl",
            "stdcall", "warn_unused_result", and "format" to apply to variables
            with pointer-to-function type.  GCC does not accept "pure" in this
@@ -1916,17 +1919,17 @@ attributes.  */
                            attribute_kind_names[(int)ap->kind], type);
         } else {
           /* Temporarily remove "ap" from the attributes list so that
-             we can use copy_type_and_apply_attributes. */
-          an_attribute_ptr next = ap->next;
-          ap->next = (an_attribute_ptr)NULL;
-          type = copy_type_and_apply_attributes(ap, type, 
+             we can use copy_type_and_apply_gnu_attributes. */
+          a_gnu_attribute_ptr next = ap->next;
+          ap->next = (a_gnu_attribute_ptr)NULL;
+          type = copy_type_and_apply_gnu_attributes(ap, type, 
                                                 /*is_typedef=*/FALSE);
           /* Restore the attribute list. */
           ap->next = next;
         }
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
         type = apply_vector_size_attribute(type, ap);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -1936,13 +1939,14 @@ attributes.  */
     }  /* switch */
   }  /* for */
   return type;
-}  /* apply_attributes_to_variable_type */
+}  /* apply_gnu_attributes_to_variable_type */
 
 
-static a_boolean check_variable_is_local(a_variable_ptr     variable,
-                                         an_attribute_ptr   attribute,
-                                         a_boolean          allow_local_static,
-                                         an_error_severity  severity)
+static a_boolean check_variable_is_local(
+                                       a_variable_ptr       variable,
+                                       a_gnu_attribute_ptr  attribute,
+                                       a_boolean            allow_local_static,
+                                       an_error_severity    severity)
 /*
 The attribute only applies to variables that are not local to a function.
 If variable is not such a variable, issue a diagnostic with the given
@@ -1967,8 +1971,8 @@ are treated as non-local when allow_local_static is TRUE.
 
 
 static a_boolean check_variable_has_external_linkage(
-                                                  a_variable_ptr    variable,
-                                                  an_attribute_ptr  attribute)
+                                               a_variable_ptr       variable,
+                                               a_gnu_attribute_ptr  attribute)
 /*
 The given attribute only applies to variables with external linkage.  If the
 given variable does not have external linkage issue an error and return FALSE.
@@ -1989,8 +1993,8 @@ Otherwise, return TRUE.
 
 
 static a_boolean check_variable_has_internal_linkage(
-                                                  a_variable_ptr    variable,
-                                                  an_attribute_ptr  attribute)
+                                               a_variable_ptr       variable,
+                                               a_gnu_attribute_ptr  attribute)
 /*
 The given attribute only applies to variables with internal linkage.  If the
 given variable does not have internal linkage issue an error and return FALSE.
@@ -2010,8 +2014,8 @@ Otherwise, return TRUE.
 
 
 static a_boolean check_routine_has_external_linkage(
-                                                  a_routine_ptr     routine,
-                                                  an_attribute_ptr  attribute)
+                                               a_routine_ptr        routine,
+                                               a_gnu_attribute_ptr  attribute)
 /*
 The given attribute only applies to routines with external linkage.  If the
 given routine does not have external linkage issue an error and return FALSE.
@@ -2032,8 +2036,8 @@ Otherwise, return TRUE.
 
 
 static a_boolean check_routine_has_internal_linkage(
-                                                  a_routine_ptr     routine,
-                                                  an_attribute_ptr  attribute)
+                                               a_routine_ptr        routine,
+                                               a_gnu_attribute_ptr  attribute)
 /*
 The given attribute only applies to routines with internal linkage.  If the
 given routine does not have internal linkage issue an error and return FALSE.
@@ -2094,10 +2098,10 @@ transparent.  If not, issue a diagnostic and return FALSE.
 }  /* check_transparent_union */
 
 
-static a_boolean check_cleanup_function(a_variable_ptr    vp,
-                                        an_attribute_ptr  ap)
+static a_boolean check_cleanup_function(a_variable_ptr       vp,
+                                        a_gnu_attribute_ptr  ap)
 /*
-Check whether the given attribute of kind ak_cleanup validly applies to the
+Check whether the given attribute of kind gak_cleanup validly applies to the
 given variable.  If so, return TRUE; otherwise, return FALSE and issue a
 diagnostic.
 */
@@ -2152,24 +2156,24 @@ diagnostic.
 /*ARGSUSED*/ /* <-- is_definition is only used when the init_priority
                     attribute is enabled. */
 #endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-void apply_attributes_to_variable(an_attribute_ptr  attributes,
-                                  a_variable_ptr    vp,
-                                  a_boolean         is_definition)
+void apply_gnu_attributes_to_variable(a_gnu_attribute_ptr  attributes,
+                                      a_variable_ptr       vp,
+                                      a_boolean            is_definition)
 /*
 Apply the attributes to the indicated variable.  Issue diagnostics for
 invalid attributes.  is_definition is TRUE if and only if the given
 attributes were specified on a definition.
 */
 {
-  an_attribute_ptr  ap;
+  a_gnu_attribute_ptr  ap;
 #if USER_CONTROL_OF_STRUCT_PACKING
-  a_boolean         specifier_aligned = (vp->alignment != 0);
+  a_boolean            specifier_aligned = (vp->alignment != 0);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
+      case gak_aligned:
         if (vp->is_parameter) {
           pos_st_error(ec_parameter_attribute_invalid, &ap->position,
                        attribute_kind_names[(int)ap->kind]);
@@ -2186,47 +2190,47 @@ attributes were specified on a definition.
         }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case ak_unused:
+      case gak_unused:
         vp->has_gnu_unused_attribute = TRUE;
         break;
-      case ak_used:
+      case gak_used:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/TRUE,
                                     (an_error_severity)es_warning)) {
           vp->has_gnu_used_attribute = TRUE;
         }  /* if */
         break;
-      case ak_deprecated:
+      case gak_deprecated:
         vp->source_corresp.is_deprecated = TRUE;
         break;
-      case ak_mode:
-      case ak_noreturn:
-      case ak_volatile:
-      case ak_const:
+      case gak_mode:
+      case gak_noreturn:
+      case gak_volatile:
+      case gak_const:
 #if GNU_X86_ATTRIBUTES_ALLOWED
-      case ak_cdecl:
-      case ak_stdcall:
+      case gak_cdecl:
+      case gak_stdcall:
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-      case ak_nonnull:
-      case ak_warn_unused_result:
-      case ak_format:
+      case gak_nonnull:
+      case gak_warn_unused_result:
+      case gak_format:
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These attributes were handled in
-           apply_attributes_to_variable_type. */
+           apply_gnu_attributes_to_variable_type. */
         break;
-      case ak_weak:
+      case gak_weak:
         if (check_variable_has_external_linkage(vp, ap)) {
           vp->is_weak = TRUE;
         }  /* if */
         break;
-      case ak_section:
+      case gak_section:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/TRUE,
                                     (an_error_severity)es_error)) {
           vp->section = ap->variant.section;
         }  /* if */
         break;
-      case ak_weakref:
+      case gak_weakref:
         /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
            With gcc 4.1 they must have external linkage and with gcc 4.2
            they must have internal linkage.  (The weakref attribute is
@@ -2247,7 +2251,7 @@ attributes were specified on a definition.
                           (char*)NULL, ap->variant.alias, &ap->position);
         }  /* if */
         break;
-      case ak_alias:
+      case gak_alias:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/FALSE,
                                     (an_error_severity)es_error) &&
             (gnu_version >= 40200 ||
@@ -2256,13 +2260,13 @@ attributes were specified on a definition.
                           (char*)NULL, ap->variant.alias, &ap->position);
         }  /* if */
         break;
-      case ak_nocommon:
+      case gak_nocommon:
         if (check_variable_is_local(vp, ap, /*allow_local_static=*/TRUE,
                                     (an_error_severity)es_warning)) {
           vp->is_not_common = TRUE;
         }  /* if */
         break;
-      case ak_transparent_union:
+      case gak_transparent_union:
         if (!vp->is_parameter) {
           pos_error(ec_transparent_variable, &ap->position); 
         } else if (!is_union_type(vp->type)) {
@@ -2279,7 +2283,7 @@ attributes were specified on a definition.
         }  /* if */
         break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      case ak_visibility:
+      case gak_visibility:
         if (vp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified &&
             vp->ELF_visibility != ap->variant.ELF_visibility) {
           pos_warning(ec_gnu_visibility_conflict, &ap->position);
@@ -2289,7 +2293,7 @@ attributes were specified on a definition.
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-      case ak_init_priority:
+      case gak_init_priority:
         { a_type_ptr  tp = skip_typerefs(vp->type);
           /* Only accept the init_priority attributes on class type variables
              and on arrays of class type objects, and only on entities that
@@ -2306,7 +2310,7 @@ attributes were specified on a definition.
         }  /* if */
         break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-      case ak_cleanup:
+      case gak_cleanup:
         if (check_cleanup_function(vp, ap)) {
           vp->cleanup_routine = ap->variant.cleanup_routine;
           mark_referenced(symbol_for(ap->variant.cleanup_routine),
@@ -2323,37 +2327,37 @@ attributes were specified on a definition.
         break;
     }  /* switch */
   }  /* for */
-}  /* apply_attributes_to_variable */
+}  /* apply_gnu_attributes_to_variable */
 
 
-void apply_attributes_to_field(an_attribute_ptr attributes,
-                               a_field_ptr      fp)
+void apply_gnu_attributes_to_field(a_gnu_attribute_ptr  attributes,
+                                   a_field_ptr          fp)
 /* 
 Apply the attributes to the indicated field.  Issue diagnostic
 messages about any invalid attributes.
 */
 {
-  an_attribute_ptr  ap;
+  a_gnu_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
-      case ak_mode:
-      case ak_noreturn:
-      case ak_volatile:
-      case ak_const:
-      case ak_nonnull:
-      case ak_warn_unused_result:
+      case gak_mode:
+      case gak_noreturn:
+      case gak_volatile:
+      case gak_const:
+      case gak_nonnull:
+      case gak_warn_unused_result:
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These attributes were handled in
-           apply_attributes_to_variable_type. */
+           apply_gnu_attributes_to_variable_type. */
         break;
-      case ak_deprecated:
+      case gak_deprecated:
         fp->source_corresp.is_deprecated = TRUE;
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
+      case gak_aligned:
         {
           /* Apply the specified alignment.  This may be an increase or a
              decrease compared to the natural alignment of the type, but
@@ -2366,7 +2370,7 @@ messages about any invalid attributes.
           fp->alignment = eff_alignment;
         }
         break;
-      case ak_packed:
+      case gak_packed:
         /* If a field is declared to be "packed", then it is aligned on
            a character boundary.  (However, we don't set the "alignment"
            field because that would indicate that the "aligned" attribute
@@ -2381,7 +2385,7 @@ messages about any invalid attributes.
         break;
     }  /* switch */
   }  /* for */
-}  /* apply_attributes_to_field */
+}  /* apply_gnu_attributes_to_field */
 
 
 static void ensure_routine_type_is_modifiable(a_type_ptr  *tp)
@@ -2400,9 +2404,9 @@ the case.
               typeref_is_decltype_or_typeof(*tp))) {
     /* We cannot apply the attribute to the type underlying the typedef.
        So make a copy of that type. */
-    *tp = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
-                                         skip_typerefs(*tp),
-                                         /*is_typedef=*/FALSE);
+    *tp = copy_type_and_apply_gnu_attributes((a_gnu_attribute_ptr)NULL,
+                                             skip_typerefs(*tp),
+                                             /*is_typedef=*/FALSE);
   } else {
     unexpected_condition();
   }  /* if */
@@ -2455,10 +2459,10 @@ parameter has a nonpointer type).
 }  /* record_nonnull_parameter */
 
 
-static void apply_format_attribute(an_attribute_ptr  ap,
-                                   a_type_ptr        rtp)
+static void apply_format_attribute(a_gnu_attribute_ptr  ap,
+                                   a_type_ptr           rtp)
 /*
-Apply the given ak_format attribute to the given routine type.  Issue
+Apply the given gak_format attribute to the given routine type.  Issue
 diagnostics as appropriate.
 */
 {
@@ -2542,20 +2546,20 @@ diagnostics as appropriate.
 }  /* apply_format_attribute */
 
 
-void apply_attributes_to_routine(an_attribute_ptr  attributes,
-                                 a_routine_ptr     rp)
+void apply_gnu_attributes_to_routine(a_gnu_attribute_ptr  attributes,
+                                     a_routine_ptr        rp)
 /*
 Apply the attributes to the indicated routine.  Issue diagnostic
 messages about any invalid attributes.
 */
 {
-  an_attribute_ptr  ap;
-  a_boolean         referenced = FALSE;
+  a_gnu_attribute_ptr  ap;
+  a_boolean            referenced = FALSE;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     an_error_severity  invalid_severity = es_warning;
     switch (ap->kind) {
-      case ak_constructor:
+      case gak_constructor:
         rp->is_initialization_routine = TRUE;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
         if (ap->variant.init_priority != 0) {
@@ -2566,7 +2570,7 @@ messages about any invalid attributes.
            it as referenced. */
         referenced = TRUE;
         break;
-      case ak_destructor:
+      case gak_destructor:
         rp->is_finalization_routine = TRUE;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
         if (ap->variant.init_priority != 0) {
@@ -2577,31 +2581,32 @@ messages about any invalid attributes.
            it as referenced. */
         referenced = TRUE;
         break;
-      case ak_unused:
+      case gak_unused:
         rp->has_gnu_unused_attribute = TRUE;
         break;
-      case ak_used:
+      case gak_used:
         rp->has_gnu_used_attribute = TRUE;
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
         mark_as_needed((char*)rp, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
         break;
-      case ak_deprecated:
+      case gak_deprecated:
         rp->source_corresp.is_deprecated = TRUE;
         break;
-      case ak_pure:
+      case gak_pure:
         rp->is_pure = TRUE;
         break;
-      case ak_noreturn:
-      case ak_volatile:
-      case ak_const:
-      case ak_warn_unused_result:
+      case gak_noreturn:
+      case gak_volatile:
+      case gak_const:
+      case gak_warn_unused_result:
         { a_routine_type_supplement_ptr  rtsp;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
-          if (ap->kind == (an_attribute_kind)ak_const) {
+          if (ap->kind == (a_gnu_attribute_kind)gak_const) {
             rtsp->is_const = TRUE;
-          } else if (ap->kind == (an_attribute_kind)ak_warn_unused_result) {
+          } else if (ap->kind ==
+                               (a_gnu_attribute_kind)gak_warn_unused_result) {
             if (is_void_type(
                       skip_typerefs(rp->type)->variant.routine.return_type)) {
               pos_warning(ec_warn_unused_result_with_void_return,
@@ -2615,20 +2620,20 @@ messages about any invalid attributes.
           }  /* if */
         }
         break;
-      case ak_nonnull:
+      case gak_nonnull:
         record_nonnull_parameter(&rp->type, ap->variant.nonnull_param,
                                  &ap->position);
         break;
-      case ak_weak:
+      case gak_weak:
         if (check_routine_has_external_linkage(rp, ap)) {
           rp->is_weak = TRUE;
         }  /* if */
         break;
-      case ak_section:
+      case gak_section:
         rp->section = ap->variant.section;
         break;
-      case ak_weakref:
-      case ak_alias:
+      case gak_weakref:
+      case gak_alias:
         if (gnu_version >= 40000 && innermost_function_scope != NULL) {
           /* Recent versions of GCC ignore attributes on block-extern function
              declarations. */
@@ -2636,7 +2641,7 @@ messages about any invalid attributes.
                          attribute_kind_names[(int)ap->kind]);
           break;
         }  /* if */
-        if (ap->kind == (an_attribute_kind)ak_weakref) {
+        if (ap->kind == (a_gnu_attribute_kind)gak_weakref) {
           /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
              With gcc 4.1 they must have external linkage and with gcc 4.2
              they must have internal linkage.  (The weakref attribute is
@@ -2673,16 +2678,16 @@ messages about any invalid attributes.
         add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
                         (char*)NULL, ap->variant.alias, &ap->position);
         break;
-      case ak_malloc:
+      case gak_malloc:
         /* GCC does not issue any diagnostics if the routine does not
            return a pointer type. */
         rp->allocates_memory = TRUE;
         break;
-      case ak_format:
+      case gak_format:
         ensure_routine_type_is_modifiable(&rp->type);
         apply_format_attribute(ap, rp->type);
         break;
-      case ak_format_arg:
+      case gak_format_arg:
         { a_routine_type_supplement_ptr rtsp;
           a_param_type_ptr              ptp;
           a_boolean                     error_occurred = FALSE;
@@ -2722,7 +2727,7 @@ messages about any invalid attributes.
           }  /* if */
         }
         break;
-      case ak_sentinel:
+      case gak_sentinel:
         { a_routine_type_supplement_ptr rtsp;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
@@ -2735,18 +2740,18 @@ messages about any invalid attributes.
         }
         break;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
-      case ak_naked:
+      case gak_naked:
         rp->is_naked = TRUE;
         break;
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-      case ak_no_instrument_function:
+      case gak_no_instrument_function:
         rp->no_instrument_function = TRUE;
         break;
-      case ak_no_check_memory_usage:
+      case gak_no_check_memory_usage:
         rp->no_check_memory_usage = TRUE;
         break;
 #if GNU_X86_ATTRIBUTES_ALLOWED
-      case ak_cdecl:
+      case gak_cdecl:
         { a_routine_type_supplement_ptr rtsp;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
@@ -2757,7 +2762,7 @@ messages about any invalid attributes.
           }  /* if */
         }
         break;
-      case ak_stdcall:
+      case gak_stdcall:
         { a_routine_type_supplement_ptr rtsp;
           ensure_routine_type_is_modifiable(&rp->type);
           rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
@@ -2766,7 +2771,7 @@ messages about any invalid attributes.
         break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      case ak_visibility:
+      case gak_visibility:
         if (rp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified &&
             rp->ELF_visibility != ap->variant.ELF_visibility) {
           pos_warning(ec_gnu_visibility_conflict, &ap->position);
@@ -2775,22 +2780,22 @@ messages about any invalid attributes.
         }  /* if */
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-      case ak_noinline:
+      case gak_noinline:
         rp->never_inline = TRUE;
         if (rp->is_inline) {
           pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
         }  /* if */
         set_inline_flag(rp, FALSE);
         break;
-      case ak_always_inline:
+      case gak_always_inline:
         set_inline_flag(rp, TRUE);
         rp->always_inline = TRUE;
         break;
-      case ak_nothrow:
+      case gak_nothrow:
         rp->never_throws = TRUE;
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
         { a_type_ptr  rtp;
           ensure_routine_type_is_modifiable(&rp->type);
           rtp = skip_typerefs(rp->type);
@@ -2800,7 +2805,7 @@ messages about any invalid attributes.
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
+      case gak_aligned:
         if (gnu_version >= 40300) {
           ensure_routine_type_is_modifiable(&rp->type);
           skip_typerefs(rp->type)->alignment = ap->variant.alignment;
@@ -2825,12 +2830,13 @@ messages about any invalid attributes.
     mark_referenced((a_symbol_ptr)rp->source_corresp.assoc_info,
                     &pos_curr_token);
   }  /* if */
-}  /* apply_attributes_to_routine */
+}  /* apply_gnu_attributes_to_routine */
 
 
-static void apply_attribute_to_routine_type(an_attribute_ptr  ap,
-                                            a_type_ptr        tp,
-                                            a_boolean         is_typedef)
+static void apply_gnu_attribute_to_routine_type(
+                                              a_gnu_attribute_ptr  ap,
+                                              a_type_ptr           tp,
+                                              a_boolean            is_typedef)
 /*
 Apply the given attribute to the given type.  The attributes handled here are
 "noreturn"/"volatile", "const", "warn_unused_result", and "format".  tp can be
@@ -2852,27 +2858,27 @@ differently and we emulate that different behavior (elsewhere).
     pos_stty_warning(ec_attr_requires_func_type, &ap->position,
                      attribute_kind_names[(int)ap->kind], tp);
   } else if (ptr_type == NULL &&
-             ap->kind != (an_attribute_kind)ak_warn_unused_result &&
-             ap->kind != (an_attribute_kind)ak_format) {
+             ap->kind != (a_gnu_attribute_kind)gak_warn_unused_result &&
+             ap->kind != (a_gnu_attribute_kind)gak_format) {
     pos_st_warning(ec_attr_requires_ptr_to_func_type, &ap->position,
                    attribute_kind_names[(int)ap->kind]);
   } else {
     if (ptr_type != NULL) {
-      tp = copy_type_and_apply_attributes(
-                                (an_attribute_ptr)NULL, tp, is_typedef);
+      tp = copy_type_and_apply_gnu_attributes(
+                                (a_gnu_attribute_ptr)NULL, tp, is_typedef);
       ptr_type->variant.pointer.type = tp;
     }  /* if */
     tp = skip_typerefs(tp);
     switch (ap->kind) {
-      case ak_noreturn:
-      case ak_volatile:
+      case gak_noreturn:
+      case gak_volatile:
         /* Note that "volatile" is a synonym for "noreturn". */
         tp->variant.routine.extra_info->does_not_return = TRUE;
         break;
-      case ak_const:
+      case gak_const:
         tp->variant.routine.extra_info->is_const = TRUE;
         break;
-      case ak_warn_unused_result:
+      case gak_warn_unused_result:
         if (is_void_type(tp->variant.routine.return_type)) {
           pos_warning(ec_warn_unused_result_with_void_return,
                       &ap->position);
@@ -2880,18 +2886,18 @@ differently and we emulate that different behavior (elsewhere).
           tp->variant.routine.extra_info->result_should_be_used = TRUE;
         }  /* if */
         break;
-      case ak_format:
+      case gak_format:
         apply_format_attribute(ap, tp);
         break;
       default:
         unexpected_condition();
     }  /* switch */
   }  /* if */
-}  /* apply_attribute_to_routine_type */
+}  /* apply_gnu_attribute_to_routine_type */
 
 
-static a_boolean check_class_type_can_be_packed(a_type_ptr        tp,
-                                                an_attribute_ptr  ap)
+static a_boolean check_class_type_can_be_packed(a_type_ptr           tp,
+                                                a_gnu_attribute_ptr  ap)
 /*
 tp is a class_type on which the given "packed" attribute has been specified.
 Return TRUE if the type can indeed be packed; otherwise, return FALSE and
@@ -2920,9 +2926,9 @@ issue diagnostics as appropriate.
 }  /* check_class_type_can_be_packed */
 
 
-static void apply_one_attribute_to_type(an_attribute_ptr  ap,
-                                        a_type_ptr        type,
-                                        a_boolean         is_typedef)
+static void apply_one_attribute_to_type(a_gnu_attribute_ptr  ap,
+                                        a_type_ptr           type,
+                                        a_boolean            is_typedef)
 /*
 Apply the attribute ap to the type tp.  If this attribute is applied through
 a typedef, is_typedef is TRUE.
@@ -2932,7 +2938,7 @@ a typedef, is_typedef is TRUE.
 
   switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
-    case ak_aligned:
+    case gak_aligned:
       /* Set the alignment here.  When the actual class layout, or
          choice of integral type, is performed the value indicated
          here will be honored.  Note that this attribute applies to
@@ -2940,7 +2946,7 @@ a typedef, is_typedef is TRUE.
       type->alignment = ap->variant.alignment;
       type->alignment_set_explicitly = TRUE;
       break;
-    case ak_packed:
+    case gak_packed:
       if (is_typedef) {
         pos_warning(ec_packed_attribute_ignored_in_typedef, &ap->position);
       } else if (is_immediate_enum_type(tp)) {
@@ -2960,7 +2966,7 @@ a typedef, is_typedef is TRUE.
       }  /* if */
       break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    case ak_mode:
+    case gak_mode:
       mode_type = apply_mode_attribute(tp, ap);
       if (tp->kind != (a_type_kind)tk_integer &&
           tp->kind != (a_type_kind)tk_float) {
@@ -2982,22 +2988,22 @@ a typedef, is_typedef is TRUE.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       }  /* if */
       break;
-    case ak_unused:
+    case gak_unused:
       /* If this is a typedef, the attribute is attached to it rather than
          to the underlying type. */
       type->variables_are_implicitly_referenced = TRUE;
       break;
-    case ak_deprecated:
+    case gak_deprecated:
       type->source_corresp.is_deprecated = TRUE;
       break;
-    case ak_noreturn:
-    case ak_volatile:
-    case ak_const:
-    case ak_warn_unused_result:
-    case ak_format:
-      apply_attribute_to_routine_type(ap, tp, is_typedef);
+    case gak_noreturn:
+    case gak_volatile:
+    case gak_const:
+    case gak_warn_unused_result:
+    case gak_format:
+      apply_gnu_attribute_to_routine_type(ap, tp, is_typedef);
       break;
-    case ak_transparent_union:
+    case gak_transparent_union:
       {
         /* If tp is a typedef, the transparent_union attribute applies to
            the underlying type. */
@@ -3018,7 +3024,7 @@ a typedef, is_typedef is TRUE.
         }  /* if */
       }
       break;
-    case ak_sentinel:
+    case gak_sentinel:
       { a_type_ptr  *p_rtp = NULL;
         /* The attribute applies to function types, as well as to pointer- and
            reference-to-function types. */
@@ -3041,15 +3047,15 @@ a typedef, is_typedef is TRUE.
              was shared (presumably through a typedef).  This could be
              optimized, but since this attribute is relatively rare, it is
              not worth the additional code complexity. */
-          *p_rtp = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
-                                                  *p_rtp, is_typedef);
+          *p_rtp = copy_type_and_apply_gnu_attributes(
+                               (a_gnu_attribute_ptr)NULL, *p_rtp, is_typedef);
           (*p_rtp)->variant.routine.extra_info->sentinel_pos =
                                                      ap->variant.sentinel_pos;
         }  /* if */
       }
       break;
 #if GNU_X86_ATTRIBUTES_ALLOWED
-    case ak_cdecl:
+    case gak_cdecl:
       { a_routine_type_supplement_ptr rtsp;
         if (is_pointer_type(tp)) {
           /* This attribute can be applied to both function types and
@@ -3070,7 +3076,7 @@ a typedef, is_typedef is TRUE.
         }  /* if */
       }
       break;
-    case ak_stdcall:
+    case gak_stdcall:
       { a_routine_type_supplement_ptr rtsp;
         if (is_pointer_type(tp)) {
           /* This attribute can be applied to both function types and
@@ -3089,7 +3095,7 @@ a typedef, is_typedef is TRUE.
       break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    case ak_visibility:
+    case gak_visibility:
       if (!C_mode() && is_immediate_class_type(tp) && gnu_version >= 40000 &&
           !class_type_has_body(tp)) {
         a_class_type_supplement_ptr
@@ -3103,7 +3109,7 @@ a typedef, is_typedef is TRUE.
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
         if (is_typedef) {
           /* Change the underlying type. */
           a_type_ptr  *ptp = &type->variant.typeref.type;
@@ -3121,9 +3127,9 @@ a typedef, is_typedef is TRUE.
 }  /* apply_one_attribute_to_type */
 
 
-void apply_attributes_to_type(an_attribute_ptr attributes,
-                              a_type_ptr       tp,
-                              a_boolean        is_typedef)
+void apply_gnu_attributes_to_type(a_gnu_attribute_ptr  attributes,
+                                  a_type_ptr           tp,
+                                  a_boolean            is_typedef)
 /*
 Apply the attributes to the indicated type, which must not be a
 typeref.  Issue diagnostic messages about any invalid attributes.  If
@@ -3132,18 +3138,19 @@ typedef declaration.  This routine modifies tp in place; the caller
 must make a copy if tp may already be shared.
 */
 {
-  an_attribute_ptr  ap;
+  a_gnu_attribute_ptr  ap;
 
   check_assertion(tp->kind != (a_type_kind)tk_typeref);
   for (ap = attributes; ap != NULL; ap = ap->next) {
     apply_one_attribute_to_type(ap, tp, is_typedef);
   }  /* for */
-}  /* apply_attributes_to_type */
+}  /* apply_gnu_attributes_to_type */
 
 
-static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
-                                                 a_type_ptr       tp,
-                                                 a_boolean        is_typedef)
+static a_type_ptr copy_type_and_apply_gnu_attributes(
+                                               a_gnu_attribute_ptr attributes,
+                                               a_type_ptr       tp,
+                                               a_boolean        is_typedef)
 /*
 Make a copy of tp and apply the attributes to the copy.  Return the
 newly created type.  If is_typedef is TRUE, tp is a new typedef.
@@ -3166,16 +3173,16 @@ The given type should not be a class or enum type.
   copy->source_corresp.has_associated_pragma = FALSE;
   copy->copy_with_additional_attributes = TRUE;
   /* Apply the attributes to the copy. */
-  apply_attributes_to_type(attributes, copy, is_typedef);
+  apply_gnu_attributes_to_type(attributes, copy, is_typedef);
   /* Create an appropriately qualified version of the copy. */
   copy = make_qualified_type(copy, qualifiers);
 
   return copy;
-}  /* copy_type_and_apply_attributes */
+}  /* copy_type_and_apply_gnu_attributes */
 
 
-a_type_ptr apply_type_transforming_attributes(a_type_ptr        tp,
-                                              an_attribute_ptr  *ap)
+a_type_ptr apply_type_transforming_attributes(a_type_ptr           tp,
+                                              a_gnu_attribute_ptr  *ap)
 /*
 If the given attribute list contains attributes that transform type tp to
 the point of making it incompatible (wrt. redeclarations) with the original
@@ -3183,15 +3190,15 @@ type, return a type with those attributes applied and remove those attributes
 from the list.
 */
 {
-  a_type_ptr        result = tp;
-  an_attribute_ptr  to_apply = NULL, *tail = &to_apply, tap;
+  a_type_ptr           result = tp;
+  a_gnu_attribute_ptr  to_apply = NULL, *tail = &to_apply, tap;
 
   /* First extract the type-transforming attributes into a separate list. */
   while (*ap != NULL) {
     switch ((*ap)->kind) {
-      case ak_mode:
+      case gak_mode:
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         *tail = *ap;
         *ap = (*ap)->next;
@@ -3206,11 +3213,11 @@ from the list.
   result = tp;
   for (tap = to_apply; tap != NULL; tap = tap->next) {
     switch (tap->kind) {
-      case ak_mode:
+      case gak_mode:
         result = apply_mode_attribute(result, tap);
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
-      case ak_vector_size:
+      case gak_vector_size:
         { a_type_ptr  *pet = &result;
           /* If we're applying this to a routine type, the pointer to the
              element type (pet) should point to the return type. */
@@ -3226,14 +3233,14 @@ from the list.
         unexpected_condition();
     }  /* switch */
   }  /* for */
-  free_attribute_list(to_apply);
+  free_gnu_attribute_list(to_apply);
   return result;
 }  /* apply_type_transforming_attributes */
 
 
-void apply_attributes_to_typedef(an_attribute_ptr  attributes,
-                                 a_type_ptr        tp,
-                                 a_boolean         linkage_name)
+void apply_gnu_attributes_to_typedef(a_gnu_attribute_ptr  attributes,
+                                     a_type_ptr        tp,
+                                     a_boolean         linkage_name)
 /* 
 Apply the attributes to the indicated type, which is a new typedef.
 For certain underlying types (e.g., routine types) it is safe to make
@@ -3243,8 +3250,8 @@ linkage_name is TRUE and the attributes can be applied directly to the
 underlying type.
 */
 {
-  a_type_ptr        dst, underlying_type = skip_typerefs(tp);
-  an_attribute_ptr  ap;
+  a_type_ptr           dst, underlying_type = skip_typerefs(tp);
+  a_gnu_attribute_ptr  ap;
 
   check_assertion(tp->kind == (a_type_kind)tk_typeref &&
                   typeref_is_typedef(tp));
@@ -3278,20 +3285,20 @@ underlying type.
   for (ap = attributes; ap != NULL; ap = ap->next) {
     apply_one_attribute_to_type(ap, dst, /*is_typedef=*/TRUE);
   }  /* for */
-}  /* apply_attributes_to_typedef */
+}  /* apply_gnu_attributes_to_typedef */
 
 
-void apply_attributes_to_label(an_attribute_ptr  attributes,
-                               a_label_ptr       label)
+void apply_gnu_attributes_to_label(a_gnu_attribute_ptr  attributes,
+                                   a_label_ptr          label)
 /*
 Apply the given attributes to the indicated label (if applicable).
 */
 {
-  an_attribute_ptr  ap;
+  a_gnu_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
-      case ak_unused:
+      case gak_unused:
         label->has_gnu_unused_attribute = TRUE;
         break;
       default:
@@ -3302,25 +3309,25 @@ Apply the given attributes to the indicated label (if applicable).
         break;
     }  /* switch */
   }  /* for */
-}  /* apply_attributes_to_label */
+}  /* apply_gnu_attributes_to_label */
 
 
-void apply_attributes_to_using_directive(an_attribute_ptr	attributes,
-					 a_using_decl_ptr	udp,
-					 a_namespace_ptr	nsp)
+void apply_gnu_attributes_to_using_directive(a_gnu_attribute_ptr  attributes,
+					     a_using_decl_ptr     udp,
+					     a_namespace_ptr      nsp)
 /*
 Apply the given attributes to the indicated using-directive (if applicable).
 "nsp" is the namespace nominated by the using-directive "udp".
 */
 {
-  an_attribute_ptr			ap;
-  a_namespace_symbol_supplement_ptr	nssp;
-  a_namespace_list_entry_ptr		nlep;
-  a_scope_stack_entry_ptr		ssep;
+  a_gnu_attribute_ptr                ap;
+  a_namespace_symbol_supplement_ptr  nssp;
+  a_namespace_list_entry_ptr         nlep;
+  a_scope_stack_entry_ptr            ssep;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
-      case ak_strong:
+      case gak_strong:
         udp->strong = TRUE;
         ssep = scope_stack_entry_for(depth_scope_stack);
         /* Because the strong using-directive makes use of the
@@ -3348,7 +3355,7 @@ Apply the given attributes to the indicated using-directive (if applicable).
         break;
     }  /* switch */
   }  /* for */
-}  /* apply_attributes_to_using_directive */
+}  /* apply_gnu_attributes_to_using_directive */
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
@@ -3386,7 +3393,7 @@ definition.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
-void apply_attributes_to_current_namespace(an_attribute_ptr  attributes)
+void apply_gnu_attributes_to_current_namespace(a_gnu_attribute_ptr  attributes)
 /*
 The top entry on the scope stack is a sck_namespace or sck_namespace_extension
 entry.  Apply the given list of attributes to the associated namespace and/or
@@ -3402,14 +3409,14 @@ really applies to the declarative region of a namespace definition; e.g.:
 */
 {
   a_scope_stack_entry_ptr  sp = &scope_stack_top();
-  an_attribute_ptr         ap = attributes;
+  a_gnu_attribute_ptr      ap = attributes;
 
   check_assertion(sp->kind == (a_scope_kind)sck_namespace ||
                   sp->kind == (a_scope_kind)sck_namespace_extension);
   for (; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      case ak_visibility:
+      case gak_visibility:
         apply_ELF_visibility_to_current_namespace(ap->variant.ELF_visibility);
         break;
 #else /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -3420,11 +3427,11 @@ really applies to the declarative region of a namespace definition; e.g.:
                        symbol_for(sp->assoc_namespace));
     }  /* switch */
   }  /* for */
-}  /* apply_attributes_to_current_namespace */
+}  /* apply_gnu_attributes_to_current_namespace */
 
 
-void check_for_invalid_param_attributes(a_symbol_ptr     sym,
-                                        an_attribute_ptr attributes)
+void check_for_invalid_param_attributes(a_symbol_ptr         sym,
+                                        a_gnu_attribute_ptr  attributes)
 /*
 sym is the symbol for a parameter that was present in a function
 that was declared, but not defined.  It will be NULL if the
@@ -3433,20 +3440,20 @@ Issue error messages about any attributes that are not valid
 for a parameter.
 */
 {
-  an_attribute_ptr ap;
+  a_gnu_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     switch (ap->kind) {
-      case ak_mode:
+      case gak_mode:
         /* These attributes apply to the type of the parameter, so
            they are OK. */
         break;
-      case ak_unused:
+      case gak_unused:
         /* These attributes are ignored by GNU C when not appearing as part of
            a function definition.  We extend that behavior to GNU C++ mode. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
-      case ak_aligned:
+      case gak_aligned:
         /* These attributes apply to the variable itself and so are
            not permitted here. */
         pos_st_error(ec_attribute_only_in_func_def, &ap->position, 
@@ -3613,8 +3620,8 @@ attributes.
   }  /* if */
   /* Check that the table of attribute names is correctly
      initialized. */
-  if (attribute_kind_names[(int)ak_last] == NULL ||
-      strcmp(attribute_kind_names[(int)ak_last], "last") != 0) {
+  if (attribute_kind_names[(int)gak_last] == NULL ||
+      strcmp(attribute_kind_names[(int)gak_last], "last") != 0) {
     internal_error(
      "attribute_one_time_init: initialization of attribute_kind_names is bad");
   }  /* if */
@@ -3637,7 +3644,7 @@ attributes.
       pch_saved_var_array_elem(avail_alias_fixups),
 #if DEBUG
 #if GNU_EXTENSIONS_ALLOWED
-      pch_saved_var_array_elem(num_attributes_allocated),
+      pch_saved_var_array_elem(num_gnu_attributes_allocated),
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_alias_fixups_allocated),
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
@@ -3692,7 +3699,7 @@ be initialized for each compilation.
   pragma_extname_string_space = 0;
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
-  num_attributes_allocated = 0;
+  num_gnu_attributes_allocated = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 }  /* attribute_init */
@@ -3710,7 +3717,8 @@ entities.
 
   db_space_used_header("GNU attributes use:");
 #if GNU_EXTENSIONS_ALLOWED
-  db_space_used("GNU attributes", num_attributes_allocated, an_attribute);
+  db_space_used("GNU attributes", num_gnu_attributes_allocated,
+                a_gnu_attribute);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   db_space_used_lost("GNU visibility stack",
                      avail_ELF_visibility_stack_entries,

@@ -430,16 +430,16 @@ typedef struct a_decl_parse_state {
 		asm_name_pos;
 			/* The position of the string literal specified by a
 			   GNU asm name construct (if any). */
-  an_attribute_ptr
-		attributes;
+  a_gnu_attribute_ptr
+		gnu_attributes;
 			/* A list of GNU attributes scanned for the current
 			   declaration. */
-  an_attribute_ptr
-		*p_declarator_attributes;
-			/* A pointer to the pointer in the attributes list
+  a_gnu_attribute_ptr
+		*p_gnu_declarator_attributes;
+			/* A pointer to the pointer in the GNU attributes list
 			   that points to the declarator attributes.
 			   (If there are only declarator attributes, this
-			   points to the "attributes" field itself.) */
+			   points to the "gnu_attributes" field itself.) */
   a_named_register_id
 		register_id;
 			/* An integer representing a named register storage
@@ -525,7 +525,7 @@ argument.
 #define init_decl_parse_state(ps) {                                          \
   *(ps) = null_decl_parse_state;                                             \
   (ps)->start_pos = pos_curr_token;                                          \
-  (ps)->p_declarator_attributes = &(ps)->attributes;                         \
+  (ps)->p_gnu_declarator_attributes = &(ps)->gnu_attributes;                 \
 }
 
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
@@ -621,7 +621,7 @@ a_boolean scan_conversion_operator(
 extern a_type_ptr type_keyword(void);
 
 extern void adjust_parameter_type(a_type_ptr           *type_ptr,
-                                  an_attribute_ptr     attributes);
+                                  a_gnu_attribute_ptr  attributes);
 
 extern a_boolean is_single_param_operator_new_or_delete(
                                                    a_symbol_locator *locator,
@@ -631,9 +631,9 @@ extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_type_ptr        class_type,
                                            a_symbol_locator  *locator);
 
-extern void check_and_adjust_parameter_type(a_type_ptr         *type_ptr,
-                                            a_source_position  *error_pos,
-                                            an_attribute_ptr   attributes);
+extern void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
+                                            a_source_position    *error_pos,
+                                            a_gnu_attribute_ptr  attributes);
 
 void check_old_specialization_allowed(a_symbol_ptr       sym,
                                       a_source_position  *pos);
@@ -652,12 +652,13 @@ extern void check_main_function(a_func_info_block_ptr  func_info,
                                 a_source_position_ptr  pos);
 
 #if GNU_EXTENSIONS_ALLOWED
-extern void scan_gnu_declarator_attributes(char*              *asm_name,
-                                           a_source_position  *asm_name_pos,
-                                           an_attribute_ptr   *attributes,
-                                           a_boolean          *new_attributes,
-                                           a_storage_class    declared_storage,
-                                           a_boolean          is_function);
+extern void scan_gnu_declarator_attributes(
+                                        char*                *asm_name,
+                                        a_source_position    *asm_name_pos,
+                                        a_gnu_attribute_ptr  *attributes,
+                                        a_boolean            *new_attributes,
+                                        a_storage_class      declared_storage,
+                                        a_boolean            is_function);
 
 extern void gnu_attributes_after_parenthesized_initializer(
                                                          a_variable_ptr  var);
@@ -769,11 +770,11 @@ extern a_variable_ptr condition_declaration(void);
 
 extern void static_assert_declaration(a_boolean  leave_semicolon);
 
-extern void make_using_directive(a_namespace_ptr    nsp,
-				 a_scope_depth	    depth,
-                                 a_source_position  *pos,
-		   	         a_boolean	    compiler_generated,
-				 an_attribute_ptr   attributes); 
+extern void make_using_directive(a_namespace_ptr      nsp,
+				 a_scope_depth	      depth,
+                                 a_source_position    *pos,
+		   	         a_boolean	      compiler_generated,
+				 a_gnu_attribute_ptr  attributes); 
 
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED

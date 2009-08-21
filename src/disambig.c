@@ -301,8 +301,8 @@ not need to be cached.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void prescan_attribute(a_disambig_state_ptr  state,
-                              a_disambig_flag_set   flags)
+static void prescan_gnu_attribute(a_disambig_state_ptr  state,
+                                  a_disambig_flag_set   flags)
 /*
 Prescan a GNU attribute list of the form:
 
@@ -339,7 +339,7 @@ attribute list.  It simply requires that the parentheses be properly nested
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* if */
-}  /* prescan_attribute */
+}  /* prescan_gnu_attribute */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -518,7 +518,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if GNU_EXTENSIONS_ALLOWED
       case tok_attribute:
         /* A GNU __attribute__. */
-        prescan_attribute(state, flags);
+        prescan_gnu_attribute(state, flags);
         next_token_fetched = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -820,7 +820,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_attribute) {
     /* A GNU __attribute__ may appear after the pointer-declarators. */
-    prescan_attribute(state, flags);
+    prescan_gnu_attribute(state, flags);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lparen) {
@@ -925,7 +925,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
 #if GNU_EXTENSIONS_ALLOWED
     if (curr_token == tok_attribute) {
       /* A GNU __attribute__ may appear at the start of a nested declarator. */
-      prescan_attribute(state, flags);
+      prescan_gnu_attribute(state, flags);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     prescan_declarator(state, flags,
@@ -1021,7 +1021,7 @@ function_lparen:
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_attribute) {
     /* A GNU __attribute__. */
-    prescan_attribute(state, flags);
+    prescan_gnu_attribute(state, flags);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Look for an initialization that begins with an assignment operator. */
