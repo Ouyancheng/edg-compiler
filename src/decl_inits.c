@@ -278,7 +278,7 @@ standard C behavior of trimming the terminating null character if needed),
   a_character_kind
                  char_kind = string_con->character_kind;
   a_targ_size_t  char_size = character_size[char_kind];
-  a_targ_size_t  string_length, num_elems, array_length;
+  a_targ_size_t  num_elems, array_length;
   a_boolean      is_template_dependent = is_template_dependent_type(*dst_type);
   a_boolean      err = FALSE;
 
@@ -320,7 +320,7 @@ standard C behavior of trimming the terminating null character if needed),
     /* The constant is a string with characters that are compatible with
        the array element type.  (Note that an array of characters of any
        signedness can be initialized with a string literal: ANSI C 3.5.7.) */
-    num_elems = string_length = string_con->variant.string.length;
+    num_elems = string_con->variant.string.length;
     num_elems /= char_size;
     array_type = skip_typerefs(*dst_type);
     if (is_incomplete_type(array_type)) {
