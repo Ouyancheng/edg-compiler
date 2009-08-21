@@ -3319,15 +3319,7 @@ of constructors and destructors.
       number++;
     }  /* if */
     if (number >= num_substitutions) {
-      /* In situations where we're scanning ahead (not recording any
-         substitutions and not emitting characters), just advance over the
-         substitution; otherwise it's an error. */
-      if (dctl->suppress_substitution_recording > 0 &&
-          dctl->suppress_id_output > 0) {
-        ptr = advance_past_underscore(ptr, dctl);
-      } else {
-        bad_mangled_name(dctl);
-      }  /* if */
+      bad_mangled_name(dctl);
     } else {
       a_func_block func_block;
       ptr = advance_past_underscore(ptr, dctl);
@@ -5183,14 +5175,13 @@ The syntax is:
 For function names, additional information is returned in *func_block.
 When emit_return_type_only is TRUE, only the return type (if the
 name being demangled is a template function) is emitted; a second call is
-necessary (with emit_return_type_only set to FALSE) to emit the
-remaining portion of the mangled name.
+necessary (with emit_return_type_only set to FALSE and substitutions disabled)
+to emit the remaining portion of the mangled name.
 */
 {
   if (emit_return_type_only) {
-    /* Suppress substitutions and any output while we scan for the
-       template function return type (if any). */
-    dctl->suppress_substitution_recording++;
+    /* Suppress any output while we scan for the template function return type
+       (if any). */
     dctl->suppress_id_output++;
   }  /* if */
   if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
@@ -5205,7 +5196,7 @@ remaining portion of the mangled name.
        <unscoped-template-name>.  */
     char *start = ptr;
     ptr = demangle_unscoped_name(ptr, func_block, dctl);
-    if (!emit_return_type_only && *ptr == 'I') {
+    if (*ptr == 'I') {
       /* This is a template because it is followed by a template arguments
          list.  Record the template as a potential substitution. */
       record_substitutable_entity(start, subk_unscoped_template_name, 0L,
@@ -5240,7 +5231,6 @@ remaining portion of the mangled name.
       (void)demangle_type(ptr2, dctl);
       write_id_ch(' ', dctl);
     }  /* if */
-    dctl->suppress_substitution_recording--;
   }  /* if */
   return ptr;
 }  /* demangle_unscoped_name_or_unscoped_template_name */
@@ -5298,14 +5288,22 @@ as a prefix to specify a module id for an externalized name.
          demangling a template function name that has a return type).
          Emit the return type now (before the rest of the mangled name --
          the return type is suppressed later in
-         demangle_bare_function_type). */
+         demangle_bare_function_type), then re-scan (with substitutions
+         disabled) to emit the name and parameters. */
       (void)demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
                                                 /*emit_return_type_only=*/TRUE,
                                                 dctl);
-    }
-    ptr = demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
+      dctl->suppress_substitution_recording++;
+      ptr = demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
                                                /*emit_return_type_only=*/FALSE,
                                                dctl);
+      dctl->suppress_substitution_recording--;
+    } else {
+      /* No template function return type, only one scan is needed. */
+      ptr = demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
+                                               /*emit_return_type_only=*/FALSE,
+                                               dctl);
+    }  /* if */
   }  /* if */
   return ptr;
 }  /* demangle_name */
