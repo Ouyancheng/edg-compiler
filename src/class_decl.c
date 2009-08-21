@@ -1308,7 +1308,7 @@ Return TRUE if the given routine fixup is for a friend declaration.
 
 
 void default_argument_fixup_for_class(a_type_ptr  class_type,
-                                      a_boolean   is_template_based,
+				      a_boolean   is_template_based,
 				      a_boolean   template_second_pass)
 /*
 Process the default argument expressions for the indicated class.
