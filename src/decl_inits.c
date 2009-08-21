@@ -360,7 +360,7 @@ standard C behavior of trimming the terminating null character if needed),
     }  /* if */
   }  /* if */
   return !err;
-}  /* check_string_constant_initializer */
+}  /* check_string_constant_initializer_full */
 
 
 static a_boolean tentative_aggregate_init(
@@ -456,7 +456,8 @@ initialization; otherwise, these pointers are NULL.
   if (is_string_init) {
     /* The object being initialized has type array of character, and
        is being initialized with a string.  Handle this case specially. */
-    a_boolean      err = FALSE;
+    a_boolean   err = FALSE;
+    a_type_ptr  orig_const_type;
     if (!using_pending_init_con) {
       /* The constant wasn't prescanned. */
       /* Do concatenations like "abc" __FUNCTION__. */
@@ -467,6 +468,10 @@ initialization; otherwise, these pointers are NULL.
         err = TRUE;
       }  /* if */
     }  /* if */
+    /* check_string_constant_initializer may trim the string (hence modifying
+       its type).  Save the original type in case it is needed in a
+       diagnostic. */
+    orig_const_type = cp->type;
     if (!err) {
       err = !check_string_constant_initializer(type_ptr, cp);
     }  /* if */
@@ -474,7 +479,7 @@ initialization; otherwise, these pointers are NULL.
       /* There was an error of some kind. */
       if (!is_error_type(cp->type)) {
         pos_ty2_error(ec_bad_initializer_type, &error_position,
-                      cp->type, *type_ptr);
+                      orig_const_type, *type_ptr);
       }  /* if */
       *init_con = alloc_error_constant();
     } else {
