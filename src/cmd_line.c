@@ -2165,8 +2165,7 @@ process.
   arg_dependent_lookup_enabled = FALSE;
   instantiate_extern_inline = FALSE;
   do_dependent_name_processing = FALSE;
-  nonstandard_instantiation_lookup_enabled =
-                                      DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;
+  nonstandard_instantiation_lookup_enabled = FALSE;
   export_template_allowed = FALSE;
   export_keyword_enabled = FALSE;
   va_list_in_std_namespace = FALSE;
@@ -8599,6 +8598,8 @@ variables declared in cmd_line.h.
   nonclass_prototype_instantiations = DEFAULT_DEPENDENT_NAME_PROCESSING;
   defer_function_prototype_instantiations = FALSE;
   defer_friend_instantiation = TRUE;
+  nonstandard_instantiation_lookup_enabled =
+                                      DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP;
   nonstandard_using_decl_allowed = DEFAULT_NONSTANDARD_USING_DECL_ALLOWED;
   designators_allowed =
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE

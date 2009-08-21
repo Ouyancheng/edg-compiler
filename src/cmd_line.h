@@ -549,7 +549,10 @@ EXTERN a_boolean
 		nonstandard_instantiation_lookup_enabled;
 			/* TRUE if the instantiation lookup rules in effect
 			   during part of the standardization of C++98
-			   should be used. */
+			   should be used.  See the definition of
+			   DEFAULT_NONSTANDARD_INSTANTIATION_LOOKUP
+			   (which is used as the initial value of this
+			   variable) for more information. */
 
 EXTERN a_boolean
 		gpp_dependent_name_lookup;

@@ -1710,8 +1710,8 @@ that were either explicitly specified or deduced elsewhere.
 #endif /* ifndef DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION */
 
 /*
-Flag that is TRUE if, in modes that do not to dependent lookup 
-processing, a set of nonstandard lookup rules should be used instead.
+Flag that is TRUE if, in modes that do not do dependent lookup 
+processing, a set of nonstandard lookup rules should be used in instantiations.
 These rules were part of the C++98 working paper for some time during
 the development of the C++98 standard.  In this mode, names are looked
 up in both the namespace of the template definition and in the namespace
