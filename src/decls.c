@@ -102,6 +102,7 @@ reflected in start_secondary_declarator.
   ps->virtual_pos = null_source_position;
   ps->auto_pos = null_source_position;
   ps->in_class_scope = FALSE;
+  ps->in_nested_declarator = FALSE;
   ps->is_trailing_return_type = FALSE;
   ps->has_trailing_return_type = FALSE;
   ps->is_new_expr_type = FALSE;
@@ -14462,19 +14463,16 @@ void check_use_of_auto_type(a_decl_parse_state  *dps)
 Check that if the "auto" type specifier was used in the current declaration,
 an initializer enabled the deduction of an actual type.  Issue an error if
 that was not the case and set dps->specifiers_type to an error type to avoid
-repeating the diagnostic if additional declarators follow.
+repeating the diagnostic if additional declarators follow.  (This does not
+apply to the "auto" type specifier used to introduce a trailing return type.)
 */
 {
-  if (dps->auto_type_specifier_seen && !dps->has_initializer &&
+  if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
+      !dps->has_initializer &&
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type. */
-    if (dps->has_trailing_return_type) {
-      /* We can get here with a function declaration with a trailing return
-         type when such a return type is not valid (e.g., on a conversion
-         operator).  An error should have been issued elsewhere. */
-      expect_error();
-    } else if (dps->sym != NULL && !dps->sym->is_error) {
+    if (dps->sym != NULL && !dps->sym->is_error) {
       /* A named entity was declared: Issue the error on the declarator (there
          could be more than one sharing the same auto specifier). */
       pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);

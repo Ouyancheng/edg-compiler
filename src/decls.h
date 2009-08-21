@@ -296,6 +296,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the current declaration appears in class
 			   scope. */
   a_bit_field
+		in_nested_declarator:1;
+			/* TRUE while parsing a nested declarator. */
+  a_bit_field
 		is_trailing_return_type:1;
 			/* TRUE if this information block describes the parsing
 			   of a trailing return type (this is set before

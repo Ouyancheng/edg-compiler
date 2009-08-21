@@ -1510,8 +1510,8 @@ this is a helper function.
     } else if (!state->auto_type_specifier_seen) {
       error(ec_trailing_return_type_requires_auto);
       err = TRUE;
-    } else if (!top_level) {
-      error(ec_trailing_return_type_not_at_top_level);
+    } else if (state->in_nested_declarator) {
+      error(ec_trailing_return_type_in_nested_declarator);
       err = TRUE;
     } else if (state->type != state->auto_type) {
       pos_error(ec_trailing_return_type_function_without_simple_auto,
@@ -4847,7 +4847,10 @@ The syntax is:
          the first one in this example). */
       a_type_qualifier_set  saved_qualifiers = state->qualifiers;
       a_source_position     saved_qualifiers_pos;
+      a_boolean             saved_in_nested_declarator =
+                                                  state->in_nested_declarator;
       saved_qualifiers_pos = state->qualifiers_pos;
+      state->in_nested_declarator = TRUE;
       /* Get the nested declarator, removing the flag allowing parenthesized
          initializers from the input_flags bit vector.  (The other flags are
          passed on in the recursive call.) */
@@ -4860,6 +4863,7 @@ The syntax is:
                    &inner_left_qualifiers, &unbound_qualifiers,
                    declarator_ssep, func_info, decl_pos_block,
                    (a_gnu_attribute_ptr *)last_attribute_ptr);
+      state->in_nested_declarator = saved_in_nested_declarator;
       state->qualifiers = saved_qualifiers;
       state->qualifiers_pos = saved_qualifiers_pos;
     }
@@ -5608,9 +5612,14 @@ resulting type is neither an array type nor a function type.
     err = TRUE;
   } else if (!state->has_trailing_return_type &&
              is_function_type(state->declared_type)) {
-    pos_error(trailing_return_types_enabled ? ec_missing_trailing_return_type
-                                            : ec_auto_type_in_function_type,
-              &state->auto_pos);
+    if (is_error_type(state->specifiers_type)) {
+      /* A diagnostic has been issued already. */
+      expect_error();
+    } else {
+      pos_error(trailing_return_types_enabled ? ec_missing_trailing_return_type
+                                              : ec_auto_type_in_function_type,
+                &state->auto_pos);
+    }  /* if */
     err = TRUE;
   }  /* if */
   if (err) {
