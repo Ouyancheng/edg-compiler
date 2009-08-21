@@ -14308,7 +14308,8 @@ current declarator was preceded by another one sharing the same specifiers
          Microsoft compatibility mode it is valid.  Either way, record
          whether a definition does in fact follow. */
       cache_curr_token(&cache);
-      /* Advance past it and see if the next token is a left brace. */
+      /* Advance past the constant and see if the next token is a left
+         brace. */
       if (get_token() == tok_lbrace) func_info->is_definition = TRUE;
     }  /* if */
     /* Restore the lexical state. */
