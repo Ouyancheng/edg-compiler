@@ -5227,16 +5227,17 @@ remaining portion of the mangled name.
         !dctl->err_in_id &&
         ptr != NULL &&
         bare_function_type_follows(ptr)) {
-      if (*ptr == 'Q') {
+      char *ptr2 = ptr;
+      if (*ptr2 == 'Q') {
         /* Skip any "Q <nested-name>" extension if present. */
         a_func_block dummy_func_block;
         dctl->suppress_id_output++;
-        ptr = demangle_name(ptr+1, &dummy_func_block,
+        ptr2 = demangle_name(ptr2+1, &dummy_func_block,
                             /*emit_return_type_if_present=*/FALSE, dctl);
         dctl->suppress_id_output--;
       }  /* if */
       /* Emit the return type (before the template function name). */
-      (void)demangle_type(ptr, dctl);
+      (void)demangle_type(ptr2, dctl);
       write_id_ch(' ', dctl);
     }  /* if */
     dctl->suppress_substitution_recording--;
