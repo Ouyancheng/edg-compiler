@@ -8470,6 +8470,7 @@ information.
     }  /* if */
     declarator(di_flags, state, parent_class, locator, func_info,
                decl_pos_block, &state->gnu_attributes);
+    check_use_of_auto_type(state);
     remove_declarator_sse(state, depth_scope_stack);
     if (decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
@@ -13050,6 +13051,7 @@ depends on a template parameter type, return TRUE in *template_dependent
     *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
   }  /* if */
   remove_declarator_sse(&state, depth_scope_stack);
+  check_use_of_auto_type(&state);
   if (template_dependent != NULL) {
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain

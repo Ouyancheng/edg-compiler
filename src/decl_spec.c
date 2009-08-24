@@ -7397,7 +7397,8 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
-  auto_type_allowed = state->auto_type_allowed;
+  auto_type_allowed = state->auto_type_allowed ||
+                      trailing_return_types_enabled;
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, state->specifiers_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

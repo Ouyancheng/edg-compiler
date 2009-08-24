@@ -908,9 +908,6 @@ given position.
   type_name(&estp->type);
   if (is_error_type(estp->type)) {
     /* Nothing to be done. */
-  } else if (vla_enabled && is_variably_modified_type(estp->type)) {
-    pos_error(ec_vla_not_allowed, diag_pos);
-    estp->type = error_type();
   }  else if (exceptions_enabled && !microsoft_mode &&
               !ignoring_exception_spec) {
     /* Check the type to be sure it's not an incomplete type or a pointer
@@ -1239,15 +1236,18 @@ need not be addressed here.
 }  /* is_prototyped_parameter_list_start */
 
 
-static a_boolean current_scope_is_class(a_type_ptr type)
+static a_boolean function_prototype_scope_is_class(a_type_ptr type)
 /*
-Determine whether the current scope is the class scope of the given class
-type.  For templates, use the class template scope.
+Determine whether the current scope (which is a function prototype scope)
+appears in the class scope of the given class type.  For templates, use the
+class template scope.
 */
 {
   a_boolean                result, instance;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
+  check_assertion(ssep->kind == (a_scope_kind)sck_func_prototype);
+  --ssep;
   instance = (ssep->kind == (a_scope_kind)sck_template_instantiation);
   if (ssep->kind == (a_scope_kind)sck_template_declaration || instance) {
     --ssep;
@@ -1263,7 +1263,7 @@ type.  For templates, use the class template scope.
     result = FALSE;
   }  /* if */
   return result;
-} /* current_scope_is_class */
+} /* function_prototype_scope_is_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -1397,7 +1397,7 @@ this is a helper function.
       err_code = ec_function_qualifier_on_nonmember;
       qualifier_err = TRUE;
     } else if (!is_nonstatic_member && !is_typedef_decl &&
-               current_scope_is_class(parent_type)) {
+               function_prototype_scope_is_class(parent_type)) {
       /* This must be the declaration of a static member function inside
          its class definition.  "const" and "volatile" are not allowed,
          but with Cfront it's sometimes okay (depending on the return type!)
@@ -1420,7 +1420,7 @@ this is a helper function.
          allowed (ARM 9.3.1). */
       err_code = ec_function_qualifier_on_ctor_or_dtor;
       if (microsoft_mode && is_constructor &&
-          !current_scope_is_class(parent_type)) {
+          !function_prototype_scope_is_class(parent_type)) {
         /* Microsoft compilers ignore "__restrict" on out-of-class
            constructors. */
         pos_warning(ec_type_qualifier_ignored_on_constructor, &qualifier_pos);
@@ -1603,6 +1603,7 @@ if this is the function declarator in a friend function declaration.
   a_func_info_block       local_func_info_block;
   a_boolean               is_top_level_declarator = TRUE;
   a_boolean               microsoft_C_leading_ellipsis = FALSE;
+  a_boolean               must_pop_function_prototype_scope = FALSE;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1746,6 +1747,7 @@ if this is the function declarator in a friend function declaration.
     /* Push a function prototype scope for the parameters. */
     (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      *new_type_ptr, (a_routine_ptr)NULL);
+    must_pop_function_prototype_scope = TRUE;
     /* Remember the scope number for later use if and when a body appears. */
     func_info->scope_number = scope_stack[depth_scope_stack].number;
     if (any_params) {
@@ -1904,6 +1906,7 @@ if this is the function declarator in a friend function declaration.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Check that the type is legal, and do required adjustments. */
+        check_use_of_auto_type(&param_state);
         check_and_adjust_parameter_type(&param_state.type, &param_type_pos,
                                         param_state.gnu_attributes);
         /* Standardize the storage class: unspecified becomes auto. */
@@ -2346,8 +2349,6 @@ if this is the function declarator in a friend function declaration.
        to func_info. */
     func_info->vla_fixup_list = scope_stack[depth_scope_stack].vla_fixup_list;
     scope_stack[depth_scope_stack].vla_fixup_list = NULL;
-    /* Pop the function prototype scope. */
-    pop_scope();
   } else if (any_params) {
     /* Old-style list of identifiers. */
     if (!is_top_level_declarator) {
@@ -2445,6 +2446,8 @@ if this is the function declarator in a friend function declaration.
                                           disallow_exception_spec,
                                           is_typedef_decl, decl_pos_block);
   }  /* if */
+  /* Pop the function prototype scope if needed. */
+  if (must_pop_function_prototype_scope) pop_scope();
   if (!is_top_level_declarator) {
     done_with_func_info(local_func_info_block);
   }  /* if */

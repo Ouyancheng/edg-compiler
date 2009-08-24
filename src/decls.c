@@ -9760,6 +9760,7 @@ common cases.
       }  /* if */
     }  /* if */
   }  /* if */
+  check_use_of_auto_type(dps);
   if ((any_cfront_mode() &&
        check_member_function_typedef(dps->type, &dps->start_pos)) ||
       is_unknown_type(dps->type)) {
@@ -14463,16 +14464,21 @@ void check_use_of_auto_type(a_decl_parse_state  *dps)
 Check that if the "auto" type specifier was used in the current declaration,
 an initializer enabled the deduction of an actual type.  Issue an error if
 that was not the case and set dps->specifiers_type to an error type to avoid
-repeating the diagnostic if additional declarators follow.  (This does not
-apply to the "auto" type specifier used to introduce a trailing return type.)
+repeating the diagnostic if additional declarators follow.  Also diagnose
+invalid uses of "auto" in other contexts (e.g., casts).  This does not apply
+to the "auto" type specifier used to introduce a trailing return type.
 */
 {
   if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
-      !dps->has_initializer &&
+      (!dps->has_initializer || !dps->auto_type_allowed) &&
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type. */
-    if (dps->sym != NULL && !dps->sym->is_error) {
+    if (!dps->auto_type_allowed) {
+      /* A context where an "auto" type is simply not allowed.  (E.g., a
+         parameter declaration.) */
+      pos_error(ec_auto_not_allowed_here, &dps->auto_pos);
+    } else if (dps->sym != NULL && !dps->sym->is_error) {
       /* A named entity was declared: Issue the error on the declarator (there
          could be more than one sharing the same auto specifier). */
       pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
@@ -14484,7 +14490,7 @@ apply to the "auto" type specifier used to introduce a trailing return type.)
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
     dps->specifiers_type = dps->type = error_type();
-    if (dps->sym != NULL && !dps->has_trailing_return_type) {
+    if (dps->sym != NULL) {
       /* Update the IL entry.  Normally it should be a variable or static
          data member, but erroneous uses of "auto" can get here for other
          entities (e.g., fields) as well.  Recording an error type in the
