@@ -5124,6 +5124,16 @@ Add to the mangled name the encoding for the type "type".
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* for */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gpp_mode && is_function_type(type)) {
+    /* In g++ versions, function types with the "noreturn" or "volatile"
+       attributes are mangled as though declared with the volatile keyword. */
+    a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+    if (rtsp != NULL && rtsp->does_not_return) {
+      qualifiers |= TQ_VOLATILE;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Put out type qualifiers, if any. */
   if (qualifiers != 0) {
     mangled_encoding_for_type_qualifiers(qualifiers, mctl);

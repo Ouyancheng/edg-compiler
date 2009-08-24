@@ -1,5 +1,24 @@
 Version 4.2
 
+8/24/09  [EDGcpfe/9424]
+GNU C++ compatibility: mangling of function pointer types declared with
+noreturn or volatile attributes
+
+In g++ version 4.0 and later, function pointer types with the noreturn or
+volatile attribute are mangled as though the routine pointed to is volatile.
+The front end now mimics this behavior in GNU emulation mode.  For example:
+
+  typedef int (*vfp) (int*) __attribute__((volatile));
+  typedef int (*nfp) (int*) __attribute__((noreturn));
+  void f(vfp, nfp);
+  int main() {
+    vfp vp = 0;
+    nfp np = 0;
+    f(vp, np);   // now mangled as: _Z1fPVFiPiES2_ (had been _Z1fPFiPiES1_)
+    return 0;
+  }
+
+
 8/20/09  [EDGcpfe/10019]
 Invalid definition of macro DSI_LAST
 
