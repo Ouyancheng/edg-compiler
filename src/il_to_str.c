@@ -928,15 +928,8 @@ Do the output in the way described by octl.
     /* Suppress "restrict" in generated compilable code. */
     if (octl->gen_compilable_code) qualifiers &= ~TQ_RESTRICT;
 #endif /* SUPPRESS_RESTRICT_IN_GENERATED_CODE */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-    if (octl->gen_compilable_code && gcc_is_generated_code_target) {
-      output_qualifier(TQ_RESTRICT, "__restrict__");
-    } else
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-    /* Do not insert code here. */
-    {
-      output_qualifier(TQ_RESTRICT, "restrict");
-    }  /* if */
+    output_qualifier(TQ_RESTRICT, (char *)(use_gnu_form() ? "__restrict__" :
+                                                            "restrict"));
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     if (octl->gen_compilable_code &&
