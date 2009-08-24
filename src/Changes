@@ -1,5 +1,20 @@
 Version 4.2
 
+8/24/09  [EDGcpfe/7780]
+Spurious error on redeclaration of partial specialization
+
+Most class members may not be redeclared outside of their class, but this is
+not the case for partial specializations.  We no longer issue an error for
+such usage.
+
+  template <class T> struct A {
+    template<class T1> struct B {};
+    template <class T1> struct B<T1*>;
+  };
+  // Spurious redeclaration error on next line
+  template <class T>  template <class T1> struct A<T>::B<T1*>;
+
+
 8/24/09  [EDGcpfe/9424]
 GNU C++ compatibility: mangling of function pointer types declared with
 noreturn or volatile attributes

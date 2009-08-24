@@ -11560,11 +11560,10 @@ of which it is a member.
     pos_error(ec_qualifier_in_namespace_member_decl,
               &locator->source_position);
     result = TRUE;
-  } else if (!is_definition && !out_of_class_partial_spec &&
+  } else if (!is_definition && !decl_state->is_partial_specialization &&
              !decl_state->is_specialization) {
     /* A declaration using a qualified name.  This is only allowed if it
-       is a friend declaration, or for the instantiation of an
-       out-of-class declaration of a partial specialization.  It is also
+       is a friend declaration or for a partial specialization.  It is also
        allowed in Microsoft mode and in some g++ modes, as those compilers
        accept such redeclarations.  Newer Microsoft compilers accept only
        the variant where the name qualifier is a namespace name (as opposed
