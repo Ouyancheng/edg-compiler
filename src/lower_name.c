@@ -5129,7 +5129,8 @@ Add to the mangled name the encoding for the type "type".
     /* In g++ versions, function types with the "noreturn" or "volatile"
        attributes are mangled as though declared with the volatile keyword. */
     a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
-    if (rtsp != NULL && rtsp->does_not_return) {
+    check_assertion(rtsp != NULL);
+    if (rtsp->does_not_return) {
       qualifiers |= TQ_VOLATILE;
     }  /* if */
   }  /* if */
