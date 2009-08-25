@@ -10681,6 +10681,7 @@ a normal try.
         a_decl_parse_state  state;
         a_decl_pos_block    decl_pos_block;
         init_decl_parse_state(&state);
+        state.auto_type_allowed = FALSE;
         clear_decl_pos_block(&decl_pos_block);
         decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |
                          DSI_EMPTY_DECL_SPECIFIERS_ALLOWED),
@@ -10713,6 +10714,7 @@ a normal try.
                                /*suppress_redecl_error=*/FALSE);
           }  /* if */
         }  /* if */
+        check_use_of_auto_type(&state);
         check_pending_qualifiers_used(&state);
         if (!exceptions_enabled) {
           /* Don't bother with the semantic checks on the handler type.  Set
