@@ -14839,6 +14839,34 @@ see conversion_to_class_possible.
 }  /* prep_arg_passed_via_copy_constructor */
 
 
+#if !(GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING)
+/*ARGSUSED*/  /* <-- operand is not used in that case. */
+#endif /* !(GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING) */
+static a_boolean is_gnu_packed_field_operand(an_operand *operand)
+/*
+Return TRUE if the operand is reference to a packed field in GNU mode.
+*/
+{
+  a_boolean is_packed_field = FALSE;
+
+#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+  if (is_expression_operand(operand) &&
+      is_an_lvalue(operand)) {
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+    if (node_operator_is(expr, eok_dot_field) ||
+        node_operator_is(expr, eok_points_to_field)) {
+      a_field_ptr field= expr->variant.operation.operands->next->variant.field;
+      if (field->is_packed ||
+          parent_class_of(field)->variant.class_struct_union.is_packed) {
+        is_packed_field = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+  return is_packed_field;
+}  /* is_gnu_packed_field_operand */
+
+
 void prep_argument_operand(an_operand       *source_operand,
                            a_param_type_ptr formal_param,
                            a_boolean        processed_arg,
@@ -14886,6 +14914,23 @@ conversion_to_class_possible.
           param_type = make_reference_type(underlying_type);
           adjusted_for_ref_to_non_const = TRUE;
         }  /* if */
+      }  /* if */
+    } else if (gpp_mode && gnu_version >= 30400 &&
+               is_reference_type(param_type) &&
+               is_gnu_packed_field_operand(source_operand)) {
+      /* g++ from version 3.4 on uses a temporary to pass a packed field to
+         a reference to const parameter, which avoids passing an unaligned
+         pointer. */
+      a_type_ptr underlying_type = type_pointed_to(param_type);
+      if (is_const_qualified_type(underlying_type) &&
+          identical_types_ignoring_qualifiers(underlying_type,
+                                              source_operand->type)) {
+        a_boolean err;
+        convert_operand_into_temp(source_operand,
+                                  underlying_type,
+                                  param_type,
+                                  (a_conv_descr *)NULL,
+                                  ec_bad_cast, &err);
       }  /* if */
     }  /* if */
     if (!adjusted_for_ref_to_non_const) {

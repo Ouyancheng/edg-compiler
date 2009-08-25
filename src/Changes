@@ -1,5 +1,26 @@
 Version 4.2
 
+8/25/09  [EDGcpfe/8366]
+GNU C++ compatibility: passing packed field to reference to nonconst
+
+g++, from version 3.4 on, uses a temporary when a reference to a field
+declared "packed" is passed to a parameter that is a reference to nonconst.
+This ensures that the reference is not an unaligned pointer and mostly
+preserves the standard semantics.  Now, in g++ mode we do the same.
+Reference bindings outside of calls are unaffected.
+
+  int x;
+  void ConstRef (const int &p) { x = p; }
+  struct  __attribute__ ((packed)) Packed {
+    char c;
+    int i;
+  };
+  Packed p = {0, 1};
+  int main () {
+    ConstRef (p.i);  // Copies p.i to a temporary and passes that
+  }
+
+
 8/25/09  [EDGcpfe/9163]
 C++0x: Trailing return types
 
