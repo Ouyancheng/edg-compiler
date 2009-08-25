@@ -8747,10 +8747,8 @@ virtual, it is called as a virtual function, which involves some special
 tricks.
 */
 {
-  an_expr_node_ptr ptr_node_test, call_node;
-#if !DTORS_RETURN_THIS
+  an_expr_node_ptr ptr_node_test, call_node, temp_assign_node = NULL;
   an_expr_node_ptr ptr_node_delete;
-#endif /* !DTORS_RETURN_THIS */
   a_type_ptr       class_type;
   a_routine_ptr    dtor_routine = dip->destructor;
   a_boolean        need_null_ptr_test = FALSE;
@@ -8810,6 +8808,33 @@ tricks.
     ptr_node_delete = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
   }  /* if */
 #endif /* !DTORS_RETURN_THIS */
+  if (delete_routine != NULL &&
+      !delete_routine->source_corresp.is_class_member &&
+      dtor_routine->is_virtual) {
+    /* A non-class operator delete (presumably ::delete) is being used to
+       delete an object with a virtual destructor.  Use the specified object
+       pointer to invoke the virtual destructor, but use a pointer to the most
+       derived object when invoking the delete routine.  Assign the value of
+       dynamic_cast<void *>(object pointer) to a temporary (before the call
+       of the virtual destructor, then use that value in the call to
+       ::delete. */
+    a_variable_ptr temp;
+    check_assertion(need_null_ptr_test);
+#if DTORS_RETURN_THIS
+    /* A copy was not made above, so make one now. */
+    ptr_node_delete = make_reusable_copy(ptr_node_test,
+                                         /*vars_can_change=*/TRUE);
+#endif /* DTORS_RETURN_THIS */
+    /* Create a dynamic_cast<void *> and lower it. */
+    ptr_node_delete = make_operator_node(
+                                       (an_expr_operator_kind)eok_dynamic_cast,
+                                       void_star_type(), ptr_node_delete);
+    lower_dynamic_cast(ptr_node_delete, /*src_is_non_null=*/TRUE);
+    /* Assign the result of the dynamic_cast to a temporary for use later. */
+    temp = make_lowered_temporary(void_star_type());
+    temp_assign_node = make_var_assignment_expr(temp, ptr_node_delete);
+    ptr_node_delete = var_rvalue_expr(temp);
+  }  /* if */
 #if !IA64_ABI
   /* Add an implicit parameter to the destructor call with bits
      0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
@@ -8827,29 +8852,41 @@ tricks.
     lower_virtual_function_call(call_node);
   }  /* if */
   if (delete_routine != NULL) {
-#if !DTORS_RETURN_THIS
-    /* Add a call of the delete routine, so we have a comma expression
-         (dtor(...), delete(...))
-    */
-    an_expr_node_ptr delete_call_node =
-                 make_delete_call(delete_routine, class_type, ptr_node_delete,
-                                  (an_insert_location *)NULL);
-    call_node = make_comma_node(call_node, delete_call_node);
-#else /* DTORS_RETURN_THIS */
-    /* In the variant of the IA-64 ABI where destructors return "this",
-       build delete(dtor(...)). */
-    call_node = make_delete_call(delete_routine, class_type, call_node,
-                                 (an_insert_location *)NULL);
+#if DTORS_RETURN_THIS
+    if (temp_assign_node != NULL)
 #endif /* DTORS_RETURN_THIS */
+    {
+      /* Add a call of the delete routine, so we have a comma expression
+           (dtor(...), delete(...))
+      */
+      an_expr_node_ptr delete_call_node =
+                  make_delete_call(delete_routine, class_type, ptr_node_delete,
+                                   (an_insert_location *)NULL);
+      call_node = make_comma_node(call_node, delete_call_node);
+#if DTORS_RETURN_THIS
+    } else {
+      /* In the variant of the IA-64 ABI where destructors return "this",
+         and "this" is a suitable argument for the delete routine,
+         build delete(dtor(...)). */
+      call_node = make_delete_call(delete_routine, class_type, call_node,
+                                   (an_insert_location *)NULL);
+#endif /* DTORS_RETURN_THIS */
+    }  /* if */
   } else {
     /* Just for safety, make sure that a destructor that returns a
        non-void value is cast to void. */
     call_node = add_cast_if_necessary(call_node, void_type());
   }  /* if */
+  if (temp_assign_node != NULL) {
+    /* We're using a temporary as an argument to the delete routine, make sure
+       the temporary is initialized before it is used. */
+    call_node = make_comma_node(temp_assign_node, call_node);
+  }  /* if */
   if (need_null_ptr_test) {
     /* Add a null pointer test, producing
          ptr_node ? dtor(...) : (void)0
                              ^ plus possible delete call here
+                   ^ plus possible assignment to temporary here
     */
     /* Make "ptr_node ? dtor(...) : (void)0". */
     ptr_node_test = boolean_controlling_expr(ptr_node_test);

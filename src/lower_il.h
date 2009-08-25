@@ -1102,6 +1102,9 @@ extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
                                 a_routine_ptr    called_rout,
                                 a_param_type_ptr param);
 
+extern void lower_dynamic_cast(an_expr_node_ptr expr,
+                               a_boolean        src_is_non_null);
+
 extern void lower_bool_cast(an_expr_node_ptr expr);
 
 extern void lower_bool_incr_decr(an_expr_node_ptr expr);

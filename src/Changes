@@ -1,5 +1,31 @@
 Version 4.2
 
+8/25/09  [EDGcpfe/8583]
+Incorrect IL generated for ::delete and deleting destructors
+
+In cases where ::delete is called on a base class object with a virtual
+destructor and a user declared operator delete, the pointer to the base
+class object was being passed to ::delete instead of a pointer to the most
+derived object.  This had resulted in a runtime abort in most configurations
+and is now fixed.  For example:
+
+  struct B {
+    B() {}
+    virtual ~B() {}
+    int x;
+    void operator delete(void *) {}
+  };
+  struct D : virtual B {
+    D() {}
+    virtual ~D() {}
+    int y;
+  };
+  int main (void) {
+    B *b = ::new D;
+    ::delete b;   // had deleted an incorrect pointer causing a runtime abort
+  }
+
+
 8/24/09  [EDGcpfe/7780]
 Spurious error on redeclaration of partial specialization
 
