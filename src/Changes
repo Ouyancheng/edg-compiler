@@ -1,5 +1,23 @@
 Version 4.2
 
+8/25/09  [EDGcpfe/9163]
+C++0x: Trailing return types
+
+In C++0x mode and in Microsoft C++ mode with microsoft_version >= 1600, the
+front end now accepts "trailing return types" in function declarators.
+Currently, a trailing return type must be paired with the type specifier
+"auto", but it is possible that the C++ committee will revise that aspect
+of the feature.  For example:
+
+  auto f()->int;  // Same as int f();
+
+This change was voted into the C++ committee's working paper for the next
+standard in February 2008 (meeting in Bellevue, through proposal numbered
+N2541).  An change to that proposal was made through Core issue 681, resolved
+by N2757, which was voted into the working paper in September 2008 (meeting in
+San Francisco).
+
+
 8/25/09  [EDGcpfe/10047]
 Microsoft compatibility: default Microsoft version changed
 
