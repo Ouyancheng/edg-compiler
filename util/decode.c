@@ -3103,11 +3103,9 @@ static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
 static char *demangle_template_args(char                       *ptr,
                                     a_decode_control_block_ptr dctl);
-static char *demangle_name(
-                        char                       *ptr,
-                        a_func_block               *func_block,
-                        a_boolean                  emit_return_type_if_present,
-                        a_decode_control_block_ptr dctl);
+static char *demangle_name(char                       *ptr,
+                           a_func_block               *func_block,
+                           a_decode_control_block_ptr dctl);
 static char *demangle_expression(char                       *ptr,
                                  a_decode_control_block_ptr dctl);
 static char *demangle_encoding(char                       *ptr,
@@ -3390,35 +3388,55 @@ of constructors and destructors.
 }  /* demangle_substitution */
 
 
-static char *demangle_bare_function_type(
-                                     char                       *ptr,
-                                     a_boolean                  no_return_type,
-                                     a_decode_control_block_ptr dctl)
 /*
-Demangle an IA-64 <bare-function-type> and output the demangled form.
-Return a pointer to the character position following what was demangled.
-A <bare-function-type> encodes the return and parameter types of a
-function type without the surrounding F/E delimiters.  It is used
-in cases where the only possibility is a function type, e.g., in a
-top-level encoding for a function.  The syntax is:
+Bit mask used to determine which portion(s) of a <bare-function-type> should
+be emitted.  The <bare-function-type> contains an optional return type
+as well as one or more parameter types.
+*/
+typedef int a_bare_function_type_option;
+#define BFT_NONE	((a_bare_function_type_option)0)
+#define BFT_RETURN	((a_bare_function_type_option)0x1)
+#define BFT_PARAMS	((a_bare_function_type_option)0x2)
+
+
+static char *demangle_bare_function_type(
+                                    char                        *ptr,
+                                    a_boolean                   no_return_type,
+                                    a_bare_function_type_option options,
+                                    a_decode_control_block_ptr  dctl)
+/*
+Demangle an IA-64 <bare-function-type> and output selected pieces of the
+demangled form.  Return a pointer to the character position following what was
+demangled.  A <bare-function-type> encodes the return and parameter types of a
+function type without the surrounding F/E delimiters.  It is used in cases
+where the only possibility is a function type, e.g., in a top-level encoding
+for a function.  The syntax is:
 
   <bare-function-type> ::= <signature type>+
         # types are possible return type, then parameter types
 
 That is, the <bare-function-type> is one or more type encodings.
-The output adds the "( )" surrounding the parameter types.
-no_return_type is TRUE if the return type is not present.
+no_return_type is TRUE if the return type is not present in the mangled
+encoding.  The pieces of the <bare-function-type> that are emitted are
+controlled by the options bit mask; when BFT_RETURN is specified the return
+type (and a space character) is emitted, when BFT_PARAMS is specified the
+parameter types (with surrounding "( )") are emitted.  In all cases, the
+returned value reflects the entire <bare-function-type> (regardless of what
+portion(s) of it were emitted).
 */
 {
 #define end_of_param_list(p) (*(p) == 'E' || *(p) == '\0')
 
+  /* Handle the return type first. */
+  if ((options & BFT_RETURN) == 0) dctl->suppress_id_output++;
   if (!no_return_type) {
-    /* Skip the return type. */
-    dctl->suppress_id_output++;
-    /* Substitutions do get recorded on this scan. */
+    /* A return type is present and must be scanned. */
     ptr = demangle_type(ptr, dctl);
-    dctl->suppress_id_output--;
+    write_id_ch(' ', dctl);
   }  /* if */
+  if ((options & BFT_RETURN) == 0) dctl->suppress_id_output--;
+  /* The remaining portion is the parameter type(s). */
+  if ((options & BFT_PARAMS) == 0) dctl->suppress_id_output++;
   write_id_ch('(', dctl);
   if (end_of_param_list(ptr)) {
     /* Error, there are no parameter types (there's supposed to be at
@@ -3452,6 +3470,7 @@ no_return_type is TRUE if the return type is not present.
     }  /* if */
   }  /* if */
   write_id_ch(')', dctl);
+  if ((options & BFT_PARAMS) == 0) dctl->suppress_id_output--;
   return ptr;
 #undef end_of_param_list
 }  /* demangle_bare_function_type */
@@ -3595,8 +3614,7 @@ at that level.  cv-qualifiers have been handled by the caller.
     } else {
       /* <class-enum-type>, i.e., <name> */
       a_func_block func_block;
-      p = demangle_name(p, &func_block, /*emit_return_type_if_present=*/FALSE,
-                        dctl);
+      p = demangle_name(p, &func_block, dctl);
     }  /* if */
   } else {
     /* Builtin type. */
@@ -3769,7 +3787,8 @@ to be on top of the type.
     /* Skip over the parameter types without outputting anything. */
     /* Substitutions do get recorded on this scan. */
     dctl->suppress_id_output++;
-    p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, dctl);
+    p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, BFT_PARAMS,
+                                    dctl);
     dctl->suppress_id_output--;
     p = advance_past('E', p, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
@@ -3892,7 +3911,8 @@ to be on top of the type.
        output). */
     returnt = p;
     dctl->suppress_substitution_recording++;
-    p = demangle_bare_function_type(p, /*no_return_type=*/FALSE, dctl);
+    p = demangle_bare_function_type(p, /*no_return_type=*/FALSE, BFT_PARAMS,
+                                    dctl);
     dctl->suppress_substitution_recording--;
     p = advance_past('E', p, dctl);
     /* Put out any cv-qualifiers (member functions). */
@@ -4366,7 +4386,8 @@ position following what was demangled.
        the return type) and an optional instance number followed by an
        underscore. */
     write_id_str("[lambda", dctl);
-    ptr = demangle_bare_function_type(ptr+2, /*no_return_type=*/TRUE, dctl);
+    ptr = demangle_bare_function_type(ptr+2, /*no_return_type=*/TRUE,
+                                      BFT_PARAMS, dctl);
     if (*ptr == 'E') {
       ptr = get_instance_number(ptr+1, &instance, dctl);
       if (!dctl->err_in_id) {
@@ -4760,8 +4781,7 @@ The syntax is:
             ptr = demangle_type(ptr, dctl);
             write_id_str(op_str, dctl);
           }  /* if */
-          ptr = demangle_name(ptr, &func_block,
-                              /*emit_return_type_if_present=*/FALSE, dctl);
+          ptr = demangle_name(ptr, &func_block, dctl);
           if (emulate_gnu_abi_bugs) {
             /* g++ 3.2 puts out the parameter types following the name
                of a function. */
@@ -4777,7 +4797,7 @@ The syntax is:
               /* Scan the parameter list. */
               dctl->suppress_id_output++;
               ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
-                                                dctl);
+                                                BFT_PARAMS, dctl);
               dctl->suppress_id_output--;
             }  /* if */
           }  /* if */
@@ -5088,8 +5108,7 @@ For function names, additional information is returned in *func_block.
       }  /* if */
     }  /* if */
     /* Demangle the entity name. */
-    ptr = demangle_name(ptr, func_block, /*emit_return_type_if_present=*/FALSE,
-                        dctl);
+    ptr = demangle_name(ptr, func_block, dctl);
   }  /* if */
   if (!dctl->err_in_id && *ptr == '_') {
     /* Demangle the discriminator. */
@@ -5146,101 +5165,9 @@ For function names, additional information is updated in *func_block.
 }  /* demangle_unscoped_name */
 
 
-/*
-Test to see if a <bare-function-type> is present after <name>.
-This is used to discriminate between the <function name> and <data name>
-cases when demangling an <encoding>.
-*/
-#define bare_function_type_follows(ptr) (*(ptr) != '\0' && *(ptr) != 'E')
-
-
-static char *demangle_unscoped_name_or_unscoped_template_name(
-                        char                       *ptr,
-                        a_func_block               *func_block,
-                        a_boolean                  emit_return_type_only,
-                        a_decode_control_block_ptr dctl)
-/*
-Demangle an IA-64 <unscoped-name> or <unscoped-template-name> <template-args>
-as part of demangling <name>.  Return a pointer to the character position
-following what was demangled.
-The syntax is:
-
-    <name> ::= <nested-name>
-           ::= <unscoped-name>
-           ::= <unscoped-template-name> <template-args>
-           ::= <local-name>
-    <unscoped-template-name> ::= <unscoped-name>
-                             ::= <substitution>
-
-For function names, additional information is returned in *func_block.
-When emit_return_type_only is TRUE, only the return type (if the
-name being demangled is a template function) is emitted; a second call is
-necessary (with emit_return_type_only set to FALSE and substitutions disabled)
-to emit the remaining portion of the mangled name.
-*/
-{
-  if (emit_return_type_only) {
-    /* Suppress any output while we scan for the template function return type
-       (if any). */
-    dctl->suppress_id_output++;
-  }  /* if */
-  if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
-    /* <substitution> in <unscoped-template-name>, because it's
-       followed by the "I" beginning a <template-args>. */
-    ptr = demangle_substitution(ptr, 0, CVQ_NONE,
-                                /*under_lhs_declarator=*/FALSE,
-                                /*need_trailing_space=*/FALSE,
-                                (char **)NULL, dctl);
-  } else {
-    /* An <unscoped-name>, possibly as the whole of an
-       <unscoped-template-name>.  */
-    char *start = ptr;
-    ptr = demangle_unscoped_name(ptr, func_block, dctl);
-    if (*ptr == 'I') {
-      /* This is a template because it is followed by a template arguments
-         list.  Record the template as a potential substitution. */
-      record_substitutable_entity(start, subk_unscoped_template_name, 0L,
-                                  dctl);
-    }  /* if */
-  }  /* if */
-  if (*ptr == 'I') {
-    /* A <template-args> list. */
-    ptr = demangle_template_args(ptr, dctl);
-  } else {
-    /* Non-template functions do not have return types encoded. */
-    func_block->no_return_type = TRUE;
-  }  /* if */
-  if (emit_return_type_only) {
-    /* Now, emit the template function return type (if there is one). */
-    dctl->suppress_id_output--;
-    /* See if a <bare-function-type> follows a template function name. */
-    if (!func_block->no_return_type &&
-        !dctl->err_in_id &&
-        ptr != NULL &&
-        bare_function_type_follows(ptr)) {
-      char *ptr2 = ptr;
-      if (*ptr2 == 'Q') {
-        /* Skip any "Q <nested-name>" extension if present. */
-        a_func_block dummy_func_block;
-        dctl->suppress_id_output++;
-        ptr2 = demangle_name(ptr2+1, &dummy_func_block,
-                            /*emit_return_type_if_present=*/FALSE, dctl);
-        dctl->suppress_id_output--;
-      }  /* if */
-      /* Emit the return type (before the template function name). */
-      (void)demangle_type(ptr2, dctl);
-      write_id_ch(' ', dctl);
-    }  /* if */
-  }  /* if */
-  return ptr;
-}  /* demangle_unscoped_name_or_unscoped_template_name */
-
-
-static char *demangle_name(
-                        char                       *ptr,
-                        a_func_block               *func_block,
-                        a_boolean                  emit_return_type_if_present,
-                        a_decode_control_block_ptr dctl)
+static char *demangle_name(char                       *ptr,
+                           a_func_block               *func_block,
+                           a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <name> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -5254,11 +5181,6 @@ The syntax is:
                              ::= <substitution>
 
 For function names, additional information is returned in *func_block.
-When emit_return_type_if_present is TRUE, the name is being mangled in a
-context where <bare-function-type> can follow the name being mangled (i.e.,
-the name can be a template function name).  In that context, the return type
-(of a template function name) is emitted before the template function name
-is emitted.
 
 As an EDG extension, allow
 
@@ -5282,27 +5204,31 @@ as a prefix to specify a module id for an externalized name.
     ptr = demangle_local_name(ptr, func_block, dctl);
   } else {
     /* <unscoped-name> or <unscoped-template-name> <template-args>. */
-    if (emit_return_type_if_present) {
-      /* The demangled name is being used in a context where a
-         <bare-function-type> can follow the name (i.e., we're potentially
-         demangling a template function name that has a return type).
-         Emit the return type now (before the rest of the mangled name --
-         the return type is suppressed later in
-         demangle_bare_function_type), then re-scan (with substitutions
-         disabled) to emit the name and parameters. */
-      (void)demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
-                                                /*emit_return_type_only=*/TRUE,
-                                                dctl);
-      dctl->suppress_substitution_recording++;
-      ptr = demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
-                                               /*emit_return_type_only=*/FALSE,
-                                               dctl);
-      dctl->suppress_substitution_recording--;
+    if (*ptr == 'S' && ptr[1] != '\0' && ptr[2] == 'I') {
+      /* <substitution> in <unscoped-template-name>, because it's
+         followed by the "I" beginning a <template-args>. */
+      ptr = demangle_substitution(ptr, 0, CVQ_NONE,
+                                  /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/FALSE,
+                                  (char **)NULL, dctl);
     } else {
-      /* No template function return type, only one scan is needed. */
-      ptr = demangle_unscoped_name_or_unscoped_template_name(ptr, func_block,
-                                               /*emit_return_type_only=*/FALSE,
-                                               dctl);
+      /* An <unscoped-name>, possibly as the whole of an
+         <unscoped-template-name>.  */
+      char *start = ptr;
+      ptr = demangle_unscoped_name(ptr, func_block, dctl);
+      if (*ptr == 'I') {
+        /* This is a template because it is followed by a template arguments
+           list.  Record the template as a potential substitution. */
+        record_substitutable_entity(start, subk_unscoped_template_name, 0L,
+                                    dctl);
+      }  /* if */
+    }  /* if */
+    if (*ptr == 'I') {
+      /* A <template-args> list. */
+      ptr = demangle_template_args(ptr, dctl);
+    } else {
+      /* Non-template functions do not have return types encoded. */
+      func_block->no_return_type = TRUE;
     }  /* if */
   }  /* if */
   return ptr;
@@ -5375,8 +5301,7 @@ The syntax is:
       /* Guard variable, GV <object name>. */
       a_func_block func_block;
       write_id_str("Initialization guard variable for ", dctl);
-      ptr = demangle_name(ptr+2, &func_block,
-                          /*emit_return_type_if_present=*/FALSE, dctl);
+      ptr = demangle_name(ptr+2, &func_block, dctl);
     } else {
       bad_mangled_name(dctl);
     }  /* if */
@@ -5418,6 +5343,100 @@ The syntax is:
 }  /* demangle_special_name */
 
 
+static char *demangle_function_or_data_name(
+                               char                       *ptr,
+                               a_boolean                  include_func_params,
+                               a_boolean                  first_scan,
+                               a_decode_control_block_ptr dctl)
+/*
+Demangle selected pieces of an IA-64 <function name><bare-function-type> or
+<data name> and output the demangled form.  Return a pointer to the character
+position following what was demangled.  Do not output function parameters if
+include_func_params is FALSE.  This demangling occurs in two passes, on the
+first scan (when first_scan is TRUE), only the return type of the template
+function is emitted, the second scan (when first_scan is FALSE) produces the
+remainder of the demangling.
+*/
+{
+  a_func_block                func_block;
+  a_bare_function_type_option bft_option;
+
+  if (first_scan) {
+    /* Only the return type of a template function (if present) is emitted on
+       the first scan, so disable all output and selectively enable it only
+       when needed. */
+    dctl->suppress_id_output++;
+  } else {
+    /* The first pass recorded all of the substitutions, so suppress
+       substitution recording on the second pass. */
+    dctl->suppress_substitution_recording++;
+  }  /* if */
+  ptr = demangle_name(ptr, &func_block, dctl);
+  /* If there's more, it's the <bare-function-type>. */
+  if (*ptr != '\0' && *ptr != 'E') {
+    /* Q <nested-name> indicates a function that is explicitly
+       overridden.  This is an extension over the IA-64 ABI spec. */
+    if (*ptr == 'Q') {
+      a_func_block dummy_func_block;
+      write_id_str(" [overriding ", dctl);
+      ptr = demangle_name(ptr+1, &dummy_func_block, dctl);
+      write_id_str("] ", dctl);
+    }  /* if */
+    if (!include_func_params) dctl->suppress_id_output++;
+    if (first_scan) {
+      /* First scan: enable output and emit just the return type. */
+      dctl->suppress_id_output--;
+      bft_option = BFT_RETURN;
+    } else {
+      /* Second scan: emit the parameters. */
+      bft_option = BFT_PARAMS;
+    }  /* if */
+    ptr = demangle_bare_function_type(ptr, func_block.no_return_type, 
+                                      bft_option, dctl);
+    if (first_scan) dctl->suppress_id_output++;
+    if (include_func_params && func_block.cv_quals != 0) {
+      /* Put out cv-qualifiers for a member function. */
+      write_id_ch(' ', dctl);
+      output_cv_qualifiers(func_block.cv_quals,
+                           /*trailing_space=*/FALSE, dctl);
+    }  /* if */
+    if (!include_func_params) dctl->suppress_id_output--;
+  }  /* if */
+  if (func_block.ctor_dtor_kind != ' ') {
+    /* Identify the kind of constructor or destructor if necessary. */
+    switch (func_block.ctor_dtor_kind) {
+      case '0':
+        write_id_str(" [deleting]", dctl);
+        break;
+      case '1':
+        /* Complete constructor or destructor gets no extra label. */
+        break;
+      case '2':
+        write_id_str(" [subobject]", dctl);
+        break;
+      case '3':
+        write_id_str(" [allocating]", dctl);
+        break;
+      case '9':
+        /* The EDG front end uses '9' for the routine called by the
+           other entry points. */
+        write_id_str(" [internal]", dctl);
+        break;
+      default:
+        /* Bad character.  This shouldn't happen, because the character
+           was checked earlier. */
+        bad_mangled_name(dctl);
+    }  /* switch */
+  }  /* if */
+  if (first_scan) {
+    dctl->suppress_id_output--;
+  } else {
+    dctl->suppress_substitution_recording--;
+  }  /* if */
+  return ptr;
+}  /* demangle_function_or_data_name */
+
+
 static char *demangle_encoding(char                       *ptr,
                                a_boolean                  include_func_params,
                                a_decode_control_block_ptr dctl)
@@ -5440,55 +5459,14 @@ Do not output function parameters if include_func_params is FALSE.
     ptr = demangle_special_name(ptr, dctl);
   } else {
     /* Function or data name. */
-    a_func_block func_block;
-    ptr = demangle_name(ptr, &func_block, /*emit_return_type_if_present=*/TRUE,
-                        dctl);
-    /* If there's more, it's the <bare-function-type>. */
-    if (bare_function_type_follows(ptr)) {
-      /* Q <nested-name> indicates a function that is explicitly
-         overridden.  This is an extension over the IA-64 ABI spec. */
-      if (*ptr == 'Q') {
-        a_func_block dummy_func_block;
-        write_id_str(" [overriding ", dctl);
-        ptr = demangle_name(ptr+1, &dummy_func_block,
-                            /*emit_return_type_if_present=*/FALSE, dctl);
-        write_id_str("] ", dctl);
-      }  /* if */
-      if (!include_func_params) dctl->suppress_id_output++;
-      ptr = demangle_bare_function_type(ptr, func_block.no_return_type, dctl);
-      if (include_func_params && func_block.cv_quals != 0) {
-        /* Put out cv-qualifiers for a member function. */
-        write_id_ch(' ', dctl);
-        output_cv_qualifiers(func_block.cv_quals,
-                             /*trailing_space=*/FALSE, dctl);
-      }  /* if */
-      if (!include_func_params) dctl->suppress_id_output--;
-    }  /* if */
-    if (func_block.ctor_dtor_kind != ' ') {
-      /* Identify the kind of constructor or destructor if necessary. */
-      switch (func_block.ctor_dtor_kind) {
-        case '0':
-          write_id_str(" [deleting]", dctl);
-          break;
-        case '1':
-          /* Complete constructor or destructor gets no extra label. */
-          break;
-        case '2':
-          write_id_str(" [subobject]", dctl);
-          break;
-        case '3':
-          write_id_str(" [allocating]", dctl);
-          break;
-        case '9':
-          /* The EDG front end uses '9' for the routine called by the
-             other entry points. */
-          write_id_str(" [internal]", dctl);
-          break;
-        default:
-          /* Bad character.  This shouldn't happen, because the character
-             was checked earlier. */
-          bad_mangled_name(dctl);
-      }  /* switch */
+    /* Scan the <function name> or <data name> twice in order to emit a
+       potential return type for a template function (emitted in the first
+       scan) before the name of the template function (second scan). */
+    (void)demangle_function_or_data_name(ptr, include_func_params,
+                                        /*first_scan=*/TRUE, dctl);
+    if (!dctl->err_in_id) {
+      ptr = demangle_function_or_data_name(ptr, include_func_params,
+                                           /*first_scan=*/FALSE, dctl);
     }  /* if */
   }  /* if */
   return ptr;
