@@ -2159,6 +2159,9 @@ destroyed its source position, etc.  Restore such things from
     set_operand_expr_position_if_expr(operand, (a_source_position *)NULL);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+  operand->orig_routine_type = orig_operand->orig_routine_type;
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
   operand->bound_function = orig_operand->bound_function;
   operand->selector_is_object_pointer =
                                       orig_operand->selector_is_object_pointer;
