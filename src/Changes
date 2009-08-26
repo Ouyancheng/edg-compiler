@@ -1,5 +1,29 @@
 Version 4.2
 
+8/26/09  [EDGcpfe/10041]
+reinterpret_cast of pointer-to-function to pointer-to-pointer allowed again
+
+As part of the change of 3/25/09 in version 4.1 to fix the handling of
+casts of functions to reference-to-object, we introduced a limitation
+that a function cannot be cast to a reference-to-pointer.  This was
+necessitated by an IL representation limitation that causes problems in
+distinguishing such a cast from a cast of a function to a
+reference-to-function, and we chose to prohibit a very unusual (and
+conditionally-supported) cast to avoid the problem with the more
+common cast.  Unfortunately, while doing so we also prohibited casting a
+pointer-to-function to a pointer-to-pointer, which we also thought was
+very unlikely to turn up in programs.  We've now been sent some code
+that compiles with the Microsoft compiler that uses such a cast, so
+we've reinstated the pointer case while still prohibiting the
+reference case.
+
+  void f();
+  int main() {
+    (void (*&)())f;   // Still disallowed
+    (void **)&f;      // Allowed once again
+  }
+
+
 8/26/09  [EDGcpfe/10031]
 Multiplication added for variable-sized array new marked as compiler-generated
 

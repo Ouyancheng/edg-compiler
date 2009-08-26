@@ -11284,8 +11284,7 @@ As part of processing a cast (in various source forms), do early
 processing on a cast to a reference type.  type_cast_to is the reference
 type; *operand is the operand of the cast; allow_rvalue is TRUE
 if an rvalue operand should be allowed (e.g., for a static_cast to a
-reference-to-const type; note that it need not be set for a cast to
-an rvalue reference type, where it is always assumed to be TRUE);
+reference-to-const type, or a cast to an rvalue reference type);
 and source_form indicates the source form of the cast (e.g.,
 static_cast).  *type_position indicates the source position of the
 type in the cast.  For template-dependent casts, this routine processes
@@ -11319,7 +11318,22 @@ it to an lvalue).
     *adj_operand_type = operand->type;
   } else if (is_void_type(operand->type)) {
     /* Something like "(int &&)throw x" should not be allowed. */
-    error_in_operand(ec_bad_cast, operand);
+    pos_error(ec_bad_cast, type_position);
+    conv_to_error_operand(operand);
+    *processed = TRUE;
+  } else if (is_function_type(operand->type) &&
+             is_a_function_designator(operand) &&
+             is_pointer_type(underlying_type_cast_to)) {
+    /* Due to an IL limitation, we can't distinguish
+         p = (void (&)())f;
+         p = (void (*&)())f;
+       The implicit lvalue-to-rvalue decay hides the destination type
+       of the cast.  Avoid this problem by outlawing conversion from
+       function to reference-to-pointer (that would have to be
+       a reinterpret_cast to be valid); that's allowable under
+       conditionally-supported behavior. */
+    pos_error(ec_bad_cast, type_position);
+    conv_to_error_operand(operand);
     *processed = TRUE;
   } else {
     if (is_an_lvalue(operand) ||

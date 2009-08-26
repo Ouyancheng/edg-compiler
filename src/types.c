@@ -6731,21 +6731,7 @@ well as C++ mode.
       if ((!C_mode() || !suppress_extensions) &&
           dest_of_ptr_cast_big_enough(source_type, dest_type)) {
         okay = TRUE;
-        if (!C_mode() && is_pointer_type(dest_type_pointed_to)) {
-          /* Due to an IL limitation, we can't distinguish
-               p = (void (&)())f;
-               p = (void (*&)())f;
-             The implicit lvalue-to-rvalue decay hides the destination type
-             of the cast.  Avoid this problem by outlawing conversion from
-             pointer-to-function to pointer-to-pointer; that's allowable
-             under conditionally-supported behavior.  That covers the
-             reference case above, and also outlaws the related pointer
-             case as collateral damage.  It's unlikely that anyone actually
-             wants to do such a reinterpret_cast, but if it turns out they
-             do we can make an IL change, and in the meantime we've avoided
-             generating incorrect code. */
-          okay = FALSE;
-        } else if (C_mode() && strict_ansi_mode) {
+        if (C_mode() && strict_ansi_mode) {
           *warning_suggested = ec_ptr_func_ptr_data_conv;
           if ((int)strict_ansi_error_severity < (int)es_error) {
             *is_mild_warning = TRUE;
