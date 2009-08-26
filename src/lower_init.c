@@ -8829,7 +8829,7 @@ tricks.
     ptr_node_delete = make_operator_node(
                                        (an_expr_operator_kind)eok_dynamic_cast,
                                        void_star_type(), ptr_node_delete);
-    lower_dynamic_cast(ptr_node_delete, /*src_is_non_null=*/TRUE);
+    lower_dynamic_cast(ptr_node_delete);
     /* Assign the result of the dynamic_cast to a temporary for use later. */
     temp = make_lowered_temporary(void_star_type());
     temp_assign_node = make_var_assignment_expr(temp, ptr_node_delete);

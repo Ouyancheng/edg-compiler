@@ -10224,12 +10224,10 @@ static a_routine_ptr
 		dynamic_cast_routine;
 
 
-void lower_dynamic_cast(an_expr_node_ptr expr,
-                        a_boolean        src_is_non_null)
+void lower_dynamic_cast(an_expr_node_ptr expr)
 /*
-Lower an eok_dynamic_cast or eok_ref_dynamic_cast expression.  When 
-src_is_non_null is TRUE, this routine can assume that the source to the
-dynamic cast expression is non-NULL.  The subtree has already been lowered.
+Lower an eok_dynamic_cast or eok_ref_dynamic_cast expression.  The subtree
+has already been lowered.
 */
 {
   an_expr_node_ptr src = expr->variant.operation.operands, src_copy;
@@ -10436,16 +10434,9 @@ dynamic cast expression is non-NULL.  The subtree has already been lowered.
     test_node->next = call_node;
     call_node->next = null_constant_node;
   }  /* if */
-  if (src_is_non_null) {
-    /* Caller assures us the source expression is non-NULL, so skip the test
-       for NULL. */
-    test_node = test_node->next;
-    test_node->next = NULL;
-  } else {
-    /* Make "src ? __dynamic_cast(...) : NULL". */
-    test_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                   ptr_type, test_node);
-  }  /* if */
+  /* Make "src ? __dynamic_cast(...) : NULL". */
+  test_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                 ptr_type, test_node);
   if (reference_case) {
     test_node = add_indirection_to_node(test_node);
     if (!expr->is_lvalue) {
@@ -13861,7 +13852,7 @@ cast.  See lower_expr for typical invocation.
 #if ABI_CHANGES_FOR_RTTI
           case eok_dynamic_cast:
           case eok_ref_dynamic_cast:
-            lower_dynamic_cast(expr, /*src_is_non_null=*/FALSE);
+            lower_dynamic_cast(expr);
             break;
 #endif /* ABI_CHANGES_FOR_RTTI */
           case eok_ref_cast:
