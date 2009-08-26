@@ -9561,6 +9561,7 @@ specification allow a variable-sized array as the top type.
         sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
                                          sizeof_node->type,
                                          new_array_dimension);
+        sizeof_node->variant.operation.compiler_generated = TRUE;
       }  /* if */
       make_expression_operand(sizeof_node, &sizeof_operand);
     } else {
