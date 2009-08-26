@@ -3103,8 +3103,23 @@ static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
 static char *demangle_template_args(char                       *ptr,
                                     a_decode_control_block_ptr dctl);
+
+/*
+Bit mask used to determine which portion(s) of a <name> should
+be emitted by demangle_name.  For most cases, DNO_ALL is correct, but in
+cases where a <name> is scanned more than once, different portions of the
+name may be emitted on different passes.
+*/
+typedef int a_demangle_name_option;
+#define DNO_NONE	((a_demangle_name_option)0)
+#define DNO_EXTERNALIZATION \
+                        ((a_demangle_name_option)0x1)
+#define DNO_NAME	((a_demangle_name_option)0x2)
+#define DNO_ALL 	(DNO_EXTERNALIZATION | DNO_NAME)
+
 static char *demangle_name(char                       *ptr,
                            a_func_block               *func_block,
+                           a_demangle_name_option     options,
                            a_decode_control_block_ptr dctl);
 static char *demangle_expression(char                       *ptr,
                                  a_decode_control_block_ptr dctl);
@@ -3614,7 +3629,7 @@ at that level.  cv-qualifiers have been handled by the caller.
     } else {
       /* <class-enum-type>, i.e., <name> */
       a_func_block func_block;
-      p = demangle_name(p, &func_block, dctl);
+      p = demangle_name(p, &func_block, /*options=*/DNO_ALL, dctl);
     }  /* if */
   } else {
     /* Builtin type. */
@@ -4781,7 +4796,7 @@ The syntax is:
             ptr = demangle_type(ptr, dctl);
             write_id_str(op_str, dctl);
           }  /* if */
-          ptr = demangle_name(ptr, &func_block, dctl);
+          ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
           if (emulate_gnu_abi_bugs) {
             /* g++ 3.2 puts out the parameter types following the name
                of a function. */
@@ -5108,7 +5123,7 @@ For function names, additional information is returned in *func_block.
       }  /* if */
     }  /* if */
     /* Demangle the entity name. */
-    ptr = demangle_name(ptr, func_block, dctl);
+    ptr = demangle_name(ptr, func_block, /*options=*/DNO_ALL, dctl);
   }  /* if */
   if (!dctl->err_in_id && *ptr == '_') {
     /* Demangle the discriminator. */
@@ -5167,10 +5182,11 @@ For function names, additional information is updated in *func_block.
 
 static char *demangle_name(char                       *ptr,
                            a_func_block               *func_block,
+                           a_demangle_name_option     options,
                            a_decode_control_block_ptr dctl)
 /*
-Demangle an IA-64 <name> and output the demangled form.  Return
-a pointer to the character position following what was demangled.
+Demangle selected portions of an IA-64 <name> and output the demangled form.
+Return a pointer to the character position following what was demangled.
 The syntax is:
 
     <name> ::= <nested-name>
@@ -5181,6 +5197,9 @@ The syntax is:
                              ::= <substitution>
 
 For function names, additional information is returned in *func_block.
+options is a bit mask that specifies which portion(s) of the name should
+be emitted (the entire name is scanned i.e., the returned value does not
+depend on the options specified).
 
 As an EDG extension, allow
 
@@ -5192,10 +5211,13 @@ as a prefix to specify a module id for an externalized name.
   clear_func_block(func_block);
   if (*ptr == 'B') {
     /* Module-id prefix for externalized name. */
+    if ((options & DNO_EXTERNALIZATION) == 0) dctl->suppress_id_output++;
     write_id_str("[static from ", dctl);
     ptr = demangle_source_name(ptr+1, /*is_module_id=*/TRUE, dctl);
     write_id_str("] ", dctl);
+    if ((options & DNO_EXTERNALIZATION) == 0) dctl->suppress_id_output--;
   }  /* if */
+  if ((options & DNO_NAME) == 0) dctl->suppress_id_output++;
   if (*ptr == 'N') {
     /* Nested name, for something like "A::f". */
     ptr = demangle_nested_name(ptr, func_block, dctl);
@@ -5231,6 +5253,7 @@ as a prefix to specify a module id for an externalized name.
       func_block->no_return_type = TRUE;
     }  /* if */
   }  /* if */
+  if ((options & DNO_NAME) == 0) dctl->suppress_id_output--;
   return ptr;
 }  /* demangle_name */
 
@@ -5301,7 +5324,7 @@ The syntax is:
       /* Guard variable, GV <object name>. */
       a_func_block func_block;
       write_id_str("Initialization guard variable for ", dctl);
-      ptr = demangle_name(ptr+2, &func_block, dctl);
+      ptr = demangle_name(ptr+2, &func_block, /*options=*/DNO_ALL, dctl);
     } else {
       bad_mangled_name(dctl);
     }  /* if */
@@ -5360,18 +5383,42 @@ remainder of the demangling.
 {
   a_func_block                func_block;
   a_bare_function_type_option bft_option;
+  a_demangle_name_option      dno_option;
 
+  /* This routine is invoked in two passes, and in turn invokes
+     demangle_name and demangle_bare_function_type to emit various pieces
+     of the name at various times.  For example for this mangled name:
+
+     _ZB19_7_x4280_C_a9e5c9ef4sft7IiEiT_
+
+     the demangled name along with the pass in which each element is
+     emitted and the option that controls its output is:
+
+     [static from x4280_C] int sft7<int>(T1)
+                                   ^^^^^---- second pass, BFT_PARAMS
+                               ^^^^--------- second pass, DNO_NAME
+                           ^^^^------------- first pass, BFT_RETURN
+     ^^^^^^^^^^^^^^^^^^^^^^----------------- first pass, DNO_EXTERNALIZATION
+     */
   if (first_scan) {
-    /* Only the return type of a template function (if present) is emitted on
-       the first scan, so disable all output and selectively enable it only
-       when needed. */
-    dctl->suppress_id_output++;
+    /* The return type of a template function (if present) and 
+       externalization information (if present) is emitted on the first
+       scan.  */
+    dno_option = DNO_EXTERNALIZATION;
+    bft_option = BFT_RETURN;
   } else {
+    /* On the second scan, emit the name and any template parameters
+       (if present). */
+    dno_option = DNO_NAME;
+    bft_option = BFT_PARAMS;
     /* The first pass recorded all of the substitutions, so suppress
        substitution recording on the second pass. */
     dctl->suppress_substitution_recording++;
   }  /* if */
-  ptr = demangle_name(ptr, &func_block, dctl);
+  ptr = demangle_name(ptr, &func_block, dno_option, dctl);
+  /* For the first scan, generally speaking, suppress the remaining output
+     (except for the call to demangle_bare_function_type below). */
+  if (first_scan) dctl->suppress_id_output++;
   /* If there's more, it's the <bare-function-type>. */
   if (*ptr != '\0' && *ptr != 'E') {
     /* Q <nested-name> indicates a function that is explicitly
@@ -5379,18 +5426,11 @@ remainder of the demangling.
     if (*ptr == 'Q') {
       a_func_block dummy_func_block;
       write_id_str(" [overriding ", dctl);
-      ptr = demangle_name(ptr+1, &dummy_func_block, dctl);
+      ptr = demangle_name(ptr+1, &dummy_func_block, dno_option, dctl);
       write_id_str("] ", dctl);
     }  /* if */
+    if (first_scan) dctl->suppress_id_output--;
     if (!include_func_params) dctl->suppress_id_output++;
-    if (first_scan) {
-      /* First scan: enable output and emit just the return type. */
-      dctl->suppress_id_output--;
-      bft_option = BFT_RETURN;
-    } else {
-      /* Second scan: emit the parameters. */
-      bft_option = BFT_PARAMS;
-    }  /* if */
     ptr = demangle_bare_function_type(ptr, func_block.no_return_type, 
                                       bft_option, dctl);
     if (first_scan) dctl->suppress_id_output++;
