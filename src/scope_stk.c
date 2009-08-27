@@ -7871,10 +7871,15 @@ the class symbol supplement points to the partial specialization).
         f_push_namespace_reactivation_scope(parent_namespace_of(class_type),
                                             /*force_new_entry=*/TRUE);
       }  /* if */
-      push_simple_instantiation_scope(decl_info, class_type,
-                                      (a_routine_ptr)NULL, class_sym,
-                                      template_sym, template_arg_list,
-  				    PS_MICROSOFT_SPECIALIZATION);
+      if (decl_info != NULL) {
+        /* The decl_info will not be present for nested classes that were
+           declared but not defined.  Suppress this processing in such
+           cases. */
+        push_simple_instantiation_scope(decl_info, class_type,
+                                        (a_routine_ptr)NULL, class_sym,
+                                        template_sym, template_arg_list,
+                                        PS_MICROSOFT_SPECIALIZATION);
+      }  /* if */
       ssep = scope_stack_entry_for(depth_scope_stack);
       ssep->nested_instantiation = TRUE;
       ssep->orig_depth = orig_depth;
