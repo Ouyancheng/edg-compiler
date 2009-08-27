@@ -268,8 +268,12 @@ typedef struct a_decl_parse_state {
 			   Otherwise, same as declarator_start_pos. */
   a_source_position
 		return_type_pos;
-			/* Position of the trailing return type (if one is
-			   present); otherwise, same as specifiers_pos. */
+			/* When the declarator is a function declarator, this
+			   is the position of the return type (otherwise, it is
+			   the null position).  When has_trailing_return_type
+			   is TRUE, it is the position of the trailing return
+			   type; otherwise, it is the same as
+			   specifiers_pos. */
   a_type_qualifier_set
 		qualifiers;
 			/* Top-level type qualifiers (but not function type

@@ -70,10 +70,8 @@ Reference bindings outside of calls are unaffected.
 C++0x: Trailing return types
 
 In C++0x mode and in Microsoft C++ mode with microsoft_version >= 1600, the
-front end now accepts "trailing return types" in function declarators.
-Currently, a trailing return type must be paired with the type specifier
-"auto", but it is possible that the C++ committee will revise that aspect
-of the feature.  For example:
+front end now accepts "trailing return types" in function declarators
+following an "auto" type specifier.  For example:
 
   auto f()->int;  // Same as int f();
 
@@ -82,6 +80,9 @@ standard in February 2008 (meeting in Bellevue, through proposal numbered
 N2541).  An change to that proposal was made through Core issue 681, resolved
 by N2757, which was voted into the working paper in September 2008 (meeting in
 San Francisco).
+
+The C++ committee is still considering an alternative syntax for this feature;
+e.g., the "auto" type specifier might get changed to something else.
 
 
 8/25/09  [EDGcpfe/10047]

@@ -1236,7 +1236,7 @@ need not be addressed here.
 }  /* is_prototyped_parameter_list_start */
 
 
-static a_boolean function_prototype_scope_is_class(a_type_ptr type)
+static a_boolean function_prototype_scope_is_in_class(a_type_ptr type)
 /*
 Determine whether the current scope (which is a function prototype scope)
 appears in the class scope of the given class type.  For templates, use the
@@ -1263,7 +1263,7 @@ class template scope.
     result = FALSE;
   }  /* if */
   return result;
-} /* function_prototype_scope_is_class */
+} /* function_prototype_scope_is_in_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -1397,7 +1397,7 @@ this is a helper function.
       err_code = ec_function_qualifier_on_nonmember;
       qualifier_err = TRUE;
     } else if (!is_nonstatic_member && !is_typedef_decl &&
-               function_prototype_scope_is_class(parent_type)) {
+               function_prototype_scope_is_in_class(parent_type)) {
       /* This must be the declaration of a static member function inside
          its class definition.  "const" and "volatile" are not allowed,
          but with Cfront it's sometimes okay (depending on the return type!)
@@ -1420,7 +1420,7 @@ this is a helper function.
          allowed (ARM 9.3.1). */
       err_code = ec_function_qualifier_on_ctor_or_dtor;
       if (microsoft_mode && is_constructor &&
-          !function_prototype_scope_is_class(parent_type)) {
+          !function_prototype_scope_is_in_class(parent_type)) {
         /* Microsoft compilers ignore "__restrict" on out-of-class
            constructors. */
         pos_warning(ec_type_qualifier_ignored_on_constructor, &qualifier_pos);
@@ -1503,30 +1503,39 @@ this is a helper function.
   }  /* if */
   if (curr_token == tok_arrow &&
       (trailing_return_types_enabled || is_lambda_decl)) {
+    /* A trailing return type. */
     a_decl_parse_state  trt_dps;
     a_boolean           err = FALSE;
     if (is_lambda_decl) {
       /* No special syntax checks are needed. */
     } else if (!state->auto_type_specifier_seen) {
+      /* Something like "int ()->int". */
       error(ec_trailing_return_type_requires_auto);
       err = TRUE;
     } else if (state->in_nested_declarator) {
+      /* Something like "auto (()->int)". */
       error(ec_trailing_return_type_in_nested_declarator);
       err = TRUE;
     } else if (state->type != state->auto_type) {
+      /* Something like "auto *()->int". */
       pos_error(ec_trailing_return_type_function_without_simple_auto,
                 &state->declarator_start_pos);
       err = TRUE;
     }  /* if */
+    /* Skip over the "->" token. */
     (void)get_token();
     state->return_type_pos = pos_curr_token;
     init_decl_parse_state(&trt_dps);
     trt_dps.is_trailing_return_type = TRUE;
+    /* Parse the trailing return type. */
     type_name_full(&trt_dps);
     if (err) {
       state->specifiers_type = state->declared_type = state->type =
                                                                  error_type();
     } else {
+      /* Replace the specifiers type (which was auto) and the type assembled
+         so far (which should be the same as the specifiers type)  by the
+         actual return type. */
       state->has_trailing_return_type = TRUE;
       state->specifiers_type = state->declared_type = state->type =
                                                                  trt_dps.type;
@@ -5223,6 +5232,10 @@ function_lparen:
                           (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
       if (state->has_trailing_return_type) {
+        /* function_declarator encountered a trailing return type (which means
+           that "complete_type" corresponded to a simple "auto").  Replace the
+           "auto" placeholder type by the actual return type (which was
+           recorded as the specifiers_type in *state). */
         check_assertion(complete_type == state->auto_type);
         complete_type = state->specifiers_type;
       }  /* if */

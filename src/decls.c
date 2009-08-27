@@ -14391,7 +14391,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->declarator_pos = null_source_position;
   if (ps->has_trailing_return_type) {
     /* The previous declarator had a trailing return type, which caused us to
-       to override the "auto" type with the actual return type.  Restore the
+       override the "auto" type with the actual return type.  Restore the
        "auto" type. */
     ps->has_trailing_return_type = FALSE;
     ps->specifiers_type = ps->auto_type;
