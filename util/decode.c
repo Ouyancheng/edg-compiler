@@ -3436,8 +3436,8 @@ encoding.  The pieces of the <bare-function-type> that are emitted are
 controlled by the options bit mask; when BFT_RETURN is specified the return
 type (and a space character) is emitted, when BFT_PARAMS is specified the
 parameter types (with surrounding "( )") are emitted.  In all cases, the
-returned value reflects the entire <bare-function-type> (regardless of what
-portion(s) of it were emitted).
+returned value reflects the end position of <bare-function-type> (regardless of
+what portion(s) of it were emitted).
 */
 {
 #define end_of_param_list(p) (*(p) == 'E' || *(p) == '\0')
@@ -3801,10 +3801,8 @@ to be on top of the type.
                                  /*need_trailing_space=*/TRUE, dctl);
     /* Skip over the parameter types without outputting anything. */
     /* Substitutions do get recorded on this scan. */
-    dctl->suppress_id_output++;
-    p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, BFT_PARAMS,
+    p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, BFT_NONE,
                                     dctl);
-    dctl->suppress_id_output--;
     p = advance_past('E', p, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -5198,7 +5196,7 @@ The syntax is:
 
 For function names, additional information is returned in *func_block.
 options is a bit mask that specifies which portion(s) of the name should
-be emitted (the entire name is scanned i.e., the returned value does not
+be emitted (the entire name is scanned, i.e., the returned value does not
 depend on the options specified).
 
 As an EDG extension, allow
@@ -5377,8 +5375,12 @@ Demangle selected pieces of an IA-64 <function name><bare-function-type> or
 position following what was demangled.  Do not output function parameters if
 include_func_params is FALSE.  This demangling occurs in two passes, on the
 first scan (when first_scan is TRUE), only the return type of the template
-function is emitted, the second scan (when first_scan is FALSE) produces the
-remainder of the demangling.
+function is emitted; on the second scan (when first_scan is FALSE) the
+remainder of the demangling is produced.  Only template functions require
+two scans, but since it's not known ahead of time if a template function
+is being demangled, all names are subject to the two pass method (with only
+the optional externalization information being emitted on the first pass for
+non-template functions).
 */
 {
   a_func_block                func_block;
