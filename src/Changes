@@ -1,5 +1,19 @@
 Version 4.2
 
+8/27/09  [EDGcpfe/10056]
+Microsoft C++ compatibility: abort on specialization of nested class
+
+An abort could occur (in push_simple_instantiation_scope) on a specialization
+of a nested class of a class template.  The abort occurred in Microsoft
+mode with microsoft_version <= 1300 when the nested class was declared but
+not defined in the template.  Now fixed.
+
+  template <class T> class A {
+    class B;
+  };
+  class A<int>::B {};
+
+
 8/26/09  [EDGcpfe/10041]
 reinterpret_cast of pointer-to-function to pointer-to-pointer allowed again
 

@@ -16135,7 +16135,8 @@ classes.
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (use_microsoft_specialization_scope && !is_in_class_specialization &&
-        is_real_template_instance_specific_def_symbol(tag_sym)) {
+        is_real_template_instance_specific_def_symbol(tag_sym) &&
+        ctsp->template_arg_list != NULL) {
       /* The Microsoft compiler permits a class specialization to reference
          template parameters of the template.  Push an instantiation scope
          if this is a specialization definition.  (This is not allowed for
