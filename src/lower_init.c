@@ -8816,7 +8816,7 @@ tricks.
        pointer to invoke the virtual destructor, but use a pointer to the most
        derived object when invoking the delete routine.  Assign the value of
        dynamic_cast<void *>(object pointer) to a temporary (before the call
-       of the virtual destructor, then use that value in the call to
+       of the virtual destructor), then use that value in the call to
        ::delete. */
     a_variable_ptr temp;
     check_assertion(need_null_ptr_test);
