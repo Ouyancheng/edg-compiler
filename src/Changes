@@ -1,5 +1,14 @@
 Version 4.2
 
+8/28/09  [EDGcpfe/8832]
+Update defines.h.linux to build 32 bit target on 64 bit host
+
+A change has been made to the defines.h.linux sample configuration file to
+enable simplified building of a 32 bit target configuration on a 64 bit Linux
+host.  To build such a configuration, simply set the configuration macro
+USE_X86_64 to FALSE.
+
+
 8/28/09  [EDGcpfe/9982]
 Utility function to identify pointer operations with "restrict" semantics
 

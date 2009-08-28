@@ -77,6 +77,10 @@ platform.
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
 #define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED 1
 #else /* USE_X86_64 */
+#ifdef __x86_64
+/* Building a 32 bit target configuration on a 64 bit host. */
+#define TYPE_FOR_AN_FP_VALUE_PART unsigned int
+#endif /* ifdef __x86_64 */
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
