@@ -15357,6 +15357,66 @@ be suppressed.
 }  /* examine_dynamic_init_for_side_effect */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+
+static void examine_expr_for_restrict_pointer(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from the expression traversal routines to process an expression
+as part of seeing whether an expression is a pointer with restrict semantics.
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_variable) {
+    a_type_ptr var_type = expr->variant.variable->type;
+    /* Ignore error types. */
+    if (is_pointer_type(var_type)) {
+      if ((get_type_qualifiers(var_type) & TQ_RESTRICT) != 0) {
+        /* This is a variable whose type is a restrict-qualified pointer. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
+  } else if (microsoft_mode &&
+             is_call_node(expr)) {
+    a_routine_ptr rp = routine_from_function_expr(
+                                             expr->variant.operation.operands);
+    if (rp != NULL &&
+        (rp->decl_modifiers & DM_RESTRICT) != 0 &&
+        is_pointer_type(expr->type)) {
+      /* A function marked with __declspec(restrict) returns a pointer
+         that's guaranteed to be unaliased. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE */
+  }  /* if */
+}  /* examine_expr_for_restrict_pointer */
+    
+
+a_boolean node_is_pointer_with_restrict_semantics(an_expr_node_ptr node)
+/*
+Return TRUE if the expression "node" is a pointer rvalue that should be
+treated with "restrict" semantics.  "restrict" is a type qualifier
+introduced in C99 to control aliasing of pointers.  See C99 6.7.3.1.
+*/
+{
+  a_boolean is_restrict_pointer = FALSE;
+
+  if (!node->is_lvalue && is_pointer_type(node->type)) {
+    /* Walk the expression's addressing parts to see whether it is based
+       on a restrict pointer. */
+    an_expr_or_stmt_traversal_block tblock;
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_restrict_pointer;
+    tblock.follow_addressing_path = TRUE;
+    traverse_expr(node, &tblock);
+    is_restrict_pointer = tblock.result;
+  }  /* if */
+  return is_restrict_pointer;
+}  /* node_is_pointer_with_restrict_semantics */
+
+
 a_boolean is_rvalueable_node(an_expr_node_ptr node)
 /*
 Return TRUE if the indicated node is one in which an lvalue-to-rvalue

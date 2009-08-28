@@ -615,6 +615,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_call_requires_one_argument)*/
 /*lint -esym(769,ec_call_requires_floating_point_argument)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && TARG_HAS_IEEE_FLOATING_POINT) */
+/*lint -esym(759, node_is_pointer_with_restrict_semantics)*/
+/*lint -esym(765, node_is_pointer_with_restrict_semantics)*/
+/*lint -esym(714, node_is_pointer_with_restrict_semantics)*/
 
 #endif /* ifndef LINT_H */
 

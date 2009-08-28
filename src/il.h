@@ -945,6 +945,8 @@ variable-length array (VLA).
 #define is_dynamic_init_for_vla(dip) \
   ((dip)->variable != NULL && (dip)->variable->is_vla)
 
+extern a_boolean node_is_pointer_with_restrict_semantics(
+                                                        an_expr_node_ptr node);
 
 extern a_boolean is_rvalueable_node(an_expr_node_ptr node);
 

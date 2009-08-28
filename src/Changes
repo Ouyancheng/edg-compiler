@@ -1,5 +1,15 @@
 Version 4.2
 
+8/28/09  [EDGcpfe/9982]
+Utility function to identify pointer operations with "restrict" semantics
+
+A new utility routine node_is_pointer_with_restrict_semantics has been added
+to assist those dealing with the aliasing implications of the "restrict"
+qualifier in back ends.  Given an expression node that is a pointer
+(e.g., the operand of an eok_indirect), it returns TRUE if the referenced
+entity should be considered to be unaliased because of "restrict".
+
+
 8/28/09  [EDGcpfe/10048]
 Lowering of operation "type_kind"s
 
