@@ -4487,6 +4487,18 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                           (!node_operator_is(expr, eok_assign) &&
                            !is_compound_assignment_operator(op)),
                           "dump_expr: lvalue assignment operator");
+      /* Check for type_kinds that should have been lowered. */
+      check_assertion(expr->variant.operation.type_kind !=
+                                                  (a_type_kind)tk_ptr_to_member
+#if LOWER_COMPLEX
+                      && expr->variant.operation.type_kind != 
+                                                  (a_type_kind)tk_complex
+#endif /* LOWER_COMPLEX */
+#if LOWER_FIXED_POINT
+                      && expr->variant.operation.type_kind != 
+                                                  (a_type_kind)tk_fixed_point
+#endif /* LOWER_FIXED_POINT */
+                                                                             );
 #if CHECKING
       check_operation_node_consistency(expr);
 #endif /* CHECKING */

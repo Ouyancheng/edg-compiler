@@ -12334,6 +12334,43 @@ when the eok_address_of node is processed on the next iteration.
 
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
+static void lower_operation_type_kind(an_expr_node_ptr  expr)
+/*
+Lower the type_kind of the operation node as appropriate.
+*/
+{
+  check_assertion(is_operation_node(expr));
+  switch (expr->variant.operation.type_kind) {
+#if LOWER_FIXED_POINT
+    case tk_fixed_point:
+      /* Fixed-point assignment becomes integer assignment. */
+      expr->variant.operation.type_kind = (a_type_kind)tk_integer;
+      break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+    case tk_complex:
+      /* Complex assignment becomes structure assignment. */
+      expr->variant.operation.type_kind = (a_type_kind)tk_struct;
+      break;
+#endif /* LOWER_COMPLEX */
+    case tk_ptr_to_member:
+      /* Pointer-to-member assignment turns into integer assignment for
+         pointers to data members, struct assignment for pointers to member
+         functions. */
+      if (is_or_was_ptr_to_member_function_type(
+                                     expr->variant.operation.operands->type)) {
+        expr->variant.operation.type_kind = (a_type_kind)tk_struct;
+      } else {
+        expr->variant.operation.type_kind = (a_type_kind)tk_integer;
+      }  /* if */
+      break;
+    default:
+      /* Nothing to do. */
+      break;
+  }  /* switch */
+}  /* lower_operation_type_kind */
+
+
 /*ARGSUSED*/  /* <-- tblock is not used. */
 static void perform_post_pass_on_lowered_node(
                                     an_expr_node_ptr                    expr,
@@ -12346,6 +12383,14 @@ optimizations or cleanups that are applicable to this expression node.
 {
   /* Perform some optimizations if they are applicable. */
   optimize_node_if_possible(expr);
+  if (is_operation_node(expr)) {
+    /* Lower the type_kind field of all operation nodes as appropriate.  The
+       lowering is done here (in the post pass) for two reasons: to keep the
+       original type_kind in place so that it can be used during lowering, and
+       to ensure that operations that are added during the lowering process
+       also have their type_kinds lowered. */
+    lower_operation_type_kind(expr);
+  }  /* if */
 }  /* perform_post_pass_on_lowered_node */
 
 
@@ -13330,13 +13375,9 @@ The given node is an eok_assign node.  Lower the node if needed.
 {
   an_expr_node_ptr  operand_node = expr->variant.operation.operands;
 
+  check_assertion(is_operation_node(expr) &&
+                  node_operator_is(expr, eok_assign));
   switch (expr->variant.operation.type_kind) {
-#if LOWER_COMPLEX
-    case tk_complex:
-      /* Complex assignment becomes structure assignment. */
-      expr->variant.operation.type_kind = (a_type_kind)tk_struct;
-      break;
-#endif /* LOWER_COMPLEX */
     case tk_pointer:
 #if ASSIGNMENT_TO_THIS_ALLOWED
       /* Check for assignment to "this" in a constructor. */
@@ -13406,16 +13447,6 @@ The given node is an eok_assign node.  Lower the node if needed.
         /* Add a cast if the source of the assignment has a type that contains
            a function with a copy constructed parameter. */
         operand_node->next = add_cast(operand_node->next, operand_node->type);
-      }  /* if */
-      break;
-    case tk_ptr_to_member:
-      /* Pointer-to-member assignment turns into integer assignment for
-         pointers to data members, struct assignment for pointers to member
-         functions. */
-      if (is_or_was_ptr_to_member_function_type(operand_node->type)) {
-        expr->variant.operation.type_kind = (a_type_kind)tk_struct;
-      } else {
-        expr->variant.operation.type_kind = (a_type_kind)tk_integer;
       }  /* if */
       break;
     case tk_struct:
@@ -13607,6 +13638,8 @@ cast.  See lower_expr for typical invocation.
       }  /* if */
       break;
     case enk_operation:
+      /* The type_kind of the operation is lowered (if necessary) during
+         the lowering post pass. */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       /* Before lowering operands of an expression, look for a couple
          of special cases that operate on a VLA operand. */

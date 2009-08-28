@@ -2924,7 +2924,8 @@ void lower_c99_operator(an_expr_node_ptr  expr)
 The given expression should be an operation: Replace it by IL that is
 compatible with C89 IL.  Nontrivial transformations are needed (among
 others) for operations involving complex types, fixed-point types, the
-_Bool type, and VLA types.
+_Bool type, and VLA types.  The type_kind of the operation is lowered
+(if necessary) during the lowering post pass.
 */
 {
   a_type_kind  op_kind;
@@ -3105,23 +3106,6 @@ _Bool type, and VLA types.
       break;
 #endif /* LOWER_FIXED_POINT */
 
-    case eok_assign:
-      switch (op_kind) {
-#if LOWER_FIXED_POINT
-        case tk_fixed_point:
-          /* Fixed-point assignment becomes integer assignment. */
-          expr->variant.operation.type_kind = (a_type_kind)tk_integer;
-          break;
-#endif /* LOWER_FIXED_POINT */
-#if LOWER_COMPLEX
-        case tk_complex:
-          /* Complex assignment becomes structure assignment. */
-          expr->variant.operation.type_kind = (a_type_kind)tk_struct;
-          break;
-#endif /* LOWER_COMPLEX */
-        default:;
-      }  /* switch */
-      break;
     case eok_add_assign:
     case eok_subtract_assign:
     case eok_multiply_assign:
