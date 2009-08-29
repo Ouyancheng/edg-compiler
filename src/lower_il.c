@@ -14307,10 +14307,6 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   {
     lower_expr(expr_to_lower);
   }  /* if */
-  /* Perform a second pass on the lowered expression to optimize it
-     and clean up any remaining issues. */
-  perform_post_pass_on_lowered_expression(expr_to_lower);
-
   if (lifetime != NULL) {
     /* More processing for the enk_object_lifetime case. */
     if (any_cleanup_actions(lifetime)) {
@@ -14339,6 +14335,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       overwrite_node(expr, expr_to_lower);
     }  /* if */
   }  /* if */
+  /* Perform a second pass on the lowered expression to optimize it
+     and clean up any remaining issues. */
+  perform_post_pass_on_lowered_expression(expr);
   /* Release any temporary variables that are no longer needed after the
      end of the full expression. */
   release_reusable_temporaries();
