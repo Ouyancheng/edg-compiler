@@ -141,7 +141,8 @@ Microsoft compatibility: default Microsoft version changed
 
 The default Microsoft version number (specified by DEFAULT_MICROSOFT_VERSION)
 is now 1400.  This corresponds to the value of _MSC_VER used with Visual
-C++ 8.0
+C++ 8.0.
+
 
 8/25/09  [EDGcpfe/8583]
 Incorrect IL generated for ::delete and deleting destructors
