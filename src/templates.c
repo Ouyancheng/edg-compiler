@@ -2989,7 +2989,8 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* DEBUG */
     }  /* if */
   }  /* for */
-  check_assertion(curr_tcsp == NULL && start_found_list == NULL);
+  check_assertion(total_errors > 0 ||
+                  (curr_tcsp == NULL && start_found_list == NULL));
   return complete_list;
 }  /* map_token_numbers_to_cache_pointers */
 

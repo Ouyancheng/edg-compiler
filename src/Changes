@@ -1,5 +1,14 @@
 Version 4.2
 
+8/31/09  [EDGcpfe/10061]
+Internal error on invalid template declaration
+
+Certain invalid template declarations could result in an internal error
+in map_token_numbers_to_cache_pointers.  Now fixed.
+
+  template <typename T> void func(int n =
+
+
 8/28/09  [EDGcpfe/8832]
 Update defines.h.linux to build 32 bit target on 64 bit host
 
