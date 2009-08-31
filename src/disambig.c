@@ -679,6 +679,16 @@ static void prescan_declaration(a_disambig_state_ptr       state,
                                 a_disambig_flag_set 	   flags,
 			        a_boolean            	   is_top_level);
 
+static void prescan_trailing_return_type(a_disambig_state_ptr  state)
+/*
+Scan and cache the tokens that make up a trailing return type (the "->"
+introducing the return type has been cached already).
+*/
+{
+  prescan_declaration(state, DFS_ABSTRACT_DECLARATOR_ALLOWED,
+                      /*is_top_level=*/FALSE);
+}  /* prescan_trailing_return_type */
+
 
 static void prescan_function_declarator
                               (a_disambig_state_ptr        state,
@@ -752,6 +762,12 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       /* Cache the right parenthesis. */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
+    if (trailing_return_types_enabled && curr_token == tok_arrow) {
+      /* Cache the trailing return type. */
+      cache_curr_token(&state->cache);
+      (void)get_token();
+      prescan_trailing_return_type(state);
     }  /* if */
   }  /* if */
 done:
@@ -1212,12 +1228,17 @@ types separated by commas (when single_type_required is FALSE).
      also appear in contexts in which is_cast is not TRUE.  In Microsoft
      mode we have to check for multi-keyword casts in such cases. */
   next_tok = next_token();
-  if (curr_token == tok_typename ||
-      ((next_tok == tok_lparen ||
-       (microsoft_mode && is_type_keyword(next_tok)) || /* See note 2 above. */
-       (is_cast(flags) && /* See note 1 above */
-        (is_implicit_template_type || microsoft_mode))) &&
-       is_type_start(/*is_expr_context=*/TRUE))) {
+  if (curr_token == tok_auto) {
+    /* "auto" is a type specifier, but it cannot be part of a function-style
+       cast; "auto(" is only valid as part of a declarative construct
+       involving a trailing return type (e.g., "auto(*)()->int"). */
+  } else if (curr_token == tok_typename ||
+             ((next_tok == tok_lparen ||
+               (microsoft_mode &&
+                is_type_keyword(next_tok)) || /* See note 2 above. */
+               (is_cast(flags) && /* See note 1 above */
+                (is_implicit_template_type || microsoft_mode))) &&
+              is_type_start(/*is_expr_context=*/TRUE))) {
     /* Initialize the token cache. */
     init_disambig_state(&state);
     if (curr_token == tok_identifier) {

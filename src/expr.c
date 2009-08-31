@@ -9429,6 +9429,7 @@ specification allow a variable-sized array as the top type.
   init_decl_parse_state(&dps);
   dps.is_new_expr_type = TRUE;
   dps.auto_type_allowed = auto_type_specifier_enabled;
+  dps.trailing_return_type_allowed = trailing_return_types_enabled;
   new_type_name(&dps, trapped_left_paren);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
@@ -9443,8 +9444,9 @@ specification allow a variable-sized array as the top type.
       /* Prescan the initializer to deduce the type to allocate. */
       prescan_initializer_for_auto_type_deduction(&dps);
     }  /* if */
-  } else if (dps.auto_type_specifier_seen) {
-    /* An auto type specifier not followed by a new-initializer is an error. */
+  } else if (dps.auto_type_specifier_seen && !dps.has_trailing_return_type) {
+    /* An auto type specifier not followed by a new-initializer or a
+       trailing return type is an error. */
     error(ec_auto_type_requires_initializer);
     dps.type = error_type();
     dps.auto_type_specifier_seen = FALSE;

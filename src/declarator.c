@@ -1527,6 +1527,7 @@ this is a helper function.
     state->return_type_pos = pos_curr_token;
     init_decl_parse_state(&trt_dps);
     trt_dps.is_trailing_return_type = TRUE;
+    trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
     /* Parse the trailing return type. */
     type_name_full(&trt_dps);
     if (err) {
@@ -1782,6 +1783,8 @@ if this is the function declarator in a friend function declaration.
         param_number++;
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
+        param_state.trailing_return_type_allowed =
+                                                trailing_return_types_enabled;
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan a parameter-declaration. */

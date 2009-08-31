@@ -104,6 +104,7 @@ reflected in start_secondary_declarator.
   ps->in_class_scope = FALSE;
   ps->in_nested_declarator = FALSE;
   ps->is_trailing_return_type = FALSE;
+  ps->trailing_return_type_allowed = FALSE;
   ps->has_trailing_return_type = FALSE;
   ps->is_new_expr_type = FALSE;
   ps->is_evaluated_sizeof_type_arg = FALSE;
@@ -9707,6 +9708,7 @@ common cases.
 
   db_enter(3, "type_name_full");
   set_err_pos_to_curr_token();
+  dps->trailing_return_type_allowed = trailing_return_types_enabled;
   copy_source_position(pos_curr_token, dps->start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
   if (dps->is_trailing_return_type) {

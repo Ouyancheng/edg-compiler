@@ -446,6 +446,8 @@ Initialize a template declaration state block.
 */
 {
   init_decl_parse_state(&tdsp->decl_parse);
+  tdsp->decl_parse.trailing_return_type_allowed =
+                                                trailing_return_types_enabled;
   tdsp->is_template_friend = FALSE;
   tdsp->is_member_decl = FALSE;
   tdsp->is_specialization = FALSE;
@@ -8572,6 +8574,7 @@ where the class declared an incomplete array type.
   clear_func_info(&func_info);
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
+  state.trailing_return_type_allowed = trailing_return_types_enabled;
   rescan_reusable_cache(&tssp->variant.static_data_member.decl_cache.tokens);
   scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
                             /*is_member_decl=*/FALSE, (a_type_ptr)NULL,
@@ -9001,6 +9004,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       clear_func_info(&func_info);
       clear_decl_pos_block(&decl_pos_block);
       init_decl_parse_state(&state);
+      state.trailing_return_type_allowed = trailing_return_types_enabled;
       scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
                                 is_member_decl, parent_class,
   			        /*decl_scope_err=*/FALSE,
@@ -13027,6 +13031,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   /* Scan the declaration specifiers. */
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
+  state.trailing_return_type_allowed = trailing_return_types_enabled;
   decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED | DSI_IS_TEMPLATE_PARAMETER),
                   &state, &decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
@@ -21989,6 +21994,7 @@ instantiation.
 
   db_enter(3, "instantiation_directive");
   init_decl_parse_state(&state);
+  state.trailing_return_type_allowed = trailing_return_types_enabled;
   state.start_pos = *start_pos;
   if (!is_pragma) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS

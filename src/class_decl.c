@@ -897,6 +897,8 @@ a class member declaration as it appears.
 {
   init_decl_parse_state(&mdip->decl_state);
   mdip->decl_state.auto_type_allowed = auto_type_specifier_enabled;
+  mdip->decl_state.trailing_return_type_allowed =
+                                                trailing_return_types_enabled;
   mdip->decl_state.in_class_scope = TRUE;
   mdip->decl_state.start_pos = *pos;
   clear_decl_pos_block(&mdip->decl_pos_block);
