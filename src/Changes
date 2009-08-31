@@ -23,13 +23,13 @@ entity should be considered to be unaliased because of "restrict".
 Lowering of operation type_kinds
 
 As a result of the expression changes introduced in 4.0 (see the Changes entry
-8/19/08) operations now have an associated type_kind field (that specifies the
-kind of type the operation acts on).  While this field was correctly lowered
-for operations involving the eok_assign operator, other operators, as well as
-any assignments generated during the lowering process (e.g., when introducing a
-temporary variable), were left in their un-lowered form, causing back ends to
-see tk_fixed_point, tk_complex, and tk_ptr_to_member type_kinds.  This is now
-fixed.  For example:
+of 8/19/08), operations now have an associated type_kind field (that specifies
+the kind of type the operation acts on).  While this field was correctly
+lowered for operations involving the eok_assign operator, other operators, as
+well as any assignments generated during the lowering process (e.g., when
+introducing a temporary variable), were left in their un-lowered form, causing
+back ends to see tk_fixed_point, tk_complex, and tk_ptr_to_member type_kinds.
+This is now fixed.  For example:
 
   void f() {
     _Complex double x;
