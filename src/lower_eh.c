@@ -5255,16 +5255,14 @@ be passed down.
     insert_dtor_member_and_base_destructions(&epilogue_insert_location,
                                              dependent_stmt,
                                              dtor_info);
-    /* Eliminate the return at the end of the try block and fall through
-       to beyond the try block. */
+    /* Effectively eliminate the return at the end of the try block and fall
+       through to beyond the try block. */
     insert_stmt = epilogue_insert_location.variant.stmt;
     if (epilogue_insert_location.kind == ilk_after_statement) {
       return_stmt = insert_stmt->next;
-      insert_stmt->next = NULL;
     } else {
       check_assertion(epilogue_insert_location.kind == ilk_block_start);
       return_stmt = insert_stmt->variant.block.statements;
-      insert_stmt->variant.block.statements = NULL;
     }  /* if */
     check_assertion(return_stmt != NULL &&
                     return_stmt->kind == (a_statement_kind)stmk_return);
@@ -5276,6 +5274,9 @@ be passed down.
       rmp->next = NULL;
       free_return_memo_list(rmp);
     }
+    /* Turn the return statement into a no-op rather than eliminate it (in case
+       there are any pragmas that refer to it). */
+    turn_statement_into_noop(return_stmt);
   }  /* if */
 #if DO_FULL_PORTABLE_EH_LOWERING
 #if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS

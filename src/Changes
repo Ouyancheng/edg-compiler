@@ -1,5 +1,22 @@
 Version 4.2
 
+8/31/09  [EDGcpfe/9039]
+Abort when lowering destructors with function try block
+
+Lowering a destructor with a function try block containing a return statement
+that has an associated pragma caused an IL write-read assertion failure in
+configurations where DO_FULL_PORTABLE_EH_LOWERING is TRUE and exception
+handling is enabled.  This is now fixed.  For example:
+
+  struct A {
+    ~A() try {
+#pragma foo
+      return;    // caused an IL write-read difference in some configurations
+    } catch (...) {
+    }
+  } a;
+
+
 8/31/09  [EDGcpfe/9543, EDGcpfe/9895]
 Incorrect IA-64 ABI mangling for some template arguments
 
