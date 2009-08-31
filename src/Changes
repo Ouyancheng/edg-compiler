@@ -1,5 +1,21 @@
 Version 4.2
 
+8/31/09  [EDGcpfe/9543,EDGcpfe/9895]
+Incorrect IA-64 ABI mangling for some template arguments
+
+The IA-64 ABI mangling produced for template arguments that are internally
+represented as a ck_address to a reference type was incorrect.  Such
+constructs had been mangled as though they were expressions (i.e., using
+"X...E" delimiters).  For backwards compatibility, the previous behavior
+is preserved when ABI_COMPATIBILITY_VERSION is less than 402.  For example:
+
+  template <int& I> struct A {
+    A() {}
+  };
+  int x;
+  A<x> a;   // A<x> had been mangled as _Z1AIXL_Z1xEEE, now _Z1AIL_Z1xEE
+
+
 8/31/09  [EDGcpfe/10061]
 Internal error on invalid template declaration
 
