@@ -1,14 +1,15 @@
 Version 4.2
 
 9/1/09   [EDGcpfe/9894]
-GNU: Emulate missing underscore in IA-64 mangling of some template arguments
+GNU: Emulate missing underscore in IA-64 mangling of template arguments
 
-GNU mistakenly omits an underscore in the mangling of an external name used as
-a template argument.  This defect has been resolved in g++ 4.0, but only when
--fabi-version is set to version 3 (or later) -- the default abi version as of
-this writing is still 2.  We now emulate this behavior in GNU emulation mode or
-when emulate_gnu_abi_bugs is TRUE.  The old behavior is preserved when
-ABI_COMPATIBILITY_VERSION is less than 402.  For example:
+GNU mistakenly omits an underscore in the mangling of a reference to an
+external name when used as a template argument.  This defect has been resolved
+in g++ 4.0, but only when -fabi-version is set to version 3 (or later) -- the
+default abi version as of this writing is still 2.  We now emulate this
+behavior in GNU emulation mode or when emulate_gnu_abi_bugs is TRUE.  The old
+behavior is preserved when ABI_COMPATIBILITY_VERSION is less than 402.  
+For example:
 
   template <int& I, void (&p)(void)> struct A {};
   int x;

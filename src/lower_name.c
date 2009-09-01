@@ -643,22 +643,28 @@ Add any prefix required at the beginning of a mangled name.
 
 #if IA64_ABI
 
+#if ABI_COMPATIBILITY_VERSION < 402
+/*ARGSUSED*/ /* <-- con is not used in that case. */
+#endif /* ABI_COMPATIBILITY_VERSION < 402 */
 static void add_template_argument_mangled_name_prefix(
+                                             a_constant_ptr               con,
                                              a_mangling_control_block_ptr mctl)
 /*
 Add the mangled name prefix for an external name in a template argument
 (typically "_Z") to the mangled name.  Early GNU versions mistakenly omitted
-the underscore here.  This defect was fixed in 4.0, but only when using
--fabi-version=3 or higher, and to date the default GNU abi-version is still 2,
-so for compatibility omit the underscore in all GNU versions.
+the underscore when the constant, con, has reference type.  This defect was
+fixed in 4.0, but only when using -fabi-version=3 or higher, and to date the
+default GNU abi-version is still 2, so for compatibility omit the underscore in
+all GNU versions.
 */
 {
 #if ABI_COMPATIBILITY_VERSION >= 402
-  if (emulate_gnu_abi_bugs
+  if (is_reference_type(con->type) &&
+      (emulate_gnu_abi_bugs
 #if GNU_EXTENSIONS_ALLOWED
-      || gpp_mode
+       || gpp_mode
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                 ) {
+                  )) {
     /* Omit underscore to be compatible with GNU. */
     add_to_mangled_name('Z', mctl);
   } else
@@ -2050,7 +2056,7 @@ template classes.
   if (abkind == (an_address_base_kind)abk_variable) {
     a_variable_ptr variable = con->variant.address.variant.variable;
 #if IA64_ABI
-    add_template_argument_mangled_name_prefix(mctl);
+    add_template_argument_mangled_name_prefix(con, mctl);
 #endif /* IA64_ABI */
     if (is_class_or_namespace_member(variable)) {
       /* Static data member or namespace member variable. */
@@ -2079,7 +2085,7 @@ template classes.
     if (emulate_gnu_abi_bugs && suppress_param_encoding) {
       /* g++ 3.2 does not include the "_Z" for extern "C" functions. */
     } else {
-      add_template_argument_mangled_name_prefix(mctl);
+      add_template_argument_mangled_name_prefix(con, mctl);
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
