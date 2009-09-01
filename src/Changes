@@ -1,5 +1,22 @@
 Version 4.2
 
+8/31/09  [EDGcpfe/9054]
+GNU: Abort when inlining routine with address-of-label GNU extension
+
+Inlining a routine that contains a GNU address-of-label extension
+causes an IL write-read abort in some configurations.  Routines that contain
+a label whose address has been taken are no longer candidates for inlining.
+For example:
+
+  static inline void *f(void) {
+  here:;
+    return &&here;  // had aborted, now won't be inlined
+  }
+  void g(void) {
+    f();
+  }
+
+
 8/31/09  [EDGcpfe/9039]
 Abort when lowering destructors with function try block
 
