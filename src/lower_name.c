@@ -641,6 +641,35 @@ Add any prefix required at the beginning of a mangled name.
 #endif /* IA64_ABI */
 }  /* add_mangled_name_prefix */
 
+#if IA64_ABI
+
+static void add_template_argument_mangled_name_prefix(
+                                             a_mangling_control_block_ptr mctl)
+/*
+Add the mangled name prefix for an external name in a template argument
+(typically "_Z") to the mangled name.  Early GNU versions mistakenly omitted
+the underscore here.  This defect was fixed in 4.0, but only when using
+-fabi-version=3 or higher, and to date the default GNU abi-version is still 2,
+so for compatibility omit the underscore in all GNU versions.
+*/
+{
+#if ABI_COMPATIBILITY_VERSION >= 402
+  if (emulate_gnu_abi_bugs
+#if GNU_EXTENSIONS_ALLOWED
+      || gpp_mode
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                 ) {
+    /* Omit underscore to be compatible with GNU. */
+    add_to_mangled_name('Z', mctl);
+  } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+  /* Do not add code here. */
+  {
+    add_str_to_mangled_name("_Z", mctl);
+  }  /* if */
+}  /* add_template_argument_mangled_name_prefix */
+
+#endif /* IA64_ABI */
 
 static char *end_mangling(a_source_correspondence      *scp,
                           a_boolean                    final,
@@ -2021,7 +2050,7 @@ template classes.
   if (abkind == (an_address_base_kind)abk_variable) {
     a_variable_ptr variable = con->variant.address.variant.variable;
 #if IA64_ABI
-    add_str_to_mangled_name("_Z", mctl);
+    add_template_argument_mangled_name_prefix(mctl);
 #endif /* IA64_ABI */
     if (is_class_or_namespace_member(variable)) {
       /* Static data member or namespace member variable. */
@@ -2050,7 +2079,7 @@ template classes.
     if (emulate_gnu_abi_bugs && suppress_param_encoding) {
       /* g++ 3.2 does not include the "_Z" for extern "C" functions. */
     } else {
-      add_str_to_mangled_name("_Z", mctl);
+      add_template_argument_mangled_name_prefix(mctl);
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
