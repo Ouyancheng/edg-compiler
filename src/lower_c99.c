@@ -136,12 +136,29 @@ Lower the expression in a VLA dimension entry.
   an_expr_node_ptr  expr = vdp->dimension_expr;
 
   if (expr != NULL) {
+    a_context    context;
+    a_scope_ptr  saved_innermost_function_scope;
+    if (vdp->in_prototype_scope) {
+      /* We've already pushed the function scope on the context stack, but
+         VLA dimensions appearing in prototype scope are not defined in that
+         context.  Temporarily restore the file scope context.  (Note that
+         VLAs can only appear in prototype scope in C modes.) */
+      check_assertion(C_mode());
+      saved_innermost_function_scope = innermost_function_scope;
+      innermost_function_scope = NULL;
+      push_context(&context, il_header.primary_scope,
+                   (an_object_lifetime_ptr)NULL);
+    }  /* if */
     if (C_mode()) {
 #if DO_C99_IL_LOWERING
       lower_c99_full_expr(expr);
 #endif /* DO_C99_IL_LOWERING */
     } else {
       lower_full_expr(expr, (a_statement_ptr)NULL);
+    }  /* if */
+    if (vdp->in_prototype_scope) {
+      pop_context();
+      innermost_function_scope = saved_innermost_function_scope;
     }  /* if */
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
