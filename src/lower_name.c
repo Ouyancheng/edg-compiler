@@ -3720,9 +3720,9 @@ literals.
 #if GNU_EXTENSIONS_ALLOWED
                || (gpp_mode && gnu_abi_version < 30400)
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                   )
+                                                       )
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-                                                    )) {
+                                                        )) {
         /* These are treated as expressions. */
         is_expression = TRUE;
         /* Mark the start of the expression. */
