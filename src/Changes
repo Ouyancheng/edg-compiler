@@ -7,15 +7,16 @@ In GNU version 3.4.0, a regression was introduced where an underscore in the
 mangling of a reference to an external name when used as a template argument
 was omitted.  This defect was resolved in g++ 4.0, but only when -fabi-version
 is set to version 3 (or later) -- the default abi version as of this writing is
-still 2.  We now emulate this behavior in GNU emulation mode (when gnu_version
->= 30400) or when emulate_gnu_abi_bugs is TRUE.  The old behavior is preserved
-when ABI_COMPATIBILITY_VERSION is less than 402.  For example:
+still 2.  We now emulate this behavior in GNU emulation mode (when
+gnu_abi_version >= 30400) or when emulate_gnu_abi_bugs is TRUE.  The old
+behavior is preserved when ABI_COMPATIBILITY_VERSION is less than 402.  For
+example:
 
   template <int& I, void (&p)(void)> struct A {};
   int x;
   void f(void) {}
-  A<x, f> a;    // now produces _Z1AILZ1xELZ1fvEE in gpp_mode or when
-                // emulate_gnu_abi_bugs is TRUE, _Z1AIL_Z1xEL_Z1fvEE otherwise
+  A<x, f> a; // now produces _Z1AILZ1xELZ1fvEE when gnu_abi_version >= 30400 or
+             // emulate_gnu_abi_bugs is TRUE, _Z1AIL_Z1xEL_Z1fvEE otherwise
 
 
 8/31/09  [EDGcpfe/9054]
