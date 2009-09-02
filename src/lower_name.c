@@ -651,18 +651,18 @@ static void add_template_argument_mangled_name_prefix(
                                              a_mangling_control_block_ptr mctl)
 /*
 Add the mangled name prefix for an external name in a template argument
-(typically "_Z") to the mangled name.  Early GNU versions mistakenly omitted
+(typically "_Z") to the mangled name.  Some GNU versions mistakenly omitted
 the underscore when the constant, con, has reference type.  This defect was
-fixed in 4.0, but only when using -fabi-version=3 or higher, and to date the
-default GNU abi-version is still 2, so for compatibility omit the underscore in
-all GNU versions.
+introduced in 3.4 and fixed in 4.0, but only when using -fabi-version=3 or
+higher, and to date the default GNU abi-version is still 2, so for
+compatibility omit the underscore in version 30400 and later.
 */
 {
 #if ABI_COMPATIBILITY_VERSION >= 402
   if (is_reference_type(con->type) &&
       (emulate_gnu_abi_bugs
 #if GNU_EXTENSIONS_ALLOWED
-       || gpp_mode
+       || (gpp_mode && gnu_version >= 30400)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                   )) {
     /* Omit underscore to be compatible with GNU. */
