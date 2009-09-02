@@ -1115,11 +1115,11 @@ If not, *failed is set.
         goto cannot_inline_ever;
       case stmk_label:
 #if GNU_EXTENSIONS_ALLOWED
-	if (statement->variant.label.ptr->address_taken) {
-	  /* Don't inline routines where the address of a label has been
-	     taken (i.e., by the address-of-label GNU extension). */
-	  goto cannot_inline_ever;
-	}  /* if */
+        if (statement->variant.label.ptr->address_taken) {
+          /* Don't inline routines where the address of a label has been
+             taken (i.e., by the address-of-label GNU extension). */
+          goto cannot_inline_ever;
+        }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Labels are just removed.  The processing on the gotos, if any,
            will decide whether inlining can be done. */
