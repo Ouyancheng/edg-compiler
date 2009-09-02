@@ -3507,7 +3507,8 @@ returned set to TRUE.
      initializer. */
   first_token = curr_token;
   pos_first_token = pos_curr_token;
-  if (dps->auto_type_specifier_seen && !is_error_type(vp_type)) {
+  if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
+      !is_error_type(vp_type)) {
     /* An initializer for a variable declared with the "auto" type specifier.*/
     if (first_token == tok_lbrace) {
       error(ec_auto_brace_initialization_not_allowed);
