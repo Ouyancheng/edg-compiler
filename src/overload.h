@@ -679,7 +679,6 @@ extern a_boolean conversion_to_class_possible(
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
                           a_boolean                is_reference_binding,
-                          a_boolean                processed_arg,
                           a_conv_descr             *conversion,
                           a_conv_descr             *ctor_arg_conversion,
                           a_boolean                *ambiguous,
@@ -698,7 +697,6 @@ extern a_boolean user_defined_conversion_possible(
                                       a_boolean    is_copy_initialization,
                                       a_boolean    orig_is_copy_initialization,
                                       a_boolean    is_reference_binding,
-                                      a_boolean    processed_arg,
                                       a_conv_descr *conversion,
                                       a_conv_descr *ctor_arg_conversion,
                                       a_boolean    *failed);
@@ -774,19 +772,16 @@ extern void prep_initializer_operand(an_operand    *source_operand,
                                      a_boolean     initializing_variable,
                                      a_boolean     static_lifetime,
                                      a_boolean     is_copy_initialization,
-                                     a_boolean     processed_arg,
                                      a_boolean     nontype_template_arg,
                                      an_error_code incompatible_err);
 
 extern void prep_arg_passed_via_copy_constructor(an_operand    *source_operand,
                                                  a_type_ptr    param_type,
-                                                 a_boolean     processed_arg,
                                                  a_conv_descr  *conversion,
                                                  an_error_code err_code);
 
 extern void prep_argument_operand(an_operand       *source_operand,
                                   a_param_type_ptr formal_param,
-                                  a_boolean        processed_arg,
                                   a_conv_descr     *conversion,
                                   an_error_code    err_code);
 

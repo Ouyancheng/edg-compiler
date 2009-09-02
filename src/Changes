@@ -1,5 +1,26 @@
 Version 4.2
 
+9/2/09   [EDGcpfe/10058]
+Infinite loop on classes that convert to each other
+
+The front end could get into a recursion loop that eventually would
+cause an abort when the stack is exhausted, on a case involving classes
+that can convert to each other.  This is an additional case of the
+problem resolved by the Changes entry of 4/10/02.  Now fixed.
+
+  struct A;
+  struct B {
+    B(const A&);
+    B(B&);
+  };
+  struct A {
+    A(B);
+  };
+  B func(const B& b) {
+    return b;  // Stack overflow here
+  }
+
+
 9/1/09   [EDGcpfe/9894]
 GNU: Emulate missing underscore in IA-64 mangling of template arguments
 

@@ -981,7 +981,6 @@ initialized is assumed not to be a variable.
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
-                           /*processed_arg=*/FALSE,
                            /*nontype_template_arg=*/FALSE,
                            err_code);
   /* Check for the required closing parenthesis. */
@@ -11121,7 +11120,6 @@ called only in C++ mode.
                                   /*is_copy_initialization=*/TRUE, /*sic*/
                                   /*orig_is_copy_initialization=*/TRUE, /*sic*/
                                   /*is_reference_binding=*/FALSE, /*sic*/
-                                  /*processed_arg=*/FALSE,
                                   &conversion, (a_conv_descr *)NULL,
                                   &ambiguous,
                                   (a_candidate_function_ptr*)NULL) ||
@@ -11231,7 +11229,6 @@ called only in C++ mode.
                                          /*is_copy_initialization=*/FALSE,
                                          /*orig_is_copy_initialization=*/FALSE,
                                          /*is_reference_binding=*/FALSE,
-                                         /*processed_arg=*/FALSE,
                                          &conversion,
                                          &ctor_arg_conversion,
                                          &failed)) {
@@ -18954,7 +18951,6 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
-                               /*processed_arg=*/FALSE,
                                /*nontype_template_arg=*/FALSE,
                                ec_captured_var_type_not_copyable);
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
@@ -20220,7 +20216,6 @@ Return a pointer to the expression.
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
-                           /*processed_arg=*/FALSE,
                            /*nontype_template_arg=*/FALSE,
                            err_code);
   expression = make_node_from_operand(&result);
@@ -20275,7 +20270,7 @@ in a template instantiation) just do the scan.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {
     /* Convert to the required type. */
-    prep_argument_operand(&result, ptp, /*processed_arg=*/FALSE,
+    prep_argument_operand(&result, ptp,
                           (a_conv_descr_ptr)NULL,
                           ec_bad_default_arg_type);
   } else {
@@ -20667,7 +20662,6 @@ required_type will be void if the expression should have void type
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
-                               /*processed_arg=*/FALSE,
                                /*nontype_template_arg=*/FALSE,
                                err_code);
       expression = make_node_from_operand(&result);
@@ -21031,7 +21025,6 @@ memory region).  Do various error checks.
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*processed_arg=*/FALSE,
                              /*nontype_template_arg=*/TRUE,
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
@@ -21312,7 +21305,6 @@ standard form).  Assumes copy-initialization ("="-form).
                              /*initializing_variable=*/TRUE,  /* Arbitrary. */
                              /*static_lifetime=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*processed_arg=*/FALSE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
     /* Make a constant from the operand. */
@@ -21410,7 +21402,6 @@ nonstandard class member constants.  Assumes copy-initialization
                              /*initializing_variable=*/TRUE,  /* Arbitrary. */
                              /*static_lifetime=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
-                             /*processed_arg=*/FALSE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
     /* The operand could be a constant or an error. */
@@ -21526,7 +21517,6 @@ scan_aggregate_initializer_expression.
                            /*initializing_variable=*/TRUE,
                            static_lifetime,
                            is_copy_initialization,
-                           /*processed_arg=*/FALSE,
                            /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */
@@ -21615,7 +21605,7 @@ If an error is detected, use err_pos as the error position.
   if (expr->is_lvalue) set_lvalue_operand_state(&operand);
   operand.position = *err_pos;
   /* Do the conversion. */
-  prep_argument_operand(&operand, param, /*processed_arg=*/FALSE,
+  prep_argument_operand(&operand, param,
                         (a_conv_descr_ptr)NULL,
                         ec_incompatible_param);
   /* Make an expression again. */
@@ -21781,7 +21771,6 @@ string initializers.
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*is_reference_binding=*/FALSE,
-                                          /*processed_arg=*/FALSE,
                                           &conversion,
                                           (a_conv_descr *)NULL,
                                           &ambiguous,
@@ -21884,7 +21873,6 @@ required_type_determined:
                              /*initializing_variable=*/TRUE,
                              static_lifetime,
                              /*is_copy_initialization=*/TRUE,
-                             /*processed_arg=*/FALSE,
                              /*nontype_template_arg=*/FALSE,
                              ec_bad_initializer_type);
     switch (result.kind) {

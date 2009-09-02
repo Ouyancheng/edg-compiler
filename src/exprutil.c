@@ -4174,7 +4174,6 @@ C mode.
          copy constructor in this case.  Note that if the class does
          not have a copy constructor this does the right thing anyway. */
       prep_arg_passed_via_copy_constructor(argument_operand, arg_type,
-                                           /*processed_arg=*/FALSE,
                                            (a_conv_descr *)NULL,
                                            ec_no_suitable_copy_constructor);
 #endif /* USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS */
