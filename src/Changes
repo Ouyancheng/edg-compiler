@@ -59,7 +59,8 @@ The IA-64 ABI mangling produced for template arguments that are internally
 represented as a ck_address to a reference type was incorrect.  Such
 constructs had been mangled as though they were expressions (i.e., using
 "X...E" delimiters).  For backwards compatibility, the previous behavior
-is preserved when ABI_COMPATIBILITY_VERSION is less than 402.  For example:
+is preserved when ABI_COMPATIBILITY_VERSION is less than 402 and also when
+emulating GNU versions earlier than 3.4.  For example:
 
   template <int& I> struct A {
     A() {}

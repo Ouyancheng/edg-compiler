@@ -3709,15 +3709,20 @@ literals.
       add_to_mangled_name('X', mctl);
 #else /* IA64_ABI */
       /* If this argument is an expression, mark it accordingly.  A ck_address
-         of reference type doesn't qualify as an expression. */
+         of reference type doesn't qualify as an expression (unless we're
+         trying to be compatible with GNU 3.3 or earlier). */
       con = tap->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_template_param ||
           con->kind == (a_constant_repr_kind)ck_ptr_to_member ||
           (con->kind == (a_constant_repr_kind)ck_address
 #if ABI_COMPATIBILITY_VERSION >= 402
-           && !is_reference_type(con->type)
+           && (!is_reference_type(con->type)
+#if GNU_EXTENSIONS_ALLOWED
+               || (gpp_mode && gnu_abi_version < 30400)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                   )
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-                                           )) {
+                                                    )) {
         /* These are treated as expressions. */
         is_expression = TRUE;
         /* Mark the start of the expression. */
