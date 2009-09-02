@@ -54,12 +54,12 @@ example:
 
 
 8/31/09  [EDGcpfe/9054]
-GNU: Abort when inlining routine with address-of-label GNU extension
+GNU: invalid IL when inlining routine with address-of-label GNU extension
 
-Inlining a routine that contains a GNU address-of-label extension
-causes an IL write-read abort in some configurations.  Routines that contain
-a label whose address has been taken are no longer candidates for inlining.
-For example:
+Inlining a routine that contains a GNU address-of-label extension caused
+invalid IL to be generated (causing an IL write-read abort in some
+configurations).  To fix this, routines that contain a label whose address has
+been taken are no longer candidates for inlining.  For example:
 
   static inline void *f(void) {
   here:;
