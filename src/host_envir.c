@@ -4444,14 +4444,6 @@ is done after command line processing.
 #if MODULE_ID_NEEDED
   register_trans_unit_variable_with_field(module_id, module_id_ptr);
 #endif /* MODULE_ID_NEEDED */
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-#if EDG_WIN32
-  /* Create a locale object to be used for multibyte character conversions. */
-  system_default_locale = _create_locale(LC_ALL,
-                                         get_system_default_locale_name());
-  check_assertion(system_default_locale != NULL);
-#endif /* EDG_WIN32 */
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* host_envir_one_time_init */
 
@@ -4507,6 +4499,16 @@ This is done before command line processing.
   template_search_path_tail = NULL;
   avail_directory_name_entries = NULL;
   C_dialect = C_dialect_cplusplus;
+#if !STANDALONE_UTILITY_PROGRAM
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32
+  /* Create a locale object to be used for multibyte character conversions. */
+  system_default_locale = _create_locale(LC_ALL,
+                                         get_system_default_locale_name());
+  check_assertion(system_default_locale != NULL);
+#endif /* EDG_WIN32 */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Get the name of the EDG_BASE directory.  This may be overridden by
      a command-line option.  If the environment variable is not set, use
      a built-time default value. */

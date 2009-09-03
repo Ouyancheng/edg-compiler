@@ -1,5 +1,13 @@
 Version 4.2
 
+9/3/09   [EDGcpfe/9951]
+Incorrect conversion of multibyte file names from command-line on Windows
+
+File names specified on the command-line using native multibyte characters
+(when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE on windows)
+were not converted properly.  This would result in spurious errors opening
+files.  Now fixed.
+
 9/2/09   [EDGcpfe/10058]
 Infinite loop on classes that convert to each other
 
