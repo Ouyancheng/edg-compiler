@@ -4,7 +4,7 @@ Version 4.2
 Incorrect conversion of multibyte file names from command-line on Windows
 
 File names specified on the command-line using native multibyte characters
-(when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE on windows)
+(when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE on Windows)
 were not converted properly.  This would result in spurious errors opening
 files.  Now fixed.
 
