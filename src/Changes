@@ -1,5 +1,13 @@
 Version 4.2
 
+9/7/09   [EDGcpfe/10077]
+GNU compatibility: static initialization using compound literal lvalues
+
+Version 4.0 inadvertently disabled the change described in the 11/8/06
+entry, in which lvalues referring to compound literals are considered to
+be constant values.  This regression has now been fixed.
+
+
 9/3/09   [EDGcpfe/9951]
 Incorrect conversion of multibyte file names from command-line on Windows
 

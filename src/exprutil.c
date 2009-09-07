@@ -11053,6 +11053,25 @@ it might produce an error).
       /* Operations that don't have returns_lvalue_instead_of_usual_rvalue
          set. */
       switch (op) {
+        case eok_indirect:
+          op1 = skip_parens(op1);
+          if (constant_case != NULL && gnu_mode && is_constant_node(op1)) {
+            /* The GNU compilers accept an expression like *&(S){{0}} as
+               a constant. */
+            a_constant_ptr cp = op1->variant.constant;
+            check_assertion(cp->kind == (a_constant_repr_kind)ck_address);
+            if (cp->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+              a_variable_ptr var = cp->variant.address.variant.variable;
+              if (var->is_compound_literal) {
+                con_expr_value = var_constant_value(var);
+                node->is_lvalue = FALSE;
+                node->type = rvalue_node_type;
+                processed = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          break;
         case eok_subscript:
           if (allow_folding != NULL) {
             op1 = skip_parens(op1);
