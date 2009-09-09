@@ -98,7 +98,8 @@ represented as a ck_address to a reference type was incorrect.  Such
 constructs had been mangled as though they were expressions (i.e., using
 "X...E" delimiters).  For backwards compatibility, the previous behavior
 is preserved when ABI_COMPATIBILITY_VERSION is less than 402 and also when
-emulating GNU versions earlier than 3.4.  For example:
+emulating GNU versions earlier than 3.4 (when emulate_gnu_abi_bugs is TRUE).
+For example:
 
   template <int& I> struct A {
     A() {}

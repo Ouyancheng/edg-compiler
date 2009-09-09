@@ -3718,11 +3718,11 @@ literals.
 #if ABI_COMPATIBILITY_VERSION >= 402
            && (!is_reference_type(con->type)
 #if GNU_EXTENSIONS_ALLOWED
-               || (gpp_mode && gnu_abi_version < 30400)
+               || (emulate_gnu_abi_bugs && gpp_mode && gnu_abi_version < 30400)
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                       )
+                                                                              )
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-                                                        )) {
+                                                                           )) {
         /* These are treated as expressions. */
         is_expression = TRUE;
         /* Mark the start of the expression. */
