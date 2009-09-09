@@ -115,6 +115,11 @@ typedef struct a_tmpl_decl_state {
 			   the number of enclosing template scopes.  The
 			   outermost template declaration has a nesting
 			   depth of 1. */
+  a_template_nesting_depth
+		friend_depth;
+			/* If a particular nesting depth should be used for
+			   this declaration, friend_depth is set to that
+			   depth; otherwise it is set to zero. */
   a_token_kind	*final_token_ptr;
 			/* Pointer to a token kind indicating whether the
 			   final token of the declaration is expected to be

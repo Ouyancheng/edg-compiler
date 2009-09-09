@@ -1,5 +1,24 @@
 Version 4.2
 
+9/9/09   [EDGcpfe/10078, EDGcpfe/10080]
+Microsoft and GNU C++ compatibility: nonstandard template friend declarations
+
+Microsoft and g++ allow template friend class declarations that refer to a
+member of the current template class but that do not specify the enclosing
+class' template parameter lists in the friend declaration as required by the
+standard.   We now accept such declarations in Microsoft and g++ modes.
+
+  template <class T> struct A {
+    template <int i> class B;
+    template <int i> friend class B;
+    // should be:
+    // template <class T> template <bool b> friend class C<T>::Foo;
+  };
+  int main() {
+    A<int> a;
+  }
+
+
 9/9/09   [EDGcpfe/10073]
 Spurious error on constructor with template-dependent const field
 

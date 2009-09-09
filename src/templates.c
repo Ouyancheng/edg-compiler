@@ -457,6 +457,7 @@ Initialize a template declaration state block.
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->decl_scope_err = FALSE;
   tdsp->nesting_depth_err = FALSE;
+  tdsp->friend_depth = 0;
   tdsp->export_present = FALSE;
   tdsp->partial_spec_outside_of_class_template = FALSE;
   tdsp->has_dependent_templ_param = FALSE;
@@ -12834,9 +12835,50 @@ cache the expected tokens.
      the way to the end even if the friend token is found so that the
      token stream will be at the right place when we return. */
   while (curr_token != tok_end_of_source) {
-    if (curr_token == tok_friend) is_template_friend = TRUE;
-    (void)get_token();
-  }  /* if */
+    if (curr_token == tok_friend) {
+      is_template_friend = TRUE;
+      if (microsoft_mode || gpp_mode) {
+        /* Microsoft and g++ accept usage such as:
+             template <class T> struct C {
+               template <bool b> class Foo;
+               template <bool b> friend class Foo;
+             };
+           Even though the friend declaration should be:
+             template <class X> template <bool b> friend class C<X>::Foo;
+           Look for the token sequence "friend class X", where X is an
+           simple identifier.  Look up the identifier and if it is a template,
+           use its nesting depth as the nesting depth for this declaration. */
+        (void)get_token();
+        /* If the friend declaration is of the form "friend class X", where
+           X is an unqualified name, look up X and use the nesting depth
+           of the declaration that is found as the nesting depth of this
+           declaration. */
+        if (curr_token == tok_class || curr_token == tok_struct) {
+          (void)get_token();
+          if (curr_token == tok_identifier) {
+            a_symbol_locator	locator = locator_for_curr_id;
+            (void)get_token();
+            if (curr_token == tok_end_of_source) {
+              a_symbol_ptr	sym;
+              sym = normal_id_lookup(&locator, IDL_FRIEND_LOOKUP);
+              if (sym != NULL &&
+                  sym->kind == (a_symbol_kind)sk_class_template) {
+                a_template_symbol_supplement_ptr	tssp;
+                a_template_param_ptr			tpp;
+                a_template_nesting_depth		depth;
+                tssp = sym->variant.template_info;
+                tpp = tssp->cache.decl_info->parameters;
+                depth = nesting_depth_of_template_param(tpp);
+                decl_state->friend_depth = depth - 1;
+              }  /* if */
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (curr_token != tok_end_of_source) (void)get_token();
+  }  /* while */
   /* Skip past the tok_end_of_source. */
   (void)get_token();
   decl_state->is_template_friend = is_template_friend;
@@ -16562,7 +16604,8 @@ issued, and TRUE is returned.
                                           ? parent_class_of(parent_tp) : NULL;
     }  /* while */
   }  /* if */
-  if (depth != decl_state->number_of_template_param_clauses &&
+  if (depth != (decl_state->number_of_template_param_clauses +
+                decl_state->friend_depth) &&
       !decl_state->decl_scope_err) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
        because the message can be issued as a warning in g++ mode or the
@@ -17464,10 +17507,12 @@ differs between function and nonfunction declarations.
      from those of the template when prototype instantiations are put in
      the IL.  This special processing is okay because a friend in a prototype
      instantiation is never matched up with an existing declaration of a 
-     template. */
+     template.  Friend declarations may also be restarted at different depths
+     for unqualified friend declarations, which may refer to class members in
+     certain modes. */
   if (decl_state->is_template_friend &&
       !decl_state->in_prototype_instantiation) {
-    decl_state->nesting_depth = 0;
+    decl_state->nesting_depth = decl_state->friend_depth;
   } else {
     decl_state->nesting_depth = template_nesting_depth();
   }  /* if */
