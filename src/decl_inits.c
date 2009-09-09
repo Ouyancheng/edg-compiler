@@ -5331,8 +5331,10 @@ scan_paren:
             /* We don't issue diagnostics on initializing union members,
                partly because it's not well defined what should happen when
                const and non-const members are mixed, */
-          } else if (is_const_qualified && cssp != NULL &&
-                     cssp->has_user_provided_default_constructor) {
+          } else if (is_const_qualified && 
+                     ((cssp != NULL &&
+                       cssp->has_user_provided_default_constructor) ||
+                      is_template_dependent_type(tp))) {
             /* A const qualified field may be initialized without an explicit
                initializer if it is of class type and there is a default
                constructor for the class. */
