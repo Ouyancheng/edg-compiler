@@ -662,7 +662,7 @@ compatibility omit the underscore in version 30400 and later.
   if (is_reference_type(con->type) &&
       (emulate_gnu_abi_bugs
 #if GNU_EXTENSIONS_ALLOWED
-       || (gpp_mode && gnu_abi_version >= 30400)
+       && (gpp_mode && gnu_abi_version >= 30400)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                 )) {
     /* Omit underscore to be compatible with GNU. */
