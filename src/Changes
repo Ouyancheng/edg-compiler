@@ -1,5 +1,22 @@
 Version 4.2
 
+9/9/09   [EDGcpfe/10071,EDGcpfe/10076]
+GNU compatibility: Operand and result types for calls to __sync_... functions
+
+In GNU modes, the front end accepts various built-in functions for atomic
+memory access when the configuration macro GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+is TRUE (see Changes entry of 7/31/07).  Previously, only operands of integral
+and enumeration types were acceptable when calling these functions.  Now
+pointer types are also acceptable operand types (such operands are cast to the
+integers prior to the call), and the result of such a call is adjusted to
+produce a pointer type (since the underlying routine produces an integer type).
+For example:
+
+  void *f(void **ptr, void *oldval, void *newval) {
+    return __sync_val_compare_and_swap(ptr, oldval, newval);
+      /* Now accepted in GCC mode. */
+  }
+
 9/7/09   [EDGcpfe/10077]
 GNU compatibility: static initialization using compound literal lvalues
 

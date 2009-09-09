@@ -1966,7 +1966,8 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 
 static a_routine_ptr adjust_gnu_sync_call(an_operand          *target,
-                                          an_arg_operand_ptr  *args)
+                                          an_arg_operand_ptr  *args,
+                                          a_type_ptr          *result_type)
 /*
 A GNU built-in function (described by target) is being called and the current
 token is right after the left parenthesis of the call.  If the call is to a
@@ -1979,19 +1980,24 @@ if x is a 4-byte integral type.  Such transformations (if applicable) are made
 by this routine and require prescanning the argument types.  The actual routine
 to call is returned, and if the arguments to the call were prescanned, they are
 returned through *args (in that case, the current token on return is the
-closing right parenthesis).
+closing right parenthesis).  If the call is indeed to a __sync_... function,
+*result_type is set to the type of the result (which may be different from the
+return type of the function: the caller is responsible to add a cast if
+needed).
 */
 {
   int                      n_args = 0, k;
   a_routine_ptr            rout;
   a_builtin_function_kind  bfk;
 
+  *result_type = NULL;
   rout = routine_from_function_operand(target);
   bfk = rout->variant.builtin_function_kind;
   /* Check if this a generic __sync_... function and if so record the number
      of arguments expected by that function. */
   switch (bfk) {
     case bfk_sync_lock_release:
+      *result_type = void_type();
       n_args = 1;
       break;
     case bfk_sync_fetch_and_add:
@@ -2010,6 +2016,8 @@ closing right parenthesis).
       n_args = 2;
       break;
     case bfk_sync_bool_compare_and_swap:
+      *result_type = bool_type();
+      /*FALLTHROUGH*/
     case bfk_sync_val_compare_and_swap:
       n_args = 3;
       break;
@@ -2060,17 +2068,20 @@ closing right parenthesis).
     dispatch_type = skip_typerefs(dispatch_type);
     if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
-    } else if (!is_integral_or_enum_type(dispatch_type)) {
+    } else if (!is_integral_or_enum_type(dispatch_type) &&
+               !is_pointer_type(dispatch_type)) {
       pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                dispatch_type->size != 4 && dispatch_type->size != 8) {
       pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
     } else {
       /* Find the concrete routine to dispatch the operation to. */
-      a_symbol_ptr       sym;
-      a_symbol_locator   loc;
-      an_operand         orig_operand;
-      char               name[100], suffix[3];
+      a_symbol_ptr        sym;
+      a_symbol_locator    loc;
+      an_operand          orig_operand;
+      char                name[100], suffix[3];
+      an_arg_operand_ptr  ap;
+      a_param_type_ptr    ptp;
       /* Construct the concrete routine's name: */
       check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
@@ -2100,6 +2111,19 @@ closing right parenthesis).
                                                   /*allow_ctor=*/FALSE,
                                                   /*will_call=*/TRUE);
       rout = sym->variant.routine.ptr;
+      /* Convert the prescanned arguments to the type expected by the
+         function (if needed). */
+      ptp = skip_typerefs(rout->type)->variant.routine.extra_info
+                                     ->param_type_list;
+      for (ap = *args; ap != NULL; ap = ap->next, ptp = ptp->next) {
+        check_assertion(ptp != NULL);
+        do_operand_transformations(&ap->operand, TOPT_NO_OPTIONS);
+        cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
+      }  /* for */
+      /* Return the type that should result from the call. */
+      if (*result_type == NULL) {
+        *result_type = dispatch_type;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
@@ -2152,6 +2176,9 @@ C++ standard.  The current token is the "(" of the call.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean         call_folded_to_constant = FALSE;
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  a_type_ptr        result_type = NULL;
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
@@ -2472,7 +2499,7 @@ C++ standard.  The current token is the "(" of the call.
   if (routine != NULL && is_gnu_builtin_function(routine)) {
       /* If this is a call to a predeclared GNU __sync_... function adjust the
          function that is being called. */
-      routine = adjust_gnu_sync_call(operand, &arg_operand_list);
+      routine = adjust_gnu_sync_call(operand, &arg_operand_list, &result_type);
       if (arg_operand_list != NULL) {
         /* The arguments were prescanned, which means that operand (the callee
            expression) must have been updated. */
@@ -2724,6 +2751,11 @@ C++ standard.  The current token is the "(" of the call.
     rule_out_expr_kinds(ROEK_CONSTANT, result);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  if (result_type != NULL) {
+    cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
+  }  /* if */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 done:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
