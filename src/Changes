@@ -52,8 +52,8 @@ example:
   template <int& I, void (&p)(void)> struct A {};
   int x;
   void f(void) {}
-  A<x, f> a; // now produces _Z1AILZ1xELZ1fvEE when gnu_abi_version >= 30400 or
-             // emulate_gnu_abi_bugs is TRUE, _Z1AIL_Z1xEL_Z1fvEE otherwise
+  A<x, f> a; // now produces _Z1AILZ1xELZ1fvEE when gnu_abi_version >= 30400
+             // and emulate_gnu_abi_bugs is TRUE, _Z1AIL_Z1xEL_Z1fvEE otherwise
 
 
 8/31/09  [EDGcpfe/9054]
