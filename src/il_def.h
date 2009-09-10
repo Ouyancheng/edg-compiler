@@ -8018,6 +8018,7 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_movsd,               /* __builtin_ia32_movsd */
   bfk_ia32_unpckhpd,            /* __builtin_ia32_unpckhpd */
   bfk_ia32_unpcklpd,            /* __builtin_ia32_unpcklpd */
+  bfk_ia32_movq128,             /* __builtin_ia32_movq128 */
   bfk_ia32_paddb128,            /* __builtin_ia32_paddb128 */
   bfk_ia32_paddw128,            /* __builtin_ia32_paddw128 */
   bfk_ia32_paddd128,            /* __builtin_ia32_paddd128 */
@@ -8500,6 +8501,14 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_psrlq,               /* __builtin_ia32_psrlq */
   bfk_ia32_psraw,               /* __builtin_ia32_psraw */
   bfk_ia32_psrad,               /* __builtin_ia32_psrad */
+  bfk_ia32_psllwi,              /* __builtin_ia32_psllwi */
+  bfk_ia32_pslldi,              /* __builtin_ia32_pslldi */
+  bfk_ia32_psllqi,              /* __builtin_ia32_psllqi */
+  bfk_ia32_psrlwi,              /* __builtin_ia32_psrlwi */
+  bfk_ia32_psrldi,              /* __builtin_ia32_psrldi */
+  bfk_ia32_psrlqi,              /* __builtin_ia32_psrlqi */
+  bfk_ia32_psrawi,              /* __builtin_ia32_psrawi */
+  bfk_ia32_psradi,              /* __builtin_ia32_psradi */
   bfk_ia32_cvtsi642ss,          /* __builtin_ia32_cvtsi642ss */
   bfk_ia32_cvtss2si64,          /* __builtin_ia32_cvtss2si64 */
   bfk_ia32_cvttss2si64,         /* __builtin_ia32_cvttss2si64 */
@@ -9266,6 +9275,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_movsd */               "__builtin_ia32_movsd",
   /* bfk_ia32_unpckhpd */            "__builtin_ia32_unpckhpd",
   /* bfk_ia32_unpcklpd */            "__builtin_ia32_unpcklpd",
+  /* bfk_ia32_movq128 */             "__builtin_ia32_movq128",
   /* bfk_ia32_paddb128 */            "__builtin_ia32_paddb128",
   /* bfk_ia32_paddw128 */            "__builtin_ia32_paddw128",
   /* bfk_ia32_paddd128 */            "__builtin_ia32_paddd128",
@@ -9748,6 +9758,14 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_psrlq */               "__builtin_ia32_psrlq",
   /* bfk_ia32_psraw */               "__builtin_ia32_psraw",
   /* bfk_ia32_psrad */               "__builtin_ia32_psrad",
+  /* bfk_ia32_psllwi */              "__builtin_ia32_psllwi",
+  /* bfk_ia32_pslldi */              "__builtin_ia32_pslldi",
+  /* bfk_ia32_psllqi */              "__builtin_ia32_psllqi",
+  /* bfk_ia32_psrlwi */              "__builtin_ia32_psrlwi",
+  /* bfk_ia32_psrldi */              "__builtin_ia32_psrldi",
+  /* bfk_ia32_psrlqi */              "__builtin_ia32_psrlqi",
+  /* bfk_ia32_psrawi */              "__builtin_ia32_psrawi",
+  /* bfk_ia32_psradi */              "__builtin_ia32_psradi",
   /* bfk_ia32_cvtsi642ss */          "__builtin_ia32_cvtsi642ss",
   /* bfk_ia32_cvtss2si64 */          "__builtin_ia32_cvtss2si64",
   /* bfk_ia32_cvttss2si64 */         "__builtin_ia32_cvttss2si64",

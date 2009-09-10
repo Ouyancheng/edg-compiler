@@ -1,5 +1,39 @@
 Version 4.2
 
+9/10/09  [EDGcpfe/10081]
+GNU compatibility: Additional built-in IA-32 vector functions
+
+To improve compatibility with GCC 4.4, the front end now predeclares the
+following new functions in GNU C and C++ modes: __builtin__ia32_psllwi,
+__builtin__ia32_pslldi, __builtin__ia32_psllqi, __builtin__ia32_psrlwi,
+__builtin__ia32_psrldi, __builtin__ia32_psrlqi, __builtin__ia32_psrawi, and
+__builtin__ia32_psradi.  The types of the corresponding functions without the
+trailing "i" in their names (e.g., __builtin_ia32_psllw) have also been
+adjusted to reflect the types used in GCC 4.4 (when gnu_version >= 40400).
+Similarly, a new function __builtin_ia32_movq128 is now predeclared, and the
+types of the functions __builtin_ia32_addq and __builtin_ia32_addq is
+adjusted when gnu_version >= 40400.
+
+Taken together, these changes allow the front end to compile the headers
+"mmintrin.h" and "xmmintrin.h" that come with GCC 4.4 (except that
+"xmmintrin.h" contains a typedef that is invalid in C++ mode).
+
+
+9/9/09   [EDGcpfe/10073]
+Spurious error on constructor with template-dependent const field
+
+In some C++ modes, including strict mode and some GNU C++ modes, the front end
+sometimes issued a spurious error on a constructor that did not explicitly
+initialize a template-dependent const field.  For example:
+
+  template<class T> struct S {
+    S() {}      // Previously, a spurious error was issued in strict mode
+    T const x;  // because x was not explicitly initialized.
+  };
+
+This is now fixed (i.e., such cases are now accepted in all modes).
+
+
 9/9/09   [EDGcpfe/10078, EDGcpfe/10080]
 Microsoft and GNU C++ compatibility: nonstandard template friend declarations
 
