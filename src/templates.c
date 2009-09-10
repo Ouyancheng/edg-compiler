@@ -12845,7 +12845,7 @@ cache the expected tokens.
              };
            Even though the friend declaration should be:
              template <class X> template <bool b> friend class C<X>::Foo;
-           Look for the token sequence "friend class X", where X is an
+           Look for the token sequence "friend class X", where X is a
            simple identifier.  Look up the identifier and if it is a template,
            use its nesting depth as the nesting depth for this declaration. */
         (void)get_token();
