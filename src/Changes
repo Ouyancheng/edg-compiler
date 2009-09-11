@@ -1,5 +1,24 @@
 Version 4.2
 
+9/11/09  [EDGcpfe/10075]
+Template constructors with first argument same as the class
+
+Template constructors that, after deduction, have a first parameter
+that is the same type as the constructor's class now cause a deduction
+failure.  More specifically, they have to have exactly one argument,
+or, if they have default arguments, those default arguments must not
+be used in the call being deduced.
+
+  struct A {
+    A(int) {}
+    template <class T> A(T);  // With T=A, deduction fails
+    template <class T> A(T&);
+  };
+  int main() {
+    A a(37);
+    A b = a;  // Was ambiguous, now selects A(T&)
+  }
+
 9/11/09  [EDGcpfe/10083]
 GNU compatibility: IA-64 mangling of non-dependent pointer to member
 template parameters

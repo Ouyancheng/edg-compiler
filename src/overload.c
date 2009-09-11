@@ -2828,6 +2828,35 @@ template arguments, or NULL if deduction failed.
                                            template_sym,
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE);
+  if (updated_routine_type != NULL) {
+    a_routine_ptr routine = template_sym->variant.template_info->
+                                                      variant.function.routine;
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+      rtsp = updated_routine_type->variant.routine.extra_info;
+      ptp = rtsp->param_type_list;
+      if (ptp != NULL &&
+          identical_types_ignoring_qualifiers(ptp->type,
+                                              parent_class_of(routine))) {
+        /* After deduction, this is a constructor that looks like
+             X(X);
+           That is, it takes its own type as its first parameter.
+           This should be treated as a deduction failure. */
+        if (ptp->next == NULL) {
+          /* Just one parameter.  Fail. */
+          updated_routine_type = NULL;
+        } else {
+          /* More than one parameter.  Okay, except if we're defaulting all
+             the parameters after the first. */
+          if (arg_operand_list != NULL &&
+              arg_operand_list->next == NULL) {
+            /* Exactly one argument, and more than one parameter, so we're
+               defaulting those after the first.  Fail. */
+            updated_routine_type = NULL;
+          }  /* if */
+        } /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
 done:;
   db_exit();
   return updated_routine_type;
