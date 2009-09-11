@@ -879,7 +879,8 @@ extern an_ELF_visibility_kind ELF_visibility_of_type(a_type_ptr  type);
 extern void lower_vla_dimensions_in_type(a_type_ptr  tp);
 #endif /* DO_IL_LOWERING */
 extern a_boolean is_directly_variably_modified_type(a_type_ptr  tp);
-extern a_type_ptr strip_routine_default_args(a_type_ptr  type);
+extern
+a_type_ptr strip_routine_default_args_from_deduced_type(a_type_ptr  type);
 extern a_type_ptr strip_qualifiers_from_param_types(a_type_ptr  type);
 extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type);
 extern a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type);

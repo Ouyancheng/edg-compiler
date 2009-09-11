@@ -9608,19 +9608,20 @@ modification was done) is returned in *new_type.
 
 
 /*ARGSUSED*/ /* flags is not required but is part of the general interface. */
-static a_boolean tmtt_strip_routine_default_args(
+static a_boolean tmtt_strip_routine_default_args_from_deduced_type(
                                     a_type_ptr                      type,
                                     a_type_tree_traversal_flag_set  flags,
                                     a_type_ptr                      *new_type)
 /*
-Modify type so that any routine types that it contains no longer have
+Modify type (which is a type that has been produced as a result of template
+argument deduction) so that any routine types that it contains no longer have
 any default arguments.  The modified type (or the original type if no
 modification was done) is returned in *new_type.
 */
 {
-  *new_type = strip_routine_default_args(type);
+  *new_type = strip_routine_default_args_from_deduced_type(type);
   return !same_entities(type, *new_type);
-}  /* tmtt_strip_routine_default_args */
+}  /* tmtt_strip_routine_default_args_from_deduced_type */
 
 
 /*ARGSUSED*/ /* flags is not required but is part of the general interface. */
@@ -9894,20 +9895,24 @@ to the caller.  If no modification is done return the original type.
 }  /* strip_local_and_nonreal_typedefs */
 
 
-a_type_ptr strip_routine_default_args(a_type_ptr  type)
+a_type_ptr strip_routine_default_args_from_deduced_type(a_type_ptr  type)
 /*
-If type contains any routine types, remove the default arguments from the
-type.
+If type contains any routine types, remove certain default arguments from the
+type.  When nonstandard_default_arg_deduction is TRUE, only unevaluated
+template default arguments are removed; otherwise all default arguments
+are removed.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEREFS);
   if (type->kind == (a_type_kind)tk_routine) {
-    type = routine_type_without_default_args(type);
+    type = routine_type_without_default_args(
+                                      type, nonstandard_default_arg_deduction);
   }  /* if */
-  return traverse_and_modify_type_tree(type,
-				       tmtt_strip_routine_default_args,
-                                       ttt_flags);
-}  /* strip_routine_default_args */
+  return traverse_and_modify_type_tree(
+                             type,
+                             tmtt_strip_routine_default_args_from_deduced_type,
+                             ttt_flags);
+}  /* strip_routine_default_args_from_deduced_type */
 
 
 a_type_ptr strip_qualifiers_from_param_types(a_type_ptr  type)

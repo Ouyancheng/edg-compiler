@@ -7594,7 +7594,8 @@ skip_overloading:;
          source-sequence entry for the definition instead.  (If they were
          repeated the C++-generating back end would put out invalid code.) */
       declared_type =
-             routine_type_without_default_args(routine_ptr->declared_type);
+             routine_type_without_default_args(routine_ptr->declared_type,
+                                               /*only_unevaluated=*/FALSE);
     } else
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
     /* Do not insert code here. */

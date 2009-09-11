@@ -10076,11 +10076,13 @@ param-type entry of the new type.
 }  /* copy_routine_type_with_param_types */
 
 
-a_type_ptr routine_type_without_default_args(a_type_ptr  orig_type)
+a_type_ptr routine_type_without_default_args(a_type_ptr  orig_type,
+                                             a_boolean   only_unevaluated)
 /*
 If the specified routine type has default arguments, return a copy of it
 with the default arguments removed.  Otherwise, return the original type
-unchanged.
+unchanged.  If only_unevaluated is TRUE, only remove unevaluated template
+default arguments.
 */
 {
   a_param_type_ptr  ptp, orig_param_type_list;
@@ -10091,7 +10093,8 @@ unchanged.
   orig_param_type_list = skip_typerefs(orig_type)->variant.routine.
                                               extra_info->param_type_list;
   for (ptp = orig_param_type_list; ptp != NULL; ptp = ptp->next) {
-    if (ptp->has_default_arg) {
+    if (ptp->has_default_arg &&
+        (!only_unevaluated || ptp->has_unevaluated_template_default)) {
       /* A copy of the original type is required, because the default arg
          expression has to be stripped off. */
       tp = alloc_type((a_type_kind)tk_routine);

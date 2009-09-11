@@ -1,5 +1,25 @@
 Version 4.2
 
+9/11/09  [EDGcpfe/10059]
+Internal error on deduced type with unevaluated template default arguments
+
+An internal error (in instantiate_default_arguments_of_template_matching)
+could occur in modes in which nonstandard default argument deduction
+is done (e.g., g++ mode and Microsoft mode for some microsoft_version values)
+if a deduced type contained unevaluated template default arguments.
+Now fixed (an error is now issued on such cases).
+
+  template <typename T> struct A {
+    static void f(int i = 1);
+  };
+  template <typename F> inline void g(F func) {
+    func();  // now gets "two few arguments in function call"
+  }
+  int main() {
+    g(&A<int>::f);
+  }
+
+
 9/10/09  [EDGcpfe/10081]
 GNU compatibility: Additional built-in IA-32 vector functions
 
