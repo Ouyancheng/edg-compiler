@@ -2182,8 +2182,13 @@ describing it.
              *discriminator_scp = NULL;
   a_type_ptr parent_class = (scp->is_class_member ? scp_parent_class(scp) :
                                                     NULL);
+  a_boolean  emulate_old_gnu_behavior = emulate_gnu_abi_bugs
+#if ABI_COMPATIBILITY_VERSION >= 402
+                                        && gnu_abi_version < 30400
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+                                                                  ;
   a_boolean  use_sr = parent_class != NULL &&
-                      (emulate_gnu_abi_bugs ||
+                      (emulate_old_gnu_behavior ||
                        is_template_dependent_type(parent_class));
 
   if (use_sr) {
@@ -2195,17 +2200,17 @@ describing it.
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
       mangled_function_name(rout,
-                            /*suppress_param_encoding=*/!emulate_gnu_abi_bugs,
-                            /*suppress_parent_encoding=*/!emulate_gnu_abi_bugs,
-                            /*force_primary_name=*/TRUE,
-                            /*base_name_offset=*/(sizeof_t *)NULL,
-                            mctl);
+                        /*suppress_param_encoding=*/!emulate_old_gnu_behavior,
+                        /*suppress_parent_encoding=*/!emulate_old_gnu_behavior,
+                        /*force_primary_name=*/TRUE,
+                        /*base_name_offset=*/(sizeof_t *)NULL,
+                        mctl);
     } else {
       a_boolean need_nested_name_close = FALSE;
-      if (emulate_gnu_abi_bugs &&
+      if (emulate_old_gnu_behavior &&
           !is_template_dependent_type(parent_class)) {
-        /* g++ 3.2 puts a parent qualifier on member references if the
-           parent type is not a template parameter. */
+        /* g++ 3.3 and earlier put a parent qualifier on member references if
+           the parent type is not a template parameter. */
         mangled_ia64_parent_qualifier(scp, kind,
                                       &need_nested_name_close, 
                                       &discriminator_scp, mctl);
