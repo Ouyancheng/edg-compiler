@@ -19,21 +19,6 @@ Taken together, these changes allow the front end to compile the headers
 "xmmintrin.h" contains a typedef that is invalid in C++ mode).
 
 
-9/9/09   [EDGcpfe/10073]
-Spurious error on constructor with template-dependent const field
-
-In some C++ modes, including strict mode and some GNU C++ modes, the front end
-sometimes issued a spurious error on a constructor that did not explicitly
-initialize a template-dependent const field.  For example:
-
-  template<class T> struct S {
-    S() {}      // Previously, a spurious error was issued in strict mode
-    T const x;  // because x was not explicitly initialized.
-  };
-
-This is now fixed (i.e., such cases are now accepted in all modes).
-
-
 9/9/09   [EDGcpfe/10078, EDGcpfe/10080]
 Microsoft and GNU C++ compatibility: nonstandard template friend declarations
 
