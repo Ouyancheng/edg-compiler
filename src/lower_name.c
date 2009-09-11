@@ -660,11 +660,8 @@ compatibility omit the underscore in version 30400 and later.
 {
 #if ABI_COMPATIBILITY_VERSION >= 402
   if (is_reference_type(con->type) &&
-      (emulate_gnu_abi_bugs
-#if GNU_EXTENSIONS_ALLOWED
-       && (gpp_mode && gnu_abi_version >= 30400)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                )) {
+      (emulate_gnu_abi_bugs &&
+       gnu_abi_version >= 30400)) {
     /* Omit underscore to be compatible with GNU. */
     add_to_mangled_name('Z', mctl);
   } else
