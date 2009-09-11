@@ -37,7 +37,7 @@ Now fixed (an error is now issued on such cases).
     static void f(int i = 1);
   };
   template <typename F> inline void g(F func) {
-    func();  // now gets "two few arguments in function call"
+    func();  // now gets "too few arguments in function call"
   }
   int main() {
     g(&A<int>::f);
