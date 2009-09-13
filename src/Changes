@@ -1,29 +1,5 @@
 Version 4.2
 
-9/13/09  [EDGcpfe/10083]
-GNU compatibility: IA-64 mangling of non-dependent pointer to member
-template parameters
-
-Early versions of g++ (3.3 and earlier) had mangled a reference to a
-non-dependent pointer to member in a template parameter incorrectly and
-we emulated that behavior when emulate_gnu_abi_bugs was TRUE.  The g++ bug
-has since been fixed (when -fabi-version is 2 or later -- the default in
-version 3.4.0), so a change has been made to emulate this bug only when
-gnu_abi_version is less than 30400 (and emulate_gnu_abi_bugs is TRUE).
-For example (when gnu_abi_version >= 30400 and emulate_gnu_abi_bugs is TRUE):
-
-  struct A {
-    int i;
-    void f(void);
-  };
-  template <int A::*p> void g(void) {}
-  template <void (A::*)(void)> void h(void) {}
-  int main() {
-    g<&A::i>(); // was _Z1gIXadsr1ANS0_1iEEEvv  now _Z1gIXadL_ZN1A1iEEEEvv
-    h<&A::f>(); // was _Z1hIXadsr1ANS0_1fEvEEvv now _Z1hIXadL_ZN1A1fEvEEEvv
-  }
-
-
 9/11/09  [EDGcpfe/10075]
 Template constructors with first argument same as the class
 
