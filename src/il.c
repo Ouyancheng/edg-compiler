@@ -8155,15 +8155,15 @@ keyword, and return a pointer to it.
   } else {
     /* The type must be created. */
     an_integer_kind ikind;
-    a_type_ptr      void_star_type;
+    a_type_ptr      void_ptr_type;
     il_nullptr_type = pit = alloc_type((a_type_kind)tk_integer);
     pit->variant.integer.nullptr_type = TRUE;
     /* Pick an integer kind that is the same size as a "void *" pointer,
        if possible. */
-    void_star_type = make_pointer_type(void_type());
+    void_ptr_type = make_pointer_type(void_type());
     ikind = int_kind_for_bit_size(
-                          (unsigned int)(void_star_type->size * targ_char_bit),
-                          /*is_signed=*/TRUE);
+                           (unsigned int)(void_ptr_type->size * targ_char_bit),
+                           /*is_signed=*/TRUE);
     if (ikind != (an_integer_kind)ik_none) {
       pit->variant.integer.int_kind = ikind;
       set_type_size(pit);
@@ -8172,8 +8172,8 @@ keyword, and return a pointer to it.
          that std::nullptr_t have the same size as "void *", so we use an
          "int" type and set the size and alignment to mimic "void *". */
       pit->variant.integer.int_kind = (an_integer_kind)ik_int;
-      pit->size = void_star_type->size;
-      pit->alignment = void_star_type->alignment;
+      pit->size = void_ptr_type->size;
+      pit->alignment = void_ptr_type->alignment;
     }  /* if */
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
