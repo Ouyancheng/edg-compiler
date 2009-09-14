@@ -474,6 +474,9 @@ typedef enum /* an_nm_format_kind */ {
 		/* GNU binutils format. */
 	nmfk_MacOSX,
 		/* Apple MacOS X. */
+	nmfk_MacOSX64,
+		/* Apple MacOS X 64 bit (i.e., Snow Leopard and
+		   beyond). */
 	nmfk_lst
 } an_nm_format_kind;
 
@@ -1683,6 +1686,14 @@ processed further.
          value or 8 blanks.  Skip those 9 characters. */
       int i;
       for (i = 0; i < 9; ++i) {
+        if (*pos == '\0') pl_invalid_input();
+        pos++;
+      }  /* for */
+    } else if (nm_format == nmfk_MacOSX64) {
+      /* On MacOS64, the name is followed by a space and then an 16 character
+         value or 16 blanks.  Skip those 17 characters. */
+      int i;
+      for (i = 0; i < 17; ++i) {
         if (*pos == '\0') pl_invalid_input();
         pos++;
       }  /* for */
@@ -3844,6 +3855,8 @@ int main(int argc, char *argv[])
           nm_format = nmfk_gnu;
         } else if (strcmp(optarg, "MacOSX") == 0) {
           nm_format = nmfk_MacOSX;
+        } else if (strcmp(optarg, "MacOSX64") == 0) {
+          nm_format = nmfk_MacOSX64;
         } else {
           pl_error(pl_ec_invalid_nm_format_option, (char *)NULL);
         }  /* if */

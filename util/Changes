@@ -1,5 +1,15 @@
 Version 4.2
 
+9/14/09  [EDGcpfe/10090]
+Prelinker: support for Mac OS Snow Leopard nm output
+
+The prelinker has been updated to handle the nm output of Mac OS X 10.6
+The "-fMacOSX64" option should be used on such systems.
+
+See the edg_eccp_config.macosx file in the sample_edg_eccp_config
+directory for more information about configuring eccp on Mac OS X.
+
+
 8/20/09  [EDGcpfe/8232, EDGcpfe/9382]
 Emit return type in IA-64 ABI decoding of template functions
 
