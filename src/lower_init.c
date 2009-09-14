@@ -8318,7 +8318,7 @@ arrays with class elements.
                                /*have_complete_object=*/TRUE,
                                var_rvalue_expr(zero_temp_var),
                                eff_num_elem_node,
-                               (a_targ_size_t)NULL,
+                               (a_targ_size_t)0,
                                &insert_location);
     /* Insert the value of the temporary as the final value of the
        expression. */
