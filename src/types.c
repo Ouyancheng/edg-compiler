@@ -57,9 +57,8 @@ predicates.
 /* Integral types comprise char, the signed and unsigned integer types,
    enumerated types (in C mode), and bool (in C++ mode). */
 #define is_integral(tp) \
-  (type_kind_is_integer(tp) && \
-   (enum_type_is_integral || !(tp)->variant.integer.enum_type) && \
-   !(tp)->variant.integer.nullptr_type)
+  (type_kind_is_integer(tp) && !(tp)->variant.integer.nullptr_type && \
+   (enum_type_is_integral || !(tp)->variant.integer.enum_type))
 
 /* Enum types are integral types that are tagged as enums. */
 #define is_enum(tp) \
