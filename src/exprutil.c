@@ -5235,6 +5235,52 @@ done:
 }  /* check_compatibility_of_pointer_operands */
 
 
+a_boolean check_compatibility_of_nullptr_operands(
+                                          an_operand        *operand_1,
+                                          an_operand        *operand_2,
+                                          a_source_position *operator_position,
+                                          a_type_ptr        *operation_type)
+/*
+operand_1 and operand_2 are the operands of some operation, at least one of
+which is of type std::nullptr_t and the other has neither pointer nor
+pointer-to-member type.  Check to see that the operands are compatible,
+i.e., that both are of type std::nullptr_t or that the other is an integral
+null pointer constant (this case is currently allowed only in Microsoft
+mode, pending clarification from the C++ Standard Committee).
+operator_position gives the operator position (for errors).  If the
+operands are compatible, set *operation_type to nullptr_type(); otherwise,
+set it to error_type().  Return FALSE if there is an error.
+*/
+{
+  a_boolean okay = FALSE;
+
+  check_assertion(!is_pointer_type(operand_1->type) &&
+                  !is_pointer_type(operand_2->type) &&
+                  !is_ptr_to_member_type(operand_1->type) &&
+                  !is_ptr_to_member_type(operand_2->type));
+  if (is_nullptr_type(operand_1->type)) {
+    okay =
+        (is_nullptr_type(operand_2->type) ||
+         (microsoft_mode && is_constant_operand(operand_2) &&
+          is_or_might_be_null_pointer_constant(&operand_2->variant.constant)));
+  } else {
+    check_assertion(is_nullptr_type(operand_2->type));
+    okay = microsoft_mode && is_constant_operand(operand_1) &&
+           is_or_might_be_null_pointer_constant(&operand_1->variant.constant);
+  }  /* if */
+  if (okay) {
+    /* The operation type will be nullptr_type(). */
+    *operation_type = nullptr_type();
+  } else {
+    /* The operands are not compatible. */
+    pos_ty2_error(ec_incompatible_operands, operator_position,
+                  operand_1->type, operand_2->type);
+    *operation_type = error_type();
+  }  /* if */
+  return okay;
+}  /* check_compatibility_of_nullptr_operands */
+
+
 a_boolean check_ptr_to_member_operands_for_compatibility(
                                           an_operand        *operand_1,
                                           an_operand        *operand_2,

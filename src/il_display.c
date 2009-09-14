@@ -917,6 +917,9 @@ Display the indicated constant entry.
     disp_boolean("null_keyword", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->nullptr_keyword) {
+    disp_boolean("nullptr_keyword", TRUE);
+  }  /* if ?
   if (ptr->explicit_braces_on_aggregate) {
     disp_boolean("explicit_braces_on_aggregate", TRUE);
   }  /* if */
@@ -1540,6 +1543,9 @@ Display the indicated type entry.
 	  disp_boolean("packed", TRUE);
 	}  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        if (ptr->variant.integer.nullptr_type) {
+          disp_boolean("nullptr_type", TRUE);
+        }  /* if */
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */

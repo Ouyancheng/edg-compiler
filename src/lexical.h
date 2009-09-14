@@ -309,6 +309,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_pod,
   tok_is_polymorphic,
   tok_is_union,
+  tok_nullptr,
   /* Token used to indicate keywords that are not yet implemented. */
   tok_unimplemented,
   /* Error token. */
@@ -415,6 +416,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__is_pod",
    "__is_polymorphic",
    "__is_union",
+   "nullptr",
    "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
@@ -875,6 +877,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_pod */
    (an_opname_kind)onk_none,          /* tok_is_polymorphic */
    (an_opname_kind)onk_none,          /* tok_is_union */
+   (an_opname_kind)onk_none,          /* tok_nullptr */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */

@@ -5706,8 +5706,9 @@ such a typedef, return the associated basic type specifier and set *sign and
   a_float_kind     fkind;
 
   if (temp_type->kind == (a_type_kind)tk_integer) {
-    if (temp_type->variant.integer.enum_type) {
-      /* Don't allow adjectives on enum integers. */
+    if (temp_type->variant.integer.enum_type ||
+        temp_type->variant.integer.nullptr_type) {
+      /* Don't allow adjectives on enum integers or nullptr. */
     } else {
       /* Adjectives (size and sign) are only allowed where they
          fill in empty holes -- unspecified attributes -- in the

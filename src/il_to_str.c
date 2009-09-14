@@ -1252,6 +1252,11 @@ by octl.
            back end, where it is output as its underlying type. */
         octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"),
                          octl);
+      } else if (type->variant.integer.nullptr_type &&
+                 !octl->c_generating_back_end) {
+        /* Output the type of the C++ "nullptr" keyword as the name of the
+           standard typedef. */
+        octl->output_str("std::nullptr_t", octl);
       } else {
         /* Normal integer type. */
         if (type->variant.integer.explicitly_signed &&
@@ -4133,6 +4138,9 @@ precedence confusion.  Do the output in the way described by octl.
         /* The GNU C++ __null keyword. */
         octl->output_str("__null", octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      } else if (!octl->c_generating_back_end && constant->nullptr_keyword) {
+        /* The C++ nullptr keyword. */
+        octl->output_str("nullptr", octl);
         /* coverity[var_deref_model] */
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&

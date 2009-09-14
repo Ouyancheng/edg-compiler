@@ -2410,6 +2410,11 @@ typedef struct a_constant {
 			   Although it is semantically equivalent to a plain
 			   "0", it is meant to be a null pointer constant. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	nullptr_keyword:1;
+			/* If TRUE, this constant was expressed with the
+			   C++0x nullptr keyword.  This is used to
+			   distinguish direct uses of nullptr from other
+			   expressions of type std::nullptr_t. */
   a_bit_field	explicit_braces_on_aggregate:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the values were surrounded by explicit
@@ -5822,6 +5827,10 @@ typedef struct a_type {
       a_bit_field
 		bool_type:1;
 			/* TRUE if this type is bool in C++ or _Bool in C99. */
+      a_bit_field
+		nullptr_type:1;
+			/* TRUE if this type is std::nullptr_t, i.e., the
+			   type of the nullptr keyword in C++. */
       a_bit_field
 		originally_unnamed:1;
 			/* TRUE for enum types declared without a tag; in

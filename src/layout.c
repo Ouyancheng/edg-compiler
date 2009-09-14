@@ -216,7 +216,12 @@ Return the field alignment for the given type.
 
   switch (type->kind) {
     case tk_integer:
-      result = int_field_alignments[type->variant.integer.int_kind];
+      if (type->variant.integer.nullptr_type) {
+        /* The alignment might be different from that of the int_kind. */
+        result = type->alignment;
+      } else {
+        result = int_field_alignments[type->variant.integer.int_kind];
+      }  /* if */
       break;
     case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED

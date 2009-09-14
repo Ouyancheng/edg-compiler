@@ -270,6 +270,7 @@ typedef enum /*an_option_kind*/ {
   optk_auto_type,
   optk_auto_storage,
   optk_nonstandard_instantiation_lookup,
+  optk_nullptr,
   optk_last		/* Must be last. */
 } an_option_kind;
 

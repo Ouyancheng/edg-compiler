@@ -58,7 +58,8 @@ predicates.
    enumerated types (in C mode), and bool (in C++ mode). */
 #define is_integral(tp) \
   (type_kind_is_integer(tp) && \
-   (enum_type_is_integral || !(tp)->variant.integer.enum_type))
+   (enum_type_is_integral || !(tp)->variant.integer.enum_type) && \
+   !(tp)->variant.integer.nullptr_type)
 
 /* Enum types are integral types that are tagged as enums. */
 #define is_enum(tp) \
@@ -66,17 +67,24 @@ predicates.
 
 /* Sometimes useful in C++ since enum types are not integral; in C_mode this
    macro is interchangeable with is_integral (but is more efficient). */
-#define is_integral_or_enum(tp) (type_kind_is_integer(tp))
+#define is_integral_or_enum(tp) (type_kind_is_integer(tp) && \
+                                 !(tp)->variant.integer.nullptr_type)
 
 /* C++0x adds a distinction between scoped and unscoped enum types.  The
    former do not implicitly convert (promote) to integer types. */
 #define is_integer_or_unscoped_enum(tp) \
-  (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum)
+  (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum && \
+   !(tp)->variant.integer.nullptr_type)
 
 /* The bool type is an integral type that is tagged as bool.  It only
    exists when bool_is_keyword is TRUE, or in C99 mode. */
 #define is_bool(tp) \
   (type_kind_is_integer(tp) && (tp)->variant.integer.bool_type)
+
+/* The nullptr type (std::nullptr_t) is the type of the nullptr keyword in
+   C++. */
+#define is_nullptr(tp) \
+  (type_kind_is_integer(tp) && (tp)->variant.integer.nullptr_type)
 
 /* Character types are three particular integral types. */
 #define is_character(tp) \
@@ -390,6 +398,17 @@ version thereof.
   tp = skip_typerefs(tp);
   return(is_void(tp));
 }  /* is_void_type */
+
+
+a_boolean is_nullptr_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is std::nullptr_t, i.e., the type of the
+nullptr keyword in C++, or a cv-qualified version thereof.
+*/
+{
+  tp = skip_typerefs(tp);
+  return(is_nullptr(tp));
+}  /* is_nullptr_type */
 
 
 a_boolean is_void_star_type(a_type_ptr tp)
@@ -3592,7 +3611,9 @@ for more information.
               type_1->variant.integer.wchar_t_type ==
                                       type_2->variant.integer.wchar_t_type &&
               type_1->variant.integer.bool_type ==
-                                      type_2->variant.integer.bool_type) {
+                                      type_2->variant.integer.bool_type &&
+              type_1->variant.integer.nullptr_type ==
+                                      type_2->variant.integer.nullptr_type) {
             identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
           } else if (il_identical && same_repr_int_types(type_1, type_2)) {
@@ -4144,7 +4165,9 @@ for exact pointer equality.
                 type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
                 type_1->variant.integer.bool_type ==
-                                        type_2->variant.integer.bool_type) {
+                                        type_2->variant.integer.bool_type &&
+                type_1->variant.integer.nullptr_type ==
+                                        type_2->variant.integer.nullptr_type) {
               compat = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (C_dialect == C_dialect_pcc &&
@@ -5349,10 +5372,17 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       /* In C mode, one can get the case of (void *)0 --> void *.
          That's fine, but it doesn't really require a pointer normalization,
          so don't set the flag. */
+    } else if (is_nullptr_type(source_type)) {
+      /* Do not set the flag for the C++0x nullptr keyword, so that nullptr
+         can be used as a template nontype argument. */
     } else {
       /* Normal case. */
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
+  } else if (is_nullptr_type(source_type)) {
+    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, is
+       compatible with any pointer type. */
+    okay = TRUE;
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
     qualifiers_checked = FALSE;
@@ -5946,7 +5976,16 @@ pointers to members).
              is_or_might_be_null_pointer_constant(source_constant)) {
     /* 0 --> pointer-to-member. */
     okay = TRUE;
-    std_conv->pointer_normalization_needed = TRUE;
+    if (!is_nullptr_type(source_type)) {
+      /* The flag is only set for integral null pointer constants, so that
+         the C++0x nullptr keyword is compatible with a pointer-to-member
+         non-type template parameter. */
+      std_conv->pointer_normalization_needed = TRUE;
+    }  /* if */
+  } else if (is_nullptr_type(source_type)) {
+    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, is
+       compatible with all pointer-to-member types. */
+    okay = TRUE;
   } else if (is_error(source_type)) {
     /* Error --> pointer to member is always allowed. */
     okay = TRUE;
@@ -6095,7 +6134,8 @@ See conversion_possible.
       std_conv->nontrivial_conversion = FALSE;
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
-    } else if (is_pointer(source_type) || is_ptr_to_member(source_type)) {
+    } else if (is_pointer(source_type) || is_ptr_to_member(source_type) ||
+               is_nullptr_type(source_type)) {
       okay = TRUE;
       /* This conversion is worse than others in overload resolution.
          Remember that. */
@@ -6237,6 +6277,12 @@ See conversion_possible.
                                          dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          std_conv);
+  } else if (is_nullptr_type(dest_type) && source_is_constant &&
+             is_or_might_be_null_pointer_constant(source_constant)) {
+    /* Only a null pointer constant (nullptr or 0-valued integral constant
+       expression) can be converted to std::nullptr_t. */
+    okay = TRUE;
+    std_conv->nontrivial_conversion = !is_nullptr_type(source_type);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -6653,7 +6699,8 @@ well as C++ mode.
   if (is_incomplete(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if (is_pointer(source_type) && is_integral(dest_type) &&
+  } else if ((is_pointer(source_type) || is_nullptr_type(source_type)) &&
+             is_integral(dest_type) &&
              (C_mode() || microsoft_mode || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
     /* Pointer --> integral is okay

@@ -14146,6 +14146,7 @@ standard.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer;
+  a_boolean             operand_1_is_nullptr;
   a_boolean             processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
@@ -14186,8 +14187,11 @@ standard.
     /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = FALSE;
+    operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
+    } else if (is_nullptr_type(operand_1->type)) {
+      operand_1_is_nullptr = TRUE;
     } else if (check_pointer_operand(
                                operand_1,
                                enum_type_is_integral ?
@@ -14237,6 +14241,11 @@ standard.
           operand_will_not_be_used_because_of_error(&operand_2);
         }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
+        /* At least one of the operands is type std::nullptr_t. */
+        (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
+                                                      &operator_position,
+                                                      &operation_type);
       } else {
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We already know that operand_1 is
@@ -14313,6 +14322,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             operand_1_is_pointer, operand_1_is_ptr_to_member;
+  a_boolean             operand_1_is_nullptr;
   a_boolean             processed = FALSE;
   a_boolean             funny_unsigned_comparison = FALSE, second_is_constant;
 
@@ -14353,8 +14363,11 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     /* The first operand must be an arithmetic or enum type or a pointer. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     operand_1_is_pointer = operand_1_is_ptr_to_member = FALSE;
+    operand_1_is_nullptr = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
+    } else if (is_nullptr_type(operand_1->type)) {
+      operand_1_is_nullptr = TRUE;
     } else if (is_ptr_to_member_type(operand_1->type)) {
       operand_1_is_ptr_to_member = TRUE;
     } else if (check_pointer_operand(
@@ -14391,6 +14404,11 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
         (void)check_ptr_to_member_operands_for_compatibility(
                            operand_1, &operand_2, &operator_position,
                            &operation_type);
+      } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
+        /* At least one of the operands is type std::nullptr_t. */
+        (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
+                                                      &operator_position,
+                                                      &operation_type);
       } else {
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We also know already that operand_1 is
@@ -15134,6 +15152,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type, ptr_result_type, operation_type;
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
+  a_boolean             operand_2_is_nullptr;
+  a_boolean             operand_3_is_nullptr;
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
   a_type_ptr            operation_type_underlying_class;
@@ -15531,34 +15551,44 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       if (C_dialect == C_dialect_cplusplus) {
         operand_2_is_ptr_to_member = is_ptr_to_member_type(operand_2.type);
         operand_3_is_ptr_to_member = is_ptr_to_member_type(operand_3.type);
+        operand_2_is_nullptr = is_nullptr_type(operand_2.type);
+        operand_3_is_nullptr = is_nullptr_type(operand_3.type);
       } else {
         operand_2_is_ptr_to_member = operand_3_is_ptr_to_member = FALSE;
+        operand_2_is_nullptr = FALSE;
+        operand_3_is_nullptr = FALSE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs &&
           ((is_bool_type(operand_2.type) &&
-            (operand_3_is_pointer || operand_3_is_ptr_to_member)) ||
+            (operand_3_is_pointer || operand_3_is_ptr_to_member ||
+             operand_3_is_nullptr)) ||
            (is_bool_type(operand_3.type) &&
-            (operand_2_is_pointer || operand_2_is_ptr_to_member)))) {
+            (operand_2_is_pointer || operand_2_is_ptr_to_member ||
+             operand_2_is_nullptr)))) {
         a_boolean         ptr_case;
+        a_boolean         nullptr_case;
         a_source_position pos;
-        /* MSVC++ (6.0, 7.0, 7.1, and 8.0, at least) allow a mix of
-           a pointer or pointer-to-member operand and bool.  The result
-           type is bool. */
+        /* MSVC++ (6.0, 7.0, 7.1, and 8.0, at least) allow a mix of a
+           pointer, pointer-to-member, or std::nullptr_t operand and bool.
+           The result type is bool. */
         result_type = bool_type();
         if (is_bool_type(operand_2.type)) {
           /* Convert operand_3, the pointer operand, to bool. */
           cast_operand(result_type, &operand_3, /*is_implicit_cast=*/TRUE);
           ptr_case = operand_3_is_pointer;
+          nullptr_case = operand_3_is_nullptr;
           pos = operand_3.position;
         } else {
           /* Convert operand_2, the pointer operand, to bool. */
           cast_operand(result_type, &operand_2, /*is_implicit_cast=*/TRUE);
           ptr_case = operand_2_is_pointer;
+          nullptr_case = operand_2_is_nullptr;
           pos = operand_2.position;
         }  /* if */
-        pos_warning(ptr_case ? ec_ptr_conv_to_bool :
-                               ec_ptr_to_member_conv_to_bool,
+        pos_warning(ptr_case ?     ec_ptr_conv_to_bool :
+                    nullptr_case ? ec_nullptr_conv_to_bool :
+                                   ec_ptr_to_member_conv_to_bool,
                     &pos);
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15669,6 +15699,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           /* The operands are incompatible. */
           err = TRUE;
         }  /* if */
+      } else if (operand_2_is_nullptr || operand_3_is_nullptr) {
+        /* At least one of the operands is of type std::nullptr_t.  See if
+           the operands are compatible. */
+        err = !check_compatibility_of_nullptr_operands(&operand_2, &operand_3,
+                                                       &operator_position,
+                                                       &result_type);
       } else if (is_arithmetic_or_enum_type(operand_2.type)) {
         /* Both operands should be arithmetic or enum. */
         (void)check_arithmetic_or_enum_operand(&operand_3);
@@ -16502,6 +16538,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_function_name:
     case tok_pretty_function_name:
     case tok_decorated_function_name:
+    case tok_nullptr:
       is_expr_start = TRUE;
       break;
     case tok_lbracket:
@@ -19412,6 +19449,15 @@ see expr.h).
       (void)get_token();
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case tok_nullptr:
+      {
+        a_constant nullptr_constant;
+        make_zero_of_proper_type(nullptr_type(), &nullptr_constant);
+        make_constant_operand(&nullptr_constant, &local_result);
+        local_result.variant.constant.nullptr_keyword = TRUE;
+      }
+      (void)get_token();
+      break;
     case tok_int_constant:
     case tok_char_constant:
     case tok_true:

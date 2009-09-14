@@ -1996,6 +1996,11 @@ EXTERN a_boolean
 			/* When TRUE, the C++0x construct decltype is
 			   supported. */
 
+EXTERN a_boolean
+		nullptr_enabled;
+			/* When TRUE, the C++0x keyword "nullptr" is
+			   enabled. */
+
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.

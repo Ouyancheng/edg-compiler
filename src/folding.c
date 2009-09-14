@@ -2107,9 +2107,12 @@ Return TRUE if the given constant is a null pointer constant.
   a_boolean is_null_pointer = FALSE;
 
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
-    /* A null pointer constant has the value zero, perhaps cast to "void *"
-       in C.  Only certain kinds of casts are allowed. */
-    if ((!constant->null_pointer_constant_ruled_out ||
+    /* A null pointer constant is either of type std::nullptr_t or it has
+       the value zero, perhaps cast to "void *" in C.  Only certain kinds
+       of casts are allowed. */
+    if (is_nullptr_type(constant->type)) {
+      is_null_pointer = TRUE;
+    } else if ((!constant->null_pointer_constant_ruled_out ||
          /* g++/gcc allows (int)(int *)0 as a null pointer constant. */
          (gnu_mode && (is_integral_type(constant->type) ||
          /* gcc allows (void*)(int *)0 as a null pointer constant. */

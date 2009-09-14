@@ -804,6 +804,7 @@ associated variant fields to default values.
 #if GNU_EXTENSIONS_ALLOWED
   cp->null_keyword = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  cp->nullptr_keyword = FALSE;
   cp->explicit_braces_on_aggregate = FALSE;
   cp->from_undefined_preproc_id = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
@@ -1359,6 +1360,7 @@ to default values.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.integer.wchar_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;
+      pte->variant.integer.nullptr_type = FALSE;
       pte->variant.integer.originally_unnamed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;

@@ -1230,6 +1230,10 @@ Initialize the option information table.
                          "no_nonstd_instantiation_lookup",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nullptr, "nullptr", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_nullptr, "no_nullptr", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1899,6 +1903,9 @@ by a command line option.
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
+      if (!option_kind_used[(int)optk_nullptr]) {
+        nullptr_enabled = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2354,6 +2361,9 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_auto_storage]) {
     command_line_error(ec_cl_auto_storage_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_nullptr]) {
+    command_line_error(ec_cl_nullptr_option_only_in_cplusplus);
+  }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
       !microsoft_mode && !strict_ansi_mode) {
@@ -2412,6 +2422,9 @@ the next standard).
   defaulted_special_members_enabled = TRUE;
   deleted_functions_enabled = TRUE;
   trailing_return_types_enabled = TRUE;
+  if (!option_kind_used[(int)optk_nullptr]) {
+    nullptr_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -7913,6 +7926,9 @@ enable_microsoft_mode:
       case optk_nonstandard_instantiation_lookup:
         nonstandard_instantiation_lookup_enabled = opt_value;
         break;
+      case optk_nullptr:
+        nullptr_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8884,6 +8900,7 @@ variables declared in cmd_line.h.
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
+  nullptr_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

@@ -1,5 +1,15 @@
 Version 4.2
 
+9/14/09  [EDGcpfe/8623, EDGcpfe/9926]
+C++0x: nullptr keyword
+
+In C++0x mode and in Microsoft C++ mode with microsoft_version >= 1600, the
+front end now accepts the "nullptr" keyword as a null pointer constant.
+This feature was added to the C++0x working paper by document N2431,
+adopted at the October, 2007 (Kona) meeting and was modified by document
+N2656, approved at the June, 2008 (Sophia Antipolis) meeting.
+
+
 9/11/09  [EDGcpfe/10075]
 Template constructors with first argument same as the class
 

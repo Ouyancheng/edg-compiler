@@ -66,6 +66,7 @@ extern a_boolean class_type_has_body(a_type_ptr tp);
 extern a_boolean is_object_type(a_type_ptr tp);
 extern a_boolean is_complete_object_type(a_type_ptr tp);
 extern a_boolean is_void_type(a_type_ptr tp);
+extern a_boolean is_nullptr_type(a_type_ptr tp);
 extern a_boolean is_void_star_type(a_type_ptr tp);
 extern a_boolean is_integral_type(a_type_ptr tp);
 extern a_boolean is_signed_integral_type(a_type_ptr tp);
@@ -709,9 +710,11 @@ typedef struct a_std_conv_descr {
 			   overload resolution. */
   a_byte_boolean
 		pointer_normalization_needed;
-			/* TRUE if the conversion involves converting a
-			   null pointer constant to a pointer type or a
-			   pointer type to "void *". */
+			/* TRUE if the conversion involves converting an
+			   integral null pointer constant to a pointer type
+			   or a pointer type to "void *".  (Note that this
+			   does not apply to conversion of std::nullptr_t
+			   to a pointer or pointer-to-member type.) */
   a_byte_boolean
 		nontrivial_conversion;
 			/* TRUE if the conversion is, in the terms of
@@ -723,8 +726,9 @@ typedef struct a_std_conv_descr {
 			   short --> int.  Only set in C++ mode. */
   a_byte_boolean
 		ptr_or_pm_to_bool;
-			/* TRUE if this conversion is from a pointer or
-			   pointer to member to bool. */
+			/* TRUE if this conversion is from a pointer type,
+			   pointer to member type, or std::nullptr_t to
+			   bool. */
   a_byte_boolean
 		exception_spec_incompatibility;
 			/* TRUE if the conversion involves converting to

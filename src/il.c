@@ -74,6 +74,7 @@ static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
 static a_type_ptr il_wchar_t_type;
 static a_type_ptr il_bool_type;
+static a_type_ptr il_nullptr_type;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
@@ -1106,6 +1107,8 @@ Dump the contents of the indicated type entry, for debug purposes.
           fputs("wchar_t", f_debug);
         } else if (tp->variant.integer.bool_type) {
           fputs("bool", f_debug);
+        } else if (tp->variant.integer.nullptr_type) {
+          fputs("std::nullptr_t", f_debug);
         } else {
           fprintf(f_debug, "%s", int_type_name(tp));
           if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
@@ -7828,6 +7831,7 @@ primary translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* for */
   il_wchar_t_type = primary_wchar_t_type();
+  il_nullptr_type = primary_nullptr_type();
 #if C99_IL_EXTENSIONS_SUPPORTED
   il_bool_type = primary_bool_type();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -8135,6 +8139,51 @@ Make or find a type entry for a bool type and return a pointer to it.
   }  /* if */
   return pit;
 }  /* bool_type */
+
+
+a_type_ptr nullptr_type(void)
+/*
+Make or find a type entry for std::nullptr_t, i.e., the type of the nullptr
+keyword, and return a pointer to it.
+*/
+{
+  a_type_ptr pit;
+
+  if (il_nullptr_type != NULL) {
+    /* The type has previously been created, and can be reused. */
+    pit = il_nullptr_type;
+  } else {
+    /* The type must be created. */
+    an_integer_kind ikind;
+    a_type_ptr      void_star_type;
+    il_nullptr_type = pit = alloc_type((a_type_kind)tk_integer);
+    pit->variant.integer.nullptr_type = TRUE;
+    /* Pick an integer kind that is the same size as a "void *" pointer,
+       if possible. */
+    void_star_type = make_pointer_type(void_type());
+    ikind = int_kind_for_bit_size(
+                          (unsigned int)(void_star_type->size * targ_char_bit),
+                          /*is_signed=*/TRUE);
+    if (ikind != (an_integer_kind)ik_none) {
+      pit->variant.integer.int_kind = ikind;
+      set_type_size(pit);
+    } else {
+      /* There is no corresponding integer type.  The C++ Standard requires
+         that std::nullptr_t have the same size as "void *", so we use an
+         "int" type and set the size and alignment to mimic "void *". */
+      pit->variant.integer.int_kind = (an_integer_kind)ik_int;
+      pit->size = void_star_type->size;
+      pit->alignment = void_star_type->alignment;
+    }  /* if */
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(pit);
+  }  /* if */
+  return pit;
+}  /* nullptr_type */
 
 #if FIXED_POINT_ALLOWED
 
@@ -21008,6 +21057,7 @@ in il_init.)
       pch_saved_var_array_elem(il_void_type),
       pch_saved_var_array_elem(il_wchar_t_type),
       pch_saved_var_array_elem(il_bool_type),
+      pch_saved_var_array_elem(il_nullptr_type),
       pch_array_saved_var_array_elem(int_types),
       pch_array_saved_var_array_elem(signed_int_types),
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -21087,6 +21137,7 @@ in il_init.)
   register_trans_unit_variable(il_void_type);
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_bool_type);
+  register_trans_unit_variable(il_nullptr_type);
   register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
   register_trans_unit_variable(effective_primary_source_file);
@@ -21194,6 +21245,7 @@ need initialization for every (primary and secondary) translation unit.
   il_wchar_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
+  il_nullptr_type = NULL;
   { sizeof_t size = sizeof(a_constant_ptr) * SIZE_SHAREABLE_CONSTANTS_TABLE;
     shareable_constants_table = (a_constant_ptr*)alloc_fe(size);
     memzero((char *)shareable_constants_table, size_t_arg(size));
