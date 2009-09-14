@@ -378,7 +378,7 @@ following an "auto" type specifier.  For example:
 
 This change was voted into the C++ committee's working paper for the next
 standard in February 2008 (meeting in Bellevue, through proposal numbered
-N2541).  An change to that proposal was made through Core issue 681, resolved
+N2541).  A change to that proposal was made through Core issue 681, resolved
 by N2757, which was voted into the working paper in September 2008 (meeting in
 San Francisco).
 
