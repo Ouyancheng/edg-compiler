@@ -919,7 +919,7 @@ Display the indicated constant entry.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->nullptr_keyword) {
     disp_boolean("nullptr_keyword", TRUE);
-  }  /* if ?
+  }  /* if */
   if (ptr->explicit_braces_on_aggregate) {
     disp_boolean("explicit_braces_on_aggregate", TRUE);
   }  /* if */
