@@ -2277,10 +2277,12 @@ if this is the function declarator in a friend function declaration.
                              parent_type);
                 ptp->type = error_type();
                 ptp->passed_via_copy_constructor = FALSE;
-              } else {
+              } else if (scope_stack[depth_scope_stack-1].kind !=
+                                   (a_scope_kind)sck_template_instantiation) {
                 /* Depending on whether the next parameter has a default
                    argument (see case 2 above), this may be an (illegal)
-                   copy constructor. */
+                   copy constructor.  (If this is the instantiation of a
+                   member template, it cannot be a copy constructor.) */
                 may_be_copy_constructor = TRUE;
                 /* Record information to assure that an error will be issued
                    if this does turn out to be an error case. */
