@@ -5467,10 +5467,13 @@ Add to the mangled name the encoding for the type "type".
           add_to_mangled_name('_', mctl);
 #else /* IA64_ABI */
           if (emulate_gnu_abi_bugs &&
+#if ABI_COMPATIBILITY_VERSION >= 402
+              gnu_abi_version < 30400 &&
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
               type->variant.array.variant.element_count_constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
             /* Force bounds under this one to be mangled as expressions
-               to match a g++ bug. */
+               to match an early g++ bug (which was fixed in 3.4.0). */
             mctl->force_dependent_array_mangling = TRUE;
           }  /* if */
 #endif /* !IA64_ABI */
@@ -5485,7 +5488,8 @@ Add to the mangled name the encoding for the type "type".
                    type->variant.array.variant.number_of_elements == 0) {
           /* If there is no bound, nothing is output.  */
         } else if (mctl->force_dependent_array_mangling) {
-          /* Put out a constant bound as an expression to emulate a g++ bug. */
+          /* Put out a constant bound as an expression to emulate an early
+             g++ bug. */
           check_assertion(emulate_gnu_abi_bugs);
           add_to_mangled_name('L', mctl);
           add_str_to_mangled_name(MANGLING_STRING_FOR_INT, mctl);

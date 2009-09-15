@@ -1,5 +1,23 @@
 Version 4.2
 
+9/15/09  [EDGcpfe/10096]
+GNU compatibility: mangling of array bounds as expressions
+
+Early versions of g++ incorrectly mangled array bounds as expressions in some
+contexts and we emulated that behavior when emulate_gnu_abi_bugs was TRUE.  The
+bug has since been fixed by GNU (in version 3.4.0), so emulation of this bug is
+no longer performed when gnu_version >= 30400 (and emulate_gnu_abi_bugs is
+TRUE).  For example:
+
+  template <int I> void f(int (&)[I + 1][3]) {}
+  void f1() {
+    int y[3][3];
+    f<2>(y);  // now _Z1fILi2EEvRAplT_Li1E_A3_i when gnu_version >= 30400
+              // and emulate_gnu_abi_bugs is TRUE
+              // (had been _Z1fILi2EEvRAplT_Li1E_ALi3E_i)
+  }
+
+
 9/15/09  [EDGcpfe/10094]
 GNU compatibility: mangling of template parameter as a parent
 
