@@ -4059,25 +4059,27 @@ precedence confusion.  Do the output in the way described by octl.
              need to be put out). */
           need_cast = TRUE;
           if (octl->gen_compilable_code && C_mode() &&
-              is_directly_variably_modified_type(orig_type)) {
-            /* Casts to directly variably-modified types must be suppressed.
-               That's possible because they are folded into the constant only
-               if they are implicit.  However, we must still deal with the
-               fact that the constant may have been explicitly cast to some
-               other pointer type before it was cast to the variably-modified
-               type. */
+              is_directly_variably_modified_type(orig_type) &&
+              !(kind == (a_constant_repr_kind)ck_integer &&
+                cmplit_integer_constant(constant,
+                                        (a_host_large_integer)0) == 0)) {
+            /* Except for null pointer constants, casts to directly
+               variably-modified types must be suppressed.  That's possible
+               because they are folded into the constant only if they are
+               implicit.  However, we must still deal with the fact that
+               the constant may have been explicitly cast to some other
+               pointer type before it was cast to the variably-modified
+               type, so we add a cast to "void *" to make sure that the
+               constant has a pointer type.  (Null pointer constants can
+               appear in compiler-generated expressions equivalent to
+               "*(T *)0", where the cast to "T *" is implicit, so the cast
+               is necessary.) */
             check_assertion(is_pointer_type(orig_type));
             need_cast = FALSE;
-            /* For null pointer constants, the extra cast to "void *" is
-               not necessary. */
-            if (constant->kind != (a_constant_repr_kind)ck_integer ||
-                cmplit_integer_constant(constant,
-                                        (a_host_large_integer)0) != 0) {
-              output_optional_open_paren(&need_parens, &need_cast_close_paren,
-                                         octl);
-              octl->output_str("(void *)", octl);
-              suppress_cast_on_integer_constant = TRUE;
-            }  /* if */
+            output_optional_open_paren(&need_parens, &need_cast_close_paren,
+                                       octl);
+            octl->output_str("(void *)", octl);
+            suppress_cast_on_integer_constant = TRUE;
           }  /* if */
         } else if (is_pointer_type(con_type) &&
                    kind == (a_constant_repr_kind)ck_integer &&

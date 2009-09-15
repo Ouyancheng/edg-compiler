@@ -136,6 +136,7 @@ Lower the expression in a VLA dimension entry.
   an_expr_node_ptr  expr = vdp->dimension_expr;
 
   if (expr != NULL) {
+#if !LOWER_VARIABLE_LENGTH_ARRAYS
     a_context    context;
     a_scope_ptr  saved_innermost_function_scope;
     if (vdp->in_prototype_scope) {
@@ -149,6 +150,7 @@ Lower the expression in a VLA dimension entry.
       push_context(&context, il_header.primary_scope,
                    (an_object_lifetime_ptr)NULL);
     }  /* if */
+#endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
     if (C_mode()) {
 #if DO_C99_IL_LOWERING
       lower_c99_full_expr(expr);
@@ -156,10 +158,12 @@ Lower the expression in a VLA dimension entry.
     } else {
       lower_full_expr(expr, (a_statement_ptr)NULL);
     }  /* if */
+#if !LOWER_VARIABLE_LENGTH_ARRAYS
     if (vdp->in_prototype_scope) {
       pop_context();
       innermost_function_scope = saved_innermost_function_scope;
     }  /* if */
+#endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
     /* Catch constant nonpositive sizes introduced by inlining. */
     if (is_constant_node(expr)) {
