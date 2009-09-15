@@ -1,5 +1,17 @@
 Version 4.2
 
+9/15/09  [EDGcpfe/10086]
+GNU compatibility, C- and C++-generating back ends: extended asm syntax
+
+The C- and C++-generating back ends failed to preserve the GNU extended asm
+syntax for instructions with no operands and no clobbers.  This is now
+fixed.  For example:
+
+  void f() {
+    asm("xorps %%xmm0,%%xmm0" : :);  // Previously generated as
+                                     // asm("xorps %%xmm0,%%xmm0");
+
+
 9/14/09  [EDGcpfe/8623, EDGcpfe/9926]
 C++0x: nullptr keyword
 

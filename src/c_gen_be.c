@@ -6866,9 +6866,11 @@ Dump the GNU C operand descriptions for the given asm entry.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (output && aep->clobbers != NULL) {
-    /* There were no input operands, but clobbers are about to follow.
-       Be sure to make the empty input specification explicit. */
+  if (output && (aep->clobbers != NULL || aep->gnu_asm_form)) {
+    /* There were no input operands, but clobbers are about to follow (or
+       the construct was written in the source using the extended syntax,
+       which must be preserved).  Be sure to make the empty input
+       specification explicit. */
     write_tok_str(" :");
   }  /* if */
 }  /* dump_asm_operands */
@@ -6927,14 +6929,16 @@ Generate C for an asm statement or declaration.
     /* GNU C does not treat "asm" as a keyword in some (e.g., C99) modes. */
     write_tok_str((char *)(gcc_is_generated_code_target ? "__asm__" : "asm"));
 #if GNU_EXTENSIONS_ALLOWED
-    if (aep->is_volatile && (aep->operands != NULL || aep->clobbers != NULL)) {
+    if (aep->is_volatile && (aep->operands != NULL || aep->clobbers != NULL ||
+                             aep->gnu_asm_form)) {
       write_tok_str(" volatile");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_ch('(');
     dump_constant(aep->asm_string);
 #if GNU_EXTENSIONS_ALLOWED
-    if (aep->operands != NULL || aep->clobbers != NULL || !aep->is_volatile) {
+    if (aep->operands != NULL || aep->clobbers != NULL || !aep->is_volatile ||
+        aep->gnu_asm_form) {
       write_tok_str(" :");
       dump_asm_operands(aep);
       dump_asm_clobbers(aep);

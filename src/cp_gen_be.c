@@ -10650,9 +10650,11 @@ Generate the GNU C operand descriptions for the given asm entry.
       }  /* if */
     }  /* if */
   }  /* for */
-  if (output && aep->clobbers != NULL) {
-    /* There were no input operands, but clobbers are about to follow.
-       Be sure to make the empty input specification explicit. */
+  if (output && (aep->clobbers != NULL || aep->gnu_asm_form)) {
+    /* There were no input operands, but clobbers are about to follow (or
+       the construct was written in the source using the extended syntax,
+       which must be preserved).  Be sure to make the empty input
+       specification explicit. */
     write_tok_str(" :");
   }  /* if */
 }  /* gen_asm_operands */
@@ -11029,7 +11031,8 @@ one that yields the value) of a statement expression.
                                                               "asm"));
 #if GNU_EXTENSIONS_ALLOWED
         if (asm_entry->is_volatile && 
-            (asm_entry->operands != NULL || asm_entry->clobbers != NULL)) {
+            (asm_entry->operands != NULL || asm_entry->clobbers != NULL ||
+             asm_entry->gnu_asm_form)) {
           write_tok_str(" volatile");
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -11037,7 +11040,7 @@ one that yields the value) of a statement expression.
         gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
         if (asm_entry->operands != NULL || asm_entry->clobbers != NULL || 
-            !asm_entry->is_volatile) {
+            !asm_entry->is_volatile || asm_entry->gnu_asm_form) {
           write_tok_str(" :");
           gen_asm_operands(asm_entry);
           gen_asm_clobbers(asm_entry);
