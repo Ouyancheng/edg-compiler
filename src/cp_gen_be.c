@@ -12386,6 +12386,7 @@ TRUE if the declaration following this one is such a continuation.
   a_name_reference_ptr          name_ref = NULL;
   a_boolean                     saved_in_generated_instance =
                                                          in_generated_instance;
+  a_boolean                     saved_expl_template_arg_list_used;
 
 #if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
@@ -12529,6 +12530,7 @@ handle_as_definition:
     /* Discard this declaration. */
     goto end_of_routine;
   }  /* if */
+  saved_expl_template_arg_list_used = rout->expl_template_arg_list_used;
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
   if (!suppress_specifiers) {
@@ -12596,6 +12598,15 @@ handle_as_definition:
                                        /*is_in_class_specialization=*/FALSE,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                        rout->template_arg_list);
+    if (gcc_is_generated_code_target) {
+      /* Some versions of g++ have a bug that causes spurious errors in
+         some obscure cases if an explicit specialization is declared
+         without explicit template arguments.  We set the
+         expl_template_arg_list_used flag here to force the arguments on
+         the declaration, then restore it to its original state below so
+         uses of the function will have the appropriate form. */
+      rout->expl_template_arg_list_used = TRUE;
+    }  /* if */
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = rout->storage_class;
@@ -12854,6 +12865,7 @@ handle_as_definition:
                                          &context_pop_needed,
                                          &saved_state, name_ref);
   in_friend_declaration = FALSE;
+  rout->expl_template_arg_list_used = saved_expl_template_arg_list_used;
   if (need_to_unset_typedefs) {
     (void)gen_typedefs_for_template_classes_in_default_arguments(
                                                       rtsp->param_type_list,

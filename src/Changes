@@ -1,5 +1,23 @@
 Version 4.2
 
+9/15/09  [EDGcpfe/10035]
+GNU compatibility, C++-generating back end: template argument lists for
+explicit specializations
+
+The C++-generating back end suppressed template argument lists in
+references to an instance of a function template in the generated code if
+the source code never referred to that instance using an explicit template
+argument list.  This suppression also applied to declarations and
+definitions of generated explicit specializations in configurations in
+which NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to
+TRUE.  Recent versions of g++, however, have a bug that results in spurious
+errors under certain obscure circumstances if the template argument list is
+omitted from the declaration or definition of an explicit specialization of
+a function template.  The C++-generating back end has now been changed to
+generate the template argument list unconditionally in such declarations
+and definitions when gcc_is_generated_code_target is TRUE.
+
+
 9/15/09  [EDGcpfe/9739]
 Microsoft and GNU C++ compatibility: partial ordering and functions
 
