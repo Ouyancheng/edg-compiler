@@ -1755,7 +1755,12 @@ Likewise for match2.
   a_boolean	type_2_is_reference, type2_is_rvalue_reference = FALSE;
   a_boolean	qualifiers_dropped1 = FALSE;
   a_boolean	qualifiers_dropped2 = FALSE;
+  a_boolean	type_under_ref_is_func_or_array = FALSE;
+  a_boolean	do_ref_vs_ptr_check;
 
+  /* Microsoft and g++ consider a reference to function/array to match a
+     pointer to function/array for partial ordering. */
+  do_ref_vs_ptr_check = microsoft_mode || (gpp_mode && gnu_version >= 40100);
   /* Remove any qualifiers that are present. */
   param_type1 = skip_typerefs(param_type1);
   param_type2 = skip_typerefs(param_type2);
@@ -1764,11 +1769,45 @@ Likewise for match2.
   if (type_1_is_reference) {
     type1_is_rvalue_reference = is_rvalue_reference_type(param_type1);
     param_type1 = type_pointed_to(param_type1);
+    /* The "ref. vs. ptr check" below needs to know if we have a reference
+       to function/array parameter. */
+    if (do_ref_vs_ptr_check &&
+        (is_function_type(param_type1) || is_array_type(param_type1))) {
+      type_under_ref_is_func_or_array = TRUE;
+    }  /* if */
   }  /* if */
   type_2_is_reference = is_reference_type(param_type2);
   if (type_2_is_reference) {
     type2_is_rvalue_reference = is_rvalue_reference_type(param_type2);
     param_type2 = type_pointed_to(param_type2);
+    /* The "ref. vs. ptr check" below needs to know if we have a reference
+       to function/array parameter. */
+    if (do_ref_vs_ptr_check &&
+        (is_function_type(param_type2) || is_array_type(param_type2))) {
+      type_under_ref_is_func_or_array = TRUE;
+    }  /* if */
+  }  /* if */
+  if (do_ref_vs_ptr_check &&
+      (type_1_is_reference || type_2_is_reference) &&
+      type_1_is_reference != type_2_is_reference &&
+      type_under_ref_is_func_or_array) {
+    /* Microsoft and g++ allow a pointer to function/array to match a reference
+       to function/array.  If one parameter is a reference to function/array,
+       drop the pointer on the other parameter if it points to a
+       function/array type.  We don't check here for consistency of
+       function vs. array for the two types.  Such cases will fail in
+       deduction later. */
+    if (type_1_is_reference) {
+      if (is_pointer_type(param_type2)) {
+        a_type_ptr	tp = type_pointed_to(param_type2);
+        if (is_function_type(tp) || is_array_type(tp)) param_type2 = tp;
+      }  /* if */
+    } else {
+      if (is_pointer_type(param_type1)) {
+        a_type_ptr	tp = type_pointed_to(param_type1);
+        if (is_function_type(tp) || is_array_type(tp)) param_type1 = tp;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if ((type_1_is_reference && type_2_is_reference &&
        type1_is_rvalue_reference == type2_is_rvalue_reference) ||
