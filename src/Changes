@@ -1,13 +1,13 @@
 Version 4.2
 
 9/15/09  [EDGcpfe/9739]
-Microsoft and GNU C++ compatibility: partial ordering and functions/arrays
+Microsoft and GNU C++ compatibility: partial ordering and functions
 
-The Microsoft and g++ compilers consider a pointer to function or array
-to be compatible with a reference to function or array for partial
-ordering purposes.  As a result, they accept examples like the one below
-instead of reporting an ambiguity.  We now emulate this behavior in
-Microsoft and g++ mode (when gnu_version is >= 40100).
+The Microsoft and g++ compilers consider a pointer to function to be
+compatible with a reference to function for partial ordering purposes.
+As a result, they accept examples like the one below instead of reporting
+an ambiguity.  We now emulate this behavior in Microsoft and g++ mode (when
+gnu_version is >= 40100).
 
   template <typename T> void f(T** p, void (*)()); // #1
   template <typename T> void f(T* p, void (&)());  // #2
