@@ -1,5 +1,25 @@
 Version 4.2
 
+9/15/09  [EDGcpfe/10094]
+GNU compatibility: mangling of template parameter as a parent
+
+Early versions of g++ used an incorrect mangling of template parameters when
+used as parents and we emulated that behavior when emulate_gnu_abi_bugs is
+TRUE.  The bug has since been fixed by GNU (in version 3.4.0), so 
+emulation of this bug is no longer performed when gnu_version >= 30400
+(and emulate_gnu_abi_bugs is TRUE).  For example:
+
+  struct A {
+    struct B {};
+  };
+  template <class T> void f(typename T::B) {}
+  void f() {
+    A::B ab;
+    f<A>(ab); // now _Z1fI1AEvNT_1BE when gnu_version >= 30400 and
+              // emulate_gnu_abi_bugs is TRUE (had been _Z1fI1AEvN1T1BE)
+  }
+
+
 9/15/09  [EDGcpfe/10035]
 GNU compatibility, C++-generating back end: template argument lists for
 explicit specializations

@@ -4682,9 +4682,14 @@ static data member is used as the parent entity for mangling purposes.
       }  /* if */
       if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
-    if (emulate_gnu_abi_bugs) {
-      /* g++ 3.2 has a bug with template parameters as parents: it uses
-         the parameter name instead of a template parameter encoding. */
+    if (emulate_gnu_abi_bugs
+#if ABI_COMPATIBILITY_VERSION >= 402
+        && gnu_abi_version < 30400
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+                                  ) {
+      /* g++ versions prior to 3.4.0 had a bug with template parameters as
+         parents: they used the parameter name instead of a template parameter
+         encoding. */
       mangled_full_class_name(type,
                               show_partial_spec_args,
                               is_template_specialization,
