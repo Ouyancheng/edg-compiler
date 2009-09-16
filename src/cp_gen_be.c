@@ -12598,13 +12598,14 @@ handle_as_definition:
                                        /*is_in_class_specialization=*/FALSE,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                        rout->template_arg_list);
-    if (gcc_is_generated_code_target) {
+    if (gcc_is_generated_code_target && is_namespace_member(rout)) {
       /* Some versions of g++ have a bug that causes spurious errors in
-         some obscure cases if an explicit specialization is declared
-         without explicit template arguments.  We set the
-         expl_template_arg_list_used flag here to force the arguments on
-         the declaration, then restore it to its original state below so
-         uses of the function will have the appropriate form. */
+         some obscure cases if an explicit specialization of a
+         namespace-scope function template is declared without explicit
+         template arguments.  We set the expl_template_arg_list_used flag
+         here to force the arguments on the declaration, then restore it to
+         its original state below so uses of the function will have the
+         appropriate form. */
       rout->expl_template_arg_list_used = TRUE;
     }  /* if */
   }  /* if */
