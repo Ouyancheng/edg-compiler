@@ -17545,7 +17545,7 @@ invalid uses of typename.
       /* Force overload processing on a symbol in a prototype instantiation
          that coexists with a using-declaration that might or might not
          overload it. */
-      check_assertion(is_function_symbol(sym_ptr));
+      check_assertion(is_function_or_template_symbol(sym_ptr));
       force_indefinite_function = TRUE;
       rep = NULL;
     } else {

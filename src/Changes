@@ -1,5 +1,28 @@
 Version 4.2
 
+9/16/09  [EDGcpfe/10082]
+Internal error on template overloaded with using-declaration
+
+In modes that do prototype instantiations of templates, a call of a
+name that corresponded to a template overloaded with a using-declaration
+resulted in an abort in scan_identifier in expr.c.  Now fixed.
+
+  template<class T>
+  struct A {
+    void f(int);
+  };
+  template<class T> struct C : public A<T> {
+    template<int x> void f() {
+      f(1);
+    }
+    using A<T>::f;
+  };
+  int main() {
+    C<int> c;
+    c.f<1>();
+  }
+
+
 9/16/09  [EDGcpfe/10059]
 Internal error on deduced type with unevaluated template default arguments
 
