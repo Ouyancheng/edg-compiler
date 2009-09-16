@@ -7458,7 +7458,8 @@ make_new_comp_type:
                                 ptp1->default_arg_appeared_in_class_definition;
             new_ptp->has_unevaluated_template_default =
                                         ptp1->has_unevaluated_template_default;
-            new_ptp->default_arg_expr_fixup = ptp1->default_arg_expr_fixup;
+            new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
+                        ptp1->orig_param_type_for_unevaluated_default_arg_expr;
             if (ptp1->default_arg_expr != NULL) {
               new_ptp->default_arg_expr = ptp1->default_arg_expr;
               new_ptp->entities_defined_in_default_arg =
@@ -7470,7 +7471,8 @@ make_new_comp_type:
                                 ptp2->default_arg_appeared_in_class_definition;
             new_ptp->has_unevaluated_template_default =
                                         ptp2->has_unevaluated_template_default;
-            new_ptp->default_arg_expr_fixup = ptp2->default_arg_expr_fixup;
+            new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
+                        ptp2->orig_param_type_for_unevaluated_default_arg_expr;
             if (ptp2->default_arg_expr != NULL) {
               new_ptp->default_arg_expr = ptp2->default_arg_expr;
               new_ptp->entities_defined_in_default_arg =
@@ -9667,7 +9669,11 @@ any default arguments.  The modified type (or the original type if no
 modification was done) is returned in *new_type.
 */
 {
-  *new_type = strip_routine_default_args(type);
+  if (type->kind == (a_type_kind)tk_routine) {
+    *new_type = routine_type_without_default_args(type);
+  } else {
+    *new_type = type;
+  }  /* if */
   return !same_entities(type, *new_type);
 }  /* tmtt_strip_routine_default_args */
 
@@ -9822,7 +9828,8 @@ make_new_type:
                                  ptp->default_arg_appeared_in_class_definition;
           new_ptp->has_unevaluated_template_default =
                                          ptp->has_unevaluated_template_default;
-          new_ptp->default_arg_expr_fixup = ptp->default_arg_expr_fixup;
+          new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
+                         ptp->orig_param_type_for_unevaluated_default_arg_expr;
           if (ptp->default_arg_expr != NULL) {
             new_ptp->default_arg_expr =
                              duplicate_default_arg_expr(ptp->default_arg_expr);
@@ -9950,9 +9957,6 @@ type.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEREFS);
-  if (type->kind == (a_type_kind)tk_routine) {
-    type = routine_type_without_default_args(type);
-  }  /* if */
   return traverse_and_modify_type_tree(type,
 				       tmtt_strip_routine_default_args,
                                        ttt_flags);

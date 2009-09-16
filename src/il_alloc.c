@@ -891,7 +891,7 @@ at file scope.
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
   ptp->default_arg_expr = NULL;
-  ptp->default_arg_expr_fixup = NULL;
+  ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
   ptp->entities_defined_in_default_arg = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ptp->ms_attributes = NULL;

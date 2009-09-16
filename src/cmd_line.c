@@ -3282,8 +3282,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
   }  /* if */
   if (!option_kind_used[(int)optk_nonstandard_default_arg_deduction]) {
-    /* Default arguments are part of the deduced function type in g++ mode. */
-    nonstandard_default_arg_deduction = TRUE;
+    /* Default arguments are part of the deduced function type in g++ mode
+       prior to 4.3. */
+    nonstandard_default_arg_deduction = (gnu_version < 40300);
   }  /* if */
   if (!option_kind_used[(int)optk_nonstandard_instantiation_lookup]) {
     /* If nonstandard instantiation lookup was not set on the command line,

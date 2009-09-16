@@ -2272,18 +2272,41 @@ have_level:;
       clear_conv_descr(&arg_summary->conversion);
     }  /* if */
     if (arg_operand != NULL &&
-        is_constant_operand(arg_operand) &&
-        is_ptr_to_member_type(arg_operand->type) &&
         arg_summary->template_symbol == NULL) {
-      /* Remember if the argument is a pointer-to-member for a member function
-         of a template.  This is needed to resolve some nonstandard cases
-         with unevaluated default arguments. */
-      a_constant_ptr pm_con = &arg_operand->variant.constant;
-      if (pm_con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
-          pm_con->variant.ptr_to_member.is_function_ptr) {
-        a_routine_ptr pm_rout = pm_con->variant.ptr_to_member.variant.routine;
-        if (pm_rout != NULL && pm_rout->is_template_function) {
-          arg_summary->template_symbol = symbol_for(pm_rout);
+      if (is_constant_operand(arg_operand) &&
+          is_ptr_to_member_type(arg_operand->type)) {
+        /* Remember if the argument is a pointer-to-member for a member
+           function of a template.  This is needed to resolve some nonstandard
+           cases with unevaluated default arguments. */
+        a_constant_ptr pm_con = &arg_operand->variant.constant;
+        if (pm_con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+            pm_con->variant.ptr_to_member.is_function_ptr) {
+          a_routine_ptr pm_rout =pm_con->variant.ptr_to_member.variant.routine;
+          if (pm_rout != NULL && pm_rout->is_template_function) {
+            arg_summary->template_symbol = symbol_for(pm_rout);
+          }  /* if */
+        }  /* if */
+      } else if (is_pointer_type(arg_operand->type)) {
+        /* See comment above about pointers to members.  Similar processing
+           for addresses of functions (e.g., non-template static member
+           functions of class templates). */
+        a_constant_ptr conptr = NULL;
+        a_constant     con;
+        if (is_constant_operand(arg_operand)) {
+          conptr = &arg_operand->variant.constant;
+        } else if (is_expression_operand(arg_operand) &&
+                   is_an_rvalue(arg_operand) &&
+                   constant_rvalue_pointer(arg_operand->variant.expression,
+                                           &con, /*address_escapes=*/FALSE,
+                                           (a_boolean *)NULL)) {
+          conptr = &con;
+        }  /* if */
+        if (conptr != NULL &&
+            con_is_exact_addr_of_routine(conptr)) {
+          a_routine_ptr rout = conptr->variant.address.variant.routine;
+          if (rout->is_template_function) {
+            arg_summary->template_symbol = symbol_for(rout);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5009,10 +5032,9 @@ a general-purpose routine.
     ptp2 = rtsp2->param_type_list;
     for (; ptp1 != NULL && ptp2 != NULL;
          ptp1 = ptp1->next, ptp2 = ptp2->next) {
-      if (ptp1->has_unevaluated_template_default &&
-          ptp2->has_unevaluated_template_default &&
-          ptp1->default_arg_expr_fixup != NULL &&
-          ptp1->default_arg_expr_fixup == ptp2->default_arg_expr_fixup) {
+      if (ptp1->orig_param_type_for_unevaluated_default_arg_expr != NULL &&
+          ptp1->orig_param_type_for_unevaluated_default_arg_expr ==
+                      ptp2->orig_param_type_for_unevaluated_default_arg_expr) {
         equiv = TRUE;
         break;
       }  /* if */
@@ -5029,7 +5051,7 @@ static void instantiate_default_arguments_of_template_matching(
 /*
 Instantiate the unevaluated default arguments of whatever template on the
 argument list of the candidate function indicated by best_candidate
-matches the function type "type".  There must be one.  *upated_type is
+matches the function type "type".  There must be one.  *updated_type is
 set to an updated version of the original type (to be put back into the
 template argument list), or to the original type if no update is required.
 */
@@ -5071,6 +5093,11 @@ template argument list), or to the original type if no update is required.
           if (ptp->has_unevaluated_template_default) {
             instantiate_default_argument(sym, ptp);
 #if CHECKING
+            processed_any = TRUE;
+          } else if (ptp->orig_param_type_for_unevaluated_default_arg_expr !=
+                                                                        NULL) {
+            /* There was an unevaluated default argument here, but it got
+               evaluated for some other reason since we recorded it. */
             processed_any = TRUE;
 #endif /* CHECKING */
           }  /* if */

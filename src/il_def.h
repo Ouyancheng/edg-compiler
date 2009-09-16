@@ -3483,12 +3483,13 @@ typedef struct a_param_type {
 			   be NULL if the default argument value has not
 			   yet been evaluated, or for a template default
 			   argument value whose value was never needed. */
-  struct a_def_arg_expr_fixup
-		*default_arg_expr_fixup;
-			/* When has_unevaluated_template_default is TRUE, this
-			   points to the fixup entry that provides information
-			   on how to evaluate the default argument
-			   expression.  Front end only. */
+  a_param_type_ptr
+		orig_param_type_for_unevaluated_default_arg_expr;
+			/* For a parameter type entry that has or had
+			   has_unevaluated_template_default TRUE, this points
+			   to the param type entry that originally had the
+			   fixup entry attached to it, which might be the
+			   current entry.  Front end only. */
   an_il_entity_list_entry_ptr
 		entities_defined_in_default_arg;
 			/* A list of entities defined in the default argument

@@ -7705,7 +7705,8 @@ make_new_type:
           }  /* if */
           if (ptp->has_unevaluated_template_default) {
             new_ptp->has_unevaluated_template_default = TRUE;
-            new_ptp->default_arg_expr_fixup = ptp->default_arg_expr_fixup;
+            new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
+                         ptp->orig_param_type_for_unevaluated_default_arg_expr;
           }  /* if */
           /* Add the new param type entry to the param types list. */
           if (prev_ptp == NULL) {
@@ -8210,7 +8211,8 @@ done:
   /* Reset the flag that indicates that this default value has not yet
      been evaluated. */
   param->has_unevaluated_template_default = FALSE;
-  param->default_arg_expr_fixup = NULL;
+  /* orig_param_type_for_unevaluated_default_arg_expr is not cleared on
+     purpose. */
   param->default_being_instantiated = FALSE;
 }  /* instantiate_default_argument */
 
@@ -8252,14 +8254,13 @@ is needed for a call.
       if (templ_ptp->has_default_arg) {
 	check_assertion(daefp != NULL);
         /* Mark the parameter as having a default argument that can be
-           evaluated later when/if needed.  Note that
-           templ_ptp->default_arg_expr_fixup will be NULL here for some
-           cases involving member templates, which is why we use daefp. */
+           evaluated later when/if needed. */
         ptp->has_default_arg = TRUE;
         ptp->default_arg_appeared_in_class_definition =
                           templ_ptp->default_arg_appeared_in_class_definition;
         ptp->has_unevaluated_template_default = TRUE;
-        ptp->default_arg_expr_fixup = daefp;
+        ptp->orig_param_type_for_unevaluated_default_arg_expr =
+                                                             daefp->param_type;
         daefp = daefp->next;
       }  /* if */
     }  /* for */
@@ -13031,10 +13032,10 @@ parameter in the parameter list.
   if (curr_token == tok_removed_default_arg) {
     /* If we are scanning a removed default argument, just bypass the token. */
     (void)get_token();
-    /* Note that we leave default_arg_expr_fixup NULL here, which is okay.
-       When we make the actual instance the fixup pointer will be filled
-       in properly.  This happens for the processing of a member template
-       during a real instantiation of the enclosing class. */
+    /* Note that we leave orig_param_type_for_unevaluated_default_arg_expr
+       NULL here, which is okay.  When we make the actual instance the pointer
+       will be filled in properly.  This happens for the processing of a
+       member template during a real instantiation of the enclosing class. */
     if (ptp != NULL) ptp->has_unevaluated_template_default = TRUE;
   } else {
     list = &curr_default_args;

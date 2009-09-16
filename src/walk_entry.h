@@ -881,7 +881,8 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
-        conditionally_clear_fe_pointer(ptr->default_arg_expr_fixup);
+        conditionally_clear_fe_pointer(
+                        ptr->orig_param_type_for_unevaluated_default_arg_expr);
         walk_list(ptr->entities_defined_in_default_arg,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

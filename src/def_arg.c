@@ -236,7 +236,7 @@ scan the default argument expression but discard the token cache.
       /* Indicate that this default argument is a template default argument
          whose expression has not yet been evaluated. */
       ptp->has_unevaluated_template_default = TRUE;
-      ptp->default_arg_expr_fixup = new_daefp;
+      ptp->orig_param_type_for_unevaluated_default_arg_expr = ptp;
     }  /* if */
   }  /* if */
   db_exit();

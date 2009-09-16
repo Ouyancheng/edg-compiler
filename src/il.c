@@ -10014,7 +10014,8 @@ in the new param types will be NULL.
         if (ptp->has_unevaluated_template_default) {
           /* This default argument hasn't been evaluated yet.  The fields
              needed to evaluate it later (has_unevaluated_template_default
-             and default_arg_expr_fixup) were copied above. */
+             and orig_param_type_for_unevaluated_default_arg_expr) were copied
+             above. */
         } else if (ptp->default_arg_expr != NULL) {
           /* Expressions may not be shared -- that is, they may not be pointed
              to from more than one place.  Therefore a copy must be made of the
@@ -10029,13 +10030,14 @@ in the new param types will be NULL.
         new_ptp->has_default_arg = FALSE;
         new_ptp->default_arg_expr = NULL;
         new_ptp->has_unevaluated_template_default = FALSE;
-        new_ptp->default_arg_expr_fixup = NULL;
+        new_ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
       }  /* if */
     } else {
       /* This parameter has no default argument. */
       check_assertion(ptp->default_arg_expr == NULL &&
                       !ptp->has_unevaluated_template_default &&
-                      ptp->default_arg_expr_fixup == NULL);
+                      ptp->orig_param_type_for_unevaluated_default_arg_expr ==
+                                                                         NULL);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Duplicate the Microsoft attributes list (if any). */
