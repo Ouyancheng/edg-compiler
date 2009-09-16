@@ -1054,8 +1054,7 @@ itself recursively to process classes nested within this class.
         } else {
           /* Use the declared_type in the routine entry only if it has no
              default args; otherwise, make a copy. */
-          declared_type = routine_type_without_default_args(
-                                    declared_type, /*only_unevaluated=*/FALSE);
+          declared_type = routine_type_without_default_args(declared_type);
         }  /* if */
         add_source_sequence_entry_for_partial_instantiation(
                                                 (char *)rout,
@@ -6281,10 +6280,12 @@ points to the template parameter list.
              the nth template parameter, whose type is templ_type. */
           if (tap->variant.type == NULL) {
             /* No type has been bound to this template argument yet, so just
-               use "type".  This counts as a match.
-               Certain default arguments from deduced function types should not
-               be part of the argument type. */
-            type = strip_routine_default_args_from_deduced_type(type);
+               use "type".  This counts as a match. */
+            if (!nonstandard_default_arg_deduction) {
+              /* Default arguments from deduced function types should not
+                 be part of the argument type. */
+              type = strip_routine_default_args(type);
+            }  /* if */
             /* Remove any qualifiers from the parameter types of any routine
                types that are part of "type". */
             type = strip_qualifiers_from_param_types(type);
@@ -9204,8 +9205,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       /* Use the declared_type in the routine entry only if it has no
          default args; otherwise, make a copy. */
       check_assertion(!is_qualified_type(declared_type));
-      declared_type = routine_type_without_default_args(
-                                    declared_type, /*only_unevaluated=*/FALSE);
+      declared_type = routine_type_without_default_args(declared_type);
     }  /* if */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
