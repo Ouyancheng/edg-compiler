@@ -6276,10 +6276,13 @@ See conversion_possible.
                                          dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          std_conv);
-  } else if (is_nullptr_type(dest_type) && source_is_constant &&
-             is_or_might_be_null_pointer_constant(source_constant)) {
-    /* Only a null pointer constant (nullptr or 0-valued integral constant
-       expression) can be converted to std::nullptr_t. */
+  } else if (is_nullptr_type(dest_type) &&
+             (is_nullptr_type(source_type) ||
+              (source_is_constant &&
+               is_or_might_be_null_pointer_constant(source_constant)))) {
+    /* Only a null pointer constant (nullptr or other rvalue of type
+       std::nullptr_t or a 0-valued integral constant expression) can be
+       converted to std::nullptr_t. */
     okay = TRUE;
     std_conv->nontrivial_conversion = !is_nullptr_type(source_type);
   } else if (is_error(dest_type)) {
