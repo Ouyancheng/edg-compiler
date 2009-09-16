@@ -9669,7 +9669,7 @@ any default arguments.  The modified type (or the original type if no
 modification was done) is returned in *new_type.
 */
 {
- *new_type = strip_routine_default_args(type);
+  *new_type = strip_routine_default_args(type);
   return !same_entities(type, *new_type);
 }  /* tmtt_strip_routine_default_args */
 
