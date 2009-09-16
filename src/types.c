@@ -9669,11 +9669,7 @@ any default arguments.  The modified type (or the original type if no
 modification was done) is returned in *new_type.
 */
 {
-  if (type->kind == (a_type_kind)tk_routine) {
-    *new_type = routine_type_without_default_args(type);
-  } else {
-    *new_type = type;
-  }  /* if */
+ *new_type = strip_routine_default_args(type);
   return !same_entities(type, *new_type);
 }  /* tmtt_strip_routine_default_args */
 
@@ -9701,7 +9697,10 @@ static a_type_ptr traverse_and_modify_type_tree(
 /*
 Traverse the type tree represented by type and at each level call func to
 perform optional modification of the subtree.  If the subtree is modified,
-a new tree is built.
+a new tree is built.  Unlike with traverse_type_tree, the "func" routine
+in this case implements the tree walk; it must call back into
+traverse_and_modify_type_tree in some way to do that (usually, by
+calling back to the non-"tmtt_" routine that started the walk).
 */
 {
   a_type_ptr              new_type = type;
@@ -9956,10 +9955,21 @@ If type contains any routine types, remove the default arguments from the
 type.
 */
 {
-  a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEREFS);
-  return traverse_and_modify_type_tree(type,
-				       tmtt_strip_routine_default_args,
-                                       ttt_flags);
+  a_type_ptr new_type;
+
+  if (type->kind == (a_type_kind)tk_routine) {
+    /* Function type -- remove the default arguments, if any, by making a
+       copy of the function type. */
+    new_type = routine_type_without_default_args(type);
+  } else {
+    /* Not a function type -- walk the tree to remove default arguments at
+       other levels. */
+    a_type_tree_traversal_flag_set ttt_flags = TTT_SKIP_TYPEREFS;
+    new_type = traverse_and_modify_type_tree(type,
+                                             tmtt_strip_routine_default_args,
+                                             ttt_flags);
+  }  /* if */
+  return new_type;
 }  /* strip_routine_default_args */
 
 
