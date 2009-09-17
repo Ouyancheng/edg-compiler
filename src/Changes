@@ -3,7 +3,7 @@ Version 4.2
 9/16/09  [EDGcpfe/10104]
 Microsoft compatibility: pointer and false as operands of "?"
 
-As noted in the 2/6/05 entry, MSVC++ acccepts a pointer/pointer to member
+As noted in the 2/6/05 entry, MSVC++ accepts a pointer/pointer to member
 and a bool as the second and third operands of a "?" operator, and the
 front end does as well in Microsoft bugs mode.  Generally, this construct
 has type bool.  When the bool operand has the constant value "false,"
