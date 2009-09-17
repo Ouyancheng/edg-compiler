@@ -66,8 +66,6 @@ typedef struct a_namespace   *a_namespace_ptr;
 typedef struct a_scope       *a_scope_ptr;
 typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
-typedef struct a_def_arg_expr_fixup
-                             a_def_arg_expr_fixup_dummy_typedef;
 typedef struct a_lambda      *a_lambda_ptr;
 typedef struct a_lambda_capture
                              *a_lambda_capture_ptr;
