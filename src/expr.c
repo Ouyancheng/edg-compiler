@@ -15561,9 +15561,17 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs &&
           ((is_bool_type(operand_2.type) &&
+            !(is_constant_operand(&operand_2) &&
+              constant_bool_value_known_at_compile_time(
+                                                &operand_2.variant.constant) &&
+              op_is_false_constant(&operand_2)) &&
             (operand_3_is_pointer || operand_3_is_ptr_to_member ||
              operand_3_is_nullptr)) ||
            (is_bool_type(operand_3.type) &&
+            !(is_constant_operand(&operand_3) &&
+              constant_bool_value_known_at_compile_time(
+                                                &operand_3.variant.constant) &&
+              op_is_false_constant(&operand_3)) &&
             (operand_2_is_pointer || operand_2_is_ptr_to_member ||
              operand_2_is_nullptr)))) {
         a_boolean         ptr_case;
@@ -15571,7 +15579,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         a_source_position pos;
         /* MSVC++ (6.0, 7.0, 7.1, and 8.0, at least) allow a mix of a
            pointer, pointer-to-member, or std::nullptr_t operand and bool.
-           The result type is bool. */
+           If the bool is a constant with the value false, it is construed
+           as a null pointer constant and is handled below, not here;
+           otherwise, the result type is bool. */
         result_type = bool_type();
         if (is_bool_type(operand_2.type)) {
           /* Convert operand_3, the pointer operand, to bool. */
