@@ -206,6 +206,14 @@ typedef struct an_il_to_str_output_control_block {
 			   normal location for attributes following the
 			   typedef name. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  a_byte_boolean
+	unevaluated_context;
+			/* When TRUE, the output appears in an unevaluated
+			   context like the operand of sizeof.  This allows
+			   control over whether to suppress certain
+			   constructs, like casts to variably-modified (VLA)
+			   types, which must not appear in code that might
+			   be executed.  */
 } an_il_to_str_output_control_block;
 
 /*
