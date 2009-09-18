@@ -872,9 +872,7 @@ the file scope, do not process it (but record an orphan in the latter case).
            C compilers (e.g., gcc) warn on an incomplete parameter
            type, so keep the class definition to avoid such warnings. */
         definition_needed_if_class(ptr->type);
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         walk_string_ptr(ptr->name, iek_id_name, 0);
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
         /* The default_arg_expr field is not walked at this level in the
            needed and keep-in-il walks, because we don't know enough about
            the context.  See the uses of walk_param_list_default_arg_exprs. */

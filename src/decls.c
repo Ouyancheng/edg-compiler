@@ -4208,9 +4208,7 @@ not be TRUE.
                                         comp_type_ptp = comp_type_ptp->next) {
             a_type_qualifier_set  saved_qualifiers = rout_type_ptp->qualifiers;
             a_type_ptr            declared_type = rout_type_ptp->declared_type;
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-            char *saved_name = rout_type_ptp->name;
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+            char                  *saved_name = rout_type_ptp->name;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             a_decl_position_supplement_ptr saved_decl_pos_info =
                                                 rout_type_ptp->decl_pos_info;
@@ -4231,10 +4229,8 @@ not be TRUE.
               /* Restore the qualifiers as originally declared. */
               rout_type_ptp->qualifiers = saved_qualifiers;
             }  /* if */
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
             /* Restore the name that is associated with the routine type. */
             rout_type_ptp->name = saved_name;
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             /* Restore the source-range information that was recorded for
                the routine type. */
@@ -5951,13 +5947,11 @@ type entry if appropriate, otherwise using the indicated declared_type.
     /* Exception specification mismatch (usually involves predeclared
        functions like new and delete). */
     use_routine_type = FALSE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL || RECORD_NAME_IN_PARAM_TYPE_ENTRY
   } else if (rtsp2->param_type_list != NULL) {
     /* The name and position information of parameters on this declaration is
        likely different from that of previous declarations.  Hence, force the
        use of the type just parsed to correctly record that information. */
     use_routine_type = FALSE;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL || RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   } else {
     /* Loop through the param-type entries to see if there are any default
        arguments -- if so, just use the copy of the routine type instead of

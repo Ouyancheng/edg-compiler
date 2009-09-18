@@ -617,9 +617,7 @@ pointer decay).
 #endif /* DEBUG */
   }  /* if */
   vp->assoc_param_type = ptp;
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   ptp->name = vp->source_corresp.name;
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if GNU_EXTENSIONS_ALLOWED
   if (param_id->attributes != NULL) {
     apply_gnu_attributes_to_variable(param_id->attributes, vp,

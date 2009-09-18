@@ -5696,11 +5696,6 @@ file.
 #else /* !defined(RECORD_MACROS_IN_IL) */
   comment_undefined_macro_name(RECORD_MACROS_IN_IL);
 #endif /* defined(RECORD_MACROS_IN_IL) */
-#if defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY)
-  define_numeric_valued_macro(RECORD_NAME_IN_PARAM_TYPE_ENTRY);
-#else /* !defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY) */
-  comment_undefined_macro_name(RECORD_NAME_IN_PARAM_TYPE_ENTRY);
-#endif /* defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY) */
 #if defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS)
   define_numeric_valued_macro(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS);
 #else /* !defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS) */

@@ -1,5 +1,14 @@
 Version 4.2
 
+9/17/09  [EDGcpfe/10110]
+Parameter names are always recorded (RECORD_NAME_IN_PARAM_TYPE_ENTRY removed)
+
+Previously, the configuration macro RECORD_NAME_IN_PARAM_TYPE_ENTRY determined
+whether parameter names were recorded in nondefining function declarations.
+Now, that macro has been dropped and the behavior is as when the macro was
+TRUE: Parameter names are always recorded.
+
+
 9/17/09  [EDGcpfe/10089]
 Template conversion function to const type to initialize reference to const
 

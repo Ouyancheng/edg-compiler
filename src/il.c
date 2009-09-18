@@ -10045,10 +10045,8 @@ in the new param types will be NULL.
       new_ptp->ms_attributes = duplicate_ms_attributes(ptp->ms_attributes);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
     /* Note: the name associated with the original param type entry is
        preserved in the copy. */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
     if (new_list == NULL) {
       new_list = new_ptp;
     } else {

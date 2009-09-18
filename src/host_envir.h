@@ -899,17 +899,6 @@ is more compact since there is one fewer field in IL entries.
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
-Flag that is TRUE if parameter names should be recorded in param-type entries.
-Even when it is FALSE the names of parameters are recorded in the associated
-variable when the function is defined; setting it to TRUE assures that a name
-is available (if the user declared one) even if the function is not defined
-in the current translation unit.
-*/
-#ifndef RECORD_NAME_IN_PARAM_TYPE_ENTRY
-#define RECORD_NAME_IN_PARAM_TYPE_ENTRY FALSE
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-
-/*
 Flag that is TRUE if the front end should record information about the
 form of name references in the IL.  This information is used by the C++
 generating back end so that names can be output more closely to the

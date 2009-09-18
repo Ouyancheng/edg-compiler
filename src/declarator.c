@@ -2004,11 +2004,9 @@ if this is the function declarator in a friend function declaration.
                                      iek_param_type, MSAT_PARAMETER);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
         if (!is_error_locator(param_locator)) {
           ptp->name = param_locator.symbol_header->identifier;
         }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         {
         /* Update source range information in the param-type entry. */

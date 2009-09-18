@@ -873,9 +873,7 @@ at file scope.
   ptp->next = NULL;
   ptp->type = type;
   ptp->declared_type = NULL;
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   ptp->name = NULL;
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
   ptp->default_arg_appeared_in_class_definition = FALSE;

@@ -1138,11 +1138,9 @@ Display a_param_type entry.
   disp_ptr("next", (char *)ptr->next, iek_param_type);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   if (ptr->name != NULL) {
     disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
   }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
   if (ptr->passed_via_copy_constructor) {
     disp_boolean("passed_via_copy_constructor", TRUE);
   }  /* if */

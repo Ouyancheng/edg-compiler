@@ -4490,13 +4490,9 @@ default arguments should be suppressed (needed for template specializations).
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
                                       &octl);
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
           if (param->name != NULL) {
             write_tok_str(param->name);
-          } else
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-          /* Do not insert code here. */
-          {
+          } else {
             gen_temp_name((char *)param);
           }  /* if */
           form_type_second_part_simple(param->type,
@@ -4513,12 +4509,10 @@ default arguments should be suppressed (needed for template specializations).
           form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
                                extra_qual, FTO_NO_OPTIONS, &octl);
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
           if (param->name != NULL) {
             write_space();
             write_tok_str(param->name);
           }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
           form_type_second_part_simple(param_type,
                                        /*under_lhs_declarator=*/FALSE, &octl);
         }  /* if */

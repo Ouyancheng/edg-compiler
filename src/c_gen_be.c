@@ -1842,12 +1842,10 @@ is non-NULL, in which case that is the function scope.
             /* This is just a declaration, so put out the type and no name. */
             char *temp = NULL;
             char *name = NULL;
-#if RECORD_NAME_IN_PARAM_TYPE_ENTRY
             /* If we have the name, put it out (unless it is reserved). */
             if (param->name != NULL && !is_C_reserved_word(param->name)) {
               name = param->name;
             }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
             if (gcc_is_generated_code_target && c99_mode && name == NULL) {
               /* gcc has difficulty with [*] VLA parameter types when the
                  parameter is unnamed, so generate a temporary name in C99
