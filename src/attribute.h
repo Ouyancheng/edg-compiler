@@ -204,7 +204,7 @@ EXTERN char *format_attribute_kind_names[(int)fak_last + 1]
 ;
 
 /* 
-Entry containing information about an attribute.  
+Entry containing information about a GNU attribute.  
 */
 typedef struct a_gnu_attribute {
   a_gnu_attribute_kind
@@ -218,8 +218,8 @@ typedef struct a_gnu_attribute {
 			/* TRUE if this attribute was scanned as part of
 			   the declarator. */
   union {
-    /* When kind == gak_packed, ak_unused, ak_used, ak_deprecated,
-       gak_constructor, or ak_destructor, no variant fields. */
+    /* When kind == gak_packed, gak_unused, gak_used, gak_deprecated,
+       gak_constructor, or gak_destructor, no variant fields. */
 #if USER_CONTROL_OF_STRUCT_PACKING
     /* When kind == gak_aligned. */
     a_targ_alignment
@@ -243,7 +243,7 @@ typedef struct a_gnu_attribute {
     char        *section;
 			/* The section indicated for the entity to
 			   which this attribute applies. */
-    /* When kind == gak_alias or ak_weakref. */
+    /* When kind == gak_alias or gak_weakref. */
     char        *alias;
 			/* The name of the entity for which this entity is an
 			   alias. */
@@ -327,28 +327,29 @@ extern a_type_ptr get_type_with_mode(a_type_ptr        type,
 
 extern a_type_ptr apply_gnu_attributes_to_variable_type(
                                                a_gnu_attribute_ptr  attributes,
-                                               a_type_ptr        type);
+                                               a_type_ptr           type);
 
-extern void apply_gnu_attributes_to_variable(a_gnu_attribute_ptr  attributes,
-                                             a_variable_ptr    vp,
-                                             a_boolean         is_definition);
+extern void apply_gnu_attributes_to_variable(
+                                           a_gnu_attribute_ptr  attributes,
+                                           a_variable_ptr       vp,
+                                           a_boolean            is_definition);
 
 extern void apply_gnu_attributes_to_field(a_gnu_attribute_ptr  attributes,
-                                          a_field_ptr       fp);
+                                          a_field_ptr          fp);
 
 extern void apply_gnu_attributes_to_routine(a_gnu_attribute_ptr  attributes,
-                                            a_routine_ptr     rp);
+                                            a_routine_ptr        rp);
 
 extern void apply_gnu_attributes_to_type(a_gnu_attribute_ptr attributes,
-                                         a_type_ptr       tp,
-                                         a_boolean        is_typedef);
+                                         a_type_ptr          tp,
+                                         a_boolean           is_typedef);
 
 extern void apply_gnu_attributes_to_typedef(a_gnu_attribute_ptr  attributes,
-                                            a_type_ptr        tp,
-                                            a_boolean         linkage_name);
+                                            a_type_ptr           tp,
+                                            a_boolean            linkage_name);
 
 extern void apply_gnu_attributes_to_label(a_gnu_attribute_ptr  attributes,
-                                          a_label_ptr       label);
+                                          a_label_ptr          label);
 
 extern
 void apply_gnu_attributes_to_using_directive(a_gnu_attribute_ptr  attributes,
@@ -358,10 +359,10 @@ void apply_gnu_attributes_to_using_directive(a_gnu_attribute_ptr  attributes,
 extern void apply_gnu_attributes_to_current_namespace(
                                              a_gnu_attribute_ptr  attributes);
 
-extern a_type_ptr apply_type_transforming_attributes(a_type_ptr        tp,
+extern a_type_ptr apply_type_transforming_attributes(a_type_ptr           tp,
                                                      a_gnu_attribute_ptr  *ap);
 
-extern void check_for_invalid_param_attributes(a_symbol_ptr     sym,
+extern void check_for_invalid_param_attributes(a_symbol_ptr        sym,
                                                a_gnu_attribute_ptr attributes);
 
 extern void check_function_param_attributes(a_func_info_block_ptr func_info);

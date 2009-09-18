@@ -1149,7 +1149,8 @@ typedef struct a_param_id {
 #if GNU_EXTENSIONS_ALLOWED
   struct a_gnu_attribute
   		*attributes;
-			/* The attributes associated with this parameter. */
+			/* The GNU attributes associated with this
+			   parameter. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_variable_ptr
 		dummy_vla_variable;

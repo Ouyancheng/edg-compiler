@@ -640,7 +640,7 @@ static a_type_ptr copy_type_and_apply_gnu_attributes(
                                                a_boolean           is_typedef);
 
 /* Previously allocated attributes available for reuse. */
-static a_gnu_attribute_ptr avail_attributes;
+static a_gnu_attribute_ptr avail_gnu_attributes;
 
 #if DEBUG
 static unsigned long
@@ -659,10 +659,10 @@ pointed to be "pos" can be freed when this routine returns.
 {
   a_gnu_attribute_ptr  ap;
 
-  if (avail_attributes != NULL) {
+  if (avail_gnu_attributes != NULL) {
     /* Reuse a previously allocated attribute. */
-    ap = avail_attributes;
-    avail_attributes = avail_attributes->next;
+    ap = avail_gnu_attributes;
+    avail_gnu_attributes = avail_gnu_attributes->next;
   } else {
     /* Allocate memory for a new attribute. */
     ap = (a_gnu_attribute_ptr)alloc_fe(sizeof(a_gnu_attribute));
@@ -880,8 +880,8 @@ ap.  ap may be NULL.
     /* Find the last attribute in the list. */
     for (last = ap; last->next != NULL; last = last->next) {}
     /* Add the entire list of attributes to the front of the free list. */
-    last->next = avail_attributes;
-    avail_attributes = ap;
+    last->next = avail_gnu_attributes;
+    avail_gnu_attributes = ap;
   }  /* if */
 }  /* free_gnu_attribute_list */
 
@@ -1923,7 +1923,7 @@ attributes.  */
           a_gnu_attribute_ptr next = ap->next;
           ap->next = (a_gnu_attribute_ptr)NULL;
           type = copy_type_and_apply_gnu_attributes(ap, type, 
-                                                /*is_typedef=*/FALSE);
+                                                    /*is_typedef=*/FALSE);
           /* Restore the attribute list. */
           ap->next = next;
         }
@@ -3149,8 +3149,8 @@ must make a copy if tp may already be shared.
 
 static a_type_ptr copy_type_and_apply_gnu_attributes(
                                                a_gnu_attribute_ptr attributes,
-                                               a_type_ptr       tp,
-                                               a_boolean        is_typedef)
+                                               a_type_ptr          tp,
+                                               a_boolean           is_typedef)
 /*
 Make a copy of tp and apply the attributes to the copy.  Return the
 newly created type.  If is_typedef is TRUE, tp is a new typedef.
@@ -3239,8 +3239,8 @@ from the list.
 
 
 void apply_gnu_attributes_to_typedef(a_gnu_attribute_ptr  attributes,
-                                     a_type_ptr        tp,
-                                     a_boolean         linkage_name)
+                                     a_type_ptr           tp,
+                                     a_boolean            linkage_name)
 /* 
 Apply the attributes to the indicated type, which is a new typedef.
 For certain underlying types (e.g., routine types) it is safe to make
@@ -3630,7 +3630,7 @@ attributes.
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(avail_attributes),
+      pch_saved_var_array_elem(avail_gnu_attributes),
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       pch_saved_var_array_elem(ELF_visibility_stack),
       pch_saved_var_array_elem(avail_ELF_visibility_stack_entries),
@@ -3681,7 +3681,7 @@ be initialized for each compilation.
 */
 {
 #if GNU_EXTENSIONS_ALLOWED
-  avail_attributes = NULL;
+  avail_gnu_attributes = NULL;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   ELF_visibility_stack = NULL;
   avail_ELF_visibility_stack_entries = NULL;

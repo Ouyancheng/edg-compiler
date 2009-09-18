@@ -4877,7 +4877,7 @@ The syntax is:
                    &inner_left_call_conv, &unbound_call_conv,
                    &inner_left_qualifiers, &unbound_qualifiers,
                    declarator_ssep, func_info, decl_pos_block,
-                   (a_gnu_attribute_ptr *)last_attribute_ptr);
+                   last_attribute_ptr);
       state->in_nested_declarator = saved_in_nested_declarator;
       state->qualifiers = saved_qualifiers;
       state->qualifiers_pos = saved_qualifiers_pos;
