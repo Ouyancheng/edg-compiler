@@ -4466,7 +4466,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean                      remainder_special_case = FALSE;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-  a_boolean                      saved_unevaluated_context;
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   switch (expr->kind) {
@@ -5229,8 +5228,6 @@ done_with_operation:
       break;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     case enk_runtime_sizeof:
-      saved_unevaluated_context = octl.unevaluated_context;
-      octl.unevaluated_context = TRUE;
       write_tok_str("sizeof(");
       if (expr->variant.runtime_sizeof.is_type) {
         /* sizeof(type). */
@@ -5253,7 +5250,6 @@ done_with_operation:
         }  /* if */
       }  /* if */
       write_tok_ch(')');
-      octl.unevaluated_context = saved_unevaluated_context;
       break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");

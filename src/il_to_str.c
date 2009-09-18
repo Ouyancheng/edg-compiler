@@ -105,7 +105,6 @@ Clear an output control block to default values.
 #if GNU_VECTOR_TYPES_ALLOWED
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-  octl->unevaluated_context       = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -4060,19 +4059,13 @@ precedence confusion.  Do the output in the way described by octl.
              need to be put out). */
           need_cast = TRUE;
           if (octl->gen_compilable_code && C_mode() &&
-              !octl->unevaluated_context &&
               is_directly_variably_modified_type(orig_type)) {
-            /* Implicit casts to directly variably-modified types must be
-               suppressed in code that might be executed, because the array
-               bound expressions might have side effects that would not
-               have occurred in the original source.  (Implicit casts in
-               unevaluated contexts are harmless and are needed for certain
-               cases where the front end generates the equivalent of
-               "*(T *)0".)  Suppression of such casts is possible because
-               they are folded into the constant only if they are implicit.
-               However, we must still deal with the fact that the constant
-               may have been explicitly cast to some other pointer type
-               before it was cast to the variably-modified type.  */
+            /* Casts to directly variably-modified types must be suppressed.
+               That's possible because they are folded into the constant only
+               if they are implicit.  However, we must still deal with the
+               fact that the constant may have been explicitly cast to some
+               other pointer type before it was cast to the variably-modified
+               type. */
             check_assertion(is_pointer_type(orig_type));
             need_cast = FALSE;
             /* For null pointer constants, the extra cast to "void *" is
