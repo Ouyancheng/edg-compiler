@@ -97,11 +97,11 @@ in Microsoft mode with microsoft_version >= 1310.
 Runtime sizeof expression used in VLA array dimension at prototype scope
 
 A runtime sizeof expression used in a VLA array dimension at prototype scope
-was handled incorrectly and has now been fixed.  In configurations where
-LOWER_VARIABLE_LENGTH_ARRAYS is TRUE, an assertion failure in
-find_vla_dimension had occurred; when LOWER_VARIABLE_LENGTH_ARRAYS is
-FALSE and the C generating back end is used, invalid C code had been
-generated.  Both of these issues have now been fixed.  For example:
+was handled incorrectly.  In configurations where LOWER_VARIABLE_LENGTH_ARRAYS
+is TRUE, an assertion failure in find_vla_dimension had occurred; when
+LOWER_VARIABLE_LENGTH_ARRAYS is FALSE and the C generating back end is used,
+invalid C code had been generated.  Both of these issues have now been fixed.
+For example:
 
   void f(int a, int b[a][a], int (*c)[sizeof(*b)]) {}
 
