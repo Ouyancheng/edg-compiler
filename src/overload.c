@@ -9090,10 +9090,18 @@ This routine is only used in C++ mode.
       /* Determine whether the desired type matches the type returned by the
          conversion template.  If normal deduction fails, check whether a
          qualification conversion can be used to obtain the desired type. */
+      /* See [temp.deduct.conv] in the standard for the rules on dropping
+         cv-qualifiers.  The "P" of that section is return_type (except that
+         return_type is already reduced to the underlying type if the function
+         returns a reference) and the "A" of that section is eff_dest_type
+         (ditto for a reference type; is_reference_binding indicates that
+         has happened). */
       if (matches_template_type(is_reference_binding ?
                                                   eff_dest_type :
                                                   skip_typerefs(eff_dest_type),
-                                return_type,
+                                is_reference_binding ?
+                                                  return_type :
+                                                  skip_typerefs(return_type),
                                 &template_arg_list,
                                 tssp->variant.function.decl_cache.
                                                          decl_info->parameters,

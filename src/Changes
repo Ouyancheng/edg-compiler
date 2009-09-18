@@ -1,5 +1,22 @@
 Version 4.2
 
+9/17/09  [EDGcpfe/10089]
+Template conversion function to const type to initialize reference to const
+
+A template conversion function that returns a const-qualified type is
+now considered usable for a conversion in the initializer of a
+reference to const:
+
+  template <class T> struct A {};
+  struct B {
+    template <class U> operator const A<U>();
+  };
+  void foo() {
+    B b;
+    const A<int> &e = b;
+  }
+
+
 9/16/09  [EDGcpfe/10104]
 Microsoft compatibility: pointer and false as operands of "?"
 
