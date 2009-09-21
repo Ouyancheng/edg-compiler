@@ -4569,8 +4569,7 @@ casts involving pointers or std::nullptr_t should be allowed.
 */
 {
   source_type = skip_typerefs(source_type);
-  check_assertion(is_pointer_type(source_type) ||
-                  is_nullptr_type(source_type));
+  check_assertion(is_pointer(source_type) || is_nullptr(source_type));
   dest_type = skip_typerefs(dest_type);
   return (dest_type->size >= source_type->size);
 }  /* dest_of_ptr_cast_big_enough */
@@ -5373,14 +5372,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       /* In C mode, one can get the case of (void *)0 --> void *.
          That's fine, but it doesn't really require a pointer normalization,
          so don't set the flag. */
-    } else if (is_nullptr_type(source_type)) {
+    } else if (is_nullptr(source_type)) {
       /* Do not set the flag for the C++0x nullptr keyword, so that nullptr
          can be used as a template nontype argument. */
     } else {
       /* Normal case. */
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
-  } else if (is_nullptr_type(source_type)) {
+  } else if (is_nullptr(source_type)) {
     /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, can be
        converted to any pointer type.  (Note: the nullptr keyword itself is
        handled in the preceding case; this case is for other expressions of
@@ -5980,13 +5979,13 @@ pointers to members).
              is_or_might_be_null_pointer_constant(source_constant)) {
     /* 0 --> pointer-to-member. */
     okay = TRUE;
-    if (!is_nullptr_type(source_type)) {
+    if (!is_nullptr(source_type)) {
       /* The flag is only set for integral null pointer constants, so that
          the C++0x nullptr keyword can be used with a pointer-to-member
          non-type template parameter. */
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
-  } else if (is_nullptr_type(source_type)) {
+  } else if (is_nullptr(source_type)) {
     /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, can be
        converted to all pointer-to-member types.  (The nullptr keyword
        itself is handled by the preceding case; this case is for other
@@ -6141,7 +6140,7 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type) ||
-               is_nullptr_type(source_type)) {
+               is_nullptr(source_type)) {
       okay = TRUE;
       /* This conversion is worse than others in overload resolution.
          Remember that. */
@@ -6283,15 +6282,15 @@ See conversion_possible.
                                          dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          std_conv);
-  } else if (is_nullptr_type(dest_type) &&
-             (is_nullptr_type(source_type) ||
+  } else if (is_nullptr(dest_type) &&
+             (is_nullptr(source_type) ||
               (source_is_constant &&
                is_or_might_be_null_pointer_constant(source_constant)))) {
     /* Only a null pointer constant (nullptr or other rvalue of type
        std::nullptr_t or a 0-valued integral constant expression) can be
        converted to std::nullptr_t. */
     okay = TRUE;
-    std_conv->nontrivial_conversion = !is_nullptr_type(source_type);
+    std_conv->nontrivial_conversion = !is_nullptr(source_type);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -6708,7 +6707,7 @@ well as C++ mode.
   if (is_incomplete(dest_type)) {
     /* Cannot cast to an incomplete type. */
     /* okay = FALSE; -- already set. */
-  } else if ((is_pointer(source_type) || is_nullptr_type(source_type)) &&
+  } else if ((is_pointer(source_type) || is_nullptr(source_type)) &&
              is_integral(dest_type) &&
              (C_mode() || microsoft_mode || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
