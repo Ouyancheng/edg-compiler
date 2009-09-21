@@ -19461,6 +19461,8 @@ see expr.h).
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_nullptr:
       {
+        /* The C++0x nullptr keyword is represented by a zero-valued
+           constant of type std::nullptr_t. */
         a_constant nullptr_constant;
         make_zero_of_proper_type(nullptr_type(), &nullptr_constant);
         make_constant_operand(&nullptr_constant, &local_result);

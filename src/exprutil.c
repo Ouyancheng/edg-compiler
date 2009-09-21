@@ -5243,13 +5243,17 @@ a_boolean check_compatibility_of_nullptr_operands(
 /*
 operand_1 and operand_2 are the operands of some operation, at least one of
 which is of type std::nullptr_t and the other has neither pointer nor
-pointer-to-member type.  Check to see that the operands are compatible,
-i.e., that both are of type std::nullptr_t or that the other is an integral
-null pointer constant (this case is currently allowed only in Microsoft
-mode, pending clarification from the C++ Standard Committee).
-operator_position gives the operator position (for errors).  If the
-operands are compatible, set *operation_type to nullptr_type(); otherwise,
-set it to error_type().  Return FALSE if there is an error.
+pointer-to-member type.  (Cases involving std::nullptr_t with pointer or
+pointer-to-member types are handled by
+check_compatibility_of_pointer_operands and
+check_ptr_to_member_operands_for_compatibility, respectively.)  Check to
+see that the operands are compatible, i.e., that both are of type
+std::nullptr_t or that the other is an integral null pointer constant (this
+case is currently allowed only in Microsoft mode, pending clarification
+from the C++ Standard Committee).  operator_position gives the operator
+position (for errors).  If the operands are compatible, set *operation_type
+to nullptr_type(); otherwise, set it to error_type().  Return FALSE if
+there is an error.
 */
 {
   a_boolean okay = FALSE;

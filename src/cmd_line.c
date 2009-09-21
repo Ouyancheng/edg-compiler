@@ -4459,6 +4459,11 @@ file.
   comment_undefined_macro_name(
                              DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS);
 #endif /* defined(DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS) */
+#if defined(DEFAULT_NULLPTR_ENABLED)
+  define_numeric_valued_macro(DEFAULT_NULLPTR_ENABLED);
+#else /* !defined(DEFAULT_NULLPTR_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_NULLPTR_ENABLED);
+#endif /* defined(DEFAULT_NULLPTR_ENABLED) */
 #if defined(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE)
   define_numeric_valued_macro(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE);
 #else /* !defined(DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE) */
@@ -8896,7 +8901,7 @@ variables declared in cmd_line.h.
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
-  nullptr_enabled = FALSE;
+  nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
 }  /* cmd_line_static_var_init */
 
 

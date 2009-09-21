@@ -1165,6 +1165,16 @@ rvalue_references_enabled.
 #endif /* DEFAULT_RVALUE_REFERENCES_ENABLED */
 
 /*
+Flag that is TRUE if the C++0x nullptr keyword should be enabled in other
+C++ modes by default (it is, of course, always enabled in C++0x mode).
+This macro is used for the initialization of the global variable
+nullptr_enabled.
+*/
+#ifndef DEFAULT_NULLPTR_ENABLED
+#define DEFAULT_NULLPTR_ENABLED FALSE
+#endif /* DEFAULT_NULLPTR_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.

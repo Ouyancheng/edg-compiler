@@ -4565,10 +4565,12 @@ static a_boolean dest_of_ptr_cast_big_enough(a_type_ptr source_type,
 /*
 Return TRUE if a value of type "source_type" will fit in an entity of
 type "dest_type".  This is used in testing whether or not non-portable
-casts involving pointers should be allowed.
+casts involving pointers or std::nullptr_t should be allowed.
 */
 {
   source_type = skip_typerefs(source_type);
+  check_assertion(is_pointer_type(source_type) ||
+                  is_nullptr_type(source_type));
   dest_type = skip_typerefs(dest_type);
   return (dest_type->size >= source_type->size);
 }  /* dest_of_ptr_cast_big_enough */
@@ -5379,8 +5381,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
   } else if (is_nullptr_type(source_type)) {
-    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, is
-       compatible with any pointer type. */
+    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, can be
+       converted to any pointer type.  (Note: the nullptr keyword itself is
+       handled in the preceding case; this case is for other expressions of
+       type std::nullptr_t, which are also "null pointer constants,"
+       although they need not be constant expressions.) */
     okay = TRUE;
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
@@ -5977,13 +5982,15 @@ pointers to members).
     okay = TRUE;
     if (!is_nullptr_type(source_type)) {
       /* The flag is only set for integral null pointer constants, so that
-         the C++0x nullptr keyword is compatible with a pointer-to-member
+         the C++0x nullptr keyword can be used with a pointer-to-member
          non-type template parameter. */
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
   } else if (is_nullptr_type(source_type)) {
-    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, is
-       compatible with all pointer-to-member types. */
+    /* std::nullptr_t, i.e., the type of the C++ nullptr keyword, can be
+       converted to all pointer-to-member types.  (The nullptr keyword
+       itself is handled by the preceding case; this case is for other
+       expressions of type std::nullptr_t.) */
     okay = TRUE;
   } else if (is_error(source_type)) {
     /* Error --> pointer to member is always allowed. */
@@ -6705,7 +6712,7 @@ well as C++ mode.
              is_integral(dest_type) &&
              (C_mode() || microsoft_mode || gpp_mode ||
               dest_of_ptr_cast_big_enough(source_type, dest_type))) {
-    /* Pointer --> integral is okay
+    /* Pointer or std::nullptr_t --> integral is okay
          -- In C mode, always (size of destination is not an issue; see
             6.3.4 in the ISO C89 standard)
          -- In C++ mode, if (a) the integer is big enough or (b) it's
@@ -6716,7 +6723,7 @@ well as C++ mode.
          of the pointer.  Issue a warning. */
       *warning_suggested = ec_pointer_conversion_loses_bits;
       *is_mild_warning = TRUE;
-    } else if (dest_of_ptr_cast_big_enough(dest_type, source_type)) {
+    } else if (source_type->size == dest_type->size) {
       /* The conversion is to a same-sized integral type.  Warn about
          this as a 64-bit porting issue (but the diagnostic is turned
          off by default). */
