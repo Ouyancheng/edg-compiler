@@ -47,7 +47,7 @@ might be involved.
 EXTERN a_memory_region_number
 		file_scope_region_number;
 			/* The memory region number for the file scope.
-			   Equal to FILE_SCOPE_MEMORY_REGION except when
+			   Equal to FILE_SCOPE_REGION_NUMBER except when
 			   processing a secondary translation unit (e.g.,
 			   for export template). */
 
