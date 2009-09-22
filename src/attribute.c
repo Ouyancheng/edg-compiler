@@ -63,8 +63,8 @@ typedef struct an_attr_descr {
 			     "ci": an integer constant is expected
 			     "ct": an integer constant or a type is expected
 			           (similar to a "sizeof(...)" argument)
-			     "n": an identifier is expected
-			     "sn": an narrow string literal is expected
+			     "n": an identifier is expected FIXME
+			     "sn": an narrow string literal is expected FIXME
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A "?" indicates that the argument list may
@@ -431,6 +431,84 @@ Otherwise, return a pointer to the argument's representation.
 }  /* scan_attr_integer_constant_arg */
 
 
+static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
+                                                         an_attribute_ptr  ap)
+/*
+Scan tokens until (but not including) a non-matched right parenthesis, bracket,
+or brace.  Return these tokens as a list of aak_token entries.  If an error
+occurs, set ap->kind to ak_unrecognized and return NULL.
+*/
+{
+  unsigned long         n_paren = 0, n_bracket = 0, n_brace = 0;
+  an_attribute_arg_ptr  aap = NULL, *p_aap = &aap;
+
+  for (;;) {
+    switch (curr_token) {
+      case tok_end_of_source:
+        expect_error();
+        goto done;
+      case tok_lparen:
+        ++n_paren;
+        goto default_case;
+      case tok_rparen:
+        if (n_paren == 0) {
+          goto done;
+        } else {
+          --n_paren;
+          goto default_case;
+        }  /* if */
+      case tok_lbracket:
+        ++n_bracket;
+        goto default_case;
+      case tok_rbracket:
+        if (n_bracket == 0) {
+          goto done;
+        } else {
+          --n_bracket;
+          goto default_case;
+        }  /* if */
+      case tok_lbrace:
+        ++n_brace;
+        goto default_case;
+      case tok_rbrace:
+        if (n_brace == 0) {
+          goto done;
+        } else {
+          --n_brace;
+          goto default_case;
+        }  /* if */
+      default:
+default_case:
+        *p_aap = alloc_attribute_arg();
+        (*p_aap)->kind = (an_attribute_arg_kind)aak_token;
+        (*p_aap)->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        (*p_aap)->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        if (curr_token == tok_identifier || is_keyword_token(curr_token)) {
+          /* For identifiers and keywords, reuse the string already stored in
+             IL memory. */
+          (*p_aap)->variant.token =
+                                locator_for_curr_id.symbol_header->identifier;
+        } else {
+          /* For other tokens, copy the token string (plus a terminating null
+             character) to IL memory.  (FIXME: Uniquify?) */
+          /* FIXME: Doesn't work with tokens from token caches. */
+          sizeof_t  len = end_of_curr_token - start_of_curr_token + 1;
+          (*p_aap)->variant.token = alloc_primary_file_scope_il(len + 1);
+          memcpy((*p_aap)->variant.token, start_of_curr_token, len);
+          (*p_aap)->variant.token[len] = '\0';
+        }  /* if */
+        p_aap = &(*p_aap)->next;
+        (void)get_token();
+        break;
+    }  /* switch */
+  }  /* for */
+done:
+  return aap;
+}  /* scan_attr_remaining_arg_tokens */
+
+
 static void scan_attr_arg_list(an_attribute_ptr  ap,
                                char              *sig)
 /*
@@ -470,12 +548,12 @@ ak_unrecognized.
         ++sig;
         break;
       case '*':
-        unexpected_condition();
+        *p_aap = scan_attr_remaining_arg_tokens(ap);
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    if (*p_aap != NULL) p_aap = &(*p_aap)->next;
+    while (*p_aap != NULL) p_aap = &(*p_aap)->next;
   } while (loop_token(tok_comma));
 }  /* scan_attr_arg_list */
 
