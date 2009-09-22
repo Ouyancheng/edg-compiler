@@ -15310,6 +15310,11 @@ passed via template_decl.
     free_gnu_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     check_use_of_auto_type(decl_state);
+    if (curr_token == tok_comma) {
+      /* Before parsing the next declaration, run any end-of-parse actions
+         needed for the previous declarator. */
+      run_end_of_parse_actions(decl_state);
+    }  /* if */
     /* Initialize certain decl_info fields each time through the loop. */
     start_secondary_declarator(decl_state);
     /* Loop for additional declarators. */
@@ -15326,6 +15331,7 @@ next_declaration:;
     pos_error(ec_explicit_not_allowed, &decl_start_pos);
   }  /* if */
   check_use_of_auto_type(decl_state);
+  run_end_of_parse_actions(decl_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (any_decl_other_than_nonstatic_data_member &&

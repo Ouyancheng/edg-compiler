@@ -4155,6 +4155,7 @@ differently and we emulate that different behavior (elsewhere).
   }  /* if */
 }  /* apply_gnu_attribute_to_routine_type */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
 
 static a_boolean check_class_type_can_be_packed(a_type_ptr           tp,
                                                 a_gnu_attribute_ptr  ap)
@@ -4185,6 +4186,7 @@ issue diagnostics as appropriate.
   return result;
 }  /* check_class_type_can_be_packed */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static void apply_one_attribute_to_type(a_gnu_attribute_ptr  ap,
                                         a_type_ptr           type,

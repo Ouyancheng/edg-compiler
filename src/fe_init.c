@@ -971,6 +971,7 @@ source file's compilation.
   lexical_init();
   symbol_tbl_init();
   scope_stk_init();
+  decls_init();
   class_decl_init();
   layout_init();
   def_arg_init();
