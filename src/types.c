@@ -4569,7 +4569,8 @@ casts involving pointers or std::nullptr_t should be allowed.
 */
 {
   source_type = skip_typerefs(source_type);
-  check_assertion(is_pointer(source_type) || is_nullptr(source_type));
+  check_assertion(is_pointer(source_type) || is_nullptr(source_type) ||
+                  is_pointer(dest_type) || is_nullptr(dest_type));
   dest_type = skip_typerefs(dest_type);
   return (dest_type->size >= source_type->size);
 }  /* dest_of_ptr_cast_big_enough */
