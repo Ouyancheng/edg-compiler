@@ -431,12 +431,12 @@ Otherwise, return a pointer to the argument's representation.
 }  /* scan_attr_integer_constant_arg */
 
 
+/*ARGSUSED*/
 static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
                                                          an_attribute_ptr  ap)
 /*
 Scan tokens until (but not including) a non-matched right parenthesis, bracket,
-or brace.  Return these tokens as a list of aak_token entries.  If an error
-occurs, set ap->kind to ak_unrecognized and return NULL.
+or brace.  Return these tokens as a list of aak_token entries.
 */
 {
   unsigned long         n_paren = 0, n_bracket = 0, n_brace = 0;
