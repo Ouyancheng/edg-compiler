@@ -1,5 +1,25 @@
 Version 4.2
 
+9/22/09  [EDGcpfe/9513,EDGcpfe/9590,EDGcpfe/10105]
+GNU C compatibility: Undefined "static" functions
+
+Ordinarily, referencing a "static" function that is not defined results in a
+compile-time error (since such a reference cannot normally be resolved).  Now,
+in GNU C mode, such references cause the "static" function to be given external
+linkage instead (i.e., as if the function had been declared "extern") and a
+warning is issued.  For example:
+
+  /* f.c */
+  void f() {}
+
+  /* main.c */
+  static void f();
+  int main() {
+    f();      /* Resolves to the f() defined in f.c. */
+    return 0;
+  }
+
+
 9/17/09  [EDGcpfe/10110]
 Parameter names are always recorded (RECORD_NAME_IN_PARAM_TYPE_ENTRY removed)
 

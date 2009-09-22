@@ -1897,6 +1897,7 @@ ec_invalid_std_attribute_location;;"standard attributes are not allowed here"
 ec_attr_must_appear_in_class_definition;;"attribute %sq must appear in class definition"
 ec_pure_final_virtual;;"\"final\" applied to pure virtual function"
 ec_override_of_final_function;;"cannot override \"final\" %nd"
+ec_undefined_static_function_treated_as_extern;;"\"static\" %n treated as \"extern\" because it was referenced but not defined"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

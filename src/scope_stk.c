@@ -5149,11 +5149,16 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
-          if (C_dialect == C_dialect_pcc) {
-            /* In pcc mode, just change the routine to extern. */
+          if (C_dialect == C_dialect_pcc || gcc_mode) {
+            /* In pcc mode, just change the routine to extern.  Do the same
+               in GNU C mode, but issue a warning too in that case. */
             rout_ptr->storage_class = (a_storage_class)sc_extern;
             rout_ptr->source_corresp.name_linkage =
                                          (a_name_linkage_kind)nlk_external;
+            if (gcc_mode) {
+              pos_sy_warning(ec_undefined_static_function_treated_as_extern,
+                             &sym->decl_position, sym);
+            }  /* if */
           } else {
             pos_sy_error(ec_never_defined, &sym->decl_position, sym);
           }  /* if */
