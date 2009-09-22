@@ -127,7 +127,7 @@ static an_attr_descr known_attr_table[] = {
 };
 
 #define KNOWN_ATTR_TABLE_LENGTH \
-  (sizeof(known_attr_table)/sizeof(known_attr_table[0])-1)
+  ((int)(sizeof(known_attr_table)/sizeof(known_attr_table[0])-1))
 
 
 typedef void an_attr_application_fn(an_attribute_ptr  ap,
@@ -395,6 +395,8 @@ return a pointer to the argument's representation.
     aap->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     aap->variant.type = type;
+  } else {
+    ap->kind = (an_attribute_kind)ak_unrecognized;
   }  /* if */
   return aap;
 }  /* scan_attr_type_arg */
@@ -422,6 +424,8 @@ Otherwise, return a pointer to the argument's representation.
     aap->end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     aap->variant.constant = alloc_shareable_constant(&constant);
+  } else {
+    ap->kind = (an_attribute_kind)ak_unrecognized;
   }  /* if */
   return aap;
 }  /* scan_attr_integer_constant_arg */
@@ -547,7 +551,7 @@ that of the current token.
 {
   an_attribute_ptr  ap = alloc_attribute();
 
-  ap->family = family;
+  ap->family = (an_attribute_family)family;
   ap->position = pos_curr_token;
   return ap;
 }  /* make_attribute */
@@ -610,7 +614,6 @@ and return a pointer to its representation (or NULL in severe error cases).
     if (curr_token == tok_colon_colon) {
       /* The previous name was the attribute namespace name.  The attribute
          name proper should follow the "::". */
-      unexpected_condition();
       (void)get_token();
       if (!is_valid_attribute_identifier(curr_token)) {
         syntax_error(ec_exp_identifier);
@@ -673,7 +676,7 @@ Scan a standard attribute group of the form
       remove_stop_token(tok_comma);
     } while (loop_token(tok_comma));
   }  /* if */
-  required_token(tok_rbracket, ec_exp_rbracket);
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
   if (attributes != NULL) {
     /* Create a group and point the attributes to it.  Also set the syntactic
        location of the attributes. */
@@ -690,7 +693,7 @@ Scan a standard attribute group of the form
   } else {
     expect_error();
   }  /* if */
-  required_token(tok_rbracket, ec_exp_rbracket);
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
   return attributes;
 }  /* scan_std_attribute_group */
@@ -910,6 +913,7 @@ attribute ap applied to the given variable matches those constraints.
 }  /* check_simple_variable_constraints */
 
 
+/*ARGSUSED*/
 static void check_simple_parameter_constraints(char              *constr,
                                                an_attribute_ptr  ap,
                                                a_param_type_ptr  ptp)
@@ -939,11 +943,12 @@ attributes.)
   for (ap = attributes; ap != NULL; ap = ap->next) {
     char       *constr = known_attr_appl_table[ap->kind].target_constraints;
     a_boolean  match_found = FALSE;
+    check_assertion(known_attr_appl_table[ap->kind].kind == ap->kind);
     if (constr[0] == '\0') {
       /* No (simple) target entity constraint. */
       continue;
     }  /* if */
-    for (; !match_found; ++constr) {
+    while (!match_found) {
       switch (constr[0]) {
         case 'd':
           if (entity_kind == iek_field) {
@@ -978,7 +983,9 @@ attributes.)
       /* Skip to the next constraint (if any). */
       while (*constr != '\0' && *constr != '|') ++constr;
       if (*constr == '\0') break;
-    }  /* for */
+      /* Pass over the "|". */
+      ++constr;
+    }  /* while */
     if (!match_found) {
       pos_st_error(ec_wrong_entity_for_attribute, &ap->position, ap->name);
       ap->kind = (an_attribute_kind)ak_unrecognized;
@@ -992,6 +999,7 @@ static int attr_family_seen[(int)ak_last];
 			   attributes. */
 
 
+/*ARGSUSED*/
 static void check_attachment_constraints(an_attribute_ptr  attributes,
                                          char              *entity,
                                          an_il_entry_kind  entity_kind)
@@ -1082,7 +1090,8 @@ given entity to that entity.
 
   for (; ap != NULL; ap = ap->next) {
     if (!ap->applied &&
-        ap->kind != ak_unrecognized && ap->kind != ak_empty_group) {
+        ap->kind != (an_attribute_kind)ak_unrecognized &&
+        ap->kind != (an_attribute_kind)ak_empty_group) {
       an_attr_application_fn  *appl_fn =
                                  known_attr_appl_table[(int)ap->kind].appl_fn;
       if (appl_fn != NULL) {
@@ -1291,6 +1300,7 @@ attribute to it.
 }  /* apply_final_attr */
 
 
+/*ARGSUSED*/  /*FIXME*/
 static void apply_carries_dependency_attr(an_attribute_ptr  ap,
                                           char              *entity,
                                           an_il_entry_kind  entity_kind)

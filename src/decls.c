@@ -164,7 +164,7 @@ static a_decl_parse_callback_ptr
 
 #if DEBUG
 static unsigned long
-		num_decl_parse_callbacks_allocated;
+		num_decl_parse_callbacks_allocated = 0;
 #endif /* DEBUG */
 
 
@@ -268,7 +268,7 @@ set to TRUE before they are attached.
   if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
     an_il_entry_kind  entity_kind;
     char              *entity;
-    if (dps->sym->kind == sk_function_template) {
+    if (dps->sym->kind == (a_symbol_kind)sk_function_template) {
       entity = (char*)dps->sym->variant.template_info
                               ->variant.function.routine;
       entity_kind = iek_routine;
