@@ -3196,7 +3196,7 @@ marked as being associated with the primary declaration.
   an_attribute_group_ptr  agp = NULL;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (ap->family == af_internal) continue;
+    if (ap->family == (an_attribute_family)af_internal) continue;
     if (ap->syntactic_location != (an_attribute_location)syntactic_location) {
       continue;
     }  /* if */
