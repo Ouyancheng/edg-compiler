@@ -3623,6 +3623,7 @@ and return a pointer to it.
 #if RECORD_FORM_OF_NAME_REFERENCE
   sssdp->name_reference              = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  sssdp->attributes                  = NULL;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   sssdp->ELF_visibility              = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
