@@ -885,6 +885,12 @@ extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
 
 extern void decls_one_time_init(void);
 
+extern void decls_init(void);
+
+#if DEBUG
+unsigned long show_decl_space_used(void);
+#endif /* DEBUG */
+
 #endif /* DECLS_H */
 
 /******************************************************************************

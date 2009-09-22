@@ -15219,11 +15219,54 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 
 void decls_one_time_init(void)
 /*
+Do one-time initialization of static variables defined in this file.
 */
 {
   init_null_decl_parse_state();
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_decl_parse_callbacks),
+#if DEBUG
+      pch_saved_var_array_elem(num_decl_parse_callbacks_allocated),
+#endif /* DEBUG */
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
 }  /* decls_one_time_init */
 
+
+void decls_init(void)
+/*
+Do initialization of static variables defined in this file that require
+initialization for each compilation.
+*/
+{
+#if DEBUG
+  num_decl_parse_callbacks_allocated = 0;
+#endif /* DEBUG */
+}  /* decls_init */
+
+#if DEBUG
+
+unsigned long show_decl_space_used(void)
+/*
+Display and return the amount of space used for various GNU attribute-related
+entities.
+*/
+{
+  unsigned long grand_total = 0;
+  unsigned long num, size, total;
+
+  db_space_used_header("Declaration parsing:");
+  db_space_used_lost("decl-parse callbacks",
+                     avail_decl_parse_callbacks,
+                     num_decl_parse_callbacks_allocated,
+                     a_decl_parse_callback);
+  return grand_total;
+}  /* show_decl_space_used */
+
+#endif /* DEBUG */
 
 /******************************************************************************
 *                                                             \  ___  /       *

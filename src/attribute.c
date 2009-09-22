@@ -260,7 +260,7 @@ typedef struct an_attr_name_map_entry {
 } an_attr_name_map_entry;
 
 
-an_attr_name_map_entry
+static an_attr_name_map_entry
 		attr_name_map_entries[KNOWN_ATTR_TABLE_LENGTH];
 			/* Since the number of buckets for attr_name_map is
 			   fixed, we can store the buckets in a fixed array. */
@@ -943,7 +943,8 @@ attributes.)
   for (ap = attributes; ap != NULL; ap = ap->next) {
     char       *constr = known_attr_appl_table[ap->kind].target_constraints;
     a_boolean  match_found = FALSE;
-    check_assertion(known_attr_appl_table[ap->kind].kind == ap->kind);
+    check_assertion((an_attribute_kind)known_attr_appl_table[ap->kind].kind
+                                                                 == ap->kind);
     if (constr[0] == '\0') {
       /* No (simple) target entity constraint. */
       continue;
@@ -1025,7 +1026,7 @@ entity.  Perform some additional checks (e.g., look for duplicated attributes).
         char       *constr =
                        known_attr_appl_table[ap->kind].attachment_constraints;
         char       fcode = attr_family_code[ap->family];
-        for (; *constr != '\0'; ++constr) {
+        while (*constr != '\0') {
           if (constr[0] == fcode && constr[1] == '?' &&
               constr[2] == '1' && constr[3] == '/' && constr[4] == 'g' &&
               (constr[5] == '\0' || constr[5] == ',')) {
@@ -1036,8 +1037,9 @@ entity.  Perform some additional checks (e.g., look for duplicated attributes).
             break;
           }  /* if */
           /* Skip to the next comma or end-of-string marker. */
-          while (*constr != ',') ++constr;
-        }  /* for */
+          while (*constr != ',' && *constr != '\0') ++constr;
+          if (*constr == ',') ++constr;
+        }  /* while */
         if (err) {
           pos_diagnostic(err ? es_error : es_remark, ec_attr_twice_in_group,
                          &ap->position);

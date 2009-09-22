@@ -1892,8 +1892,6 @@ ec_attr_disallows_pure_virtual_function;;"attribute %sq does not apply to pure v
 ec_attr_requires_pure_virtual_function;;"attribute %sq requires a pure virtual function"
 ec_attr_disallows_register_storage;;"attribute %sq does not apply to register variables"
 ec_attr_requires_register_storage;;"attribute %sq requires a register variable"
-ec_attr_disallows_parameter;;"attribute %sq does not apply to parameters"
-ec_attr_requires_parameter;;"attribute %sq requires a parameter"
 ec_attr_must_also_appear_in_first_declaration;;"attribute %sq did not appear on original declaration"
 ec_invalid_std_attribute_location;;"standard attributes are not allowed here"
 ec_attr_must_appear_in_class_definition;;"attribute %sq must appear in class definition"
