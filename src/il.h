@@ -987,6 +987,8 @@ extern a_type_ptr routine_type_without_default_args(a_type_ptr orig_type);
 
 extern a_type_ptr routine_type_without_this_class(a_type_ptr	orig_type);
 
+extern void ensure_routine_type_is_modifiable(a_type_ptr  *tp);
+
 extern
 a_type_ptr routine_type_without_param_type_qualifiers(a_type_ptr  orig_type);
 

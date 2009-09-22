@@ -1307,6 +1307,19 @@ Flag that is TRUE if macro declarations should be recorded in the IL.
 #endif /* !defined(RECORD_MACROS_IN_IL) */
 
 /*
+Flag that is TRUE if unrecognized attributes should be recorded in the IL.
+(This is the initial value of the global variable
+record_unrecognized_attributes.)
+*/
+#ifndef RECORD_UNRECOGNIZED_ATTRIBUTES
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_UNRECOGNIZED_ATTRIBUTES TRUE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define RECORD_UNRECOGNIZED_ATTRIBUTES FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef RECORD_UNRECOGNIZED_ATTRIBUTES */
+
+/*
 Flag that is TRUE to include a set of EDG provided test pragmas in the
 front end.
 */
@@ -3122,6 +3135,16 @@ EXTERN a_boolean
                                                                               ;
 			/* TRUE if IL lowering should normalize boolean
 			   controlling expressions to always produce 0/1. */
+
+EXTERN a_boolean
+		record_unrecognized_attributes
+#if VAR_INITIALIZERS
+                         = RECORD_UNRECOGNIZED_ATTRIBUTES
+#endif /* VAR_INITIALIZERS */
+                                                         ;
+			/* TRUE if unrecognized attributes should be recorded
+			   in the IL.  If FALSE, a warning (by default) is
+			   emitted on unrecognized attributes. */
 
 #endif /* ifndef HOST_ENVIR_H */
 

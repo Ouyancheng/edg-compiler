@@ -535,6 +535,7 @@ Process the source correspondence field pointed to by ptr.
   walk_decl_position_supplement(ptr); \
   walk_name_reference_list(ptr); \
   walk_deprecation_string(ptr); \
+  walk_list((ptr).attributes, an_attribute_ptr, iek_attribute); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 
@@ -887,6 +888,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3043,6 +3045,37 @@ after_entry_from_class:
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->closure_field, a_field_ptr, iek_field);
       }
+      break;
+    case iek_attribute:
+      { an_attribute_ptr  ptr = (an_attribute_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_attribute_ptr, iek_attribute);
+        walk_string_ptr(ptr->name, iek_other_text, 0);
+        walk_string_ptr(ptr->namespace_name, iek_other_text, 0);
+        walk_list(ptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
+        walk_ptr(ptr->group, an_attribute_group_ptr, iek_attribute_group);
+        conditionally_clear_fe_pointer(ptr->extra_info);
+      }
+      break;
+    case iek_attribute_arg:
+      { an_attribute_arg_ptr  ptr = (an_attribute_arg_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
+        switch (ptr->kind) {
+          case aak_token:
+            walk_string_ptr(ptr->variant.token, iek_other_text, 0);
+            break;
+          case aak_constant:
+            walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
+            break;
+          case aak_type:
+            walk_ptr(ptr->variant.type, a_type_ptr, iek_type);
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }
+      break;
+    case iek_attribute_group:
+      /* No pointer members. */
       break;
     case iek_id_name:
     case iek_string_text:

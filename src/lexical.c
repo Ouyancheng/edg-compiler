@@ -8533,6 +8533,7 @@ Scan a header name token, return the token kind or tok_error.
   return ctoken;
 }  /* scan_header_name */
 
+
 #if ASM_SUPPORT_NEEDED
 
 #define ASM_FUNC_BODY_BUFFER_INCREMENTAL_ALLOCATION 1024
@@ -10884,6 +10885,20 @@ concatenate_adjacent_string_literals:
   assign_string_literal_sequence_number();
   goto return_from_token_scan;
 }  /* get_token */
+
+
+a_boolean is_keyword_token(a_token_kind	token)
+/*
+Return TRUE if token is a token kind associated with a keyword.  This is
+used to determine if a token initially cached as a keyword can be converted
+back into an identifier.
+*/
+{
+  char		ch;
+
+  ch = token_names[(int)token][0];
+  return is_id_char[ch-CHAR_MIN];
+}  /* is_keyword_token */
 
 
 static a_stop_token_stack_entry_ptr alloc_stop_token_stack_entry(void)

@@ -982,6 +982,11 @@ EXTERN a_boolean
 			   corresponding function declarator (in syntax like
 			   "(int, int)->int").  This is a C++0x extension. */
 
+EXTERN a_boolean
+		std_attributes_enabled;
+			/* TRUE if C++0x attribute syntax (e.g., [[final]]) is
+			   accepted. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention

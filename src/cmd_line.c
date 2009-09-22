@@ -2422,6 +2422,7 @@ the next standard).
   defaulted_special_members_enabled = TRUE;
   deleted_functions_enabled = TRUE;
   trailing_return_types_enabled = TRUE;
+  std_attributes_enabled = TRUE;
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
@@ -5716,6 +5717,11 @@ file.
 #else /* !defined(RECORD_TEMPLATE_STRINGS) */
   comment_undefined_macro_name(RECORD_TEMPLATE_STRINGS);
 #endif /* defined(RECORD_TEMPLATE_STRINGS) */
+#if defined(RECORD_UNRECOGNIZED_ATTRIBUTES)
+  define_numeric_valued_macro(RECORD_UNRECOGNIZED_ATTRIBUTES);
+#else /* !defined(RECORD_UNRECOGNIZED_ATTRIBUTES) */
+  comment_undefined_macro_name(RECORD_UNRECOGNIZED_ATTRIBUTES);
+#endif /* defined(RECORD_UNRECOGNIZED_ATTRIBUTES) */
 #if defined(REDEFINE_EXTNAME_PRAGMA_ENABLED)
   define_numeric_valued_macro(REDEFINE_EXTNAME_PRAGMA_ENABLED);
 #else /* !defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
@@ -8700,6 +8706,7 @@ variables declared in cmd_line.h.
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
   trailing_return_types_enabled = FALSE;
+  std_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

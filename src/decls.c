@@ -102,6 +102,7 @@ reflected in start_secondary_declarator.
   ps->virtual_pos = null_source_position;
   ps->auto_pos = null_source_position;
   ps->in_class_scope = FALSE;
+  ps->secondary_declarator = FALSE;
   ps->in_nested_declarator = FALSE;
   ps->is_trailing_return_type = FALSE;
   ps->trailing_return_type_allowed = FALSE;
@@ -130,6 +131,8 @@ reflected in start_secondary_declarator.
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;
   ps->first_decl_of_predeclared_entity = FALSE;
+  ps->prefix_attributes = NULL;
+  ps->id_attributes = NULL;
   clear_decl_modifiers_block(&ps->decl_modifiers);
   ps->ms_attributes = NULL;
   ps->asm_name = NULL;
@@ -153,6 +156,153 @@ reflected in start_secondary_declarator.
   ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
   ps->p_postfix_entities = NULL;
 }  /* init_null_decl_parse_state */
+
+
+static a_decl_parse_callback_ptr
+		avail_decl_parse_callbacks;
+			/* Pointer to callback entries available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_decl_parse_callbacks_allocated;
+#endif /* DEBUG */
+
+
+void add_end_of_parse_action(a_decl_parse_callback_function  *fn,
+                             a_decl_parse_state              *dps)
+/*
+Allocate an entry to call back the given function with the given parse state,
+and add it to the actions to be performed at the end of the declaration
+described by dps.
+*/
+{
+  a_decl_parse_callback_ptr  entry;
+
+  if (avail_decl_parse_callbacks != NULL) {
+    entry = avail_decl_parse_callbacks;
+    avail_decl_parse_callbacks = avail_decl_parse_callbacks->next;
+  } else {
+    entry = alloc_fe_of_type(a_decl_parse_callback);
+#if DEBUG
+    ++num_decl_parse_callbacks_allocated;
+#endif /* DEBUG */
+  }  /* if */
+  entry->callback_fn = fn;
+  entry->next = dps->end_of_parse_actions;
+  dps->end_of_parse_actions = entry;
+}  /* add_end_of_parse_action */
+
+
+void run_end_of_parse_actions(a_decl_parse_state  *dps)
+/*
+Execute the end-of-parse callbacks registered for the declaration described by
+*dps, and free up the associated callback entries.
+*/
+{
+  a_decl_parse_callback_ptr  action = dps->end_of_parse_actions, next_action;
+
+  /* Clear dps->end_of_parse_actions.  The execution of the actions could
+     conceivably add more actions, but that is currently prohibited. */
+  dps->end_of_parse_actions = NULL;
+  for (; action != NULL; action = next_action) {
+    /* Retrieve the callback function. */
+    a_decl_parse_callback_function  *callback = action->callback_fn;
+    /* Free up the action for reuse. */
+    next_action = action->next;
+    action->next = avail_decl_parse_callbacks;
+    action->callback_fn = NULL;
+    avail_decl_parse_callbacks = action;
+    /* Execute the action. */
+    callback(dps);
+  }  /* for */
+  /* End-of-parse actions are currently not allowed to generate more actions
+     for the same declaration. */
+  check_assertion(dps->end_of_parse_actions == NULL);
+}  /* run_end_of_parse_actions */
+
+
+static void attach_parse_state_to_attributes(a_decl_parse_state  *dps)
+/*
+Set the "extra_info" field of the attributes recorded in *dps to dps.  This
+allows the functions processing the attributes to access information about
+the declaration in which the attributes appeared.
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
+    ap->extra_info = (void*)dps;
+  }  /* for */
+  for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
+    ap->extra_info = (void*)dps;
+  }  /* for */
+}  /* attach_parse_state_to_attributes */
+
+
+static void detach_parse_state_from_attributes(a_decl_parse_state  *dps)
+/*
+Set the "extra_info" field of the attributes recorded in *dps to NULL (to
+avoid a dangling pointer when *dps goes away).
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
+    ap->extra_info = NULL;
+  }  /* for */
+  for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
+    ap->extra_info = NULL;
+  }  /* for */
+}  /* detach_parse_state_from_attributes */
+
+
+void attach_decl_attributes(a_decl_parse_state  *dps,
+                            a_boolean           primary_decl)
+/*
+Attach the attributes recorded in *dps to the entity whose declaration is
+described by *dps (preserving any already-attached attributes).  If
+primary_decl is TRUE, the on_primary_declaration flag of the attributes is
+set to TRUE before they are attached.
+*/
+{
+  if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
+    an_il_entry_kind  entity_kind;
+    char              *entity;
+    if (dps->sym->kind == sk_function_template) {
+      entity = (char*)dps->sym->variant.template_info
+                              ->variant.function.routine;
+      entity_kind = iek_routine;
+    } else {
+      entity = il_entry_for_symbol(dps->sym, &entity_kind);
+    }  /* if */
+    if (dps->secondary_declarator) {
+      dps->prefix_attributes = copy_of_attributes_list(dps->prefix_attributes);
+    }  /* if */
+    attach_parse_state_to_attributes(dps);
+    if (primary_decl) mark_primary_decl_attributes(dps->id_attributes);
+    attach_attributes(dps->id_attributes, entity, entity_kind);
+    if (primary_decl) mark_primary_decl_attributes(dps->prefix_attributes);
+    attach_attributes(dps->prefix_attributes, entity, entity_kind);
+    detach_parse_state_from_attributes(dps);
+  }  /* if */
+}  /* attach_decl_attributes */
+
+
+void attach_param_attributes(a_decl_parse_state  *dps,
+                             a_param_type_ptr    ptp)
+/*
+Attach the attributes recorded in *dps to the indicated parameter.
+The attributes are dissociated from *dps.
+*/
+{
+  if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
+    mark_primary_decl_attributes(dps->id_attributes);
+    attach_attributes(dps->id_attributes, (char*)ptp, iek_param_type);
+    mark_primary_decl_attributes(dps->prefix_attributes);
+    attach_attributes(dps->prefix_attributes, (char*)ptp, iek_param_type);
+    dps->prefix_attributes = dps->id_attributes = NULL;
+  }  /* if */
+}  /* attach_param_attributes */
 
 
 void f_check_pending_qualifiers_used(a_decl_parse_state  *state)
@@ -355,17 +505,25 @@ of declarations that are permitted.
   } else if (is_type_start(expr_context)) {
     /* Is start of type. */
     is_start = TRUE;
+  } else if (curr_token == tok_lbracket) {
+    /* If this is a standard attributes ([[ ... ]]) or a Microsoft attribute,
+       a declaration can follow.  However, if this is a lambda, that is not
+       the case. */
+    if (std_attributes_enabled && next_token() == tok_lbracket) {
+      /* A standard attribute. */
+      is_start = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0 &&
+               !is_lambda()) {
+      /* A Microsoft attribute. */
+      is_start = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_attribute) {
     /* An attribute can start a declaration. */
     is_start = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && curr_token == tok_lbracket &&
-             (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0 && !is_lambda()) {
-    /* A Microsoft attribute can start a declaration. */
-    is_start = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   } else if (is_sun_link_scope_specifier()) {
     is_start = TRUE;
@@ -5656,6 +5814,8 @@ for use in generating cross-reference output describing this declaration.
   } else if (!redeclaration) {
     check_sym_of_other_decl(source_corresp_ptr, sym);
   }  /* if */
+  dps->sym = sym;
+  attach_decl_attributes(dps, is_variable_def);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     if (dps->gnu_attributes != NULL) {
@@ -5866,8 +6026,7 @@ for use in generating cross-reference output describing this declaration.
      scope stack is restored, since processing depends on the pending_pragmas
      pointer in the scope stack entry. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  /* Return symbol and linkage pointers. */
-  dps->sym = sym;
+  /* Return linkage kind. */
   *linkage_ptr = linkage;
   dps->storage_class = storage_class;
 
@@ -6588,6 +6747,7 @@ for use in generating cross-reference output describing this declaration.
          must be compatible with the old. */
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
+      dps->prev_type = routine_ptr->type;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
       if (routine_has_been_defined(routine_ptr)
@@ -7477,6 +7637,7 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             dps->source_sequence_entry);
   reload_source_sequence_entry(dps);
+  dps->sym = sym;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_function_def || dps->first_decl) {
     update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
@@ -7494,6 +7655,7 @@ skip_overloading:;
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
+  attach_decl_attributes(dps, is_function_def);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply any remaining attributes to the routine. */
@@ -7654,8 +7816,7 @@ skip_overloading:;
      attributes. */
   dps->type = orig_type;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Return symbol and linkage pointers. */
-  dps->sym = sym;
+  /* Return the linkage kind. */
   *linkage_ptr = linkage;
 
 #if DEBUG
@@ -8152,6 +8313,7 @@ definition of a member function of a class template.
     }  /* if */
     redeclaration = TRUE;
   }  /* if */
+  attach_decl_attributes(dps, func_info->is_definition);
   check_defaulted_or_deleted_function(dps, func_info,
                                       &locator->source_position);
   if (locator->template_arg_list != NULL && !locator->is_template_id) {
@@ -8494,6 +8656,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
     if (!sym->ambiguous) sym = fundamental_symbol_of(sym);
   }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    dps->sym = sym;
     var = sym->variant.static_data_member.variable;
     if (sym->defined) {
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
@@ -8544,6 +8707,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 dps->source_sequence_entry);
+      attach_decl_attributes(dps, /*primary_decl =*/TRUE);
 #if GNU_EXTENSIONS_ALLOWED
       if (dps->gnu_attributes != NULL) {
         apply_gnu_attributes_to_variable(dps->gnu_attributes, var,
@@ -12608,6 +12772,16 @@ state describes the declaration parsed so far.
     pos_error(ec_exp_semicolon, &pos_curr_token);
     discard_curr_construct_pragmas();
   }  /* if */
+  if (declarator_omitted && state->prefix_attributes != NULL) {
+    /* Standard prefix attributes require a declarator. */
+    an_attribute_ptr  ap = state->prefix_attributes;
+    for (; ap != NULL; ap = ap->next) {
+      if (ap->family == (an_attribute_family)af_std) break;
+    }  /* for */
+    if (ap != NULL) {
+      pos_error(ec_invalid_std_attribute_location, &ap->group->position);
+    }  /* if */
+  }  /* if */
   return declarator_omitted;
 }  /* check_for_missing_declarator */
 
@@ -14385,6 +14559,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->do_flags = DO_NO_OUTPUT_FLAGS;
   ps->declarator_start_pos = null_source_position;
   ps->declarator_pos = null_source_position;
+  ps->secondary_declarator = TRUE;
   if (ps->has_trailing_return_type) {
     /* The previous declarator had a trailing return type, which caused us to
        override the "auto" type with the actual return type.  Restore the
@@ -14399,6 +14574,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;
   ps->first_decl_of_predeclared_entity = FALSE;
+  ps->id_attributes = NULL;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;
   ps->storage_class = ps->declared_storage_class;
@@ -14440,6 +14616,36 @@ after the first one in a list (e.g. "j" in "int i, j;").  Record that fact.
     }  /* if */
   }  /* if */
 }  /* mark_decl_after_first_in_comma_list */
+
+
+void wrapup_sse_for_simple_decl(a_decl_parse_state  *dps)
+/*
+*dps describes a "simple declaration" (a declaration involving type specifiers
+followed by a declarator) of a function, variable, or typedef.  Make any
+required updates in the source sequence entry for this declaration.
+*/
+{
+  a_source_sequence_entry_ptr  ssep = dps->source_sequence_entry;
+
+  if (ssep != NULL) {
+    if (dps->secondary_declarator) {
+      mark_decl_after_first_in_comma_list(dps);
+    }  /* if */
+    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
+        an_attribute_ptr  *p_attr =
+                &ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes;
+        *p_attr = copy_of_attributes_list(dps->id_attributes);
+        *last_attribute_link(p_attr) =
+                              copy_of_attributes_list(dps->prefix_attributes);
+      }  /* if */
+      if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
+                                              ->explicit_storage_class = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* wrapup_sse_for_simple_decl */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -14656,6 +14862,7 @@ Broadly speaking, three kinds of declarations are handled here:
     begin_deferral_of_access_checks();
     access_checks_deferred = TRUE;
   }  /* if */
+  state.prefix_attributes = scan_attributes(al_prefix);
   /* Handle any cases that don't start with a decl-specifier or a
      declarator. */
   switch (check_special_declaration_form(&state, param_id_list,
@@ -14689,6 +14896,10 @@ Broadly speaking, three kinds of declarations are handled here:
     a_gnu_attribute_ptr          declarator_attributes = NULL;
     if (!first_declarator) {
       /* We've just skipped a comma separating two declarators. */
+      /* Before parsing the next declaration, run any end-of-parse actions
+         needed for the previous declarator. */
+      run_end_of_parse_actions(&state);
+      /* Reinitialize the declarator-specific parts of the parse state. */
       start_secondary_declarator(&state);
       state.qualifiers = saved_qualifiers;
       state.qualifiers_pos = saved_qualifiers_pos;
@@ -14812,16 +15023,7 @@ Broadly speaking, three kinds of declarations are handled here:
       *state.p_postfix_entities = saved_entities;
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (!first_declarator) {
-      mark_decl_after_first_in_comma_list(&state);
-    }  /* if */
-    if (state.declared_storage_class != (a_storage_class)sc_unspecified) {
-      a_source_sequence_entry_ptr  ssep = state.source_sequence_entry;
-      if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
-                                              ->explicit_storage_class = TRUE;
-      }  /* if */
-    }  /* if */
+    wrapup_sse_for_simple_decl(&state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
     state.need_comma_remove_stop_token = FALSE;
@@ -14875,6 +15077,7 @@ advance_past_final_token:
     next_token_is_top_level_decl_start = FALSE;
   }  /* if */
 return_point:
+  run_end_of_parse_actions(&state);
   check_pending_qualifiers_used(&state);
   if (access_checks_deferred) {
     /* We are processing a declaration for which access checks were deferred.

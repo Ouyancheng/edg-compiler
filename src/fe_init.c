@@ -915,8 +915,8 @@ after the command-line processing has been done.
 #if NEED_NAME_MANGLING
   name_lower_one_time_init();
 #endif /* NEED_NAME_MANGLING */
-#if GNU_EXTENSIONS_ALLOWED
   attribute_one_time_init();
+#if GNU_EXTENSIONS_ALLOWED
   extasm_one_time_init();
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1004,9 +1004,7 @@ source file's compilation.
      independently of the rest of IL lowering. */
   name_lower_init();
 #endif /* NEED_NAME_MANGLING */
-#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   attribute_init();
-#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1222,9 +1220,7 @@ when it is a secondary file.
   set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
   set_err_pos_to_curr_token();
 
-#if GNU_EXTENSIONS_ALLOWED
   attribute_trans_unit_init();
-#endif /* GNU_EXTENSIONS_ALLOWED */
   mem_manage_trans_unit_init();
   host_envir_trans_unit_init();
   error_trans_unit_init();

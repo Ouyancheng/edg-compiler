@@ -1248,14 +1248,11 @@ this_class information.  Update rout_type with information from prev_type.
                 all configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || ... */
 static void define_member_function(a_symbol_locator            *locator,
-                                   a_type_ptr                  type_ptr,
+                                   a_decl_parse_state          *dps,
                                    a_func_info_block           *func_info,
-                                   a_symbol_ptr                *symbol_ptr,
                                    an_id_linkage_kind          *linkage_ptr,
-                                   a_decl_modifiers_block_ptr  decl_modifiers,
                                    a_type_ptr                  *old_type,
                                    a_symbol_ptr                *ext_sym,
-                                   a_gnu_attribute_ptr         attributes,
                                    a_decl_pos_block_ptr        decl_pos_block)
 /*
 This routine is called in the case of a member function definition.  Its
@@ -1264,16 +1261,14 @@ the definitions of ordinary functions.  After doing some error checking,
 it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
 This function is also called in the case of a nondefining out-of-class
-member declaration (allowed in some Microsoft modes only).
-The function's declaration and type are described by locator, func_info, and
-type_ptr.  Additional dialect-specific attributes are passed through
-decl_modifiers (mostly Microsoft-specific) and attributes (GNU).  Existing
-symbol and type information (from the matching in-class declaration) is
-returned through *symbol_ptr and *old_type.  Extended position information
-is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
-*ext_sym is set to NULL.
+member declaration (allowed in some Microsoft modes only).  The function's
+declaration is described by locator, dps and func_info.  Existing type
+information (from the matching in-class declaration) is returned through
+*old_type.  Extended position information is recorded in *decl_pos_block.
+*linkage_ptr is set to idl_external, and *ext_sym is set to NULL.
 */
 {
+  a_type_ptr           type_ptr = dps->type;
   a_symbol_ptr         sym;
   a_type_ptr           class_type;
   a_routine_ptr        rp;
@@ -1542,7 +1537,7 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
       sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
-    update_routine_decl_modifiers(rp, decl_modifiers,
+    update_routine_decl_modifiers(rp, &dps->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/TRUE,
                                   !microsoft_out_of_class_redecl,
@@ -1551,8 +1546,8 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
        scope of its parent class, it is defined elsewhere. */
     if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    if (attributes != NULL) {
-      apply_gnu_attributes_to_routine(attributes, rp);
+    if (dps->gnu_attributes != NULL) {
+      apply_gnu_attributes_to_routine(dps->gnu_attributes, rp);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1641,6 +1636,8 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
     rp->storage_class = (a_storage_class)sc_asm;
   }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+  dps->sym = sym;
+  attach_decl_attributes(dps, func_info->is_definition);
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any
        access errors that occurred while scanning the declaration. */
@@ -1661,7 +1658,6 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-  *symbol_ptr = sym;
   *ext_sym = NULL;
   *linkage_ptr = idl_external;
 #if DEBUG
@@ -1742,9 +1738,8 @@ member declaration (allowed in Microsoft mode only).
       locator->specific_symbol->is_class_member) {
     /* This is the definition of a member function. */
     check_assertion(prototyped);
-    define_member_function(locator, dps->type, func_info, &dps->sym,
-                           &linkage, &dps->decl_modifiers, &old_type, &ext_sym,
-                           dps->gnu_attributes, decl_pos_block);
+    define_member_function(locator, dps, func_info, &linkage, &old_type,
+                           &ext_sym, decl_pos_block);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_routine scan the
@@ -1753,7 +1748,6 @@ member declaration (allowed in Microsoft mode only).
          involving both prototyped and old-style functions. */
       a_param_type_ptr   old_style_param_types = NULL;
       a_param_type_ptr   end_old_style_param_types = NULL;
-
       /* Push the name scope for the parameter declarations. */
       (void)push_scope((a_scope_kind)sck_func_prototype,
                        func_info->scope_number, dps->type,
@@ -1910,6 +1904,9 @@ member declaration (allowed in Microsoft mode only).
     decl_routine(locator, dps, func_info, (SRK_DECLARATION | SRK_DEFINITION),
                  &linkage, &old_type, &ext_sym, decl_pos_block);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  wrapup_sse_for_simple_decl(dps);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */

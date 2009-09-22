@@ -10212,6 +10212,31 @@ the original type.
 }  /* routine_type_without_this_class */
 
 
+void ensure_routine_type_is_modifiable(a_type_ptr  *tp)
+/*
+The given type is a routine type or a typedef for a routine type (or, perhaps,
+an error type).  Ensure that a routine-specific modification can be made to
+the type by replacing *tp by a copy of the underlying routine type in the
+typedef case.
+*/
+{
+  if ((*tp)->kind == (a_type_kind)tk_routine ||
+      (*tp)->kind == (a_type_kind)tk_error) {
+    /* Nothing to be done. */
+  } else if ((*tp)->kind == (a_type_kind)tk_typeref &&
+             (typeref_is_typedef(*tp) ||
+              typeref_is_decltype_or_typeof(*tp))) {
+    /* We cannot apply the attribute to the type underlying the typedef.
+       So make a copy of that type. */
+    a_type_ptr  new_rtp = alloc_type((a_type_kind)tk_routine);
+    copy_type(skip_typerefs(*tp), new_rtp);
+    *tp = new_rtp;
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* ensure_routine_type_is_modifiable */
+
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS

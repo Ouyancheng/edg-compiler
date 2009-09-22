@@ -3064,6 +3064,157 @@ TRUE, prefix the name with "&".
 }  /* gen_name_from_routine_node */
 
 
+static void gen_attribute_arg_list(an_attribute_ptr  ap)
+/*
+Generate the list of arguments for the attribute, surrounded by parentheses.
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+
+  write_tok_str("(");
+  for (; aap != NULL; aap = aap->next) {
+    if (aap->kind == (an_attribute_arg_kind)aak_empty) {
+      /* An empty argument list "()". */
+      check_assertion(aap->next == NULL);
+      break;
+    }  /* if */
+    set_output_position(&aap->position);
+    switch (aap->kind) {
+      case aak_token:
+        write_tok_str(aap->variant.token);
+        write_space();
+        break;
+      case aak_constant:
+        gen_constant(aap->variant.constant, /*need_parens=*/FALSE);
+        break;
+      case aak_type:
+        gen_type(aap->variant.type);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* for */
+  write_tok_str(")");
+}  /* gen_attribute_arg_list */
+
+
+static void gen_attribute(an_attribute_ptr  ap)
+/*
+Generate the given attribute (no including the attribute group delimiters).
+*/
+{
+  if (ap->namespace_name != NULL) {
+    check_assertion(ap->family == (an_attribute_family)af_std);
+    write_tok_str(ap->name);
+    write_tok_str("::");
+  }  /* if */
+  write_tok_str(ap->name);
+  if (ap->arguments != NULL) {
+    gen_attribute_arg_list(ap);
+  }  /* if */
+}  /* gen_attribute */
+
+
+static void gen_attribute_group_start(an_attribute_ptr  ap)
+/*
+Generate the beginning of an attribute group.
+*/
+{
+  check_assertion(ap->group != NULL);
+  set_output_position(&ap->group->position);
+  /* Depending on the syntactic location, a space is added at the front or
+     the end of the group (for aesthetic reasons). */
+  switch (ap->syntactic_location) {
+    case al_prefix:
+      /* No leading space. */
+      break;
+    case al_declarator_id:
+      write_space();
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  switch (ap->family) {
+    case af_std:
+      write_tok_str("[[");
+      break;
+    case af_gnu:
+      write_tok_str("__attribute((");
+      break;
+    case af_ms_declspec:
+      write_tok_str("__declspec");
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* gen_attribute_group_start */
+
+
+static void gen_attribute_group_end(an_attribute_ptr  ap)
+/*
+Generate the end of an attribute group.
+*/
+{
+  switch (ap->family) {
+    case af_std:
+      write_tok_str("]]");
+      break;
+    case af_gnu:
+      write_tok_str("))");
+      break;
+    case af_ms_declspec:
+      write_tok_str(")");
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  /* Depending on the syntactic location, a space is added at the front or
+     the end of the group (for aesthetic reasons). */
+  switch (ap->syntactic_location) {
+    case al_prefix:
+      write_space();
+      break;
+    case al_declarator_id:
+      /* No trailing space. */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* gen_attribute_group_end */
+
+
+static void gen_attributes(an_attribute_ptr                attributes,
+                           enum an_attribute_location_tag  syntactic_location,
+                           a_boolean                       primary_only)
+/*
+Generate the non-internal attributes with the given syntactic location recorded
+in the given list.  If primary_only is TRUE, only generate attributes that are
+marked as being associated with the primary declaration.
+*/
+{
+  an_attribute_ptr        ap;
+  an_attribute_group_ptr  agp = NULL;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (ap->family == af_internal) continue;
+    if (ap->syntactic_location != (an_attribute_location)syntactic_location) {
+      continue;
+    }  /* if */
+    if (primary_only && !ap->on_primary_declaration) continue;
+    if (ap->group != agp) {
+      gen_attribute_group_start(ap);
+      agp = ap->group;
+    } else {
+      write_tok_str(", ");
+    }  /* if */
+    gen_attribute(ap);
+    if (ap->next == NULL || ap->group != ap->next->group) {
+      gen_attribute_group_end(ap);
+    }  /* if */
+  }  /* if */
+}  /* gen_attributes */
+
+
 static void check_for_unprotected_comma_operation(
                                    an_expr_node_ptr                    expr,
                                    an_expr_or_stmt_traversal_block_ptr tblock)
@@ -4495,6 +4646,8 @@ default arguments should be suppressed (needed for template specializations).
           } else {
             gen_temp_name((char *)param);
           }  /* if */
+          gen_attributes(param->attributes, al_declarator_id,
+                         /*primary_only=*/FALSE);
           form_type_second_part_simple(param->type,
                                        /*under_lhs_declarator=*/FALSE,
                                        &octl);
@@ -4512,6 +4665,8 @@ default arguments should be suppressed (needed for template specializations).
           if (param->name != NULL) {
             write_space();
             write_tok_str(param->name);
+            gen_attributes(param->attributes, al_declarator_id,
+                           /*primary_only=*/FALSE);
           }  /* if */
           form_type_second_part_simple(param_type,
                                        /*under_lhs_declarator=*/FALSE, &octl);
@@ -4671,6 +4826,7 @@ recorded).
                        &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
+    an_attribute_ptr  attributes;
     if (!(options & GDO_SUPPRESS_POSITION)) {
       /* Set the source position for the name. */
       set_decl_position(scp, sec_decl);
@@ -4690,6 +4846,15 @@ recorded).
     } else {
       gen_decl_name(scp, entry_kind, force_unqualified_name);
     }  /* if */
+    if (entry_kind == iek_variable && ((a_variable*)scp)->is_parameter) {
+      attributes = ((a_variable*)scp)->assoc_param_type->attributes;
+    } else if (sec_decl == NULL) {
+      attributes = scp->attributes;
+    } else {
+      attributes = sec_decl->attributes;
+    }  /* if */
+    gen_attributes(attributes, al_declarator_id,
+                   /*primary_only=*/(sec_decl == NULL));
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
       push_name_context_if_member(scp);
@@ -5208,6 +5373,8 @@ declaration following this one is such a continuation.
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&field->source_corresp);
+  gen_attributes(field->source_corresp.attributes, al_prefix,
+                 /*primary_only=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
   if (field->source_corresp.marked_as_gnu_extension) {
     write_tok_str("__extension__ ");
@@ -11578,6 +11745,7 @@ declaration following this one is such a continuation.
   a_boolean                    attributes_follow_initializer = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_name_reference_ptr         name_ref = NULL;
+  an_attribute_ptr             attributes;
                             
 #if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
@@ -11591,6 +11759,7 @@ declaration following this one is such a continuation.
     } else {
       var = ss_entry_ptr(sec_decl, a_variable_ptr);
     }  /* if */
+    attributes = sec_decl->attributes;
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
@@ -11609,6 +11778,7 @@ declaration following this one is such a continuation.
     } else {
       var = ss_entry_ptr(curr_source_sequence_entry, a_variable_ptr);
     }  /* if */
+    attributes = var->source_corresp.attributes;
     is_definition = TRUE;
     var->definition_has_been_put_out = TRUE;
     var_type = var->declared_type;
@@ -11775,6 +11945,13 @@ declaration following this one is such a continuation.
       write_tok_str("extern \"C\" ");
       if (render_braced_extern_c) {
         write_tok_str("{ ");
+      }  /* if */
+    }  /* if */
+    /* Attributes should appear after extern "..." but before storage class
+       specifiers. */
+    gen_attributes(attributes, al_prefix, is_definition);
+    if (render_extern_c) {
+      if (render_braced_extern_c) {
         /* We still need the storage class, for cases like
              extern "C" const int x = 1; 
            which has to produce
@@ -12265,6 +12442,8 @@ declarator (or NULL if it wasn't recorded).
     } else {
       gen_decl_name(scp, iek_routine, force_unqualified_name);
     }  /* if */
+    gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
+                   al_declarator_id, /*primary_only=*/(sec_decl == NULL));
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
       push_name_context_if_member(scp);
@@ -12381,6 +12560,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     saved_in_generated_instance =
                                                          in_generated_instance;
   a_boolean                     saved_expl_template_arg_list_used;
+  an_attribute_ptr              attributes;
 
 #if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
@@ -12397,6 +12577,7 @@ TRUE if the declaration following this one is such a continuation.
     } else {
       rout = ss_entry_ptr(sec_decl, a_routine_ptr);
     }  /* if */
+    attributes = sec_decl->attributes;
     /* Use the type from the secondary declaration entry instead of the one
        from the IL entry, since it might differ in small ways (e.g., using
        different typedefs, default arguments). */
@@ -12468,6 +12649,7 @@ TRUE if the declaration following this one is such a continuation.
     } else {
       rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     }  /* if */
+    attributes = rout->source_corresp.attributes;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 handle_as_definition:
     if (rout->has_been_defined) {
@@ -12782,6 +12964,9 @@ handle_as_definition:
       storage_class = (a_storage_class)sc_unspecified;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+    /* Attributes should appear after extern "..." but before storage class
+       specifiers. */
+    gen_attributes(attributes, al_prefix, is_definition);
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */

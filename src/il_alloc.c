@@ -94,7 +94,10 @@ static unsigned long
 		string_literal_text_space_allocated,
 		num_seq_number_lookup_entries_allocated,
                 num_trans_unit_copy_address_pointers_allocated,
-                num_il_entity_list_entries_allocated;
+                num_il_entity_list_entries_allocated,
+                num_attributes_allocated,
+                num_attribute_args_allocated,
+                num_attribute_groups_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
@@ -891,6 +894,7 @@ at file scope.
   ptp->default_arg_expr = NULL;
   ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
   ptp->entities_defined_in_default_arg = NULL;
+  ptp->attributes = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ptp->ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2194,8 +2198,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;
   rp->pure_virtual                = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   rp->sealed                      = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   rp->interface_slot              = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override
@@ -4199,6 +4203,80 @@ it.  The entry is allocated in the current memory region.
 }  /* alloc_il_entity_list_entry */
 
 
+an_attribute_ptr alloc_attribute(void)
+/*
+Allocate an attribute and return a pointer to it.  The argument is allocated
+in the current memory region.
+*/
+{
+  an_attribute_ptr  ap;
+
+  ap = (an_attribute_ptr)alloc_cil(sizeof(an_attribute));
+  ap->next = NULL;
+  ap->kind = (an_attribute_kind)ak_unrecognized;
+  ap->family = (an_attribute_family)af_internal;
+  ap->syntactic_location = (an_attribute_location)al_implicit;
+  ap->on_primary_declaration = FALSE;
+  ap->applied = FALSE;
+  ap->name = NULL;
+  ap->namespace_name = NULL;
+  ap->arguments = NULL;
+  ap->group = NULL;
+  ap->extra_info = NULL;
+  ap->position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ap->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if DEBUG
+  ++num_attributes_allocated;
+#endif /* DEBUG */
+  return ap;
+}  /* alloc_attribute */
+
+
+an_attribute_arg_ptr alloc_attribute_arg(void)
+/*
+Allocate an attribute argument and return a pointer to it.  The argument is
+allocated in the current memory region.
+*/
+{
+  an_attribute_arg_ptr  aap;
+
+  aap = (an_attribute_arg_ptr)alloc_cil(sizeof(an_attribute_arg));
+  aap->next = NULL;
+  aap->kind = (an_attribute_arg_kind)aak_token;
+  aap->position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  aap->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  aap->variant.token = NULL;
+#if DEBUG
+  ++num_attribute_args_allocated;
+#endif /* DEBUG */
+  return aap;
+}  /* alloc_attribute_arg */
+
+
+an_attribute_group_ptr alloc_attribute_group(void)
+/*
+Allocate an attribute group and return a pointer to it.  The group entry is
+allocated in the current memory region.
+*/
+{
+  an_attribute_group_ptr  agp;
+
+  agp = (an_attribute_group_ptr)alloc_cil(sizeof(an_attribute_group));
+  agp->position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  agp->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if DEBUG
+  ++num_attribute_groups_allocated;
+#endif /* DEBUG */
+  return agp;
+}  /* alloc_attribute_group */
+
+
 #if DEBUG
 
 unsigned long show_il_alloc_space_used(unsigned long grand_total)
@@ -4380,6 +4458,11 @@ Display and return the amount of space used for various IL tables.
   db_space_used_other("asm function bodies",
                       asm_function_body_space_allocated, "");
 #endif /* ASM_SUPPORT_NEEDED */
+  db_space_used("attributes", num_attributes_allocated, an_attribute);
+  db_space_used("attribute args", num_attribute_args_allocated,
+                an_attribute_arg);
+  db_space_used("attribute group", num_attribute_groups_allocated,
+                an_attribute_group);
 
   db_space_used_total();
 
@@ -4540,6 +4623,7 @@ in il_alloc_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
   def_source_corresp.deprecation_string = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
+  def_source_corresp.attributes = NULL;
 
 #if CHECKING && defined(offsetof)
   /* Make sure the host alignment macros are set properly. */
@@ -4652,6 +4736,9 @@ in il_alloc_init.)
       pch_saved_var_array_elem(asm_function_body_space_allocated),
 #endif /* ASM_SUPPORT_NEEDED */
       pch_saved_var_array_elem(num_il_entity_list_entries_allocated),
+      pch_saved_var_array_elem(num_attributes_allocated),
+      pch_saved_var_array_elem(num_attribute_args_allocated),
+      pch_saved_var_array_elem(num_attribute_groups_allocated),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };

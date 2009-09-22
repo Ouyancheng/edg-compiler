@@ -235,6 +235,28 @@ template being declared.
 typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 
 /*
+Forward declaration of a structure to track information while parsing a
+declaration (definition is below).
+*/
+typedef struct a_decl_parse_state *a_decl_parse_state_ptr;
+
+/*
+Type of callback functions to call at end of declaration processing.
+*/
+typedef void a_decl_parse_callback_function(a_decl_parse_state_ptr);
+
+typedef struct a_decl_parse_callback *a_decl_parse_callback_ptr;
+typedef struct a_decl_parse_callback {
+  a_decl_parse_callback_ptr
+		next;
+			/* Next callback in a list. */
+  a_decl_parse_callback_function
+		*callback_fn;
+			/* Pointer to function to call. */
+} a_decl_parse_callback;
+
+
+/*
 A structure to carry state information through the declaration parsing process.
 */
 typedef struct a_decl_parse_state {
@@ -299,6 +321,10 @@ typedef struct a_decl_parse_state {
 		in_class_scope:1;
 			/* TRUE if the current declaration appears in class
 			   scope. */
+  a_bit_field
+		secondary_declarator:1;
+			/* TRUE if the current declaration corresponds to a
+			   secondary declarator (e.g., "y" in "int x, y;"). */
   a_bit_field
 		in_nested_declarator:1;
 			/* TRUE while parsing a nested declarator. */
@@ -426,6 +452,14 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is the first declaration of a variable
 			   or function that was predeclared by the front
 			   end. */
+  an_attribute_ptr
+		prefix_attributes;
+			/* A list of attributes scanned at the start of the
+			   declaration. */
+  an_attribute_ptr
+		id_attributes;
+			/* A list of attributes scanned right after the
+			   declarator-id. */
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Extended declaration information (most of it
@@ -521,6 +555,13 @@ typedef struct a_decl_parse_state {
 			   this pointer keeps track of associated entities
 			   that appeared after a declarator-id for which no
 			   associated entry has been created yet. */
+  a_decl_parse_callback_ptr
+		end_of_parse_actions;
+			/* A list of functions to call at the end of
+			   declaration processing.  Adding items to this list
+			   is handy when a feature is encountered with a
+			   constraint that cannot be checked until the whole
+			   declaration has been processed. */
 } a_decl_parse_state;
 
 
@@ -538,6 +579,17 @@ argument.
   (ps)->start_pos = pos_curr_token;                                          \
   (ps)->p_gnu_declarator_attributes = &(ps)->gnu_attributes;                 \
 }
+
+extern void add_end_of_parse_action(a_decl_parse_callback_function  *fn,
+                                    a_decl_parse_state              *dps);
+
+extern void run_end_of_parse_actions(a_decl_parse_state  *dps);
+
+extern void attach_decl_attributes(a_decl_parse_state  *dps,
+                                   a_boolean           primary_decl);
+
+extern void attach_param_attributes(a_decl_parse_state  *dps,
+                                    a_param_type_ptr    ptp);
 
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
@@ -560,6 +612,8 @@ source sequence entry.)
   }  /* if */
 
 extern void mark_decl_after_first_in_comma_list(a_decl_parse_state*);
+
+extern void wrapup_sse_for_simple_decl(a_decl_parse_state  *dps);
 
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 

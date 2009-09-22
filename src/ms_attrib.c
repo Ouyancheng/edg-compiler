@@ -1168,20 +1168,6 @@ Look up the identifier that names the attribute to be processed.
 }  /* look_up_attribute */
 
 
-static a_boolean is_keyword_token(a_token_kind	token)
-/*
-Return TRUE if token is a token kind associated with a keyword.  This is
-used to determine if a token initially cached as a keyword can be converted
-back into an identifier.
-*/
-{
-  char		ch;
-
-  ch = token_names[(int)token][0];
-  return is_id_char[ch-CHAR_MIN];
-}  /* is_keyword_token */
-
-
 static char *get_string_value_for_token(a_boolean	*err)
 /*
 If the current token is an identifier or string literal, this routine

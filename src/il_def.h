@@ -536,6 +536,9 @@ typedef enum /*an_il_entry_kind*/ {
 			/* an_il_entity_list_entry */
   iek_lambda,		/* a_lambda */
   iek_lambda_capture,	/* a_lambda_capture */
+  iek_attribute,	/* an_attribute */
+  iek_attribute_arg,	/* an_attribute_arg */
+  iek_attribute_group,	/* an_attribute_group */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -670,7 +673,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_local_scope_ref */		"local-scope-ref",
 /* iek_il_entity_list_entry */		"il-entity-list-entry",
 /* iek_lambda */			"lambda",
-/* iek_lambda_capture */		"lambda_capture",
+/* iek_lambda_capture */		"lambda-capture",
+/* iek_attribute */			"attribute",
+/* iek_attribute_arg */			"attribute_arg",
+/* iek_attribute_group */		"attribute_group",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -770,6 +776,12 @@ this pointer type is defined even when RECORD_FORM_OF_NAME_REFERENCE is
 FALSE because the type appears in some function declarations.)
 */
 typedef struct a_name_reference *a_name_reference_ptr;
+
+/*
+The type "pointer-to-attribute" is used in secondary source sequence entries.
+The complete a_name_reference type is defined later.
+*/
+typedef struct an_attribute *an_attribute_ptr;
 
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
@@ -909,6 +921,11 @@ typedef struct a_src_seq_secondary_decl {
 			/* The form of the declarator used in the declaration
 			   referred to by this entry. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  an_attribute_ptr
+		attributes;	
+			/* The attributes list specified on this
+			   declaration.  (This is a copy of the list of
+			   attributes recorded in "entity".) */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   an_ELF_visibility_kind
 		ELF_visibility;
@@ -1303,6 +1320,197 @@ typedef struct a_name_reference {
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+typedef struct an_attribute_group *an_attribute_group_ptr;
+typedef struct an_attribute_group {
+  /* Structure to represent an attribute group.  E.g., [[noreturn]] or
+     [[noreturn, final]] in C++0x. */
+  a_source_position
+		position;
+			/* The source position of the attribute group
+			   construct. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The position of the end of the attribute group				  construct. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} an_attribute_group;
+
+
+enum an_attribute_arg_kind_tag {
+  aak_empty,		/* If an attribute has an empty argument list, that
+			   list is represented by a single aak_empty entry.
+			   (E.g., [[ attrib() ]]). */
+  aak_token,
+  aak_constant,
+  aak_type,
+  aak_last
+};
+
+typedef a_byte an_attribute_arg_kind;
+
+
+typedef struct an_attribute_arg *an_attribute_arg_ptr;
+typedef struct an_attribute_arg {
+  an_attribute_arg_ptr
+		next;
+			/* Next in a linked list of attribute arguments. */
+  an_attribute_arg_kind
+		kind;
+			/* The kind of argument this represents. */
+  a_source_position
+		position;
+			/* The source position of the argument. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The position of the end of the argument. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  union {
+    /* When kind == aak_empty: no variant fields. */
+    /* When kind == aak_token: */
+    char	*token; /* The character sequence forming the argument
+			   token. */
+    /* When kind == aak_constant: */
+    a_constant_ptr
+		constant;
+			/* The argument constant. */
+    /* When kind == aak_type: */
+    a_type_ptr
+		type;	/* The argument type. */
+  } variant;
+} an_attribute_arg;
+
+
+enum an_attribute_family_tag {
+  af_internal,		/* To annotate IL properties that do not come from a
+			   attribute-like construct.  E.g., on a template this
+			   might reflect the effect of a #pragma directive. */
+  af_std,		/* An attribute specified using the standard C++0x
+			   syntax [[ ... ]]. */
+  af_gnu,		/* An attribute specified using the GNU __attribute
+			   syntax. */
+  af_ms_declspec,	/* An attribute specified using the Microsoft
+			   __declspec construct. */
+  af_last
+};
+
+typedef a_byte an_attribute_family;
+
+
+/*
+An enumeration describing where (syntactically) in a construct an attribute
+was encountered.
+*/
+enum an_attribute_location_tag {
+  al_implicit,		/* The attribute did not appear explicitly in the
+			   source. */
+  al_prefix,		/* The attribute is the first element of a declaration
+			   (including an empty declaration), using-directive,
+			   label, or statement. */
+  al_tag_name,		/* The attribute appears after "enum", "struct",
+			   "union", or "class" but before the definition of
+			   that associated entity. */
+  al_base_specifier,	/* The attribute appears in a base class specifier or
+			   in an explicit enum base type specifier. */
+  al_specifier,		/* The attribute is part of the declaration
+			   specifiers. */
+  al_declarator_id,	/* The attribute is directly associated with the
+			   declarator-id. */
+  al_post_ptr_or_ref,	/* The attribute immediately follows a pointer,
+			   reference, or pointer-to-member declarator
+			   operator. */
+  al_post_array,	/* The attribute immediately follows an array
+			   declarator. */
+  al_post_func,		/* The attribute immediately follows a function
+			   declarator. */
+  al_trailing_return,	/* The attribute is the first element of a trailing
+			   return type. */
+  al_other,		/* Any other case not described above. */
+  al_last
+};
+
+typedef a_byte an_attribute_location;
+
+
+enum an_attribute_kind_tag {
+  ak_unrecognized,	/* For unrecognized attributes. */
+  ak_empty_group,	/* A pseudo-attribute marking the presence of an
+			   empty attribute group (like [[]] in C++0x). */
+  ak_align,		/* "align" (std, ms_declspec) or "aligned" (gnu). */
+  ak_noreturn,		/* "noreturn" (std, gnu, ms_declspec). */
+  ak_final,		/* "final" (std). */
+  ak_carries_dependency,
+			/* "carries_dependency" (std). */
+  ak_nothrow,		/* "nothrow" (std, gnu, ms_declspec). */
+  ak_last
+};
+
+typedef unsigned short an_attribute_kind;
+
+/*
+Data structure describing an "attribute"; i.e., a general annotation like a
+GNU attribute or Microsoft __declspec as it appeared in the source.  In many
+cases, such constructs also affect an IL entry directly (e.g., the "alignment"
+field of a type or variable in case of an alignment attribute), but in other
+cases this data structure is the only record of the construct.  Attributes can
+also be used to annotate properties that are so infrequent that a dedicated IL
+field cannot be justified (in such cases there isn't necessarily a matching
+source construct for that attribute).
+*/
+typedef struct an_attribute {
+  an_attribute_ptr
+		next;
+			/* Next in a linked list of attributes. */
+  an_attribute_kind
+		kind;
+			/* The specific of attribute that was encountered. */
+  an_attribute_family
+		family;	/* The kind of construct that was used to express the
+			   attribute in the source. */
+  an_attribute_location
+		syntactic_location;
+			/* The syntactic location of the attribute. */
+  a_bit_field
+		on_primary_declaration:1;
+			/* The attribute appeared on the primary_declaration of
+			   an entity.  (Some attributes on a definition take
+			   precedence on the same attribute applied to another
+			   declaration of the same entity.) */
+  a_bit_field
+		applied:1;
+			/* TRUE if this attribute has had its full effect on
+			   the IL.  This is e.g. used for many attributes
+			   specified on templates: "applied" is FALSE because
+			   the effect occurs on every instance. */
+  char		*name;	/* The attribute name as it appeared in the source.
+			   E.g. "aligned" for __attribute((aligned(8))). */
+  char		*namespace_name;
+			/* The attribute namespace name as it appeared in the
+			   source.  E.g., "XYZ" in [[ XYZ::fast ]].  NULL if
+			   no namespace name appeared (in particular, NULL
+			   when family is not af_std). */
+  an_attribute_arg_ptr
+		arguments;
+			/* The argument list of this attribute (NULL if there
+			   are no arguments). */
+  an_attribute_group_ptr
+		group;
+			/* The attribute group this attribute belongs to.
+			   (NULL for attribute families that don't have a
+			   notion of grouping.) */
+  void		*extra_info;
+			/* Additional attribute-specific information (NULL if
+			   there is none). */
+  a_source_position
+		position;
+			/* The position of the attribute. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The position of the end of the attribute. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} an_attribute;
+
 
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
@@ -1609,7 +1817,11 @@ typedef struct a_source_correspondence {
 			   back end.)  In the front end, use the macro
 			   "deprecation_string_for" to access this field. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
+  an_attribute_ptr
+		attributes;
+			/* The set of attributes applicable to this entity. */
 } a_source_correspondence;
+
 
 /*
 Data structures related to constants:
@@ -3491,6 +3703,10 @@ typedef struct a_param_type {
 			/* A list of entities defined in the default argument
 			   associated with this parameter.  Currently, this
 			   list only has C++0x closure types. */
+  an_attribute_ptr
+		attributes;
+			/* The set of attributes applicable to this
+			   parameter. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_ms_attribute_ptr
 		ms_attributes;
@@ -9913,10 +10129,12 @@ typedef struct a_routine {
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	sealed:1;
 			/* TRUE for a virtual member function that cannot be
-			   overridden in a derived class. */
+			   overridden in a derived class.  (Declared using the
+			   context-sensitive keyword "sealed" in some Microsoft
+			   modes, or using the attribute "final".) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	interface_slot:1;
 			/* TRUE for member functions generated to represent a
 			   compiler-generated "slot" in a Microsoft interface
@@ -14121,6 +14339,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_il_entity_list_entry),
   sizeof(a_lambda),
   sizeof(a_lambda_capture),
+  sizeof(an_attribute),
+  sizeof(an_attribute_arg),
+  sizeof(an_attribute_group),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

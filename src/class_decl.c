@@ -3735,14 +3735,14 @@ return_types_are_override_compatible.
                                             source_pos);
   }  /* if */
   check_deleted_function_overrides(overrider_sym, overridden_sym, source_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (rp->sealed) {
-    /* Sealed virtual functions cannot be overridden. */
-    pos_sy_error(ec_override_of_sealed_function, source_pos, overridden_sym);
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
+    /* Sealed/final virtual functions cannot be overridden. */
+    a_boolean  use_final_diag =
+              find_attribute(ak_final, rp->source_corresp.attributes) != NULL;
+    pos_sy_error(use_final_diag ? ec_override_of_final_function
+                                : ec_override_of_sealed_function,
+                 source_pos, overridden_sym);
+  } else {
     /* Record the virtual function override in the base class entry.
        It can be used later, e.g., for building a virtual function
        table. */
@@ -3998,6 +3998,9 @@ done:
   } else if (func_info->sealed || func_info->abstract) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (rout->sealed) {
+    pos_error(ec_function_modifier_requires_virtual_function, source_pos);
+    rout->sealed = FALSE;
   }  /* if */
   db_exit();
   return rout->is_virtual;
@@ -9130,6 +9133,8 @@ implicitly declared member functions.
     rtn->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
+    attach_decl_attributes(decl_state,
+                           /*is_primary_decl=*/func_info->is_definition);
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
@@ -9462,12 +9467,21 @@ and it is legal for virtual member functions only.
   }  /* if */
   if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (pure_specifier_allowed && rout->sealed) {
-    /* A virtual member cannot be both pure and sealed. */
-    pos_error(ec_pure_specifier_on_sealed_member, &pos_curr_token);
+    /* Making a pure virtual member sealed/final is useless, but while
+       Microsoft makes the "sealed" case an error, the C++0x standard does not
+       prohibit the "[[final]]" case. */
+    an_attribute_ptr  final_ap =
+                    find_attribute(ak_final, rout->source_corresp.attributes);
+    if (final_ap == NULL) {
+      /* The routine was declared with "sealed". */
+      check_assertion(microsoft_mode);
+      pos_error(ec_pure_specifier_on_sealed_member, &pos_curr_token);
+    } else {
+      /* The routine was declared with "final". */
+      pos_warning(ec_pure_final_virtual, &final_ap->position);
+    }  /* if */
     pure_specifier_allowed = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Advance past the "=". */
   (void)get_token();
@@ -9671,11 +9685,11 @@ specific information about the member declaration, respectively.
   }  /* if */
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
+  decl_state->sym = sym;
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
   sym->variant.static_data_member.variable = var;
   set_class_membership(sym, &var->source_corresp, class_type);
-  decl_info->decl_state.sym = sym;
   if (decl_info->is_member_template && locator->symbol_header != NULL) {
     pos_sy_error(ec_bad_member_template_sym, &locator->source_position, sym);
   }  /* if */
@@ -9696,6 +9710,7 @@ specific information about the member declaration, respectively.
                                          /*is_declaration=*/TRUE);
   }  /* if */
   var->source_corresp.access = class_state->access;
+  attach_decl_attributes(decl_state, /*primary_decl=*/FALSE);
   if (curr_token == tok_assign && is_expr_start_token(next_token())) {
     a_constant         constant;
     a_source_position  init_pos;
@@ -9782,6 +9797,7 @@ specific information about the member declaration, respectively.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)var, member_type, name_ref,
                                         flags, &decl_info->decl_pos_block);
+    wrapup_sse_for_simple_decl(decl_state);
   }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
@@ -11567,6 +11583,7 @@ be entered.
      record_symbol_declaration (since the latter clears that information). */
   update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  attach_decl_attributes(decl_state, /*primary_decl=*/TRUE);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the field. */
@@ -14503,6 +14520,8 @@ passed via template_decl.
   initialize_member_decl_info(&decl_info, &decl_start_pos);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
+  /* Scan prefix attributes. */
+  decl_state->prefix_attributes = scan_attributes(al_prefix);
   /* Set the flags to control the calls to decl_specifiers. */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
@@ -14685,8 +14704,6 @@ passed via template_decl.
     add_stop_token(tok_colon);
     add_stop_token(tok_try);
     clear_func_info(&func_info);
-    /* Initialize certain decl_info fields each time through the loop. */
-    start_secondary_declarator(decl_state);
     decl_state->qualifiers = saved_qualifiers;
     decl_state->qualifiers_pos = saved_qualifiers_pos;
     decl_info.is_unnamed_field = FALSE;
@@ -15293,6 +15310,8 @@ passed via template_decl.
     free_gnu_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     check_use_of_auto_type(decl_state);
+    /* Initialize certain decl_info fields each time through the loop. */
+    start_secondary_declarator(decl_state);
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;

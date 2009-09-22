@@ -2185,6 +2185,8 @@ extern void skip_white_space(void);
 extern void concat_adjacent_string_literals(a_boolean function_name_case);
 /* Get next token. */
 extern a_token_kind get_token(void);
+/* Return whether a token is a keyword token. */
+extern a_boolean is_keyword_token(a_token_kind	token);
 /* Generate a line-identifying directive in preprocessing output. */
 extern void gen_pp_line_info(char      kind,
 		             a_boolean next_line);

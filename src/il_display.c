@@ -725,6 +725,7 @@ Display the indicated source correspondence entry.
                     iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
+  disp_ptr("  attributes", (char *)scp->attributes, iek_attribute);
 }  /* disp_source_corresp */
 
 
@@ -1181,6 +1182,9 @@ Display a_param_type entry.
     disp_boolean("nonnull", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (ptr->attributes != NULL) {
+    disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->ms_attributes != NULL) {
     disp_ptr("ms_attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
@@ -2665,10 +2669,10 @@ Display the indicated routine.
   if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", TRUE);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->sealed) {
     disp_boolean("sealed", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->interface_slot) {
     disp_boolean("interface_slot", TRUE);
   }  /* if */
@@ -4237,6 +4241,124 @@ Display the indicated lambda capture.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_lambda_capture */
 
+
+static void disp_attribute(an_attribute_ptr  ap)
+/*
+Display the indicated attribute entry.
+*/
+{
+  char  *kind_name, *family_name, *loc_name;
+
+  switch (ap->kind) {
+    case ak_unrecognized:        kind_name = "unrecognized";        break;
+    case ak_empty_group:         kind_name = "empty group";         break;
+    case ak_align:               kind_name = "align";               break;
+    case ak_noreturn:            kind_name = "noreturn";            break;
+    case ak_final:               kind_name = "final";               break;
+    case ak_carries_dependency:  kind_name = "carries_dependency";  break;
+    case ak_nothrow:             kind_name = "nothrow";             break;
+    default:                     kind_name = "** BAD KIND **";      break;
+  }  /* switch */
+  disp_name("kind");
+  (void)printf("%s", kind_name);
+  switch (ap->family) {
+    case af_internal:            family_name = "internal";          break;
+    case af_std:                 family_name = "std";               break;
+    case af_gnu:                 family_name = "gnu";               break;
+    case af_ms_declspec:         family_name = "ms_declspec";       break;
+    default:                     family_name = "** BAD FAMILY **";  break;
+  }  /* switch */
+  disp_name("family");
+  (void)printf("%s", family_name);
+  switch (ap->syntactic_location) {
+    case al_implicit:            loc_name = "implicit";             break;
+    case al_prefix:              loc_name = "prefix";               break;
+    case al_tag_name:            loc_name = "tag name";             break;
+    case al_base_specifier:      loc_name = "base specifier";       break;
+    case al_specifier:           loc_name = "specifier";            break;
+    case al_declarator_id:       loc_name = "declarator-id";        break;
+    case al_post_ptr_or_ref:     loc_name = "post ptr or ref";      break;
+    case al_post_array:          loc_name = "post array";           break;
+    case al_post_func:           loc_name = "post func";            break;
+    case al_trailing_return:     loc_name = "trailing return";      break;
+    case al_other:               loc_name = "(other)";              break;
+    default:                     loc_name = "** BAD LOCATION **";   break;
+  }  /* switch */
+  disp_name("syntactic_location");
+  (void)printf("%s", loc_name);
+  if (ap->on_primary_declaration) {
+    disp_boolean("on_primary_declaration",
+                 (a_boolean)ap->on_primary_declaration);
+  }  /* if */
+  if (ap->applied) {
+    disp_boolean("applied", (a_boolean)ap->applied);
+  }  /* if */
+  disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
+  if (ap->namespace_name != NULL) {
+    disp_string_ptr("namespace_name", ap->namespace_name, iek_other_text,
+                    (sizeof_t)0);
+  }  /* if */
+  if (ap->arguments != NULL) {
+    disp_ptr("arguments", (char*)ap->arguments, iek_attribute_arg);
+  }  /* if */
+  if (ap->group != NULL) {
+    disp_ptr("group", (char*)ap->group, iek_attribute_group);
+  }  /* if */
+  disp_source_position("position", &ap->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("end_position", &ap->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_attribute */
+
+
+static void disp_attribute_arg(an_attribute_arg_ptr  aap)
+/*
+Display the indicated attribute argument entry.
+*/
+{
+  char  *kind_name;
+
+  switch (aap->kind) {
+    case aak_token:              kind_name = "token";               break;
+    case aak_constant:           kind_name = "constant";            break;
+    case aak_type      :         kind_name = "type";                break;
+    default:                     kind_name = "** BAD KIND **";      break;
+  }  /* switch */
+  disp_name("kind");
+  (void)printf("%s", kind_name);
+  disp_source_position("position", &aap->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("end_position", &aap->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  switch (aap->kind) {
+    case aak_token:
+      disp_string_ptr("token", aap->variant.token, iek_other_text,
+                      (sizeof_t)0);
+      break;
+    case aak_constant:
+      disp_ptr("constant", (char*)aap->variant.constant, iek_constant);
+      break;
+    case aak_type:
+      disp_ptr("type", (char*)aap->variant.type, iek_type);
+      break;
+    default:
+      /* Do nothing. */
+      break;
+  }  /* switch */
+}  /* disp_attribute_arg */
+
+
+static void disp_attribute_group(an_attribute_group_ptr  agp)
+/*
+Display the indicated attribute group entry.
+*/
+{
+  disp_source_position("position", &agp->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("end_position", &agp->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_attribute_group */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void disp_ms_attribute(an_ms_attribute_ptr ptr)
@@ -5671,6 +5793,15 @@ This routine is called during IL walking.
           break;
         case iek_lambda_capture:
           disp_lambda_capture((a_lambda_capture_ptr)entry_ptr);
+          break;
+        case iek_attribute:
+          disp_attribute((an_attribute_ptr)entry_ptr);
+          break;
+        case iek_attribute_arg:
+          disp_attribute_arg((an_attribute_arg_ptr)entry_ptr);
+          break;
+        case iek_attribute_group:
+          disp_attribute_group((an_attribute_group_ptr)entry_ptr);
           break;
         default:
           (void)printf("**BAD ENTRY KIND**\n");

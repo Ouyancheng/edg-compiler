@@ -8462,6 +8462,7 @@ information.
                                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                                   DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 
+  state->prefix_attributes = scan_attributes(al_prefix);
   if (gpp_mode) {
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
@@ -9112,6 +9113,17 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                               sym, &sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);
+    /* We use the attributes copied from the prototype instantiation rather
+       than scanning them from the cache.  That ensures that we pick up the
+       complete set of attributes that might have been specified.  E.g.:
+         template<class T> [[noreturn]] void f();
+         template<class T> void f() { throw 1; }  // Implicit [[noreturn]]
+         template void f<int>();  // No attributes in cache, but
+                                  // templ_rout->source_corresp.attributes is
+                                  // not null.
+    */
+    rp->source_corresp.attributes =
+               copy_of_attributes_list(templ_rout->source_corresp.attributes);
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;
@@ -14810,12 +14822,12 @@ template symbol supplement for this template should be returned to the caller.
   a_symbol_ptr                     sym;
   a_boolean                        has_parenthesized_initializer = FALSE;
   a_template_symbol_supplement_ptr tssp = NULL;
-  a_decl_parse_state               *decl_parse = &decl_state->decl_parse;
+  a_decl_parse_state               *dps = &decl_state->decl_parse;
 
   db_enter(4, "template_static_data_member_declaration");
   sym = locator->specific_symbol;
   has_parenthesized_initializer = 
-                   (decl_parse->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+                          (dps->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
   if (is_error_locator(*locator)) {
     /* An error occurred while scanning the declarator of what we assume
        is a static data member.  We make this assumption because the
@@ -14845,7 +14857,7 @@ template symbol supplement for this template should be returned to the caller.
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
   } else if (!types_are_redecl_compatible(
-                            decl_parse->type,
+                            dps->type,
                             sym->variant.static_data_member.variable->type)) {
     /* The type of the static data member definition does not match
        the declaration in the class. */
@@ -14855,7 +14867,7 @@ template symbol supplement for this template should be returned to the caller.
   } else {
     /* This is a template definition of a static data member of a
        class template. */
-    a_type_ptr  type = decl_parse->type;
+    a_type_ptr  type = dps->type;
 #if CHECKING
     if (sym->variant.static_data_member.instance_ptr->template_sym != sym) {
       internal_error("template_declaration: bad instance for static mem");
@@ -14880,8 +14892,12 @@ template symbol supplement for this template should be returned to the caller.
     }  /* if */
     /* A storage class of sc_unspecified means "no storage class explicitly
        specified" -- anything else is an error. */
-    if (decl_parse->storage_class != (a_storage_class)sc_unspecified) {
+    if (dps->storage_class != (a_storage_class)sc_unspecified) {
       pos_error(ec_storage_class_not_allowed, &locator->source_position);
+    }  /* if */
+    if (!err) {
+      dps->sym = sym;
+      attach_decl_attributes(dps, /*primary_decl=*/TRUE);
     }  /* if */
   }  /* if */
   /* Scan the initializer expression, if any, and cache its tokens.
@@ -15683,16 +15699,21 @@ function declaration.
   /* Process a function template declaration. */
   decl_function_template(locator, func_info, &sym, decl_state);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (!func_info->is_definition && !source_sequence_entries_disallowed) {
-    /* Turn the source sequence entry for the a_template entry into a
-       secondary source sequence entry. */
-    a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
+  if (!source_sequence_entries_disallowed) {
+    if (!func_info->is_definition) {
+      /* Turn the source sequence entry for the a_template entry into a
+         secondary source sequence entry. */
+      a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
                                                decl_state->il_template_entry);
-    sssdp->declared_type = func_info->declared_type;
-    sssdp->friend_decl = decl_state->is_template_friend;
-    if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
-      sssdp->explicit_storage_class = TRUE;
+      sssdp->declared_type = func_info->declared_type;
+      sssdp->friend_decl = decl_state->is_template_friend;
+      if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+        sssdp->explicit_storage_class = TRUE;
+      }  /* if */
     }  /* if */
+    dps->source_sequence_entry =
+          decl_state->il_template_entry->source_corresp.source_sequence_entry;
+    wrapup_sse_for_simple_decl(dps);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&

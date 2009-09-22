@@ -273,6 +273,12 @@ extern char *alloc_text_of_string_literal(sizeof_t size);
 
 extern an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void);
 
+extern an_attribute_ptr alloc_attribute(void);
+
+extern an_attribute_arg_ptr alloc_attribute_arg(void);
+
+extern an_attribute_group_ptr alloc_attribute_group(void);
+
 #if DEBUG
 unsigned long show_il_alloc_space_used(unsigned long grand_total);
 #endif /* DEBUG */

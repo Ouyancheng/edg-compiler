@@ -1787,6 +1787,8 @@ if this is the function declarator in a friend function declaration.
                                                 trailing_return_types_enabled;
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
+        /* Scan prefix attributes. */
+        param_state.prefix_attributes = scan_attributes(al_prefix);
         /* Scan a parameter-declaration. */
         decl_specifiers(dsi_flags, &param_state, &local_decl_pos_block);
         dso_flags = param_state.dso_flags;
@@ -2004,6 +2006,7 @@ if this is the function declarator in a friend function declaration.
                                      iek_param_type, MSAT_PARAMETER);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        attach_param_attributes(&param_state, ptp);
         if (!is_error_locator(param_locator)) {
           ptp->name = param_locator.symbol_header->identifier;
         }  /* if */
@@ -3988,27 +3991,29 @@ is an exception to that rule, or if microsoft bugs mode is disabled.
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void scan_real_declarator_id(
-                          a_decl_flag_set   input_flags,
-                          a_decl_flag_set   *output_flags,
-                          a_symbol_locator  *locator,
-                          a_boolean         *is_constructor,
-                          a_boolean         *is_destructor,
-                          a_boolean         *parenthesized_initializer_allowed,
-			  a_boolean	    *not_a_function_declarator,
-                          a_type_ptr        *p_member_parent_type,
-                          a_decl_pos_block  *decl_pos_block)
+                        a_decl_parse_state  *dps,
+                        a_decl_flag_set     input_flags,
+                        a_decl_flag_set     *output_flags,
+                        a_symbol_locator    *locator,
+                        a_boolean           *is_constructor,
+                        a_boolean           *is_destructor,
+                        a_boolean           *parenthesized_initializer_allowed,
+                        a_boolean           *not_a_function_declarator,
+                        a_type_ptr          *p_member_parent_type,
+                        a_decl_pos_block    *decl_pos_block)
 /*
 This routine is called by declarator for real declarators; it scans the name
-that is specified.  The current token is the beginning of the name (usually
-but not always an identifier).  input_flags is the set of flags passed in to
-declarator, and *output_flags is the set of flags that will be returned to
-declarator's caller.  *locator is returned with the locator for the name,
-*p_member_parent_type is the class type when this is a qualified name,
-*is_constructor or *is_destructor is returned TRUE when the name is a
-constructor or destructor name, *parenthesized_initializer_allowed is set
-to FALSE if the entity being declared is not initializable, and
-*not_a_function_declarator is set if the declared entity is known to not
-be a function.
+that is specified (and any following attributes).  The current token is the
+beginning of the name (usually but not always an identifier).  dps points to a
+structure describing various properties of the current declaration.
+input_flags is the set of flags passed in to declarator, and *output_flags is
+the set of flags that will be returned to declarator's caller.  *locator is
+returned with the locator for the name, *p_member_parent_type is the class
+type when this is a qualified name, *is_constructor or *is_destructor is
+returned TRUE when the name is a constructor or destructor name,
+*parenthesized_initializer_allowed is set to FALSE if the entity being
+declared is not initializable, and *not_a_function_declarator is set if the
+declared entity is known to not be a function.
 */
 {
   a_source_position         declarator_pos;
@@ -4510,6 +4515,7 @@ be a function.
       locator->is_conversion_name = TRUE;
     }  /* if */
   }  /* if */
+  dps->id_attributes = scan_attributes(al_declarator_id);
   db_exit();
 }  /* scan_real_declarator_id */
 
@@ -4981,7 +4987,7 @@ The syntax is:
       }  /* if */
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the name declared here. */
-      scan_real_declarator_id(input_flags, output_flags, locator,
+      scan_real_declarator_id(state, input_flags, output_flags, locator,
                               is_constructor, is_destructor,
                               &parenthesized_initializer_allowed,
                               &not_a_function_declarator,

@@ -31,7 +31,6 @@ extern void redefine_extname_pragma(a_pending_pragma_ptr  ppp);
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 extern void process_alias_fixup_list(void);
 extern unsigned long show_attribute_space_used(void);
-extern void attribute_init(void);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -379,11 +378,34 @@ extern void copy_class_attributes_to_variable(a_type_ptr      class_type,
 extern void copy_class_attributes_to_routine(a_type_ptr     class_type,
                                              a_routine_ptr  routine);
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+extern an_attribute_ptr scan_attributes(enum an_attribute_location_tag  loc);
+
+extern void unscan_attributes(an_attribute_ptr  attributes);
+
+extern void attach_attributes(an_attribute_ptr  attributes,
+                              char              *entity,
+                              an_il_entry_kind  entity_kind);
+
+extern an_attribute_ptr *last_attribute_link(an_attribute_ptr  *attributes);
+
+extern an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes);
+
+extern an_attribute_ptr f_find_attribute(an_attribute_kind  kind,
+                                         an_attribute_ptr   attributes);
+
+#define find_attribute(kind, attributes)                                     \
+  (f_find_attribute((an_attribute_kind)(kind), (attributes)))
+
+extern void mark_primary_decl_attributes(an_attribute_ptr  attributes);
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+extern void attribute_init(void);
+
 
 #endif /* ATTRIBUTE_H */
 

@@ -9,7 +9,11 @@
 ******************************************************************************/
 /*
 
-attribute.c -- Processing of attributes, a GCC extension.
+attribute.c -- Processing of attributes.
+
+*/
+
+/*
 
 */
 
@@ -23,14 +27,1283 @@ attribute.c -- Processing of attributes, a GCC extension.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Header files used by files involved in declaration processing. */
-#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 #include "decl_hdrs.h"
-#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
+/* Other required header files. */
+#include "disambig.h"
+#if USER_CONTROL_OF_STRUCT_PACKING
+#include "layout.h"
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 #if GNU_EXTENSIONS_ALLOWED
 #include "il_walk.h"
 #include "layout.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+
+
+typedef struct an_attr_descr *an_attr_descr_ptr;
+typedef struct an_attr_descr {
+  /* Data structure describing the name and kind of an attribute, the form
+     of its arguments if any (i.e., its "signature"), and the modes in which
+     that attribute should be recognized.  This defines the structure of the
+     table known_attr_table (below) of recognizable attributes. */
+  char		*name;
+			/* The name of the attribute.  If an attribute name
+			   can include optional leading/trailing underscores,
+			   those underscores are not included here. */
+  char		*sig;
+			/* A compact encoding of the "signature" of this
+			   attribute.  If sig is "", no attributes arguments
+			   are permitted.  If sig starts with "?", arguments
+			   are optional.  The arguments are described by a
+			   parenthesized comma-separated list of codes (no
+			   spaces are permitted):
+			     "t": a type-id is expected
+			     "ci": an integer constant is expected
+			     "ct": an integer constant or a type is expected
+			           (similar to a "sizeof(...)" argument)
+			     "n": an identifier is expected
+			     "sn": an narrow string literal is expected
+			     "*": an arbitrary set of tokens is expected
+			          (this can only be for the last argument)
+			   A "?" indicates that the argument list may
+                           terminate at that point.
+			   Examples:
+			     "(i)": one integer constant required
+			     "(n?,t,i)": an identifier is required; it can
+			         optionally by followed by a type and an
+			         integer constant (both or none).
+			     "?(n?,t?,i)": either no argument list appears at
+			         all, or an identifier appears, optionally
+			         followed by a type, itself optionally followed
+			         by an integer constant.
+			*/
+  char		*cond;
+			/* A compact encoding of the condition in which this
+			   attribute is accepted.  cond[0] indicates the
+			   attribute family: 'c' for "standard C++ [[...]]",
+			   'g' for __attribute((...)) in GNU modes, 's' for
+			   __attribute((...)) in Sun mode, and 'm' for
+			   __declspec(...) in Microsoft mode.  cond[1] is
+			   '+' if the attribute only applies in C++ modes,
+			   'c' if it only applies in C mode, and 'x' if it
+			   applies in both C and C++ modes (some combinations
+			   are impossible; e.g. "sc" is meaningless since there
+			   is no "Sun C" mode).  For standard attributes, the
+			   first two characters can be followed by a bracketed
+			   namespace name.  E.g., if name is "test" and cond
+			   is "c+[xyz]", then this is a description entry for
+			   [[xyz::test ... ]].  If cond[0] is 'g' or 'm', a
+			   the first two characters can be followed by a
+			   parenthesized range of applicable versions.  E.g.,
+			   "gx(30100-)" means the attribute is valid in 
+			   GNU C/C++ modes with gnu_version >= 30100. */
+  enum an_attribute_kind_tag
+		attr_kind;
+			/* The attribute kind to record in the corresponding
+			   attribute entry. */
+} an_attr_descr;
+
+
+/*
+Table of recognizable attributes.  See the description of an_attr_descr (above)
+for the meaning and format of each field.  Every attribute form recognized by
+the front end should have a distinct entry in this table (e.g., the standard
+attribute [[noreturn]] and the GNU attribute __attribute((noreturn)) have
+separate entries).
+See also the complementary table known_attr_appl_table below.
+*/
+static an_attr_descr known_attr_table[] = {
+#if USER_CONTROL_OF_STRUCT_PACKING
+  { "align", "(ct)", "c+", ak_align },
+  { "aligned", "(ci)", "gx", ak_align },
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  { "noreturn", "", "c+", ak_noreturn },
+  { "noreturn", "", "gx", ak_noreturn },
+  { "final", "", "c+", ak_final },
+  { "carries_dependency", "", "c+", ak_carries_dependency },
+  { NULL, NULL, NULL, ak_last }
+};
+
+#define KNOWN_ATTR_TABLE_LENGTH \
+  (sizeof(known_attr_table)/sizeof(known_attr_table[0])-1)
+
+
+typedef void an_attr_application_fn(an_attribute_ptr  ap,
+                                    char              *entity,
+                                    an_il_entry_kind  entity_kind);
+
+typedef struct an_attr_appl_descr {
+  /* Data structure describing how an attribute can be applied to an IL
+     entity. */
+  enum an_attribute_kind_tag
+		kind;
+			/* The kind of attribute this description is applies
+			   to.  (This is only useful for internal consistency
+			   checking.) */
+  char		*target_constraints;
+			/* A compact description of the kind of target entity
+			   that this attribute can be applied to.  If this is
+			   the empty string, the attributes apply to any entity
+			   a priori (though appl_fn can impose limitations of
+			   its own).  Otherwise, the string consists of one or
+			   more entity kind descriptions separated by "|".
+			   Each entity kind description is a single character
+			   describing the broad kind of entity (e.g., "r" for
+			   "routine"), optionally followed by ":" and one or
+			   more "property switches" of the form "+x" or "-x"
+			   where "x" is a character representing a property.
+			   The "+x" form indicates that the property is
+			   required whereas the "-x" for indicates that it is
+			   prohibited.  For example, "r" means the attribute
+			   is allowed on any routine, "r:+v" means it applies
+			   only on virtual routines, and "r:-v" means it
+			   applies only on nonvirtual routines.  Here is the
+			   set of entity codes and property codes currently
+			   recognized:
+			     "r"  : routines
+			       "m"  : class member
+			       "v"  : virtual
+			     "v"  : variables
+			       "r"  : register variables
+			     "p"  : parameters
+			       (no property switches)
+			     "d"  : fields
+			       "b"  : bit field
+			   For example "v:-r|d:-b" means that the attribute
+			   applies to non-register variables and to fields that
+			   aren't bit fields.
+			*/
+  char		*attachment_constraints;
+			/* A compact encoding of constraints that are
+			   independent of the target.  Multiple constraints
+			   can appear with intervening commas.  Each
+			   constraint start with a letter indicating which
+			   form of the attribute it applies to:
+			     "c": standard attributes
+			     "g": GNU attributes
+			     "m": Microsoft declspec attributes
+			   that letter is followed by a colon (":") which
+			   in turn is followed by a code indicating the
+			   constraint.  Currently, only one code is
+			   recognized:
+			      "1/g": the attribute can appear only once in
+			             an attribute group */
+  an_attr_application_fn
+		*appl_fn;
+			/* NULL or a pointer to the function to call to apply
+			   the attribute to entity it appertains to.  (Such a
+			   function could enforce constraints and/or reflect
+			   the attribute in some aspects of the IL.) */
+} an_attr_appl_descr;
+
+#define NO_APPL_FN ((an_attr_application_fn*)NULL)
+
+/* Forward declarations for attribute application functions. */
+static an_attr_application_fn apply_align_attr;
+static an_attr_application_fn apply_noreturn_attr;
+static an_attr_application_fn apply_final_attr;
+static an_attr_application_fn apply_carries_dependency_attr;
+
+/*
+Table of entries describing how to apply a specific attribute kind to an IL
+entity.  See the description of an_attr_appl_descr for the meaning and form
+of each field in this table.  Distinct forms of the same attribute share the
+same table entry (and the table must match the enumeration order of
+an_attribute_kind_tag).
+See also the complementary table known_attr_table above.
+*/
+static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
+  { ak_unrecognized, "", "", NO_APPL_FN },
+  { ak_empty_group, "", "", NO_APPL_FN },
+  { ak_align, "v:-r|d:-b", "", apply_align_attr },
+  { ak_noreturn, "r", "c:1/g", apply_noreturn_attr },
+  { ak_final, "r:+v|c", "c:1/g", apply_final_attr },
+  { ak_carries_dependency, "r|p", "c:1/g", apply_carries_dependency_attr },
+  { ak_nothrow, "!!", "!!", NO_APPL_FN },
+  { ak_last, "!!", "!!", NO_APPL_FN }
+};
+
+
+/*
+Single-letter encodings of attribute families (used to decode the 
+attachment_constraints field of an_attr_appl_descr).
+*/
+static char attr_family_code[(int)af_last] = {
+  'i',   /* af_internal */
+  'c',   /* af_std */
+  'g',   /* af_gnu */
+  'm'    /* af_ms_declspec */
+};
+
+
+/*
+Pointer to a hash table indexing known_attr_table by attribute name.
+*/
+static a_hash_table_ptr
+	attr_name_map;
+
+/*
+Bucket type for attr_name_map.
+*/
+typedef struct an_attr_name_map_entry *an_attr_name_map_entry_ptr;
+typedef struct an_attr_name_map_entry {
+  an_attr_name_map_entry_ptr
+		next;
+			/* The next map entry for an attribute of the same
+			   name as this entry. */
+  an_attr_descr_ptr
+		descr;
+			/* The attribute description entry for this map
+			   entry. */
+} an_attr_name_map_entry;
+
+
+an_attr_name_map_entry
+		attr_name_map_entries[KNOWN_ATTR_TABLE_LENGTH];
+			/* Since the number of buckets for attr_name_map is
+			   fixed, we can store the buckets in a fixed array. */
+
+
+static a_boolean compare_for_attr_name_map(a_void_ptr  entry,
+                                           a_void_ptr  key)
+/*
+Compare the attribute name associated with entry (entry is a pointer to an
+entry of type an_attr_name_map_entry) to the given key (key is a pointer to a
+character string).  Return TRUE if they are equal.
+*/
+{
+  char  *name = ((an_attr_name_map_entry_ptr)entry)->descr->name;
+
+  return strcmp(name, (char*)key) == 0;
+}  /* compare_for_attr_name_map */
+
+
+static void init_attr_name_map(void)
+/*
+Initialize the attribute name map.
+*/
+{
+  int  k;
+
+  attr_name_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
+                                   (a_hash_table_size)KNOWN_ATTR_TABLE_LENGTH,
+                                   hash_source_string,
+                                   compare_for_attr_name_map);
+  for (k = 0; k<KNOWN_ATTR_TABLE_LENGTH; ++k) {
+    an_attr_name_map_entry_ptr  *ep;
+    ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map,
+                                                known_attr_table[k].name,
+                                                /*create=*/TRUE);
+    attr_name_map_entries[k].next = *ep;
+    attr_name_map_entries[k].descr = &known_attr_table[k];
+    *ep = &attr_name_map_entries[k];
+  }  /* for */
+}  /* init_attr_name_map */
+
+
+static an_attr_descr_ptr get_attr_descr_for_attribute(an_attribute_ptr  ap)
+/*
+The given attribute has a determined family, name (and namespace name, if
+applicable).  Find and return the associated attribute description record if
+there is an applicable one; otherwise, return NULL.
+*/
+{
+  an_attr_descr_ptr           result = NULL;
+  an_attr_name_map_entry_ptr  *p_ep, ep;
+  p_ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map, ap->name,
+                                              /*create=*/FALSE);
+  if (p_ep != NULL) {
+    check_assertion(*p_ep != NULL);
+    for (ep = *p_ep; ep != NULL; ep = ep->next) {
+      switch (ap->family) {
+        case af_std:
+          if (ep->descr->cond[0] == 'c' && ep->descr->cond[1] == '+') {
+            if (ap->namespace_name != NULL) {
+              /* Check for [<namespace>] that matches ap->namespace_name */
+              sizeof_t  len = strlen(ap->namespace_name);
+              if (ep->descr->cond[2] == '[' &&
+                  strncmp(ap->namespace_name, ep->descr->cond+3, len) == 0 &&
+                  ep->descr->cond[len+3] == ']') {
+                goto descr_found;
+              }  /* if */
+            } else {
+              /* No namespace. */
+              if (ep->descr->cond[2] != '[') goto descr_found;
+            }  /* if */
+          }  /* if */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* for */
+descr_found:
+    if (ep != NULL) {
+      result = ep->descr;
+      ap->kind = (an_attribute_kind)result->attr_kind;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_attr_descr_for_attribute */
+
+
+static void record_empty_attribute_argument(an_attribute_ptr  ap,
+                                            char              *sig)
+/*
+An argument list of the form "()" has been encountered (the current token is
+the left parenthesis) for the given attribute.  sig points to the character
+after the "(" in the attribute's signature.  If the signature does not allow
+for an empty list, issue a diagnostic (and set ap->kind to ak_unrecognized).
+Either way, return an aak_empty attribute argument.
+*/
+{
+  an_attribute_arg_ptr  aap = alloc_attribute_arg();
+
+  aap->kind = (an_attribute_arg_kind)aak_empty;
+  aap->position = pos_curr_token;
+  (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  aap->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (*sig != '*' && *sig != '?' && *sig != ')') {
+    str_error(ec_invalid_empty_attribute_arg_list, ap->name);
+    ap->kind = (an_attribute_kind)ak_unrecognized;
+  }  /* if */
+  ap->arguments = aap;
+}  /* record_empty_attribute_argument */
+
+
+static an_attribute_arg_ptr scan_attr_type_arg(an_attribute_ptr  ap)
+/*
+Scan a (possibly dependent) type argument for the given attribute.  If an
+error occurs, set ap->kind to ak_unrecognized and return NULL.  Otherwise,
+return a pointer to the argument's representation.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL;
+  a_type_ptr            type;
+  a_source_position     arg_pos;
+
+  arg_pos = pos_curr_token;
+  type_name(&type);
+  if (!is_error_type(type)) {
+    aap = alloc_attribute_arg();
+    aap->kind = (an_attribute_arg_kind)aak_type;
+    aap->position = arg_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    aap->end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    aap->variant.type = type;
+  }  /* if */
+  return aap;
+}  /* scan_attr_type_arg */
+
+
+static an_attribute_arg_ptr scan_attr_integer_constant_arg(
+                                                         an_attribute_ptr  ap)
+/*
+Scan a (possibly dependent) integer constant argument for the given attribute.
+If an error occurs, set ap->kind to ak_unrecognized and return NULL.
+Otherwise, return a pointer to the argument's representation.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL;
+  a_constant            constant;
+  a_source_position     arg_pos;
+
+  arg_pos = pos_curr_token;
+  scan_integral_constant_expression(&constant);
+  if (!is_error_constant(&constant)) {
+    aap = alloc_attribute_arg();
+    aap->kind = (an_attribute_arg_kind)aak_constant;
+    aap->position = arg_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    aap->end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    aap->variant.constant = alloc_shareable_constant(&constant);
+  }  /* if */
+  return aap;
+}  /* scan_attr_integer_constant_arg */
+
+
+static void scan_attr_arg_list(an_attribute_ptr  ap,
+                               char              *sig)
+/*
+A non-empty attribute argument list for the given attribute is next.  The
+current token is the first token after the left parenthesis, and sig points
+to the first character after "(" in the given attribute's signature.  Scan
+and record the argument list.  If there is an error, set ap->kind to
+ak_unrecognized.
+*/
+{
+  an_attribute_arg_ptr  *p_aap = &ap->arguments;
+
+  do {
+    /* Skip a "?" indicating that the argument list may terminate at this
+       point. */
+    if (*sig == '?') ++sig;
+    switch (*sig) {
+      case 'c':
+        /* Scan a constant argument that is not a string literal.  Currently
+           only integral constants are supported (or needed). */
+        ++sig;
+        if (*sig == 't' && is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                            DFS_SINGLE_TYPE_REQUIRED)) {
+          /* "ct" and what looks like a type-id follows. */
+          *p_aap = scan_attr_type_arg(ap);
+          ++sig;
+        } else if (*sig == 't' || *sig == 'i') {
+          /* "ct" on what should be an expression, or "ci". */ 
+          *p_aap = scan_attr_integer_constant_arg(ap);
+          ++sig;
+        } else {
+          unexpected_condition();
+        }  /* if */
+        break;
+      case 't':
+        *p_aap = scan_attr_type_arg(ap);
+        ++sig;
+        break;
+      case '*':
+        unexpected_condition();
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (*p_aap != NULL) p_aap = &(*p_aap)->next;
+  } while (loop_token(tok_comma));
+}  /* scan_attr_arg_list */
+
+
+static void scan_attribute_args(an_attribute_ptr  ap,
+                                char              *sig)
+/*
+Scan a parenthesized list of attribute arguments (if one is present) for the
+given attribute.  sig is a string describing the structure of the expected
+arguments (if any).  Diagnostics will be emitted if the actual arguments do
+not match the pattern indicated by sig; in that case, ap->kind is set to
+ak_unrecognized.
+*/
+{
+  add_stop_token(tok_rparen);
+  if (curr_token == tok_lparen) {
+    /* An argument list appears to follow.  Parse it and check it against
+       sig. */
+    if (*sig == '\0') {
+      /* No arguments are allowed on this attribute.  Scan the unexpected list
+         as if the signature were "(*)". */
+      str_error(ec_attribute_takes_no_arguments, ap->name);
+      ap->kind = (an_attribute_kind)ak_unrecognized;
+      sig = "(*)";
+    }  /* if */
+    /* Skip a leading '?' indicating that the argument list was optional. */
+    if (*sig == '?') ++sig;
+    check_assertion(*sig == '(');
+    ++sig;
+    if (next_token() == tok_rparen) {
+      /* An empty attribute argument "()". */
+      record_empty_attribute_argument(ap, sig);
+    } else {
+      /* Skip over the left parenthesis. */
+      (void)get_token();
+      scan_attr_arg_list(ap, sig);
+    }  /* if */
+    check_assertion(curr_token == tok_rparen);
+    (void)get_token();
+  } else if (sig[0] == '(') {
+    /* No arguments are present, but sig indicates that arguments are not
+       optional.  Issue a syntax error. */
+    syntax_error(ec_exp_lparen);
+    ap->kind = (an_attribute_kind)ak_unrecognized;
+  } else {
+    check_assertion(sig[0] == '\0' || sig[0] == '?');
+  }  /* if */
+  remove_stop_token(tok_rparen);
+}  /* scan_attribute_args */
+
+
+an_attribute_ptr *last_attribute_link(an_attribute_ptr  *attributes)
+/*
+Return the address of the last "next" pointer in the list given by *attributes.
+(If *attributes is NULL, return attributes.) If attributes itself is NULL, then
+return NULL.
+*/
+{
+  if (attributes != NULL) {
+    while (*attributes != NULL) {
+      attributes = &(*attributes)->next;
+    }  /* while */
+  }  /* if */
+  return attributes;
+}  /* last_attribute_link */
+
+
+static an_attribute_ptr make_attribute(enum an_attribute_family_tag  family)
+/*
+Allocate and return an attribute of the given family.  Set its position to
+that of the current token.
+*/
+{
+  an_attribute_ptr  ap = alloc_attribute();
+
+  ap->family = family;
+  ap->position = pos_curr_token;
+  return ap;
+}  /* make_attribute */
+
+
+static a_boolean is_valid_attribute_identifier(a_token_kind  tok)
+/*
+Return TRUE if the given token can be used as a standard attribute name or
+attribute namespace.
+*/
+{
+  return tok == tok_identifier || is_keyword_token(tok);
+}  /* is_valid_attribute_identifier */
+
+
+static void record_attribute_name(an_attribute_ptr  ap)
+/*
+The current token is an attribute name (or perhaps an attribute-namespace
+name).  Record the source form of the token as a null-terminated character
+string in ap->name (if needed, it will be moved to ap->namespace_name by the
+caller), making sure that if a name appears multiple times in the translation
+unit, the same string is reused in all cases.  Also update the end position
+of the attribute to be that of the current token (in configurations that
+track end positions).
+*/
+{
+  check_assertion(curr_token == tok_identifier ||
+                  is_keyword_token(curr_token));
+  /* Using the symbol header identifier ensures that the same string is used
+     every time this particular attribute name is encountered. */
+  ap->name = locator_for_curr_id.symbol_header->identifier;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ap->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* record_attribute_name */
+
+
+static an_attribute_ptr scan_std_attribute()
+/*
+Scan a standard attribute of one of the following forms
+    <identifier>
+    <identifier> ( <arg-list> )
+    <identifier> :: <identifier>
+    <identifier> :: <identifier> ( <arg-list> )
+and return a pointer to its representation (or NULL in severe error cases).
+
+<identifier> in this context includes keywords.
+*/
+{
+  an_attribute_ptr   ap = NULL;
+
+  if (!is_valid_attribute_identifier(curr_token)) {
+    syntax_error(ec_exp_identifier);
+  } else {
+    an_attr_descr_ptr  adp;
+    char               *sig = "?(*)";
+    ap = make_attribute(af_std);
+    record_attribute_name(ap);
+    (void)get_token();
+    if (curr_token == tok_colon_colon) {
+      /* The previous name was the attribute namespace name.  The attribute
+         name proper should follow the "::". */
+      unexpected_condition();
+      (void)get_token();
+      if (!is_valid_attribute_identifier(curr_token)) {
+        syntax_error(ec_exp_identifier);
+      } else {
+        ap->namespace_name = ap->name;
+        ap->name = NULL;
+        record_attribute_name(ap);
+        (void)get_token();
+      }  /* if */
+    }  /* if */
+    adp = get_attr_descr_for_attribute(ap);
+    if (adp == NULL) {
+      /* An unrecognized attribute.  Use "?(*)" as its signature, indicating
+         that an argument list is optional, and if it is present, it will just
+         be recorded as a sequence of tokens. */
+      sig = "?(*)";
+    } else {
+      /* The attribute was recognized: Retrieve its signature from its
+         description entry. */
+      sig = adp->sig;
+    }  /* if */
+    scan_attribute_args(ap, sig);
+    if (!record_unrecognized_attributes && adp == NULL) {
+      /* If we are not recording unrecognized attributes, drop unrecognized
+         attributes with a warning. */
+      pos_st_warning(ec_unrecognized_attribute, &ap->position, ap->name);
+      ap = NULL;
+    }  /* if */
+  }  /* if */
+  return ap;
+}  /* scan_std_attribute */
+
+
+static an_attribute_ptr scan_std_attribute_group(an_attribute_location  loc)
+/*
+Scan a standard attribute group of the form
+    [ [  <attribute-list>  ] ]
+*/
+{
+  an_attribute_ptr        attributes = NULL;
+  a_source_position       group_pos;
+
+  group_pos = pos_curr_token;
+  check_assertion(curr_token == tok_lbracket);
+  (void)get_token();
+  check_assertion(curr_token == tok_lbracket);
+  (void)get_token();
+  add_stop_token(tok_rbracket);
+  if (curr_token == tok_rbracket) {
+    /* An empty attribute group: Create a placeholder attribute for it. */
+    attributes = make_attribute(af_std);
+    attributes->kind = (an_attribute_kind)ak_empty_group;
+  } else {
+    /* One or more actual attributes. */
+    an_attribute_ptr  *p_attribute = &attributes;
+    do {
+      add_stop_token(tok_comma);
+      *p_attribute = scan_std_attribute();
+      p_attribute = last_attribute_link(p_attribute);
+      remove_stop_token(tok_comma);
+    } while (loop_token(tok_comma));
+  }  /* if */
+  required_token(tok_rbracket, ec_exp_rbracket);
+  if (attributes != NULL) {
+    /* Create a group and point the attributes to it.  Also set the syntactic
+       location of the attributes. */
+    an_attribute_group_ptr  group = alloc_attribute_group();
+    an_attribute_ptr        ap = attributes;
+    group->position = group_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    group->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    for (; ap != NULL; ap = ap->next) {
+      ap->group = group;
+      ap->syntactic_location = loc;
+    }  /* for */
+  } else {
+    expect_error();
+  }  /* if */
+  required_token(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
+  return attributes;
+}  /* scan_std_attribute_group */
+
+
+static an_attribute_ptr
+		unscanned_attributes;
+			/* A pointer to previously scanned attributes that
+			   should be returned from the next call to
+			   scan_attributes instead. */
+
+an_attribute_ptr scan_attributes(enum an_attribute_location_tag  loc)
+/*
+Scan any attributes that are next (usually, this means "next in the token
+stream", but if there are "unscanned" attributes, return those instead; see
+unscan_attributes).  loc indicates the syntactic context in which the call
+is made.
+*/
+{
+  an_attribute_ptr  attributes = NULL, *p_attributes = &attributes;
+
+  if (unscanned_attributes != NULL) {
+    /* Return previously scanned attributes. */
+    attributes = unscanned_attributes;
+    unscanned_attributes = NULL;
+  } else {
+    a_boolean  new_attr_seen, std_attr_seen = FALSE;
+    do {
+      new_attr_seen = FALSE;
+      if (curr_token == tok_lbracket && std_attributes_enabled &&
+          next_token() == tok_lbracket) {
+        /* Two brackets are next: Those must be introducing a standard
+           attribute construct. */
+        if (std_attr_seen) {
+          /* Unlike GNU attributes, standard attributes in a particular
+             location must all appear in a single group. */
+          pos_error(ec_multiple_std_attr_groups, &pos_curr_token);
+        }  /* if */
+        *p_attributes = scan_std_attribute_group((an_attribute_location)loc);
+        new_attr_seen = std_attr_seen = TRUE;
+      }  /* if */
+      p_attributes = last_attribute_link(p_attributes);
+    } while (new_attr_seen);
+  }  /* if */
+  return attributes;
+}  /* scan_attributes */
+
+
+void unscan_attributes(an_attribute_ptr  attributes)
+/*
+The given list of attributes was returned by a call to scan_attributes, but
+it now appears it doesn't apply to the current context.  E.g., we may be
+parsing a statement starting with a set of attributes, but if the statement
+is a declaration, the attributes should really be scanned by declaration
+processing.  Record the given pointer to be returned by the next call to
+scan_attributes.
+*/
+{
+  check_assertion(unscanned_attributes == NULL);
+  unscanned_attributes = attributes;
+}  /* unscan_attributes */
+
+
+static void check_simple_field_constraints(char              *constr,
+                                           an_attribute_ptr  ap,
+                                           a_field_ptr       field)
+/*
+constr encodes a simple target constraint for a field.  Check that the
+attribute ap applied to the given field matches those constraints.
+*/
+{
+  check_assertion(constr[0] == 'd');
+  if (constr[1] == ':') {
+    a_boolean  err = FALSE;
+    constr += 2;
+    for (; *constr != '\0' && *constr != '|';) {
+      check_assertion(constr[0] == '-' || constr[0] == '+');
+      if (constr[1] == 'b') {
+        /* Check for bit-fields. */
+        if (field->is_bit_field) {
+          if (constr[0] == '-') {
+            pos_st_error(ec_attr_disallows_bit_field, &ap->position, ap->name);
+            err = TRUE;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            pos_st_error(ec_attr_requires_bit_field, &ap->position, ap->name);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        constr += 2;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+    if (err) {
+      /* Treat the attribute as unrecognized for error recovery purposes. */
+      ap->kind = (an_attribute_kind)ak_unrecognized;
+    }  /* if */
+  }  /* if */
+}  /* check_simple_field_constraints */
+
+
+static void check_simple_routine_constraints(char              *constr,
+                                             an_attribute_ptr  ap,
+                                             a_routine_ptr     routine)
+/*
+constr encodes a simple target constraint for a routine.  Check that the
+attribute ap applied to the given routine matches those constraints.
+*/
+{
+  check_assertion(constr[0] == 'r');
+  if (constr[1] == ':') {
+    a_boolean  err = FALSE;
+    constr += 2;
+    for (; *constr != '\0' && *constr != '|';) {
+      check_assertion(constr[0] == '-' || constr[0] == '+');
+      if (constr[1] == 'm') {
+        /* Check for class member functions */
+        if (routine->source_corresp.is_class_member) {
+          if (constr[0] == '-') {
+            pos_st_error(ec_attr_disallows_member_function, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            pos_st_error(ec_attr_requires_member_function, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        constr += 2;
+      } else if (constr[1] == 'v') {
+        /* Check for virtual functions */
+        if (routine->is_virtual) {
+          if (constr[0] == '-') {
+            pos_st_error(ec_attr_disallows_virtual_function, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            pos_st_error(ec_attr_requires_virtual_function, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        constr += 2;
+      } else if (constr[1] == 'p') {
+        /* Check for virtual functions */
+        if (routine->pure_virtual) {
+          if (constr[0] == '-') {
+            pos_st_error(ec_attr_disallows_pure_virtual_function,
+                         &ap->position, ap->name);
+            err = TRUE;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            pos_st_error(ec_attr_requires_pure_virtual_function, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        constr += 2;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+    if (err) {
+      /* Treat the attribute as unrecognized for error recovery purposes. */
+      ap->kind = (an_attribute_kind)ak_unrecognized;
+    }  /* if */
+  }  /* if */
+}  /* check_simple_routine_constraints */
+
+
+static void check_simple_variable_constraints(char              *constr,
+                                              an_attribute_ptr  ap,
+                                              a_variable_ptr     variable)
+/*
+constr encodes a simple target constraint for a variable.  Check that the
+attribute ap applied to the given variable matches those constraints.
+*/
+{
+  check_assertion(constr[0] == 'v');
+  if (constr[1] == ':') {
+    a_boolean  err = FALSE;
+    constr += 2;
+    for (; *constr != '\0' && *constr != '|';) {
+      check_assertion(constr[0] == '-' || constr[0] == '+');
+      if (constr[1] == 'r') {
+        /* Check for register variables. */
+        if (variable->storage_class == (a_storage_class)sc_register) {
+          if (constr[0] == '-') {
+            pos_st_error(ec_attr_disallows_register_storage, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            pos_st_error(ec_attr_requires_register_storage, &ap->position,
+                         ap->name);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
+        constr += 2;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+    if (err) {
+      /* Treat the attribute as unrecognized for error recovery purposes. */
+      ap->kind = (an_attribute_kind)ak_unrecognized;
+    }  /* if */
+  }  /* if */
+}  /* check_simple_variable_constraints */
+
+
+static void check_simple_parameter_constraints(char              *constr,
+                                               an_attribute_ptr  ap,
+                                               a_param_type_ptr  ptp)
+/*
+constr encodes a simple target constraint for a parameter.  Check that the
+attribute ap applied to the parameter represented by ptp matches those
+constraints.
+*/
+{
+  check_assertion(constr[0] == 'p');
+}  /* check_simple_parameter_constraints */
+
+
+static void check_target_entity_constraints(an_attribute_ptr  attributes,
+                                            char              *entity,
+                                            an_il_entry_kind  entity_kind)
+/*
+For each attribute in the given list of attributes, check that it matches a
+target constraint for that attribute as encoded in known_attr_appl_table.
+Diagnostics are issued if no match is found (and in that case, the attribute
+is reclassified as ak_unrecognized.  (No constraints apply to unrecognized
+attributes.)
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    char       *constr = known_attr_appl_table[ap->kind].target_constraints;
+    a_boolean  match_found = FALSE;
+    if (constr[0] == '\0') {
+      /* No (simple) target entity constraint. */
+      continue;
+    }  /* if */
+    for (; !match_found; ++constr) {
+      switch (constr[0]) {
+        case 'd':
+          if (entity_kind == iek_field) {
+            check_simple_field_constraints(constr, ap, (a_field_ptr)entity);
+            match_found = TRUE;
+          }  /* if */
+          break;
+        case 'r':
+          if (entity_kind == iek_routine) {
+            check_simple_routine_constraints(constr, ap,
+                                             (a_routine_ptr)entity);
+            match_found = TRUE;
+          }  /* if */
+          break;
+        case 'v':
+          if (entity_kind == iek_variable) {
+            check_simple_variable_constraints(constr, ap,
+                                              (a_variable_ptr)entity);
+            match_found = TRUE;
+          }  /* if */
+          break;
+        case 'p':
+          if (entity_kind == iek_param_type) {
+            check_simple_parameter_constraints(constr, ap,
+                                               (a_param_type_ptr)entity);
+            match_found = TRUE;
+          }  /* if */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      /* Skip to the next constraint (if any). */
+      while (*constr != '\0' && *constr != '|') ++constr;
+      if (*constr == '\0') break;
+    }  /* for */
+    if (!match_found) {
+      pos_st_error(ec_wrong_entity_for_attribute, &ap->position, ap->name);
+      ap->kind = (an_attribute_kind)ak_unrecognized;
+    }  /* if */
+  }  /* for */
+}  /* check_target_entity_constraints */
+
+
+static int attr_family_seen[(int)ak_last];
+			/* An array used to efficiently detect duplicated
+			   attributes. */
+
+
+static void check_attachment_constraints(an_attribute_ptr  attributes,
+                                         char              *entity,
+                                         an_il_entry_kind  entity_kind)
+/*
+The given group of attributes is about to get attached to the given entity and
+a simple check has been made that the recognized attributes do apply to the
+entity.  Perform some additional checks (e.g., look for duplicated attributes).
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (ap->kind == (an_attribute_kind)ak_unrecognized ||
+        ap->kind == (an_attribute_kind)ak_empty_group) {
+      /* No attachment constraints to check. */
+    } else {
+      if ((attr_family_seen[ap->kind] & (1 << ap->family)) == 0) {
+        attr_family_seen[ap->kind] |= 1 << ap->family;
+      } else {
+        /* A duplicate attribute kind.  Look through the attachment_constraints
+           string to see if that is disallowed. */
+        a_boolean  err = FALSE;
+        char       *constr =
+                       known_attr_appl_table[ap->kind].attachment_constraints;
+        char       fcode = attr_family_code[ap->family];
+        for (; *constr != '\0'; ++constr) {
+          if (constr[0] == fcode && constr[1] == '?' &&
+              constr[2] == '1' && constr[3] == '/' && constr[4] == 'g' &&
+              (constr[5] == '\0' || constr[5] == ',')) {
+            /* Something like "c:1/g" indicating that a standard attribute can
+               appear only once in a group */
+            err = TRUE;
+            ap->kind = (an_attribute_kind)ak_unrecognized;
+            break;
+          }  /* if */
+          /* Skip to the next comma or end-of-string marker. */
+          while (*constr != ',') ++constr;
+        }  /* for */
+        if (err) {
+          pos_diagnostic(err ? es_error : es_remark, ec_attr_twice_in_group,
+                         &ap->position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Clear the attr_family_seen array. */
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    attr_family_seen[ap->kind] = 0;
+  }  /* for */
+}  /* check_attachment_constraints */
+
+
+static an_attribute_ptr* get_attribute_link(char              *entity,
+                                            an_il_entry_kind  entity_kind)
+/*
+Return a pointer to the field of the given entity that points to the attributes
+list recorded for that entity.  (For entities with a source correspondence scp,
+this is &scp.attributes.)
+*/
+{
+  an_attribute_ptr  *p_attributes;
+
+  switch (entity_kind) {
+    case iek_field:
+    case iek_type:
+    case iek_routine:
+    case iek_variable:
+      p_attributes = &((a_source_correspondence*)entity)->attributes;
+      break;
+    case iek_param_type:
+      p_attributes = &((a_param_type*)entity)->attributes;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return p_attributes;
+}  /* get_attribute_link */
+
+
+static void apply_attributes(char              *entity,
+                             an_il_entry_kind  entity_kind)
+/*
+Attempt to apply any unapplied but recognized attributes recorded in the
+given entity to that entity.
+*/
+{
+  an_attribute_ptr  ap = *get_attribute_link(entity, entity_kind);
+
+  for (; ap != NULL; ap = ap->next) {
+    if (!ap->applied &&
+        ap->kind != ak_unrecognized && ap->kind != ak_empty_group) {
+      an_attr_application_fn  *appl_fn =
+                                 known_attr_appl_table[(int)ap->kind].appl_fn;
+      if (appl_fn != NULL) {
+        appl_fn(ap, entity, entity_kind);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* apply_attributes */
+
+
+void attach_attributes(an_attribute_ptr  attributes,
+                       char              *entity,
+                       an_il_entry_kind  entity_kind)
+/*
+Attach the given list of attributes to the given IL entry.  Perform any
+required checking, and update the IL entry's fields if applicable.
+*/
+{
+  check_target_entity_constraints(attributes, entity, entity_kind);
+  check_attachment_constraints(attributes, entity, entity_kind);
+  *last_attribute_link(get_attribute_link(entity, entity_kind)) = attributes;
+  apply_attributes(entity, entity_kind);
+}  /* attach_attributes */
+
+
+an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes)
+/*
+Return a copy of the given list of attributes (which may be NULL).
+*/
+{
+  an_attribute_ptr  result = NULL, *p_attr = &result, ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    *p_attr = alloc_attribute();
+    **p_attr = *ap;
+    p_attr = &(*p_attr)->next;
+  }  /* for */
+  return result;
+}  /* copy_of_attributes_list */
+
+
+an_attribute_ptr f_find_attribute(an_attribute_kind  kind,
+                                  an_attribute_ptr   attributes)
+/*
+Return the first attribute of the given kind in the given list of attributes,
+or NULL if there is no such item.  (Use the macro find_attribute to avoid an
+explicit cast to an_attribute_kind.)
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (ap->kind == kind) break;
+  }  /* for */
+  return ap;
+}  /* f_find_attribute */
+
+
+void mark_primary_decl_attributes(an_attribute_ptr  attributes)
+/*
+Set the on_primary_decl flag to TRUE in each of the attribute entries in the
+given list.
+*/
+{
+  an_attribute_ptr  ap;
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    ap->on_primary_declaration = TRUE;
+  }  /* for */
+}  /* mark_primary_decl_attributes */
+
+
+#if !USER_CONTROL_OF_STRUCT_PACKING
+/*ARGSUSED*/  /* entity and entity_kind are unused in some configurations. */
+#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
+static void apply_align_attr(an_attribute_ptr  ap,
+                             char              *entity,
+                             an_il_entry_kind  entity_kind)
+/*
+The given entity must be a variable or a data member.  Apply the "align"
+attribute to it.
+*/
+{
+#if USER_CONTROL_OF_STRUCT_PACKING
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_targ_alignment      alignment = 0;
+  a_boolean             apply_value = FALSE;
+  check_assertion(aap != NULL);
+  if (aap->kind == (an_attribute_arg_kind)aak_type) {
+    alignment = alignment_of_type(aap->variant.type);
+  } else if (aap->kind == (an_attribute_arg_kind)aak_constant) {
+    a_host_large_integer  value = 0;
+    /* Don't apply the alignment if the argument is template dependent, or if
+       it produced an error constant. */
+    apply_value =
+              aap->variant.constant->kind == (a_constant_repr_kind)ck_integer;
+    if (apply_value) {
+      a_boolean  ovflo = FALSE;
+      value = value_of_integer_constant(aap->variant.constant, &ovflo);
+      if (!ovflo && value == 0) {
+        /* The standard attribute [[align(0)]] is simply ignored. */
+        apply_value = FALSE;
+      } else if (ovflo || !check_pack_alignment_value(value, &alignment)) {
+        pos_error(ec_bad_attribute_alignment, &aap->position);
+        apply_value = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!apply_value) {
+    /* Nothing more to do. */
+  } else if (entity_kind == iek_field) {
+    a_field_ptr  fp = (a_field_ptr)entity;
+    if (alignment > fp->alignment) fp->alignment = alignment;
+    ap->applied = TRUE;
+  } else if (entity_kind == iek_variable) {
+    a_variable_ptr  vp = (a_variable_ptr)entity;
+    if (alignment > vp->alignment) vp->alignment = alignment;
+    if (!vp->is_template_static_data_member) {
+      ap->applied = TRUE;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+#else /* !USER_CONTROL_OF_STRUCT_PACKING */
+  /* The "align" attribute is not recognized. */
+  unexpected_condition();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+}  /* apply_align_attr */
+
+
+static void apply_noreturn_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+The given entity must be a template or a routine.  Apply the "noreturn"
+attribute to it.
+*/
+{
+  if (entity_kind == iek_routine) {
+    a_routine_ptr       rp = (a_routine_ptr)entity;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->extra_info;
+    if (dps != NULL && !dps->first_decl) {
+      /* A redeclaration: The attribute should have appeared on the first
+         declaration.  (It is tempting to use rp->type to test whether the
+         [[noreturn]] attribute appeared previously.  However, that doesn't
+         work with block-extern declarations in some cases.  For example:
+           void g1() {  [[noreturn]] void f(); }
+           void g2() {
+             [[noreturn]] void f();  // [[noreturn]] from g1() is not indicated
+           }                         // in rp->type.
+         Instead we may have to use the underlying sk_extern_routine symbol.
+         member functions).
+      */
+      a_type_ptr  prev_type;
+      if (rp->source_corresp.is_class_member ||
+          rp->type->variant.routine.extra_info->does_not_return) {
+        prev_type = rp->type;
+      } else {
+        a_symbol_locator  loc, eloc;
+        a_symbol_ptr      esym;
+        make_locator_for_symbol(symbol_for(rp), &loc);
+        esym = find_external_symbol(&loc, rp->source_corresp.name_linkage,
+                                    rp->type, &eloc);
+        check_assertion(esym != NULL &&
+                        esym->kind == (a_symbol_kind)sk_extern_routine);
+        prev_type = esym->variant.extern_symbol_descr->type;
+      }  /* if */
+      if (!prev_type->variant.routine.extra_info->does_not_return) {
+        pos_st_error(ec_attr_must_also_appear_in_first_declaration,
+                     &ap->position, ap->name);
+      }  /* if */
+    }  /* if */
+    ensure_routine_type_is_modifiable(&rp->type);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+    if (!is_template_dependent_type(rp->type)) {
+      ap->applied = TRUE;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* apply_noreturn_attr */
+
+
+static void apply_final_attr(an_attribute_ptr  ap,
+                             char              *entity,
+                             an_il_entry_kind  entity_kind)
+/*
+The given entity must be a member function or a class.  Apply the "final"
+attribute to it.
+*/
+{
+  if (entity_kind == iek_routine) {
+    a_routine_ptr  rp = (a_routine_ptr)entity;
+    a_type_ptr     parent_class = parent_class_of(rp);
+    if (!is_incomplete_type(parent_class)) {
+      /* Since the class is complete, the attribute is being applied to an
+         out-of-class member definition, which is invalid. */
+      pos_st_error(ec_attr_must_appear_in_class_definition,
+                   &ap->position, ap->name);
+    } else {
+      rp->sealed = TRUE;
+    }  /* if */
+  } else if (entity_kind == iek_type) {
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* apply_final_attr */
+
+
+static void apply_carries_dependency_attr(an_attribute_ptr  ap,
+                                          char              *entity,
+                                          an_il_entry_kind  entity_kind)
+/*
+The given entity must be a parameter or a routine.  Apply the 
+"carries_dependency" attribute to it.
+*/
+{
+/* FIXME:
+   Check that carries_dependency was on the first declaration if this is a
+   redeclaration.
+*/
+}  /* apply_carries_dependency_attr */
 
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -2388,31 +3661,6 @@ messages about any invalid attributes.
 }  /* apply_gnu_attributes_to_field */
 
 
-static void ensure_routine_type_is_modifiable(a_type_ptr  *tp)
-/*
-Before applying an attribute to the type field of a routine, we must make
-sure that that type is not a typedef (which could be shared with other
-routines).  This makes a private copy of the underlying type if that is
-the case.
-*/
-{
-  if ((*tp)->kind == (a_type_kind)tk_routine ||
-      (*tp)->kind == (a_type_kind)tk_error) {
-    /* Nothing to be done. */
-  } else if ((*tp)->kind == (a_type_kind)tk_typeref &&
-             (typeref_is_typedef(*tp) ||
-              typeref_is_decltype_or_typeof(*tp))) {
-    /* We cannot apply the attribute to the type underlying the typedef.
-       So make a copy of that type. */
-    *tp = copy_type_and_apply_gnu_attributes((a_gnu_attribute_ptr)NULL,
-                                             skip_typerefs(*tp),
-                                             /*is_typedef=*/FALSE);
-  } else {
-    unexpected_condition();
-  }  /* if */
-}  /* ensure_routine_type_is_modifiable */
-
-
 static void record_nonnull_parameter(a_type_ptr         *rtp,
                                      int                param_num,
                                      a_source_position  *diag_pos)
@@ -3597,6 +4845,7 @@ that should be propagated to its member functions.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* copy_class_attributes_to_routine */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void attribute_one_time_init(void)
 /*
@@ -3604,6 +4853,8 @@ Do one-time initialization of variables related to the processing of
 attributes.
 */
 {
+  init_attr_name_map();
+#if GNU_EXTENSIONS_ALLOWED
 #if CHECKING
   /* Check that the table of mode names is correctly initialized. */
   if (type_mode_kind_names[(int)tmk_last] == NULL ||
@@ -3626,10 +4877,12 @@ attributes.
      "attribute_one_time_init: initialization of attribute_kind_names is bad");
   }  /* if */
 #endif /* CHECKING */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Save variables from attribute.h and attribute.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+#if GNU_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_gnu_attributes),
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       pch_saved_var_array_elem(ELF_visibility_stack),
@@ -3639,6 +4892,8 @@ attributes.
 #endif /* DEBUG */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       pch_saved_var_array_elem(asm_name_map),
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
       pch_saved_var_array_elem(alias_fixup_list),
       pch_saved_var_array_elem(last_alias_fixup),
       pch_saved_var_array_elem(avail_alias_fixups),
@@ -3651,11 +4906,16 @@ attributes.
       pch_saved_var_array_elem(pragma_extname_string_space),
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #endif /* DEBUG */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+      pch_saved_var_array_elem(attr_name_map),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   register_trans_unit_variable(asm_name_map);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(unscanned_attributes);
 }  /* attribute_one_time_init */
 
 
@@ -3665,14 +4925,14 @@ Initialize variables related to GNU attributes that are specific to a given
 translation unit.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   asm_name_map = alloc_hash_table(FRONT_END_REGION_NUMBER,
                                   (a_hash_table_size)1000, hash_source_string,
                                   compare_for_asm_name_map);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* attribute_trans_unit_init */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 
 void attribute_init(void)
 /*
@@ -3680,6 +4940,7 @@ Initialize static variables related to attribute processing that must
 be initialized for each compilation.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 #if GNU_EXTENSIONS_ALLOWED
   avail_gnu_attributes = NULL;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -3702,8 +4963,10 @@ be initialized for each compilation.
   num_gnu_attributes_allocated = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 }  /* attribute_init */
 
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 #if DEBUG
 
 unsigned long show_attribute_space_used(void)

@@ -299,6 +299,54 @@ not need to be cached.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
+static void prescan_std_attribute(a_disambig_state_ptr  state,
+                                  a_disambig_flag_set   flags)
+/*
+Prescan a C++0x attribute list of the form:
+
+  [[ attribute-list [opt] ]]
+
+When this routine is called, the first left bracket is the current token.
+This routine does not actually enforce the syntax of the elements of the
+attribute list.  It simply requires that the brackets be properly nested
+(the same number of left and right brackets).
+*/
+{
+  check_assertion(curr_token == tok_lbracket);
+  /* Bypass the first left parenthesis. */
+  cache_curr_token(&state->cache);
+  (void)get_token();
+  if (curr_token == tok_lbracket) {
+    int  bracket_count = 0;
+    /* Bypass the second left bracket. */
+    cache_curr_token(&state->cache);
+    (void)get_token();
+    /* Look for the closing parenthesis of the attribute. */
+    for (;;) {
+      if (state != NULL) cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+      if (curr_token == tok_rbracket) {
+        /* A right bracket.  Break out if this is a zero-level bracket. */
+        if (bracket_count == 0) break;
+        bracket_count--;
+      } else if (curr_token == tok_lbracket) {
+        bracket_count++;   
+      } else if (curr_token == tok_end_of_source) {
+        break;
+      }  /* if */
+    }  /* for */
+    /* We should now be at the closing "]]" of the attribute. */
+    if (curr_token == tok_rbracket) {
+      cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+      if (curr_token == tok_rbracket) {
+        cache_curr_token(&state->cache);
+        get_token_and_coalesce_if_identifier(flags);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* prescan_std_attribute */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 static void prescan_gnu_attribute(a_disambig_state_ptr  state,
@@ -651,6 +699,13 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         type_specifier_seen = TRUE;
         prescan_typeof_operator(state, flags);
         break;
+      case tok_lbracket:
+        if (std_attributes_enabled && next_token() == tok_lbracket) {
+          prescan_std_attribute(state, flags);
+          next_token_fetched = TRUE;
+          break;
+        }  /* if */
+        /*FALLTHROUGH*/
       default:
         is_decl_specifier_token = FALSE;
         break;
