@@ -3,9 +3,9 @@ Version 4.2
 9/22/09  [EDGcpfe/9513,EDGcpfe/9590,EDGcpfe/10105]
 GNU C compatibility: Undefined "static" functions
 
-Ordinarily, referencing a "static" function that is not defined results in a
+Ordinarily, referencing a static function that is not defined results in a
 compile-time error (since such a reference cannot normally be resolved).  Now,
-in GNU C mode, such references cause the "static" function to be given external
+in GNU C mode, such references cause the static function to be given external
 linkage instead (i.e., as if the function had been declared "extern") and a
 warning is issued.  For example:
 
