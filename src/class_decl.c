@@ -14704,8 +14704,7 @@ passed via template_decl.
     add_stop_token(tok_colon);
     add_stop_token(tok_try);
     clear_func_info(&func_info);
-    decl_state->qualifiers = saved_qualifiers;
-    decl_state->qualifiers_pos = saved_qualifiers_pos;
+    /* Initialize certain decl_info fields each time through the loop. */
     decl_info.is_unnamed_field = FALSE;
     decl_info.decl_state.sym = NULL;
     if (!decl_info.is_first_in_declarator_list &&
@@ -15309,14 +15308,17 @@ passed via template_decl.
     *decl_state->p_gnu_declarator_attributes = NULL;
     free_gnu_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    check_use_of_auto_type(decl_state);
     if (curr_token == tok_comma) {
+      /* Another declarator is presumably coming next. */
+      check_use_of_auto_type(decl_state);
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
       run_end_of_parse_actions(decl_state);
+      /* Reset certain decl_state fields. */
+      start_secondary_declarator(decl_state);
+      decl_state->qualifiers = saved_qualifiers;
+      decl_state->qualifiers_pos = saved_qualifiers_pos;
     }  /* if */
-    /* Initialize certain decl_info fields each time through the loop. */
-    start_secondary_declarator(decl_state);
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
