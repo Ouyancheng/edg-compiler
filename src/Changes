@@ -20,8 +20,8 @@ warning is issued.  For example:
   }
 
 Static aliases (declared with the GNU attribute "alias") are now also treated
-differently: No diagnostic is issued when they are undefined (and they aren't
-made extern either).  For example:
+differently: No diagnostic is issued when they are undefined (and the linkage
+of the alias remains internal).  For example:
 
   static void f() __attribute((alias("xx")));
             /* Now accepted (without a diagnostic). */
