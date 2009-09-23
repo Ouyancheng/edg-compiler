@@ -5144,8 +5144,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                                          (a_name_linkage_kind)nlk_external)) &&
              !routine_defined(rout_ptr)) {
 #if GNU_EXTENSIONS_ALLOWED
-          if (rout_ptr->is_weakref) {
-            /* GNU weakref entities have no definition. */
+          if (rout_ptr->is_weakref || rout_ptr->aliased_routine != NULL) {
+            /* GNU weakref entities have no definition.  Static routine
+               aliases may alias extern routines, which are presumably
+               defined in other translation units.  (If they alias another
+               static routine, any needed diagnostic will be issued on the
+               aliased routine.) */
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
