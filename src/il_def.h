@@ -6538,7 +6538,8 @@ typedef struct a_type {
 			/* When this typeref represents a type (specifically,
 			   a pointer to member type) that has been lowered
 			   to something, this points to a copy of the original
-			   type.  NULL otherwise. */
+			   type.  NULL otherwise.  For internal use in
+			   IL lowering only. */
 #endif /* DO_IL_LOWERING */
 #if UPC_EXTENSIONS_ALLOWED
       a_upc_block_size
