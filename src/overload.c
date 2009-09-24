@@ -4706,7 +4706,7 @@ other.  Return
        function can serve as a tie-breaker. */
     /* More type qualifiers were added on cfp2, so cfp1 is better. */
     cmp = 1;
-  } else if (microsoft_bugs &&
+  } else if ((microsoft_bugs || sun_mode) &&
              (cmp = compare_copy_constructors_for_microsoft(cfp1, cfp2)) != 0){
     /* MSVC++ favors copy constructors over other functions, as a way
        of making their funny "copy-initialization is direct-initialization"
