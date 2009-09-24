@@ -1,5 +1,30 @@
 Version 4.2
 
+9/24/09  [EDGcpfe/10074]
+Sun mode: copy constructors better than other functions
+
+Sun C++ mode now favors copy constructors over other kinds of functions in
+some cases in overload resolution.  This reflects some fuzziness in
+the Sun compiler's implementation of copy-initialization versus
+direct-initialization.
+
+  struct A {
+    A(const A &);
+    A(char);
+  };
+  struct B {
+    B(const B &);
+    B(char);
+    operator char () const;
+    operator A () const;
+  };
+  int main() {
+    A a = (char)1;
+    B b = (char)2;
+    a = (A)b;  // Ambiguous, but now accepted in Sun mode
+  }
+
+
 9/22/09  [EDGcpfe/9513,EDGcpfe/9590,EDGcpfe/10105]
 GNU C compatibility: Undefined static functions
 
