@@ -1,7 +1,7 @@
 Version 4.2
 
 9/22/09  [EDGcpfe/9513,EDGcpfe/9590,EDGcpfe/10105]
-GNU C compatibility: Undefined "static" functions
+GNU C compatibility: Undefined static functions
 
 Ordinarily, referencing a static function that is not defined results in a
 compile-time error (since such a reference cannot normally be resolved).  Now,
