@@ -1042,10 +1042,29 @@ back end is being used.
    if IL lowering is run, generation of source sequence entries is
    suppressed. */
 /* Special switch that says "trust me, I really want this". */
-#ifndef ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+#if !defined(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING) || \
+    !ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
  #error -- Source sequence lists are useless when doing IL lowering 
-#endif /* ifndef ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+#endif /* !defined(ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING) ... */
 #endif /* DO_IL_LOWERING && GENERATE_SOURCE_SEQUENCE_LISTS */
+/* If PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING is defined,
+   source sequence entries are generated before and preserved by
+   lowering (this mode is considered unusual and is not as well
+   debugged as most modes).  Note that
+   ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING must be TRUE as well. */
+#ifndef PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+#define PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING FALSE
+#endif /* ifndef PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+#if PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+ #error -- PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING cannot be TRUE \
+           if GENERATE_SOURCE_SEQUENCE_LISTS is FALSE
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+#if !DO_IL_LOWERING
+ #error -- PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING cannot be TRUE \
+           if DO_IL_LOWERING is FALSE
+#endif /* !DO_IL_LOWERING */
+#endif /* PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they

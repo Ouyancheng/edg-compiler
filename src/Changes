@@ -1,5 +1,23 @@
 Version 4.2
 
+9/25/09  [EDGcpfe/10123]
+Source sequence entries with IL lowering
+
+Ordinarily, source sequence entries cannot be enabled when IL lowering is
+done, because that's sort of useless; IL lowering doesn't maintain them
+properly.  For those who really want that anyway, there has been a
+special "trust me, I know what I'm doing" flag called
+ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING.  However, as of version
+4.0, that merely allows the feature to be compiled in; the generation
+of source sequence entries is still suppressed when IL lowering will
+be done.  To go one step further to "trust me, I really know what I'm
+doing", we've now added another flag,
+PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING, which allows the
+source sequence entries to be generated and then preserves them
+in IL lowering.  This is still not recommended, but now those who
+really want to do it have a way of requesting it.
+
+
 9/24/09  [EDGcpfe/10074]
 Sun mode: copy constructors better than other functions
 

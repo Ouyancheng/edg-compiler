@@ -8291,15 +8291,16 @@ given translation unit.
   depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Source sequence entries are always suppressed when compiling secondary
      translation units. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if DO_IL_LOWERING
-  source_sequence_entries_disallowed = !is_primary_translation_unit ||
-                                       (C_mode() ? c99_il_lowering_needed() :
-                                                   il_lowering_needed());
-#else /* !DO_IL_LOWERING */
   source_sequence_entries_disallowed = !is_primary_translation_unit;
+#if DO_IL_LOWERING
+  /* Suppress source sequence entries when IL lowering is done. */
+#if !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+  source_sequence_entries_disallowed |= (C_mode() ? c99_il_lowering_needed() :
+                                                    il_lowering_needed());
+#endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* scope_stk_trans_unit_init */

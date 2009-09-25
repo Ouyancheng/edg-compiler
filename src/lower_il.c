@@ -17674,7 +17674,11 @@ declaration statements (e.g., in casts).
           p_entry = &(*p_entry)->next;
         }  /* if */
       }  /* while */
-      if ((*p_stmt)->variant.decl.entities == NULL) {
+      if ((*p_stmt)->variant.decl.entities == NULL
+#if PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+           && (*p_stmt)->source_sequence_entry == NULL
+#endif /* PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+                                                      ) {
         /* If there are no entities left associated with the statement, remove
            the statement altogether. */
         *p_stmt = (*p_stmt)->next;
@@ -18104,7 +18108,11 @@ of variables that have been promoted.
           p_entry = &(*p_entry)->next;
         }  /* if */
       }  /* while */
-      if ((*p_stmt)->variant.decl.entities == NULL) {
+      if ((*p_stmt)->variant.decl.entities == NULL
+#if PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
+           && (*p_stmt)->source_sequence_entry == NULL
+#endif /* PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
+                                                      ) {
         /* If there are no entities left associated with the statement, remove
            the statement altogether. */
         *p_stmt = (*p_stmt)->next;
@@ -18890,12 +18898,14 @@ Do IL lowering of the indicated scope and everything under it.
   lower_routine_list(scope->routines);
   lower_asm_entry_list(scope->asm_entries);
   lower_namespace_list(scope->namespaces);
+#if !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
   /* Remove using-declarations, because they prevent the removal of otherwise
      unreferenced routines.  This can be done by just clearing the pointer
      only because source sequence entries are not maintained when IL lowering
      is done.  If a back end would like to see using-declarations for some
      reason, this code can just be removed. */
   scope->using_decls = NULL;
+#endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #if RECORD_HIDDEN_NAMES_IN_IL
   /* Remove the hidden names list.  This list is not maintained during
      lowering (e.g., when removing property fields in lower_field_list)
@@ -18903,9 +18913,11 @@ Do IL lowering of the indicated scope and everything under it.
   scope->hidden_names = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
   check_assertion_str2(source_sequence_entries_disallowed,
                        "lower_scope: source sequence entries not allowed",
                        "with IL lowering of using decls");
+#endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (scope_kind == (a_scope_kind)sck_function) {
     /* A function scope. */
