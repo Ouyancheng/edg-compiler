@@ -1,5 +1,20 @@
 Version 4.2
 
+9/28/09  [EDGcpfe/10121]
+Assertion failure in add_discriminator in IA-64 ABI configurations
+
+In IA-64 ABI configurations where ABI_COMPATIBILITY_VERSION < 401,
+the mangling of certain names (e.g., a nested class name in a local class)
+could result in an assertion failure in lower_name.c (in add_discriminator).
+This regression was introduced in 4.1 and is now fixed.  For example:
+
+  void f(void) {
+    struct A {
+      struct B {};  // had caused an assertion failure in add_discriminator
+    };
+  }
+
+
 9/25/09  [EDGcpfe/10123]
 Source sequence entries with IL lowering
 

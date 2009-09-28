@@ -3787,7 +3787,16 @@ was added to the Itanium ABI in 2009 to make discriminators unambiguous:
 
 */
 {
+#if ABI_COMPATIBILITY_VERSION >= 401
+  /* Make sure the discriminator has been computed. */
   check_assertion(discriminator != 0);
+#else /* ABI_COMPATIBILITY_VERSION < 401 */
+  /* When emulating older ABI versions, this routine may be called for
+     an entity whose discriminator is zero, indicating that no discriminator
+     has been computed (because discriminators aren't computed for all
+     objects).  In this case, simply omit the discriminator from the mangled
+     name. */
+#endif /* ABI_COMPATIBILITY_VERSION >= 401 */
   if (discriminator > 1) {
     unsigned long n = discriminator - 2;
     if (emit_underscore) {
