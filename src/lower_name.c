@@ -5070,7 +5070,7 @@ such.
       check_assertion(is_immediate_enum_type(type));
       mangled_unnamed_type_encoding(type, mctl);
     } else {
-      /* Named class or typedef. */
+      /* Named enum or typedef. */
 #if IA64_ABI
       mangled_name_with_length(name, mctl);
 #if ABI_COMPATIBILITY_VERSION < 401
@@ -5089,7 +5089,7 @@ such.
       /* If the enum is a local (non-member) enum, put out a suffix
          identifying the function.  The id_number is arbitrarily specified as
          zero, relying on the name above to differentiate from other local
-         enums.  */
+         enums. */
       a_routine_ptr enclosing_routine =
                                       enclosing_routine_for_local_type(type);
       add_local_name_suffix((unsigned long)0, enclosing_routine, mctl);

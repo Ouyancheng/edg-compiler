@@ -659,7 +659,7 @@ unnamed type ends up being an "anonymous union".
   } else if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
       class_type_supp(sym->variant.class_struct_union.type) 
                                                   ->is_lambda_closure_class) {
-    /* Closure types have their own numbering numbering convention. */
+    /* Closure types have their own numbering convention. */
     a_class_symbol_supplement_ptr
                             cssp = sym->variant.class_struct_union.extra_info;
     if (entities_are_recorded_for_current_expression()) {
