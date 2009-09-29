@@ -615,6 +615,7 @@ check_abbreviation()
 --friend_injection
 --g++
 --gcc
+--gcc89_inlining
 --gnu_version
 --guiding_decls
 --ignore_std
@@ -1191,6 +1192,7 @@ process_option()
          --no_alternative_tokens | \
          --inlining | \
          --no_inlining | \
+         --gcc89_inlining | \
          --svr4 | \
          --no_svr4 | \
          --brief_diagnostics | \
