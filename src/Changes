@@ -1,5 +1,26 @@
 Version 4.2
 
+9/29/09  [EDGcpfe/10130]
+Constant field selection in non-constant expression in Microsoft mode
+
+To emulate MSVC++, the front end in Microsoft mode now treats an
+expression like x.k, where k is a member constant (such as an enumerator),
+as a constant in non-constant expressions also.  It was already treated
+as a constant in constant expressions.
+
+  struct I {
+    enum {e = 1};
+  };
+  struct C {
+    void foo();
+    I i;
+  };
+  void C::foo() {
+    const int elem = i.e;
+    int arr[elem];  // Now accepted; elem is a constant-valued variable
+  }
+
+
 9/28/09  [EDGcpfe/10121]
 Assertion failure in add_discriminator in IA-64 ABI configurations
 
