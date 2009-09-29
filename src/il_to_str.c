@@ -5173,6 +5173,14 @@ Do the output in the way described by octl.
     if (rout->always_inline) {
       form_simple_attribute("__always_inline__", &need_leading_space, octl);
     }  /* if */
+#if GCC_IS_GENERATED_CODE_TARGET || \
+    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
+    /* The "gnu_inline" attribute isn't recognized by older GNU compilers, but
+       on those compilers the associated semantics are enabled by default. */
+    if (rout->gnu_c89_inline && gnu_target_version_number >= 40200) {
+      form_simple_attribute("__gnu_inline__", &need_leading_space, octl);
+    }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
     if (rout->never_throws) {
       form_simple_attribute("__nothrow__", &need_leading_space, octl);
     }  /* if */

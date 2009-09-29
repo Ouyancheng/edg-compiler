@@ -2077,6 +2077,7 @@ pointed to be "pos" can be freed when this routine returns.
     case gak_always_inline:
     case gak_nothrow:
     case gak_warn_unused_result:
+    case gak_gnu_inline:
       break;
     case gak_section:
       ap->variant.section = NULL;
@@ -2170,6 +2171,7 @@ Return a copy of the complete attribute list.
       case gak_always_inline:
       case gak_nothrow:
       case gak_warn_unused_result:
+      case gak_gnu_inline:
         /* No variant fields. */
         break;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2926,6 +2928,7 @@ function returns the address of the last attribute.
           case gak_weakref:
           case gak_nonnull:
           case gak_warn_unused_result:
+          case gak_gnu_inline:
             /* These attributes do not take arguments (or the arguments are
                optional). */
             break;
@@ -3885,10 +3888,12 @@ diagnostics as appropriate.
 
 
 void apply_gnu_attributes_to_routine(a_gnu_attribute_ptr  attributes,
-                                     a_routine_ptr        rp)
+                                     a_routine_ptr        rp,
+                                     a_boolean            is_redecl)
 /*
-Apply the attributes to the indicated routine.  Issue diagnostic
-messages about any invalid attributes.
+Apply the attributes to the indicated routine.  Issue diagnostic messages
+about any invalid attributes.  is_redecl is TRUE if this is called for
+attributes applied to a redeclaration.
 */
 {
   a_gnu_attribute_ptr  ap;
@@ -4142,6 +4147,17 @@ messages about any invalid attributes.
         }
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case gak_gnu_inline:
+        if (!rp->is_inline) {
+          pos_warning(ec_gnu_inline_requires_inline, &ap->position);
+        } else if (is_redecl) {
+          if (!rp->gnu_c89_inline) {
+            pos_error(ec_first_decl_not_gnu_inline, &ap->position);
+          }  /* if */
+        } else {
+          rp->gnu_c89_inline = TRUE;
+        }  /* if */
+        break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case gak_aligned:
         if (gnu_version >= 40300) {
@@ -4936,6 +4952,19 @@ that should be propagated to its member functions.
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* copy_class_attributes_to_routine */
+
+
+a_boolean gnu_attributes_include_kind(a_gnu_attribute_ptr   ap,
+                                      a_gnu_attribute_kind  kind)
+/*
+The given attributes list includes an attribute of the given kind.
+*/
+{
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->kind == kind) break;
+  }  /* if */
+  return ap != NULL;
+}  /* gnu_attributes_include_kind */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

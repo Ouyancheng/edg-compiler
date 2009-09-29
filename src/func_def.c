@@ -1547,7 +1547,8 @@ information (from the matching in-class declaration) is returned through
     if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (dps->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(dps->gnu_attributes, rp);
+      apply_gnu_attributes_to_routine(dps->gnu_attributes, rp,
+                                      /*is_redecl=*/TRUE);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

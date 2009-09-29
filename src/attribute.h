@@ -105,6 +105,7 @@ enum a_gnu_attribute_kind_tag {
 #if GNU_VECTOR_TYPES_ALLOWED
   gak_vector_size,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  gak_gnu_inline,
   gak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -156,16 +157,17 @@ EXTERN char *attribute_kind_names[(int)gak_last + 1]
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 /* gak_init_priority */              "init_priority",
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-/* gak_strong */			    "strong", 
-/* gak_nonnull */		    "nonnull", 
-/* gak_noinline */		    "noinline", 
-/* gak_always_inline */		    "always_inline", 
-/* gak_cleanup */		    "cleanup", 
-/* gak_nothrow */		    "nothrow", 
-/* gak_warn_unused_result */	    "warn_unused_result", 
+/* gak_strong */		     "strong", 
+/* gak_nonnull */		     "nonnull", 
+/* gak_noinline */		     "noinline", 
+/* gak_always_inline */		     "always_inline", 
+/* gak_cleanup */		     "cleanup", 
+/* gak_nothrow */		     "nothrow", 
+/* gak_warn_unused_result */	     "warn_unused_result", 
 #if GNU_VECTOR_TYPES_ALLOWED
 /* gak_vector_size */                "vector_size", 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+/* gak_gnu_inline */                 "gnu_inline", 
 /* gak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -337,7 +339,8 @@ extern void apply_gnu_attributes_to_field(a_gnu_attribute_ptr  attributes,
                                           a_field_ptr          fp);
 
 extern void apply_gnu_attributes_to_routine(a_gnu_attribute_ptr  attributes,
-                                            a_routine_ptr        rp);
+                                            a_routine_ptr        rp,
+                                            a_boolean            is_redecl);
 
 extern void apply_gnu_attributes_to_type(a_gnu_attribute_ptr attributes,
                                          a_type_ptr          tp,
@@ -377,6 +380,9 @@ extern void copy_class_attributes_to_variable(a_type_ptr      class_type,
 
 extern void copy_class_attributes_to_routine(a_type_ptr     class_type,
                                              a_routine_ptr  routine);
+
+extern a_boolean gnu_attributes_include_kind(a_gnu_attribute_ptr   ap,
+                                             a_gnu_attribute_kind  kind);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

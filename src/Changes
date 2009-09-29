@@ -1,5 +1,42 @@
 Version 4.2
 
+9/29/09  [EDGcpfe/8555]
+GNU C99 inlining modes
+
+In C99, an "inline" function definition that is not declared with a storage
+class like "extern" or "static" is used only for inlining: No linkable version
+is emitted.  If, however, the function is declared with "extern" then an
+externally linkage copy is emitted.  Before C99 came along, GNU C89 supported
+a similar inlining model with the opposite convention: "extern" indicates that
+the function should not be emitted with external linkage.
+
+Early versions of GCC followed the GNU C89 convention even in C99 mode, but
+starting with GCC 4.3, the standard C99 convention is followed (in C99 mode;
+not in the default C89 mode).  We now emulate that behavior when gnu_version
+>= 40300.
+
+GCC also provides some transition aids that we emulate.  First, a command-line
+option (ours is "--gcc89_inlining") is available to force the GNU C89 rules
+for "inline".  Second, an attribute "gnu_inline" allows the GNU C89 rules to
+be enforced on specific functions.  For example:
+
+  __attribute((gnu_inline)) extern inline void g() {}
+    // No copy of g is emitted for external linkage, even when
+    // gnu_version >= 40300.
+  int main() {
+    g();
+  }
+
+(Our implementation of this attribute is slightly more permissive that GCC's
+in that GCC requires the attribute on every declaration of a specific function,
+while we only require it on the first declaration of the function.)
+
+Finally, when gnu_version >= 40103, the macro __GNUC_GNU_INLINE__ is
+predefined to "1" if the GNU C89 rules are in effect, or the macro
+__GNUC_STDC_INLINE__ is predefined to "1" if the standard C99 rules are in
+effect.
+
+
 9/29/09  [EDGcpfe/10130]
 Constant field selection in non-constant expression in Microsoft mode
 

@@ -2778,6 +2778,9 @@ Display the indicated routine.
   if (ptr->never_throws) {
     disp_boolean("never_throws", TRUE);
   }  /* if */
+  if (ptr->gnu_c89_inline) {
+    disp_boolean("gnu_c89_inline", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {

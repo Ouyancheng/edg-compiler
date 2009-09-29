@@ -7546,6 +7546,22 @@ Enter symbols for the predefined macros of GNU C and C++.
                              "__GNUG__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+  } else {
+    /* GNU C mode. */
+    /* GCC 4.1.3 and later define a macro to indicate whether the GNU C89 or
+       standard C99 rules are in effect for "inline". */
+    if (gnu_version < 40103) {
+      /* No macro to define. */
+    } else if (std_c99_inlining) {
+      (void)enter_predef_macro("1", "__GNUC_STDC_INLINE__",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    } else {
+      check_assertion(gnu_c89_inlining);
+      (void)enter_predef_macro("1", "__GNUC_GNU_INLINE__",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   }  /* if */
   (void)enter_predef_macro(conv_unsigned_long_to_str(minor_num),
                            "__GNUC_MINOR__",

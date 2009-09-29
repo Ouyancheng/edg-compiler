@@ -8743,7 +8743,8 @@ implicitly declared member functions.
   if (gpp_mode) {
     /* Apply any GNU attributes to the routine. */
     if (decl_state->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(decl_state->gnu_attributes, rtn);
+      apply_gnu_attributes_to_routine(decl_state->gnu_attributes, rtn,
+                                      /*is_redecl=*/FALSE);
     }  /* if */
     /* Propagate any class attributes that also apply to its member
        functions. */
@@ -9403,8 +9404,8 @@ declarations.)
 #if GNU_EXTENSIONS_ALLOWED
     /* Apply any GNU attributes to the routine. */
     if (decl_state->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(
-                                   decl_info->decl_state.gnu_attributes, rtn);
+      apply_gnu_attributes_to_routine(decl_info->decl_state.gnu_attributes,
+                                      rtn, /*is_redecl=*/FALSE);
       /* Move the attributes list to the template symbol supplement so it can
          be applied to real instantiations as well. */
       tssp->attributes = decl_info->decl_state.gnu_attributes;

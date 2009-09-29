@@ -1185,6 +1185,9 @@ the suspect construct is a reference to a file-scope static entity.
     a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     check_assertion(rp != NULL);
     if (rp->is_inline && rp->suppress_inline_body &&
+#if GNU_EXTENSIONS_ALLOWED
+        !rp->gnu_c89_inline &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
         rp->storage_class == (a_storage_class)sc_unspecified) {
       a_c99_inline_definition_locator_ptr  to_check;
       if (avail_c99_inline_definition_locators == NULL) {

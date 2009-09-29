@@ -1234,6 +1234,11 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_nullptr, "no_nullptr", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+#if GNU_EXTENSIONS_ALLOWED
+  add_option_description(optk_gnu_c89_inlining, "gcc89_inlining", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -2129,6 +2134,8 @@ Set the various flags appropriate to C99 mode.
      variables. */
   allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
   mixed_string_concat_enabled = TRUE;
+  std_c99_inlining = TRUE;
+  gnu_c89_inlining = FALSE;
 }  /* set_c99_mode_flags */
 
 
@@ -2532,6 +2539,11 @@ setting is used, and to set various unmentioned settings as needed.
   } else {
     check_and_set_default_cpp0x_extensions();
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (option_kind_used[(int)optk_gnu_c89_inlining]) {
+    command_line_error(ec_cl_gnu_c89_inlining_option_only_in_C);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* check_and_set_cplusplus_mode_options */
 
 
@@ -3237,6 +3249,17 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   /* Allow nonconstant expressions in aggregate initializers for automatic
      variables. */
   allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
+  /* GNU's C89 conventions for the inline keyword are the opposite of those
+     later standardized in C99.  GCC held onto its conventions in C99 mode also
+     until GCC 4.3 (where an option exists to revert to the GNU C89 rules). */
+  if (c99_mode && gnu_version >= 40300 &&
+      !option_kind_used[(int)optk_gnu_c89_inlining]) {
+    std_c99_inlining = TRUE;
+    gnu_c89_inlining = FALSE;
+  } else {
+    std_c99_inlining = FALSE;
+    gnu_c89_inlining = TRUE;
+  }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
 
@@ -3497,7 +3520,8 @@ order of development of this front end, and is inconsistent and strange.
   if (!option_kind_used[(int)optk_gcc_mode] &&
       !option_kind_used[(int)optk_gpp_mode]) {
     a_boolean  enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) ||
-                                 option_kind_used[(int)optk_gnu_version];
+                                 option_kind_used[(int)optk_gnu_version] ||
+                                 option_kind_used[(int)optk_gnu_c89_inlining];
     if (enable_gnu_mode) {
       if (C_dialect == C_dialect_cplusplus) {
         gpp_mode = TRUE;
@@ -7936,6 +7960,12 @@ enable_microsoft_mode:
       case optk_nullptr:
         nullptr_enabled = opt_value;
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case optk_gnu_c89_inlining:
+        std_c99_inlining = FALSE;
+        gnu_c89_inlining = TRUE;
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8909,6 +8939,8 @@ variables declared in cmd_line.h.
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
+  std_c99_inlining = FALSE;
+  gnu_c89_inlining = FALSE;
 }  /* cmd_line_static_var_init */
 
 

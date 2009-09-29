@@ -17256,6 +17256,9 @@ verification.
     curr_rout = scope_stack[depth_innermost_function_scope].assoc_routine;
     check_assertion(curr_rout != NULL);
     if (curr_rout->is_inline &&
+#if GNU_EXTENSIONS_ALLOWED
+        !curr_rout->gnu_c89_inline &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
         curr_rout->storage_class != (a_storage_class)sc_static) {
       /* The current routine is an inline function with external linkage. */
       if (sym_ptr->kind == (a_symbol_kind)sk_variable) {
@@ -17681,9 +17684,9 @@ normal_function:
             change_refs_to_error(rep);
             rep = NULL;
           } else {
-            /* In C99 mode (except in GNU C mode) check that a function
+            /* In C99 mode (except in early GNU C99 mode) check that a function
                referenced within an inline function is valid. */
-            if (c99_mode && !gcc_mode) {
+            if (std_c99_inlining) {
               check_reference_from_inline_function(sym_ptr);
             }  /* if */
             /* Make a function designator operand for the function. */

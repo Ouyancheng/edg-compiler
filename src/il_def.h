@@ -10319,6 +10319,9 @@ typedef struct a_routine {
 			   "nothrow"; this is an assertion by the programmer
 			   that the routine will not throw an exception (the
 			   front end does not check that assertion). */
+  a_bit_field	gnu_c89_inline:1;
+			/* TRUE if this is an "inline" routine declared with
+			   the GNU attribute "gnu_inline". */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;

@@ -271,6 +271,9 @@ typedef enum /*an_option_kind*/ {
   optk_auto_storage,
   optk_nonstandard_instantiation_lookup,
   optk_nullptr,
+#if GNU_EXTENSIONS_ALLOWED
+  optk_gnu_c89_inlining,
+#endif /* GNU_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1062,6 +1065,18 @@ EXTERN a_boolean
 			/* TRUE if minimal inlining should be done by IL
 			   lowering. */
 #endif /* DO_IL_LOWERING && MINIMAL_INLINING */
+
+EXTERN a_boolean
+		std_c99_inlining;
+			/* TRUE if the standard C99 semantics should be
+			   assigned to the inline keyword.  (Can only be
+			   TRUE in C99 modes.) */
+
+EXTERN a_boolean
+		gnu_c89_inlining;
+			/* TRUE if the older GNU C semantics should be
+			   assigned to the inline keyword.  (Can only be
+			   TRUE in GNU C modes.) */
 
 EXTERN a_boolean
                 SVR4_C_mode;

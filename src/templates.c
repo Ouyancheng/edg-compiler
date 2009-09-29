@@ -9139,7 +9139,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
       if (attributes != NULL) {
-        apply_gnu_attributes_to_routine(attributes, rp);
+        apply_gnu_attributes_to_routine(attributes, rp, /*is_redecl=*/FALSE);
       }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       if (rp->source_corresp.is_class_member &&
@@ -17357,7 +17357,8 @@ that follows.
           }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           /* Apply the attributes to the routine. */
-          apply_gnu_attributes_to_routine(dps->gnu_attributes, rp);
+          apply_gnu_attributes_to_routine(dps->gnu_attributes, rp,
+                                          already_specialized);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           if (!already_specialized &&
               rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {

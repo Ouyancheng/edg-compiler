@@ -5962,7 +5962,7 @@ for use in generating cross-reference output describing this declaration.
     /* Remember that the current function has at least one local static
        variable. */
     current_routine_entry()->contains_local_static_variable = TRUE;
-    if (c99_mode && !gcc_mode) {
+    if (std_c99_inlining) {
       check_c99_inline_definition(variable_ptr, &locator->source_position);
     }  /* if */
 #if NEED_NAME_MANGLING
@@ -6518,6 +6518,8 @@ for use in generating cross-reference output describing this declaration.
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || ... */
+  a_boolean                use_std_c99_inlining = std_c99_inlining;
+  a_boolean                use_gnu_c89_inlining = gnu_c89_inlining;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -6659,32 +6661,6 @@ for use in generating cross-reference output describing this declaration.
     effective_decl_level = idlb.effective_decl_level;
     storage_class = idlb.storage_class;
   }  /* if */
-  if (c99_mode && !gcc_mode) {
-    /* In C99 mode, if a function is declared "inline" every time it is
-       declared in a given translation unit and is never declared with an
-       explicitly specified storage class, then its definition is regarded as
-       an "inline definition" instead of an "external definition" (see 6.9,
-       6.7.4).  An inline function with an "inline definition", even though it
-       has external linkage, is not visible outside the current translation
-       unit.  (This does not apply to block-extern declarations. */
-    if (func_info->is_inline && !idlb.is_block_extern_decl &&
-        dps->declared_storage_class == (a_storage_class)sc_unspecified) {
-      /* "inline" was present in the declaration, but no storage class was
-         specified. */
-      suppress_inline_body = TRUE;
-    }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  } else if (gcc_mode && 
-             dps->declared_storage_class == (a_storage_class)sc_extern &&
-             func_info->is_inline && func_info->is_definition) {
-    /* In GNU C mode, if a function definition uses both the "extern" and
-       "inline" keywords then no definition of the function should be emitted,
-       even though it has external linkage.  This treatment is analogous to
-       the C99 "inline definition" concept.  (GNU C++ follows the ordinary C++
-       rules.) */
-    suppress_inline_body = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  }  /* if */
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
        to which this declaration is linked. */
@@ -6741,6 +6717,58 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */ 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  if (gcc_mode && use_std_c99_inlining) {
+    /* In GNU C mode, we must decide whether the semantics of "inline" are the
+       standard C99 semantics, or the older C89 semantics.  Unfortunately,
+       that depends on whether the current declaration is the first declaration
+       with a "gnu_inline" attribute, or a redeclaration of a routine formerly
+       declared with that attribute.  So we must "look ahead" at the outcome
+       of any such attribute. */
+    if (redeclaration) {
+      if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
+          linked_symbol->variant.routine.ptr->gnu_c89_inline) {
+        use_std_c99_inlining = FALSE;
+        use_gnu_c89_inlining = TRUE;
+      }  /* if */
+    } else if (attributes != NULL && func_info->is_inline) {
+      /* The first declaration: It is "inline" and it has attributes.  Check
+         whether the "gnu_inline" attribute was present. */
+      if (gnu_attributes_include_kind(attributes,
+                                      (a_gnu_attribute_kind)gak_gnu_inline)) {
+        use_std_c99_inlining = FALSE;
+        use_gnu_c89_inlining = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (use_std_c99_inlining) {
+    /* In C99 mode, if a function is declared "inline" every time it is
+       declared in a given translation unit and is never declared with an
+       explicitly specified storage class, then its definition is regarded as
+       an "inline definition" instead of an "external definition" (see 6.9,
+       6.7.4).  An inline function with an "inline definition", even though it
+       has external linkage, is not visible outside the current translation
+       unit.  (This does not apply to block-extern declarations.)  Note that
+       early GNU C99 modes do not adhere to these rules. */
+    check_assertion(c99_mode);
+    if (func_info->is_inline && !idlb.is_block_extern_decl &&
+        dps->declared_storage_class == (a_storage_class)sc_unspecified) {
+      /* "inline" was present in the declaration, but no storage class was
+         specified. */
+      suppress_inline_body = TRUE;
+    }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (use_gnu_c89_inlining &&
+             dps->declared_storage_class == (a_storage_class)sc_extern &&
+             func_info->is_inline && func_info->is_definition) {
+    /* In GNU C mode, if a function definition uses both the "extern" and
+       "inline" keywords then no definition of the function should be emitted,
+       even though it has external linkage.  This treatment is analogous to
+       the C99 "inline definition" concept.  (GNU C++ follows the ordinary C++
+       rules.  GNU C99 follows the standard C99 rules only when gnu_version is
+       at least 40300.) */
+    suppress_inline_body = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (redeclaration) {
     if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
       /* Linked symbol and new symbol are both routines.  The new declaration
@@ -6780,7 +6808,7 @@ for use in generating cross-reference output describing this declaration.
         old_decl_has_body = TRUE;
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gcc_mode && old_decl_has_body && is_function_def &&
+      if (use_gnu_c89_inlining && old_decl_has_body && is_function_def &&
           routine_ptr->is_inline && routine_ptr->suppress_inline_body) {
         /* We're in GNU C mode and this routine was previously defined with
            "extern __inline__".  In GNU C mode, the new definition simply
@@ -7465,7 +7493,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (func_info->is_inline) set_inline_flag(routine_ptr, TRUE);
-  if (c99_mode && !gcc_mode && !idlb.is_block_extern_decl) {
+  if (use_std_c99_inlining && !idlb.is_block_extern_decl) {
     /* In C99 mode the suppress_inline_body flag is set only if that is
        justified by every file-scope declaration of a given inline function. */
     if (redeclaration) {
@@ -7487,7 +7515,7 @@ skip_overloading:;
       routine_ptr->suppress_inline_body = suppress_inline_body;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (gcc_mode && suppress_inline_body) {
+  } else if (use_gnu_c89_inlining && suppress_inline_body) {
     /* In GNU C mode only the keywords present at the point of
        definition matter. */
     routine_ptr->suppress_inline_body = TRUE;
@@ -7663,7 +7691,7 @@ skip_overloading:;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       routine_alias_decl = attributes_include_alias(attributes);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      apply_gnu_attributes_to_routine(attributes, routine_ptr);
+      apply_gnu_attributes_to_routine(attributes, routine_ptr, redeclaration);
     }  /* if */
     /* Record the assembly name. */
     if (dps->asm_name != NULL) {
@@ -8500,7 +8528,8 @@ definition of a member function of a class template.
   if (gnu_mode) {
     /* Apply the attributes to the routine. */
     if (dps->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(dps->gnu_attributes, rout_ptr);
+      apply_gnu_attributes_to_routine(dps->gnu_attributes, rout_ptr,
+                                      redeclaration);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -14402,8 +14431,8 @@ based on the current mode and the given declaration parsing state.
     dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
     /* In C++, "inline" is normally allowed only on function declarations in
        nonlocal scopes.  In C99 and GNU C modes, it is allowed on all function
-        declarations.  We also accept the inline specifier on block-extern
-        function declarations in Microsoft bugs mode. */
+       declarations.  We also accept the inline specifier on block-extern
+       function declarations in Microsoft bugs mode. */
     if (state->function_definition_allowed) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
       dsi_flags |= DSI_INLINE_ALLOWED;
