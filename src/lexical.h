@@ -51,6 +51,7 @@ typedef enum /*a_token_kind*/ {
   tok_digit_sequence,
   tok_cpp_quote,
   tok_ptr_to_member,	/* C++ only */
+  tok_last_complex_token = tok_ptr_to_member,
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
   tok_lbracket              /* [ */,
   tok_rbracket              /* ] */,
@@ -2524,6 +2525,8 @@ extern void init_token_string(a_source_position *pos,
                               a_boolean         keep_spacing);
 
 extern char *make_copy_of_token_string(void);
+
+extern char *il_string_for_curr_token(void);
 
 extern a_preinclude_file_ptr alloc_preinclude_file(void);
 

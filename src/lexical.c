@@ -10897,7 +10897,8 @@ back into an identifier.
   char		ch;
 
   ch = token_names[(int)token][0];
-  return is_id_char[ch-CHAR_MIN];
+  return (int)token > (int)tok_last_complex_token &&
+         is_id_char[ch-CHAR_MIN];
 }  /* is_keyword_token */
 
 
@@ -16757,6 +16758,41 @@ in IL memory.
   il_string[pos_in_temp_text_buffer] = '\0';
   return il_string;
 }  /* make_copy_of_token_string */
+
+
+char *il_string_for_curr_token(void)
+/*
+Return a pointer to a null-terminated string representing the current token.
+For non-identifiers, the string may occasionally be slightly different from
+the source form (e.g., digraphs are returned as ordinary tokens).
+*/
+{
+  char  *result;
+
+  if (curr_token == tok_identifier ||
+      (start_of_curr_token != NULL && is_keyword_token(curr_token))) {
+    /* For identifiers and non-cached keywords, reuse the string already
+       stored in IL memory. */
+    result = locator_for_curr_id.symbol_header->identifier;
+  } else if (start_of_curr_token != NULL) {
+    /* The token can be retrieved from the source line. */
+    sizeof_t  len = end_of_curr_token - start_of_curr_token + 1;
+    result = alloc_primary_file_scope_il(len + 1);
+    memcpy(result, start_of_curr_token, len);
+    result[len] = '\0';
+  } else {
+    /* No source characters are available (presumably we're getting tokens
+       from a cache.  Create a cache containing the current token and create
+       the string from that. */
+    a_token_cache cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    init_token_string(&pos_curr_token, /*keep_spacing=*/FALSE);
+    add_token_cache_to_string(&cache);
+    result = make_copy_of_token_string();
+  }  /* if */
+  return result;
+}  /* il_string_for_curr_token */
 
 
 #if DEBUG

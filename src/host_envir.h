@@ -1347,8 +1347,8 @@ front end.
 #endif /* !defined(INCLUDE_EDG_TEST_PRAGMAS) */
 
 /*
-Flag that is TRUE to include a set of EDG provided Microsoft test attributes
-in the front end.
+Flag that is TRUE to include a set of EDG provided test attributes in the
+front end.
 */
 #ifndef INCLUDE_EDG_TEST_ATTRIBUTES
 #define INCLUDE_EDG_TEST_ATTRIBUTES FALSE

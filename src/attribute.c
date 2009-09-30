@@ -63,8 +63,8 @@ typedef struct an_attr_descr {
 			     "ci": an integer constant is expected
 			     "ct": an integer constant or a type is expected
 			           (similar to a "sizeof(...)" argument)
-			     "n": an identifier is expected FIXME
-			     "sn": an narrow string literal is expected FIXME
+			     "n": an identifier is expected
+			     "sn": an narrow string literal is expected
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A "?" indicates that the argument list may
@@ -123,6 +123,9 @@ static an_attr_descr known_attr_table[] = {
   { "noreturn", "", "gx", ak_noreturn },
   { "final", "", "c+", ak_final },
   { "carries_dependency", "", "c+", ak_carries_dependency },
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+  { "test_1", "(sn?,n)", "c+[EDG]", ak_unrecognized },
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
   { NULL, NULL, NULL, ak_last }
 };
 
@@ -431,6 +434,59 @@ Otherwise, return a pointer to the argument's representation.
 }  /* scan_attr_integer_constant_arg */
 
 
+static an_attribute_arg_ptr scan_attr_string_arg(an_attribute_ptr  ap)
+/*
+A narrow string literal is expected next as an attribute argument.  If that's
+the case, return an aak_token entry; otherwise, issue an error, set ap->kind
+to ak_unrecognized, and return NULL.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL;
+
+  if (curr_token == tok_string_literal &&
+      is_char_array_type(const_for_curr_token.type)) {
+    aap = alloc_attribute_arg();
+    aap->kind = (an_attribute_arg_kind)aak_constant;
+    aap->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    aap->end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    aap->variant.constant = alloc_shareable_constant(&const_for_curr_token);
+    (void)get_token();
+  } else {
+    syntax_error(ec_exp_string_literal);
+    ap->kind = (an_attribute_kind)ak_unrecognized;
+  }  /* if */
+  return aap;
+}  /* scan_attr_string_arg */
+
+
+static an_attribute_arg_ptr scan_attr_identifier_arg(an_attribute_ptr  ap)
+/*
+An identifier is expected next as an attribute argument.  If that's the case,
+return an aak_token entry; otherwise, issue an error, set ap->kind to
+ak_unrecognized, and return NULL.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL;
+
+  if (curr_token == tok_identifier || is_keyword_token(curr_token)) {
+    aap = alloc_attribute_arg();
+    aap->kind = (an_attribute_arg_kind)aak_token;
+    aap->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    aap->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    aap->variant.token = il_string_for_curr_token();
+    (void)get_token();
+  } else {
+    syntax_error(ec_exp_identifier);
+    ap->kind = (an_attribute_kind)ak_unrecognized;
+  }  /* if */
+  return aap;
+}  /* scan_attr_identifier_arg */
+
+
 /*ARGSUSED*/
 static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
                                                          an_attribute_ptr  ap)
@@ -485,20 +541,7 @@ default_case:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         (*p_aap)->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (curr_token == tok_identifier || is_keyword_token(curr_token)) {
-          /* For identifiers and keywords, reuse the string already stored in
-             IL memory. */
-          (*p_aap)->variant.token =
-                                locator_for_curr_id.symbol_header->identifier;
-        } else {
-          /* For other tokens, copy the token string (plus a terminating null
-             character) to IL memory.  (FIXME: Uniquify?) */
-          /* FIXME: Doesn't work with tokens from token caches. */
-          sizeof_t  len = end_of_curr_token - start_of_curr_token + 1;
-          (*p_aap)->variant.token = alloc_primary_file_scope_il(len + 1);
-          memcpy((*p_aap)->variant.token, start_of_curr_token, len);
-          (*p_aap)->variant.token[len] = '\0';
-        }  /* if */
+        (*p_aap)->variant.token = il_string_for_curr_token();
         p_aap = &(*p_aap)->next;
         (void)get_token();
         break;
@@ -524,12 +567,14 @@ ak_unrecognized.
   do {
     /* Skip a "?" indicating that the argument list may terminate at this
        point. */
-    if (*sig == '?') ++sig;
-    switch (*sig) {
+    if (*sig == '?') {
+      ++sig;
+      if (curr_token == tok_rparen) break;
+    }  /* if */
+    switch (*sig++) {
       case 'c':
         /* Scan a constant argument that is not a string literal.  Currently
            only integral constants are supported (or needed). */
-        ++sig;
         if (*sig == 't' && is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                                             DFS_SINGLE_TYPE_REQUIRED)) {
           /* "ct" and what looks like a type-id follows. */
@@ -543,9 +588,19 @@ ak_unrecognized.
           unexpected_condition();
         }  /* if */
         break;
+      case 'n':
+        *p_aap = scan_attr_identifier_arg(ap);
+        break;
+      case 's':
+        if (*sig == 'n') {
+          *p_aap = scan_attr_string_arg(ap);
+          ++sig;
+        } else {
+          unexpected_condition();
+        }  /* if */
+        break;
       case 't':
         *p_aap = scan_attr_type_arg(ap);
-        ++sig;
         break;
       case '*':
         *p_aap = scan_attr_remaining_arg_tokens(ap);
@@ -554,6 +609,16 @@ ak_unrecognized.
         unexpected_condition();
     }  /* switch */
     while (*p_aap != NULL) p_aap = &(*p_aap)->next;
+    if (*sig != ')') {
+      /* Skip a "?" indicating that the argument list may terminate at this
+         point. */
+      if (*sig == '?') {
+        ++sig;
+        if (curr_token == tok_rparen) break;
+      }  /* if */
+      check_assertion(*sig == ',');
+      ++sig;
+    }  /* if */
   } while (loop_token(tok_comma));
 }  /* scan_attr_arg_list */
 
@@ -591,8 +656,7 @@ ak_unrecognized.
       (void)get_token();
       scan_attr_arg_list(ap, sig);
     }  /* if */
-    check_assertion(curr_token == tok_rparen);
-    (void)get_token();
+    (void)required_token(tok_rparen, ec_exp_rparen);
   } else if (sig[0] == '(') {
     /* No arguments are present, but sig indicates that arguments are not
        optional.  Issue a syntax error. */
@@ -731,8 +795,8 @@ Scan a standard attribute group of the form
     [ [  <attribute-list>  ] ]
 */
 {
-  an_attribute_ptr        attributes = NULL;
-  a_source_position       group_pos;
+  an_attribute_ptr   attributes = NULL;
+  a_source_position  group_pos;
 
   group_pos = pos_curr_token;
   check_assertion(curr_token == tok_lbracket);
