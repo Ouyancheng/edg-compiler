@@ -5021,7 +5021,8 @@ that should be propagated to its member functions.
 a_boolean gnu_attributes_include_kind(a_gnu_attribute_ptr   ap,
                                       a_gnu_attribute_kind  kind)
 /*
-The given attributes list includes an attribute of the given kind.
+Return TRUE if the given attributes list includes an attribute of the given
+kind.
 */
 {
   for (; ap != NULL; ap = ap->next) {

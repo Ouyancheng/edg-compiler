@@ -1070,13 +1070,15 @@ EXTERN a_boolean
 		std_c99_inlining;
 			/* TRUE if the standard C99 semantics should be
 			   assigned to the inline keyword.  (Can only be
-			   TRUE in C99 modes.) */
+			   TRUE in C99 modes and only when gnu_c89_inlining
+			   is FALSE.) */
 
 EXTERN a_boolean
 		gnu_c89_inlining;
 			/* TRUE if the older GNU C semantics should be
 			   assigned to the inline keyword.  (Can only be
-			   TRUE in GNU C modes.) */
+			   TRUE in GNU C modes and only when std_c99_inlining
+			   is FALSE.) */
 
 EXTERN a_boolean
                 SVR4_C_mode;

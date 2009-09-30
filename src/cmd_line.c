@@ -8483,6 +8483,8 @@ enable_microsoft_mode:
      individually from the command line. */
   check_assertion(!(ref_to_unknown_bound_array_allowed_in_param_type &&
                     !ptr_to_unknown_bound_array_allowed_in_param_type));
+  /* Only one C-style inlining mode can be in effect. */
+  check_assertion(!(std_c99_inlining && gnu_c89_inlining));
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS

@@ -6,12 +6,12 @@ GNU C99 inlining modes
 In C99, an "inline" function definition that is not declared with a storage
 class like "extern" or "static" is used only for inlining: No linkable version
 is emitted.  If, however, the function is declared with "extern" then an
-externally linkage copy is emitted.  Before C99 came along, GNU C89 supported
+externally linkable copy is emitted.  Before C99 came along, GNU C89 supported
 a similar inlining model with the opposite convention: "extern" indicates that
 the function should not be emitted with external linkage.
 
 Early versions of GCC followed the GNU C89 convention even in C99 mode, but
-starting with GCC 4.3, the standard C99 convention is followed (in C99 mode;
+starting with GCC 4.3, the standard C99 convention is followed (in C99 mode,
 not in the default C89 mode).  We now emulate that behavior when gnu_version
 >= 40300.
 
