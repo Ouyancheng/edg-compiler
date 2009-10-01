@@ -241,6 +241,7 @@ void __gen_dummy_typeinfos()
   gen_typeinfos(float); 
   gen_typeinfos(double); 
   gen_typeinfos(long double);
+  gen_typeinfos(decltype(nullptr));
 #undef gen_typeinfos
 }
   
@@ -347,6 +348,15 @@ called.
 */
 {
 }  /* __pointer_to_member_type_info::~__pointer_to_member_type_info */
+
+
+__nullptr_type_info::~__nullptr_type_info()
+/*
+Destructor for __nullptr_type_info.  This should never actually be 
+called.  
+*/
+{
+}  /* __nullptr_type_info::~__nullptr_type_info */
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace __cxxabiv1 */

@@ -183,12 +183,21 @@ a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
 			/* This is used to get the address of the
 			   unique ID for the void type for pointer to
 			   void* conversions. */
+a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR;
+			/* This is used to get the address of the
+			   unique ID for the std::nullptr_t type for 
+			   std::nullptr_t to pointer conversions. */
 #else /* !ABI_CHANGES_FOR_RTTI */
 a_type_info_impl
                 MANGLED_NAME_OF_VOID;
 			/* This is used to get the address of the
 			   type_info for the void type for pointer to
 			   void* conversions. */
+a_type_info_impl
+                MANGLED_NAME_OF_NULLPTR;
+			/* This is used to get the address of the
+			   type_info for the std::nullptr_t type for
+			   std::nullptr_t to pointer conversions. */
 #endif /* !ABI_CHANGES_FOR_RTTI */
 
 
@@ -980,6 +989,22 @@ entry is returned in etsp_found.
     }  /* if */
     if (match) {
       /* We already found a match -- doesn't check further. */
+    } else if ((ets_is_ptr ||
+                is_single_level_pointer_to_member(etsp->flags)) &&
+#ifndef __EDG_IA64_ABI
+#if ABI_CHANGES_FOR_RTTI
+               type_info->unique_id != NULL &&
+               type_info->unique_id == &MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR
+#else /* !ABI_CHANGES_FOR_RTTI */
+               type_info == &MANGLED_NAME_OF_NULLPTR
+#endif /* !ABI_CHANGES_FOR_RTTI */
+#else /* ifdef __EDG_IA64_ABI */
+               typeid(*type_info) == typeid(abi::__nullptr_type_info)
+#endif /* ifdef __EDG_IA64_ABI */
+                                                                     ) {
+      /* A thrown std::nullptr_t matches a pointer or pointer to member
+         type. */
+      match = TRUE;
     } else if (ets_is_ptr != is_ptr) {
       /* One is a pointer and the other is not.  This can't be a match. */
     } else if (!qualifiers_acceptable(etsp->flags, flags)) {

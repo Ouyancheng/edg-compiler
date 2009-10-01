@@ -460,6 +460,7 @@ string literals were implemented).
     case tik_ptr_to_member:
     case tik_si_class:
     case tik_vmi_class:
+    case tik_nullptr:
       /* No derived classes. */
       break;
     case tik_pbase:
@@ -581,6 +582,7 @@ string literals were implemented).
       case tik_function:
       case tik_class:
       case tik_pbase:
+      case tik_nullptr:
         base_class = make_user_typeinfo_type();
         break;
       case tik_pointer:
@@ -632,6 +634,7 @@ string literals were implemented).
       case tik_function:
       case tik_class:
       case tik_pointer:
+      case tik_nullptr:
         /* There are no additional fields. */
         break;
       case tik_pbase:
@@ -756,6 +759,8 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
         bases = bases->next;
       } /* while */
     }  /* if */
+  } else if (is_nullptr_type(type)) {
+    tinfo_kind = tik_nullptr;
   } else {
     unexpected_condition_str("get_typeinfo_kind: bad type");
   }  /* if */
@@ -804,6 +809,7 @@ indicated kind, or NULL if the type_info is not in a namespace.
     case tik_pbase:
     case tik_pointer:
     case tik_ptr_to_member:
+    case tik_nullptr:
       sym = symbol_for_namespace_abi;
       check_assertion(sym != NULL);
       break;
@@ -1718,6 +1724,7 @@ typeinfo variable in a COMDAT group.
       case tik_array:
       case tik_function:
       case tik_class:
+      case tik_nullptr:
         /* There are no additional fields. */
         aggr_con->variant.aggregate.first_constant = type_info_con;
         aggr_con->variant.aggregate.last_constant = type_info_con;
@@ -2471,6 +2478,9 @@ typedef unsigned long an_eh_type_flags_set;
 #define ETS_LAST		0x20
 			/* TRUE if this is the last type specification in
 			   the array. */
+#define ETS_IS_POINTER_TO_MEMBER 0x40
+			/* An object of pointer to member type is specified
+			   by typeinfo. */
 #endif /* GENERATE_EH_TABLES */
 
 #if GENERATE_EH_TABLES
@@ -2507,6 +2517,11 @@ Return a pointer to the variable.
     }  /* if */
     if (qualifiers & TQ_VOLATILE) {
       flags_value |= ETS_VOLATILE;
+    }  /* if */
+    /* The underlying type is a pointer to member type. */
+    if (is_or_was_ptr_to_member_function_type(type) ||
+        is_or_was_ptr_to_data_member_type(type)) {
+      flags_value |= ETS_IS_POINTER_TO_MEMBER;
     }  /* if */
     if (done) {
       flags_value |= ETS_LAST;
@@ -2559,6 +2574,11 @@ the cv-qualifiers and passes the type through.
     eff_type = type_pointed_to(eff_type);
     *flags_value |= ETS_IS_REFERENCE;
   }  /* if */
+  /* Note a top-level pointer to member type. */
+  if (is_or_was_ptr_to_member_function_type(eff_type) ||
+      is_or_was_ptr_to_data_member_type(eff_type)) {
+    *flags_value |= ETS_IS_POINTER_TO_MEMBER;
+  }  /* if */
   if (is_pointer_type(eff_type)) {
     a_type_ptr under_ptr = type_pointed_to(eff_type);
 #if ABI_COMPATIBILITY_VERSION >= 241
@@ -2584,6 +2604,10 @@ the cv-qualifiers and passes the type through.
       }  /* if */
       if (qualifiers & TQ_VOLATILE) {
         *flags_value |= ETS_VOLATILE;
+      }  /* if */
+      if (is_or_was_ptr_to_member_function_type(eff_type) ||
+          is_or_was_ptr_to_data_member_type(eff_type)) {
+        *flags_value |= ETS_IS_POINTER_TO_MEMBER;
       }  /* if */
     }  /* if */
   }  /* if */

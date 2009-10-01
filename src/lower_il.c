@@ -10481,21 +10481,37 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   a_type_ptr            result_type, orig_type = expr->type;
 
   check_assertion(!expr->is_lvalue);
-  /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
-  operand = make_operands_for_ne_0(operand);
-  result_type = expr->type;
-  if (C_mode()) {
-    /* In C99, the result type of the comparison is "int".  A cast will
-       have to be added later, because we really want a "bool" result. */
-    result_type = integer_type((an_integer_kind)ik_int);
-  }  /* if */
-  set_node_operator(expr, (an_expr_operator_kind)eok_ne, result_type,
-                    /*is_lvalue=*/FALSE, operand);
-  lower_ne_0_normalization(expr);
-  if (!identical_types(expr->type, orig_type)) {
-    /* Add a final cast to bool, because that's what we really need. */
-    an_expr_node_ptr expr_copy = copy_node(expr);
-    change_to_cast(expr, expr_copy, orig_type);
+  if (is_nullptr_type(operand->type)) {
+    /* The operand has a decltype(nullptr) type so the result of the cast
+       will always be false; change the eok_bool_cast to an expression that
+       will return a zero of the proper type (preserving the original
+       expression if it has any side effects). */
+    a_constant       zero_constant;
+    an_expr_node_ptr zero_node;
+    make_zero_of_proper_type(orig_type, &zero_constant);
+    zero_node = alloc_node_for_constant(&zero_constant);
+    if (node_has_side_effects(operand, (a_boolean *)NULL)) {
+      overwrite_node(expr, make_comma_node(operand, zero_node));
+    } else {
+      overwrite_node(expr, zero_node);
+    }
+  } else {
+    /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
+    operand = make_operands_for_ne_0(operand);
+    result_type = expr->type;
+    if (C_mode()) {
+      /* In C99, the result type of the comparison is "int".  A cast will
+         have to be added later, because we really want a "bool" result. */
+      result_type = integer_type((an_integer_kind)ik_int);
+    }  /* if */
+    set_node_operator(expr, (an_expr_operator_kind)eok_ne, result_type,
+                      /*is_lvalue=*/FALSE, operand);
+    lower_ne_0_normalization(expr);
+    if (!identical_types(expr->type, orig_type)) {
+      /* Add a final cast to bool, because that's what we really need. */
+      an_expr_node_ptr expr_copy = copy_node(expr);
+      change_to_cast(expr, expr_copy, orig_type);
+    }  /* if */
   }  /* if */
 }  /* lower_bool_cast */
 
@@ -13479,6 +13495,27 @@ and is lowered by this routine.
 
 #endif /* LOWER_CLASS_RVALUE_ADJUST */
 
+static void lower_nullptr_expr(an_expr_node_ptr expr)
+/*
+Replace an rvalue expression whose type is std::nullptr_t with an equivalent
+expression whose value is always zero.  The expression may or may not have
+been previously lowered (and is not lowered by this routine).
+*/
+{
+  a_constant       zero_constant;
+  an_expr_node_ptr zero_node;
+
+  check_assertion(is_nullptr_type(expr->type) && !expr->is_lvalue);
+  make_zero_of_proper_type(expr->type, &zero_constant);
+  zero_node = alloc_node_for_constant(&zero_constant);
+  if (node_has_side_effects(expr, (a_boolean *)NULL)) {
+    overwrite_node(expr, make_comma_node(copy_node(expr), zero_node));
+  } else {
+    overwrite_node(expr, zero_node);
+  }
+}  /* lower_nullptr_expr */
+
+
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
 /*
@@ -13568,72 +13605,79 @@ cast.  See lower_expr for typical invocation.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* Do not add code here. */
       {
-        var = expr->variant.variable;
-        /* If the variable is a parameter that's passed by copy constructor,
-           an implicit indirection must be added. */
-        /* assoc_param_type is NULL on the "this" parameter variable and
-           the return value pointer variable. */
-        if (var->is_parameter && var->assoc_param_type != NULL &&
-            var->assoc_param_type->passed_via_copy_constructor) {
-          /* Add an indirection, but don't change the node's type or
-             lvalueness.  The type was "wrong" because the parameter type
-             was changed in lowering, but the indirection here cancels
-             out the extra pointer-to on the parameter type.*/
-          an_expr_node_ptr new_expr;
-          an_expr_node_ptr var_copy = copy_node(expr);
-          /* Make sure the type of the enk_variable_node matches that of
-             the variable. */
-          var_copy->type = var->type;
-          if (var_copy->is_lvalue) {
-            /* Convert this node to an rvalue in preparation for the
-               indirection. */
-            var_copy = rvalue_expr_for_lvalue(var_copy);
-          }  /* if */
-          new_expr = add_indirection_to_node(var_copy);
-          if (!expr->is_lvalue) {
-            /* Original expression was an rvalue, make sure new
-               expression is as well. */
-            new_expr = rvalue_expr_for_lvalue(new_expr);
-          }  /* if */
-          check_assertion(il_identical_types(new_expr->type, expr->type) &&
-                          new_expr->is_lvalue == expr->is_lvalue);
-          overwrite_node(expr, new_expr);
+        if (is_nullptr_type(expr->type) && !expr->is_lvalue) {
+          /* Replace an rvalue variable whose type is decltype(nullptr) with
+             a constant zero of the right type (the variable could be
+             uninitialized, so we don't want to use its value). */
+          lower_nullptr_expr(expr);
+        } else {
+          var = expr->variant.variable;
+          /* If the variable is a parameter that's passed by copy constructor,
+             an implicit indirection must be added. */
+          /* assoc_param_type is NULL on the "this" parameter variable and
+             the return value pointer variable. */
+          if (var->is_parameter && var->assoc_param_type != NULL &&
+              var->assoc_param_type->passed_via_copy_constructor) {
+            /* Add an indirection, but don't change the node's type or
+               lvalueness.  The type was "wrong" because the parameter type
+               was changed in lowering, but the indirection here cancels
+               out the extra pointer-to on the parameter type.*/
+            an_expr_node_ptr new_expr;
+            an_expr_node_ptr var_copy = copy_node(expr);
+            /* Make sure the type of the enk_variable_node matches that of
+               the variable. */
+            var_copy->type = var->type;
+            if (var_copy->is_lvalue) {
+              /* Convert this node to an rvalue in preparation for the
+                 indirection. */
+              var_copy = rvalue_expr_for_lvalue(var_copy);
+            }  /* if */
+            new_expr = add_indirection_to_node(var_copy);
+            if (!expr->is_lvalue) {
+              /* Original expression was an rvalue, make sure new
+                 expression is as well. */
+              new_expr = rvalue_expr_for_lvalue(new_expr);
+            }  /* if */
+            check_assertion(il_identical_types(new_expr->type, expr->type) &&
+                            new_expr->is_lvalue == expr->is_lvalue);
+            overwrite_node(expr, new_expr);
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
-        } else if (var_is_return_value_variable(var)) {
-          /* The variable is the return value optimization variable for the
-             current function, so rewrite it as an indirection through the
-             implicit parameter through which the return address is passed by
-             the caller. */
-          a_boolean expr_is_lvalue = expr->is_lvalue;
-          operand_node = var_rvalue_expr(return_value_pointer_variable);
-          /* Make sure the types are consistent (cv-qualification can
-             be mismatched here). */
-          operand_node = add_cast_if_necessary(operand_node,
-                                               make_pointer_type(expr->type));
-          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
-                                   expr->type, operand_node,
-                                   /*is_lvalue=*/TRUE);
-          if (!expr_is_lvalue) {
-            /* Convert to an rvalue if necessary. */
-            expr = rvalue_expr_for_lvalue(expr);
-          }  /* if */
+          } else if (var_is_return_value_variable(var)) {
+            /* The variable is the return value optimization variable for the
+               current function, so rewrite it as an indirection through the
+               implicit parameter through which the return address is passed by
+               the caller. */
+            a_boolean expr_is_lvalue = expr->is_lvalue;
+            operand_node = var_rvalue_expr(return_value_pointer_variable);
+            /* Make sure the types are consistent (cv-qualification can
+               be mismatched here). */
+            operand_node = add_cast_if_necessary(operand_node,
+                                                make_pointer_type(expr->type));
+            change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
+                                     expr->type, operand_node,
+                                     /*is_lvalue=*/TRUE);
+            if (!expr_is_lvalue) {
+              /* Convert to an rvalue if necessary. */
+              expr = rvalue_expr_for_lvalue(expr);
+            }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 #if ASSIGNMENT_TO_THIS_ALLOWED
-        } else if (innermost_function_scope != NULL &&
-                   innermost_function_scope->variant.routine.
+          } else if (innermost_function_scope != NULL &&
+                     innermost_function_scope->variant.routine.
                                                   this_param_variable == var &&
-                   should_drop_const_on_this_param_variable(
+                     should_drop_const_on_this_param_variable(
                         innermost_function_scope->variant.routine.ptr,
                         innermost_function_scope->variant.routine.ptr->type) &&
-                   !identical_types(var->type, expr->type)) {
-          /* If assignment to 'this' is allowed (an anachronism), the
-             const qualification of the 'this' parameter has already been
-             stripped in lower_scope.  Change the type of the enk_variable
-             expression to match that of the variable (most likely this is
-             simply removing a const qualification).  Note that this changes
-             the type of the overall expression. */
-          expr->type = var->type;
+                     !identical_types(var->type, expr->type)) {
+            /* If assignment to 'this' is allowed (an anachronism), the
+               const qualification of the 'this' parameter has already been
+               stripped in lower_scope.  Change the type of the enk_variable
+               expression to match that of the variable (most likely this is
+               simply removing a const qualification).  Note that this changes
+               the type of the overall expression. */
+            expr->type = var->type;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+          }  /* if */
         }  /* if */
       }  /* if */
       break;
@@ -14032,6 +14076,13 @@ cast.  See lower_expr for typical invocation.
             /* No action on most operators. */
             break;
         }  /* switch */
+        if (is_nullptr_type(expr->type) && !expr->is_lvalue) {
+          /* Replace an rvalue expression whose type is decltype(nullptr) with
+             a constant zero of the right type (such an expression could
+             contain uninitialized fields or variables, so we don't want to
+             use its value). */
+          lower_nullptr_expr(expr);
+        } /* if */
         /* Change the type of operators that return "bool" in C++ to
            the "int" required in C. */
         change_result_type_of_operator_returning_bool(expr);

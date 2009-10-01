@@ -2091,6 +2091,9 @@ to the character position following what was demangled.
             s = "";
         }  /* switch */
         break;
+      case 'n':
+        s = "std::nullptr_t";
+        break;
       default:
         bad_mangled_name(dctl);
         s = "";
@@ -3611,9 +3614,9 @@ at that level.  cv-qualifiers have been handled by the caller.
 {
   char *p = ptr, *s;
 
-  /* Builtin type encodings are all lower-case.  Names begin with
-     a digit or an upper-case letter. */
-  if (!islower((unsigned char)*p)) {
+  /* Builtin type encodings are typically lower-case (with some exceptions).
+     Names begin with a digit or an upper-case letter. */
+  if (!(islower((unsigned char)*p) || *p == 'D')) {
     if (*p == 'T') {
       /* A template parameter, possibly a template template parameter. */
       char *tstart = p;
@@ -3689,6 +3692,18 @@ at that level.  cv-qualifiers have been handled by the caller.
         break;
       case 'e':
         s = "long double";
+        break;
+      case 'D':
+        /* Additional built-in types (too many to assign a single character
+           to each one). */
+        switch (*p++) {
+          case 'n':
+            s = "std::nullptr_t";
+            break;
+          default:
+            bad_mangled_name(dctl);
+            s = "";
+        }  /* switch */
         break;
       case 'z':  /* Ellipsis not handled here;
                     see demangle_bare_function_type. */

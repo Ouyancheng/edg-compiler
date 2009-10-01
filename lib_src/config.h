@@ -276,6 +276,13 @@ The mangled name of the unique ID for a void type.
 #ifndef MANGLED_NAME_OF_UNIQUE_ID_OF_VOID
 #define MANGLED_NAME_OF_UNIQUE_ID_OF_VOID __TID_v
 #endif /* ifndef MANGLED_NAME_OF_UNIQUE_ID_OF_VOID */
+
+/*
+The mangled name of the unique ID for a std::nullptr_t type.
+*/
+#ifndef MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR
+#define MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR __TID_n
+#endif /* ifndef MANGLED_NAME_OF_UNIQUE_ID_OF_NULLPTR */
 #else /* ! ABI_CHANGES_FOR_RTTI */
 /*
 The mangled name of the typeinfo record for a void type.
@@ -283,6 +290,12 @@ The mangled name of the typeinfo record for a void type.
 #ifndef MANGLED_NAME_OF_VOID
 #define MANGLED_NAME_OF_VOID __T_v
 #endif /* ifndef MANGLED_NAME_OF_VOID */
+/*
+The mangled name of the typeinfo record for a std::nullptr_t type.
+*/
+#ifndef MANGLED_NAME_OF_NULLPTR
+#define MANGLED_NAME_OF_NULLPTR __T_n
+#endif /* ifndef MANGLED_NAME_OF_NULLPTR */
 #endif /* ! ABI_CHANGES_FOR_RTTI */
 
 /*

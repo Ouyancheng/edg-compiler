@@ -1,5 +1,21 @@
 Version 4.2
 
+9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102]
+C++0x: Demangling support for nullptr
+
+Support for demangling the new C++0x builtin type "decltype(nullptr)" has been
+added.  The encodings for the new type are "Dn" (IA-64) and "n" (Cfront).
+For example:
+
+  template <class T> void f(T) {}
+  void f1(void) {
+    f(nullptr);   // IA-64:  _Z1fIDnEvT_
+                  //         void f<std::nullptr_t>(T1)
+                  // Cfront: f__tm__2_n__FZ1Z_v
+                  //         void f<T1>(T1) [with T1=std::nullptr_t]
+  }
+
+
 9/14/09  [EDGcpfe/10090]
 Prelinker: support for Mac OS Snow Leopard nm output
 

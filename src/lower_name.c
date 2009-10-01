@@ -127,6 +127,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_CONSTRUCTOR "C1"
 #define MANGLING_STRING_FOR_DESTRUCTOR "D1"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "cv"
+#define MANGLING_STRING_FOR_NULLPTR "Dn"
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
@@ -216,6 +217,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_CONSTRUCTOR "ct"
 #define MANGLING_STRING_FOR_DESTRUCTOR "dt"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "op"
+#define MANGLING_STRING_FOR_NULLPTR "n"
 
 #endif /* IA64_ABI */
 
@@ -5272,6 +5274,8 @@ Add to the mangled name the encoding for the type "type".
             s = "Um8";
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !IA64_ABI */
+        } else if (is_nullptr_type(type)) {
+          s = MANGLING_STRING_FOR_NULLPTR;
         } else {
           switch (type->variant.integer.int_kind) {
             case ik_char:           

@@ -231,6 +231,9 @@ typedef a_byte an_ETS_flag_set;
 			/* TRUE if this is the last catch clause associated
 			   with a given try block (i.e., there are no more
 			   entries in the array.) */
+#define ETS_IS_POINTER_TO_MEMBER 0x40
+			/* An object of pointer to member type is specified
+			   by typeinfo. */
 #define ETS_QUALIFIERS	(ETS_CONST | ETS_VOLATILE)
 			/* The flags bits that comprise the type qualifiers
 			   that must be checked to determine a match. */
@@ -248,6 +251,12 @@ typedef a_byte an_ETS_flag_set;
    the primary flags field, and does not consider the ptr_flags. */
 #define is_single_level_pointer(flag)					\
   is_pointer(flag, NULL)
+
+/* is_single_level_pointer_to_member returns TRUE only if the pointer to member
+   bit is set in the primary flags field, and does not consider the
+   ptr_flags. */
+#define is_single_level_pointer_to_member(flag)				\
+  ((flag & ETS_IS_POINTER_TO_MEMBER) != 0)
 
 #define is_const(flag)               ((flag & ETS_CONST) != 0)
 #define is_volatile(flag)            ((flag & ETS_VOLATILE) != 0)
