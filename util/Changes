@@ -1,5 +1,20 @@
 Version 4.2
 
+10/1/09  [EDGcpfe/10129]
+Offsets for demangled IA-64 thunk symbols show as large integers
+
+The offsets of mangled names for IA-64 thunks were mistakenly displayed as
+unsigned values, resulting in large positive values rather than negative
+numbers.  This regression was introduced in 4.1 and is now fixed.  For example,
+the mangled name _ZTv0_n24_N3c21D0Ev had produced (on 32 bit systems):
+
+  Thunk for (offset 0, virtual offset 4294967272) c21::~c21() [deleting]
+
+and now produces:
+
+  Thunk for (offset 0, virtual offset -24) c21::~c21() [deleting]
+
+
 9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102]
 C++0x: Demangling support for nullptr
 

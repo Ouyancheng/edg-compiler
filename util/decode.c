@@ -237,6 +237,20 @@ of the current identifier.
 }  /* write_id_number */
 
 
+static void write_id_signed_number(long                       num,
+                                   a_decode_control_block_ptr dctl)
+/*
+Utility to write the specified signed number to the demangled version
+of the current identifier.
+*/
+{
+  char          buffer[50];
+
+  (void)sprintf(buffer, "%ld", num);
+  write_id_str(buffer, dctl);
+}  /* write_id_signed_number */
+
+
 static void bad_mangled_name(a_decode_control_block_ptr dctl)
 /*
 A bad name mangling has been encountered.  Record an error.
@@ -5131,7 +5145,7 @@ For function names, additional information is returned in *func_block.
       }  /* if */
       if (!dctl->err_in_id) {
         write_id_str("[default argument ", dctl);
-        write_id_number(param+2, dctl);
+        write_id_signed_number(param+2, dctl);
         write_id_str(" (from end)]::", dctl);
       }  /* if */
     }  /* if */
@@ -5158,7 +5172,7 @@ For function names, additional information is returned in *func_block.
       bad_mangled_name(dctl);
     } else {
       write_id_str(" (instance ", dctl);
-      write_id_number(num+2, dctl);
+      write_id_signed_number(num+2, dctl);
       write_id_ch(')', dctl);
     }  /* if */
   }  /* if */
@@ -5296,12 +5310,12 @@ virtual function.  The syntax is:
     v_form = (*ptr == 'v');
     write_id_str("(offset ", dctl);
     ptr = get_number(ptr+1, &num, dctl);
-    write_id_number(num, dctl);
+    write_id_signed_number(num, dctl);
     if (v_form) {
       write_id_str(", virtual offset ", dctl);
       ptr = advance_past_underscore(ptr, dctl);
       ptr = get_number(ptr, &num, dctl);
-      write_id_number(num, dctl);
+      write_id_signed_number(num, dctl);
     }  /* if */
     ptr = advance_past_underscore(ptr, dctl);
     write_id_str(") ", dctl);
