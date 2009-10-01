@@ -14949,8 +14949,9 @@ Return TRUE if the operand is reference to a packed field in GNU mode.
   if (is_expression_operand(operand) &&
       is_an_lvalue(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
-    if (node_operator_is(expr, eok_dot_field) ||
-        node_operator_is(expr, eok_points_to_field)) {
+    if (is_operation_node(expr) &&
+        (node_operator_is(expr, eok_dot_field) ||
+         node_operator_is(expr, eok_points_to_field))) {
       a_field_ptr field= expr->variant.operation.operands->next->variant.field;
       if (field->is_packed ||
           parent_class_of(field)->variant.class_struct_union.is_packed) {
