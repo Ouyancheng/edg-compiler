@@ -1497,9 +1497,11 @@ information (from the matching in-class declaration) is returned through
        Changing the type of the function while it is being defined would lead
        to subtle errors later on.  So the original type is preserved in that
        case. */
-    reconcile_routine_types(rp, type_ptr,
+    reconcile_routine_types(
+                        rp, type_ptr,
                         /*preserve_rout_type=*/microsoft_out_of_class_redecl,
-                        /*preserve_type_ptr=*/!microsoft_out_of_class_redecl);
+                        /*preserve_type_ptr=*/!microsoft_out_of_class_redecl,
+                        dps);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       /* If the routine is a default constructor or a copy constructor, it may
          be that this has not yet been recorded in the symbol.  (This becomes

@@ -1476,12 +1476,6 @@ typedef struct an_attribute {
 			   an entity.  (Some attributes on a definition take
 			   precedence on the same attribute applied to another
 			   declaration of the same entity.) */
-  a_bit_field
-		applied:1;
-			/* TRUE if this attribute has had its full effect on
-			   the IL.  This is e.g. used for many attributes
-			   specified on templates: "applied" is FALSE because
-			   the effect occurs on every instance. */
   char		*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   char		*namespace_name;

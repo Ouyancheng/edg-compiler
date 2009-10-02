@@ -4219,7 +4219,6 @@ in the current memory region.
   ap->family = (an_attribute_family)af_internal;
   ap->syntactic_location = (an_attribute_location)al_implicit;
   ap->on_primary_declaration = FALSE;
-  ap->applied = FALSE;
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;

@@ -1223,18 +1223,18 @@ this is &scp.attributes.)
 }  /* get_attribute_link */
 
 
-static void apply_attributes(char              *entity,
-                             an_il_entry_kind  entity_kind)
+static void apply_attributes(an_attribute_ptr   attributes,
+                             char               *entity,
+                             an_il_entry_kind   entity_kind)
 /*
-Attempt to apply any unapplied but recognized attributes recorded in the
-given entity to that entity.
+Attempt to apply to the given entity any recognized attributes in the given
+list of attributes.
 */
 {
-  an_attribute_ptr  ap = *get_attribute_link(entity, entity_kind);
+  an_attribute_ptr  ap = attributes;
 
   for (; ap != NULL; ap = ap->next) {
-    if (!ap->applied &&
-        ap->kind != (an_attribute_kind)ak_unrecognized &&
+    if (ap->kind != (an_attribute_kind)ak_unrecognized &&
         ap->kind != (an_attribute_kind)ak_empty_group) {
       an_attr_application_fn  *appl_fn =
                                  known_attr_appl_table[(int)ap->kind].appl_fn;
@@ -1257,7 +1257,7 @@ required checking, and update the IL entry's fields if applicable.
   check_target_entity_constraints(attributes, entity, entity_kind);
   check_attachment_constraints(attributes, entity, entity_kind);
   *last_attribute_link(get_attribute_link(entity, entity_kind)) = attributes;
-  apply_attributes(entity, entity_kind);
+  apply_attributes(attributes, entity, entity_kind);
 }  /* attach_attributes */
 
 
@@ -1307,6 +1307,27 @@ given list.
 }  /* mark_primary_decl_attributes */
 
 
+an_attribute_ptr composite_attributes(an_attribute_ptr  ap1,
+                                      an_attribute_ptr  ap2)
+/*
+Return the "composite attributes list" of the two given list of attributes.
+Currently, this is just the concatenation of copies of those lists.
+*/
+{
+  an_attribute_ptr  result = NULL;
+
+  if (ap1 == NULL) {
+    result = copy_of_attributes_list(ap2);
+  } else {
+    result = copy_of_attributes_list(ap1);
+    if (ap2 != NULL) {
+      *last_attribute_link(&result) = copy_of_attributes_list(ap2);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* set_composite_type_attributes */
+
+
 #if !USER_CONTROL_OF_STRUCT_PACKING
 /*ARGSUSED*/  /* entity and entity_kind are unused in some configurations. */
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
@@ -1348,13 +1369,9 @@ attribute to it.
   } else if (entity_kind == iek_field) {
     a_field_ptr  fp = (a_field_ptr)entity;
     if (alignment > fp->alignment) fp->alignment = alignment;
-    ap->applied = TRUE;
   } else if (entity_kind == iek_variable) {
     a_variable_ptr  vp = (a_variable_ptr)entity;
     if (alignment > vp->alignment) vp->alignment = alignment;
-    if (!vp->is_template_static_data_member) {
-      ap->applied = TRUE;
-    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
@@ -1409,9 +1426,6 @@ attribute to it.
     }  /* if */
     ensure_routine_type_is_modifiable(&rp->type);
     rp->type->variant.routine.extra_info->does_not_return = TRUE;
-    if (!is_template_dependent_type(rp->type)) {
-      ap->applied = TRUE;
-    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
@@ -1438,13 +1452,52 @@ attribute to it.
       rp->sealed = TRUE;
     }  /* if */
   } else if (entity_kind == iek_type) {
+    /* FIXME: Not yet implemented.  Tag type attributes. */
+    unexpected_condition_str("Not yet implemented: tag type attributes");
   } else {
     unexpected_condition();
   }  /* if */
 }  /* apply_final_attr */
 
 
-/*ARGSUSED*/  /*FIXME*/
+static void check_carries_dependency_for_params(a_decl_parse_state_ptr  dps)
+/*
+Check constraints on the carries_dependency attribute specified on the
+parameters in the given declaration.
+*/
+{ 
+  if (dps->first_decl) {
+    /* Nothing to check. */
+  } else {
+    if (dps->type->kind == (a_type_kind)tk_routine) {
+      a_type_ptr        orig_type = dps->prev_type;
+      a_param_type_ptr  ptp, orig_ptp;
+      check_assertion(orig_type != NULL);
+      orig_type = skip_typerefs(orig_type);
+      ptp = function_type_params(dps->declared_type);
+      orig_ptp = function_type_params(orig_type);
+      for (; ptp != NULL; ptp = ptp->next, orig_ptp = orig_ptp->next) {
+        check_assertion(orig_ptp != NULL);
+        if (ptp->attributes != NULL) {
+          an_attribute_ptr  ap = find_attribute(ak_carries_dependency,
+                                                ptp->attributes);
+          if (ap != NULL &&
+              (orig_ptp->attributes == NULL ||
+               find_attribute(ak_carries_dependency,
+                              orig_ptp->attributes) == NULL)) {
+            pos_sy_error(ec_carries_dependency_not_on_first_decl,
+                         &ap->position, dps->sym);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    } else {
+      check_assertion(dps->type->kind == (a_type_kind)tk_typeref ||
+                      is_error_type(dps->type));
+    }  /* if */
+  }  /* if */
+}  /* check_carries_dependency_for_params */
+
+
 static void apply_carries_dependency_attr(an_attribute_ptr  ap,
                                           char              *entity,
                                           an_il_entry_kind  entity_kind)
@@ -1453,10 +1506,34 @@ The given entity must be a parameter or a routine.  Apply the
 "carries_dependency" attribute to it.
 */
 {
-/* FIXME:
-   Check that carries_dependency was on the first declaration if this is a
-   redeclaration.
-*/
+  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->extra_info;
+
+  if (entity_kind == iek_param_type) {
+    /* The constraints cannot be checked until the declarator containing these
+       parameters is fully processed. */
+    dps = dps->assoc_func_decl_state;
+    check_assertion(dps != NULL);
+    add_end_of_parse_action(check_carries_dependency_for_params, dps);
+  } else if (entity_kind == iek_routine) {
+    if (!dps->first_decl) {
+      /* A redeclaration: Check that the attribute was present on the first
+         declaration. */
+      a_routine_ptr     rp = (a_routine_ptr)entity;
+      an_attribute_ptr  prev;
+      prev = find_attribute(ak_carries_dependency,
+                            rp->source_corresp.attributes);
+      check_assertion(prev != NULL);
+      if (prev == ap) {
+        /* The current attribute is the first "carries_dependency" attribute
+           for this routine: Issue an error. */
+        pos_sy_error(ec_carries_dependency_not_on_first_decl, &ap->position,
+                     symbol_for(rp));
+        ap->kind = (an_attribute_kind)ak_unrecognized;
+      }  /* if */
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
 }  /* apply_carries_dependency_attr */
 
 #if GNU_EXTENSIONS_ALLOWED

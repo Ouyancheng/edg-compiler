@@ -1783,6 +1783,7 @@ if this is the function declarator in a friend function declaration.
         param_number++;
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
+        param_state.assoc_func_decl_state = state;
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
         copy_source_position(pos_curr_token, param_type_pos);

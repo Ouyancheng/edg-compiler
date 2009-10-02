@@ -4293,9 +4293,6 @@ Display the indicated attribute entry.
     disp_boolean("on_primary_declaration",
                  (a_boolean)ap->on_primary_declaration);
   }  /* if */
-  if (ap->applied) {
-    disp_boolean("applied", (a_boolean)ap->applied);
-  }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
     disp_string_ptr("namespace_name", ap->namespace_name, iek_other_text,

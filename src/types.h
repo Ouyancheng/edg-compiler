@@ -1064,6 +1064,9 @@ extern a_boolean in_definition_of_class(a_type_ptr  tp);
 extern a_boolean virtual_base_class_is_indirect(a_base_class_ptr vbcp,
                                                 a_type_ptr       class_type);
 
+#define function_type_params(rtp)                                       \
+  ((rtp)->variant.routine.extra_info->param_type_list)
+
 extern void types_early_init(void);
 
 #endif /* ifndef TYPES_H */

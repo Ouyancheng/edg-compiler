@@ -406,6 +406,9 @@ extern an_attribute_ptr f_find_attribute(an_attribute_kind  kind,
 
 extern void mark_primary_decl_attributes(an_attribute_ptr  attributes);
 
+extern an_attribute_ptr composite_attributes(an_attribute_ptr  ap1,
+                                             an_attribute_ptr  ap2);
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);

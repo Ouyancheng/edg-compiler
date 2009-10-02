@@ -7328,6 +7328,29 @@ unique to each type (e.g., by calling disentangle_default_args).
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (!C_mode()) {
+    if (rtsp1->exception_specification == NULL) {
+      if (rtsp2->exception_specification != NULL) {
+        return_type1_as_comp_type = FALSE;
+      }  /* if */
+    } else {
+      if (rtsp2->exception_specification == NULL) {
+        return_type2_as_comp_type = FALSE;
+      }  /* if */
+    }  /* if */
+    /* If the routine-name-linkage of one of the types has been set
+       explicitly (e.g., with extern "C"), the other type cannot be used as
+       the composite type. */
+    if (!rtsp1->routine_name_linkage_is_explicit) {
+      if (rtsp2->routine_name_linkage_is_explicit) {
+        return_type1_as_comp_type = FALSE;
+      }  /* if */
+    } else {
+      if (!rtsp2->routine_name_linkage_is_explicit) {
+        return_type2_as_comp_type = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (!return_type1_as_comp_type && !return_type2_as_comp_type) {
     goto make_new_comp_type;
   }  /* if */
@@ -7365,17 +7388,25 @@ unique to each type (e.g., by calling disentangle_default_args).
         internal_error("composite_routine_type: unequal length param lists");
       }  /* if */
 #endif /* CHECKING */
+      /* If attributes are present on a parameter, those attributes must be
+         preserved and therefore the other type cannot be returned as the
+         composite type. */
+      if (ptp1->attributes != NULL) return_type2_as_comp_type = FALSE;
+      if (ptp2->attributes != NULL) return_type1_as_comp_type = FALSE;
       if (!C_mode()) {
         /* Form the composite of the C++ default argument expressions;
            it's guaranteed that at most one of the parameter lists
            has a default argument expression. */
         if (ptp1->has_default_arg || ptp1->default_arg_expr != NULL) {
           return_type2_as_comp_type = FALSE;
-          if (!return_type1_as_comp_type) goto make_new_comp_type;
         } else if (ptp2->has_default_arg || ptp2->default_arg_expr != NULL) {
           return_type1_as_comp_type = FALSE;
-          if (!return_type2_as_comp_type) goto make_new_comp_type;
         }  /* if */
+      }  /* if */
+      if (!return_type2_as_comp_type && !return_type1_as_comp_type) {
+        /* Neither given type is the composite type of the given types.
+           Avoid further checking a create a new type. */
+        goto make_new_comp_type;
       }  /* if */
       /* Form the composite of the two types. */
       tp = composite_parameter_type(ptp1->type, ptp2->type);
@@ -7391,31 +7422,6 @@ unique to each type (e.g., by calling disentangle_default_args).
         if (!return_type1_as_comp_type) goto make_new_comp_type;
       }  /* if */
     }  /* for */
-  }  /* if */
-  if (!C_mode()) {
-    if (rtsp1->exception_specification == NULL) {
-      if (rtsp2->exception_specification != NULL) {
-        return_type1_as_comp_type = FALSE;
-        if (!return_type2_as_comp_type) goto make_new_comp_type;
-      }  /* if */
-    } else {
-      if (rtsp2->exception_specification == NULL) {
-        return_type2_as_comp_type = FALSE;
-        if (!return_type1_as_comp_type) goto make_new_comp_type;
-      }  /* if */
-    }  /* if */
-    /* If the routine-name-linkage of one of the types has been set
-       explicitly (e.g., with extern "C"), the other type cannot be used as
-       the composite type. */
-    if (!rtsp1->routine_name_linkage_is_explicit) {
-      if (rtsp2->routine_name_linkage_is_explicit) {
-        return_type1_as_comp_type = FALSE;
-      }  /* if */
-    } else {
-      if (!rtsp2->routine_name_linkage_is_explicit) {
-        return_type2_as_comp_type = FALSE;
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (return_type1_as_comp_type) {
     /* Nothing prevents returning rout_type1 as the composite type. */
@@ -7463,6 +7469,10 @@ make_new_comp_type:
         new_ptp = make_param_type(composite_parameter_type(ptp1->type,
                                                            ptp2->type),
                                   &null_source_position);
+        if (ptp1->attributes != NULL || ptp2->attributes != NULL) {
+          new_ptp->attributes =
+                     composite_attributes(ptp1->attributes, ptp2->attributes);
+        }  /* if */
         if (!C_mode()) {
           /* Form the composite of the C++ default argument expressions; it's
              guaranteed that at most one of the parameter lists has a default

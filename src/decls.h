@@ -555,6 +555,12 @@ typedef struct a_decl_parse_state {
 			   this pointer keeps track of associated entities
 			   that appeared after a declarator-id for which no
 			   associated entry has been created yet. */
+  a_decl_parse_state_ptr
+		assoc_func_decl_state;
+			/* For a non-old-style parameter declaration, this
+			   points to the parse state of the function declarator
+			   for which the parameter is being parsed.  Otherwise,
+			   NULL. */
   a_decl_parse_callback_ptr
 		end_of_parse_actions;
 			/* A list of functions to call at the end of
@@ -778,10 +784,11 @@ extern void record_arg_pragma(a_pending_pragma_ptr  ppp,
                               a_symbol_ptr          sym,
                               a_statement_ptr       sp);
 
-extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
-                                    a_type_ptr     type_ptr,
-                                    a_boolean      preserve_rout_type,
-                                    a_boolean      preserve_type_ptr);
+extern void reconcile_routine_types(a_routine_ptr       routine_ptr,
+                                    a_type_ptr          type_ptr,
+                                    a_boolean           preserve_rout_type,
+                                    a_boolean           preserve_type_ptr,
+                                    a_decl_parse_state  *dps);
 
 extern
 void check_constituent_types_have_linkage(a_symbol_ptr      sym,

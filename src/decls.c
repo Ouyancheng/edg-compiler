@@ -155,6 +155,8 @@ reflected in start_secondary_declarator.
   ps->param_id = NULL;
   ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
   ps->p_postfix_entities = NULL;
+  ps->assoc_func_decl_state = NULL;
+  ps->end_of_parse_actions = NULL;
 }  /* init_null_decl_parse_state */
 
 
@@ -296,11 +298,13 @@ The attributes are dissociated from *dps.
 */
 {
   if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
+    attach_parse_state_to_attributes(dps);
     mark_primary_decl_attributes(dps->id_attributes);
     attach_attributes(dps->id_attributes, (char*)ptp, iek_param_type);
     mark_primary_decl_attributes(dps->prefix_attributes);
     attach_attributes(dps->prefix_attributes, (char*)ptp, iek_param_type);
     dps->prefix_attributes = dps->id_attributes = NULL;
+    detach_parse_state_from_attributes(dps);
   }  /* if */
 }  /* attach_param_attributes */
 
@@ -4231,10 +4235,11 @@ definition).
 }  /* check_old_specialization_allowed */
 
 
-void reconcile_routine_types(a_routine_ptr  routine_ptr,
-                             a_type_ptr     type_ptr,
-                             a_boolean      preserve_rout_type,
-                             a_boolean      preserve_type_ptr)
+void reconcile_routine_types(a_routine_ptr       routine_ptr,
+                             a_type_ptr          type_ptr,
+                             a_boolean           preserve_rout_type,
+                             a_boolean           preserve_type_ptr,
+                             a_decl_parse_state  *dps)
 /*
 The routine routine_ptr has been given both the type it already has (i.e.,
 routine_ptr->type) and the other type given by type_ptr; it may be assumed
@@ -4249,6 +4254,9 @@ Those flags are used when the associated type is part of a function
 definition, and therefore already contains definition information like
 assoc_routine which should not be overridden.  Obviously, both flags may
 not be TRUE.
+*dps describes the current declaration: This routine may update *dps->prev_type
+if it must overwrite that type with the composite type (prev_type then becomes
+a copy of the previous type).
 */
 {
   a_type_ptr        rout_type = routine_ptr->type;
@@ -4319,6 +4327,9 @@ not be TRUE.
         comp_rtsp = comp_type->variant.routine.extra_info;
         rout_type = skip_typerefs(rout_type);
         rtsp = rout_type->variant.routine.extra_info;
+        /* Before overriding rout_type, preserve a copy of the original. */
+        dps->prev_type = copy_routine_type_with_param_types(
+                                       rout_type, /*copy_default_args=*/TRUE);
         /* Transfer the composite type to rout_type, which is usually
            unshared.  We want to preserve fields like assoc_routine and
            arg_pragma in rout_type, so we can't just do a copy_type. */
@@ -4341,7 +4352,6 @@ not be TRUE.
              Nothing needs to be done. */
           check_assertion_str2(C_mode(), "reconcile_routine_types:",
                                          "shared param types unexpected");
-
         } else {
           /* Copy the param type entries from the composite type onto the
              param type entries for the routine type.  This is done in case
@@ -6938,7 +6948,7 @@ for use in generating cross-reference output describing this declaration.
           }  /* if */
           reconcile_routine_types(routine_ptr, type_ptr,
                                   /*preserve_rout_type=*/old_decl_has_body,
-                                  /*preserve_type_ptr=*/is_function_def);
+                                  /*preserve_type_ptr=*/is_function_def, dps);
           if (gpp_mode && params != NULL && !old_decl_has_body &&
               !is_function_def &&
               routine_ptr->type->kind == (a_type_kind)tk_routine &&
@@ -7170,7 +7180,7 @@ for use in generating cross-reference output describing this declaration.
            specialization. */
         reconcile_routine_types(routine_ptr, type_ptr,
                                 /*preserve_rout_type=*/TRUE,
-                                /*preserve_type_ptr=*/FALSE);
+                                /*preserve_type_ptr=*/FALSE, dps);
       }  /* if */
       dps->first_decl = TRUE;
     } else if (explicit_template_reference) {
@@ -7337,9 +7347,8 @@ skip_overloading:;
     routine_ptr = linked_symbol->variant.routine.ptr;
     sym->variant.routine.ptr = routine_ptr;
     *old_type = routine_ptr->type;
-    reconcile_routine_types(routine_ptr, type_ptr,
-                            /*preserve_rout_type=*/TRUE,
-                            /*preserve_type_ptr=*/FALSE);
+    reconcile_routine_types(routine_ptr, type_ptr, /*preserve_rout_type=*/TRUE,
+                            /*preserve_type_ptr=*/FALSE, dps);
     /* Do compatibility checking for the throw specification. */
     check_exception_specification(type_ptr, linked_symbol,
                                   &func_info->throw_position,
@@ -8016,7 +8025,7 @@ definition of a member function of a class template.
         adjust_member_routine_type(type_ptr, prev_type);
         reconcile_routine_types(tssp->variant.function.routine, type_ptr,
                                 /*preserve_rout_type=*/TRUE,
-                                /*preserve_type_ptr=*/FALSE);
+                                /*preserve_type_ptr=*/FALSE, dps);
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {
@@ -8264,9 +8273,8 @@ definition of a member function of a class template.
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
       /* Merge type information from the two declarations. */
-      reconcile_routine_types(rout_ptr, type_ptr,
-                              /*preserve_rout_type=*/TRUE,
-                              /*preserve_type_ptr=*/FALSE);
+      reconcile_routine_types(rout_ptr, type_ptr, /*preserve_rout_type=*/TRUE,
+                              /*preserve_type_ptr=*/FALSE, dps);
       /* If appropriate, clear the is_invisible flag in the symbol and
          in the symbol representing its overload set. */
       if (sym->is_invisible && !idlb.is_friend_decl) {
