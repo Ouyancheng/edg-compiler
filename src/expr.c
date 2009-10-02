@@ -21702,7 +21702,8 @@ dependent cases).
     a_type_ptr           src_type, dst_type = cip->variant.field->type;
     a_type_ptr           el_type;
     check_assertion(is_array_type(dst_type));
-    el_type = skip_typerefs(underlying_array_element_type(dst_type));
+    el_type = underlying_array_element_type(dst_type);
+    el_type = skip_typerefs(el_type);
     /* Scan the expression. */
     push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                     /*force_object_lifetime=*/TRUE,
