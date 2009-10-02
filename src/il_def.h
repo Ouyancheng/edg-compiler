@@ -3001,6 +3001,7 @@ enum a_type_kind_tag {
 #if GNU_VECTOR_TYPES_ALLOWED
   tk_vector,		/* GNU vector types. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  tk_nullptr,		/* Type of C++ nullptr keyword, std::nullptr_t. */
   tk_unknown            /* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -5985,7 +5986,8 @@ typedef struct a_type {
 			   exceptions. */
 #endif /* DO_IL_LOWERING */
   union {
-    /* When kind == tk_error, tk_unknown, or tk_void, no variant fields. */
+    /* When kind == tk_nullptr, tk_error, tk_unknown, or tk_void, no variant
+       fields. */
     /* When kind == tk_integer: */
     struct {
       an_integer_kind
@@ -6034,10 +6036,6 @@ typedef struct a_type {
       a_bit_field
 		bool_type:1;
 			/* TRUE if this type is bool in C++ or _Bool in C99. */
-      a_bit_field
-		nullptr_type:1;
-			/* TRUE if this type is std::nullptr_t, i.e., the
-			   type of the nullptr keyword in C++. */
       a_bit_field
 		originally_unnamed:1;
 			/* TRUE for enum types declared without a tag; in
@@ -6126,6 +6124,14 @@ typedef struct a_type {
 		is_rvalue_reference;
 			/* If TRUE, this type is a C++0x rvalue reference
 			   type. */
+#if DO_IL_LOWERING
+      a_byte_boolean
+		lowered_nullptr_type;
+			/* TRUE if this pointer type was lowered from
+			   std::nullptr_t (the type of the C++ nullptr
+			   keyword) in the unlowered IL.  Always FALSE in
+			   unlowered IL. */
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_pointer_modifier_set
 		modifiers;

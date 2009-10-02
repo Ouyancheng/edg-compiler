@@ -1252,11 +1252,6 @@ by octl.
            back end, where it is output as its underlying type. */
         octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"),
                          octl);
-      } else if (type->variant.integer.nullptr_type &&
-                 !octl->c_generating_back_end) {
-        /* Output the type of the C++ "nullptr" keyword as the name of the
-           standard typedef. */
-        octl->output_str("std::nullptr_t", octl);
       } else {
         /* Normal integer type. */
         if (type->variant.integer.explicitly_signed &&
@@ -1430,6 +1425,12 @@ by octl.
       }
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_nullptr:
+      check_assertion(!octl->c_generating_back_end);
+      /* Output the type of the C++ "nullptr" keyword as the name of the
+         standard typedef. */
+      octl->output_str("std::nullptr_t", octl);
+      break;
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<unknown-type>", octl);

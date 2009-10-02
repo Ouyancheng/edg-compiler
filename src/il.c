@@ -1107,8 +1107,6 @@ Dump the contents of the indicated type entry, for debug purposes.
           fputs("wchar_t", f_debug);
         } else if (tp->variant.integer.bool_type) {
           fputs("bool", f_debug);
-        } else if (tp->variant.integer.nullptr_type) {
-          fputs("std::nullptr_t", f_debug);
         } else {
           fprintf(f_debug, "%s", int_type_name(tp));
           if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
@@ -1483,6 +1481,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         fputs(" )", f_debug);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case tk_nullptr:
+        fputs("std::nullptr_t", f_debug);
+        break;
       default:
         fputs("<bad type kind>", f_debug);
     }  /* switch */
@@ -8148,42 +8149,19 @@ Make or find a type entry for std::nullptr_t, i.e., the type of the nullptr
 keyword, and return a pointer to it.
 */
 {
-  a_type_ptr pit;
-
-  if (il_nullptr_type != NULL) {
-    /* The type has previously been created, and can be reused. */
-    pit = il_nullptr_type;
-  } else {
+  if (il_nullptr_type == NULL) {
     /* The type must be created. */
-    an_integer_kind ikind;
-    a_type_ptr      void_ptr_type;
-    il_nullptr_type = pit = alloc_type((a_type_kind)tk_integer);
-    pit->variant.integer.nullptr_type = TRUE;
-    /* Pick an integer kind that is the same size as a "void *" pointer,
-       if possible. */
-    void_ptr_type = make_pointer_type(void_type());
-    ikind = int_kind_for_bit_size(
-                           (unsigned int)(void_ptr_type->size * targ_char_bit),
-                           /*is_signed=*/TRUE);
-    if (ikind != (an_integer_kind)ik_none) {
-      pit->variant.integer.int_kind = ikind;
-      set_type_size(pit);
-    } else {
-      /* There is no corresponding integer type.  The C++ Standard requires
-         that std::nullptr_t have the same size as "void *", so we use an
-         "int" type and set the size and alignment to mimic "void *". */
-      pit->variant.integer.int_kind = (an_integer_kind)ik_int;
-      pit->size = void_ptr_type->size;
-      pit->alignment = void_ptr_type->alignment;
-    }  /* if */
+    il_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
+    set_type_size(il_nullptr_type);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
        and then found again in a later phase (e.g., IL lowering). */
-    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+    add_orphaned_file_scope_il_entry((char *)il_nullptr_type,
+                                     (an_il_entry_kind)iek_type);
 #endif /* ORPHAN_PROCESSING_NEEDED */
-    record_builtin_type(pit);
+    record_builtin_type(il_nullptr_type);
   }  /* if */
-  return pit;
+  return il_nullptr_type;
 }  /* nullptr_type */
 
 #if FIXED_POINT_ALLOWED
@@ -11612,6 +11590,9 @@ to operands of the given type.
   } else if (kind2 == (a_type_kind)tk_fixed_point) {
     result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
 #endif /* FIXED_POINT_ALLOWED */
+  } else if (kind1 == (a_type_kind)tk_nullptr ||
+             kind2 == (a_type_kind)tk_nullptr) {
+    result = (a_type_kind)tk_nullptr;
   } else {
     unexpected_condition();
   }  /* if */

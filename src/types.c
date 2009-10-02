@@ -57,7 +57,7 @@ predicates.
 /* Integral types comprise char, the signed and unsigned integer types,
    enumerated types (in C mode), and bool (in C++ mode). */
 #define is_integral(tp) \
-  (type_kind_is_integer(tp) && !(tp)->variant.integer.nullptr_type && \
+  (type_kind_is_integer(tp) && \
    (enum_type_is_integral || !(tp)->variant.integer.enum_type))
 
 /* Enum types are integral types that are tagged as enums. */
@@ -66,14 +66,12 @@ predicates.
 
 /* Sometimes useful in C++ since enum types are not integral; in C_mode this
    macro is interchangeable with is_integral (but is more efficient). */
-#define is_integral_or_enum(tp) (type_kind_is_integer(tp) && \
-                                 !(tp)->variant.integer.nullptr_type)
+#define is_integral_or_enum(tp) (type_kind_is_integer(tp))
 
 /* C++0x adds a distinction between scoped and unscoped enum types.  The
    former do not implicitly convert (promote) to integer types. */
 #define is_integer_or_unscoped_enum(tp) \
-  (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum && \
-   !(tp)->variant.integer.nullptr_type)
+  (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum)
 
 /* The bool type is an integral type that is tagged as bool.  It only
    exists when bool_is_keyword is TRUE, or in C99 mode. */
@@ -82,8 +80,7 @@ predicates.
 
 /* The nullptr type (std::nullptr_t) is the type of the nullptr keyword in
    C++. */
-#define is_nullptr(tp) \
-  (type_kind_is_integer(tp) && (tp)->variant.integer.nullptr_type)
+#define is_nullptr(tp) ((tp)->kind == (a_type_kind)tk_nullptr)
 
 /* Character types are three particular integral types. */
 #define is_character(tp) \
@@ -2502,6 +2499,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_vector:
         /* Vector types get their size set when they are created. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case tk_nullptr:
+        size = size_of_pointer_to(void_type(), &alignment);
+        break;
       default:
         internal_error("set_type_size: bad type kind");
 #endif /* CHECKING */
@@ -3590,6 +3590,7 @@ for more information.
       case tk_error:
       case tk_unknown:
       case tk_void:
+      case tk_nullptr:
         /* No further check needed.  The types are identical. */
         identical = TRUE;
         break;
@@ -3610,9 +3611,7 @@ for more information.
               type_1->variant.integer.wchar_t_type ==
                                       type_2->variant.integer.wchar_t_type &&
               type_1->variant.integer.bool_type ==
-                                      type_2->variant.integer.bool_type &&
-              type_1->variant.integer.nullptr_type ==
-                                      type_2->variant.integer.nullptr_type) {
+                                      type_2->variant.integer.bool_type) {
             identical = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
           } else if (il_identical && same_repr_int_types(type_1, type_2)) {
@@ -4135,6 +4134,7 @@ for exact pointer equality.
           break;
         case tk_unknown:
         case tk_void:
+        case tk_nullptr:
           /* No further check needed.  The types are compatible. */
           compat = TRUE;
           break;
@@ -4164,9 +4164,7 @@ for exact pointer equality.
                 type_1->variant.integer.wchar_t_type ==
                                         type_2->variant.integer.wchar_t_type &&
                 type_1->variant.integer.bool_type ==
-                                        type_2->variant.integer.bool_type &&
-                type_1->variant.integer.nullptr_type ==
-                                        type_2->variant.integer.nullptr_type) {
+                                        type_2->variant.integer.bool_type) {
               compat = TRUE;
 #if SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
             } else if (C_dialect == C_dialect_pcc &&
@@ -7641,6 +7639,7 @@ calling disentangle_default_args).
 #if GNU_VECTOR_TYPES_ALLOWED
         case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+        case tk_nullptr:
           /* Simple types.  The composite type is either of the types. */
           /* The class/struct/union cases are here because a
              class/struct/union can be compatible with a file-scope
@@ -8648,6 +8647,7 @@ its parameters?).
       case tk_complex:
       case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case tk_nullptr:
       case tk_unknown:
         /* Leaf nodes -- no further traversal required. */
         break;
@@ -9751,6 +9751,7 @@ calling back to the non-"tmtt_" routine that started the walk).
     case tk_complex:
     case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_nullptr:
     case tk_unknown:
       /* Leaf nodes -- no further traversal required. */
       break;

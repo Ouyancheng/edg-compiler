@@ -5274,8 +5274,10 @@ Add to the mangled name the encoding for the type "type".
             s = "Um8";
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !IA64_ABI */
-        } else if (is_nullptr_type(type)) {
+#if DO_IL_LOWERING
+        } else if (is_lowered_nullptr_type(type)) {
           s = MANGLING_STRING_FOR_NULLPTR;
+#endif /* DO_IL_LOWERING */
         } else {
           switch (type->variant.integer.int_kind) {
             case ik_char:           
@@ -5431,6 +5433,9 @@ Add to the mangled name the encoding for the type "type".
         /* More of this below. */
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case tk_nullptr:
+        s = MANGLING_STRING_FOR_NULLPTR;
+        break;
 #if CHECKING
       default:
         internal_error("mangled_encoding_for_type: bad type kind");

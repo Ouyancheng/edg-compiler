@@ -4468,6 +4468,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
+  check_assertion_str(!is_nullptr_type(expr->type),
+                      "dump_expr: unlowered std::nullptr_t type");
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */

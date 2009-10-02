@@ -1292,8 +1292,6 @@ is set to point to the first created type.
         set_builtin_type_corresp(&canonical_il_bool_type, type);
       } else if (type->variant.integer.wchar_t_type) {
         set_builtin_type_corresp(&canonical_il_wchar_t_type, type);
-      } else if (type->variant.integer.nullptr_type) {
-        set_builtin_type_corresp(&canonical_il_nullptr_type, type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (type->variant.integer.microsoft_sized_int_type) {
         if (type->variant.integer.explicitly_signed) {
@@ -1343,6 +1341,9 @@ is set to point to the first created type.
                     &canonical_complex_types[type->variant.float_kind], type);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_nullptr:
+      set_builtin_type_corresp(&canonical_il_nullptr_type, type);
+      break;
     default:
       unexpected_condition_str("record_builtin_type: bad type kind");
   }  /* switch */

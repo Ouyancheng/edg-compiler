@@ -969,6 +969,7 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_complex:
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          case tk_nullptr:
             /* No pointers. */
             break;
           case tk_integer:

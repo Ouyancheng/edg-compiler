@@ -1428,6 +1428,9 @@ Return a string corresponding to the indicated type kind.
       str = "tk_vector";
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+    case tk_nullptr:
+      str = "tk_nullptr";
+      break;
     default:
       str = "**BAD TYPE KIND**";
   }  /* switch */
@@ -1545,9 +1548,6 @@ Display the indicated type entry.
 	  disp_boolean("packed", TRUE);
 	}  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        if (ptr->variant.integer.nullptr_type) {
-          disp_boolean("nullptr_type", TRUE);
-        }  /* if */
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */
@@ -1621,6 +1621,11 @@ Display the indicated type entry.
         disp_boolean("is_rvalue_reference",
                      (a_boolean)ptr->variant.pointer.is_rvalue_reference);
       }  /* if */
+#if DO_IL_LOWERING
+      if (ptr->variant.pointer.lowered_nullptr_type) {
+        disp_boolean("lowered_nullptr_type", TRUE);
+      }  /* if */
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.pointer.modifiers != PM_NONE) {
         disp_name("modifiers");

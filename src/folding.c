@@ -1717,6 +1717,15 @@ is maintained, by adding a cast if necessary.
                       (a_host_large_integer)!is_false_constant(constant));
     goto exit;
   }  /* if */
+  if (is_nullptr_type(new_type)) {
+    /* Conversion to std::nullptr_t.  There is only one "value" of type
+       std::nullptr_t, a null pointer, so the result is a integer with
+       value 0, just like old-style null pointer constants. */
+    set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&new_constant.variant.integer_value,
+                      (a_host_large_integer)0);
+    goto exit;
+  }  /* if */
   if (vla_enabled && !is_implicit_cast &&
       is_directly_variably_modified_type(new_type)) {
     /* A cast to a variably-modified type where the variable bound appears
@@ -1952,6 +1961,27 @@ is maintained, by adding a cast if necessary.
       /* Change the type of the new constant back to the original type of the
 	 error constant, i.e., error. */
       new_constant.type = constant->type;
+      break;
+
+    case tk_nullptr:
+      /* The old constant is a null pointer constant (the C++ "nullptr"
+         keyword or another value of type std::nullptr_t).  This is treated
+         effectively like converting an integer 0, i.e., an old-style
+         null pointer constant. */
+      if (new_type->kind == (a_constant_repr_kind)tk_pointer) {
+        conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
+                                &err_code, &err_severity);
+      } else if (new_type->kind == (a_constant_repr_kind)tk_ptr_to_member) {
+        conv_integer_to_ptr_to_member(constant, &new_constant,
+                                      is_implicit_cast);
+      } else if (new_type->kind == (a_constant_repr_kind)tk_integer &&
+                 is_reinterpret_cast) {
+        conv_integer_to_integer(constant, &new_constant, is_implicit_cast,
+                                &err_code, &err_severity);
+      } else {
+        unexpected_condition_str(
+                      "type_change_constant_full: std::nullptr_t to bad type");
+      }  /* if */
       break;
 
     default:
@@ -5113,6 +5143,11 @@ as the position for any diagnostics issued.
               break;
             case tk_ptr_to_member:
               do_pmcompare(constant_1, op, constant_2, result);
+              break;
+            case tk_nullptr:
+              /* This is handled as an integer comparison, like an old-style
+                 null pointer constant. */
+              do_icompare(constant_1, op, constant_2, result);
               break;
             default:
               unexpected_condition();

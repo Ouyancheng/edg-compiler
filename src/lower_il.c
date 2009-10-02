@@ -8738,6 +8738,15 @@ Do IL lowering of the indicated type and everything under it.
         lower_type(type->variant.vector.element_type);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+      case tk_nullptr:
+        /* The type of the C++ nullptr keyword, std::nullptr_t.  Change it
+           to a copy of the "void *" type (the C++ Standard requires it to
+           have that size, so we use that type in the lowered IL to make it
+           happen naturally) and mark it as having originally been
+           std::nullptr_t in the unlowered IL. */
+        copy_type(void_star_type(), type);
+        type->variant.pointer.lowered_nullptr_type = TRUE;
+        break;
 #if CHECKING
       case tk_unknown:  /* Shouldn't make it out of front end. */
       default:
@@ -10481,11 +10490,11 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   a_type_ptr            result_type, orig_type = expr->type;
 
   check_assertion(!expr->is_lvalue);
-  if (is_nullptr_type(operand->type)) {
-    /* The operand has a decltype(nullptr) type so the result of the cast
-       will always be false; change the eok_bool_cast to an expression that
-       will return a zero of the proper type (preserving the original
-       expression if it has any side effects). */
+  if (is_lowered_nullptr_type(operand->type)) {
+    /* The operand had type std::nullptr_t in the unlowered IL so the
+       result of the cast will always be false; change the eok_bool_cast to
+       an expression that will return a zero of the proper type (preserving
+       the original expression if it has any side effects). */
     a_constant       zero_constant;
     an_expr_node_ptr zero_node;
     make_zero_of_proper_type(orig_type, &zero_constant);
@@ -13497,7 +13506,7 @@ and is lowered by this routine.
 
 static void lower_nullptr_expr(an_expr_node_ptr expr)
 /*
-Replace an rvalue expression whose type is std::nullptr_t with an equivalent
+Replace an rvalue expression whose type was std::nullptr_t with an equivalent
 expression whose value is always zero.  The expression may or may not have
 been previously lowered (and is not lowered by this routine).
 */
@@ -13505,7 +13514,7 @@ been previously lowered (and is not lowered by this routine).
   a_constant       zero_constant;
   an_expr_node_ptr zero_node;
 
-  check_assertion(is_nullptr_type(expr->type) && !expr->is_lvalue);
+  check_assertion(is_lowered_nullptr_type(expr->type) && !expr->is_lvalue);
   make_zero_of_proper_type(expr->type, &zero_constant);
   zero_node = alloc_node_for_constant(&zero_constant);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
@@ -13605,8 +13614,8 @@ cast.  See lower_expr for typical invocation.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* Do not add code here. */
       {
-        if (is_nullptr_type(expr->type) && !expr->is_lvalue) {
-          /* Replace an rvalue variable whose type is decltype(nullptr) with
+        if (is_lowered_nullptr_type(expr->type) && !expr->is_lvalue) {
+          /* Replace an rvalue variable whose type was std::nullptr_t with
              a constant zero of the right type (the variable could be
              uninitialized, so we don't want to use its value). */
           lower_nullptr_expr(expr);
@@ -14076,8 +14085,8 @@ cast.  See lower_expr for typical invocation.
             /* No action on most operators. */
             break;
         }  /* switch */
-        if (is_nullptr_type(expr->type) && !expr->is_lvalue) {
-          /* Replace an rvalue expression whose type is decltype(nullptr) with
+        if (is_lowered_nullptr_type(expr->type) && !expr->is_lvalue) {
+          /* Replace an rvalue expression whose type was std::nullptr_t with
              a constant zero of the right type (such an expression could
              contain uninitialized fields or variables, so we don't want to
              use its value). */
@@ -19642,6 +19651,21 @@ The scope is the top scope in a memory region.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
 }  /* clean_up_all_object_lifetimes */
+
+
+a_boolean is_lowered_nullptr_type(a_type_ptr type)
+/*
+Return TRUE if type is the pointer type that is produced by lowering
+std::nullptr_t, the type of the C++ nullptr keyword, or a typeref thereto.
+Also return TRUE for the unlowered std::nullptr_t, as some file-scope
+types are not lowered.
+*/
+{
+  type = skip_typerefs(type);
+  return (type->kind == (a_type_kind)tk_nullptr ||
+          (type->kind == (a_type_kind)tk_pointer &&
+           type->variant.pointer.lowered_nullptr_type));
+}  /* is_lowered_nullptr_type */
 
 
 #if DEBUG

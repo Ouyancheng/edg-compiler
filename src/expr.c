@@ -1578,6 +1578,7 @@ of gcc and g++ return slightly different values for some expression types.
     case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_error:
+    case tk_nullptr:
       tck = (a_type_class_kind)tck_none;
       break;
     default:

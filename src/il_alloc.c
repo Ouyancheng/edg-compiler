@@ -1349,6 +1349,7 @@ to default values.
     case tk_error:
     case tk_unknown:
     case tk_void:
+    case tk_nullptr:
       /* No variant fields to set. */
       break;
     case tk_integer:
@@ -1362,7 +1363,6 @@ to default values.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.integer.wchar_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;
-      pte->variant.integer.nullptr_type = FALSE;
       pte->variant.integer.originally_unnamed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
@@ -1401,6 +1401,9 @@ to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.pointer.is_reference = FALSE;
       pte->variant.pointer.is_rvalue_reference = FALSE;
+#if DO_IL_LOWERING
+      pte->variant.pointer.lowered_nullptr_type = FALSE;
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.pointer.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
