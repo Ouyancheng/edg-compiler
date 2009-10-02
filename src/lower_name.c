@@ -5274,10 +5274,6 @@ Add to the mangled name the encoding for the type "type".
             s = "Um8";
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !IA64_ABI */
-#if DO_IL_LOWERING
-        } else if (is_lowered_nullptr_type(type)) {
-          s = MANGLING_STRING_FOR_NULLPTR;
-#endif /* DO_IL_LOWERING */
         } else {
           switch (type->variant.integer.int_kind) {
             case ik_char:           
@@ -5364,7 +5360,13 @@ Add to the mangled name the encoding for the type "type".
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_pointer:
-        if (type->variant.pointer.is_reference) {
+        if (is_or_was_nullptr_type(type)) {
+          /* std::nullptr_t, the type of the C++ nullptr keyword, is not
+             itself a pointer type and is handled in the tk_nullptr case
+             below, but it is lowered to a pointer type; the lowered type
+             is handled here. */
+          s = MANGLING_STRING_FOR_NULLPTR;
+        } else if (type->variant.pointer.is_reference) {
           if (type->variant.pointer.is_rvalue_reference) {
             s = MANGLING_STRING_FOR_RVALUE_REFERENCE;
           } else {
@@ -5446,8 +5448,10 @@ Add to the mangled name the encoding for the type "type".
     /* Do any processing needed after the description letter. */
     switch (type->kind) {
       case tk_pointer:
-        /* Put out the type pointed to. */
-        mangled_encoding_for_type(type->variant.pointer.type, mctl);
+        if (!is_or_was_nullptr_type(type)) {
+          /* Put out the type pointed to. */
+          mangled_encoding_for_type(type->variant.pointer.type, mctl);
+        }  /* if */
         break;
       case tk_ptr_to_member:
         /* Put out the mangled name of the class for which this is a member
