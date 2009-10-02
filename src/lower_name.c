@@ -5360,13 +5360,17 @@ Add to the mangled name the encoding for the type "type".
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_pointer:
+#if DO_IL_LOWERING
         if (is_or_was_nullptr_type(type)) {
           /* std::nullptr_t, the type of the C++ nullptr keyword, is not
              itself a pointer type and is handled in the tk_nullptr case
              below, but it is lowered to a pointer type; the lowered type
              is handled here. */
           s = MANGLING_STRING_FOR_NULLPTR;
-        } else if (type->variant.pointer.is_reference) {
+        } else 
+#endif /* DO_IL_LOWERING */
+        /* Do not insert code here. */
+        if (type->variant.pointer.is_reference) {
           if (type->variant.pointer.is_rvalue_reference) {
             s = MANGLING_STRING_FOR_RVALUE_REFERENCE;
           } else {
@@ -5448,10 +5452,18 @@ Add to the mangled name the encoding for the type "type".
     /* Do any processing needed after the description letter. */
     switch (type->kind) {
       case tk_pointer:
+#if DO_IL_LOWERING
+        /* The lowered std::nullptr_t is a pointer, but is mangled by
+           itself and should not be decorated by the type pointed to. */
         if (!is_or_was_nullptr_type(type)) {
           /* Put out the type pointed to. */
           mangled_encoding_for_type(type->variant.pointer.type, mctl);
         }  /* if */
+#else /* !DO_IL_LOWERING */
+        /* The unlowered std::nullptr_t is not a pointer type, so all
+           pointer types should be decorated with the target type. */
+        mangled_encoding_for_type(type->variant.pointer.type, mctl);
+#endif /* DO_IL_LOWERING */
         break;
       case tk_ptr_to_member:
         /* Put out the mangled name of the class for which this is a member
