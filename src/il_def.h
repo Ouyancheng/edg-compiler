@@ -12580,6 +12580,12 @@ typedef struct a_constructor_init {
 			/* The initial value to be assigned to the object
 			   being initialized, represented by a dynamic
 			   initialization entry. */
+  an_expr_node_ptr
+		source_array;
+			/* When copying an explicitly specified array (which
+			   is currently only possible in GNU C++ mode), this
+			   points to the expression that produces that array.
+			   Otherwise, NULL. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		ctor_init_range;

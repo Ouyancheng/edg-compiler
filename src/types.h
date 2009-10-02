@@ -508,6 +508,10 @@ typedef unsigned int an_itf_flag_set;
 #define ITF_EXACT_NESTING_DEPTHS_REQUIRED 0x10
 			/* TRUE if the nesting depths of template parameters
 			   must match exactly. */
+#define ITF_IGNORE_TOP_LEVEL_QUALIFIERS 0x20
+			/* TRUE if top-level qualifiers do not have to
+			   match.  (In the case of arrays, the top-level
+			   qualifiers are those on the element type.) */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))

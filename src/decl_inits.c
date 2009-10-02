@@ -5093,15 +5093,15 @@ scan_paren:
               /* Bypass the right paren. */
               (void)get_token();
             } else {
+              /* Not default-initialization. */
               add_stop_token(tok_rparen);
               if (array_type != NULL) {
                 /* Arrays can only be default- or value-initialized -- i.e.,
-                   the expression-list must be omitted. */
-                sym_error(ec_array_member_initialization, member_or_base_sym);
-                /* Set the initializer field to record that an initialization
-                   was attempted. */
-                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-                flush_to_end_of_arg_list();
+                   the expression-list must be omitted.  GNU C++, however, is
+                   more permissive and allows initialization with an expression
+                   of the same array type if the elements of the array have a
+                   nontrivial copy constructor. */
+                dip = scan_array_mem_initializer(new_cip);
               } else {
                 /* Allocate a new dynamic init entry, setting the kind to
                    dik_none for now.  It will be adjusted after the scan. */
@@ -5379,9 +5379,21 @@ scan_paren:
             (void)reference_to_trivial_default_constructor(tp, &err_pos);
           }  /* if */
         }  /* if */
-        if (cssp == NULL || is_template_param_or_nonreal_class_type(tp) ||
-            (has_trivial_default_constructor(cssp) &&
-             (!exceptions_enabled || cssp->has_trivial_destructor))) {
+        /* Consider dropping the ctor-initializer entry if it isn't needed. */
+        if (cip->source_array != NULL) {
+          /* A special case: An explicit array initializer (possible in GNU C++
+             mode only) in a template.  Don't drop it (it might be needed in
+             the C++-generating back end, for example). */
+          check_assertion(
+                      gpp_mode && prototype_instantiations_in_il &&
+                      cip->kind == (a_constructor_init_kind)cik_field &&
+                      (is_template_dependent_type(cip->source_array->type) ||
+                       is_template_dependent_type(cip->variant.field->type)));
+          continue;
+        } else if (cssp == NULL ||
+                   is_template_param_or_nonreal_class_type(tp) ||
+                   (has_trivial_default_constructor(cssp) &&
+                    (!exceptions_enabled || cssp->has_trivial_destructor))) {
           /* This constructor initializer entry is not really needed.  It may
              be the result of an empty initializer on a field or it may be
              associated with a base class without a constructor.  Unlink it

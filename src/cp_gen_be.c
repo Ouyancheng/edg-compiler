@@ -12213,12 +12213,21 @@ a constructor.
         default:
           unexpected_condition();
       }  /* switch */
-      /* Generate the initialization. */
-      gen_dynamic_init(ctor_init->initializer, type,
-                       /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/TRUE,
-                       /*obj_expr_of_mfunc_operator=*/FALSE,
-                       /*is_static_cast=*/FALSE);
+      if (ctor_init->source_array != NULL) {
+        /* An unusual GNU C++ case: An copy-initializer for an array member.
+           The dynamic initializer is based on a ck_init_repeat structure with
+           a implicit source.  Just render that implicit source. */
+        write_tok_ch('(');
+        gen_expression(ctor_init->source_array);
+        write_tok_ch(')');
+      } else {
+        /* Generate the initialization. */
+        gen_dynamic_init(ctor_init->initializer, type,
+                         /*parenthesized_init=*/TRUE,
+                         /*force_parens=*/TRUE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE,
+                         /*is_static_cast=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* for */
   if (!first_time) write_space();

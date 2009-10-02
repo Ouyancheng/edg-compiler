@@ -168,6 +168,8 @@ extern void scan_initializer_expression(
                                  a_boolean           *is_constant,
                                  an_expr_node_ptr    *expression,
                                  a_constant          *constant);
+
+extern a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,

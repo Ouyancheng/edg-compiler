@@ -3500,7 +3500,8 @@ for more information.
      decltype/typeof constructs. */
   if (type_1->kind == (a_type_kind)tk_typeref ||
       type_2->kind == (a_type_kind)tk_typeref) {
-    if (!type_qualifiers_match(type_1, type_2)) {
+    if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
+        !type_qualifiers_match(type_1, type_2)) {
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
@@ -3586,6 +3587,11 @@ for more information.
     /* Reset the unknown implicit this type flag so that it won't be passed
        to recursive calls of this routine. */
     flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
+    /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS should only be passed to recursive calls
+       for arrays. */
+    if (type_1->kind != (a_type_kind)tk_array) {
+      flags &= ~ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
+    }  /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS */
     switch (type_1->kind) {
       case tk_error:
       case tk_unknown:
