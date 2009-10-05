@@ -10481,8 +10481,8 @@ already), do nothing.
 }  /* change_result_type_of_operator_returning_bool */
 
 
-static an_expr_node_ptr lowered_expr_for_nullptr_type(a_type_ptr       type,
-                                                      an_expr_node_ptr expr)
+static an_expr_node_ptr expr_for_nullptr_type(a_type_ptr       type,
+                                              an_expr_node_ptr expr)
 /*
 Returns an expression of the specified type that can be used as a replacement
 for the input expression (an rvalue expression of type std::nullptr_t).
@@ -10498,17 +10498,31 @@ by this routine).
   an_expr_node_ptr zero_node;
 
   check_assertion(is_or_was_nullptr_type(expr->type) && !expr->is_lvalue);
-  make_zero_of_proper_type(get_underlying_type(type), &zero_constant);
   if (is_or_was_ptr_to_member_function_type(type) ||
       is_or_was_ptr_to_data_member_type(type)) {
+    /* Pointer to member types may (if in the file scope) or may not (if
+       in a function scope) have been lowered.  We need the unlowered type
+       in order to generate the appropriate constant, but the constant can't
+       have the unlowered type, so overwrite it with the original type
+       we were given. */
+    make_zero_of_proper_type(get_underlying_type(type), &zero_constant);
     lower_ptr_to_member_constant(&zero_constant);
+    zero_constant.type = type;
+  } else {
+    /* Eventually, all std::nullptr_t types will be lowered to void*, so
+       create a zero of type void* for the value of the expression.*/
+    make_zero_of_proper_type(void_star_type(), &zero_constant);
   }  /* if */
   zero_node = alloc_node_for_constant(&zero_constant);
+  /* Add a cast to the desired type.  In many cases this will be a cast
+     from void* to std::nullptr_t which will become superfluous once the
+     std::nullptr_t type has been lowered. */
+  zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
     zero_node = make_comma_node(copy_node(expr), zero_node);
   }  /* if */
   return zero_node;
-}  /* lowered_expr_for_nullptr_type */
+}  /* expr_for_nullptr_type */
 
 
 void lower_bool_cast(an_expr_node_ptr expr)
@@ -10525,7 +10539,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
        result of the cast will always be false; change the eok_bool_cast to
        an expression that will return a zero of the proper type (preserving
        the original expression if it has any side effects). */
-    overwrite_node(expr, lowered_expr_for_nullptr_type(orig_type, operand));
+    overwrite_node(expr, expr_for_nullptr_type(orig_type, operand));
   } else {
     /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
     operand = make_operands_for_ne_0(operand);
@@ -13619,8 +13633,7 @@ cast.  See lower_expr for typical invocation.
           /* Replace an rvalue variable whose type was std::nullptr_t with
              a constant zero of the right type (the variable could be
              uninitialized, so we don't want to use its value). */
-          overwrite_node(expr, lowered_expr_for_nullptr_type(void_star_type(),
-                                                             expr));
+          overwrite_node(expr, expr_for_nullptr_type(expr->type, expr));
         } else {
           var = expr->variant.variable;
           /* If the variable is a parameter that's passed by copy constructor,
@@ -13795,8 +13808,7 @@ cast.  See lower_expr for typical invocation.
            proper type.  This is done before lowering the operand of the
            cast (else it will become a zero and that may not be the proper
            value, e.g., for pointer to members types). */
-        overwrite_node(expr, lowered_expr_for_nullptr_type(expr->type,
-                                                           operand_node));
+        overwrite_node(expr, expr_for_nullptr_type(expr->type, operand_node));
         /* It's possible (if the operand has side effects) that the expression
            still needs lowering, so lower it now. */
         lower_expr(expr);
@@ -14098,13 +14110,14 @@ cast.  See lower_expr for typical invocation.
             /* No action on most operators. */
             break;
         }  /* switch */
-        if (is_or_was_nullptr_type(expr->type) && !expr->is_lvalue) {
+        if (is_or_was_nullptr_type(expr->type) &&
+            !expr->is_lvalue &&
+            !expr->result_is_not_used) {
           /* Replace an rvalue expression whose type was std::nullptr_t with
              a constant zero of the right type (such an expression could
              contain uninitialized fields or variables, so we don't want to
              use its value). */
-          overwrite_node(expr,
-                        lowered_expr_for_nullptr_type(void_star_type(), expr));
+          overwrite_node(expr, expr_for_nullptr_type(expr->type, expr));
         } /* if */
         /* Change the type of operators that return "bool" in C++ to
            the "int" required in C. */
