@@ -5380,14 +5380,14 @@ scan_paren:
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
-        if (cip->source_array != NULL) {
+        if (cip->source_expr != NULL) {
           /* A special case: An explicit array initializer (possible in GNU C++
              mode only) in a template.  Don't drop it (it might be needed in
              the C++-generating back end, for example). */
           check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
-                      (is_template_dependent_type(cip->source_array->type) ||
+                      (is_template_dependent_type(cip->source_expr->type) ||
                        is_template_dependent_type(cip->variant.field->type)));
           continue;
         } else if (cssp == NULL ||

@@ -21746,7 +21746,7 @@ dependent cases).
                                            /*block_lifetime=*/FALSE);
         dip = add_array_nonconstant_aggregate_init(dip, dst_type, el_type,
                                                    n_elems);
-        cip->source_array = make_node_from_operand(&operand);
+        cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
     } else if (could_be_dependent_class_type(el_type) ||
                is_template_dependent_type(src_type)) {
@@ -21755,7 +21755,7 @@ dependent cases).
          if necessary, we also record the expression we saw. */
       err = FALSE;
       if (prototype_instantiations_in_il) {
-        cip->source_array = make_node_from_operand(&operand);
+        cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
     pop_expr_stack();

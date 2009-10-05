@@ -12213,12 +12213,12 @@ a constructor.
         default:
           unexpected_condition();
       }  /* switch */
-      if (ctor_init->source_array != NULL) {
+      if (ctor_init->source_expr != NULL) {
         /* An unusual GNU C++ case: An copy-initializer for an array member.
            The dynamic initializer is based on a ck_init_repeat structure with
            a implicit source.  Just render that implicit source. */
         write_tok_ch('(');
-        gen_expression(ctor_init->source_array);
+        gen_expression(ctor_init->source_expr);
         write_tok_ch(')');
       } else {
         /* Generate the initialization. */

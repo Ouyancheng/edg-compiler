@@ -5312,7 +5312,7 @@ do_base_class:
   }  /* switch */
   disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
-  disp_ptr("source_array", (char *)ptr->source_array, iek_expr_node);
+  disp_ptr("source_expr", (char *)ptr->source_expr, iek_expr_node);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("ctor_init_range", &ptr->ctor_init_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
