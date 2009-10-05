@@ -4329,7 +4329,7 @@ a copy of the previous type).
         rtsp = rout_type->variant.routine.extra_info;
         /* Before overriding rout_type, preserve a copy of the original. */
         dps->prev_type = copy_routine_type_with_param_types(
-                                       rout_type, /*copy_default_args=*/TRUE);
+                                       rout_type, /*copy_default_args=*/FALSE);
         /* Transfer the composite type to rout_type, which is usually
            unshared.  We want to preserve fields like assoc_routine and
            arg_pragma in rout_type, so we can't just do a copy_type. */
