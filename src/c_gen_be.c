@@ -1917,6 +1917,9 @@ Do any desirable consistency checks on the indicated type.
             elem_size * type->variant.array.variant.number_of_elements == size,
             "validate_type: incorrect array size");
     }  /* if */
+  } else {
+    check_assertion_str(!is_nullptr_type(type),
+                        "validate_type: unlowered std::nullptr_t type");
   }  /* if */
 }  /* validate_type */
 
