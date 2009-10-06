@@ -12233,7 +12233,7 @@ Syntax:
         if (gpp_mode && gnu_version >= 30400 &&
             is_pointer_type(type_cast_to) && is_pointer_type(result->type)) {
           /* g++ versions since 3.4 (through 4.4 at least) have a bug that
-             a static_cast of a cv-unqualified pointer to a base class to a
+             a static_cast of a pointer to a cv-unqualified base class to a
              pointer to a cv-qualified derived class actually results in a
              pointer to the cv-unqualified derived class.  (This check must
              be done before the operand transformations, as the bug occurs
