@@ -12230,6 +12230,29 @@ Syntax:
       }  /* if */
       if (!cast_to_reference && !cast_to_void && !gnu_lvalue_cast_case) {
         /* Normal case (not a cast to reference or cast to void). */
+        if (gpp_mode && gnu_version >= 30400 &&
+            is_pointer_type(type_cast_to) && is_pointer_type(result->type)) {
+          /* g++ versions since 3.4 (through 4.4 at least) have a bug that
+             a static_cast of a cv-unqualified pointer to a base class to a
+             pointer to a cv-qualified derived class actually results in a
+             pointer to the cv-unqualified derived class.  (This check must
+             be done before the operand transformations, as the bug occurs
+             only with a pointer operand, not an array type that decays to
+             a pointer.) */
+          a_type_ptr to_type = type_pointed_to(type_cast_to);
+          a_type_ptr from_type = type_pointed_to(result->type);
+          if (is_qualified_type(to_type) && !is_qualified_type(from_type)) {
+            to_type = skip_typerefs(to_type);
+            from_type = skip_typerefs(from_type);
+            if (is_immediate_class_type(to_type) &&
+                is_immediate_class_type(from_type) &&
+                find_base_class_of(to_type, from_type) != NULL) {
+              /* Emulate the g++ bug by substituting the cv-unqualified
+                 version of the target type. */
+              type_cast_to = make_pointer_type(to_type);
+            }  /* if */
+          }  /* if */
+        }  /* if */
         /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
            conversions.  They must be done now because they affect the type
            of the operand. */
