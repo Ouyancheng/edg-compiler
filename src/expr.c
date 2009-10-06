@@ -14267,9 +14267,18 @@ standard.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       } else if (operand_1_is_nullptr || is_nullptr_type(operand_2.type)) {
         /* At least one of the operands is type std::nullptr_t. */
-        (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
-                                                      &operator_position,
-                                                      &operation_type);
+        if (is_ptr_to_member_type(operand_2.type)) {
+          /* Pointer to member types cannot be compared using relational
+             operators.  (The case where operand_1 has a pointer to member
+             type was already caught above.) */
+          pos_error(ec_expr_not_arithmetic_or_enum_or_pointer,
+                    &operand_2.position);
+          operation_type = error_type();
+        } else {
+          (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
+                                                        &operator_position,
+                                                        &operation_type);
+        }  /* if */
       } else {
         /* Both operands should be arithmetic or enum (we have ruled out all
            the pointer cases above).  We already know that operand_1 is
@@ -19480,8 +19489,8 @@ see expr.h).
                                       /*is_signed=*/TRUE);
         if (ikind == (an_integer_kind)ik_none) ikind = (an_integer_kind)ik_int;
         make_zero_of_proper_type(integer_type(ikind), &null_constant);
+        null_constant.null_keyword = TRUE;
         make_constant_operand(&null_constant, &local_result);
-        local_result.variant.constant.null_keyword = TRUE;
       }
       (void)get_token();
       break;
@@ -19492,8 +19501,8 @@ see expr.h).
            constant of type std::nullptr_t. */
         a_constant nullptr_constant;
         make_zero_of_proper_type(nullptr_type(), &nullptr_constant);
+        nullptr_constant.nullptr_keyword = TRUE;
         make_constant_operand(&nullptr_constant, &local_result);
-        local_result.variant.constant.nullptr_keyword = TRUE;
       }
       (void)get_token();
       break;

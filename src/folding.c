@@ -1719,7 +1719,7 @@ is maintained, by adding a cast if necessary.
   }  /* if */
   if (is_nullptr_type(new_type)) {
     /* Conversion to std::nullptr_t.  There is only one "value" of type
-       std::nullptr_t, a null pointer, so the result is a integer with
+       std::nullptr_t, a null pointer, so the result is an integer with
        value 0, just like old-style null pointer constants. */
     set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant.variant.integer_value,
