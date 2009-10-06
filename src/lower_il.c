@@ -8525,7 +8525,7 @@ Do IL lowering of the indicated type and everything under it.
 */
 {
   a_type_ptr ptr_return_type, new_type, type_next, member_type;
-  a_type_ptr copy_of_pm_type;
+  a_type_ptr copy_of_orig_type;
 
   /* Note that within this routine "lower_os_type" need not be used.
      The fact that we are lowering a type means we are lowering the
@@ -8580,8 +8580,8 @@ Do IL lowering of the indicated type and everything under it.
         /* Make a copy of the original pointer-to-member type.  Note that
            this copy is for the use of IL lowering; it is not really part
            of the IL tree. */
-        copy_of_pm_type = alloc_type(type->kind);
-        copy_type(type, copy_of_pm_type);
+        copy_of_orig_type = alloc_type(type->kind);
+        copy_type(type, copy_of_orig_type);
         /* Change the type to a pure typeref to the new (lowered) type. */
         type_next = type->next;
         set_type_kind(type, (a_type_kind)tk_typeref);
@@ -8592,7 +8592,7 @@ Do IL lowering of the indicated type and everything under it.
            one comes across a pointer-to-member type that has already been
            lowered, one needs to be able to get the original class and
            member type. */
-        type->variant.typeref.orig_type = copy_of_pm_type;
+        type->variant.typeref.orig_type = copy_of_orig_type;
 #if MAINTAIN_NEEDED_FLAGS
         /* Set the "needed" flag appropriately.  Without this, the typeref
            could be marked as needed and that might prevent processing of
@@ -8740,12 +8740,19 @@ Do IL lowering of the indicated type and everything under it.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
         /* The type of the C++ nullptr keyword, std::nullptr_t.  Change it
-           to a copy of the "void *" type (the C++ Standard requires it to
+           to a typeref to the "void *" type (the C++ Standard requires it to
            have that size, so we use that type in the lowered IL to make it
-           happen naturally) and mark it as having originally been
-           std::nullptr_t in the unlowered IL. */
-        copy_type(void_star_type(), type);
-        type->variant.pointer.lowered_nullptr_type = TRUE;
+           happen naturally) and maintain a copy of the original std::nullptr_t
+           type for the use of IL lowering; it is not really part of the IL
+           tree. */
+        copy_of_orig_type = alloc_type(type->kind);
+        copy_type(type, copy_of_orig_type);
+        /* Change the type to a pure typeref to the new (lowered) type. */
+        type_next = type->next;
+        set_type_kind(type, (a_type_kind)tk_typeref);
+        type->next = type_next;
+        type->variant.typeref.type = void_star_type();
+        type->variant.typeref.orig_type = copy_of_orig_type;
         break;
 #if CHECKING
       case tk_unknown:  /* Shouldn't make it out of front end. */
@@ -10487,11 +10494,11 @@ static an_expr_node_ptr expr_for_nullptr_type(a_type_ptr       type,
 Returns an expression of the specified type that can be used as a replacement
 for the input expression (an rvalue expression of type std::nullptr_t).
 Typically the returned expression is simply a constant zero of the specified
-type, but can also be other values (e.g., when the type is a pointer to
-member type), and can also contain the original expression as the first
-operand of a comma operation in cases where the expression has side effects).
-The expression may or may not have been previously lowered (and is not lowered
-by this routine).
+type, but can also be something more complicated (e.g., when the type is a
+pointer to member type), and can also contain the original expression as the
+first operand of a comma operation in cases where the expression has side
+effects.  The expression may or may not have been previously lowered (and is
+not lowered by this routine).
 */
 {
   a_constant       zero_constant;
@@ -13807,7 +13814,7 @@ cast.  See lower_expr for typical invocation.
         /* Replace a cast of a std::nullptr_t type with a constant of the
            proper type.  This is done before lowering the operand of the
            cast (else it will become a zero and that may not be the proper
-           value, e.g., for pointer to members types). */
+           value, e.g., for pointer to member types). */
         overwrite_node(expr, expr_for_nullptr_type(expr->type, operand_node));
         /* It's possible (if the operand has side effects) that the expression
            still needs lowering, so lower it now. */
@@ -19682,14 +19689,21 @@ The scope is the top scope in a memory region.
 
 a_boolean is_or_was_nullptr_type(a_type_ptr type)
 /*
-Return TRUE if type is either std::nullptr_t or the pointer type to which
-it is transformed by lower_type.
+Return TRUE if type is either std::nullptr_t or a lowered version of 
+std::nullptr_t.
 */
 {
-  type = skip_typerefs(type);
-  return (type->kind == (a_type_kind)tk_nullptr ||
-          (type->kind == (a_type_kind)tk_pointer &&
-           type->variant.pointer.lowered_nullptr_type));
+  /* Drop typerefs, but look for a special entry that indicates that
+     it was some other type (potentially std::nullptr_t) rewritten by IL
+     lowering. */
+  while (type->kind == (a_type_kind)tk_typeref) {
+    if (type->variant.typeref.orig_type != NULL) {
+      type = type->variant.typeref.orig_type;
+      break;
+    }  /* if */
+    type = type->variant.typeref.type;
+  }  /* while */
+  return is_nullptr_type(type);
 }  /* is_or_was_nullptr_type */
 
 

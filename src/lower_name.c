@@ -5454,16 +5454,16 @@ Add to the mangled name the encoding for the type "type".
       case tk_pointer:
 #if DO_IL_LOWERING
         /* The lowered std::nullptr_t is a pointer, but is mangled by
-           itself and should not be decorated by the type pointed to. */
-        if (!is_or_was_nullptr_type(type)) {
+           itself and should not be decorated by the type pointed to.
+           The unlowered std::nullptr_t is not a pointer type, so all
+           pointer types should be decorated with the target type. */
+        if (!is_or_was_nullptr_type(type)) 
+#endif /* DO_IL_LOWERING */
+        /* Do not insert code here. */
+        {
           /* Put out the type pointed to. */
           mangled_encoding_for_type(type->variant.pointer.type, mctl);
         }  /* if */
-#else /* !DO_IL_LOWERING */
-        /* The unlowered std::nullptr_t is not a pointer type, so all
-           pointer types should be decorated with the target type. */
-        mangled_encoding_for_type(type->variant.pointer.type, mctl);
-#endif /* DO_IL_LOWERING */
         break;
       case tk_ptr_to_member:
         /* Put out the mangled name of the class for which this is a member

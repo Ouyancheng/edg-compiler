@@ -6124,14 +6124,6 @@ typedef struct a_type {
 		is_rvalue_reference;
 			/* If TRUE, this type is a C++0x rvalue reference
 			   type. */
-#if DO_IL_LOWERING
-      a_byte_boolean
-		lowered_nullptr_type;
-			/* TRUE if this pointer type was lowered from
-			   std::nullptr_t (the type of the C++ nullptr
-			   keyword) in the unlowered IL.  Always FALSE in
-			   unlowered IL. */
-#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_pointer_modifier_set
 		modifiers;
@@ -6536,10 +6528,10 @@ typedef struct a_type {
       a_type_ptr
 		orig_type;
 			/* When this typeref represents a type (specifically,
-			   a pointer to member type) that has been lowered
-			   to something, this points to a copy of the original
-			   type.  NULL otherwise.  For internal use in
-			   IL lowering only. */
+			   a pointer to member type or std::nullptr_t) that has
+			   been lowered to something, this points to a copy of
+			   the original type.  NULL otherwise.  For internal
+			   use in IL lowering only. */
 #endif /* DO_IL_LOWERING */
 #if UPC_EXTENSIONS_ALLOWED
       a_upc_block_size

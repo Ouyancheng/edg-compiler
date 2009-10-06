@@ -1401,9 +1401,6 @@ to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.pointer.is_reference = FALSE;
       pte->variant.pointer.is_rvalue_reference = FALSE;
-#if DO_IL_LOWERING
-      pte->variant.pointer.lowered_nullptr_type = FALSE;
-#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.pointer.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

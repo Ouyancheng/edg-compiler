@@ -759,7 +759,7 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
         bases = bases->next;
       } /* while */
     }  /* if */
-  } else if (is_or_was_nullptr_type(type)) {
+  } else if (is_nullptr_type(type)) {
     tinfo_kind = tik_nullptr;
   } else {
     unexpected_condition_str("get_typeinfo_kind: bad type");
