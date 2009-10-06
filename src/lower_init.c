@@ -3871,10 +3871,9 @@ action is necessary (since the routine has already been defined).
        to the return. */
     void_return = is_void_type(lowered_return_type_of(new_routine->type));
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-    if (exceptions_enabled &&
-        (construct_virtual_bases || 
+    if ((exceptions_enabled && construct_virtual_bases) || 
          (destroy_virtual_bases &&
-          new_routine_scope->variant.routine.constructor_inits != NULL))) {
+          new_routine_scope->variant.routine.constructor_inits != NULL)) {
       /* Force insertion as a statement because we have exception handling code
          or destructions that must follow the call. */
       insert_as_statement = TRUE;
