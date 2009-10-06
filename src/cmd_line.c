@@ -2220,6 +2220,7 @@ process.
   auto_type_specifier_enabled = FALSE;
   auto_storage_class_specifier_enabled = TRUE;
   trailing_return_types_enabled = FALSE;
+  nullptr_enabled = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
