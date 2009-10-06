@@ -10954,6 +10954,33 @@ an extension in both C and C++.
 }  /* conv_subscript_in_string_to_char */
 
 
+a_boolean current_mode_allows_dot_static_folding(an_expr_node_ptr lhs_expr)
+/*
+Return TRUE if the current mode/dialect allows the folding of lhs_expr.k to a
+constant if k is a constant.
+*/
+{
+  a_boolean allows_folding = FALSE;
+
+  if (curr_expr_kind_is_const()) {
+    /* In constant expressions, we fold such things only as a nonstandard
+       feature.  If we decide to do the folding, the left side is guaranteed
+       not to have side effects because it's a constant expression. */
+    if (current_mode_allows_field_selection_folding()) {
+      allows_folding = TRUE;
+    }  /* if */
+  } else {
+    /* In non-constant expressions, we allow this folding in some modes
+       if the left operand has no side effects. */
+    if (microsoft_mode &&
+        !node_has_side_effects(lhs_expr, (a_boolean *)NULL)) {
+      allows_folding = TRUE;
+    }  /* if */
+  }  /* if */
+  return allows_folding;
+}  /* current_mode_allows_dot_static_folding */
+
+
 an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr  node,
                                             a_boolean         *constant_case,
                                             a_constant_ptr    *con_value,
@@ -11153,9 +11180,9 @@ it might produce an error).
           /* No skip_parens needed on op2. */
           if (allow_folding != NULL &&
               is_constant_node(op2) &&
-              current_mode_allows_field_selection_folding()) {
-            /* In modes that allow uses of static field selection in a constant
-               expression, fold the field selection to a constant. */
+              current_mode_allows_dot_static_folding(op1)) {
+            /* In modes that allow folding of static field selection to
+               a constant, do so. */
             check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL) ||
                             is_error_node(op1));
             con_expr_value = op2->variant.constant;

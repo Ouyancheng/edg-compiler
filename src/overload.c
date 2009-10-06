@@ -6737,10 +6737,8 @@ TRUE if the operator is "->", FALSE if it is ".".
   stripped_orig_expr = skip_parens(orig_expr);
   if (!stripped_orig_expr->is_lvalue &&
       is_constant_node(stripped_orig_expr) &&
-      (curr_expr_kind_is_const() ||
-       (microsoft_mode &&
-        !node_has_side_effects(stripped_selector_expr, (a_boolean *)NULL)))) {
-    /* In constant expressions, produce a constant result for an rvalue.
+      current_mode_allows_dot_static_folding(stripped_selector_expr)) {
+    /* In certain modes, produce a constant result for an rvalue.
        Note that only things like enumerator values are handled here.  Most
        others stay as lvalues at this point and are converted to the constant
        when lvalue-to-rvalue conversion is done. */

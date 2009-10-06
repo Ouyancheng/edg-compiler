@@ -57,6 +57,9 @@ as a constant in constant expressions.
     int arr[elem];  // Now accepted; elem is a constant-valued variable
   }
 
+Similarly, x.v, where v is a const static data member, is now also folded
+to a constant in non-constant expressions in Microsoft mode.
+
 
 9/28/09  [EDGcpfe/10121]
 Assertion failure in add_discriminator in IA-64 ABI configurations

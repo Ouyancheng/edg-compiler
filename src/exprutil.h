@@ -1052,6 +1052,9 @@ extern a_constant_ptr value_of_constant_var_lvalue_operand(
                                                           an_operand *operand);
 
 extern
+a_boolean current_mode_allows_dot_static_folding(an_expr_node_ptr lhs_expr);
+
+extern
 an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr node,
                                             a_boolean        *constant_case,
                                             a_constant_ptr   *con_value,
