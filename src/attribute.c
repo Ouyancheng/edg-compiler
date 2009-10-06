@@ -1301,6 +1301,7 @@ given list.
 */
 {
   an_attribute_ptr  ap;
+
   for (ap = attributes; ap != NULL; ap = ap->next) {
     ap->on_primary_declaration = TRUE;
   }  /* for */
@@ -1343,6 +1344,7 @@ attribute to it.
   an_attribute_arg_ptr  aap = ap->arguments;
   a_targ_alignment      alignment = 0;
   a_boolean             apply_value = FALSE;
+
   check_assertion(aap != NULL);
   if (aap->kind == (an_attribute_arg_kind)aak_type) {
     alignment = alignment_of_type(aap->variant.type);
