@@ -1968,6 +1968,7 @@ is maintained, by adding a cast if necessary.
          keyword or another value of type std::nullptr_t).  This is treated
          effectively like converting an integer 0, i.e., an old-style
          null pointer constant. */
+      check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
       if (new_type->kind == (a_constant_repr_kind)tk_pointer) {
         conv_integer_to_pointer(constant, &new_constant, is_implicit_cast,
                                 &err_code, &err_severity);

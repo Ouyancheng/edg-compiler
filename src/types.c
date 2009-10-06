@@ -6287,15 +6287,16 @@ See conversion_possible.
                                          dest_type,
                                          allow_qualifier_or_eh_mismatch,
                                          std_conv);
-  } else if (is_nullptr(dest_type) &&
-             (is_nullptr(source_type) ||
-              (source_is_constant &&
-               is_or_might_be_null_pointer_constant(source_constant)))) {
-    /* Only a null pointer constant (nullptr or other rvalue of type
-       std::nullptr_t or a 0-valued integral constant expression) can be
-       converted to std::nullptr_t. */
-    okay = TRUE;
-    std_conv->nontrivial_conversion = !is_nullptr(source_type);
+  } else if (is_nullptr(dest_type)) {
+    if (is_nullptr(source_type) ||
+        (source_is_constant &&
+         is_or_might_be_null_pointer_constant(source_constant))) {
+      /* Only a null pointer constant (nullptr or other rvalue of type
+         std::nullptr_t or a 0-valued integral constant expression) can be
+         converted to std::nullptr_t. */
+      okay = TRUE;
+      std_conv->nontrivial_conversion = !is_nullptr(source_type);
+    }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
