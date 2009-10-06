@@ -1,3 +1,15 @@
+Version 4.2
+
+9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102]
+C++0x: Support for nullptr
+
+The cxxabi.h file has been updated to include a definition for
+__nullptr_type_info.  __nullptr_type_info is used to convey information about
+a std::nullptr_t type between the compiler and the runtime library (i.e., as
+part of the IA-64 ABI Run-Time Type Information (RTTI)).
+
+
+-------------------------------------------------------------------------------
 Version 4.1, August 6, 2009
 
 6/25/09  [EDGcpfe/9835]
