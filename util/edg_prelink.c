@@ -1690,7 +1690,7 @@ processed further.
         pos++;
       }  /* for */
     } else if (nm_format == nmfk_MacOSX64) {
-      /* On MacOS64, the name is followed by a space and then an 16 character
+      /* On MacOS64, the name is followed by a space and then a 16 character
          value or 16 blanks.  Skip those 17 characters. */
       int i;
       for (i = 0; i < 17; ++i) {
