@@ -27,7 +27,7 @@ and is now fixed.  For example:
 
 
 10/6/09  [EDGcpfe/9593]
-GNU compatibility: static_cast to pointer to  cv-qualified derived class
+GNU compatibility: static_cast to pointer to cv-qualified derived class
 
 In versions 3.4 through at least 4.4 of g++, there is a bug such that
 using static_cast to convert a pointer to a cv-unqualified base class into
