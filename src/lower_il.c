@@ -1395,17 +1395,7 @@ Return TRUE if type is (or was, before lowering) a pointer to data member.
 {
   a_boolean is_ptr_to_data = FALSE;
 
-  /* Drop typerefs, but look for a special entry that indicates that
-     it was some other type rewritten by IL lowering. */
-  while (type->kind == (a_type_kind)tk_typeref) {
-    if (type->variant.typeref.orig_type != NULL) {
-      /* A type transformed to something else (e.g., a pointer to
-         data member changed to a small integer). */
-      type = type->variant.typeref.orig_type;
-      break;
-    }  /* if */
-    type = type->variant.typeref.type;
-  }  /* while */
+  type = get_underlying_type(type);
   if (is_ptr_to_member_type(type)) {
     /* The type is a pointer-to-member type.  See if the member type is
        a non-function type. */
@@ -19693,16 +19683,7 @@ Return TRUE if type is either std::nullptr_t or a lowered version of
 std::nullptr_t.
 */
 {
-  /* Drop typerefs, but look for a special entry that indicates that
-     it was some other type (potentially std::nullptr_t) rewritten by IL
-     lowering. */
-  while (type->kind == (a_type_kind)tk_typeref) {
-    if (type->variant.typeref.orig_type != NULL) {
-      type = type->variant.typeref.orig_type;
-      break;
-    }  /* if */
-    type = type->variant.typeref.type;
-  }  /* while */
+  type = get_underlying_type(type);
   return is_nullptr_type(type);
 }  /* is_or_was_nullptr_type */
 

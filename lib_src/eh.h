@@ -232,8 +232,9 @@ typedef a_byte an_ETS_flag_set;
 			   with a given try block (i.e., there are no more
 			   entries in the array.) */
 #define ETS_IS_POINTER_TO_MEMBER 0x40
-			/* An object of pointer to member type is specified
-			   by typeinfo. */
+			/* A pointer to member type is specified by type_info.
+			   Note that this differs from the pointer case: the
+			   type_info refers to the pointer to member type. */
 #define ETS_QUALIFIERS	(ETS_CONST | ETS_VOLATILE)
 			/* The flags bits that comprise the type qualifiers
 			   that must be checked to determine a match. */

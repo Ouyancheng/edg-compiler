@@ -5453,10 +5453,8 @@ Add to the mangled name the encoding for the type "type".
     switch (type->kind) {
       case tk_pointer:
 #if DO_IL_LOWERING
-        /* The lowered std::nullptr_t is a pointer, but is mangled by
-           itself and should not be decorated by the type pointed to.
-           The unlowered std::nullptr_t is not a pointer type, so all
-           pointer types should be decorated with the target type. */
+        /* The lowered std::nullptr_t is a pointer, but is mangled by 
+           itself and should not be decorated by the type pointed to. */
         if (!is_or_was_nullptr_type(type)) 
 #endif /* DO_IL_LOWERING */
         /* Do not insert code here. */

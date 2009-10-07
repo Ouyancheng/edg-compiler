@@ -2479,8 +2479,9 @@ typedef unsigned long an_eh_type_flags_set;
 			/* TRUE if this is the last type specification in
 			   the array. */
 #define ETS_IS_POINTER_TO_MEMBER 0x40
-			/* An object of pointer to member type is specified
-			   by typeinfo. */
+			/* A pointer to member type is specified by typeinfo.
+			   Note that this differs from the pointer case: the
+			   typeinfo refers to the pointer to member type. */
 #endif /* GENERATE_EH_TABLES */
 
 #if GENERATE_EH_TABLES
