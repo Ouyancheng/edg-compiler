@@ -1593,7 +1593,9 @@ source_desc describes the source of the implied copy (e.g., a
 constructor-initializer entry).  Create an expression to describe the implied
 source and return a pointer to it.  dest describes the entity being
 initialized.  The returned expression will be an lvalue if result_is_lvalue is
-TRUE, otherwise an rvalue.
+TRUE, otherwise an rvalue.  result_is_lvalue must be TRUE when the implied
+source is represented by the source_expr of a constructor-initializer (i.e.,
+for an array initialization in GNU C++ mode).
 */
 {
   an_init_pos_descr    source_ipd;
@@ -1604,14 +1606,22 @@ TRUE, otherwise an rvalue.
   if (source_desc->ctor_init != NULL) {
     check_assertion(source_desc->capture == NULL &&
                     !source_desc->runtime_throw);
-    /* The implied source is the member being copied by the
-       ctor-initializer. */
-    set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
-                                    &source_ipd);
-    modify_ctor_init_pos_descr(source_desc->ctor_init, &source_ipd,
-                               &source_ipm);
-    source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
-                                        /*using_as_dest=*/FALSE);
+    if (source_desc->ctor_init->source_expr == NULL) {
+      /* The implied source is the member being copied by the
+         ctor-initializer. */
+      set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
+                                      &source_ipd);
+      modify_ctor_init_pos_descr(source_desc->ctor_init, &source_ipd,
+                                 &source_ipm);
+      source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
+                                          /*using_as_dest=*/FALSE);
+    } else {
+      /* The implied source is given by the specified expression (which has
+         already been lowered).  Currently used only when copying an
+         array in GNU C++ mode.  Result must be an lvalue. */
+      source_node = source_desc->ctor_init->source_expr;
+      check_assertion(result_is_lvalue && source_node->is_lvalue);
+    }  /* if */
   } else if (source_desc->capture != NULL) {
     a_variable_ptr  var = source_desc->capture->variable;
     check_assertion(!source_desc->runtime_throw);
@@ -11434,6 +11444,11 @@ and NULL otherwise.  The statement(s) created are inserted at
   /* Set the source of the implied copy. */
   clear_implied_copy_source(&source_desc);
   source_desc.ctor_init = ctor_init;
+  if (ctor_init->source_expr != NULL) {
+    /* If there is an associated source expression as part of the implied copy,
+       lower it. */
+    lower_expr(ctor_init->source_expr);
+  }  /* if */
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
                      &source_desc, construction_vtbls_var,
