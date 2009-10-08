@@ -1917,11 +1917,11 @@ Scan and process a #pragma directive.
 {
   a_pragma_kind_description_ptr	pkdp = NULL;
   a_source_position		id_position;
+  a_boolean			pass_to_output = generate_pp_output;
 
   /* Look up the identifier that specifies the kind of pragma. */
   pkdp = look_up_pragma_id(&id_position);
   if (generate_pp_output && do_preprocessing_only) {
-    a_boolean	pass_to_output = TRUE;
     /* Generating preprocessing output for some other compiler.  In most cases
        the #pragma is passed to the output.  The information in the pragma
        description is used to determine how the tokens of the pragma should
@@ -1952,7 +1952,16 @@ Scan and process a #pragma directive.
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */
-    if (generate_pp_output) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (pkdp != NULL &&
+        (pkdp->kind == (a_pragma_kind)pk_push_macro ||
+         pkdp->kind == (a_pragma_kind)pk_pop_macro)) {
+      /* These pragmas are useless in the preprocessor output because
+         there are no macro definitions or invocations. */
+      pass_to_output = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (pass_to_output) {
       /* Make sure that the first line of the pragma is output in case
          the line ends inside a comment. */
       do_not_put_curr_line_in_pp_output = FALSE;
@@ -1960,7 +1969,7 @@ Scan and process a #pragma directive.
     }  /* if */
     record_pragma(pkdp, start_of_dir_position, &id_position,
                   /*is_microsoft_pragma_operator=*/FALSE);
-    if (generate_pp_output) {
+    if (pass_to_output) {
       /* If we are generating preprocessed output, but we are also
          doing real compilation (i.e., do_preprocessing_only is FALSE),
          then we need to output the directive as well as actually evaluating
