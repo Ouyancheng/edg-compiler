@@ -1932,6 +1932,11 @@ Scan and process a #pragma directive.
         /* This file should be included only once, and if it is #included
            again in the same compilation unit, the include should be skipped.
            Record this information in the input stack entry. */
+        /* Turn on the flags to copy the pragma to the output so that the
+           first line will appear, in case the line ends inside a
+           comment. */
+        do_not_put_curr_line_in_pp_output = FALSE;
+        pass_pp_directive_to_output = TRUE;
         once_pragma((a_pending_pragma_ptr)NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (pkdp->kind == (a_pragma_kind)pk_push_macro) {
@@ -1947,6 +1952,12 @@ Scan and process a #pragma directive.
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */
+    if (generate_pp_output) {
+      /* Make sure that the first line of the pragma is output in case
+         the line ends inside a comment. */
+      do_not_put_curr_line_in_pp_output = FALSE;
+      pass_pp_directive_to_output = TRUE;
+    }  /* if */
     record_pragma(pkdp, start_of_dir_position, &id_position,
                   /*is_microsoft_pragma_operator=*/FALSE);
     if (generate_pp_output) {

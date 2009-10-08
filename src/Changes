@@ -1,5 +1,25 @@
 Version 4.2
 
+10/7/09  [EDGcpfe/9955]
+Preprocessing output of #pragma directives followed by multi-line comments
+
+A #pragma directive in which the end of its physical source line occurs
+within a multi-line comment was not correctly copied to the preprocessing
+output file (with the -E and related command-line options).  For example,
+given the file
+
+  #pragma once  /* ensure that this file
+                   is only included once */
+
+the -E output was
+
+                   is only included once */
+
+This has now been fixed and correctly produces the preprocessing output
+
+  #pragma once
+
+
 10/6/09  [EDGcpfe/10138]
 Missing destructor calls in some cases when using the IA-64 ABI
 
