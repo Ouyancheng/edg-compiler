@@ -11189,6 +11189,15 @@ it might produce an error).
           }  /* if */
           node->is_lvalue = FALSE;
           node->type = rvalue_node_type;
+          if (con_expr_value != NULL &&
+              curr_il_region_number == file_scope_region_number &&
+              innermost_function_scope != NULL) {
+            /* For an expression scanned within a function body whose constant
+               will be at file scope, like an array bound, discard the selector
+               in the backing expression because it might reference "this" or
+               local variables. */
+            node = con_expr_value->expr;
+          }  /* if */
           processed = TRUE;
           break;
 #if GNU_EXTENSIONS_ALLOWED

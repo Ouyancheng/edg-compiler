@@ -6729,6 +6729,7 @@ TRUE if the operator is "->", FALSE if it is ".".
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
   a_boolean             need_expr = FALSE, need_expr_for_constant = FALSE;
+  a_boolean             discard_selector_in_expr = FALSE;
 
   orig_operand = *operand;
   selector_expr = make_node_from_operand(bound_function_selector);
@@ -6754,18 +6755,23 @@ TRUE if the operator is "->", FALSE if it is ".".
     make_constant_operand(stripped_orig_expr->variant.constant, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
+    if (curr_il_region_number == file_scope_region_number &&
+        innermost_function_scope != NULL) {
+      /* For an expression scanned within a function body whose constant will
+         be at file scope, like an array bound, discard the selector expression
+         because it might reference "this" or local variables in the first
+         operand. */
+      discard_selector_in_expr = TRUE;
+    }  /* if */
   } else {
     /* In all other cases, the result will be an expression. */
     need_expr = TRUE;
   }  /* if */
   if (need_expr) {
     /* Make an expression for the selection. */
-    if (curr_il_region_number == file_scope_region_number &&
-        is_variable_node(stripped_selector_expr) &&
-        stripped_selector_expr->variant.variable->is_this_parameter) {
-      /* For an expression like "this->x" scanned in a construct that must be
-         represented at file scope, like an array bound, discard the selector
-         because "this" can't be referenced in the file scope. */
+    if (discard_selector_in_expr) {
+      /* For the reasons given above, discard the selector and use just the
+         second operand as the expression. */
       expr = orig_expr;
     } else {
       /* Make an expression for a static selection. */
