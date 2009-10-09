@@ -10511,9 +10511,7 @@ not lowered by this routine).
     make_zero_of_proper_type(void_star_type(), &zero_constant);
   }  /* if */
   zero_node = alloc_node_for_constant(&zero_constant);
-  /* Add a cast to the desired type.  In many cases this will be a cast
-     from void* to std::nullptr_t which will become superfluous once the
-     std::nullptr_t type has been lowered. */
+  /* Add a cast to the desired type. */
   zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
     zero_node = make_comma_node(copy_node(expr), zero_node);
@@ -12370,26 +12368,6 @@ it is left alone.
   }  /* if */
 }  /* lower_operations_returning_lvalue_instead_of_usual_rvalue */
 
-
-/*ARGSUSED*/  /* <-- tblock is not used. */
-static void lower_node_returning_lvalue_instead_of_usual_rvalue(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-This routine is called for each node of an expression during expression 
-traversal by perform_post_pass_on_lowered_expression.  Transform
-lvalue-returning assignments, prefix ++/--, and "?" and "," operators into
-valid C.  This must be called as part of post processing during the expression
-traversal because some lvalue-returning C constructs are themselves rewritten
-in terms of lvalue-returning C constructs.  For example, &(0, A).f is rewritten
-to &(0, A.f) when the eok_dot_field operator is processed, resulting in an
-lvalue-returning eok_comma operation, which is further rewritten as (0, &A.f)
-when the eok_address_of node is processed on the next iteration.
-*/
-{
-  lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
-}  /* lower_node_returning_lvalue_instead_of_usual_rvalue */
-
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
 static void lower_operation_type_kind(an_expr_node_ptr  expr)
@@ -12429,14 +12407,42 @@ Lower the type_kind of the operation node as appropriate.
 }  /* lower_operation_type_kind */
 
 
+static void rewrite_nullptr_expr_if_necessary(an_expr_node_ptr expr)
+/*
+Called during the lowering post pass to replace rvalue expressions of type
+std::nullptr_t with an equivalent zero constant (pointer to member cases
+have been handled during lowering).  Expressions that have side-effects
+are maintained (as the first operand of a comma operation).  Must not be
+called as part of a pre-order expression traversal (infinite loop would
+occur when expression is changed into a comma operation).
+*/
+{
+  if (!expr->is_lvalue &&
+      is_or_was_nullptr_type(expr->type) &&
+      !is_constant_node(expr) &&
+      expr->kind != (an_expr_node_kind)enk_field &&
+      !expr->result_is_not_used) {
+    /* Replace an rvalue expression whose type was std::nullptr_t with
+       a constant zero of the right type (such an expression could
+       contain uninitialized fields or variables, so we don't want to
+       use its value).  Constants don't need to be re-written.  Fields aren't
+       rewritten (but the selection operation above it is). */
+    overwrite_node(expr, expr_for_nullptr_type(expr->type, expr));
+  }  /* if */
+}  /* rewrite_nullptr_expr_if_necessary */
+
+
 /*ARGSUSED*/  /* <-- tblock is not used. */
 static void perform_post_pass_on_lowered_node(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called for each node of an expression during expression 
-traversal by perform_post_pass_on_lowered_expression.  Perform any
-optimizations or cleanups that are applicable to this expression node.
+traversal by perform_post_pass_on_lowered_expression.  It is called before
+the expression has been traversed (pre-order), so it is suited to optimizations
+where the node is transformed in such a way that the re-written node needs
+to be further analyzed.  Perform any optimizations or cleanups that are
+applicable to this expression node.
 */
 {
   /* Perform some optimizations if they are applicable. */
@@ -12450,6 +12456,33 @@ optimizations or cleanups that are applicable to this expression node.
     lower_operation_type_kind(expr);
   }  /* if */
 }  /* perform_post_pass_on_lowered_node */
+
+
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void perform_post_pass_on_lowered_node_post_expr(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called for each node of an expression during expression 
+traversal by perform_post_pass_on_lowered_expression.  It is called after
+the expression has been traversed (post-order), so it is suited to
+optimizations that require operands be optimized first. 
+*/
+{
+  /* Transform expressions involving std::nullptr_t types. */
+  rewrite_nullptr_expr_if_necessary(expr);
+#if LOWER_LVALUE_RETURNING_OPERATIONS
+  /* Transform lvalue-returning assignments, prefix ++/--, and "?" and ","
+     operators into valid C.  This must be called as part of post processing
+     during the expression traversal because some lvalue-returning C constructs
+     are themselves rewritten in terms of lvalue-returning C constructs.  For
+     example, &(0, A).f is rewritten to &(0, A.f) when the eok_dot_field
+     operator is processed, resulting in an lvalue-returning eok_comma
+     operation, which is further rewritten as (0, &A.f) when the eok_address_of
+     node is processed on the next iteration. */
+  lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
+#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
+}  /* perform_post_pass_on_lowered_node_post_expr */
 
 
 void perform_post_pass_on_lowered_expression(an_expr_node_ptr expr)
@@ -12469,10 +12502,7 @@ harmless.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = perform_post_pass_on_lowered_node;
-#if LOWER_LVALUE_RETURNING_OPERATIONS
-  tblock.process_post_expr =
-                           lower_node_returning_lvalue_instead_of_usual_rvalue;
-#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
+  tblock.process_post_expr = perform_post_pass_on_lowered_node_post_expr;
   traverse_expr(expr, &tblock);
 }  /* perform_post_pass_on_lowered_expression */
 
@@ -13626,79 +13656,73 @@ cast.  See lower_expr for typical invocation.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* Do not add code here. */
       {
-        if (is_or_was_nullptr_type(expr->type) && !expr->is_lvalue) {
-          /* Replace an rvalue variable whose type was std::nullptr_t with
-             a constant zero of the right type (the variable could be
-             uninitialized, so we don't want to use its value). */
-          overwrite_node(expr, expr_for_nullptr_type(expr->type, expr));
-        } else {
-          var = expr->variant.variable;
-          /* If the variable is a parameter that's passed by copy constructor,
-             an implicit indirection must be added. */
-          /* assoc_param_type is NULL on the "this" parameter variable and
-             the return value pointer variable. */
-          if (var->is_parameter && var->assoc_param_type != NULL &&
-              var->assoc_param_type->passed_via_copy_constructor) {
-            /* Add an indirection, but don't change the node's type or
-               lvalueness.  The type was "wrong" because the parameter type
-               was changed in lowering, but the indirection here cancels
-               out the extra pointer-to on the parameter type.*/
-            an_expr_node_ptr new_expr;
-            an_expr_node_ptr var_copy = copy_node(expr);
-            /* Make sure the type of the enk_variable_node matches that of
-               the variable. */
-            var_copy->type = var->type;
-            if (var_copy->is_lvalue) {
-              /* Convert this node to an rvalue in preparation for the
-                 indirection. */
-              var_copy = rvalue_expr_for_lvalue(var_copy);
-            }  /* if */
-            new_expr = add_indirection_to_node(var_copy);
-            if (!expr->is_lvalue) {
-              /* Original expression was an rvalue, make sure new
-                 expression is as well. */
-              new_expr = rvalue_expr_for_lvalue(new_expr);
-            }  /* if */
-            check_assertion(il_identical_types(new_expr->type, expr->type) &&
-                            new_expr->is_lvalue == expr->is_lvalue);
-            overwrite_node(expr, new_expr);
+        // FIXME: indentation
+        var = expr->variant.variable;
+        /* If the variable is a parameter that's passed by copy constructor,
+           an implicit indirection must be added. */
+        /* assoc_param_type is NULL on the "this" parameter variable and
+           the return value pointer variable. */
+        if (var->is_parameter && var->assoc_param_type != NULL &&
+            var->assoc_param_type->passed_via_copy_constructor) {
+          /* Add an indirection, but don't change the node's type or
+             lvalueness.  The type was "wrong" because the parameter type
+             was changed in lowering, but the indirection here cancels
+             out the extra pointer-to on the parameter type.*/
+          an_expr_node_ptr new_expr;
+          an_expr_node_ptr var_copy = copy_node(expr);
+          /* Make sure the type of the enk_variable_node matches that of
+             the variable. */
+          var_copy->type = var->type;
+          if (var_copy->is_lvalue) {
+            /* Convert this node to an rvalue in preparation for the
+               indirection. */
+            var_copy = rvalue_expr_for_lvalue(var_copy);
+          }  /* if */
+          new_expr = add_indirection_to_node(var_copy);
+          if (!expr->is_lvalue) {
+            /* Original expression was an rvalue, make sure new
+               expression is as well. */
+            new_expr = rvalue_expr_for_lvalue(new_expr);
+          }  /* if */
+          check_assertion(il_identical_types(new_expr->type, expr->type) &&
+                          new_expr->is_lvalue == expr->is_lvalue);
+          overwrite_node(expr, new_expr);
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
-          } else if (var_is_return_value_variable(var)) {
-            /* The variable is the return value optimization variable for the
-               current function, so rewrite it as an indirection through the
-               implicit parameter through which the return address is passed by
-               the caller. */
-            a_boolean expr_is_lvalue = expr->is_lvalue;
-            operand_node = var_rvalue_expr(return_value_pointer_variable);
-            /* Make sure the types are consistent (cv-qualification can
-               be mismatched here). */
-            operand_node = add_cast_if_necessary(operand_node,
-                                                make_pointer_type(expr->type));
-            change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
-                                     expr->type, operand_node,
-                                     /*is_lvalue=*/TRUE);
-            if (!expr_is_lvalue) {
-              /* Convert to an rvalue if necessary. */
-              expr = rvalue_expr_for_lvalue(expr);
-            }  /* if */
+        } else if (var_is_return_value_variable(var)) {
+          /* The variable is the return value optimization variable for the
+             current function, so rewrite it as an indirection through the
+             implicit parameter through which the return address is passed by
+             the caller. */
+          a_boolean expr_is_lvalue = expr->is_lvalue;
+          operand_node = var_rvalue_expr(return_value_pointer_variable);
+          /* Make sure the types are consistent (cv-qualification can
+             be mismatched here). */
+          operand_node = add_cast_if_necessary(operand_node,
+                                               make_pointer_type(expr->type));
+          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
+                                   expr->type, operand_node,
+                                   /*is_lvalue=*/TRUE);
+          if (!expr_is_lvalue) {
+            /* Convert to an rvalue if necessary. */
+            expr = rvalue_expr_for_lvalue(expr);
+          }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
 #if ASSIGNMENT_TO_THIS_ALLOWED
-          } else if (innermost_function_scope != NULL &&
-                     innermost_function_scope->variant.routine.
-                                                  this_param_variable == var &&
-                     should_drop_const_on_this_param_variable(
-                        innermost_function_scope->variant.routine.ptr,
-                        innermost_function_scope->variant.routine.ptr->type) &&
-                     !identical_types(var->type, expr->type)) {
-            /* If assignment to 'this' is allowed (an anachronism), the
-               const qualification of the 'this' parameter has already been
-               stripped in lower_scope.  Change the type of the enk_variable
-               expression to match that of the variable (most likely this is
-               simply removing a const qualification).  Note that this changes
-               the type of the overall expression. */
-            expr->type = var->type;
+        } else if (innermost_function_scope != NULL &&
+                   innermost_function_scope->variant.routine.
+                                                this_param_variable == var &&
+                   should_drop_const_on_this_param_variable(
+                      innermost_function_scope->variant.routine.ptr,
+                      innermost_function_scope->variant.routine.ptr->type) &&
+                   !identical_types(var->type, expr->type)) {
+          /* If assignment to 'this' is allowed (an anachronism), the
+             const qualification of the 'this' parameter has already been
+             stripped in lower_scope.  Change the type of the enk_variable
+             expression to match that of the variable (most likely this is
+             simply removing a const qualification).  Note that this changes
+             the type of the overall expression. */
+          expr->type = var->type;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-          }  /* if */
         }  /* if */
       }  /* if */
       break;
@@ -13799,16 +13823,6 @@ cast.  See lower_expr for typical invocation.
            unlowered operand. */
         lower_class_rvalue_adjust(expr);
 #endif /* LOWER_CLASS_RVALUE_ADJUST */
-      } else if (op == (an_expr_operator_kind)eok_cast &&
-                 is_or_was_nullptr_type(operand_node->type)) {
-        /* Replace a cast of a std::nullptr_t type with a constant of the
-           proper type.  This is done before lowering the operand of the
-           cast (else it will become a zero and that may not be the proper
-           value, e.g., for pointer to member types). */
-        overwrite_node(expr, expr_for_nullptr_type(expr->type, operand_node));
-        /* It's possible (if the operand has side effects) that the expression
-           still needs lowering, so lower it now. */
-        lower_expr(expr);
       } else {
         a_type_ptr  type;
         if (bool_is_keyword && op == (an_expr_operator_kind)eok_cast &&
@@ -13932,7 +13946,14 @@ cast.  See lower_expr for typical invocation.
                be rewritten, however, since it's now a cast of a struct
                type. */
             type = expr->type;
-            if (is_or_was_ptr_to_member_function_type(expr->type)) {
+            if ((is_or_was_ptr_to_member_function_type(type) ||
+                 is_or_was_ptr_to_data_member_type(type)) &&
+                 is_or_was_nullptr_type(operand_node->type)) {
+              /* Replace a cast of a std::nullptr_t type to a pointer to member
+                 with a constant of the proper type. */
+              overwrite_node(expr, expr_for_nullptr_type(expr->type,
+                                                         operand_node));
+            } else if (is_or_was_ptr_to_member_function_type(expr->type)) {
               /* Preserve the result type because it tells us how to call
                  the kind of routine we've selected. */
               overwrite_node(expr, operand_node);
@@ -14107,15 +14128,6 @@ cast.  See lower_expr for typical invocation.
             /* No action on most operators. */
             break;
         }  /* switch */
-        if (is_or_was_nullptr_type(expr->type) &&
-            !expr->is_lvalue &&
-            !expr->result_is_not_used) {
-          /* Replace an rvalue expression whose type was std::nullptr_t with
-             a constant zero of the right type (such an expression could
-             contain uninitialized fields or variables, so we don't want to
-             use its value). */
-          overwrite_node(expr, expr_for_nullptr_type(expr->type, expr));
-        } /* if */
         /* Change the type of operators that return "bool" in C++ to
            the "int" required in C. */
         change_result_type_of_operator_returning_bool(expr);
