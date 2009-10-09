@@ -13656,7 +13656,6 @@ cast.  See lower_expr for typical invocation.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* Do not add code here. */
       {
-        // FIXME: indentation
         var = expr->variant.variable;
         /* If the variable is a parameter that's passed by copy constructor,
            an implicit indirection must be added. */
@@ -13710,10 +13709,10 @@ cast.  See lower_expr for typical invocation.
 #if ASSIGNMENT_TO_THIS_ALLOWED
         } else if (innermost_function_scope != NULL &&
                    innermost_function_scope->variant.routine.
-                                                this_param_variable == var &&
+                                                  this_param_variable == var &&
                    should_drop_const_on_this_param_variable(
-                      innermost_function_scope->variant.routine.ptr,
-                      innermost_function_scope->variant.routine.ptr->type) &&
+                        innermost_function_scope->variant.routine.ptr,
+                        innermost_function_scope->variant.routine.ptr->type) &&
                    !identical_types(var->type, expr->type)) {
           /* If assignment to 'this' is allowed (an anachronism), the
              const qualification of the 'this' parameter has already been
