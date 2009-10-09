@@ -5118,13 +5118,13 @@ scan_paren:
                    expression, remove it temporarily from the object lifetime
                    tree and restore it in the correct position later. */
                 detach_object_lifetime_for_dynamic_init(dip);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                if (new_cip != NULL && curr_token == tok_rparen) {
-                  new_cip->ctor_init_range.start = init_start_pos;
-                  new_cip->ctor_init_range.end = pos_curr_token;
-                }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+              if (new_cip != NULL && curr_token == tok_rparen) {
+                new_cip->ctor_init_range.start = init_start_pos;
+                new_cip->ctor_init_range.end = pos_curr_token;
+              }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
               if (!required_token(tok_rparen, ec_exp_rparen)) {
                 /* Special code to avoid poor error recovery in cases where
                    a comma-list appears between the parens in what is taken
@@ -5235,7 +5235,7 @@ scan_paren:
         }  /* if */
       }  /* if */
       /* Unless this is an array type or exception processing is enabled, this
-         all that's required for explicit initializations. */
+         is all that's required for explicit initializations. */
       if (exceptions_enabled ||
           (cip->kind == (a_constructor_init_kind)cik_field &&
            is_array_type(cip->variant.field->type))) {

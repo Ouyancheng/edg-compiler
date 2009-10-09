@@ -21709,14 +21709,15 @@ a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip)
 /*
 A mem-initializer for an array field has been encountered: It will be
 represented by the given entry.  This is ordinarily an error, but GNU C++ does
-allow it sometimes.  In the error cases, issue a diagnosic, skip over the
+allow it sometimes.  In the error cases, issue a diagnostic, skip over the
 initializer expression, and return a dik_none entry.  Otherwise, scan the
 expression, record it in *cip, and return a dynamic initialization entry that
-reflects the required array initialization (or a dik_none entry in template-
-dependent cases).
+reflects the required array element initialization (or a dik_none entry in
+template-dependent cases).  The caller will add the destructor (if needed)
+and the array repetition.
 */
 {
-  a_boolean           err_with_flush = TRUE, err = TRUE;
+  a_boolean           flush_on_error = TRUE, err = TRUE;
   a_dynamic_init_ptr  dip = NULL;
   a_symbol_ptr        field_sym;
 
@@ -21743,46 +21744,40 @@ dependent cases).
     scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     /* Since the expression was scanned, we shouldn't need to flush over the
        initializer. */
-    err_with_flush = FALSE;
+    flush_on_error = FALSE;
     src_type = operand.type;
-    if (is_immediate_class_type(el_type) &&
+    if (is_an_lvalue(&operand) && is_immediate_class_type(el_type) &&
         symbol_supplement_for_class(el_type)->has_copy_constructor &&
         f_identical_types(src_type, dst_type,
                           ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
       /* The initializer array and the destination array match: Record a
          dynamic initialization entry that represents the underlying copy
          operation. */
-      a_routine_ptr  cctor, dtor = NULL;
-      a_boolean      bitwise = FALSE;
-      err = FALSE;
+      a_routine_ptr  cctor;
+      a_boolean      bitwise_copy;
       cctor = select_copy_constructor(el_type, get_type_qualifiers(src_type),
                                       /*source_is_rvalue=*/FALSE,
-                                      &operand.position, el_type, &bitwise,
-                                      /*record_ref=*/TRUE, /*evaluated=*/FALSE,
+                                      &operand.position, el_type,
+                                      &bitwise_copy,
+                                      /*record_ref=*/TRUE, /*evaluated=*/TRUE,
                                       /*allow_suppressed_ctor=*/FALSE);
-      check_assertion(!bitwise);
-      if (cctor != NULL) {
-        a_targ_size_t  n_elems = num_array_elements(dst_type);
-        if (exceptions_enabled) {
-          /* Since exceptions are enabled, a dtor may get called during an
-             attempt at initialization. */
-          dtor = expr_select_destructor(el_type, el_type, &operand.position,
-                                        /*honor_virtual=*/FALSE);
-        }  /* if */
+      if (bitwise_copy) {
+        /* g++ doesn't allow this feature if the class has a bitwise
+           copy constructor. */
+        err = TRUE;
+      } else if (cctor == NULL) {
+        /* An error was issued by select_copy_constructor. */
+        err = FALSE;
+      } else {
+        err = FALSE;
         dip = alloc_expr_ctor_dynamic_init(cctor, (an_expr_node_ptr)NULL,
                                            /*add_default_args=*/TRUE,
                                            /*implied_source=*/TRUE);
-        dip->destructor = dtor;
-        dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                           /*block_lifetime=*/FALSE);
-        dip = add_array_nonconstant_aggregate_init(dip, dst_type, el_type,
-                                                   n_elems);
         cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
     } else if (could_be_dependent_class_type(el_type) ||
                is_template_dependent_type(src_type)) {
-      /* Is some template contexts, we cannot tell whether the initializer
+      /* In some template contexts, we cannot tell whether the initializer
          matches the destination array.  We'll return a dik_none entry, but
          if necessary, we also record the expression we saw. */
       err = FALSE;
@@ -21794,7 +21789,7 @@ dependent cases).
   }  /* if */
   if (err) {
     sym_error(ec_array_member_initialization, field_sym);
-    if (err_with_flush) {
+    if (flush_on_error) {
       flush_to_end_of_arg_list();
     }  /* if */
   }  /* if */
