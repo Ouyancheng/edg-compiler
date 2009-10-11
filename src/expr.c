@@ -21726,7 +21726,7 @@ and the array repetition.
   field_sym = symbol_for(cip->variant.field);
   if (!gpp_mode) {
     /* Normal modes -- a non-empty mem-initializer is not allowed for an
-       error. */
+       array. */
     sym_error(ec_array_member_initialization, field_sym);
     flush_to_end_of_arg_list();
   } else {
