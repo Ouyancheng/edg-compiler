@@ -21708,8 +21708,9 @@ scan_aggregate_initializer_expression.
 a_dynamic_init_ptr scan_array_mem_initializer(a_constructor_init  *cip)
 /*
 A mem-initializer for an array field has been encountered: It will be
-represented by the given entry.  This is ordinarily an error, but GNU C++ does
-allow it sometimes.  In the error cases, issue a diagnostic, skip over the
+represented by the given entry.  The mem-initializer has a non-empty
+initializer (i.e., not just "()").  This is ordinarily an error, but GNU C++
+does allow it sometimes.  In the error cases, issue a diagnostic, skip over the
 initializer expression, and return a dik_none entry.  Otherwise, scan the
 expression, record it in *cip, and return a dynamic initialization entry that
 reflects the required array element initialization (or a dik_none entry in
@@ -21717,14 +21718,18 @@ template-dependent cases).  The caller will add the destructor (if needed)
 and the array repetition.
 */
 {
-  a_boolean           flush_on_error = TRUE, err = TRUE;
   a_dynamic_init_ptr  dip = NULL;
   a_symbol_ptr        field_sym;
 
   check_assertion(cip != NULL &&
                   cip->kind == (a_constructor_init_kind)cik_field);
   field_sym = symbol_for(cip->variant.field);
-  if (gpp_mode) {
+  if (!gpp_mode) {
+    /* Normal modes -- a non-empty mem-initializer is not allowed for an
+       error. */
+    sym_error(ec_array_member_initialization, field_sym);
+    flush_to_end_of_arg_list();
+  } else {
     /* Only GNU C++ (currently) allows explicit initializers for nonstatic
        array members.  However, there are some constraints: In particular,
        the underlying element type must be a class type with a nontrivial
@@ -21742,9 +21747,6 @@ and the array repetition.
                     /*force_object_lifetime=*/TRUE,
                     /*suppress_object_lifetime=*/FALSE);
     scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    /* Since the expression was scanned, we shouldn't need to flush over the
-       initializer. */
-    flush_on_error = FALSE;
     src_type = operand.type;
     if (is_an_lvalue(&operand) && is_immediate_class_type(el_type) &&
         symbol_supplement_for_class(el_type)->has_copy_constructor &&
@@ -21764,12 +21766,10 @@ and the array repetition.
       if (bitwise_copy) {
         /* g++ doesn't allow this feature if the class has a bitwise
            copy constructor. */
-        err = TRUE;
+        sym_error(ec_bad_array_member_initialization, field_sym);
       } else if (cctor == NULL) {
         /* An error was issued by select_copy_constructor. */
-        err = FALSE;
       } else {
-        err = FALSE;
         dip = alloc_expr_ctor_dynamic_init(cctor, (an_expr_node_ptr)NULL,
                                            /*add_default_args=*/TRUE,
                                            /*implied_source=*/TRUE);
@@ -21780,18 +21780,13 @@ and the array repetition.
       /* In some template contexts, we cannot tell whether the initializer
          matches the destination array.  We'll return a dik_none entry, but
          if necessary, we also record the expression we saw. */
-      err = FALSE;
       if (prototype_instantiations_in_il) {
         cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
+    } else {
+      sym_error(ec_bad_array_member_initialization, field_sym);
     }  /* if */
     pop_expr_stack();
-  }  /* if */
-  if (err) {
-    sym_error(ec_array_member_initialization, field_sym);
-    if (flush_on_error) {
-      flush_to_end_of_arg_list();
-    }  /* if */
   }  /* if */
   if (dip == NULL) {
     /* No dynamic initialization has been recorded yet: Return one with no
