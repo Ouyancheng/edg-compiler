@@ -10487,7 +10487,7 @@ Typically the returned expression is simply a constant zero of the specified
 type, but can also be something more complicated (e.g., when the type is a
 pointer to member type), and can also contain the original expression as the
 first operand of a comma operation in cases where the expression has side
-effects.  The expression may or may not have been previously lowered (and is
+effects.  The expression has typically been previously lowered (and is
 not lowered by this routine).
 */
 {
@@ -10506,9 +10506,10 @@ not lowered by this routine).
     lower_ptr_to_member_constant(&zero_constant);
     zero_constant.type = type;
   } else {
-    /* Eventually, all std::nullptr_t types will be lowered to void*, so
-       create a zero of type void* for the value of the expression.*/
-    make_zero_of_proper_type(void_star_type(), &zero_constant);
+    /* Replace the expression with a constant zero (which will be cast to
+       the correct type below). */
+    set_integer_constant(&zero_constant, (a_host_large_integer)0,
+                         (an_integer_kind)ik_int);
   }  /* if */
   zero_node = alloc_node_for_constant(&zero_constant);
   /* Add a cast to the desired type. */
