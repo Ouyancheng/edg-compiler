@@ -274,6 +274,7 @@ typedef enum /*an_option_kind*/ {
 #if GNU_EXTENSIONS_ALLOWED
   optk_gnu_c89_inlining,
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  optk_token_separators_in_pp_output,
   optk_last		/* Must be last. */
 } an_option_kind;
 

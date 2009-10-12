@@ -1,5 +1,26 @@
 Version 4.2
 
+10/12/09 [EDGcpfe/7570,EDGcpfe/9679,EDGcpfe/9968]
+Extra spaces between tokens in preprocessor output
+
+In order to ensure that preprocessor output (the result of the -E and
+related command-line options) has the same meaning as the original input,
+the front end inserts extra spaces to separate tokens that should not be
+combined.  For example,
+
+  #define M(x) -x
+  int f(int i) {
+    return M(-)i;   // output is "return - -i", not "return --i"
+  }
+
+However, the front end is sometimes used to preprocess arbitrary text that
+is not C/C++, and in such cases it may insert spaces that make the result
+unusable for its intended purpose.  To facilitate such uses, the front end
+now accepts the --no_token_separators_in_pp_output command-line option to
+suppress all such extra spaces (white space from the source that occurs in
+macro expansions is normalized to a single space character).
+
+
 10/12/09 [EDGcpfe/10106]
 Ambiguity on explicit specialization that matches with or without reference
 

@@ -1234,6 +1234,10 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_nullptr, "no_nullptr", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_token_separators_in_pp_output,
+                         "no_token_separators_in_pp_output", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
 #if GNU_EXTENSIONS_ALLOWED
   add_option_description(optk_gnu_c89_inlining, "gcc89_inlining", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -7967,6 +7971,10 @@ enable_microsoft_mode:
         gnu_c89_inlining = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      case optk_token_separators_in_pp_output:
+        check_assertion(opt_value == TRUE);
+        no_token_separators_in_pp_output = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8233,11 +8241,12 @@ enable_microsoft_mode:
     pcc_preprocessing_mode = TRUE;
   }  /* if */
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
-  /* In PCC preprocessing mode no token separators are emitted (normally these
-     make sure that the preprocessor output contains the same sequence of
-     tokens as its input). */
-  no_token_separators_in_pp_output = pcc_preprocessing_mode;
-
+  if (!option_kind_used[optk_token_separators_in_pp_output]) {
+    /* In PCC preprocessing mode no token separators are emitted (normally
+       these make sure that the preprocessor output contains the same
+       sequence of tokens as its input). */
+    no_token_separators_in_pp_output = pcc_preprocessing_mode;
+  }  /* if */
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
