@@ -10506,10 +10506,9 @@ not lowered by this routine).
     lower_ptr_to_member_constant(&zero_constant);
     zero_constant.type = type;
   } else {
-    /* Replace the expression with a constant zero (which will be cast to
-       the correct type below). */
-    set_integer_constant(&zero_constant, (a_host_large_integer)0,
-                         (an_integer_kind)ik_int);
+    /* Eventually, all std::nullptr_t types will be lowered to void*, so
+       create a zero of type void* for the value of the expression.*/
+    make_zero_of_proper_type(void_star_type(), &zero_constant);
   }  /* if */
   zero_node = alloc_node_for_constant(&zero_constant);
   /* Add a cast to the desired type. */
