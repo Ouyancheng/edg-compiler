@@ -1737,6 +1737,7 @@ static void parameter_is_more_specialized(
 				a_template_arg_ptr	*templ_arg_list2,
 				a_template_param_ptr	templ_param_list1,
 				a_template_param_ptr	templ_param_list2,
+				a_boolean		entire_type,
 				a_boolean	        *match1,
 				a_boolean	        *match2)
 /*
@@ -1747,7 +1748,12 @@ the parameter types to remove things that are not relevant to the
 partial ordering comparison (such as top level references).
 
 match1 is set TRUE if param_type1 is more specialized than param_type2;
-Likewise for match2.
+Likewise for match2.  templ_arg_list1 and templ_arg_list2 are the
+template argument lists of the first and second templates and templ_param_list1
+and templ_param_list2 are the respective template parameter lists.  entire_type
+is TRUE if this call is part of a check of the entire routine type (as is
+done in declarative contexts and when taking the address of an overloaded
+function).
 */
 {
   a_boolean	type_1_is_reference, type1_is_rvalue_reference = FALSE;
@@ -1848,6 +1854,26 @@ Likewise for match2.
       *match1 = FALSE;
     }  /* if */
   }  /* if */
+  /* If both comparisons still match and we are the comparison is of the
+     entire type, prefer a reference to a non-reference as in:
+
+     struct A {
+       A() {}
+       template <class T> static void f(T);
+       template <class T> static void f(T&);
+     };
+     int main() {
+       A a;
+       void (*fp)(int&) = &A::f;  // prefer f(T&)
+     }
+  */
+  if (*match1 && *match2 && entire_type) {
+    if (type_1_is_reference && !type_2_is_reference) {
+      *match2 = FALSE;
+    } else if (type_2_is_reference && !type_1_is_reference) {
+      *match1 = FALSE;
+    }  /* if */
+  }  /* if */
 }  /* parameter_is_more_specialized */
 
 
@@ -1907,6 +1933,7 @@ which the entire function type should be considered.
                                   rout_type2->variant.routine.return_type,
                                   &dummy_arg_list1, &dummy_arg_list2,
                                   templ_param_list1, templ_param_list2,
+                                  entire_type,
                                   &match1, &match2);
   }  /* if */
   if (!is_conversion_operator) {
@@ -1924,6 +1951,7 @@ which the entire function type should be considered.
       parameter_is_more_specialized(ptp1->type, ptp2->type,
                                     &dummy_arg_list1, &dummy_arg_list2,
                                     templ_param_list1, templ_param_list2,
+                                    entire_type,
                                     &match1, &match2);
       if (!match1 && !match2) {
         /* Stop when a mismatch is found. */

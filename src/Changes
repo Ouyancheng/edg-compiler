@@ -1,5 +1,25 @@
 Version 4.2
 
+10/12/09 [EDGcpfe/10106]
+
+Ambiguity on explicit specialization that matches with or without reference
+
+A spurious ambiguity was reported in an explicit specialization matched two
+function templates one in which types matched exactly (A& vs. T& in the
+example below) and one in which the reference was part of the deduced
+type below (A& vs T in the example below).  In general, the normal partial
+ordering rules make a call of such a function ambiguous (unless there are
+other factors that affect reference binding or applicability of a copy
+constructor).  We now accept
+
+  struct A { 
+    template <class T> A(T);
+    template <class T> A(T&);
+  }; 
+
+template<> inline A::A(A &) { } 
+
+
 10/7/09  [EDGcpfe/9955]
 Preprocessing output of #pragma directives followed by multi-line comments
 
