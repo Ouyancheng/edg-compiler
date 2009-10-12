@@ -3588,8 +3588,8 @@ for more information.
        to recursive calls of this routine. */
     flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
     /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS should only be passed to recursive calls
-       for arrays. */
-    if (type_1->kind != (a_type_kind)tk_array) {
+       for arrays (and only in C++ mode). */
+    if (type_1->kind != (a_type_kind)tk_array || C_mode()) {
       flags &= ~ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
     }  /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS */
     switch (type_1->kind) {

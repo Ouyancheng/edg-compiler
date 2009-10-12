@@ -21750,8 +21750,7 @@ and the array repetition.
     src_type = operand.type;
     if (is_an_lvalue(&operand) && is_immediate_class_type(el_type) &&
         symbol_supplement_for_class(el_type)->has_copy_constructor &&
-        f_identical_types(src_type, dst_type,
-                          ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
+        identical_types_ignoring_qualifiers(src_type, dst_type)) {
       /* The initializer array and the destination array match: Record a
          dynamic initialization entry that represents the underlying copy
          operation. */

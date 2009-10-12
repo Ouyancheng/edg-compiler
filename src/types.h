@@ -510,7 +510,7 @@ typedef unsigned int an_itf_flag_set;
 			   must match exactly. */
 #define ITF_IGNORE_TOP_LEVEL_QUALIFIERS 0x20
 			/* TRUE if top-level qualifiers do not have to
-			   match.  (In the case of arrays, the top-level
+			   match.  (In the case of arrays in C++, the top-level
 			   qualifiers are those on the element type.) */
 
 #define identical_types(t1, t2) \
@@ -521,8 +521,8 @@ typedef unsigned int an_itf_flag_set;
   ((t1) == (t2) || f_identical_types((t1), (t2), \
                                      ITF_UNKNOWN_THIS_CLASS_TYPE))
 #define identical_types_ignoring_qualifiers(t1, t2) \
-  ((t1) == (t2) || f_identical_types(f_skip_typerefs(t1), \
-                                     f_skip_typerefs(t2), ITF_NO_FLAGS))
+  ((t1) == (t2) || f_identical_types((t1), (t2), \
+                                     ITF_IGNORE_TOP_LEVEL_QUALIFIERS))
 
 /* Compare one level of two array types. */
 extern a_boolean f_identical_types(a_type_ptr      type_1,
