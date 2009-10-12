@@ -1854,7 +1854,7 @@ function).
       *match1 = FALSE;
     }  /* if */
   }  /* if */
-  /* If both comparisons still match and we are the comparison is of the
+  /* If both comparisons still match and the comparison is of the
      entire type, prefer a reference to a non-reference as in:
 
      struct A {
