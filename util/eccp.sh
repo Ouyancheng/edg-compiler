@@ -728,6 +728,7 @@ check_abbreviation()
 --no_svr4
 --no_template_typedefs_in_diagnostics
 --no_thread_local_storage
+--no_token_separators_in_pp_output
 --no_trigraphs
 --no_type_traits_helpers
 --no_typename
@@ -1570,7 +1571,8 @@ process_option()
     -H | --trace_includes | \
     -M | --dependencies | \
     -P | --no_line_commands | \
-    --list_macros)
+         --no_token_separators_in_pp_output | \
+         --list_macros)
       preprocessor_only=1
       feoptions=$feoptions" $curr_arg";
       ;;
