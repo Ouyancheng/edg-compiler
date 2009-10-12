@@ -709,6 +709,7 @@ check_abbreviation()
 --no_nonstd_instantiation_lookup
 --no_nonstd_qualifier_deduction
 --no_nonstd_using_decl
+--no_nullptr
 --no_old_specializations
 --no_parse_templates
 --no_pch_messages
@@ -746,6 +747,7 @@ check_abbreviation()
 --nonstd_instantiation_lookup
 --nonstd_qualifier_deduction
 --nonstd_using_decl
+--nullptr
 --old_c
 --old_for_init
 --old_ii_format
@@ -1343,6 +1345,8 @@ process_option()
          --no_auto_type | \
          --auto_storage | \
          --no_auto_storage | \
+         --nullptr | \
+         --no_nullptr | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
