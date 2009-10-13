@@ -5380,31 +5380,32 @@ scan_paren:
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
-        if (cip->source_expr != NULL) {
-          /* A special case: An explicit array initializer -- possible in GNU
-             C++ mode only -- in a template (if it weren't in a template, we
-             wouldn't be here since a nontrivial dynamic initialization entry
-             would have been generated).  Don't drop contructor initializer
-             entry: It might be needed in the C++-generating back end, for
-             example. */
-          check_assertion(
+        if (cssp == NULL ||
+            is_template_param_or_nonreal_class_type(tp) ||
+            (has_trivial_default_constructor(cssp) &&
+             (!exceptions_enabled || cssp->has_trivial_destructor))) {
+          /* This constructor initializer entry is likely not really needed.
+             It may be the result of an empty initializer on a field or it may
+             be associated with a base class without a constructor. */
+          if (cip->source_expr != NULL) {
+            /* A special case: An explicit array initializer -- possible in
+               GNU C++ mode only -- in a template (if it weren't in a template,
+               we wouldn't be here since a nontrivial dynamic initialization
+               entry would have been generated).  Don't drop the contructor
+               initializer entry: It might be needed in the C++-generating
+               back end, for example. */
+            check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
                       (is_template_dependent_type(cip->source_expr->type) ||
                        is_template_dependent_type(cip->variant.field->type)));
-          continue;
-        } else if (cssp == NULL ||
-                   is_template_param_or_nonreal_class_type(tp) ||
-                   (has_trivial_default_constructor(cssp) &&
-                    (!exceptions_enabled || cssp->has_trivial_destructor))) {
-          /* This constructor initializer entry is not really needed.  It may
-             be the result of an empty initializer on a field or it may be
-             associated with a base class without a constructor.  Unlink it
-             from the list. */
-          if (prev_cip == NULL) {
-            cip_list = cip->next;
           } else {
-            prev_cip->next = cip->next;
+            /* Unlink the constructor initializer entry from the list. */
+            if (prev_cip == NULL) {
+              cip_list = cip->next;
+            } else {
+              prev_cip->next = cip->next;
+            }  /* if */
           }  /* if */
           continue;
         }  /* if */
