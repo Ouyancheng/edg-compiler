@@ -1382,7 +1382,7 @@ typedef struct an_attribute_arg {
 
 
 enum an_attribute_family_tag {
-  af_internal,		/* To annotate IL properties that do not come from a
+  af_internal,		/* To annotate IL properties that do not come from an
 			   attribute-like construct.  E.g., on a template this
 			   might reflect the effect of a #pragma directive. */
   af_std,		/* An attribute specified using the standard C++0x

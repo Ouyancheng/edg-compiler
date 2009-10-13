@@ -1165,6 +1165,8 @@ extern void set_unsigned_integer_constant(a_constant		*cp,
      
 extern a_boolean is_enum_constant(a_constant_ptr con);
 
+extern a_boolean is_ordinary_string_constant(a_constant_ptr constant);
+
 extern a_boolean is_wide_string_constant(a_constant_ptr constant);
 
 #define is_normal_character_kind(kind)  ((kind) == (a_character_kind)chk_char)

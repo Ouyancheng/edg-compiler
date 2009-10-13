@@ -54,7 +54,7 @@ typedef struct an_attr_descr {
 			   those underscores are not included here. */
   char		*sig;
 			/* A compact encoding of the "signature" of this
-			   attribute.  If sig is "", no attributes arguments
+			   attribute.  If sig is "", no attribute arguments
 			   are permitted.  If sig starts with "?", arguments
 			   are optional.  The arguments are described by a
 			   parenthesized comma-separated list of codes (no
@@ -64,17 +64,21 @@ typedef struct an_attr_descr {
 			     "ct": an integer constant or a type is expected
 			           (similar to a "sizeof(...)" argument)
 			     "n": an identifier is expected
-			     "sn": an narrow string literal is expected
+			     "sn": a narrow string literal is expected
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A "?" indicates that the argument list may
                            terminate at that point.
 			   Examples:
-			     "(i)": one integer constant required
-			     "(n?,t,i)": an identifier is required; it can
-			         optionally by followed by a type and an
-			         integer constant (both or none).
-			     "?(n?,t?,i)": either no argument list appears at
+			     "(ci)": one integer constant required
+			     "(?sn)": a string literal is optional, but the
+			         enclosing parentheses are required (i.e.,
+			         attr() or attr("str") are okay, but just
+			         attr is not).
+			     "(n?,t,ci)": an identifier is required; it can
+			         optionally be followed by a type and an
+			         integer constant (both or neither).
+			     "?(n?,t?,ci)": either no argument list appears at
 			         all, or an identifier appears, optionally
 			         followed by a type, itself optionally followed
 			         by an integer constant.
@@ -82,7 +86,7 @@ typedef struct an_attr_descr {
   char		*cond;
 			/* A compact encoding of the condition in which this
 			   attribute is accepted.  cond[0] indicates the
-			   attribute family: 'c' for "standard C++ [[...]]",
+			   attribute family: 'c' for [[...]] (standard C++0x),
 			   'g' for __attribute((...)) in GNU modes, 's' for
 			   __attribute((...)) in Sun mode, and 'm' for
 			   __declspec(...) in Microsoft mode.  cond[1] is
@@ -94,11 +98,15 @@ typedef struct an_attr_descr {
 			   first two characters can be followed by a bracketed
 			   namespace name.  E.g., if name is "test" and cond
 			   is "c+[xyz]", then this is a description entry for
-			   [[xyz::test ... ]].  If cond[0] is 'g' or 'm', a
-			   the first two characters can be followed by a
+			   [[xyz::test ... ]].  If cond[0] is 'g' or 'm', the
+			   first two characters can be followed by a
 			   parenthesized range of applicable versions.  E.g.,
-			   "gx(30100-)" means the attribute is valid in 
-			   GNU C/C++ modes with gnu_version >= 30100. */
+			   "gx(30100-39999)" means the attribute is valid in 
+			   GNU C/C++ modes with gnu_version >= 30100 and
+			   gnu_version < 40000.  Either end of the range can
+			   be dropped; e.g., "mc(1400-)" means the attribute
+			   is valid in Microsoft C mode with microsoft_version
+			   >= 1400. */
   enum an_attribute_kind_tag
 		attr_kind;
 			/* The attribute kind to record in the corresponding
@@ -130,7 +138,7 @@ static an_attr_descr known_attr_table[] = {
 };
 
 #define KNOWN_ATTR_TABLE_LENGTH \
-  ((int)(sizeof(known_attr_table)/sizeof(known_attr_table[0])-1))
+  ((sizeof_t)(sizeof(known_attr_table)/sizeof(known_attr_table[0])-1))
 
 
 typedef void an_attr_application_fn(an_attribute_ptr  ap,
@@ -142,7 +150,7 @@ typedef struct an_attr_appl_descr {
      entity. */
   enum an_attribute_kind_tag
 		kind;
-			/* The kind of attribute this description is applies
+			/* The kind of attribute this description is applied
 			   to.  (This is only useful for internal consistency
 			   checking.) */
   char		*target_constraints;
@@ -196,8 +204,8 @@ typedef struct an_attr_appl_descr {
   an_attr_application_fn
 		*appl_fn;
 			/* NULL or a pointer to the function to call to apply
-			   the attribute to entity it appertains to.  (Such a
-			   function could enforce constraints and/or reflect
+			   the attribute to the entity it appertains to.  (Such
+			   a function could enforce constraints and/or reflect
 			   the attribute in some aspects of the IL.) */
 } an_attr_appl_descr;
 
@@ -224,8 +232,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_noreturn, "r", "c:1/g", apply_noreturn_attr },
   { ak_final, "r:+v|c", "c:1/g", apply_final_attr },
   { ak_carries_dependency, "r|p", "c:1/g", apply_carries_dependency_attr },
-  { ak_nothrow, "!!", "!!", NO_APPL_FN },
-  { ak_last, "!!", "!!", NO_APPL_FN }
+  { ak_nothrow, "!!FIXME", "!!FIXME", NO_APPL_FN },
+  { ak_last, "!!FIXME", "!!FIXME", NO_APPL_FN }
 };
 
 
@@ -444,12 +452,12 @@ to ak_unrecognized, and return NULL.
   an_attribute_arg_ptr  aap = NULL;
 
   if (curr_token == tok_string_literal &&
-      is_char_array_type(const_for_curr_token.type)) {
+      is_ordinary_string_constant(&const_for_curr_token)) {
     aap = alloc_attribute_arg();
     aap->kind = (an_attribute_arg_kind)aak_constant;
     aap->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    aap->end_position = curr_construct_end_position;
+    aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     aap->variant.constant = alloc_shareable_constant(&const_for_curr_token);
     (void)get_token();
@@ -487,12 +495,14 @@ ak_unrecognized, and return NULL.
 }  /* scan_attr_identifier_arg */
 
 
-/*ARGSUSED*/
+/*ARGSUSED*/  /* ap is currently unused. */
 static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
                                                          an_attribute_ptr  ap)
 /*
 Scan tokens until (but not including) a non-matched right parenthesis, bracket,
-or brace.  Return these tokens as a list of aak_token entries.
+or brace.  Return these tokens as a list of aak_token attribute argument
+entries.  (This is called for attributes whose "signature string" ends in "*)".
+That includes unrecognized attributes.)
 */
 {
   unsigned long         n_paren = 0, n_bracket = 0, n_brace = 0;
@@ -500,6 +510,8 @@ or brace.  Return these tokens as a list of aak_token entries.
 
   for (;;) {
     switch (curr_token) {
+      case tok_newline:
+        check_assertion(in_preprocessing_directive);
       case tok_end_of_source:
         expect_error();
         goto done;
@@ -581,7 +593,7 @@ ak_unrecognized.
           *p_aap = scan_attr_type_arg(ap);
           ++sig;
         } else if (*sig == 't' || *sig == 'i') {
-          /* "ct" on what should be an expression, or "ci". */ 
+          /* "ct" on what appears to be an expression, or "ci". */ 
           *p_aap = scan_attr_integer_constant_arg(ap);
           ++sig;
         } else {

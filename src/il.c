@@ -6768,6 +6768,16 @@ any enum constant.
 }  /* is_enum_constant */
 
 
+a_boolean is_ordinary_string_constant(a_constant_ptr constant)
+/*
+Return TRUE if the indicated constant is a wide string constant (L"abc").
+*/
+{
+  return (constant->kind == (a_constant_repr_kind)ck_string &&
+          is_normal_character_kind(constant->character_kind));
+}  /* is_ordinary_string_constant */
+
+
 a_boolean is_wide_string_constant(a_constant_ptr constant)
 /*
 Return TRUE if the indicated constant is a wide string constant (L"abc").

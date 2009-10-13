@@ -16782,7 +16782,7 @@ the source form (e.g., digraphs are returned as ordinary tokens).
     result[len] = '\0';
   } else {
     /* No source characters are available (presumably we're getting tokens
-       from a cache.  Create a cache containing the current token and create
+       from a cache).  Create a cache containing the current token and create
        the string from that. */
     a_token_cache cache;
     clear_token_cache(&cache, /*reusable=*/FALSE);
