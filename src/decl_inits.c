@@ -5388,12 +5388,12 @@ scan_paren:
              It may be the result of an empty initializer on a field or it may
              be associated with a base class without a constructor. */
           if (cip->source_expr != NULL) {
-            /* A special case: An explicit array initializer -- possible in
-               GNU C++ mode only -- in a template (if it weren't in a template,
-               we wouldn't be here since a nontrivial dynamic initialization
-               entry would have been generated).  Don't drop the contructor
-               initializer entry: It might be needed in the C++-generating
-               back end, for example. */
+            /* A special case: An explicit array initializer in a template (if
+               it weren't in a template, we wouldn't be here since a nontrivial
+               dynamic initialization entry would have been generated).  This
+               can currently only happen in GNU C++ mode.  Don't drop the
+               contructor initializer entry: It might be needed in the C++-
+               generating back end, for example. */
             check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
