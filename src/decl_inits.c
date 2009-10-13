@@ -5381,9 +5381,12 @@ scan_paren:
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
         if (cip->source_expr != NULL) {
-          /* A special case: An explicit array initializer (possible in GNU C++
-             mode only) in a template.  Don't drop it (it might be needed in
-             the C++-generating back end, for example). */
+          /* A special case: An explicit array initializer -- possible in GNU
+             C++ mode only -- in a template (if it weren't in a template, we
+             wouldn't be here since a nontrivial dynamic initialization entry
+             would have been generated).  Don't drop contructor initializer
+             entry: It might be needed in the C++-generating back end, for
+             example. */
           check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
