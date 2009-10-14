@@ -1,5 +1,19 @@
 Version 4.2
 
+10/14/09 [EDGcpfe/10142]
+Buffer overflow when uncompressing invalid Cfront mangled name
+
+When decode_identifier (when compiled to decode Cfront names) was given a
+certain class of invalid mangled names (those indicating a compressed name,
+where the name is longer than the indicated compressed length), the
+output_buffer argument would be written to beyond size indicated by the
+output_buffer_size argument.  The buffer overflow has now been fixed; an
+error is indicated to the caller in *err (but *buffer_overflow_err is FALSE
+because no amount of additional buffer space would allow the invalid input to
+be properly uncompressed).  This invalid input would cause an overflow:
+"__CPR5__12345Xoverflow".
+
+
 10/1/09  [EDGcpfe/10129]
 Offsets for demangled IA-64 thunk symbols show as large integers
 

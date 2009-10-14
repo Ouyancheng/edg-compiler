@@ -2837,21 +2837,31 @@ address of the uncompressed name.
     dctl->output_overflow_err = TRUE;
     goto end_of_routine;
   } else {
-    char *src, *dst;
+    char *src, *dst, *dst_end = dctl->output_id+dctl->output_id_size;
     /* Uncompress to the end of the buffer supplied by the caller, then
        do the demangling in the space remaining at the beginning. */
-    uncompressed_name = dctl->output_id+dctl->output_id_size-(length+1);
+    uncompressed_name = dst_end-(length+1);
     dctl->output_id_size -= length+1;
     dst = uncompressed_name;
     for (src = id; *src != '\0';) {
       char ch = *src++;
       if (ch != 'J') {
         /* Just copy this character. */
+        if (dst >= dst_end) {
+          /* Overflowed buffer (probably malformed input). */
+          bad_mangled_name(dctl);
+          goto end_of_routine;
+        }  /* if */
         *dst++ = ch;
       } else {
         if (*src == 'J') {
           /* "JJ" indicates a simple "J". */
           /* Simple "J". */
+          if (dst >= dst_end) {
+            /* Overflowed buffer (probably malformed input). */
+            bad_mangled_name(dctl);
+            goto end_of_routine;
+          }  /* if */
           *dst++ = 'J';
         } else {
           /* "JnnnJ" indicates a repetition of a string that appeared
@@ -2874,6 +2884,11 @@ address of the uncompressed name.
           prev_str2 = get_length(prev_str, &prev_len, &prev_end, dctl);
           /* Copy the repeated string to the uncompressed output. */
           prev_str2 += prev_len;
+          if (dst+prev_len >= dst_end) {
+            /* Overflowed buffer (probably malformed input). */
+            bad_mangled_name(dctl);
+            goto end_of_routine;
+          }  /* if */
           while (prev_str < prev_str2) *dst++ = *prev_str++;
         }  /* if */
         /* Advance past the final "J". */
@@ -2883,6 +2898,11 @@ address of the uncompressed name.
     if (dst - uncompressed_name != length) {
       /* The length didn't come out right. */
       bad_mangled_name(dctl);
+    }  /* if */
+    if (dst >= dst_end) {
+      /* Overflowed buffer (probably malformed input). */
+      bad_mangled_name(dctl);
+      goto end_of_routine;
     }  /* if */
     /* Add the final null. */
     *dst++ = '\0';
@@ -2929,6 +2949,8 @@ length returned the second time will be correct).
   /* Check for special cases. */
   if (dctl->output_overflow_err) {
     /* Previous error (not enough room in the buffer to uncompress). */
+  } else if (dctl->err_in_id) {
+    /* Invalid compressed input. */
   } else if (start_of_id_is("__vtbl__", id, dctl)) {
     write_id_str("virtual function table for ", dctl);
     /* The overall mangled name is one of
