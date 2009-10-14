@@ -3257,8 +3257,11 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
   /* GNU's C89 conventions for the inline keyword are the opposite of those
      later standardized in C99.  GCC held onto its conventions in C99 mode also
      until GCC 4.3 (where an option exists to revert to the GNU C89 rules). */
-  if (c99_mode && gnu_version >= 40300 &&
-      !option_kind_used[(int)optk_gnu_c89_inlining]) {
+  if (c99_mode &&
+#if GNU_EXTENSIONS_ALLOWED
+      !option_kind_used[(int)optk_gnu_c89_inlining] &&
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      gnu_version >= 40300) {
     std_c99_inlining = TRUE;
     gnu_c89_inlining = FALSE;
   } else {

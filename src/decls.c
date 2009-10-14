@@ -6727,6 +6727,7 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */ 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   if (gcc_mode && use_std_c99_inlining) {
     /* In GNU C mode, we must decide whether the semantics of "inline" are the
        standard C99 semantics, or the older C89 semantics.  Unfortunately,
@@ -6750,6 +6751,7 @@ for use in generating cross-reference output describing this declaration.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (use_std_c99_inlining) {
     /* In C99 mode, if a function is declared "inline" every time it is
        declared in a given translation unit and is never declared with an
