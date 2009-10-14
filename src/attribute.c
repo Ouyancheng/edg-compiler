@@ -296,7 +296,7 @@ static void init_attr_name_map(void)
 Initialize the attribute name map.
 */
 {
-  int  k;
+  unsigned int  k;
 
   attr_name_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
                                    (a_hash_table_size)KNOWN_ATTR_TABLE_LENGTH,
@@ -512,6 +512,7 @@ That includes unrecognized attributes.)
     switch (curr_token) {
       case tok_newline:
         check_assertion(in_preprocessing_directive);
+        /*FALLTHROUGH*/
       case tok_end_of_source:
         expect_error();
         goto done;
