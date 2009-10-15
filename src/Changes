@@ -1,5 +1,20 @@
 Version 4.2
 
+10/23/09 [EDGcpfe/10120]
+GNU C++ compatibility: internal error on typeof a template static data member
+
+An internal error (in complete_template_static_data_member_type_is_needed)
+could occur when a GNU __typeof was used to to determine the type of a
+template static data member of the current class.  Now fixed.
+
+  template <int i> struct C { };
+  template <int i> struct D {
+    static C<2> myc;
+    void f(__typeof(myc) c);
+  };
+  D<2> d;
+
+
 10/12/09 [EDGcpfe/7570,EDGcpfe/9679,EDGcpfe/9968]
 Extra spaces between tokens in preprocessor output
 

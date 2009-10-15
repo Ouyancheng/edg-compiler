@@ -18748,6 +18748,9 @@ data member specified by tip.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* instantiate_entity */
 
+/* Forward declaration. */
+static void find_or_create_master_instance(a_template_instance_ptr	tip);
+
 
 void complete_template_static_data_member_type_is_needed(a_variable_ptr vp)
 /*
@@ -18768,6 +18771,7 @@ entity", not "I need a definition of this entity".
   /* If the entity can be instantiated, do so now.  This routine can be
      called in the middle of a translation unit, so implicit inclusion cannot
      be done. */
+  find_or_create_master_instance(tip);
   if (!master_instance_of(tip)->already_instantiated &&
       entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
     instantiate_entity(tip);
