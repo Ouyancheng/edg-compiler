@@ -1,5 +1,24 @@
 Version 4.2
 
+10/15/09 [EDGcpfe/10126]
+Pseudo-destructor called on array type
+
+Other compilers, including Microsoft and GNU, allow a pseudo-destructor call
+in which the destructor type (e.g. ~T) is an array type but the type of the
+object is a pointer.  We now allow such usage except in strict mode.
+
+  template <typename T > struct A {
+    void f(void) {
+      m[0].~T();  // now allowed
+    }
+    T* m;
+  };
+  int main() {
+    A<float[4]> afloat;
+    afloat.f();
+  }
+
+
 10/15/09 [EDGcpfe/10115]
 GNU array mem-initializers
 

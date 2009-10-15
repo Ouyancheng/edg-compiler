@@ -15269,14 +15269,28 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
       locator_for_curr_id.is_destructor_name = TRUE;
       if (!err && field_sel_type != NULL) {
+        a_type_ptr	unqual_field_sel_type;
+        a_type_ptr	dtor_type_under_typerefs;
         /* When field_sel_type is non-NULL we are processing the right hand
            side of a field selection (e.g., "p->~X()").  Make sure that the
            destructor type that has been found matches the type of the
            left operand. */
         check_assertion(dtor_type != NULL);
-        if (!identical_types(make_unqualified_type(field_sel_type),
-                             f_skip_typerefs(dtor_type)) /*lint !e666*/ &&
-            !is_template_param_type(dtor_type) &&
+        unqual_field_sel_type = make_unqualified_type(field_sel_type);
+        if (!strict_ansi_mode && is_array_type(dtor_type) &&
+            !is_array_type(unqual_field_sel_type)) {
+          /* For "p->~T()", where T is an array type and p is not an
+             array type, decay the array type to a pointer. */
+          adjust_parameter_type(&dtor_type,
+                               (a_gnu_attribute_ptr)NULL);
+          /* Update the qualifier type that will be returned in the
+             locator. */
+          qualifier_type = dtor_type;
+        }  /* if */
+        dtor_type_under_typerefs = skip_typerefs(dtor_type);
+        if (!identical_types(unqual_field_sel_type,
+                             dtor_type_under_typerefs) &&
+            !is_template_param_type(dtor_type_under_typerefs) &&
             !is_proxy_class(field_sel_type)) {
           if (!in_if_exists) {
             pos_ty_error(ec_invalid_destructor_name, &tilde_position,
