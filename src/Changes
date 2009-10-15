@@ -1,5 +1,22 @@
 Version 4.2
 
+10/15/09 [EDGcpfe/10115]
+GNU array mem-initializers
+
+g++ allows constructor mem-initializers for array members to have non-empty
+initializers if the member is an array of a class type with a copy
+constructor.  We now emulate that in g++ mode.
+
+  struct A {
+    A();
+    A(const A&);
+  };
+  struct B {
+    A arr[2];
+    B(const B&p) : arr(p.arr) {}  // Now allowed in GNU C++ mode
+  };
+
+
 10/23/09 [EDGcpfe/10120]
 GNU C++ compatibility: internal error on typeof a template static data member
 
