@@ -8596,6 +8596,7 @@ variables declared in cmd_line.h.
   cfront_3_0_mode = FALSE;
   trans_unit_test_mode = FALSE;
   pcc_preprocessing_mode = FALSE;
+  no_token_separators_in_pp_output = FALSE;
   allow_anachronisms = DEFAULT_ALLOW_ANACHRONISMS;
   allow_nonconst_call_anachronism = DEFAULT_ALLOW_NONCONST_CALL_ANACHRONISM;
 #if DEBUG
