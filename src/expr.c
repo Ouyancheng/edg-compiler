@@ -19295,6 +19295,8 @@ see expr.h).
     if (expr_stack->prev->is_template_arg_expression) {
       expr_stack->is_template_arg_expression = TRUE;
     }  /* if */
+    expr_stack->nested_construct_depth =
+                                      expr_stack->prev->nested_construct_depth;
     check_assertion(!curr_expr_is_evaluated());
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

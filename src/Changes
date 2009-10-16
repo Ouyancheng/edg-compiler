@@ -1,5 +1,20 @@
 Version 4.2
 
+10/16/09 [EDGcpfe/10157]
+GNU C++ mode parsing of unevaluated operands of "?" within template argument
+
+In GNU C++ mode, the parsing of unevaluated operands of a "?" operator
+inside parentheses inside a nontype template argument could sometimes
+incorrectly group the operands of the expression because of a confusion
+about whether a ">" operator should close the template argument (it
+shouldn't).  Now fixed.
+
+  template <int Value> struct thing { enum { v = Value }; };
+  int bar (){
+    return thing <(3 > 2 ? 4 : 3 > 1 ? 2 : 1)> ().v;  // Should be 4, was 2
+  }
+
+
 10/16/09 [EDGcpfe/10154]
 Deduction of rvalue reference parameter when argument is a function
 
