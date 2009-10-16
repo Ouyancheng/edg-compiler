@@ -15281,8 +15281,7 @@ selection operator, in which case it points to the type of the left operand.
             !is_array_type(unqual_field_sel_type)) {
           /* For "p->~T()", where T is an array type and p is not an
              array type, decay the array type to a pointer. */
-          adjust_parameter_type(&dtor_type,
-                               (a_gnu_attribute_ptr)NULL);
+          dtor_type = type_after_array_to_pointer_transformation(dtor_type);
           /* Update the qualifier type that will be returned in the
              locator. */
           qualifier_type = dtor_type;
@@ -15291,7 +15290,7 @@ selection operator, in which case it points to the type of the left operand.
         if (!identical_types(unqual_field_sel_type,
                              dtor_type_under_typerefs) &&
             !is_template_param_type(dtor_type_under_typerefs) &&
-            !is_proxy_class(field_sel_type)) {
+            !is_proxy_class(unqual_field_sel_type)) {
           if (!in_if_exists) {
             pos_ty_error(ec_invalid_destructor_name, &tilde_position,
                          field_sel_type);

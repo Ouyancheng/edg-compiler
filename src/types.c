@@ -2682,6 +2682,8 @@ type.
 a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type)
 /*
 Do the array --> pointer type transformation and return the transformed type.
+Note that the returned type is intended as an rvalue type, so qualifiers like
+"restrict" on the array type are not added on top of the result type.
 */
 {
   /* The array --> pointer transformation converts "array of X" to
