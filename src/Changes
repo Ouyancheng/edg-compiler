@@ -1,5 +1,22 @@
 Version 4.2
 
+10/16/09 [EDGcpfe/10154]
+Deduction of rvalue reference parameter when argument is a function
+
+The processing for the special "perfect forwarding" template deduction
+trick, which allows a template with a parameter of type "T&&" to bind to
+an lvalue argument by deducing T as an lvalue reference, did not work
+correctly when the argument is a function lvalue.  Now fixed.
+
+  template<class T> void test(T&& r);
+  void f();
+  int main() {
+    int i;
+    test(i);  // Previously accepted (non-function lvalue)
+    test(f);  // Previously rejected, now accepted as well
+  }
+
+
 10/15/09 [EDGcpfe/10126]
 Pseudo-destructor called on array type
 

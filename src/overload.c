@@ -2616,7 +2616,8 @@ it is always NULL.
         is_template_param_type(param_type) &&
         !is_qualified_type(param_type) &&
         arg_operand != NULL &&
-        is_an_lvalue(arg_operand)) {
+        (is_an_lvalue(arg_operand) ||
+         is_a_function_designator(arg_operand))) {
       /* A special case ([temp.deduct.call] paragraph 3): If the parameter
          type is an rvalue reference to a template parameter (with no
          cv-qualifiers), and the argument is an lvalue, use
