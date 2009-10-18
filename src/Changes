@@ -1,5 +1,13 @@
 Version 4.2
 
+10/18/09 [EDGcpfe/10062]
+Clearer diagnostic on invalid call
+
+The diagnostic that the expression preceding the parentheses of what
+appears to be a call does not have pointer-to-function type has been
+clarified.
+
+
 10/16/09 [EDGcpfe/10157]
 GNU C++ mode parsing of unevaluated operands of "?" within template argument
 

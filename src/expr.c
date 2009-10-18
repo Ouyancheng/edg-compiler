@@ -2471,7 +2471,7 @@ C++ standard.  The current token is the "(" of the call.
         expr_stack->evaluated = FALSE;
         expr_stack->potentially_evaluated = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (check_function_pointer_operand(operand)) {
+      } else if (check_call_function_pointer_operand(operand)) {
 #if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
         orig_routine_type = operand->orig_routine_type;
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */

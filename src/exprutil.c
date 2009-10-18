@@ -6226,9 +6226,10 @@ array case in strict ANSI mode.
 
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
 
-a_boolean check_function_pointer_operand(an_operand *operand)
+a_boolean check_call_function_pointer_operand(an_operand *operand)
 /*
-Return FALSE and issue an error message if the operand is not a pointer to a
+The given operand appears preceding the opening parenthesis of an apparent
+call.  Return FALSE and issue an error message if it is not a pointer to a
 function type.  If there is an error, change the operand to an error operand.
 */
 {
@@ -6249,7 +6250,7 @@ function type.  If there is an error, change the operand to an error operand.
   }  /* if */
 
   return okay;
-}  /* check_function_pointer_operand */
+}  /* check_call_function_pointer_operand */
 
 
 a_boolean check_scalar_operand(an_operand *operand)
