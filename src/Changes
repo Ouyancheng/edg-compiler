@@ -1,5 +1,33 @@
 Version 4.2
 
+10/21/09 [EDGcpfe/10160]
+Related class cast incorrectly treated as reinterpret_cast in g++ mode
+
+The change of 3/24/09 introduced a regression in g++ mode.  A cast
+to a base or derived class was incorrectly treated as, effectively,
+a reinterpret_cast (one that would not adjust the pointer to deal
+with the base-derived class offset).  This problem existed only
+when gnu_version is less than 30400.  Now fixed.
+
+  struct DD;
+  struct DN {
+    virtual DD *f() const = 0;
+  };
+  struct DDR {
+    virtual ~DDR() {}
+  };
+  struct DD : DDR, DN {
+    virtual ~DD() {}
+  };
+  struct DNI {
+    DN *m;
+    DD *f() const;
+  };
+  DD *DNI::f() const {
+    return (DD*)m;  // This was incorrectly treated as a reinterpret_cast
+  }
+
+
 10/18/09 [EDGcpfe/10062]
 Clearer diagnostic on invalid call
 

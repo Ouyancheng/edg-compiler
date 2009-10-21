@@ -11615,12 +11615,16 @@ an lvalue cast in g++ mode.
       !curr_expr_kind_is_const()) {
     /* A cast between like-sized integral types or pointer types
        is treated as an lvalue cast. */
-    a_type_ptr source_type = operand->type;
+    a_type_ptr       source_type = operand->type;
+    a_boolean        baseward_cast;
+    a_base_class_ptr bcp;
     if (((is_integral_or_enum_type(source_type) &&
           is_integral_or_enum_type(type_cast_to) &&
           !is_bool_type(type_cast_to)) ||
          (is_pointer_type(source_type) &&
-          is_pointer_type(type_cast_to))) &&
+          is_pointer_type(type_cast_to) &&
+          !related_class_pointers(source_type, type_cast_to, &baseward_cast,
+                                  &bcp))) &&
         f_skip_typerefs(source_type)->size ==
                                          f_skip_typerefs(type_cast_to)->size &&
         !f_identical_types(source_type,
