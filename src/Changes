@@ -9,23 +9,19 @@ a reinterpret_cast (one that would not adjust the pointer to deal
 with the base-derived class offset).  This problem existed only
 when gnu_version is less than 30400.  Now fixed.
 
-  struct DD;
-  struct DN {
-    virtual DD *f() const = 0;
+  struct B1 {
+    int i;
   };
-  struct DDR {
-    virtual ~DDR() {}
+  struct B2 {
+    int i;
   };
-  struct DD : DDR, DN {
-    virtual ~DD() {}
-  };
-  struct DNI {
-    DN *m;
-    DD *f() const;
-  };
-  DD *DNI::f() const {
-    return (DD*)m;  // This was incorrectly treated as a reinterpret_cast
+  struct D : B1, B2 { };
+  int main() {
+    D d;
+    D *pd = &d;
+    B2 *p = (B2 *)pd;  // Incorrect cast generated
   }
+
 
 
 10/18/09 [EDGcpfe/10062]
