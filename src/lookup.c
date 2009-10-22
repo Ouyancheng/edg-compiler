@@ -5767,8 +5767,10 @@ symbol found by the normal lookup.
   a_scope_stack_entry_ptr	ssep;
   a_boolean			done = FALSE;
   a_namespace_ptr		normal_sym_namespace;
+  a_symbol_ptr			fund_normal_sym;
 
-  normal_sym_namespace = sym_parent_namespace_or_null(normal_sym);
+  fund_normal_sym = fundamental_symbol_of(normal_sym);
+  normal_sym_namespace = sym_parent_namespace_or_null(fund_normal_sym);
   for (ssep = scope_stack_entry_for(depth_scope_stack);
        !done && ssep != NULL; ssep = previous_scope_of(ssep)) {
     a_namespace_ptr			nsp;
@@ -5779,7 +5781,10 @@ symbol found by the normal lookup.
          namespace list. */
       nsp = ssep->assoc_namespace;
       remove_namespace_from_list(namespace_list, nsp);
-      if (nsp == normal_sym_namespace) {
+      /* Terminate the loop when we find the scope in which normal_sym
+         was found. */
+      if (ssep->il_scope != NULL &&
+          ssep->il_scope->number == normal_sym->decl_scope) {
         done = TRUE;
       }  /* if */
     } else if (ssep->kind == (a_scope_kind)sck_file) {

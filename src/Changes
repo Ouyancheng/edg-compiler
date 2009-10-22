@@ -1,5 +1,23 @@
 Version 4.2
 
+10/22/09 [EDGcpfe/10166]
+Microsoft C++ compatibility: spurious error with ADL in version 4.1
+
+The change made for the 1/21/09 entry (which is part of version 4.1) resulted
+in an incorrect argument-dependent lookup for cases in which the normal
+lookup returned a symbol from a using-directive lookup.  Now fixed.
+
+  struct A {};
+  void f(A);
+  namespace N {
+    namespace {
+      struct B {};
+      template <typename T> void f(B);
+    }
+   void B(A a) { f(a); }  // f(A) not found by this call
+  }
+
+
 10/22/09 [EDGcpfe/10164]
 Typo in prep_reference_initializer_operand could lead to spurious errors
 
