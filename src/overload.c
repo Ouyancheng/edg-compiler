@@ -14655,7 +14655,7 @@ been found to be acceptable, and *conversion describes it.
                                        ec_const_volatile_ref_init_from_rvalue :
                                        ec_nonconst_ref_init_from_rvalue,
                      &source_operand->position);
-      if ((int)err_severity > (int)warning) {
+      if ((int)err_severity > (int)es_warning) {
         conv_to_error_operand(source_operand);
       }  /* if */
     }  /* if */

@@ -1,5 +1,18 @@
 Version 4.2
 
+10/22/09 [EDGcpfe/10164]
+Typo in prep_reference_initializer_operand could lead to spurious errors
+
+A typo in prep_reference_initializer_operand in overload.c caused operands
+to be overwritten with error operands (without issuing an error), leading
+to spurious errors being reported by lowering (or potentially a back end).
+This regression was introduced in 4.1 and is now fixed.  For example:
+
+  struct A {};
+  A& a = A();   // when allowed (as an anachronism) a warning is issued and
+                // operand may be mistakenly overwritten by an error operand
+
+
 10/21/09 [EDGcpfe/10160]
 Related class cast incorrectly treated as reinterpret_cast in g++ mode
 
