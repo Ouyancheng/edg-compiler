@@ -1,5 +1,13 @@
 Version 4.2
 
+10/23/09 [EDGcpfe/10107]
+Use __EDG_IA64_VTABLE_ENTRY_TYPE as the type of an IA-64 ABI vtable entry
+
+A new macro __EDG_IA64_VTABLE_ENTRY_TYPE is now used by the front end to
+specify the type of an IA-64 ABI vtable entry.  See the Changes entry in
+the front end for more information.
+
+
 9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102]
 C++0x: Support for nullptr
 

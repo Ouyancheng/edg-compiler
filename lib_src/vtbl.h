@@ -45,7 +45,7 @@ struct a_vtbl_entry {
 
 #else /* defined(__EDG_IA64_ABI) */
 
-typedef __EDG_DELTA_TYPE a_vtbl_entry;
+typedef __EDG_IA64_VTABLE_ENTRY_TYPE a_vtbl_entry;
 
 #endif /* defined(__EDG_IA64_ABI) */
 

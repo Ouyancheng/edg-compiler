@@ -149,6 +149,23 @@ base class.  Note that base_info may be NULL.
   return result;
 }  /* is_virtual */
 
+#ifdef __EDG_IA64_ABI
+
+static void *get_virtual_base_pointer(void                  *ptr,
+                                      a_base_class_spec_ptr bcsp)
+/*
+Return a pointer to the virtual base class of the derived object ptr as
+specified by bcsp.
+*/
+{
+  a_vtbl_entry_ptr vtbl, vbase_offset;
+
+  vtbl = *((a_vtbl_entry_ptr *)ptr);
+  vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
+  return (void *)(((char *)ptr) + *vbase_offset);
+}  /* get_virtual_base_pointer */
+
+#endif /* ifdef __EDG_IA64_ABI */
 
 static void traverse_base_classes(
 			void					*ptr,
@@ -190,10 +207,7 @@ for certain base classes in the IA-64 ABI.
         continue;
       }  /* if */
       if (is_virtual(bcsp)) {
-        a_vtbl_entry_ptr vtbl, vbase_offset;
-        vtbl = *((a_vtbl_entry_ptr *)ptr);
-        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
-        new_ptr = (void *)(((char *)ptr) + *vbase_offset);
+        new_ptr = get_virtual_base_pointer(ptr, bcsp);
       } else {
         new_ptr = (void *)(((char *)ptr) + get_offset(bcsp));
       }  /* if */
@@ -342,10 +356,7 @@ redundant matching virtual base classes.
         /* Don't try to add an offset to a NULL pointer. */
         base_ptr = NULL;
       } else if (is_virtual) {
-        a_vtbl_entry_ptr vtbl, vbase_offset;
-        vtbl = *((a_vtbl_entry_ptr *)ptr);
-        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
-        base_ptr = (void *)(((char *)ptr) + *vbase_offset);
+        base_ptr = get_virtual_base_pointer(ptr, bcsp);
       } else {
         base_ptr = (void *)(((char *)ptr) + get_offset(bcsp));
       }  /* if */
@@ -690,10 +701,7 @@ this function is called; it is set to TRUE If the base class is found.
          bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
          bcsp++) {
       if (bcsp->__offset_flags & BCS_VIRTUAL) {
-        a_vtbl_entry_ptr vtbl, vbase_offset;
-        vtbl = *((a_vtbl_entry_ptr *)ptr);
-        vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
-        new_ptr = (void *)(((char *)ptr) + *vbase_offset);
+        new_ptr = get_virtual_base_pointer(ptr, bcsp);
       } else {
         new_ptr = (void *)(((char *)ptr) + get_offset(bcsp));
       }  /* if */
@@ -874,7 +882,7 @@ EXTERN_C void *__dynamic_cast(void			*class_ptr,
 #else /* defined(__EDG_IA64_ABI) */
                               a_type_info_impl_ptr      source_tiip,
                               a_type_info_impl_ptr      dest_tiip,
-                              __EDG_DELTA_TYPE          hint
+                              __EDG_PTRDIFF_TYPE__      hint
 #endif /* defined(__EDG_IA64_ABI) */
                               )
 /*
