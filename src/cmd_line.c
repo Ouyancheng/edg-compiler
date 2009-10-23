@@ -6243,6 +6243,11 @@ file.
 #else /* !defined(TARG_HOST_STRING_CHAR_BIT) */
   comment_undefined_macro_name(TARG_HOST_STRING_CHAR_BIT);
 #endif /* defined(TARG_HOST_STRING_CHAR_BIT) */
+#if defined(TARG_IA64_VTABLE_ENTRY_INT_KIND)
+  define_string_valued_macro(TARG_IA64_VTABLE_ENTRY_INT_KIND);
+#else /* !defined(TARG_IA64_VTABLE_ENTRY_INT_KIND) */
+  comment_undefined_macro_name(TARG_IA64_VTABLE_ENTRY_INT_KIND);
+#endif /* defined(TARG_IA64_VTABLE_ENTRY_INT_KIND) */
 #if defined(TARG_INT_FIELD_ALIGNMENT)
   define_numeric_valued_macro(TARG_INT_FIELD_ALIGNMENT);
 #else /* !defined(TARG_INT_FIELD_ALIGNMENT) */

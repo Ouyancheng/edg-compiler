@@ -27,6 +27,9 @@ lower_il.h -- Declarations related to lower_il.c (having to do with
 #include "il.h"
 #endif /* ifndef IL_DEF_H */
 
+#if IA64_ABI || DO_IL_LOWERING
+extern a_type_ptr make_vtbl_entry_type(void);
+#endif /* IA64_ABI || DO_IL_LOWERING */
 
 #if IA64_ABI
 extern a_targ_size_t vtbl_entry_size(void);

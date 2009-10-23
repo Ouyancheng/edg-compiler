@@ -7233,11 +7233,19 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  /* Define the type of the offset field in the virtual function table. */
+  /* Define the type of the offset field in the Cfront virtual function
+     table. */
   (void)enter_predef_macro(int_kind_name(TARG_DELTA_INT_KIND),
 			   "__EDG_DELTA_TYPE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#if IA64_ABI
+  /* Define the type of an entry in the IA-64 virtual function table. */
+  (void)enter_predef_macro(int_kind_name(TARG_IA64_VTABLE_ENTRY_INT_KIND),
+			   "__EDG_IA64_VTABLE_ENTRY_TYPE",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* IA64_ABI */
   /* Define the type of the virtual function index field of the virtual
      function table. */
   (void)enter_predef_macro(int_kind_name(TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND),

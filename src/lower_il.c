@@ -50,7 +50,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 
 #if IA64_ABI || DO_IL_LOWERING
 
-static a_type_ptr make_vtbl_entry_type(void)
+a_type_ptr make_vtbl_entry_type(void)
 /*
 Return the type of a virtual function table entry.
 */
@@ -59,8 +59,10 @@ Return the type of a virtual function table entry.
 
 #if IA64_ABI
   /* The IA-64 virtual function table contains offsets and pointers.
-     The element type is considered to be a large integral type. */
-  vtbl_entry_type = integer_type(targ_ptrdiff_t_int_kind);
+     The element type must be an integral type large enough to accommodate both
+     of these types.  Typically, this is ptrdiff_t, but on some systems it may
+     be larger. */
+  vtbl_entry_type = integer_type(TARG_IA64_VTABLE_ENTRY_INT_KIND);
 #else /* !IA64_ABI */
   vtbl_entry_type = make_mptr_type();
 #endif /* IA64_ABI */
@@ -2395,7 +2397,7 @@ static an_expr_node_ptr make_vtbl_entry_expr(an_expr_node_ptr      node,
 Make an expression for the value stored in the virtual table of the object
 pointed to by node (a class lvalue), at the position given by idx.
 idx is counted in virtual table entries.  The result is an rvalue
-of type ptrdiff_t.
+of the type specified by TARG_IA64_VTABLE_ENTRY_INT_KIND (typically ptrdiff_t).
 */
 {
   an_expr_node_ptr  vtbl_expr, index_expr, entry_expr;
@@ -6159,6 +6161,11 @@ class_type is the class type whose vtbl is being constructed
     delta_con = alloc_constant((a_constant_repr_kind)ck_integer);
     set_delta_constant(delta, delta_con, class_type);
 #if IA64_ABI
+    if (!il_identical_types(delta_con->type, pointer_type)) {
+      /* In configurations where the delta size is smaller than the size of
+         a vtable entry, add a cast to the proper type. */
+      implicit_cast(delta_con, pointer_type);
+    }  /* if */
     add_init(first_con, last_con, delta_con, prepend);
     /* In the IA-64 ABI, we generally put out only a single constant.
        The exception is when typeinfo_entry is TRUE, when we put out

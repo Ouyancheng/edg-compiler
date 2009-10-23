@@ -2396,7 +2396,7 @@ conversion in cases where their value is not used.
     minus_one_expr = node_for_integer_constant(-1L, (an_integer_kind)ik_int);
     vptr_expr->next = minus_one_expr;
     vptr_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
-                                   integer_type(targ_ptrdiff_t_int_kind),
+                                   make_vtbl_entry_type(),
                                    vptr_expr);
     vptr_expr = add_cast_if_necessary(vptr_expr, 
                                make_pointer_type(make_user_typeinfo_type()));
