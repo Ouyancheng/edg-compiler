@@ -4062,7 +4062,7 @@ changed if there is no error.
       sym_ptr->prev_in_scope = symbols_with_no_scope_tail;
     }  /* if */
     symbols_with_no_scope_tail = sym_ptr;
-  } else if (pointers_block != NULL) {
+  } else {
     /* Add the symbol to the end of the symbols list for the scope. */
     if (pointers_block->symbols == NULL) {
       pointers_block->symbols = sym_ptr;

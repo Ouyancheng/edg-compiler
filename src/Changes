@@ -1,5 +1,18 @@
 Version 4.2
 
+10/26/09 [EDGcpfe/10143]
+Mangling of C++0x lambdas caused assertion failure in some configurations
+
+In configurations where PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE,
+mangling of a lambda in a function scope had caused an assertion failure in
+lower_name.c (in call_operator_function_type_for_lambda).  This has now been
+fixed.  For example:
+
+  void f() {
+     [](){};
+  }
+
+
 10/26/09 [EDGcpfe/10162]
 GNU compatibility: asm names and attribute "alias"
 

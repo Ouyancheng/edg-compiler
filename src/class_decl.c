@@ -9176,6 +9176,13 @@ The heavy lifting for this routine is performed by decl_member_function.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_member_function(&loc, func_info, class_state, decl_info,
                          /*compiler_generated=*/FALSE);
+    /* Ordinarily, the "symbols" field of a class symbol supplement isn't
+       updated until the class definition is completed.  However, the mangling
+       rules for lambdas are such that this is sometimes needed earlier for
+       closure types.  So we set it now (since it's the symbol for the
+       implied call operator that is needed). */
+    symbol_supplement_for_class(class_state->class_type)->symbols =
+          assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed =
                                       prev_source_sequence_entries_disallowed;

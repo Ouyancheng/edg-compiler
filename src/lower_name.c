@@ -3179,17 +3179,22 @@ lambda closure type.
 {
   a_type_ptr      type = NULL;
   a_routine_ptr   rp;
-  a_class_type_supplement_ptr
-                  ctsp = class_type_supp(lambda);
+  a_symbol_ptr    sym = symbol_for(lambda);
 
-  check_assertion(ctsp != NULL &&
-                  ctsp->assoc_scope != NULL &&
-                  ctsp->assoc_scope->routines != NULL);
-  for (rp = ctsp->assoc_scope->routines; rp != NULL; rp = rp->next) {
-    if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-        rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
-      type = rp->type;
-      break;
+  /* Search through the list of symbols on the lambda class' symbol list to
+     find the operator() routine (the routine may have already been promoted
+     but this search method will work in either case). */
+  check_assertion(type_is_lambda_closure(lambda) && sym != NULL);
+  for (sym = sym->variant.class_struct_union.extra_info->symbols;
+       sym != NULL;
+       sym = sym->next_in_scope) {
+    if (is_simple_function_symbol(sym)) {
+      rp = sym->variant.routine.ptr;
+      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+          rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
+        type = rp->type;
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   check_assertion(type != NULL);
