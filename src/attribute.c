@@ -1948,7 +1948,6 @@ Traverse the list of alias fixups and set the alias fields as needed.
       pos = &entry->alias_position;
 #if GNU_EXTENSIONS_ALLOWED
     } else {
-      a_symbol_ptr  *p_sym;
       pos = &entry->alias->decl_position;
       if (entry->alias->defined &&
           !(entry->alias->kind == (a_symbol_kind)sk_variable &&
@@ -1961,18 +1960,30 @@ Traverse the list of alias fixups and set the alias fields as needed.
            variables: They are defined, but they cannot have an initializer. */
         pos_error(ec_alias_cannot_have_definition, pos);
       }  /* if */
-      p_sym = (a_symbol_ptr*)hash_find(asm_name_map,
-                                       (a_void_ptr)entry->aliased_name,
-                                       /*create=*/FALSE);
-      if (p_sym != NULL) aliased_sym = *p_sym;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
-    if (aliased_sym == NULL) {
-      clear_locator(&locator, pos);
-      (void)find_symbol(entry->aliased_name,
-                        (sizeof_t)strlen(entry->aliased_name), &locator);
-      aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+    clear_locator(&locator, pos);
+    (void)find_symbol(entry->aliased_name,
+                      (sizeof_t)strlen(entry->aliased_name), &locator);
+    aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+#if GNU_EXTENSIONS_ALLOWED
+    if (aliased_sym == NULL ||
+        undefined_aliased_entity(aliased_sym, entry->alias->kind)) {
+      /* If ordinary lookup of the alias attribute didn't yield a defined
+         entity, we attempt to find the alias among the GNU asm names we
+         previously recorded. */
+      if (entry->alias == NULL) {
+        /* Not a GNU alias attribute. */
+      } else {
+        /* Look for an entity whose GNU asm name matches the aliased name. */
+        a_symbol_ptr  *p_sym;
+        p_sym = (a_symbol_ptr*)hash_find(asm_name_map,
+                                         (a_void_ptr)entry->aliased_name,
+                                         /*create=*/FALSE);
+        if (p_sym != NULL && *p_sym != NULL) aliased_sym = *p_sym;
+      }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (entry->alias == NULL) {
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
       /* This entry corresponds to a redefine_extname pragma directive. */

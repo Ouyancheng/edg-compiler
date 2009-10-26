@@ -1,5 +1,23 @@
 Version 4.2
 
+10/26/09 [EDGcpfe/10162]
+GNU compatibility: asm names and attribute "alias"
+
+In GNU modes, the front end accepts an attribute "alias" that refers to an asm
+name.  However, if a function or variable name appeared both as a regular name
+and as an asm name, the alias was previously resolved to the entity with the
+asm name.  This could later trigger warnings or errors if that entity did not
+have a definition.  Now, the alias resolution method gives precedence to the
+entity with a definition.  For example (GNU C mode):
+
+  void renamed() __asm("f");  // (1): "f" as an asm name.
+  void f() {}                 // (2): "f" as an ordinary name.
+  void alt() __attribute((alias("f")));
+                              // Previously resolved to (1), which triggered
+                              // a warning or error because "renamed" has no
+                              // definition.  Now, resolves to (2).
+
+
 10/23/09 [EDGcpfe/10107]
 New configuration macro to specify size of an IA-64 vtable entry
 
