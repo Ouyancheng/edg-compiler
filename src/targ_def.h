@@ -4002,38 +4002,6 @@ macro as well.
 #endif /* ifndef TARG_DELTA_INT_KIND */
 
 /*
-Integer kind used for the size of a vtable entry in the IA-64 ABI.  Vtable
-entries in the IA-64 ABI must be large enough to accommodate the three types
-of entities stored there: offsets (ptrdiff_t), data pointers (to type_info),
-and function pointers (to virtual functions).  In almost all cases, the
-sizes of these items are identical and the same integer kind as is used
-to represent ptrdiff_t is appropriate.  The integer kind used here must
-be signed (to accommodate negative offsets).  The vtable is represented as an
-array of entities of this size.  Strictly speaking, the IA-64 ABI models the
-vtable as a sequence of these entries, suggesting that a structure of
-heterogeneous elements would be a better model than the array of homogeneous
-elements that the front end uses.  In architectures where the types of vtable
-entries are not the same size, this macro can be used to specify an integer
-kind that can encompass all of the vtable entry types, allowing the array model
-to be used (at the expense of larger than necessary vtables).
-The integer kind specified here must be the same size as a pointer; lowering
-(and the run-time library) make this assumption when de-referencing vtable
-entries that contain pointers (i.e., type_info and virtual functions).
-In the case where TARG_IA64_VTABLE_ENTRY_INT_KIND specifies an integer kind
-that is larger than TARG_DELTA_INT_KIND, the integer offset values are
-checked against TARG_DELTA_INT_KIND (i.e., for overflow), but cast to the
-larger integer size when initialized in the vtable.  References to these
-offsets (both in lowering and in the run-time) use the larger integer kind
-(i.e., TARG_IA64_VTABLE_ENTRY_INT_KIND) when retrieving the offset values
-at run-time.
-*/
-#ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND
-#if IA64_ABI
-#define TARG_IA64_VTABLE_ENTRY_INT_KIND TARG_DELTA_INT_KIND
-#endif /* IA64_ABI */
-#endif /* ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND */
-
-/*
 Integer kind to use for an index into a virtual function table.  Must be
 no smaller than the size of a_virtual_function_number.  If you change
 this, you will need to change TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION, and
@@ -4164,6 +4132,38 @@ stack.
 #endif /* GENERATE_EH_TABLES */
 
 #endif /* DO_IL_LOWERING */
+
+/*
+Integer kind used for the size of a vtable entry in the IA-64 ABI.  Vtable
+entries in the IA-64 ABI must be large enough to accommodate the three types
+of entities stored there: offsets (ptrdiff_t), data pointers (to type_info),
+and function pointers (to virtual functions).  In almost all cases, the
+sizes of these items are identical and the same integer kind as is used
+to represent ptrdiff_t is appropriate.  The integer kind used here must
+be signed (to accommodate negative offsets).  The vtable is represented as an
+array of entities of this size.  Strictly speaking, the IA-64 ABI models the
+vtable as a sequence of these entries, suggesting that a structure of
+heterogeneous elements would be a better model than the array of homogeneous
+elements that the front end uses.  In architectures where the types of vtable
+entries are not the same size, this macro can be used to specify an integer
+kind that can encompass all of the vtable entry types, allowing the array model
+to be used (at the expense of larger than necessary vtables).
+The integer kind specified here must be the same size as a pointer; lowering
+(and the run-time library) make this assumption when de-referencing vtable
+entries that contain pointers (i.e., type_info and virtual functions).
+In the case where TARG_IA64_VTABLE_ENTRY_INT_KIND specifies an integer kind
+that is larger than TARG_DELTA_INT_KIND, the integer offset values are
+checked against TARG_DELTA_INT_KIND (i.e., for overflow), but cast to the
+larger integer size when initialized in the vtable.  References to these
+offsets (both in lowering and in the run-time) use the larger integer kind
+(i.e., TARG_IA64_VTABLE_ENTRY_INT_KIND) when retrieving the offset values
+at run-time.
+*/
+#ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND
+#if IA64_ABI
+#define TARG_IA64_VTABLE_ENTRY_INT_KIND TARG_DELTA_INT_KIND
+#endif /* IA64_ABI */
+#endif /* ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND */
 
 /*
 Determine whether RTTI can be enabled.  It cannot be if we are doing IL
