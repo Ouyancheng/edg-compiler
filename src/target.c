@@ -276,24 +276,26 @@ Perform consistency check on target configuration variables.
     /* Verify that the integer kind used for a vtable entry is signed and
        large enough to accommodate offsets.  Must also be the same size as
        a pointer (for type_info and virtual function pointers). */
-#if TARG_ALL_POINTERS_SAME_SIZE
-    a_targ_size_t    vtbl_entry_size;
+    a_targ_size_t    vtbl_entry_size, delta_int_size;
     a_targ_alignment dummy_alignment;
 
     get_integer_size_and_alignment(TARG_IA64_VTABLE_ENTRY_INT_KIND,
                                    &vtbl_entry_size, &dummy_alignment);
+    get_integer_size_and_alignment(TARG_DELTA_INT_KIND,
+                                   &delta_int_size, &dummy_alignment);
+#if TARG_ALL_POINTERS_SAME_SIZE
     if (targ_sizeof_pointer != vtbl_entry_size) {
       internal_error(
 	    "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND wrong size");
     }  /* if */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
+    if (delta_int_size > vtbl_entry_size) {
+      internal_error(
+          "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND is too small");
+    }  /* if */
     if (!int_kind_is_signed[(int)TARG_IA64_VTABLE_ENTRY_INT_KIND]) {
       internal_error(
         "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND must be signed");
-    }  /* if */
-    if (TARG_DELTA_INT_KIND > TARG_IA64_VTABLE_ENTRY_INT_KIND) {
-      internal_error(
-          "check_target_config: TARG_IA64_VTABLE_ENTRY_INT_KIND is too small");
     }  /* if */
   }
 #endif /* IA64_ABI && DO_IL_LOWERING */

@@ -23,7 +23,7 @@ New configuration macro to specify size of an IA-64 vtable entry
 
 In nearly all cases, the sizes of the types of entities that are stored in an
 IA-64 vtable (i.e., offsets, pointers to type_info, pointers to virtual
-function) are identical, therefore the internal representation of a vtable in
+function) are identical; therefore the internal representation of a vtable in
 the front end is an array of homogeneous entities (previously of the type
 specified by the integer kind TARG_PTRDIFF_T_INT_KIND).  To better accommodate
 an architecture where the size of an offset (ptrdiff_t) is smaller than the
