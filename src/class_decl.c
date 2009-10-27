@@ -12988,6 +12988,7 @@ Return TRUE if the given class has a dependent base class.
 {
   a_boolean  result = FALSE;
 
+  class_type = skip_typerefs(class_type);
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
     a_base_class_ptr  bcp;
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -13348,9 +13349,10 @@ or implicit) controlling the declaration.
       if ((could_be_dependent_class_type(parent_class) ||
            has_dependent_base_class(class_type)) &&
           !same_entities(class_type, parent_class)) {
-        /* The qualifier is a dependent class.  Suppress the base class check
-           and create a dummy base class.  (A local class of a function
-           template should not be considered dependent in this context.) */
+        /* The qualifier is a dependent class or the enclosing class has a
+           dependent base class.  Either way, we cannot in general determine
+           which base class the using-declaration refers to.  Suppress the
+           base class check and create a dummy base class. */
         bcp_is_dummy = TRUE;
         bcp = alloc_base_class();
         bcp->type = sym_parent_class(declared_sym);

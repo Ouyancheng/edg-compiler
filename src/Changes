@@ -40,8 +40,8 @@ Aborts and spurious errors on using-declarations in class templates
 
 The front end previously contained some bugs in the area of using-declarations
 appearing in classes nested in class templates.  These bugs often resulted in
-spurious errors, internal errors, or aborts due to null indirections.  For
-example:
+spurious errors, internal errors, or aborts due to null indirections.  (The
+aborts occurred in create_member_using_declaration.)  For example:
 
   struct B { int b; };
 
