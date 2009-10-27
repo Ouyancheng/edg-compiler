@@ -16276,11 +16276,11 @@ classes.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     /* Begin a new stop token state. */
     push_stop_token_stack();
+    /* Record the associated scope in the class type supplement. */
+    ctsp->assoc_scope = scope_ptr;
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
-    /* Record the associated scope in the class type supplement. */
-    ctsp->assoc_scope = scope_ptr;
     if (!C_mode()) {
       saved_routine_fixup = curr_routine_fixup;
       curr_routine_fixup = NULL;

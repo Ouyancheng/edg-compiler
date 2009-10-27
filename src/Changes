@@ -1,5 +1,23 @@
 Version 4.2
 
+10/27/09 [EDGcpfe/10141]
+Microsoft compatibility: abort on __if_exists
+
+An abort could occur (in make_projection_symbol) if the first token after
+the opening brace of a class is an __if_exists operation.  Now fixed.
+
+  struct A {
+  __if_not_exists(X) {
+  template<int id> struct X {};
+  }
+  };
+  struct B : public A {
+  __if_not_exists(X) {
+  template<int id> struct X {};
+  }
+  };
+
+
 10/26/09 [EDGcpfe/10146]
 Aborts and spurious errors on using-declarations in class templates
 
