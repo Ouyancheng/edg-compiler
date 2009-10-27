@@ -3,7 +3,7 @@ Version 4.2
 10/27/09 [EDGcpfe/10167]
 Microsoft compatibility: spurious error on __if_exists of class template
 
-A Microsoft __if_exits directive that names a class template resulted
+A Microsoft __if_exist directive that names a class template resulted
 in a spurious "missing template argument list" error.  Now fixed.
 
   struct A {
