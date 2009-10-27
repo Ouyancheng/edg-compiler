@@ -12868,7 +12868,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
         new_sym = current_instantiation_sym;
         goto normal_exit;
       } else {
-        if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
+        if ((options & GID_TEMPLATE_ARGS_OPTIONAL) != 0  ||
+            (options & GID_IN_IF_EXISTS) != 0) {
            /* Template arguments are not required -- simply return the
               symbol of the class template. */
            new_sym = template_sym;

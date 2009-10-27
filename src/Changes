@@ -1,5 +1,22 @@
 Version 4.2
 
+10/27/09 [EDGcpfe/10167]
+Microsoft compatibility: spurious error on __if_exists of class template
+
+A Microsoft __if_exits directive that names a class template resulted
+in a spurious "missing template argument list" error.  Now fixed.
+
+  struct A {
+    template<int id> struct X {};
+  };
+  struct B : public A {
+    int i;
+  __if_not_exists(X) {
+    template<int id> struct X {};
+  }
+  };
+
+
 10/27/09 [EDGcpfe/10141]
 Microsoft compatibility: abort on __if_exists
 
