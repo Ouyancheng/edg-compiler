@@ -12981,13 +12981,34 @@ TRUE.
 }  /* is_duplicate_member_using_decl */
 
 
+static a_boolean has_dependent_base_class(a_type_ptr  class_type)
+/*
+Return TRUE if the given class has a dependent base class.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+    a_base_class_ptr  bcp;
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct && could_be_dependent_class_type(bcp->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* has_dependent_base_class */
+
+
 static void create_member_using_declaration(
-                                          a_symbol_ptr      sym,
-                                          a_symbol_ptr      declared_sym,
-                                          a_symbol_ptr      *other_sym,
-                                          a_base_class_ptr  bcp,
-                                          a_type_ptr        class_type,
-                                          a_using_decl_ptr  *prev_udp,
+                                          a_symbol_ptr         sym,
+                                          a_symbol_ptr         declared_sym,
+                                          a_symbol_ptr         *other_sym,
+                                          a_base_class_ptr     bcp,
+                                          a_boolean            dummy_base,
+                                          a_type_ptr           class_type,
+                                          a_using_decl_ptr     *prev_udp,
                                           an_access_specifier  access)
 /*
 Check that a valid explicit projection (a class-scope using-declaration) can
@@ -12995,10 +13016,11 @@ be created for the symbol "sym", and if so create it.  "declared_sym" is
 either equal to "sym", or it points to the overload set symbol of which "sym"
 is an element.  "*other_sym" points to a declaration of the same name in the
 scope of the derived class "class_type" (NULL if none exists).  "bcp" is the
-base class from which the symbol is being projected.  "*prev_udp" is the
-previous a_using_decl structure created for the using-declaration that is
-currently being processed.  "access" is the access specifier applicable to
-the new declaration.
+base class from which the symbol is being projected (or, when "dummy_base" is
+TRUE, a dummy entry created only to represent the using-declaration in a
+prototype instantiation).  "*prev_udp" is the previous a_using_decl structure
+created for the using-declaration that is currently being processed.  "access"
+is the access specifier applicable to the new declaration.
 */
 {
   a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
@@ -13031,9 +13053,14 @@ the new declaration.
     a_base_class_ptr  fund_base_class;
     a_routine_ptr     rp = NULL;
 
-    if (fund_sym == declared_sym ||
-        same_entities(sym_parent_class(fund_sym),
-                      sym_parent_class(declared_sym))) {
+    if (dummy_base) {
+      /* Don't attempt to find an actual base class that is referred to; just
+         use bcp (which is a dummy entry created only to represent this
+         using-declaration). */
+      fund_base_class = bcp;
+    } else if (fund_sym == declared_sym ||
+               same_entities(sym_parent_class(fund_sym),
+                             sym_parent_class(declared_sym))) {
       /* Common case: the fundamental symbol is the same as the declared
          symbol, or a member of the overload set it represents. */
       fund_base_class = bcp;
@@ -13215,7 +13242,7 @@ or implicit) controlling the declaration.
   a_symbol_ptr       sym, declared_sym;
   a_symbol_ptr       other_sym, fund_sym;
   a_base_class_ptr   bcp;
-  a_boolean          err = FALSE;
+  a_boolean          err = FALSE, bcp_is_dummy = FALSE;
   a_boolean          is_overloaded;
   a_symbol_locator   locator;
   a_using_decl_ptr   prev_udp = NULL;
@@ -13318,12 +13345,13 @@ or implicit) controlling the declaration.
       err = TRUE;
     } else {
       a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
-      if (could_be_dependent_class_type(parent_class) &&
-          !parent_class->source_corresp.is_local_to_function &&
+      if ((could_be_dependent_class_type(parent_class) ||
+           has_dependent_base_class(class_type)) &&
           !same_entities(class_type, parent_class)) {
         /* The qualifier is a dependent class.  Suppress the base class check
            and create a dummy base class.  (A local class of a function
            template should not be considered dependent in this context.) */
+        bcp_is_dummy = TRUE;
         bcp = alloc_base_class();
         bcp->type = sym_parent_class(declared_sym);
         bcp->derived_class = class_type;
@@ -13469,14 +13497,15 @@ or implicit) controlling the declaration.
           tag_sym->kind != (a_symbol_kind)sk_type) {
         /* In some modes, "must be tag" lookups can find typedefs.  Ignore
            such symbols. */
-        create_member_using_declaration(tag_sym, tag_sym,
-                                        &overload_sym, bcp, class_type,
-                                        &prev_udp, access);
+        create_member_using_declaration(tag_sym, tag_sym, &overload_sym, bcp,
+                                        bcp_is_dummy, class_type, &prev_udp,
+                                        access);
       }  /* if */
     }  /* if */
     for (;;) {
-      create_member_using_declaration(sym, declared_sym, &other_sym,
-                                      bcp, class_type, &prev_udp, access);
+      create_member_using_declaration(sym, declared_sym, &other_sym, bcp,
+                                      bcp_is_dummy, class_type, &prev_udp,
+                                      access);
       if (!is_overloaded) break;
       if ((sym = sym->next) == NULL) break;
     }  /* for */
