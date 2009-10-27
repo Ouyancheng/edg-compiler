@@ -4161,7 +4161,11 @@ at run-time.
 */
 #ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND
 #if IA64_ABI
+#ifdef TARG_DELTA_INT_KIND
 #define TARG_IA64_VTABLE_ENTRY_INT_KIND TARG_DELTA_INT_KIND
+#else /* !defined TARG_DELTA_INT_KIND */
+#define TARG_IA64_VTABLE_ENTRY_INT_KIND targ_ptrdiff_t_int_kind
+#endif /* defined TARG_DELTA_INT_KIND */
 #endif /* IA64_ABI */
 #endif /* ifndef TARG_IA64_VTABLE_ENTRY_INT_KIND */
 
