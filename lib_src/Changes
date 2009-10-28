@@ -1,5 +1,16 @@
 Version 4.2
 
+10/28/09 [EDGcpfe/10145]
+C++0x: configuration macro to disable C++0x runtime features
+
+A new configuration macro __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED is now passed
+from the front end to indicate whether C++0x features are supported by the
+front end.  When this flag is TRUE, the runtime library is configured to
+support C++ features and needs to be compiled with the --c++0x command line
+option.  The --c++0x command line option is not needed when the flag is
+FALSE (see the Changes entry of 9/30/09).
+
+
 10/23/09 [EDGcpfe/10107]
 Use __EDG_IA64_VTABLE_ENTRY_TYPE as the type of an IA-64 ABI vtable entry
 
