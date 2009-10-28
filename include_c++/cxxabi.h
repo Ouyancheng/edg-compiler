@@ -107,11 +107,13 @@ namespace __cxxabiv1 {
     const __class_type_info *__context;
   };
 
+#ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED
 #pragma define_type_info
   class __nullptr_type_info : public type_info {
   public:
     virtual ~__nullptr_type_info();
   };
+#endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
 
   extern "C" {
     /* Pure virtual function calls. */
