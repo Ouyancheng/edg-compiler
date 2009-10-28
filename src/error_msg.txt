@@ -1903,7 +1903,7 @@ ec_first_decl_not_gnu_inline;;"function was previously declared without the \"gn
 ec_gnu_inline_requires_inline;;"the \"gnu_inline\" attribute is ignored on non-inline functions"
 ec_carries_dependency_not_on_first_decl;;"%n previously declared without the carries_dependency attribute"
 ec_bad_array_member_initialization;;"invalid initializer for array %n"
-ec_cl_must_specify_cpp0x_mode;;"must specify --c++0x when building runtime library"
+ec_cl_must_specify_cpp0x_mode;;"must specify C++0X mode when building runtime library"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

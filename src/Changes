@@ -6,11 +6,12 @@ C++0x: configuration macro to disable C++0x features requiring back end support
 A new configuration macro CPP0X_IL_EXTENSIONS_SUPPORTED has been introduced
 to disable any C++0x features that require back end (or runtime library)
 support.  A back end that is not prepared to deal with C++0x features should
-set this flag to FALSE.  When TRUE, back ends and the runtime library must be
-prepared to deal with any enabled C++0x feature.  The value of this macro is
-passed to the runtime library (when --building_runtime is specified) as
-__EDG_CPP0X_IL_EXTENSIONS_SUPPORTED.  C++0x features that have no back end (or
-runtime library) impact are not affected by the setting of this macro.
+set this flag to FALSE.  When TRUE (the default), back ends and the runtime
+library must be prepared to deal with any enabled C++0x feature.  The value of
+this macro is passed to the runtime library (when --building_runtime is
+specified) as __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED.  C++0x features that have no
+back end (or runtime library) impact are not affected by the setting of this
+macro.
 
 
 10/27/09 [EDGcpfe/10167]

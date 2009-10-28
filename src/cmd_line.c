@@ -1186,6 +1186,14 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_nullptr, "no_nullptr", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_rvalue_ctor_is_copy_ctor,
+                         "rvalue_ctor_is_copy_ctor",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_rvalue_ctor_is_copy_ctor,
+                         "rvalue_ctor_is_not_copy_ctor",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -1212,14 +1220,6 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* UNICODE_SOURCE_SUPPORTED */
-  add_option_description(optk_rvalue_ctor_is_copy_ctor,
-                         "rvalue_ctor_is_copy_ctor",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_rvalue_ctor_is_copy_ctor,
-                         "rvalue_ctor_is_not_copy_ctor",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
   add_option_description(optk_auto_type, "auto_type", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_auto_type, "no_auto_type", '\0', /*value=*/FALSE,

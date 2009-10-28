@@ -491,7 +491,7 @@ __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED.  C++0x features that have no back end
 (or runtime library) impact are not affected by the setting of this macro.
 */
 #ifndef CPP0X_IL_EXTENSIONS_SUPPORTED
-#define CPP0X_IL_EXTENSIONS_SUPPORTED FALSE
+#define CPP0X_IL_EXTENSIONS_SUPPORTED TRUE
 #endif /* ifndef CPP0X_IL_EXTENSIONS_SUPPORTED */
 
 /*
@@ -534,6 +534,10 @@ used for the initialization of the global variable lambdas_enabled.
 #define DEFAULT_LAMBDAS_ENABLED FALSE /* Do not change. */
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
 #endif /* DEFAULT_LAMBDAS_ENABLED */
+#if DEFAULT_LAMBDAS_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED
+ #error -- Cannot set DEFAULT_LAMBDAS_ENABLED to TRUE when \
+           CPP0X_IL_EXTENSIONS_SUPPORTED is FALSE
+#endif /* DEFAULT_LAMBDAS_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED */
 
 /*
 Flag that is TRUE if C++0x rvalue references should be enabled in other C++
@@ -548,6 +552,10 @@ rvalue_references_enabled.
 #define DEFAULT_RVALUE_REFERENCES_ENABLED FALSE /* Do not change. */
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
 #endif /* DEFAULT_RVALUE_REFERENCES_ENABLED */
+#if DEFAULT_RVALUE_REFERENCES_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED
+ #error -- Cannot set DEFAULT_RVALUE_REFERENCES_ENABLED to TRUE when \
+           CPP0X_IL_EXTENSIONS_SUPPORTED is FALSE
+#endif /* DEFAULT_RVALUE_REFERENCES_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED */
 
 /*
 Flag that is TRUE if the C++0x nullptr keyword should be enabled in other
