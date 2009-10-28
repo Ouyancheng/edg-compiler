@@ -7331,6 +7331,12 @@ from the front end to the runtime.
 			   "__EDG_ANSIC",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+  /* Front end can support C++0x mode (so runtime must also). */
+  (void)enter_predef_macro("1", "__EDG_CPP0X_IL_EXTENSIONS_SUPPORTED",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
 }  /* init_runtime_macros */
 
 

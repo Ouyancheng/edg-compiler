@@ -1146,35 +1146,6 @@ variable auto_storage_class_specifier_enabled.
 #endif /* !DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED && ... */
 
 /*
-Flag that is TRUE if C++0x lambdas should be enabled in other C++ modes by
-default (they are, of course, always enabled in C++0x mode).  This macro is
-used for the initialization of the global variable lambdas_enabled.
-*/
-#ifndef DEFAULT_LAMBDAS_ENABLED
-#define DEFAULT_LAMBDAS_ENABLED FALSE
-#endif /* DEFAULT_LAMBDAS_ENABLED */
-
-/*
-Flag that is TRUE if C++0x rvalue references should be enabled in other C++
-modes by default (they are, of course, always enabled in C++0x mode).  This
-macro is used for the initialization of the global variable
-rvalue_references_enabled.
-*/
-#ifndef DEFAULT_RVALUE_REFERENCES_ENABLED
-#define DEFAULT_RVALUE_REFERENCES_ENABLED FALSE
-#endif /* DEFAULT_RVALUE_REFERENCES_ENABLED */
-
-/*
-Flag that is TRUE if the C++0x nullptr keyword should be enabled in other
-C++ modes by default (it is, of course, always enabled in C++0x mode).
-This macro is used for the initialization of the global variable
-nullptr_enabled.
-*/
-#ifndef DEFAULT_NULLPTR_ENABLED
-#define DEFAULT_NULLPTR_ENABLED FALSE
-#endif /* DEFAULT_NULLPTR_ENABLED */
-
-/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.
@@ -1939,15 +1910,6 @@ accepted by default.
 #ifndef DEFAULT_ULITERALS_ENABLED
 #define DEFAULT_ULITERALS_ENABLED FALSE
 #endif /* DEFAULT_ULITERALS_ENABLED */
-
-/*
-Flag that is TRUE if extensions added to the working paper for the next C++
-standard should be enabled by default.  This is the default value of the
-global variable cpp0x_mode.
-*/
-#ifndef DEFAULT_CPP0X_MODE
-#define DEFAULT_CPP0X_MODE FALSE
-#endif /* DEFAULT_CPP0X_MODE */
 
 EXTERN a_boolean
 		cpp0x_mode;

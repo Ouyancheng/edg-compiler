@@ -480,6 +480,21 @@ cv-qualifiers on a class rvalue (e.g., as part of binding a reference).
 #endif /* LOWER_CLASS_RVALUE_ADJUST && !DO_IL_LOWERING */
 
 /*
+This flag indicates whether the back end is capable of handling C++0x
+features.  When set to FALSE, the front end is configured such that
+C++0x mode, as well as any C++0x feature that requires back end support, cannot
+be enabled (therefore back ends and the runtime library do not need to
+implement C++0x features).  When TRUE, back ends and the runtime library must
+be prepared to deal with any enabled C++0x feature.  The value of this macro is
+passed to the runtime library (when --building_runtime is specified) as
+__EDG_CPP0X_IL_EXTENSIONS_SUPPORTED.  C++0x features that have no back end
+(or runtime library) impact are not affected by the setting of this macro.
+*/
+#ifndef CPP0X_IL_EXTENSIONS_SUPPORTED
+#define CPP0X_IL_EXTENSIONS_SUPPORTED FALSE
+#endif /* ifndef CPP0X_IL_EXTENSIONS_SUPPORTED */
+
+/*
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is
 standard in C99, and Microsoft mode needs the IL support for __int64.
@@ -492,7 +507,7 @@ whether C99 IL extensions are supported, and that is only known here.
 */
 #ifndef LONG_LONG_ALLOWED
 #if MICROSOFT_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED || \
-    GNU_EXTENSIONS_ALLOWED
+    GNU_EXTENSIONS_ALLOWED || CPP0X_IL_EXTENSIONS_SUPPORTED
 #define LONG_LONG_ALLOWED TRUE
 #else /* !(MICROSOFT_EXTENSIONS_ALLOWED || ...) */
 #define LONG_LONG_ALLOWED FALSE
@@ -507,6 +522,65 @@ whether C99 IL extensions are supported, and that is only known here.
  #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires LONG_LONG_ALLOWED
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !LONG_LONG_ALLOWED */
 
+/*
+Flag that is TRUE if C++0x lambdas should be enabled in other C++ modes by
+default (they are, of course, always enabled in C++0x mode).  This macro is
+used for the initialization of the global variable lambdas_enabled.
+*/
+#ifndef DEFAULT_LAMBDAS_ENABLED
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+#define DEFAULT_LAMBDAS_ENABLED FALSE /* Okay to change. */
+#else /* !CPP0X_IL_EXTENSIONS_SUPPORTED */
+#define DEFAULT_LAMBDAS_ENABLED FALSE /* Do not change. */
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* DEFAULT_LAMBDAS_ENABLED */
+
+/*
+Flag that is TRUE if C++0x rvalue references should be enabled in other C++
+modes by default (they are, of course, always enabled in C++0x mode).  This
+macro is used for the initialization of the global variable
+rvalue_references_enabled.
+*/
+#ifndef DEFAULT_RVALUE_REFERENCES_ENABLED
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+#define DEFAULT_RVALUE_REFERENCES_ENABLED FALSE /* Okay to change. */
+#else /* !CPP0X_IL_EXTENSIONS_SUPPORTED */
+#define DEFAULT_RVALUE_REFERENCES_ENABLED FALSE /* Do not change. */
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* DEFAULT_RVALUE_REFERENCES_ENABLED */
+
+/*
+Flag that is TRUE if the C++0x nullptr keyword should be enabled in other
+C++ modes by default (it is, of course, always enabled in C++0x mode).
+This macro is used for the initialization of the global variable
+nullptr_enabled.
+*/
+#ifndef DEFAULT_NULLPTR_ENABLED
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+#define DEFAULT_NULLPTR_ENABLED FALSE /* Okay to change. */
+#else /* !CPP0X_IL_EXTENSIONS_SUPPORTED */
+#define DEFAULT_NULLPTR_ENABLED FALSE /* Do not change. */
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* DEFAULT_NULLPTR_ENABLED */
+#if DEFAULT_NULLPTR_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED
+/* The nullptr feature requires support from the runtime library which is
+   only included when CPP0X_IL_EXTENSIONS_SUPPORTED is TRUE. */
+ #error -- Cannot set DEFAULT_NULLPTR_ENABLED to TRUE when \
+           CPP0X_IL_EXTENSIONS_SUPPORTED is FALSE
+#endif /* DEFAULT_NULLPTR_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED */
+
+/*
+Flag that is TRUE if extensions added to the working paper for the next C++
+standard should be enabled by default.  This is the default value of the
+global variable cpp0x_mode.
+*/
+#ifndef DEFAULT_CPP0X_MODE
+#define DEFAULT_CPP0X_MODE FALSE
+#endif /* DEFAULT_CPP0X_MODE */
+#if DEFAULT_CPP0X_MODE && !CPP0X_IL_EXTENSIONS_SUPPORTED
+ #error -- Cannot set DEFAULT_CPP0X_MODE to TRUE when \
+           CPP0X_IL_EXTENSIONS_SUPPORTED is FALSE
+#endif /* DEFAULT_CPP0X_MODE && !CPP0X_IL_EXTENSIONS_SUPPORTED */
 
 /*
 Flag that is TRUE if the front end should assign sequence numbers to

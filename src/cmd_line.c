@@ -1165,10 +1165,28 @@ Initialize the option information table.
                          "no_type_traits_helpers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+  /* These c++0x command-line options are only enabled when the back end
+     (and possibly runtime library) can provide support for the features. */
   add_option_description(optk_cpp0x_mode, "c++0x", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_cpp0x_mode, "no_c++0x", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_lambdas, "lambdas", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_lambdas, "no_lambdas", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_rvalue_references, "rvalue_refs",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_rvalue_references, "no_rvalue_refs",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nullptr, "nullptr", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_nullptr, "no_nullptr", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
 #if DUMP_CONFIG_ENABLED
@@ -1194,16 +1212,6 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* UNICODE_SOURCE_SUPPORTED */
-  add_option_description(optk_lambdas, "lambdas", '\0', /*value=*/TRUE,
-                         /*arg_required=*/FALSE, pchek_command_line);
-  add_option_description(optk_lambdas, "no_lambdas", '\0', /*value=*/FALSE,
-                         /*arg_required=*/FALSE, pchek_command_line);
-  add_option_description(optk_rvalue_references, "rvalue_refs",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_rvalue_references, "no_rvalue_refs",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
   add_option_description(optk_rvalue_ctor_is_copy_ctor,
                          "rvalue_ctor_is_copy_ctor",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1230,10 +1238,6 @@ Initialize the option information table.
                          "no_nonstd_instantiation_lookup",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_nullptr, "nullptr", '\0', /*value=*/TRUE,
-                         /*arg_required=*/FALSE, pchek_command_line);
-  add_option_description(optk_nullptr, "no_nullptr", '\0', /*value=*/FALSE,
-                         /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_token_separators_in_pp_output,
                          "no_token_separators_in_pp_output", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1892,7 +1896,6 @@ by a command line option.
       decls_using_types_without_linkage_allowed = TRUE;
     }  /* if */
     if (microsoft_version >= 1600) {
-      static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_auto_type]) {
         auto_type_specifier_enabled = TRUE;
       }  /* if */
@@ -1900,21 +1903,25 @@ by a command line option.
         auto_storage_class_specifier_enabled = FALSE;
       }  /* if */
       decltype_enabled = TRUE;
-      if (!option_kind_used[(int)optk_lambdas]) {
-        lambdas_enabled = TRUE;
-      }  /* if */
-      if (!option_kind_used[(int)optk_rvalue_references]) {
-        rvalue_references_enabled = TRUE;
-      }  /* if */
       if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
         /* Microsoft MSVC++10 generates an implicit traditional copy
            constructor even when a move constructor was explicitly declared. */
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+      /* These options require back end support that may not be available. */
+      static_assert_enabled = TRUE;
+      if (!option_kind_used[(int)optk_lambdas]) {
+        lambdas_enabled = TRUE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_rvalue_references]) {
+        rvalue_references_enabled = TRUE;
+      }  /* if */
       if (!option_kind_used[(int)optk_nullptr]) {
         nullptr_enabled = TRUE;
       }  /* if */
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -4011,6 +4018,11 @@ file.
 #else /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
   comment_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
 #endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#if defined(CPP0X_IL_EXTENSIONS_SUPPORTED)
+  define_numeric_valued_macro(CPP0X_IL_EXTENSIONS_SUPPORTED);
+#else /* !defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
+  comment_undefined_macro_name(CPP0X_IL_EXTENSIONS_SUPPORTED);
+#endif /* defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
 #if defined(CUSTOM_NAME_LINKAGE_KINDS)
   /* We cannot conveniently display the value of CUSTOM_NAME_LINKAGE_KINDS
      because it contains embedded commas (it's inserted into the middle of
@@ -8255,6 +8267,17 @@ enable_microsoft_mode:
        sequence of tokens as its input). */
     no_token_separators_in_pp_output = pcc_preprocessing_mode;
   }  /* if */
+#if CPP0X_IL_EXTENSIONS_SUPPORTED
+  if (building_runtime && !cpp0x_mode) {
+    /* If the front end is configured to allow c++0x mode constructs, the
+       runtime library must be built to handle it. */
+    command_line_error(ec_cl_must_specify_cpp0x_mode);
+  }  /* if */
+#else /* !CPP0X_IL_EXTENSIONS_SUPPORTED */
+  /* Verify that no feature requiring C++0x back end support is enabled. */
+  check_assertion(!(cpp0x_mode || static_assert_enabled || lambdas_enabled ||
+                    rvalue_references_enabled || nullptr_enabled));
+#endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
