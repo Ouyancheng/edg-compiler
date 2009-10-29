@@ -5915,7 +5915,7 @@ possible overloading of function names.  Second, in C++ we assume the
 linker can handle whatever names the compiler will generate on the basis of
 user name and type, and that those names will be generated in such a way as
 to be unique (with some exceptions for global variable and entities with C
-name linkage), whereas in C we we allow for differences in external names
+name linkage), whereas in C we allow for differences in external names
 due to truncation.  Input arguments are the name linkage and rout_type;
 the latter will be NULL for variables.
 */
