@@ -1,13 +1,5 @@
 Version 4.2
 
-10/28/09 [EDGcpfe/10145]
-C++0x: Conditionally include C++0x features that require runtime support
-
-The cxxabi.h file has been updated to conditionally include a definition
-for abi::__nullptr_type_info based on the setting of the configuration
-macro __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED.
-
-
 9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102]
 C++0x: Support for nullptr
 
