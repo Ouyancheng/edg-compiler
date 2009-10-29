@@ -3487,7 +3487,7 @@ scope into the complete object ctor/dtor scope.
       /* Copy the constructor init into the current memory region and link
          it onto the list for the complete object ctor/dtor. */
       copy = copy_ctor_init(ctor_init, subobj_scope, complete_scope,
-                            CE_NO_OPTIONS);
+                            CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER);
       if (subobj_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
         /* For destructors, queue the new destruction at the end of the

@@ -5090,7 +5090,8 @@ copy_constant_full should be called to start a copy.
         unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
   }  /* if */
-  if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
+  if (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
+                 CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)) {
     /* When copying for inlining, the expression pointed to is in a
        function scope memory region and can't be used in the new function
        scope memory region.  (The expression tree can't even be copied,
@@ -14323,7 +14324,8 @@ be called to start a copy.
     case enk_constant:
       if (!in_file_scope(expr->variant.constant) &&
           (in_file_scope(expr_copy) ||
-           (options & CE_DOING_INLINING_OF_FUNCTION_CALL))) {
+           (options & (CE_DOING_INLINING_OF_FUNCTION_CALL |
+                       CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER)))) {
         /* Copy a constant to avoid having an expression in the file-scope
            memory region pointing to a constant in a function scope
            memory region.  Also copy function-scope constants when copying

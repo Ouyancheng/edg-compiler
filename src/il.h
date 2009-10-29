@@ -1099,6 +1099,9 @@ typedef int an_expr_copy_options_set;
 #define CE_COPYING_EXPRESSION_FOR_CONSTANT 0x200
 			/* TRUE if the expressions associated with constants
 			   should also be copied. */
+#define CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER 0x400
+			/* TRUE if the copy is from one function scope
+			   memory region into another. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
