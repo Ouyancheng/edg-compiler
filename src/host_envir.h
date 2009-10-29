@@ -1021,6 +1021,27 @@ handling.
 #endif /* DO_IL_LOWERING */
 
 /*
+Flag that is TRUE to indicate that backing expressions for constants
+should be recorded even though IL lowering is done.  Generally, they are
+not in that case because they're not useful (IL lowering doesn't maintain
+them).  This flag forces them on with IL lowering, but note that:
+
+(a)  Extra types may be produced in the IL after removal of unneeded
+entities, because those types are referenced from things like sizeof
+backing expressions.
+(b)  The expressions will not be lowered by IL lowering, so they will
+be of limited use; they may contain operators and types that the
+back end does not understand.
+*/
+#ifndef RECORD_BACKING_EXPRS_WITH_IL_LOWERING
+#define RECORD_BACKING_EXPRS_WITH_IL_LOWERING FALSE
+#endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
+#if RECORD_BACKING_EXPRS_WITH_IL_LOWERING && !DO_IL_LOWERING
+ #error -- DO_IL_LOWERING must be TRUE if \
+           RECORD_BACKING_EXPRS_WITH_IL_LOWERING is TRUE
+#endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING && !DO_IL_LOWERING */
+
+/*
 Flag that is TRUE to cause source-sequence lists to be generated.  These
 lists are attached to scope entries and represent the sequence in which
 declarations, statements, comments, macros, and pragmas appear in the

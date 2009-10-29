@@ -791,24 +791,9 @@ expressions except as noted below (because a template can be specified
 many times with a different argument expression each time).  They are also
 recorded for expressions in template declarations, including template
 arguments, because that's needed for name mangling (at least in the IA-64
-ABI).
-
-Do not record expressions generally when IL lowering is being done, since
-they won't be useful in that case.  If you want to change this code to
-record backing expressions even when IL lowering is done, please note that
-(a)  Extra types may be produced in the IL after removal of unneeded
-entities, because those types are referenced from things like sizeof
-backing expressions.
-(b)  The expressions will not be lowered by IL lowering, so they will
-be of limited use; they may contain operators and types that the
-back end does not understand.
-
-With those cautions, RECORD_BACKING_EXPRS_WITH_IL_LOWERING can be set to
-request the recording of backing expressions when IL lowering is being done.
+ABI).  They are not generally recorded when IL lowering is being done,
+but see RECORD_BACKING_EXPRS_WITH_IL_LOWERING to override that.
 */
-#ifndef RECORD_BACKING_EXPRS_WITH_IL_LOWERING
-#define RECORD_BACKING_EXPRS_WITH_IL_LOWERING FALSE
-#endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 #if !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp) && \

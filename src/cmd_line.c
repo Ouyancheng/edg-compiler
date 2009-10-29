@@ -5731,6 +5731,11 @@ file.
 #else /* !defined(RECOGNIZE_MICROSOFT_ATTRIBUTES) */
   comment_undefined_macro_name(RECOGNIZE_MICROSOFT_ATTRIBUTES);
 #endif /* defined(RECOGNIZE_MICROSOFT_ATTRIBUTES) */
+#if defined(RECORD_BACKING_EXPRS_WITH_IL_LOWERING)
+  define_numeric_valued_macro(RECORD_BACKING_EXPRS_WITH_IL_LOWERING);
+#else /* !defined(RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
+  comment_undefined_macro_name(RECORD_BACKING_EXPRS_WITH_IL_LOWERING);
+#endif /* defined(RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
 #if defined(RECORD_FORM_OF_NAME_REFERENCE)
   define_numeric_valued_macro(RECORD_FORM_OF_NAME_REFERENCE);
 #else /* !defined(RECORD_FORM_OF_NAME_REFERENCE) */
