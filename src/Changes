@@ -1,5 +1,18 @@
 Version 4.2
 
+10/29/09 [EDGcpfe/10161]
+Saving backing expressions for constants when IL lowering is done
+
+In version 4.0, the recording of backing expressions for constants,
+formerly included only if RECORD_CONSTANT_EXPRESSIONS_IN_IL was TRUE,
+was made unconditional.  However, when IL lowering is done that
+recording was turned off, because it's not very useful and it can
+be confusing.  It turns out some customers do want the backing expressions
+recorded even with IL lowering, e.g., to produce fuller debug information.
+Therefore, we've added a new flag RECORD_BACKING_EXPRS_WITH_IL_LOWERING,
+which can be set to request those expressions.
+
+
 10/28/09 [EDGcpfe/10145]
 C++0x: configuration macro to disable C++0x features requiring back end support
 

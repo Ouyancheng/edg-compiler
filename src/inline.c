@@ -851,6 +851,9 @@ because of remapped variables.
     if (has_constant_value) {
       /* Replace the expression by a constant value. */
       constant.type = expr_type;
+      /* Avoid problems like a function-scope constant pointing to a file-scope
+         backing expression. */
+      constant.expr = NULL;
       set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
       expr->variant.constant = alloc_shareable_constant(&constant);
     }  /* if */
