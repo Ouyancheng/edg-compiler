@@ -5,7 +5,7 @@ Abort in lower_c99.c (in match_routine_type_in_call)
 
 Previously, in all GNU C modes, incompatible block-external declarations
 declared in different function scopes were allowed (with a warning).  Lowering
-of calls to functions redeclared with a different number of arguments could
+of calls to functions redeclared with a different number of parameters could
 lead to an assertion failure in lower_c99.c (in match_routine_type_in_call).
 A change has been made to be more compatible with GNU's behavior in this area;
 an error is now issued when gnu_version >= 30400.  The code is still accepted
