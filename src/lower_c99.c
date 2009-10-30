@@ -2870,8 +2870,15 @@ match the adjusted parameter types if needed.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
           ptp = ptp->next;
         } else {
-          /* Ellipsis argument. */
-          check_assertion(callee_rtsp->has_ellipsis);
+          if (!callee_rtsp->has_ellipsis) {
+            /* There are more arguments than parameters (which can happen in
+               GNU emulation mode when gnu_version < 30400).  Restore the
+               original type and let the back end deal with it (the C
+               generating back end adds a cast to the routine before the
+               call).  */
+            target->type = save_type;
+            break;
+          }  /* if */
         }  /* if */
         ip = &(*ip)->next;
       }  /* while */
