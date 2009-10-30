@@ -3044,7 +3044,8 @@ parentheses are not needed.
     case abk_constant:
       /* Address of a constant, specifically a string. */
       con = constant->variant.address.variant.constant;
-      check_assertion_str(con->kind == (a_constant_repr_kind)ck_string,
+      check_assertion_str(con->kind == (a_constant_repr_kind)ck_string ||
+                          con->kind == (a_constant_repr_kind)ck_error, 
                  "form_lvalue_for_addressed_entity: address of nonstring con");
       type = con->type;
       break;
