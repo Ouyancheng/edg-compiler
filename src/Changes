@@ -1,5 +1,27 @@
 Version 4.2
 
+10/30/09 [EDGcpfe/10053]
+Abort in lower_c99.c (in match_routine_type_in_call)
+
+Previously, in all GNU C modes, incompatible block-external declarations
+declared in different function scopes were allowed (with a warning).  Lowering
+of calls to functions redeclared with a different number of arguments could
+lead to an assertion failure in lower_c99.c (in match_routine_type_in_call).
+A change has been made to be more compatible with GNU's behavior in this area;
+an error is now issued when gnu_version >= 30400.  The code is still accepted
+(with a warning) when gnu_version < 30400.  Here is an example that previously
+caused the assertion failure:
+
+  void g(void) {
+    extern void f(int x, int y);
+    f(1, 2);
+  }
+  void h(void) {
+    extern void f(int x);
+    f(3);
+  }
+
+
 10/29/09 [EDGcpfe/10161]
 Saving backing expressions for constants when IL lowering is done
 

@@ -3195,7 +3195,7 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-    if (gcc_mode && scp->assoc_info != NULL) {
+    if (gcc_mode && gnu_version < 30400 && scp->assoc_info != NULL) {
       /* In GNU C mode, block-external declarations declared in other function
          scopes need not be compatible with the current declaration. */
       a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;

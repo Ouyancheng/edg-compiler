@@ -2842,6 +2842,7 @@ match the adjusted parameter types if needed.
       an_expr_node_ptr  ap = call->variant.operation.operands->next;
       an_expr_node_ptr  *ip = &target->next;
       a_param_type_ptr  ptp = callee_rtsp->param_type_list;
+      a_type_ptr        save_type = target->type;
       target->type = make_pointer_type(callee->type);
       if (!is_routine_node(target)) {
         /* In cases where the function is invoked as (&f)(a), target will
@@ -2874,11 +2875,16 @@ match the adjusted parameter types if needed.
         }  /* if */
         ip = &(*ip)->next;
       }  /* while */
-      /* If both the file-scope and the local-scope declaration were
-         prototyped, they should originally be compatible, and therefore the
-         call should have at least as many arguments as there are parameters
-         (possibly more if there is an ellipsis parameter). */
-      check_assertion(ptp == NULL);
+      if (ptp != NULL) {
+        /* If both the file-scope and the local-scope declaration were
+           prototyped, they should originally be compatible, and therefore the
+           call should have at least as many arguments as there are parameters
+           (possibly more if there is an ellipsis parameter).  Such a mismatch
+           can occur in gcc mode when gnu_version < 30400.  In this case,
+           restore the original type and let the back end deal with it (the C
+           generating back end adds a cast to the routine before the call). */
+        target->type = save_type;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* match_routine_type_in_call */
