@@ -436,19 +436,26 @@ If the current token is a left bracket introducing Microsoft or C++0x
 attributes (i.e., not a lambda), scan over them.
 */
 {
-  if (curr_token == tok_lbracket && !C_mode() &&
-      (microsoft_mode || std_attributes_enabled) &&
-      !is_lambda()) {
-    /* This appears to be a left bracket introducing Microsoft or C++0x
-       attributes. */
-    /* Advance past the left bracket. */
-    cache_curr_token(&state->cache);
-    (void)get_token();
-    /* Now scan up to the matching right bracket. */
-    cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
-    /* Advance past the right bracket. */
-    cache_curr_token(&state->cache);
-    get_token_and_coalesce_if_identifier(flags);
+  if (curr_token == tok_lbracket && !C_mode()) {
+    a_boolean  attr_next =
+                       std_attributes_enabled && next_token() == tok_lbracket;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!attr_next && microsoft_mode && !is_lambda()) {
+      attr_next = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (attr_next) {
+      /* This appears to be a left bracket introducing Microsoft or C++0x
+         attributes. */
+      /* Advance past the left bracket. */
+      cache_curr_token(&state->cache);
+      (void)get_token();
+      /* Now scan up to the matching right bracket. */
+      cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
+      /* Advance past the right bracket. */
+      cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
   }  /* if */
 }  /* prescan_any_bracketed_attributes */
 
