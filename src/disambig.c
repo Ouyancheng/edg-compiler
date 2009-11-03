@@ -427,26 +427,31 @@ keyword.
   }  /* if */
 }  /* prescan_based_modifier */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void prescan_microsoft_attributes(a_disambig_state_ptr       state,
-                                         a_disambig_flag_set        flags)
+static void prescan_any_bracketed_attributes(a_disambig_state_ptr  state,
+                                               a_disambig_flag_set   flags)
 /*
-Scan past (and cache) a Microsoft attribute list.  state points to the token
-cache to be used.
+If the current token is a left bracket introducing Microsoft or C++0x
+attributes (i.e., not a lambda), scan over them.
 */
 {
-  check_assertion(curr_token == tok_lbracket);
-  /* Advance past the left bracket. */
-  cache_curr_token(&state->cache);
-  (void)get_token();
-  /* Now scan up to the matching right bracket. */
-  cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
-  /* Advance past the right bracket. */
-  cache_curr_token(&state->cache);
-  get_token_and_coalesce_if_identifier(flags);
-}  /* prescan_microsoft_attributes */
+  if (curr_token == tok_lbracket && !C_mode() &&
+      (microsoft_mode || std_attributes_enabled) &&
+      !is_lambda()) {
+    /* This appears to be a left bracket introducing Microsoft or C++0x
+       attributes. */
+    /* Advance past the left bracket. */
+    cache_curr_token(&state->cache);
+    (void)get_token();
+    /* Now scan up to the matching right bracket. */
+    cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
+    /* Advance past the right bracket. */
+    cache_curr_token(&state->cache);
+    get_token_and_coalesce_if_identifier(flags);
+  }  /* if */
+}  /* prescan_any_bracketed_attributes */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void prescan_typeof_operator(a_disambig_state_ptr       state,
                                     a_disambig_flag_set        flags)
@@ -756,14 +761,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
 {
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && curr_token == tok_lbracket &&
-        !abstract_declarator_allowed(flags)) {
-      /* Skip a Microsoft parameter attribute.  Such attributes are not
-         allowed in contexts in which abstract declarators are permitted. */
-      prescan_microsoft_attributes(state, flags);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    prescan_any_bracketed_attributes(state, flags);
     if (curr_token == tok_ellipsis) {
       /* Advance past the ellipsis. */
       cache_curr_token(&state->cache);
@@ -1134,6 +1132,8 @@ evidence to the contrary.
                                         gid_flags_for_template(
                                                        flags, GID_NO_OPTIONS));
   for (;;) {
+    /* Prescan leading bracket-enclosed attributes (if any). */
+    prescan_any_bracketed_attributes(state, flags);
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, flags);
     if (!state->may_be_decl) goto done;

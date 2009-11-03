@@ -1,5 +1,20 @@
 Version 4.2
 
+10/30/09 [EDGcpfe/10163]
+Spurious errors on Microsoft-style parameter attributes
+
+In a function declaration whose first parameter involved a parenthesized
+declarator, and the second parameter started with Microsoft-style (bracketed)
+attribute, the front end often issued spurious errors (in Microsoft mode).
+For example:
+
+  void f(char (&a)[10], [in] int b[]);
+    // Previously triggered multiple spurious errors, the first of which
+    // suggesting that the type of f is incomplete.
+
+This is now fixed.
+
+
 10/30/09 [EDGcpfe/10053]
 Abort in lower_c99.c (in match_routine_type_in_call)
 
