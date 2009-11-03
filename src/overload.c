@@ -1554,12 +1554,10 @@ must free that list.
       /* MSVC++ (up to version 8.0, at least) has some confusion on
          doing a conversion to bind a reference.  Instead of doing one
          overload resolution for the direct binding case and one later
-         for the bind-to-converted-temp-rvalue case, it does just one overload
-         resolution and concludes that the conversion is ambiguous
-         if it gets more than one conversion function.  Simulate that
-         by doing the overload resolution one would do later and seeing
-         what it returns. */
-      a_boolean    local_ambiguous;
+         for the bind-to-converted-temp-rvalue case, it always does both
+         and if they're both okay looks to see if they got a different
+         result and if so concludes that the case is ambiguous. */
+      a_boolean    ms_ambiguous = FALSE, local_ambiguous;
       a_conv_descr local_conversion;
       if (conversion_from_class_possible(source_operand,
                                          base_dest_type,
@@ -1580,10 +1578,10 @@ must free that list.
              function.  We rule out cases where both routines are instances of
              the same template because MSVC++ seems to do something like
              that. */
-          local_ambiguous = TRUE;
+          ms_ambiguous = TRUE;
         }  /* if */
       }  /* if */
-      if (local_ambiguous) {
+      if (ms_ambiguous) {
         /* MSVC++ would consider the conversion ambiguous. */
         okay = FALSE;
         *ambiguous = TRUE;

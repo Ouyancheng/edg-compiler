@@ -1,5 +1,26 @@
 Version 4.2
 
+11/3/09  [EDGcpfe/10172]
+Microsoft compatibility: conversion for direct reference binding
+
+The previous changes in the area of Microsoft compatibility and
+conversions for direct reference binding (see entries of 5/3/07
+and 11/2/06) still did not get it quite right.  A case like the
+one below got an internal error in overload.c in
+conversion_for_direct_reference_binding_possible.  It should be
+considered unambiguous (as in non-Microsoft mode), and now it is.
+
+  struct A { };
+  struct B {
+    operator A();
+    operator A&();
+  };
+  int main() {
+    B b;
+    (const A&)b;  // Should pick operator A&()
+  }
+
+
 10/30/09 [EDGcpfe/10163]
 Spurious errors on Microsoft-style parameter attributes
 
