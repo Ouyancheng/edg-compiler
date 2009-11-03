@@ -24,9 +24,9 @@ considered unambiguous (as in non-Microsoft mode), and now it is.
 10/30/09 [EDGcpfe/10163]
 Spurious errors on Microsoft-style parameter attributes
 
-In a function declaration whose first parameter involved a parenthesized
-declarator, and the second parameter started with Microsoft-style (bracketed)
-attribute, the front end often issued spurious errors (in Microsoft mode).
+In a function declaration whose first parameter involves a parenthesized
+declarator, and the second parameter starts with Microsoft-style (bracketed)
+attributes, the front end often issued spurious errors (in Microsoft mode).
 For example:
 
   void f(char (&a)[10], [in] int b[]);

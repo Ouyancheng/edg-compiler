@@ -429,11 +429,13 @@ keyword.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void prescan_any_bracketed_attributes(a_disambig_state_ptr  state,
-                                               a_disambig_flag_set   flags)
+static void prescan_any_prefix_bracketed_attributes(
+                                                  a_disambig_state_ptr  state,
+                                                  a_disambig_flag_set   flags)
 /*
-If the current token is a left bracket introducing Microsoft or C++0x
-attributes (i.e., not a lambda), scan over them.
+This routine is called at the start of a declaration (possibly a parameter
+declaration).  If the current token is a left bracket introducing Microsoft or
+C++0x attributes (i.e., not a lambda), scan over them.
 */
 {
   if (curr_token == tok_lbracket && !C_mode()) {
@@ -457,7 +459,7 @@ attributes (i.e., not a lambda), scan over them.
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* if */
-}  /* prescan_any_bracketed_attributes */
+}  /* prescan_any_prefix_bracketed_attributes */
 
 
 static void prescan_typeof_operator(a_disambig_state_ptr       state,
@@ -768,7 +770,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
 {
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
-    prescan_any_bracketed_attributes(state, flags);
+    prescan_any_prefix_bracketed_attributes(state, flags);
     if (curr_token == tok_ellipsis) {
       /* Advance past the ellipsis. */
       cache_curr_token(&state->cache);
@@ -1140,7 +1142,7 @@ evidence to the contrary.
                                                        flags, GID_NO_OPTIONS));
   for (;;) {
     /* Prescan leading bracket-enclosed attributes (if any). */
-    prescan_any_bracketed_attributes(state, flags);
+    prescan_any_prefix_bracketed_attributes(state, flags);
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, flags);
     if (!state->may_be_decl) goto done;
