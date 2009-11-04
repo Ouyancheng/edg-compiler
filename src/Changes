@@ -1,5 +1,17 @@
 Version 4.2
 
+11/4/09  [EDGcpfe/8710]
+Set DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE to TRUE in platform
+specific defines.h.*
+
+The DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE macro is now explicitly
+set to TRUE in all of the platform specific defines.h.* files.  This macro
+should be set to TRUE in cases where GUARD_MACRO_FOR_VA_LIST is set
+(as it is in defines.h.solaris and defines.h.win32).  It should also be TRUE
+in cases where the primary compiler is gcc based (i.e., defines.h.linux,
+defines.h.macosx).
+
+
 11/3/09  [EDGcpfe/10125]
 GNU C++ compatibility: Type traits helpers and incomplete class types
 
