@@ -6269,7 +6269,13 @@ have value "false".  If the operand type is dependent, store a
 ck_template_param constant in *constant.  The constant will be of the
 tpck_expression variant and will point to the given expression.
 If maintain_expression is TRUE, the backing expression for the returned
-constant will be set as well.
+constant will be set as well.  If pos is non-NULL, produce diagnostics at that
+position; otherwise, no diagnostics are issued (in all error cases, a ck_error
+error constant is produced).  If complete_class_property is TRUE, determining
+the result of the predicate applied to a class type generally requires that
+the class be complete (in most cases, an incomplete class type results in an
+error; the exception occurs in some GNU C++ modes, where incomplete class types
+are valid). 
 */
 {
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
@@ -6298,12 +6304,21 @@ constant will be set as well.
       complete_type_is_needed(type);
       if (is_immediate_class_type(type)) {
         if (is_incomplete_type(type)) {
-          incomplete_class_error = TRUE;
-          goto result_known;
+          if (gpp_mode && gnu_version >= 40300 && gnu_version < 40400) {
+            /* g++ 4.3.x does not issue an error on "complete class"
+               properties, and instead produces a "conservative guess" for
+               the result.  Issue a warning if a position is available. */
+            if (pos != NULL) {
+              pos_warning(ec_complete_class_property_on_incomplete_type, pos);
+            }  /* if */
+          } else {
+            incomplete_class_error = TRUE;
+            goto result_known;
+          }  /* if */
         } else {
           arg->variant.type_operand.definition_needed = TRUE;
-          cssp = symbol_supplement_for_class(type);
         }  /* if */
+        cssp = symbol_supplement_for_class(type);
       } else {
         goto result_known;
       }  /* if */
@@ -6458,19 +6473,22 @@ constant will be set as well.
         break;
       case bok_has_trivial_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->assignment_by_bitwise_copy_allowed;
+        result = cssp->assignment_by_bitwise_copy_allowed ||
+                 is_incomplete_type(type);
         break;
       case bok_has_trivial_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->is_POD || cssp->trivial_default_constructor != NULL;
+        result = cssp->is_POD || cssp->trivial_default_constructor != NULL ||
+                 is_incomplete_type(type);
         break;
       case bok_has_trivial_copy:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->construction_by_bitwise_copy_allowed;
+        result = cssp->construction_by_bitwise_copy_allowed ||
+                 is_incomplete_type(type);
         break;
       case bok_has_trivial_destructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->has_trivial_destructor;
+        result = cssp->has_trivial_destructor || is_incomplete_type(type);
         break;
       case bok_has_user_destructor:
         check_assertion(microsoft_mode);
@@ -6498,7 +6516,7 @@ constant will be set as well.
       case bok_is_pod:
         /* Note that only class types are considered by Microsoft compilers. */
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->is_POD;
+        result = cssp->is_POD || is_incomplete_type(type);
         break;
       case bok_is_polymorphic:
         result = is_polymorphic_class_type(type);
