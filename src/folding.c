@@ -6300,13 +6300,19 @@ are valid).
     type = skip_typerefs(type);
     if (complete_class_property) {
       /* An incomplete class type is invalid, and nonclass types always
-         evaluate to FALSE. */
-      complete_type_is_needed(type);
+         evaluate to FALSE.  An exception occurs in some GNU C++ modes. */
+      a_boolean  incomplete_okay = gpp_mode && gnu_version >= 40300 &&
+                                               gnu_version < 40400;
+      if (!incomplete_okay) {
+        complete_type_is_needed(type);
+      }  /* if */
       if (is_immediate_class_type(type)) {
         if (is_incomplete_type(type)) {
-          if (gpp_mode && gnu_version >= 40300 && gnu_version < 40400) {
+          if (incomplete_okay) {
             /* g++ 4.3.x does not issue an error on "complete class"
-               properties, and instead produces a "conservative guess" for
+               properties for incomplete classes (and does not trigger the
+               instantiation of template classes when evaluating the
+               properties).  Instead produces a "conservative guess" for
                the result.  Issue a warning if a position is available. */
             if (pos != NULL) {
               pos_warning(ec_complete_class_property_on_incomplete_type, pos);
