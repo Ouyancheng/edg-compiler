@@ -1,5 +1,25 @@
 Version 4.2
 
+11/6/09  [EDGcpfe/10182]
+Abort in parsed template overload resolution on address-of-overloaded-function
+
+In modes that do prototype instantiations of templates (e.g.,
+--parse_templates), the front end aborted in overload.c
+(in determine_arg_match_level) while processing an argument that is the
+address of an overloaded function from the current template.
+Now fixed.
+
+  template<class F, class T> void f(F (T::*f)(void)) {}
+  template <typename T> struct A {
+    void g ();
+    static void g (int);
+    A() {
+      f(&A::g);  // Caused abort with --parse_templates
+    }
+  };
+  A<void> b;
+
+
 11/4/09  [EDGcpfe/8710]
 Set DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE to TRUE in platform
 specific defines.h.*

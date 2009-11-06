@@ -5673,10 +5673,14 @@ function.
   a_boolean dep = FALSE;
 
   if (is_indefinite_function_operand(operand) &&
-      operand->is_template_id &&
-      template_arg_list_is_dependent(operand->template_arg_list)) {
-    /* An indefinite function with a template-dependent explicit template
-       argument list is template-dependent. */
+      ((operand->variant.symbol->is_class_member &&
+        sym_parent_class(operand->variant.symbol)->variant.class_struct_union.
+                                                           is_nonreal_class) ||
+       (operand->is_template_id &&
+        template_arg_list_is_dependent(operand->template_arg_list)))) {
+    /* An indefinite function in a nonreal class, or one with a
+       template-dependent explicit template argument list, is
+       template-dependent. */
     dep = TRUE;
   }  /* if */
   return dep;
