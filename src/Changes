@@ -12,25 +12,6 @@ in cases where the primary compiler is gcc based (i.e., defines.h.linux,
 defines.h.macosx).
 
 
-11/3/09  [EDGcpfe/10125]
-GNU C++ compatibility: Type traits helpers and incomplete class types
-
-The front end accepts a variety of type trait pseudo-functions such as
-__is_pod and __is_union (see e.g. the Changes entry of 10/20/08).  Many of
-these operators can normally be applied only to complete class types and
-produce errors when applied to an incomplete class type.  For example, the
-front end cannot determine whether a class type is a POD or not without
-knowing the definition of the type.  GCC 4.3.x, however, does accept these
-operators on incomplete types (with a result that may or may not be correct
-in the context of the completed type) and does not attempt to instantiate
-the body of class templates when evaluating those operators.  The front end
-now emulates that behavior in GNU C++ mode with 40300 <= gnu_version < 40400;
-a warning is issued in most such cases.  For example:
-
-  struct S;
-  bool b = __is_pod(S);  // Now accepted with a warning in g++ 4.3.x modes.
-
-
 11/3/09  [EDGcpfe/10172]
 Microsoft compatibility: conversion for direct reference binding
 
