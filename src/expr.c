@@ -1442,6 +1442,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_popcountll:
       case bfk_parityll:
 #endif /* LONG_LONG_ALLOWED */
+      case bfk_strlen:
         result = TRUE;
         break;
       default:
@@ -1736,6 +1737,30 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           }  /* if */
           break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+        case bfk_strlen:
+          /* strlen of a constant string can be folded in C mode. */
+          { a_constant_ptr scon;
+            if (C_mode() && args != NULL && args2 == NULL &&
+                expr_is_pointer_to_string_literal(args, &scon) &&
+                is_normal_character_kind(scon->character_kind) &&
+                is_integral_type(call->type)) {
+              a_targ_size_t len;
+              check_assertion(scon->kind == (a_constant_repr_kind)ck_string);
+              /* Watch out for strings that don't have a terminating null. */
+              for (len = 0; len < scon->variant.string.length; len++) {
+                if (scon->variant.string.value[len] == '\0') {
+                  /* Found first null character, so we know the length. */
+                  folded = TRUE;
+                  set_integer_constant(&result,
+                                       (a_host_large_integer)len,
+                                       skip_typerefs(call->type)->
+                                                     variant.integer.int_kind);
+                  break;
+                }  /* if */
+              }  /* for */
+            }  /* if */
+          }
+          break;
         default:
           /* Nothing to be done. */
           break;
