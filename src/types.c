@@ -3885,6 +3885,40 @@ done:
 }  /* f_identical_types */
 
 
+a_boolean cast_identical_types(a_type_ptr type_1,
+                               a_type_ptr type_2)
+/*
+Similar to identical_types, but used to decide whether or not two types are
+identical in the sense that an implicit cast from one to the other doesn't
+require a cast in the IL.  This is intended to be configurable; if one
+wanted, say, to preserve an implicit type change to a typedef with the
+same underlying type, one could make this routine stricter about that
+difference, and that would force the generation of IL casts for such
+type changes.
+*/
+{
+  a_boolean identical = identical_types(type_1, type_2);
+
+  if (identical) {
+    if (C_mode()) {
+      type_1 = skip_typerefs(type_1);
+      type_2 = skip_typerefs(type_2);
+      if (type_1->kind == (a_type_kind)tk_integer &&
+          !type_1->variant.integer.enum_type &&
+          !type_2->variant.integer.enum_type &&
+          type_1->variant.integer.enum_info.affiliated_type !=
+                           type_2->variant.integer.enum_info.affiliated_type) {
+        /* In C mode, a cast that strips the affiliated type from an enum
+           constant should be rendered explicitly.  (Both types are int, but
+           one is enum-int.) */
+        identical = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return identical;
+}  /* cast_identical_types */
+
+
 a_boolean param_types_are_compatible(a_type_ptr              rout_type_1,
                                      a_type_ptr              rout_type_2,
                                      a_type_compat_flags_set flags)

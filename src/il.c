@@ -14091,7 +14091,7 @@ new_type should not have any top-level type qualifiers.
 If a cast is added it is marked as compiler-generated.
 */
 {
-  if (!il_identical_types(node->type, new_type)) {
+  if (!cast_identical_types(node->type, new_type)) {
     node = add_cast(node, new_type);
   }  /* if */
   return node;
@@ -14127,7 +14127,7 @@ Note that an lvalue cast cannot handle base class casts, only minor
 cv-qualification or type adjustment.
 */
 {
-  if (!il_identical_types(node->type, type)) {
+  if (!cast_identical_types(node->type, type)) {
     node = add_cast_to_lvalue(node, type);
   }  /* if */
   return node;

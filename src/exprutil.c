@@ -2978,7 +2978,7 @@ conversions.
   } else {
     /* An implicit cast: In some cases, such casts have no effect and need
        not be represented in the IL. */
-    if (!identical_types(node->type, new_type)) {
+    if (!cast_identical_types(node->type, new_type)) {
       /* The cast is needed since it changes the type of the expression. */ 
       need_cast = TRUE;
     } else if (is_bit_field_extract_node(node)) {
@@ -3368,7 +3368,7 @@ user-defined conversions.
           if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
             error_in_operand(ec_expr_not_constant, operand);
           } else if (is_implicit_cast &&
-                     identical_types(operand->type, new_type)) {
+                     cast_identical_types(operand->type, new_type)) {
             /* If the new type is identical to the old type, no cast is
                needed. */
           } else {
@@ -3393,7 +3393,7 @@ user-defined conversions.
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
             if (!is_implicit_cast ||
-                !identical_types(operand->type, new_type)) {
+                !cast_identical_types(operand->type, new_type)) {
               /* Record a cast expression for the constant (inhibit normal
                  diagnostics during that process, since they were already
                  issued). */
@@ -3620,7 +3620,7 @@ reference) and not something explicit like a cast.
 {
   a_type_ptr operand_type = operand->type;
 
-  if (!identical_types(operand_type, dest_type)) {
+  if (!cast_identical_types(operand_type, dest_type)) {
     if (is_error_operand(operand)) {
       /* Leave an error operand alone. */
     } else if (is_error_type(dest_type)) {
@@ -3879,7 +3879,7 @@ reference) and not something explicit like a cast.
 {
   a_type_ptr operand_type = operand->type;
 
-  if (!identical_types(operand_type, dest_type)) {
+  if (!cast_identical_types(operand_type, dest_type)) {
     if (is_error_operand(operand)) {
       /* Leave an error operand alone. */
     } else if (is_error_type(dest_type)) {
@@ -7242,7 +7242,7 @@ e.g., if the source operand is an lvalue.
                         "generic_cast_operand: non-const or lvalue operand");
     /* Note that we don't use cast_operand or type_change_constant,
        because this conversion might be highly invalid. */
-    if (!il_identical_types(operand->type, dest_type)) {
+    if (!cast_identical_types(operand->type, dest_type)) {
       a_constant orig_constant;
       orig_constant = operand->variant.constant;
       make_template_param_cast_constant(&orig_constant,
@@ -7253,7 +7253,7 @@ e.g., if the source operand is an lvalue.
   } else {
     /* Non-constant expression.  Generate a cast expression.  For an
        implicit conversion, it's okay to add nothing at all. */
-    if (!is_implicit_cast || !identical_types(operand->type, dest_type)) {
+    if (!is_implicit_cast || !cast_identical_types(operand->type, dest_type)) {
       an_expr_node_ptr expr, opexpr;
       if (is_rvalue_reference_cast) {
         /* The language says that the operand of an rvalue reference cast
