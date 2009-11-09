@@ -1926,9 +1926,11 @@ which the entire function type should be considered.
   templ_param_list1 = tssp2->variant.function.decl_cache.decl_info->parameters;
   templ_param_list2 = tssp1->variant.function.decl_cache.decl_info->parameters;
   is_conversion_operator = is_conversion_function_symbol(templ_sym1);
-  if (is_conversion_operator || entire_type) {
+  if (is_conversion_operator ||
+      (entire_type && !microsoft_mode && !gpp_mode)) {
     /* For conversion templates, the processing is only done on the return
-       type. */
+       type.  Microsoft and GNU do not consider the return type in contexts
+       in which the entire type should be used according to the standard. */
     parameter_is_more_specialized(rout_type1->variant.routine.return_type,
                                   rout_type2->variant.routine.return_type,
                                   &dummy_arg_list1, &dummy_arg_list2,

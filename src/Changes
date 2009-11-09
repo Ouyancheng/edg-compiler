@@ -1,5 +1,20 @@
 Version 4.2
 
+11/9/09  [EDGcpfe/10131]
+Microsoft and GNU C++ compatibility: partial ordering in non-call contexts
+
+Version 4.1 included a change in the handling of partial ordering in
+non-call contexts to resolve a standards conformance issue (see the
+6/5/08 entry).  However, the Microsoft and g++ compilers still handle such
+cases incorrectly.  We have now restored the old behavior in g++ and Microsoft
+modes.
+
+  template <class T> T f(const T* p);
+  template <class T> int f(T* p);
+  // ambiguous specialization, but accepted in g++ and Microsoft modes
+  template <> int f(const int*){return 0;}
+
+
 11/6/09  [EDGcpfe/10182]
 Abort in parsed template overload resolution on address-of-overloaded-function
 
