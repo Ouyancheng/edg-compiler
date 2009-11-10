@@ -6451,6 +6451,51 @@ new declaration is a friend declaration.
   return sym;
 }  /* record_overload */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void check_implicit_routine_alias(a_decl_parse_state  *dps)
+/*
+GCC recognizes certain declarations as matching standard library functions
+and optimizes calls to those routines in some cases.  In particular, the
+strlen function is recognized and when applied to a string literal, the result
+is a constant-expression.  We emulate the "recognition" process by recording
+the routine as an implicit alias (which expression processing can then make
+use of).
+*dps describes the declaration of a function.
+*/
+{
+  check_assertion(gcc_mode);
+  if (is_simple_function_symbol(dps->sym)) {
+    a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+    if (rp->implicit_alias && dps->sym->defined) {
+      /* If a definition is seen after a declaration that was implicitly
+         aliased, the alias is broken. */
+      rp->aliased_routine = NULL;
+      rp->implicit_alias = FALSE;
+    } else if (dps->first_decl && !dps->sym->defined &&
+               strcmp(rp->source_corresp.name, "strlen") == 0 &&
+               rp->aliased_routine == NULL && rp->asm_name == NULL) {
+      /* For now, we only recognize "::strlen". */
+      char              *name = "__builtin_strlen";
+      a_symbol_locator  loc;
+      a_symbol_ptr      bsym;
+      bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+      for (; bsym != NULL; bsym = bsym->next) {
+        if (!bsym->is_class_member && bsym->parent.namespace_ptr == NULL &&
+            is_simple_function_symbol(bsym)) {
+          a_routine_ptr  brp = bsym->variant.routine.ptr;
+          if (types_are_redecl_compatible(rp->type, brp->type)) {
+            rp->aliased_routine = brp;
+            rp->implicit_alias = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* check_implicit_routine_alias */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
@@ -7364,7 +7409,6 @@ skip_overloading:;
        not add routines representing Microsoft duplicate specialization
        definitions to the list. */
     a_scope_depth  scope_depth = depth_innermost_namespace_scope;
-
     if ((scope_stack[depth_scope_stack].in_prototype_instantiation &&
          !prototype_instantiations_in_il) ||
         microsoft_specialization_redef) {
@@ -7714,6 +7758,9 @@ skip_overloading:;
       /* The list of attributes was duplicated earlier: We're responsible
          for freeing it. */
       free_gnu_attribute_list(attributes);
+    }  /* if */
+    if (gcc_mode) {
+      check_implicit_routine_alias(dps);
     }  /* if */
   }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

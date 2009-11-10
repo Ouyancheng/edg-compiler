@@ -10314,6 +10314,11 @@ typedef struct a_routine {
   a_bit_field	gnu_c89_inline:1;
 			/* TRUE if this is an "inline" routine declared with
 			   the GNU attribute "gnu_inline". */
+  a_bit_field	implicit_alias:1;
+			/* TRUE if this routine is implicitly an alias for
+			   another routine (indicated by aliased_routine).
+			   (E.g., a "strlen" declaration may be implicitly
+			   treated as an alias for "__builtin_strlen".) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
@@ -10623,7 +10628,9 @@ typedef struct a_routine {
   a_routine_ptr	aliased_routine; 
 			/* If non-NULL, the routine for which this routine
 			   is an alias.  (Used for attributes "alias" and
-			   "weakref".) */
+			   "weakref".  Also used for certain routines --
+			   such as strlen -- that are implicitly aliased to
+			   their __builtin_... counterpart.) */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority
 		ctor_priority;

@@ -2781,6 +2781,9 @@ Display the indicated routine.
   if (ptr->gnu_c89_inline) {
     disp_boolean("gnu_c89_inline", TRUE);
   }  /* if */
+  if (ptr->implicit_alias) {
+    disp_boolean("implicit_alias", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {

@@ -6086,7 +6086,7 @@ been completed.
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     a_boolean saved_defined = rp->defined;
 #if GNU_EXTENSIONS_ALLOWED
-    if (rp->aliased_routine != NULL &&
+    if (rp->aliased_routine != NULL && !rp->implicit_alias &&
         rp->storage_class != (a_storage_class)sc_static) {
       /* Routine aliases are needed because they may be accessed from other
          translation units. */

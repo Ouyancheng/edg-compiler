@@ -5196,7 +5196,7 @@ Do the output in the way described by octl.
       form_string_argument_attribute("__section__", rout->section,
                                      &need_leading_space, octl);
     }  /* if */
-    if (rout->aliased_routine != NULL) {
+    if (rout->aliased_routine != NULL && !rout->implicit_alias) {
       char  *attr_str = rout->is_weakref ? (char*)"__weakref__"
                                          : (char*)"__alias__";
       /* If the aliased routine has an asm name, reference that from the
