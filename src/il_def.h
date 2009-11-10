@@ -10630,7 +10630,8 @@ typedef struct a_routine {
 			   is an alias.  (Used for attributes "alias" and
 			   "weakref".  Also used for certain routines --
 			   such as strlen -- that are implicitly aliased to
-			   their __builtin_... counterpart.) */
+			   their __builtin_... counterpart; implicit_alias
+			   is TRUE in such cases.) */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority
 		ctor_priority;

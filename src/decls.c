@@ -6465,11 +6465,12 @@ use of).
 */
 {
   check_assertion(gcc_mode);
-  if (is_simple_function_symbol(dps->sym)) {
+  if (is_simple_function_symbol(dps->sym) &&
+      !sym_is_class_or_namespace_member(dps->sym)) {
     a_routine_ptr  rp = dps->sym->variant.routine.ptr;
     if (rp->implicit_alias && dps->sym->defined) {
       /* If a definition is seen after a declaration that was implicitly
-         aliased, the alias is broken. */
+         aliased, the alias is cleared. */
       rp->aliased_routine = NULL;
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
@@ -6481,8 +6482,8 @@ use of).
       a_symbol_ptr      bsym;
       bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
       for (; bsym != NULL; bsym = bsym->next) {
-        if (!bsym->is_class_member && bsym->parent.namespace_ptr == NULL &&
-            is_simple_function_symbol(bsym)) {
+        if (is_simple_function_symbol(bsym) &&
+            !sym_is_class_or_namespace_member(bsym)) {
           a_routine_ptr  brp = bsym->variant.routine.ptr;
           if (types_are_redecl_compatible(rp->type, brp->type)) {
             rp->aliased_routine = brp;
@@ -7760,6 +7761,8 @@ skip_overloading:;
       free_gnu_attribute_list(attributes);
     }  /* if */
     if (gcc_mode) {
+      /* Some user-declarations are implicitly aliased to built-in functions.
+         Check for such cases. */
       check_implicit_routine_alias(dps);
     }  /* if */
   }  /* if */
