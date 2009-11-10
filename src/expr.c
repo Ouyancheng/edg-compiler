@@ -1469,6 +1469,11 @@ This routine may also diagnose certain invalid uses of special GNU functions
 {
   a_routine_ptr rp = routine_from_function_operand(op);
 
+  if (rp->implicit_alias) {
+    /* This is a user-defined routine that is implicitly assumed equivalent to
+       a built-in function (recorded in rp->aliased_routine). */
+    rp = rp->aliased_routine;
+  }  /* if */
   *foldable = *pseudo_call = FALSE;
   if (rp != NULL && is_gnu_builtin_function(rp)) {
     *foldable = is_foldable_gnu_builtin_function(rp, pseudo_call);
@@ -1638,6 +1643,11 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
   if (call->variant.operation.kind == (an_expr_operator_kind)eok_call &&
       (rp = routine_from_function_expr(args)) != NULL) {
     /* A direct call: Examine which routine is called. */
+    if (rp->implicit_alias) {
+      /* A call to a user-defined routine that is implicitly assumed equivalent
+         to a built-in function (recorded in rp->aliased_routine). */
+      rp = rp->aliased_routine;
+    }  /* if */
     if (is_gnu_builtin_function(rp)) {
       a_type_ptr  result_type = skip_typerefs(call->type);
       args = args->next;
