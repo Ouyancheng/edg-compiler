@@ -1469,7 +1469,7 @@ This routine may also diagnose certain invalid uses of special GNU functions
 {
   a_routine_ptr rp = routine_from_function_operand(op);
 
-  if (rp->implicit_alias) {
+  if (rp != NULL && rp->implicit_alias) {
     /* This is a user-defined routine that is implicitly assumed equivalent to
        a built-in function (recorded in rp->aliased_routine). */
     rp = rp->aliased_routine;
