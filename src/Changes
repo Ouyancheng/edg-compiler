@@ -1,5 +1,22 @@
 Version 4.2
 
+11/10/09  [EDGcpfe/10192]
+Missing parent value for block scopes under condition scopes
+
+A block scope entry (a_scope of kind sck_block) previously had a NULL parent
+scope if the block scope appeared under a condition scope.  For example:
+
+  void f() {
+    if (int i = 3)  // Condition scope.
+    {               // Block scope: Previously with a NULL parent pointer.
+      int x = 4;
+    }
+  }
+
+This is now fixed: The block scope's parent pointer now points to the condition
+scope.
+
+
 11/10/09  [EDGcpfe/10179]
 GNU C compatibility: strlen in constant-expressions
 

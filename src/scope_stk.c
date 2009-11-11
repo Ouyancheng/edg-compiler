@@ -6878,17 +6878,18 @@ new top-of-stack entry with information from the entry that has been popped.
 
 static void set_block_scope_parents(a_scope_ptr  parent_scope)
 /*
-The given scope is a block or function scope.  Recursively traverse its block
-scopes and set their parent pointers.  
+The given scope is a block, condition, or function scope.  Recursively
+traverse its block and condition scopes and set their parent pointers.  
 */
 {
   a_scope_ptr  scope = parent_scope->scopes;
 
   while (scope != NULL) {
-    if (scope->kind == (a_scope_kind)sck_block) {
+    if (scope->kind == (a_scope_kind)sck_block ||
+        scope->kind == (a_scope_kind)sck_condition) {
       scope->parent = parent_scope;
-      /* Recursively set the parents for any block scopes nested in this
-         one. */
+      /* Recursively set the parents for all block and condition scopes nested
+         in this one. */
       set_block_scope_parents(scope);
     }  /* if */
     scope = scope->next;
