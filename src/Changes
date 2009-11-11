@@ -7,9 +7,10 @@ In GNU C mode, the front end now treats ordinary declarations of the function
 strlen much like an alias for the predeclared __builtin_strlen (provided the
 types match and that the declaration is not a definition).  As a consequence,
 calls to strlen with a string literal argument are evaluated by the front end
-and are therefore usable in constant-expression contexts (since this was the
-case already for calls to __builtin_strlen).  If a definition is provided for
-strlen, the equivalence with the built-in function is disabled.  For example:
+and are therefore usable in constant-expression contexts (because we have
+also added folding for __builtin_strlen with a string literal argument).
+If a definition is provided for strlen, the equivalence with the built-in
+function is disabled.  For example:
 
   /* Assume __builtin_strlen returns an unsigned int. */
   unsigned strlen(char const*);
