@@ -1803,6 +1803,7 @@ cycle of aliased entities.  Break the cycle if that is the case.
           if (same_entities(rp, orig_rp)) {
             alias_loop = TRUE;
             orig_rp->aliased_routine = NULL;
+            orig_rp->implicit_alias = FALSE;
             break;
           }  /* if */
         }  /* for */
@@ -4181,6 +4182,7 @@ attributes applied to a redeclaration.
           sym->defined = FALSE;
           set_inline_flag(rp, FALSE);
         }  /* if */
+        rp->implicit_alias = FALSE;
         add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
                         (char*)NULL, ap->variant.alias, &ap->position);
         break;

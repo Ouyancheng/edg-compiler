@@ -6475,7 +6475,7 @@ use of).
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
                strcmp(rp->source_corresp.name, "strlen") == 0 &&
-               rp->aliased_routine == NULL && rp->asm_name == NULL) {
+               rp->aliased_routine == NULL) {
       /* For now, we only recognize "::strlen". */
       char              *name = "__builtin_strlen";
       a_symbol_locator  loc;
