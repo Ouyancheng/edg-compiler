@@ -1,5 +1,18 @@
 Version 4.2
 
+11/12/09  [EDGcpfe/8545]
+Minor folding issue with constant subscript validity checking
+
+A minor mistake in folding could cause a spurious warning about a subscript
+being out of range when the array size is large enough that it would be
+a negative number when expressed in a_targ_ptrdiff_t.  This only happened
+with certain configurations where a_targ_size_t and a_targ_ptrdiff_t are
+as big as a_host_large_unsigned.  Now fixed.
+
+  extern char a[0xC0000000];
+  char *p = &a[0];  // Got spurious warning in some configurations
+
+
 11/10/09  [EDGcpfe/10192]
 Missing parent value for block scopes under condition scopes
 

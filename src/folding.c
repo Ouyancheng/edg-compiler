@@ -4325,8 +4325,8 @@ checking.
          subscript value is flagged on a check of the subscript in expression
          form, which would be the form of any reference of the entity as
          an lvalue (see valid_node_if_subscript). */
-      valid =
-           (constant->variant.address.offset <= (a_targ_ptrdiff_t)object_size);
+      a_targ_size_t offset = (a_targ_size_t)constant->variant.address.offset;
+      valid = (offset <= object_size);
     } else {
       /* Don't know what the size is, so assume the offset is valid. */
       valid = TRUE;
