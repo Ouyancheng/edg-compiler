@@ -4298,8 +4298,8 @@ arguments or initializers).
 
   if (local_types_as_template_args_enabled) {
     if (kind == iek_type) {
-      if ((is_class_struct_union_type((a_type_ptr)scp) ||
-           is_enum_type((a_type_ptr)scp)) &&
+      if ((is_immediate_class_type((a_type_ptr)scp) ||
+           is_immediate_enum_type((a_type_ptr)scp)) &&
           type_is_unnamed((a_type_ptr)scp) &&
           !scp->is_class_member &&
           !(scp->is_local_to_function ||
