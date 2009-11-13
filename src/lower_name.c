@@ -4298,7 +4298,9 @@ arguments or initializers).
 
   if (local_types_as_template_args_enabled) {
     if (kind == iek_type) {
-      if (type_is_unnamed((a_type_ptr)scp) &&
+      if ((is_class_struct_union_type((a_type_ptr)scp) ||
+           is_enum_type((a_type_ptr)scp)) &&
+          type_is_unnamed((a_type_ptr)scp) &&
           !scp->is_class_member &&
           !(scp->is_local_to_function ||
             mangle_as_lambda_in_default_argument((a_type_ptr)scp))) {

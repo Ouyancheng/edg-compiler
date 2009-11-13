@@ -1,5 +1,16 @@
 Version 4.2
 
+11/13/09  [EDGcpfe/10201]
+Individuate only class/struct/enum unnamed types
+
+A change has been made to consider only class/struct/enum unnamed types
+for individuation (see Changes entry of 7/27/09); previously all types were
+checked, which could have led to unexpected manglings for types added by
+customers.  In some cases, this might also affect the selection of a module id
+(which in turn can affect the order functions are lowered in) since a module
+id cannot be a symbol that needs individuation.  This is now fixed.
+
+
 11/13/09  [EDGcpfe/10203]
 Internal error on referenced but not defined member of prototype instantiation
 
