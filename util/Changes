@@ -1,5 +1,16 @@
 Version 4.2
 
+11/13/09 [EDGcpfe/10204]
+Demangle IA-64 ABI builtin type vendor extensions
+
+IA-64 builtin type vendor extensions that use the
+
+  <builtin-type> ::= u <source-name>  # vendor extended type
+
+rule are now properly demangled.  For example, _Z3foou11__va_list__ is now
+decoded as foo(__va_list__).
+
+
 10/14/09 [EDGcpfe/10142]
 Buffer overflow when uncompressing invalid Cfront mangled name
 

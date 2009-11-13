@@ -3632,6 +3632,13 @@ The syntax is:
 }  /* demangle_template_param */
 
 
+/* Forward reference. */
+static char *demangle_source_name(
+                                 char                       *ptr,
+                                 a_boolean                  is_module_id,
+                                 a_decode_control_block_ptr dctl);
+
+
 static char *demangle_type_specifier(char                       *ptr,
                                      a_decode_control_block_ptr dctl)
 /*
@@ -3728,6 +3735,11 @@ at that level.  cv-qualifiers have been handled by the caller.
         break;
       case 'e':
         s = "long double";
+        break;
+      case 'u':
+        /* A vendor extended type of the form <length,ID>. */
+        p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
+        s = "";
         break;
       case 'D':
         /* Additional built-in types (too many to assign a single character
