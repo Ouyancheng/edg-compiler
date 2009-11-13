@@ -3737,7 +3737,8 @@ at that level.  cv-qualifiers have been handled by the caller.
         s = "long double";
         break;
       case 'u':
-        /* A vendor extended type of the form <length,ID>. */
+        /* A vendor extended type is specified as:
+           <builtin-type> ::= u <source-name> . */
         p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
         s = "";
         break;
