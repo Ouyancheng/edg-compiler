@@ -4589,6 +4589,7 @@ the outermost class was defined in an unnamed namespace.
   if (decls_using_types_without_linkage_allowed &&
       rout_sym->referenced &&
       (rp->storage_class == (a_storage_class)sc_extern &&
+       !rp->is_prototype_instantiation &&
        (!rp->is_template_function || !will_be_instantiated(rout_sym)))) {
     check_constituent_types_have_linkage(rout_sym,
                                          &rout_sym->decl_position,

@@ -1,5 +1,23 @@
 Version 4.2
 
+11/13/09  [EDGcpfe/10203]
+Internal error on referenced but not defined member of prototype instantiation
+
+An internal error could occur in C++-generating back end versions in modes
+in which decls_using_types_without_linkage_allowed is TRUE (e.g., c++0x mode,
+Microsoft mode when microsoft_version is >= 1400).  The internal error
+occurred in f_entity_can_be_instantiated on examples in which a member
+function of a prototype instantiation was considered referenced but was
+not defined.  Now fixed.
+
+  struct X {
+    template <class T> struct A {
+      static T& make_t();
+      enum E { e1 = sizeof(make_t()) };
+   };
+ };
+
+
 11/12/09  [EDGcpfe/8545]
 Minor folding issue with constant subscript validity checking
 
