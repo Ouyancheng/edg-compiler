@@ -1,5 +1,13 @@
 Version 4.2
 
+11/14/09 [EDGcpfe/10034]
+eok_array_to_pointer nodes now marked as compiler_generated
+
+eok_array_to_pointer nodes, used to indicate the implicit decay of an
+array to a pointer to the first element, are now marked as compiler
+generated.  They also have no source position now.
+
+
 11/14/09 [EDGcpfe/10134]
 inline user replacement for operator delete[]
 

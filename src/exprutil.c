@@ -11643,6 +11643,7 @@ decay on it, and return a pointer to the decayed expression.
     /* Normal case -- add an eok_array_to_pointer to do the decay. */
     node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
                               ptr_type, node);
+    node->variant.operation.compiler_generated = TRUE;
   }  /* if */
   return node;
 }  /* conv_array_expr_to_pointer */

@@ -1783,11 +1783,15 @@ also sets the address_taken field properly if the operand is a variable.
 Used by lowering when adding an array decay.  The node is created as an rvalue.
 */
 {
+  an_expr_node_ptr node;
+
   check_assertion(is_array_type(operand->type));
   set_address_taken_for_variable_or_routine_expr(operand);
-  return make_operator_node((an_expr_operator_kind)eok_array_to_pointer, 
+  node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer, 
                      type_after_array_to_pointer_transformation(operand->type),
                      operand);
+  node->variant.operation.compiler_generated = TRUE;
+  return node;
 }  /* make_array_to_pointer_node */
 
 
