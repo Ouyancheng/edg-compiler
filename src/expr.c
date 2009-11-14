@@ -10475,7 +10475,10 @@ As an anachronism, allow an expression inside the [ ].
         if (sym != NULL) {
           sym = find_default_operator_delete_sym(sym, &ambiguous);
         }  /* if */
-        if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
+        if (sym != NULL && delete_routine == sym->variant.routine.ptr &&
+            /* See core issue 412: avoid problems if user-provided delete is
+               inline. */
+            !delete_routine->is_inline) {
           delete_routine = NULL;
         }  /* if */
         /* Mark the destructor as referenced if it is virtual, because

@@ -1,5 +1,18 @@
 Version 4.2
 
+11/14/09 [EDGcpfe/10134]
+inline user replacement for operator delete[]
+
+The other half of the inline operator new[] change described in the Changes
+entry of 6/26/09:  The front end now generates code that will call an
+inline replacement operator delete[] at runtime.
+
+   extern void myfree(void *);
+   inline void operator delete[](void *p) { myfree(p); }
+   struct S { ~S(); };
+   void f(S *p) { delete [] p; }
+
+
 11/13/09  [EDGcpfe/10201]
 Individuate only class/struct/enum unnamed types
 
