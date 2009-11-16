@@ -14041,7 +14041,7 @@ if one is present.
     /* Fetch the type of the symbol again, since it might have been
        changed when reconciled with the original declaration. */
     state->type = var_ptr->type;
-    state->storage_class = (a_storage_class)var_ptr->storage_class;
+    state->storage_class = var_ptr->storage_class;
     if (is_variable_def) {
       /* The "declared_storage_class" field is updated only for variable
          definitions. */
@@ -14178,7 +14178,12 @@ if one is present.
       check_for_missing_initializer(state->sym, state->type);
       if (state->sym->kind == (a_symbol_kind)sk_variable &&
           (!var_ptr->source_corresp.is_local_to_function ||
-           var_ptr->storage_class == (a_storage_class)sc_static)) {
+           var_ptr->storage_class == (a_storage_class)sc_static ||
+           is_nullptr_type(state->type))) {
+        /* If a variable is not automatic it presumably has an initial value
+           (e.g., it may be zeroed through static initialization).  Nullptr_t
+           variables can only have one value and should therefore always be
+           treated as having a value. */
         mark_variable_value_set(state->sym);
       }  /* if */
     }  /* if */
