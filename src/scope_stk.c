@@ -6665,11 +6665,11 @@ a safe return (but may cause excess memory usage).
         routine->storage_class == (a_storage_class)sc_static &&
         (scope->variables != NULL || scope->types != NULL ||
          scope->scopes != NULL)) {
-    /* When exported templates are allowed, a static function might be
-       externalized because it might be referenced by a template.
-       If it has local static variables, they might have to be
-       externalized too, and we can't generate the externalized name
-       now because we don't have the module id yet. */
+      /* When exported templates are allowed, a static function might be
+         externalized because it might be referenced by a template.
+         If it has local static variables, they might have to be
+         externalized too, and we can't generate the externalized name
+         now because we don't have the module id yet. */
       result = TRUE;
     } else if (local_types_as_template_args_enabled) {
       /* To be on the safe side, assume that any routine can generate an
