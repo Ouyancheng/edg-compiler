@@ -3917,8 +3917,10 @@ a_boolean def_initializer(a_symbol_ptr       sym,
                           a_source_position  *err_pos)
 /*
 Perform default initialization for variables and static data members of class
-type.  Such initialization is required whenever the class has a constructor;
-the default constructor (if one exists) is called.
+type if needed.  Such initialization is required whenever the class has a
+constructor; the default constructor (if one exists) is called.  Return TRUE
+if a default initialization is performed (conceptually; in some cases TRUE may
+be returned without an actual call to a constructor).
 */
 {
   a_boolean                         def_init_performed = FALSE;
