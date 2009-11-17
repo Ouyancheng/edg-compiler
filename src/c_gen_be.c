@@ -2851,8 +2851,7 @@ final semicolon if output_final_semi is TRUE.
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
         /* Not a bit field. */
-#if GCC_IS_GENERATED_CODE_TARGET || \
-    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
+#if GCC_IS_GENERATED_CODE_TARGET
         /* If we are generating code for an early GNU compiler, check for a
            flexible array member and put out its bound as [0] instead of [].
            Starting with GNU C/C++ 3.0, the [] syntax is accepted (and only
@@ -2865,7 +2864,7 @@ final semicolon if output_final_semi is TRUE.
             is_incomplete_type(field_type)) {
           skip_typerefs(field_type)->variant.array.bound_is_zero = TRUE;
         }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
         /* Note that a name will be generated for an anonymous union in C++. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
@@ -5071,11 +5070,15 @@ process_assignment:
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET
           if (gcc_builtin_varargs_in_generated_code) {
             /* Use the intrinsic GNU C/C++ "__builtin_va_start". */
             write_tok_str(gnu_target_version_number < 30300 ?
                             "__builtin_stdarg_start(" : "__builtin_va_start(");
-          } else {
+          } else
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+          /* Do not insert code here. */
+          {
             write_tok_str("va_start(");
           }  /* if */
           dump_expr_with_parens(operand_1);
