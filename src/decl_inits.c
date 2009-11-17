@@ -3919,8 +3919,11 @@ a_boolean def_initializer(a_symbol_ptr       sym,
 Perform default initialization for variables and static data members of class
 type if needed.  Such initialization is required whenever the class has a
 constructor; the default constructor (if one exists) is called.  Return TRUE
-if a default initialization is performed (conceptually; in some cases TRUE may
-be returned without an actual call to a constructor).
+if the default initialization of a class type object is performed
+(conceptually; in some class type cases TRUE may be returned without an actual
+call to a constructor, and in template cases TRUE may be returned when the
+object is not known to be of class type).  No initialization is performed (and
+FALSE is returned) for non-class objects.
 */
 {
   a_boolean                         def_init_performed = FALSE;
