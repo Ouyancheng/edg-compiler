@@ -1,5 +1,19 @@
 Version 4.2
 
+11/16/09 [EDGcpfe/10207]
+No outside-of-object warning on integer add/subtract of value based on pointer
+
+A "pointer points outside of underlying object" warning is no longer issued
+on a constant integer operation based on a constant address cast to an integer
+type.  
+
+  unsigned int x;
+  void func(void){
+    unsigned int y;
+    y = (unsigned int)(&x) + 0x10000000;  // Warning no longer issued
+  }
+
+
 11/14/09 [EDGcpfe/10180]
 GNU compatibility: __builtin_va_list and 64-bit x86 target
 

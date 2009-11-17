@@ -4469,7 +4469,7 @@ detected, or *err_code == ec_no_error if everything went fine.
     *err_severity = es_error;
   } else {
     /* Check that the offset lies within the base object. */
-    if (!valid_address_constant(result)) {
+    if (!integer_case && !valid_address_constant(result)) {
       /* Use a different error message for cases where the original pointer
          addition was coded in [] form. */
       if (op == (an_expr_operator_kind)eok_subscript) {
