@@ -1,5 +1,22 @@
 Version 4.2
 
+11/17/09 [EDGcpfe/10187]
+GNU C++ compatibility: injected class lookup
+
+A name such as A::A sometimes refers to the injected class name of A and
+sometimes refers to the constructor of A.  In g++ 3.4, such lookups were
+made more standard-conforming, but some names were still treated as
+injected classes when they should not be.  In particular, this occurs in
+contexts in which an expression is being scanned.  We now emulate this
+portion of the g++ behavior when gnu_version is >= 30400 (this code is also
+accepted for for gnu_version < 30400 because we emulate the more lax g++
+behavior in such cases).
+
+  struct A { A(int x); };
+  void f(const A &);
+  void g() { f(A::A(1)); }
+
+
 11/17/09 [EDGcpfe/10169]
 File names in diagnostics now converted to native multibyte characters
 
