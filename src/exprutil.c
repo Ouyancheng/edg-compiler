@@ -1493,7 +1493,6 @@ values.
   operand->is_template_id = FALSE;
   operand->is_simple_string_literal = FALSE;
   operand->is_cfront_null_pointer_constant = FALSE;
-  operand->is_using_decl_name = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   operand->is_microsoft_noop = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2172,7 +2171,6 @@ destroyed its source position, etc.  Restore such things from
   operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
   operand->has_required_ptr_to_member_form =
                                  orig_operand->has_required_ptr_to_member_form;
-  operand->is_using_decl_name = orig_operand->is_using_decl_name;
   operand->ruled_out_expr_kinds |= orig_operand->ruled_out_expr_kinds;
   if (operand->is_operand_of_address_of) {
     operand->ampersand_position = orig_operand->ampersand_position;
@@ -8490,13 +8488,7 @@ reference entry, or is NULL if none is needed.
 {
   a_routine_ptr    routine;
   an_expr_node_ptr node;
-  a_boolean        is_using_decl = FALSE;
 
-  /* Remember whether this symbol corresponds to a using-declaration.
-     This has an effect on a virtual function call optimization. */
-  if (is_class_member_using_decl_symbol(routine_sym)) {
-    is_using_decl = TRUE;
-  }  /* if */
   reduce_projection_symbol_to_fundamental_symbol(routine_sym);
 #if CHECKING
   if (routine_sym->kind != (a_symbol_kind)sk_routine &&
@@ -8538,7 +8530,6 @@ reference entry, or is NULL if none is needed.
   if (!result->virtual_function) {
     if_evaluating_mark_routine_referenced(routine);
   }  /* if */
-  if (is_using_decl) result->is_using_decl_name = TRUE;
 }  /* make_function_designator_operand */
 
 

@@ -346,9 +346,6 @@ typedef struct an_operand {
 			/* TRUE if this operand is a simple 0 which is
 			   suitable as a null pointer constant in
 			   overload resolution in cfront mode. */
-  a_bit_field	is_using_decl_name:1;
-			/* TRUE if the operand was generated from a name
-			   that was declared in a using-declaration. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_microsoft_noop:1;
 			/* TRUE if the operand came from a Microsoft __noop.
