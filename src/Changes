@@ -1,5 +1,20 @@
 Version 4.2
 
+11/14/09 [EDGcpfe/10180]
+GNU compatibility: __builtin_va_list and 64-bit x86 target
+
+In GNU modes with configurations that set USE_X86_64 to TRUE, the front end
+now predeclares __builtin_va_list in a way that is equivalent to:
+
+       struct __va_list_tag {
+         unsigned int  gp_offset;
+         unsigned int  fp_offset;
+         void          *overflow_arg_area;
+         void          *reg_save_area;
+       };
+       typedef struct __va_list_tag __builtin_va_list[1];
+
+
 11/14/09 [EDGcpfe/10034]
 eok_array_to_pointer nodes now marked as compiler_generated
 

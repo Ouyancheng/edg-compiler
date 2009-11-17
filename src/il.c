@@ -19978,9 +19978,11 @@ entered into the symbol table.
   a_type_ptr  predeclared_type;
 
   predeclared_type = alloc_type(kind);
-  /* Default name-linkage for classes is C++ external linkage. */
-  predeclared_type->source_corresp.name_linkage =
+  if (!C_mode()) {
+    /* Default name-linkage for classes is C++ external linkage. */
+    predeclared_type->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
   make_symbol_for_predeclared_type(predeclared_type, name);
   return predeclared_type;
 }  /* init_predeclared_class */

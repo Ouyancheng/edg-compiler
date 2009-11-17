@@ -7898,7 +7898,8 @@ know what the underlying implementation is).
 
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+                             (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION));
   /* The operand must be an lvalue of the builtin type va_list. */
   check_assertion(builtin_va_list_type != NULL);
   if (!is_an_lvalue(&operand) ||

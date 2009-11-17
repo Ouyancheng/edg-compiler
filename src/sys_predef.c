@@ -23,6 +23,9 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#if USE_X86_64
+#include "class_decl.h"
+#endif /* USE_X86_64 */
 #include "macro.h"
 #include "sys_predef.h"
 
@@ -1431,6 +1434,7 @@ Enter the standard predeclared functions for GCC.
     /* If there is a predeclared va_list type use it.  (This is the case when
        GCC_BUILTIN_VARARGS is true.) */
     va_list_type = builtin_va_list_type;
+    adjust_parameter_type(&va_list_type, (a_gnu_attribute_ptr)NULL);
   } else {
 #if GCC_BUILTIN_VARARGS
     unexpected_condition();
@@ -1974,6 +1978,39 @@ global array named_register_storage_classes (see targ_def.h).
 }  /* enter_predefined_named_registers */
 
 #endif /* NAMED_REGISTERS_ALLOWED */
+#if GCC_BUILTIN_VARARGS
+
+static void enter_builtin_va_list_type(void)
+/*
+Enter a predefined type __builtin_va_list.  On many 32-bit GCC implementations
+this is a type compatible with void* (but on some systems, such as Solaris,
+va_list is a simple typedef of void* and no __builtin_va_list is defined).
+On x86-64 (at least on Linux), it is an array of one element of struct type.
+*/
+{
+  a_type_ptr  tp;
+#if USE_X86_64
+  /* The x86-64 __builtin_va_list type is defined as follows:
+       struct __va_list_tag {
+         unsigned int  gp_offset;
+         unsigned int  fp_offset;
+         void          *overflow_arg_area;
+         void          *reg_save_area;
+       };
+       typedef struct __va_list_tag __builtin_va_list[1];
+  */    
+  tp = alloc_type((a_type_kind)tk_array);
+  tp->variant.array.element_type = make_va_list_tag_type();
+  tp->variant.array.variant.number_of_elements = 1;
+  set_type_size(tp);
+#else /* !USE_X86_64 */
+  tp = make_pointer_type(void_type());
+#endif /* USE_X86_64 */
+  builtin_va_list_type = enter_predefined_typedef("__builtin_va_list", tp);
+  builtin_va_list_type->is_builtin_va_list = TRUE;
+}  /* enter_builtin_va_list_type */
+
+#endif /* GCC_BUILTIN_VARARGS */
 
 void enter_system_specific_predeclared_symbols(void)
 /*
@@ -2040,16 +2077,8 @@ Enter predeclared symbols as required by the implementation.
 #endif /* 0 */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    /* On many GNU C configurations (e.g., linux) __builtin_va_list is a type
-       compatible with void*.  On other configurations, the following may need
-       to be adapted to the actual structure of __builtin_va_list.  On some
-       systems (such as Solaris), va_list is a simple typedef of void* and no
-       __builtin_va_list is defined. */
 #if GCC_BUILTIN_VARARGS
-    builtin_va_list_type = enter_predefined_typedef(
-                                              "__builtin_va_list",
-                                              make_pointer_type(void_type()));
-    builtin_va_list_type->is_builtin_va_list = TRUE;
+    enter_builtin_va_list_type();
 #endif /* GCC_BUILTIN_VARARGS */
     /* Enter the many functions predeclared by GNU compilers.  Note that this
        must happen after builtin_va_list_type is set above since some

@@ -17342,6 +17342,91 @@ For example:
   return lambda;
 }  /* scan_lambda */
 
+#if USE_X86_64
+
+static void add_field_to_generated_type(char        *name,
+                                        a_type_ptr  type)
+/*
+A sck_class_struct_union scope is currently on top of the scope stack.  It
+is associated with a compiler-generated class type.  Declare a field with the
+given name and type in that class.
+*/
+{
+  a_class_def_state_ptr  class_state = scope_stack_top().class_def_state;
+  a_symbol_locator       loc;
+  a_member_decl_info     decl_info;
+
+  check_assertion(class_state != NULL);
+  /* Create a locator. */
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+  /* Declare/create the field by calling decl_nonstatic_data_member. */
+  initialize_member_decl_info(&decl_info, &null_source_position);
+  decl_info.decl_state.type = type;
+  (void)decl_nonstatic_data_member(&loc, class_state, &decl_info,
+                                   depth_scope_stack);
+}  /* add_field_to_generated_type */
+
+
+a_type_ptr make_va_list_tag_type(void)
+/*
+Create and return the __va_list_tag struct type that is predefined by certain
+64-bit GCC implementations.  The class is defined as follows:
+
+       struct __va_list_tag {
+         unsigned int  gp_offset;
+         unsigned int  fp_offset;
+         void          *overflow_arg_area;
+         void          *reg_save_area;
+       };
+
+*/
+{
+  a_class_def_state              class_state;
+  a_symbol_ptr                   sym;
+  a_type_ptr                     type, uint_type, voidptr_type;
+  a_class_symbol_supplement_ptr  cssp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                      saved_source_sequence_entries_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't issue source sequence entries for generated entities. */
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Create a struct with name __va_list_tag. */
+  type = init_predeclared_class((a_type_kind)tk_struct, "__va_list_tag");
+  enter_predeclared_class(type, DEPTH_OF_FILE_SCOPE, &null_source_position);
+  sym = symbol_for(type);
+  cssp = sym->variant.class_struct_union.extra_info;
+  cssp->construction_by_bitwise_copy_allowed = TRUE;
+  /* Start the class definition (and associated class scope). */
+  initialize_class_def_state(type, &class_state);
+  class_state.access = (an_access_specifier)as_public;
+  class_type_supp(type)->assoc_scope =
+             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                        type, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  /* Add the fields. */
+  uint_type = integer_type((an_integer_kind)ik_unsigned_int);
+  add_field_to_generated_type("gp_offset", uint_type);
+  add_field_to_generated_type("fp_offset", uint_type);
+  voidptr_type = make_pointer_type(void_type());
+  add_field_to_generated_type("overflow_arg_area", voidptr_type);
+  add_field_to_generated_type("reg_save_area", voidptr_type);
+  /* Wrap up the definition. */
+  complete_class_definition(type, DEPTH_OF_FILE_SCOPE, &class_state);
+  pop_scope();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  return type;
+}  /* make_va_list_tag_type */
+
+#endif /* USE_X86_64 */
 
 /* Forward declaration for recursive call. */
 static void check_type_for_linkage_change(a_type_ptr type,
