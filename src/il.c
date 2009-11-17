@@ -12591,7 +12591,7 @@ gives the source position for errors.
   a_boolean  did_not_fold;
 
   curr_type = type_of_copied_template_expr(*expr, constant, *alloc_con);
-  if (!identical_types(curr_type, new_type)) {
+  if (!cast_identical_types(curr_type, new_type)) {
     /* Casting is required. */
     if (*expr != NULL) {
       /* There is already an expression, so add a cast to it. */
