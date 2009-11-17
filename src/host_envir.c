@@ -4419,10 +4419,10 @@ null-terminated.
       len += 4;
     }  /* if */
   }  /* for */
-#if EDG_WIN32
+#if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   /* Restore the original locale. */
   native_multibyte_locale = saved_locale;
-#endif /* EDG_WIN32 */
+#endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   return len;
 }  /* write_file_name_to_text_buffer */
 
