@@ -415,8 +415,8 @@ static a_text_buffer_ptr
 			/* A text buffer used by combine_dir_and_file_name.*/
 
 static a_text_buffer_ptr
-		write_file_name_buffer;
-			/* A text buffer used by write_file_name.*/
+		format_file_name_buffer;
+			/* A text buffer used by f_format_file_name.*/
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
@@ -425,6 +425,11 @@ static a_text_buffer_ptr
 			/* A text buffer used by
 			   convert_multibyte_chars_to_utf8 to hold the UTF-8
 			   result. */
+
+static a_text_buffer_ptr
+		mbc_buffer;
+			/* A text buffer used by utf8_to_multibyte_char
+			   to hold the native character result. */
 
 #if EDG_WIN32
 static a_text_buffer_ptr
@@ -1785,7 +1790,7 @@ appears on the command line.
 {
 #if !USING_DRIVER
   if (more_than_one_source_file) {
-    fprintf(f_error, "%s:\n", primary_source_file_name);
+    fprintf(f_error, "%s:\n", format_file_name(primary_source_file_name));
   }  /* if */
 #endif /* !USING_DRIVER */
 }  /* identify_source_file */
@@ -1833,7 +1838,7 @@ Only write the signoff if there ARE errors, and if we are supposed to.
         strlen(primary_source_file_name) != 0 &&
         strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
       fprintf(f_error, error_text(ec_det_in_compilation_of),
-              primary_source_file_name);
+              format_file_name(primary_source_file_name));
     } else {
       /* Source file name is not known. */
       fputs(error_text(ec_det_in_compilation), f_error);
@@ -4289,6 +4294,53 @@ file names are not known to be relative to the current directory.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+
+static a_text_buffer_ptr utf8_to_multibyte_char(char	*str)
+/*
+Convert "str" from UTF-8 to the native multibyte characters.  Return a
+pointer to a text buffer containing the converted string.  The text buffer
+will be reused on the next call to this routine, so the contents can only
+be used until that point.
+*/
+{
+  char	*p;
+  int	len;
+
+  /* Allocate the buffer if it does not exist yet. */
+  if (mbc_buffer == NULL) {
+    mbc_buffer = alloc_text_buffer(1024);
+  } else {
+    reset_text_buffer(mbc_buffer);
+  }  /* if */
+  for (p = str; *p != '\0'; p += len) {
+    if ((unsigned char)*p <= 0x7f) {
+      /* For the typical case, just copy the character to the text buffer. */
+      len = 1;
+      add_char_to_text_buffer(mbc_buffer, *p);
+    } else {
+      /* Convert a UTF-8 character into a wide character. */
+      int		mb_len;
+      int		i;
+      a_boolean		err;
+      unsigned long	wc;
+      char		arr[MAX_MULTIBYTE_CHAR_LENGTH];
+      len = mbc_to_wide_char(p, &wc, (a_boolean*)NULL, /*is_native=*/FALSE);
+      /* Convert the Unicode character to a native multibyte
+         character sequence.  "?" will be returned in "arr" on error. */
+      mb_len = unicode_to_multibyte_char(wc, arr, &err);
+      for (i = 0; i < mb_len; i++) {
+        add_char_to_text_buffer(mbc_buffer, arr[i]);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Terminate the buffer. */
+  add_char_to_text_buffer(mbc_buffer, '\0');
+  return mbc_buffer;
+}  /* utf8_to_multibyte_char */
+
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+
 unsigned long write_file_name_to_text_buffer(
                                    char             *name,
                                    a_text_buffer_ptr buffer,
@@ -4309,12 +4361,32 @@ null-terminated.
 {
   char          *p;
   unsigned long len = 0;
+  a_boolean	is_native = FALSE;
 
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32
+  /* In case the native multibyte locale has been changed (e.g., by the
+     setlocale pragma) set it back to the system default locale for purposes
+     of file name translation. */
+  _locale_t	saved_locale = native_multibyte_locale;
+  native_multibyte_locale = system_default_locale;
+#endif /* EDG_WIN32 */
+  /* File names are stored internally in UTF-8.  If the default Unicode
+     source kind is usk_none, convert the file name to the native multibyte
+     character set. */
+  if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
+    a_text_buffer_ptr	buf;
+    buf = utf8_to_multibyte_char(name);
+    name = buf->buffer;
+    is_native = TRUE;
+  }  /* if */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /*lint --e{850} p modified in loop */
   for (p = name; *p != '\0'; p++) {
     char ch = *p;
     if (!escape_nonprintable_chars || isprint((unsigned char)ch)) {
       int	ch_len;
+      a_boolean	err;
       /* If the character is printable, or if we are not escaping nonprintable
          characters, emit the character normally.  This is done so that
          characters from extended character sets and multibyte characters will
@@ -4327,7 +4399,8 @@ null-terminated.
       }  /* if */
       /* Output all of the characters of a multibyte sequence so that the
          length returned will be correct. */
-      for (ch_len = mbc_length_simple(p); ch_len > 0; ch_len--, p++) {
+      for (ch_len = mbc_length_full(p, &err, is_native);
+           ch_len > 0; ch_len--, p++) {
         add_char_to_text_buffer(buffer, *p);
       }  /* for */
       /* Decrement p because it will be incremented at the end of the loop. */
@@ -4346,8 +4419,65 @@ null-terminated.
       len += 4;
     }  /* if */
   }  /* for */
+#if EDG_WIN32
+  /* Restore the original locale. */
+  native_multibyte_locale = saved_locale;
+#endif /* EDG_WIN32 */
   return len;
 }  /* write_file_name_to_text_buffer */
+
+
+static
+a_text_buffer_ptr f_format_file_name(char          *name,
+                                     a_boolean     process_escapes,
+                                     a_boolean     escape_nonprintable_chars,
+                                     unsigned long *len)
+/*
+Format the null-terminated file name "name" and return a pointer to a
+text buffer containing the result.  If process_escapes is TRUE, an
+escape is added for quotes and backslashes.  If escape_nonprintable_chars
+is TRUE, nonprintable characters will be put out using escape
+sequences.  Escape processing is generally suppressed for names
+appearing in error messages, so that multibyte characters will be
+output without escapes.  Escape processing is done when outputting
+names in preprocessed output, and similar contexts.  The number of
+characters written (a multibyte character sequence counts as a single
+character when not escaping nonprinting characters) is returned in
+*len.  This routine is used (directly or by routines such as write_file_name)
+to write out the file name in #line directives error messages, etc.  The
+text buffer will be reused on the next call to this routine, so the
+contents can only be used until that point.
+*/
+{
+  if (format_file_name_buffer == NULL) {
+    /* Allocate a buffer into which the file name will be written. */
+    format_file_name_buffer = alloc_text_buffer(256);
+  }  /* if */
+  reset_text_buffer(format_file_name_buffer);
+  *len = write_file_name_to_text_buffer(name, format_file_name_buffer,
+                                        process_escapes,
+                                        escape_nonprintable_chars);
+  add_char_to_text_buffer(format_file_name_buffer, '\0');
+  return format_file_name_buffer;
+}  /* f_format_file_name */
+
+
+char *format_file_name(char *name)
+/*
+Return a pointer to a version of the file name "name" formatted for display
+purposes.  This returns a pointer into a text buffer used by
+f_format_file_name.  The pointer returned must be used before that routine
+is called again.
+*/
+{
+  a_text_buffer_ptr	buf;
+  unsigned long		len;
+
+  buf = f_format_file_name(name,
+                           /*process_escapes=*/FALSE,
+                           /*escapes_nonprintable_chars=*/FALSE, &len);
+  return buf->buffer;
+}  /* format_file_name */
 
 
 unsigned long write_file_name(char      *name,
@@ -4364,22 +4494,15 @@ be output without escapes.  Escape processing is done when outputting names
 in preprocessed output, and similar contexts.  Return the number of characters
 written (a multibyte character sequence counts as a single character when not
 escaping nonprinting characters).  The caller must put out surrounding quotes
-if they are needed.  This routine is used to write out the file name in #line
-directives and error messages.
+if they are needed.
 */
 {
-  unsigned long len;
+  unsigned long     len;
+  a_text_buffer_ptr buf;
 
-  if (write_file_name_buffer == NULL) {
-    /* Allocate a buffer into which the file name will be written. */
-    write_file_name_buffer = alloc_text_buffer(256);
-  }  /* if */
-  reset_text_buffer(write_file_name_buffer);
-  len = write_file_name_to_text_buffer(name, write_file_name_buffer,
-                                       process_escapes,
-                                       escape_nonprintable_chars);
-  add_char_to_text_buffer(write_file_name_buffer, '\0');
-  fputs(write_file_name_buffer->buffer, f_output);
+  buf = f_format_file_name(name, process_escapes,
+                           escape_nonprintable_chars, &len);
+  fputs(buf->buffer, f_output);
   return len;
 }  /* write_file_name */
 
@@ -4537,12 +4660,13 @@ This is done before command line processing.
   }
   file_read_buffer = NULL;
   dir_and_file_buffer = NULL;
-  write_file_name_buffer = NULL;
+  format_file_name_buffer = NULL;
 #if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   locale_name_buffer = NULL;
 #endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   utf8_buffer = NULL;
+  mbc_buffer = NULL;
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   wchar_filename_buffer = NULL;

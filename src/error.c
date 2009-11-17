@@ -695,9 +695,11 @@ redundant file names in a diagnostic.*/
       /* Add the file name if needed. */
       if (strcmp(file_name, diag_file_name) != 0 &&
           strcmp(file_name, FILE_NAME_FOR_STDIN) != 0) {
+        char *formatted_file_name;
         add_string_to_segment(error_text(ec_of), seg_ptr);
         add_string_to_segment("\"", seg_ptr);
-        add_string_to_segment(file_name, seg_ptr);
+        formatted_file_name = format_file_name(file_name);
+        add_string_to_segment(formatted_file_name, seg_ptr);
         add_string_to_segment("\"", seg_ptr);
       }  /* if */
       add_string_to_segment(suffix_string, seg_ptr);
@@ -1322,13 +1324,14 @@ symbol_name:
     }  /* if */
     if (add_trans_unit) {
       /* Add the translation unit to the message. */
+      char *formatted_file_name;
       add_string_to_segment(" (", seg_ptr);
       /* This message code includes the explanatory text (e.g.,
          "from translation unit"). */
       add_string_to_segment(error_text(ec_from_trans_unit), seg_ptr);
       add_string_to_segment("\"", seg_ptr);
-      add_string_to_segment(tup->source_file->file_name,
-                            seg_ptr);
+      formatted_file_name = format_file_name(tup->source_file->file_name);
+      add_string_to_segment(formatted_file_name, seg_ptr);
       add_string_to_segment("\"", seg_ptr);
       add_string_to_segment(")", seg_ptr);
     }  /* if */
@@ -2662,7 +2665,7 @@ in lower case.
        conv_seq_to_file_and_line has returned the position of the
        last line of the primary source file for the end-of-source case. */
     fprintf(f_raw_listing, "\"%s\" %lu %d ",
-                        file_name, line_number, error_pos->column);
+            format_file_name(file_name), line_number, error_pos->column);
   }  /* if */
   /* For an internal error, the coded-form message indicates only that the
      error is catastrophic, so we add text to indicate that it is an
@@ -4003,7 +4006,7 @@ message appears by itself on a separate line.
     context_error_code = ec_compilation_of_secondary_trans_unit_context;
   }  /* if */
   init_error_params();
-  error_msg_strings[1] = diag_primary_source_file->file_name;
+  error_msg_strings[1] = format_file_name(diag_primary_source_file->file_name);
   diag_message(context_error_code, error_pos, severity, context_diag_kind);
 }  /* display_trans_unit_context */
 

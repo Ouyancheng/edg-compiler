@@ -8744,7 +8744,7 @@ Dump all source files at this level.
     do_indentation();
     (void)fprintf(f_C_output,
                   "%s (from line number %lu, sequence numbers %lu-%lu%s)\n",
-                  source_file->file_name,
+                  format_file_name(source_file->file_name),
 		  source_file->first_line_number,
                   source_file->first_seq_number,
 		  source_file->last_seq_number,

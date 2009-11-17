@@ -3840,6 +3840,7 @@ end_scan_for_macro_modifs:;
           conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
                                     &line_number, &at_end_of_source);
         }  /* if */
+        file_name = format_file_name(file_name);
         /* Determine the file name length.  Count each backslash as
            two characters because it must be escaped in the string. */
         repl_text_len = 0;

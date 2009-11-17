@@ -1157,7 +1157,7 @@ restore the memory regions.
     mismatch_reason = ec_memory_mismatch;
     if (automatic_pch_processing && verbose_pch_messages) {
       pos_st_warning(mismatch_reason, &null_source_position,
-                     pch_input_file_name);
+                     format_file_name(pch_input_file_name));
     }  /* if */
   }  /* if */
   db_exit();
@@ -1403,7 +1403,7 @@ current point.
   a_boolean	is_complete = FALSE;
   long		flag_position;
   open_pch_output_file();
-  pch_message(ec_creating_pch, pch_file_name);
+  pch_message(ec_creating_pch, format_file_name(pch_file_name));
 #if DEBUG
   if (debug_level >= 3) {
     a_pch_event_ptr	pep;
@@ -1937,7 +1937,8 @@ directory.  Return TRUE if an applicable PCH was found.
       } else {
         fprintf(f_debug, "\n");
         if (db_active) {
-          pos_st_warning(mismatch_reason, &null_source_position, file_name);
+          pos_st_warning(mismatch_reason, &null_source_position,
+                         format_file_name(file_name));
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1964,7 +1965,8 @@ directory.  Return TRUE if an applicable PCH was found.
     } else {
       if (verbose_pch_messages) {
         /* Issue a warning that the precompiled header cannot be used. */
-        pos_st_warning(mismatch_reason, &null_source_position, file_name);
+        pos_st_warning(mismatch_reason, &null_source_position,
+                       format_file_name(file_name));
       }  /* if */
     }  /* if */
   }  /* for */
@@ -2116,7 +2118,7 @@ may be used.
       if (!automatic_pch_processing) {
         /* Issue a warning that the precompiled header cannot be used. */
         pos_st_warning(mismatch_reason, &null_source_position,
-                       pch_input_file_name);
+                       format_file_name(pch_input_file_name));
       } else {
         /* Something must have changed since was last read the PCH file.
            Silently suppress use of the PCH file. */
@@ -2124,7 +2126,7 @@ may be used.
     }  /* if */
   }  /* if */
   if (can_use_pch) {
-    pch_message(ec_using_pch, pch_input_file_name);
+    pch_message(ec_using_pch, format_file_name(pch_input_file_name));
     using_a_pch_file = TRUE;
     read_saved_variables();
     read_memory_regions();

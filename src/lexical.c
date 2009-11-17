@@ -3952,7 +3952,7 @@ to be displayed.
   /* Indent the output by the input stack depth. */
   int indent = depth - 1;
   check_assertion(indent >= 0);
-  fprintf(f_error, "%*s%s\n", indent, "", file_name);
+  fprintf(f_error, "%*s%s\n", indent, "", format_file_name(file_name));
 }  /* display_included_file_name */
   
 
@@ -4854,7 +4854,10 @@ used to find this file.
      Note that the code here is executed also for the primary source
      file, and we do want that dependency line as well. */
   if (list_makefile_dependencies) {
-    fprintf(f_pp_output, "%s: %s\n", object_file_name, curr_ise->file_name);
+    /* Note that the output is split over two calls of fprintf because
+       format_file_name returns a pointer to a static text buffer. */
+    fprintf(f_pp_output, "%s:", format_file_name(object_file_name));
+    fprintf(f_pp_output, " %s\n", format_file_name(curr_ise->file_name));
   }  /* if */
   /* If generating a list of include files (-H option), put out the
      file name.  Do not put out the name of the primary source file. */

@@ -140,7 +140,7 @@ should only be called if cross-reference information is being generated
     form_symbol_name(sym_ptr, &octl);
     fprintf(f_xref_info, "\t%c\t%s\t%lu\t%d\n",
                          code,
-                         file_name,
+                         format_file_name(file_name),
                          line_number,
                          source_position->column);
   }  /* if */

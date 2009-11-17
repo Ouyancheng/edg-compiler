@@ -2144,6 +2144,10 @@ the macro need not be defined at all.
   (char_may_begin_multibyte_sequence(*(ptr)) ? \
      f_mbc_length((ptr), (err), /*is_native=*/FALSE) : \
      ((*(err) = FALSE), 1))
+#define mbc_length_full(ptr, err, is_native) \
+  (char_may_begin_multibyte_sequence(*(ptr)) ? \
+     f_mbc_length((ptr), (err), (is_native)) : \
+     ((*(err) = FALSE), 1))
 #define mbc_length_simple(ptr) \
   (char_may_begin_multibyte_sequence(*(ptr)) ? \
      f_mbc_length((ptr), (a_boolean *)NULL, /*is_native=*/FALSE) : \
@@ -2152,6 +2156,8 @@ the macro need not be defined at all.
 /* The char_may_begin_multibyte_sequence macro is not defined, so just
    call f_mbc_length. */
 #define mbc_length(ptr, err) f_mbc_length((ptr), (err), /*is_native=*/FALSE)
+#define mbc_length_full(ptr, err, is_native) \
+  f_mbc_length((ptr), (err), (is_native))
 #define mbc_length_simple(ptr) \
   f_mbc_length((ptr), (a_boolean *)NULL, /*is_native=*/FALSE)
 #endif /* ifdef char_may_begin_multibyte_sequence */
@@ -2952,6 +2958,8 @@ extern unsigned long write_file_name_to_text_buffer(
                                   a_text_buffer_ptr buffer,
                                   a_boolean         process_escapes,
                                   a_boolean         escape_nonprintable_chars);
+
+extern char *format_file_name(char *name);
 
 extern char *suffix_of(char		*file_name);
 

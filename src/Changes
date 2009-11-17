@@ -1,5 +1,17 @@
 Version 4.2
 
+11/17/09 [EDGcpfe/10169]
+File names in diagnostics now converted to native multibyte characters
+
+When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE on Windows,
+file names in diagnostic output and other forms of output (e.g., makefile
+dependency information, the __FILE__ macro, etc.) are now converted to
+the native multibyte character set.  File names were already converted
+from native multibyte characters to UTF-8 on input, so this allows the
+names to be output in the same character set used for input.  The conversion
+(in both directions) is only done when DEFAULT_UNICODE_SOURCE_KIND is
+usk_none.
+
 11/16/09 [EDGcpfe/10207]
 No outside-of-object warning on integer add/subtract of value based on pointer
 

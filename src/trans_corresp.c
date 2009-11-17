@@ -929,7 +929,7 @@ with same_src_error; otherwise, use distinct_src_error.
     } else {
       a_source_file_ptr  prim_file2 = primary_source_file_for_seq(pos2->seq);
       pos_stsy_error(same_src_error, &sym->decl_position,
-                     prim_file2->name_as_written, sym);
+                     format_file_name(prim_file2->name_as_written), sym);
       record_prototype_diagnostic(same_src_error, es_error,
                                   &sym->decl_position);
     }  /* if */
