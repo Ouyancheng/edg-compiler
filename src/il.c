@@ -12556,7 +12556,7 @@ static a_type_ptr type_of_copied_template_expr(an_expr_node_ptr expr,
 /*
 expr/constant/alloc_con represent a copied template parameter expression
 in the form used in copy_template_param_expr and its subroutines.  Return
-the type of the expression, stripped of typerefs.
+the type of the expression.
 */
 {
   a_type_ptr type;
@@ -12569,9 +12569,24 @@ the type of the expression, stripped of typerefs.
     check_assertion(constant != NULL);
     type = constant->type;
   }  /* if */
-  type = skip_typerefs(type);
   return type;
 }  /* type_of_copied_template_expr */
+
+
+static a_type_ptr unqual_type_of_copied_template_expr(
+                                                    an_expr_node_ptr expr,
+                                                    a_constant       *constant,
+                                                    a_constant_ptr   alloc_con)
+/*
+Similar to type_of_copied_template_expr, but the returned type is stripped
+of typerefs.
+*/
+{
+  a_type_ptr type = type_of_copied_template_expr(expr, constant, alloc_con);
+
+  type = skip_typerefs(type);
+  return type;
+}  /* unqual_type_of_copied_template_expr */
 
 
 static void cast_copied_template_param_expr(an_expr_node_ptr  *expr,
@@ -12590,7 +12605,7 @@ gives the source position for errors.
   a_type_ptr curr_type;
   a_boolean  did_not_fold;
 
-  curr_type = type_of_copied_template_expr(*expr, constant, *alloc_con);
+  curr_type = unqual_type_of_copied_template_expr(*expr, constant, *alloc_con);
   if (!cast_identical_types(curr_type, new_type)) {
     /* Casting is required. */
     if (*expr != NULL) {
@@ -12651,13 +12666,14 @@ to TRUE.  *source_pos gives the source position for errors.
   a_boolean  do_promotion, do_usual_arith_conversions;
   a_boolean  bad_types = FALSE;
 
-  type_1 = type_of_copied_template_expr(*operand_1, constant_1, *alloc_con_1);
+  type_1 = unqual_type_of_copied_template_expr(*operand_1, constant_1,
+                                               *alloc_con_1);
   if (op_2_present) {
-    type_2 = type_of_copied_template_expr(*operand_2, constant_2,
-                                          *alloc_con_2);
+    type_2 = unqual_type_of_copied_template_expr(*operand_2, constant_2,
+                                                 *alloc_con_2);
     if (op_3_present) {
-      type_3 = type_of_copied_template_expr(*operand_3, constant_3,
-                                            *alloc_con_3);
+      type_3 = unqual_type_of_copied_template_expr(*operand_3, constant_3,
+                                                   *alloc_con_3);
     }  /* if */
   } else {
     /* Let Coverity Prevent know that op_3_present cannot be TRUE when
@@ -12840,31 +12856,6 @@ to an already-allocated constant; otherwise, constant points to the
   }  /* if */
   return expr;
 }  /* alloc_copied_template_param_expr */
-
-
-static a_type_ptr type_of_copied_template_param_expr(
-                                                    an_expr_node_ptr expr,
-                                                    a_constant       *constant,
-                                                    a_constant_ptr   alloc_con)
-/*
-Return the type of a copied template parameter expression.
-If expr is non-NULL, the expression already exists and the type of expr
-is returned.  Otherwise, if alloc_con is non-NULL, it is a pointer
-to an already-allocated constant, and its type is returned.  Otherwise,
-constant points to the (unallocated) constant value, and its type is returned.
-*/
-{
-  a_type_ptr type;
-
-  if (expr != NULL) {
-    type = expr->type;
-  } else if (alloc_con != NULL) {
-    type = alloc_con->type;
-  } else {
-    type = constant->type;
-  }  /* if */
-  return type;
-}  /* type_of_copied_template_param_expr */
   
   
 static a_boolean operator_is_foldable(an_expr_node_ptr  expr)
@@ -13264,9 +13255,9 @@ options is a set of name lookup options.
         } else if (op == (an_expr_operator_kind)eok_parens) {
           /* The result type of a parenthesis operator is its (substituted)
              operand type. */
-          operation_type = type_of_copied_template_param_expr(new_operand_1,
-                                                              alloc_con_1,
-                                                              &constant_1);
+          operation_type = type_of_copied_template_expr(new_operand_1,
+                                                        alloc_con_1,
+                                                        &constant_1);
         }  /* if */
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
