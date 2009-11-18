@@ -13707,6 +13707,8 @@ used to call an overriding virtual function that has a covariant
 return type, or a thunk in the IA-64 ABI.  The body is a return of
 an enk_result_of_overriding_function cast to the proper base class.
 The overriding function must have a definition in the current compilation.
+dump_routine_definition makes assumptions about the IL generated here and may
+need to be modified if changes are made here.
 */
 {
   a_scope_ptr            scope;
@@ -13714,7 +13716,7 @@ The overriding function must have a definition in the current compilation.
   a_generated_routine_context
                          grcontext;
   a_statement_ptr        return_stmt;
-  an_expr_node_ptr       expr;
+  an_expr_node_ptr       expr, roof_expr;
   a_param_type_ptr       ptp, this_ptp;
   a_variable_ptr         param_var, last_param_var;
   a_type_ptr             routine_type = skip_typerefs(routine->type);
@@ -13723,8 +13725,9 @@ The overriding function must have a definition in the current compilation.
   a_type_ptr             overriding_return_type, overridden_return_type;
 #if IA64_ABI
   a_variable_ptr         this_param = NULL;
-  an_insert_location     insert_location;
 #endif /* IA64_ABI */
+  an_insert_location     insert_location;
+  a_variable_ptr         temp_var = NULL;
 
   /* The routine type must be already lowered so that, among other things,
      the implicit "this" parameter is already in the parameter type list. */
@@ -13774,8 +13777,25 @@ The overriding function must have a definition in the current compilation.
                   !overriding_function->suppress_inline_body);
   /* Make an expression that is an enk_result_of_overriding_function cast
      to the right pointer type. */
-  expr = alloc_expr_node((an_expr_node_kind)enk_result_of_overriding_function);
-  expr->type = overriding_return_type;
+  roof_expr = alloc_expr_node(
+                         (an_expr_node_kind)enk_result_of_overriding_function);
+  roof_expr->type = overriding_return_type;
+#if IA64_ABI
+  if (is_void_type(overriding_return_type)) {
+    /* No need for a temporary. */
+    expr = roof_expr;
+  } else
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
+    /* Strictly speaking, we don't need a temporary here, but using a
+       temporary makes it easier for the C generating back end to replace
+       the enk_result_of_overriding_function with an "inline" version of
+       the overriding function.  The assignment to the temporary is performed
+       later (after the "this" adjustment, if any). */
+    temp_var = make_lowered_temporary(roof_expr->type);
+    expr = var_rvalue_expr(temp_var);
+  }  /* if */
 #if IA64_ABI
   if (is_ptr_or_ref_type(overriding_return_type) && 
       is_class_struct_union_type(type_pointed_to(overriding_return_type)) &&
@@ -13818,6 +13838,7 @@ The overriding function must have a definition in the current compilation.
   }  /* if */
 #endif /* IA64_ABI */
   return_stmt->expr = expr;
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
 #if IA64_ABI
   if (overriding_function->use_comdat) {
     put_routine_into_comdat_group(routine);
@@ -13889,10 +13910,14 @@ The overriding function must have a definition in the current compilation.
       }  /* if */
     }  /* if */
     /* Insert the statement. */
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
     (void)insert_expr_statement(this_adjustment, &insert_location);
   }  /* if */
 #endif /* IA64_ABI */
+  if (temp_var != NULL) {
+    /* Insert the assignment to the temporary variable. */
+    (void)insert_var_assignment_statement(temp_var, roof_expr,
+                                          &insert_location);
+  }  /* if */
   pop_generated_routine_context(scope, region_number, &grcontext);
 #if MAINTAIN_NEEDED_FLAGS
   /* If this is an extern inline thunk, and we're instantiating extern

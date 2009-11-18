@@ -1,5 +1,33 @@
 Version 4.2
 
+11/18/09 [EDGcpfe/10209]
+C-generating back end: covariant member functions with ellipsis
+
+A bug was introduced in version 4.1 that caused incorrect generated C code
+for covariant member functions with an ellipsis parameter.  The bug affected
+both IA-64 and Cfront ABIs and is now fixed.  For example:
+
+  extern "C" int printf(const char *,...);
+  struct A {
+    virtual ~A() { }
+  };
+  struct B {
+    virtual B *f(...) {
+      return this;
+    }
+  };
+  struct D: A, B {
+    D *f(...) {
+      printf("D::f\n");
+      return this;
+    }
+  } d;
+  int main() {
+    B *pb = &d;
+    pb->f();
+  }
+
+
 11/17/09 [EDGcpfe/10187]
 GNU C++ compatibility: injected class lookup
 
