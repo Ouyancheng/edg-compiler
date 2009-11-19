@@ -4610,9 +4610,18 @@ initialized.  These are addressed in the course of the processing.
           if (member_or_base_sym != NULL) {
             /* Check if a template-dependent entity is being initialized: */
             if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
-              /* A mem-initializer for a field: */
-              dependent_class_init = could_be_dependent_class_type(
+              if (!member_or_base_sym->is_class_member) {
+                /* This can happen with anonymous unions:
+                     union { int i; double j; };
+                     struct S { S(): i(j) {} };
+                   Avoid having to deal with non-member fields by dropping
+                   the result of the lookup.  */
+                member_or_base_sym = NULL;
+              } else {
+                /* A mem-initializer for a field: */
+                dependent_class_init = could_be_dependent_class_type(
                                  member_or_base_sym->variant.field.ptr->type);
+              }  /* if */
             } else if (is_type_symbol(member_or_base_sym)) {
               /* This is presumably a mem-initializer for a base. */
               a_type_ptr  type = type_symbol_type(member_or_base_sym);
