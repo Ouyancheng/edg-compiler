@@ -12,7 +12,8 @@ member of a namespace-scope anonymous union.  For example:
     A() : x(y) {}  // Previously triggered an internal error.
   };
 
-This is now fixed: An ordinary error is issued.
+This regression was introduced in version 4.0 and is now fixed: An ordinary
+error is issued.
 
 
 11/18/09 [EDGcpfe/10209]

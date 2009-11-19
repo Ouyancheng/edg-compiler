@@ -4611,11 +4611,11 @@ initialized.  These are addressed in the course of the processing.
             /* Check if a template-dependent entity is being initialized: */
             if (member_or_base_sym->kind == (a_symbol_kind)sk_field) {
               if (!member_or_base_sym->is_class_member) {
-                /* This can happen with anonymous unions:
-                     union { int i; double j; };
+                /* This can happen in error cases with anonymous unions:
+                     static union { int i; double j; };
                      struct S { S(): i(j) {} };
-                   Avoid having to deal with non-member fields by dropping
-                   the result of the lookup.  */
+                   Avoid having to deal with non-member fields during error
+                   recovery by dropping the result of the lookup.  */
                 member_or_base_sym = NULL;
               } else {
                 /* A mem-initializer for a field: */
