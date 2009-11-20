@@ -6390,22 +6390,36 @@ When templates_only is TRUE, only function templates members are considered.
     a_template_param_ptr              other_templ_param_list;
     a_template_symbol_supplement_ptr  tssp;
     a_routine_ptr                     routine;
-    /* Ignore projection symbols. */
-    if (sym->kind == (a_symbol_kind)sk_projection) continue;
-    check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
-                    sym->kind == (a_symbol_kind)sk_member_function);
+    a_symbol_ptr                      fund_sym = sym;
+    if (sym->kind == (a_symbol_kind)sk_projection) {
+      /* Ignore projection symbols, except those resulting from a using-
+         declaration that project a member function or member function
+         template. */
+      if (is_class_member_using_decl_symbol(sym)) {
+        /* A using declaration: This could be a match, in which case the caller
+           may have to remove this symbol. */
+        fund_sym = fundamental_symbol_of(sym);
+      }  /* if */
+      if (fund_sym->kind != (a_symbol_kind)sk_function_template &&
+          fund_sym->kind != (a_symbol_kind)sk_member_function) {
+        continue;
+      }  /* if */
+    }  /* if */
+    check_assertion(fund_sym->kind == (a_symbol_kind)sk_function_template ||
+                    fund_sym->kind == (a_symbol_kind)sk_member_function);
     /* If looking only for templates, ignore nontemplates.  When looking
        for nontemplates, ignore templates. */
-    if ((sym->kind == (a_symbol_kind)sk_function_template) != templates_only) {
+    if ((fund_sym->kind == (a_symbol_kind)sk_function_template) !=
+                                                             templates_only) {
       continue;
     }  /* if */
     /* Get the routine pointer associated with either the routine symbol
        or the function template symbol. */
-    if (sym->kind == (a_symbol_kind)sk_function_template) {
-      routine = sym->variant.template_info->variant.function.routine;
+    if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+      routine = fund_sym->variant.template_info->variant.function.routine;
       orig_type = routine->type;
     } else {
-      routine = sym->variant.routine.ptr;
+      routine = fund_sym->variant.routine.ptr;
       orig_type = routine->type;
     }  /* if */
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
@@ -6415,20 +6429,20 @@ When templates_only is TRUE, only function templates members are considered.
       /* No match is possible.  Don't bother calling types_are_compatible. */
       continue;
     }  /* if */
-    if (sym->kind == (a_symbol_kind)sk_function_template &&
+    if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
         templ_param_list == NULL) {
       /* The symbol we are checking is a template, but no template parameter
          list was supplied by the caller.  This is not a match. */
       continue;
     }  /* if */
     if (templ_param_list != NULL &&
-        sym->kind == (a_symbol_kind)sk_function_template) {
+        fund_sym->kind == (a_symbol_kind)sk_function_template) {
       /* If a template parameter list is present and the candidate symbol
          is for a function template, make sure the lists match.  A
          template parameter list could be present for a normal member function
          of a class template when the member function is being defined
          outside of the class. */
-      tssp = template_supplement_for_symbol(sym);
+      tssp = template_supplement_for_symbol(fund_sym);
       other_templ_param_list =
                        tssp->variant.function.decl_cache.decl_info->parameters;
       if (!equiv_template_param_lists(other_templ_param_list,
@@ -7069,6 +7083,33 @@ Return NULL if none is found.
 }  /* find_direct_member_function */
 
 
+static void remove_member_using_decl(a_symbol_ptr  *pu_sym,
+                                     a_symbol_ptr  *ps_sym)
+/*
+*pu_sym is a symbol for a member using declaration.  If that entry is part of
+an overload set, *ps_sym represents the associated sk_overloaded_function
+symbol; otherwise, *ps_sym equals *pu_sym.  Remove *pu_sym from the symbol
+table and if that empties the overload set, also remove the latter.  Set the
+symbol pointers pointing to removed symbols to NULL.
+*/
+{
+  check_assertion(is_class_member_using_decl_symbol(*pu_sym));
+  if (*ps_sym == *pu_sym) {
+    remove_symbol(*pu_sym);
+    *ps_sym = NULL;
+  } else {
+    remove_symbol_from_overload_set(*pu_sym, *ps_sym);
+    if ((*ps_sym)->variant.overloaded_function.symbols == NULL) {
+      /* The last entry of the overload set was removed: Remove the set
+         itself. */
+      remove_symbol(*ps_sym);
+      *ps_sym = NULL;
+    }  /* if */
+  }  /* if */
+  *pu_sym = NULL;
+}  /* remove_member_using_decl */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* overridden_function only used when Microsoft extensions are
                 enabled. */
@@ -7118,6 +7159,11 @@ was used).
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
            type, so sym remains a candidate for overloading. */
+      } else if (is_class_member_using_decl_symbol(new_sym)) {
+        /* A using-declaration previously declared a matching function or
+           template in this scope.  The new declaration hides the one brought
+           in by the using-declaration: Remove new_sym. */
+        remove_member_using_decl(&new_sym, &sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
                  new_sym->kind == (a_symbol_kind)sk_member_function &&
@@ -7139,7 +7185,6 @@ was used).
       /* Not a redeclaration, so it is probably the overloading of a function
          name. */
       a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
-
       if (is_nontype_template_param_symbol(fund_sym)) {
         /* A non-type template parameter symbol may be a function, so don't
            issue a redeclaration error. */
@@ -9248,14 +9293,23 @@ declarations.)
                       (sym->kind == (a_symbol_kind)sk_overloaded_function);
       other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
       for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
-        if (other_sym->kind == (a_symbol_kind)sk_function_template) {
+        a_symbol_ptr  fund_sym = other_sym;
+        /* Ignore projections not resulting from a using-declaration. */
+        if (fund_sym->kind == (a_symbol_kind)sk_projection) {
+          if (is_class_member_using_decl_symbol(fund_sym)) {
+            reduce_projection_symbol_to_fundamental_symbol(fund_sym);
+          } else {
+            continue;
+          }  /* if */
+        }  /* if */
+        if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
           /* Issue an error if the other member function template declaration
              has a type compatible with this one -- compare the routine
              types. */
           a_template_param_ptr			other_templ_param_list;
           a_template_symbol_supplement_ptr	other_tssp;
           a_type_ptr				tp;
-          other_tssp = template_supplement_for_symbol(other_sym);
+          other_tssp = template_supplement_for_symbol(fund_sym);
           tp = other_tssp->variant.function.routine->type;
           other_templ_param_list =
                  other_tssp->variant.function.decl_cache.decl_info->parameters;
@@ -9266,7 +9320,12 @@ declarations.)
                                          (a_source_position*)NULL, es_error) &&
               param_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
             an_error_code  error_code = ec_no_error;
-            if (routine_type_is_nonstatic_member_function(tp) !=
+            if (other_sym != fund_sym) {
+              /* We found a matching using-declaration: Remove it from the
+                 symbol table. */
+              remove_member_using_decl(&other_sym, &sym);
+              fund_sym = NULL;
+            } else if (routine_type_is_nonstatic_member_function(tp) !=
                   routine_type_is_nonstatic_member_function(member_type)) {
               error_code = ec_static_nonstatic_with_same_param_types;
               pos_error(error_code, &locator->source_position);
