@@ -923,6 +923,11 @@ typedef struct an_include_file_history {
 			/* TRUE if this file was guarded by a #ifdef. */
   a_bit_field	ifndef_guard:1;
 			/* TRUE if this file was guarded by a #ifndef. */
+  a_bit_field	use_canonical_name:1;
+			/* This is used to pass a flag into the
+			   compare_include_file_history routine to indicate
+			   whether the file name comparison should use the
+			   canonical form of the file name. */
   char          *controlling_macro_name;
 			/* The name of the macro used to guard the include
 			   file against multiple inclusions. */
@@ -952,11 +957,14 @@ The order of these states is important.
 extern a_boolean suppress_subsequent_include_of_file(
 				 char                         *full_name,
 				 an_include_file_history_ptr *ifhp_ptr,
-				 a_boolean		     create);
+				 a_boolean		     create,
+			         a_boolean		     use_canonical);
 
-extern a_boolean find_include_history(char                        *full_name,
-	    		              an_include_file_history_ptr *ifhp_ptr,
-			              a_boolean		          create);
+extern
+a_boolean find_include_history(char                        *full_name,
+			       an_include_file_history_ptr *ifhp_ptr,
+			       a_boolean		   create,
+			       a_boolean		   use_canonical);
 
 extern a_byte get_ifg_state(void);
 extern void set_ifg_state(a_byte new_state);

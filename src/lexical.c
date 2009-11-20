@@ -3599,6 +3599,7 @@ a pointer.
   ifhp->pragma_once = FALSE;
   ifhp->ifdef_guard = FALSE;
   ifhp->ifndef_guard = FALSE;
+  ifhp->use_canonical_name = FALSE;
   ifhp->controlling_macro_name = NULL;
   return ifhp;
 }  /* alloc_include_file_history */
@@ -3610,8 +3611,9 @@ Produce a hash value for an include file history entry.  The key is
 a character string.
 */
 {
-  char		*str = (char*)key;
-  a_hash_value	value = 0;
+  an_include_file_history_ptr	ifhp = (an_include_file_history_ptr)key;
+  char				*str = ifhp->full_name;
+  a_hash_value			value = 0;
   /* Only hash the characters of the actual file name so that differences
      in the directory portion won't affect the result (e.g., x.h and ./x.h
      need to be considered the same). */
@@ -3636,34 +3638,47 @@ Return TRUE if the key matches the entry.
 */
 {
   an_include_file_history_ptr	ifhp;
+  an_include_file_history_ptr	key_ifhp;
   char				*full_name;
   a_boolean			result;
 
   ifhp = (an_include_file_history_ptr)entry;
-  full_name = (char*)key;
-  result = compare_file_names(full_name, ifhp->full_name) == 0;
+  key_ifhp = (an_include_file_history_ptr)key;
+  full_name = key_ifhp->full_name;
+  /* compare_file_names converts the names to canonical form.
+     compare_file_chars does not. */
+  if (key_ifhp->use_canonical_name) {
+    result = compare_file_names(full_name, ifhp->full_name) == 0;
+  } else {
+    result = compare_file_chars(full_name, ifhp->full_name) == 0;
+  }  /* if */
   return result;
 }  /* compare_include_file_history */
 
 
 a_boolean find_include_history(char                        *full_name,
 	    		       an_include_file_history_ptr *ifhp_ptr,
-			       a_boolean		   create)
+			       a_boolean		   create,
+			       a_boolean		   use_canonical)
 /*
 Look for "full_name" in the include file history hash table.  If no entry
 exists and "create" is TRUE, create a new entry.  If an entry is found or
-created, return a pointer to the entry in ifhp_ptr.  Return TRUE if an
-existing entry was returned.
+created, return a pointer to the entry in ifhp_ptr.
+use_canonical is TRUE if file name comparison should use the canonical form
+of the file name.  Return TRUE if an existing entry was returned.
 */
 {
   an_include_file_history_ptr	*ifhp_in_table;
   an_include_file_history_ptr	ifhp;
+  an_include_file_history	key_ifh;
   a_boolean			found = FALSE;
 
   /* Look for an existing entry for this file name in the hash table. */
+  key_ifh.full_name = full_name;
+  key_ifh.use_canonical_name = use_canonical;
   ifhp_in_table = (an_include_file_history_ptr*)hash_find(
 					include_file_history_hash_table,
-					(a_void_ptr)full_name, create);
+					(a_void_ptr)&key_ifh, create);
   ifhp = ifhp_in_table == NULL ? NULL : *ifhp_in_table;
   if (ifhp != NULL) {
     /* An entry was found -- this file has been included before. */
@@ -3763,18 +3778,21 @@ code that makes it possible to suppress subsequent re-inclusions.
 a_boolean suppress_subsequent_include_of_file(
 				 char                        *full_name,
 				 an_include_file_history_ptr *ifhp_ptr,
-				 a_boolean		     create)
+				 a_boolean		     create,
+			         a_boolean		     use_canonical)
 /*
 Determine whether the specified file has already been included, and if so,
 whether a subsequent include should be suppressed because it will have
-no effect.  If no entry is found, create one if "create" is TRUE.  If an
+no effect.  If no entry is found, create one if "create" is TRUE.
+use_canonical is TRUE if file name comparison should use the canonical form
+of the file name when looking for a previously included file.  If an
 entry is found or created, return the pointer in ifhp_ptr.
 */
 {
   a_boolean	result = FALSE;
   /* Find an existing include file history record for this file, or create
      one if none exists. */
-  (void)find_include_history(full_name, ifhp_ptr, create);
+  (void)find_include_history(full_name, ifhp_ptr, create, use_canonical);
   if (*ifhp_ptr != NULL) {
     result = suppress_subsequent_include(*ifhp_ptr);
   }  /* if */
@@ -4011,7 +4029,8 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   if (suppress_include ||
       (is_include_file &&
        suppress_subsequent_include_of_file(full_file_name, &ifhp,
-                                           /*create=*/TRUE))) {
+                                           /*create=*/TRUE,
+                                           /*use_canonical=*/TRUE))) {
     /* This file contains include guard code.  An inclusion here would
        have no effect, so it should be suppressed.  When suppress_include
        is TRUE, the file was not actually opened.  In most cases the
@@ -4096,7 +4115,8 @@ if the open fails.
   *new_input_file = NULL;
   *unicode_source_kind = usk_none;
   if (suppress_subsequent_include_of_file(name_to_try, &ifhp,
-                                          /*create=*/FALSE)) {
+                                          /*create=*/FALSE,
+                                          /*use_canonical=*/FALSE)) {
     /* This include should be suppressed.  No further action is needed. */
     *suppress_include = TRUE;
     found = TRUE;
@@ -5150,7 +5170,8 @@ at the next level down.
             /* Push the new file onto the input stack and scan it.  There is
                no "name as written" so a NULL pointer is passed in. */
             if (suppress_subsequent_include_of_file(full_file_name, &ifhp,
-                                                    /*create=*/TRUE) ||
+                                                    /*create=*/TRUE,
+                                                    /*use_canonical=*/TRUE) ||
                 (implicit_template_inclusion_mode &&
                  look_for_file_on_input_stack(full_file_name) > 0)) {
               /* This file contains include guard code or is already on the

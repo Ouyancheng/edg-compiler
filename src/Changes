@@ -1,5 +1,19 @@
 Version 4.2
 
+11/20/09 [EDGcpfe/10114]
+Include directory search issue introduced in version 3.7
+
+Version 3.7 included changes to improve the performance of the include
+search process.  One of the changes suppressed the opening of a file that
+had previously been included and that contained include guard code.  The
+comparison of file names in this check used a canonical version of the
+name, which caused names such as "x.h" and "some_dir/../x.h" to be
+considered the same. This had the effect of disabling a technique that can
+be used to ensure that the x.h file is found in a specific directory (the
+one that also contains a some_dir directory).  The comparison used in such
+cases has now been changed to not use the canonical form of the file name.
+
+
 11/19/09 [EDGcpfe/10191]
 Internal error on mem-initializer referring to anonymous union member
 

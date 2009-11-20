@@ -17863,7 +17863,8 @@ file we simply return.
         if (compare_file_names(full_file_name, sfp->full_name) != 0 &&
             compare_file_names(full_file_name,
                                primary_source_file_name) != 0 &&
-            !find_include_history(full_file_name, &ifhp, /*create=*/FALSE)) {
+            !find_include_history(full_file_name, &ifhp, /*create=*/FALSE,
+                                  /*use_canonical=*/TRUE)) {
 #if DEBUG
           if (print_debug_info || db_flag_is_set("show_implicit_include")) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
@@ -17873,7 +17874,8 @@ file we simply return.
              no "name as written" so a NULL pointer is passed in. */
 	  if (suppress_include ||
               suppress_subsequent_include_of_file(full_file_name, &ifhp,
-                                                  /*create=*/TRUE)) {
+                                                  /*create=*/TRUE,
+                                                  /*use_canonical=*/TRUE)) {
             /* This file contains include guard code.  An inclusion here would
                have no effect, so it should be suppressed.  When
                suppress_include is TRUE, the file was not actually opened.
