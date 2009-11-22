@@ -1340,6 +1340,12 @@ information (from the matching in-class declaration) is returned through
         }  /* if */
       }  /* if */
     }  /* if */
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_projection) {
+      /* The matching declaration is a using-declaration: An error. */
+      check_assertion(is_class_member_using_decl_symbol(sym));
+      pos_error(ec_inherited_member_not_allowed, &locator->source_position);
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+    }  /* if */
     if (sym == NULL) {
       /* No member function with a matching type was found.  Issue an error.
          If the type matches an instance of a member function template,
