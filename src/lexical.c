@@ -3608,7 +3608,7 @@ a pointer.
 static a_hash_value hash_include_file_history(a_void_ptr	key)
 /*
 Produce a hash value for an include file history entry.  The key is
-a character string.
+a pointer to an include file history entry.
 */
 {
   an_include_file_history_ptr	ifhp = (an_include_file_history_ptr)key;
