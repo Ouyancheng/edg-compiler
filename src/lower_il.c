@@ -12587,6 +12587,7 @@ expr->next is preserved.
        into an rvalue, but there are some cases to be wary of. */
     an_expr_node_ptr  op1 = expr->variant.operation.operands;
     an_expr_node_ptr  op2 = op1->next;
+    a_boolean         orig_void_type = is_void_type(expr->type);
     if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
       if (node_operator_is(expr, eok_question)) {
         /* Rewrite the second and third operands as rvalues, and then mark
@@ -12602,7 +12603,6 @@ expr->next is preserved.
           overwrite_node(op2, add_cast_to_void(copy_node(op2)));
           overwrite_node(op3, add_cast_to_void(copy_node(op3)));
           expr->type = void_type();
-          set_expr_result_not_used(expr);
         } else {
           expr->type = op2->type;
         }  /* if */
@@ -12655,6 +12655,11 @@ expr->next is preserved.
          eliminated).  (The eok_indirect and eok_ref_indirect cases get
          optimized automatically because the added "&" cancels with them.) */
       overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
+    }  /* if */
+    if (!orig_void_type && is_void_type(expr->type)) {
+      /* Set result_is_not_used flag if the expression type has been changed
+         to void. */
+      set_expr_result_not_used(expr);
     }  /* if */
   } else {
     check_assertion(expr->kind != (an_expr_node_kind)enk_object_lifetime);
