@@ -1,5 +1,26 @@
 Version 4.2
 
+11/23/09 [EDGcpfe/10238]
+GNU C++ compatibility: Meaning of block-extern declarations in namespaces
+
+Consider:
+
+  namespace N { struct S { void f(); }; }
+  void N::S::f() {
+    void g();  // ::g in g++ mode, N::g otherwise.
+  }
+
+In standard C++, the meaning of the block-extern declaration of g in N::S::f
+is "as if" the function definition had appeared in namespace N: It is a
+declaration of N::g.  Previously, we adhered to that behavior in all modes.
+Now, in GNU C++ mode, the block-extern declaration of g is instead treated as
+a declaration of ::g.  This change also applies to block-extern declarations
+of variables.
+
+An entirely similar change was previously made for non-class-member function
+definitions (see Changes entry of EDGcpfe/9830).
+
+
 11/23/09 [EDGcpfe/10219]
 Assertion failure when lowering throw of nullptr in file scope
 

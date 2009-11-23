@@ -789,8 +789,16 @@ and for the instantiation of template functions.
         /* Inline.  Class has already been reactivated. */
       } else {
         /* Push a class symbol reactivation scope, to make class member names
-           visible for processing the function definition. */
-        push_class_reactivation_scope(class_type, /*extend_namespace=*/TRUE);
+           visible for processing the function definition.  If the class is a
+           member of a namespace, reactivating the namespace is treated as a
+           namespace extensions, except in GNU C++ mode.  E.g.:
+             namespace N { struct S { void f(); }; }
+             void N::S::f() {
+               void g();  // ::g in g++ mode, N::g otherwise.
+             }
+        */
+        push_class_reactivation_scope(class_type,
+                                      /*extend_namespace=*/!gpp_mode);
       }  /* if */
     } else {
       nsp = parent_namespace_or_null(rout_ptr);
