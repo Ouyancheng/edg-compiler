@@ -8287,6 +8287,11 @@ enable_microsoft_mode:
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
   add_default_include_search_path(&incl_search_path, &end_incl_search_path);
+  if (gnu_mode && gnu_version >= 30300) {
+    /* In GNU mode, if a -I option specifies a name specified by a
+       --sys_include, the -I is ignored. */
+    remove_duplicate_system_includes();
+  }  /* if */
   /* If there was a -I- option, the system include search path starts at
      the indicated point.  Otherwise, the system include search path is
      the same as the normal search path. */
@@ -8294,11 +8299,6 @@ enable_microsoft_mode:
     sys_incl_search_path = include_path_boundary->next;
   } else {
     sys_incl_search_path = incl_search_path;
-  }  /* if */
-  if (gnu_mode && gnu_version >= 30300) {
-    /* In GNU mode, if a -I option specifies a name specified by a
-       --sys_include, the -I is ignored. */
-    remove_duplicate_system_includes();
   }  /* if */
   /* Pick up the source file name. */
   if (opt_ind >= argc) {

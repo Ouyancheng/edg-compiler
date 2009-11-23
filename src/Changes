@@ -1,5 +1,15 @@
 Version 4.2
 
+11/23/09 [EDGcpfe/10239]
+GNU compatibility: include directory specified as both system and non-system
+
+Version 4.1 introduced a GNU compatibility feature that ignores a -I option
+naming a directory that was also specified using the --sys_include
+option (see the 7/2/09 entry).  This facility did not work properly in
+some cases where the removed directory was the first entry on the search
+list used for the "#include <...>" form of include.  Now fixed.
+
+
 11/23/09 [EDGcpfe/10217]
 Incorrect setting of result_is_not_used flag in some lowered expressions
 
