@@ -1,5 +1,15 @@
 Version 4.2
 
+11/23/09 [EDGcpfe/10219]
+Assertion failure when lowering throw of nullptr in file scope
+
+Lowering a throw of type std::nullptr_t in a file scope expression had
+caused an assertion failure ("missing typeinfo variable") and is now fixed.
+For example (--c++0x -x):
+
+  int x = (1 ? throw nullptr : 1);
+
+
 11/23/09 [EDGcpfe/10239]
 GNU compatibility: include directory specified as both system and non-system
 

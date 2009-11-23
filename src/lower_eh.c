@@ -759,7 +759,7 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
         bases = bases->next;
       } /* while */
     }  /* if */
-  } else if (is_nullptr_type(type)) {
+  } else if (is_or_was_nullptr_type(type)) {
     tinfo_kind = tik_nullptr;
   } else {
     unexpected_condition_str("get_typeinfo_kind: bad type");
@@ -2580,7 +2580,7 @@ the cv-qualifiers and passes the type through.
       is_or_was_ptr_to_data_member_type(eff_type)) {
     *flags_value |= ETS_IS_POINTER_TO_MEMBER;
   }  /* if */
-  if (is_pointer_type(eff_type)) {
+  if (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
     a_type_ptr under_ptr = type_pointed_to(eff_type);
 #if ABI_COMPATIBILITY_VERSION >= 241
     if (is_pointer_type(under_ptr)) {
@@ -5734,7 +5734,10 @@ Lower an enk_throw expression node.
     /* Throw of an object. */
     throw_type = tsp->type;
     lower_os_type(throw_type);
-    throw_type = f_skip_typerefs(throw_type);  /* Probably unnecessary. */
+    if (!is_or_was_nullptr_type(throw_type)) {
+      /* Keep information about nullptr type intact. */
+      throw_type = f_skip_typerefs(throw_type);
+    }  /* if */
     dip = tsp->dynamic_init;
     /* There should be no destructor indicated, because the runtime handles
        the destruction. */
