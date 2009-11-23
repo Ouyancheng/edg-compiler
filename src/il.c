@@ -13685,6 +13685,10 @@ name lookup options.
           /* You can't cast to an incomplete type, a class type, a
              function type, or an array type. */
           *copy_error = TRUE;
+        } else if (!identical_types(new_type, other_con->type) &&
+                   is_nullptr_type(other_con->type)) {
+          /* You can't convert a nullptr constant to another type. */
+          *copy_error = TRUE;
         } else {
           if (other_con != NULL) *constant = *other_con;
           /* Do the cast again with the type and constant after
