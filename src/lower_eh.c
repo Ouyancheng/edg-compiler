@@ -2625,7 +2625,8 @@ the cv-qualifiers and passes the type through.
   }  /* if */
 #endif /* IA64_ABI */
 #endif /* GENERATE_EH_TABLES */
-  /* Strip typerefs but watch out for rewritten pointers-to-members. */
+  /* Strip typerefs but watch out for rewritten pointers-to-members or
+     nullptrs. */
   eff_type = get_underlying_type(eff_type);
   return eff_type;
 }  /* eff_type_for_typeinfo */
@@ -5734,10 +5735,7 @@ Lower an enk_throw expression node.
     /* Throw of an object. */
     throw_type = tsp->type;
     lower_os_type(throw_type);
-    if (!is_or_was_nullptr_type(throw_type)) {
-      /* Keep information about nullptr type intact. */
-      throw_type = f_skip_typerefs(throw_type);
-    }  /* if */
+    throw_type = f_skip_typerefs(throw_type);
     dip = tsp->dynamic_init;
     /* There should be no destructor indicated, because the runtime handles
        the destruction. */
@@ -5765,8 +5763,9 @@ Lower an enk_throw expression node.
 #endif /* !ABI_CHANGES_FOR_RTTI */
     ptr_throw_type = make_pointer_type(throw_type);
     temp_var = make_local_temporary(ptr_throw_type);
-    /* Make the typeinfo variable for the throw type. */
-    typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value,
+    /* Make the typeinfo variable for the underlying throw type. */
+    typeinfo_var = typeinfo_var_for_type(get_underlying_type(tsp->type),
+                                         &flags_value,
                                          &ptr_flags_var);
     /* Make the arguments for the __throw_setup call. */
     typeinfo_node = var_addr_expr(typeinfo_var);

@@ -25,7 +25,8 @@ definitions (see Changes entry of EDGcpfe/9830).
 Assertion failure when lowering throw of nullptr in file scope
 
 Lowering a throw of type std::nullptr_t in a file scope expression had
-caused an assertion failure ("missing typeinfo variable") and is now fixed.
+caused an assertion failure ("missing typeinfo variable") in configurations
+where DO_FULL_PORTABLE_EH_LOWERING is TRUE.  This is now fixed.
 For example (--c++0x -x):
 
   int x = (1 ? throw nullptr : 1);
