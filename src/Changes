@@ -1,5 +1,22 @@
 Version 4.2
 
+11/24/09 [EDGcpfe/10216]
+Lowering of cast of pointer to member function to std::nullptr_t
+
+Lowering of a cast to std::nullptr_t where the operand is a pointer to member
+function expression with side effects had caused invalid IL to be generated
+(causing illegal generated C code in C generating back end configurations).
+This is now fixed.  For example (--c++0x):
+
+  struct A {
+    void f() {}
+  };
+  void f() {
+    typedef void (A::*T)(void);
+    T p = ( decltype(nullptr) ) *new T;
+  }
+
+
 11/24/09 [EDGcpfe/10221]
 Improper lowering of cast of std::nullptr_t to pointer to member function type
 

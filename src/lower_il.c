@@ -10529,6 +10529,14 @@ not lowered by this routine).
   /* Add a cast to the desired type. */
   zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
+    /* Strip any top level casts to std::nullptr_t (the comma node will
+       have the correct type and these aren't necessary). */
+    while (is_operation_node(expr) &&
+           node_operator_is(expr, eok_cast) &&
+           is_or_was_nullptr_type(expr->type)) {
+      expr = expr->variant.operation.operands;
+      check_assertion(expr != NULL);
+    }  /* if */
     zero_node = make_comma_node(copy_node(expr), zero_node);
   }  /* if */
   return zero_node;
