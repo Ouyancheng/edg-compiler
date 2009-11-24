@@ -722,6 +722,9 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
     tinfo_kind = tik_array;
   } else if (is_function_type(type)) {
     tinfo_kind = tik_function;
+  } else if (is_or_was_nullptr_type(type)) {
+    /* Test before is_pointer_type test to catch lowered nullptr types. */
+    tinfo_kind = tik_nullptr;
   } else if (is_pointer_type(type)) {
     tinfo_kind = tik_pointer;
   } else if (is_ptr_to_member_type(type)) {
@@ -759,8 +762,6 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
         bases = bases->next;
       } /* while */
     }  /* if */
-  } else if (is_or_was_nullptr_type(type)) {
-    tinfo_kind = tik_nullptr;
   } else {
     unexpected_condition_str("get_typeinfo_kind: bad type");
   }  /* if */
@@ -2100,7 +2101,8 @@ Return TRUE if type's typeinfo is always defined in the runtime library.
 {
   a_boolean result = FALSE;
 
-  if (is_void_type(type) || is_integral_type(type) || is_floating_type(type)) {
+  if (is_void_type(type) || is_integral_type(type) || is_floating_type(type) ||
+      is_or_was_nullptr_type(type)) {
     result = TRUE;
   } else if (is_pointer_type(type)) {
     a_type_qualifier_set quals;
@@ -2583,14 +2585,16 @@ the cv-qualifiers and passes the type through.
   if (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
     a_type_ptr under_ptr = type_pointed_to(eff_type);
 #if ABI_COMPATIBILITY_VERSION >= 241
-    if (is_pointer_type(under_ptr)) {
+    if (is_pointer_type(under_ptr) && !is_or_was_nullptr_type(under_ptr)) {
       /* Multi-level pointer.  Build the flags array. */
       /* Don't build the array if we don't need it. */
       if (ptr_flags_var != NULL) {
         *ptr_flags_var = ptr_flags_var_for_type(eff_type);
       }  /* if */
       eff_type = under_ptr;
-      while (is_pointer_type(eff_type)) eff_type = type_pointed_to(eff_type);
+      while (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
+        eff_type = type_pointed_to(eff_type);
+      }  /* while */
     } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
     /* Do not insert code here. */
