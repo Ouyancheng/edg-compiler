@@ -1092,6 +1092,8 @@ This routine does not call end_error.
 {
   an_arg_operand_ptr arg_operand;
 
+  check_assertion(expr_stack != NULL &&
+                  !expr_stack->suppress_diagnostics);
   /* Display nothing if the argument list is empty. */
   if (arg_operand_list != NULL) {
     set_up_for_argument_type_formatting();
@@ -1128,6 +1130,8 @@ call end_error.
   char               *opname = opname_names[(int)kind];
   unsigned long      num;
 
+  check_assertion(expr_stack != NULL &&
+                  !expr_stack->suppress_diagnostics);
   set_up_for_argument_type_formatting();
   /* Normal cases:
         unop type1
@@ -1312,6 +1316,8 @@ call.
   a_symbol_ptr             function_sym;
   an_error_code            err_code;
 
+  check_assertion(expr_stack != NULL &&
+                  !expr_stack->suppress_diagnostics);
   for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
     /* Print each candidate function. */
     function_sym = cfp->function_symbol;
@@ -6119,19 +6125,21 @@ in_instantiation:
          selector expression, so issue a different error message. */
       /* A nonstatic member function is used someplace where there is no
          "this" available, e.g., outside of a member function. */
-      pos_error(ec_member_ref_requires_object, call_position);
+      expr_pos_error(ec_member_ref_requires_object, call_position);
     } else if (sym_is_undefined && !some_function_tried) {
       /* The function symbol is not defined, and no functions were added
          by argument-dependent lookup, so the best diagnostic is one
          that says the name is undefined. */
       enter_undefined_symbol(overloaded_function_symbol);
-      pos_st_error(ec_undefined_identifier, call_position,
-                   overloaded_function_symbol->header->identifier);
+      if (expr_error_should_be_issued()) {
+        pos_st_error(ec_undefined_identifier, call_position,
+                     overloaded_function_symbol->header->identifier);
+      }  /* if */
     } else if (overloaded_function_symbol == NULL) {
       /* Call of class object, no operator() or appropriate conversion
          functions to pointer to function type. */
       check_assertion(surrogate_function_conv_sym != NULL);
-      pos_error(ec_bad_call_of_class_object, call_position);
+      expr_pos_error(ec_bad_call_of_class_object, call_position);
     } else {
       /* Normal case. */
       a_type_ptr object_type = NULL;
@@ -6156,10 +6164,12 @@ in_instantiation:
           err_none_applies = ec_function_does_not_match_arguments;
         }  /* if */
       }  /* if */
-      pos_sy_start_error(err_none_applies, call_position,
-                         overloaded_function_symbol);
-      display_argument_list_types(object_type, arg_operand_list);
-      end_error();
+      if (expr_error_should_be_issued()) {
+        pos_sy_start_error(err_none_applies, call_position,
+                           overloaded_function_symbol);
+        display_argument_list_types(object_type, arg_operand_list);
+        end_error();
+      }  /* if */
     }  /* if */
   } else if (ambiguous) {
     /* More than one function applies and is a best match -- ambiguity. */
@@ -6173,8 +6183,10 @@ in_instantiation:
         is_ambiguous_by_inheritance(candidate_functions->function_symbol)) {
       /* For a case involving a single function name that's ambiguous
          by inheritance, use a simpler message. */
-      pos_sy_error(ec_ambiguous_name, call_position,
-                   overloaded_function_symbol);
+      if (expr_error_should_be_issued()) {
+        pos_sy_error(ec_ambiguous_name, call_position,
+                     overloaded_function_symbol);
+      }  /* if */
     } else {
       /* Use a special diagnostic for a call that includes surrogate
          functions. */
@@ -6194,18 +6206,24 @@ in_instantiation:
         if (bound_function_selector->selector_is_object_pointer) {
           object_class_type = type_pointed_to(object_class_type);
         }  /* if */
-        pos_ty_start_error(ec_ambiguous_class_call, call_position,
-                           object_class_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty_start_error(ec_ambiguous_class_call, call_position,
+                             object_class_type);
+        }  /* if */
       } else {
         /* Normal case (not a class call). */
         check_assertion(overloaded_function_symbol != NULL);
-        pos_sy_start_error(err_ambiguous, call_position,
-                           overloaded_function_symbol);
+        if (expr_error_should_be_issued()) {
+          pos_sy_start_error(err_ambiguous, call_position,
+                             overloaded_function_symbol);
+        }  /* if */
       }  /* if */
-      diagnose_overload_ambiguity(candidate_functions,
-                                  bound_function_selector,
-                                  arg_operand_list,
-                                  (an_opname_kind)onk_none);
+      if (expr_error_should_be_issued()) {
+        diagnose_overload_ambiguity(candidate_functions,
+                                    bound_function_selector,
+                                    arg_operand_list,
+                                    (an_opname_kind)onk_none);
+      }  /* if */
     }  /* if */
   } else {
     /* Exactly one function applies and is best. */
@@ -6284,11 +6302,11 @@ Issue any suggested warning recorded in an argument match summary.
 */
 {
   if (amsp->conversion.std.warning_suggested != ec_no_error) {
-    pos_warning(amsp->conversion.std.warning_suggested, err_pos);
+    expr_pos_warning(amsp->conversion.std.warning_suggested, err_pos);
   } else if (amsp->const_anachronism) {
     /* This call depends on the anachronism that allows a non-const function
        to be called with a const object. */
-    pos_warning(ec_const_function_anachronism, err_pos);
+    expr_pos_warning(ec_const_function_anachronism, err_pos);
   }  /* if */
 }  /* issue_warning_from_arg_match_summary */
 
@@ -6613,8 +6631,8 @@ intermediate language (operand should be NULL in that case).
        symbol.  Templates are also treated like overloaded functions. */
     make_locator_for_symbol(function_symbol, &function_symbol_locator);
     function_symbol_locator.source_position = *id_position;
-    overload_check_ambiguity_and_verify_access(&function_symbol_locator,
-                                               overloaded_function_symbol);
+    expr_overload_check_ambiguity_and_verify_access(&function_symbol_locator,
+                                                   overloaded_function_symbol);
   } else {
     /* Non-overloaded function; use the normal routine.
        overloaded_function_symbol is either the same as function_symbol
@@ -6622,7 +6640,7 @@ intermediate language (operand should be NULL in that case).
     make_locator_for_symbol(overloaded_function_symbol,
                             &function_symbol_locator);
     function_symbol_locator.source_position = *id_position;
-    check_ambiguity_and_verify_access(&function_symbol_locator);
+    expr_check_ambiguity_and_verify_access(&function_symbol_locator);
   }  /* if */
   *access_error_reported =
                          function_symbol_locator.access_control_error_reported;
@@ -6871,7 +6889,8 @@ source position of the member name reference.
     } else {
       /* If the member is protected, it can only be accessed through an object
          or pointer of a type to which we have member access (ARM 11.5). */
-      if (do_protected_member_check && !access_control_error_reported) {
+      if (do_protected_member_check && !access_control_error_reported &&
+          expr_access_checking_should_be_done()) {
         (void)check_protected_member_access(member_sym, projection_member_sym,
                                             member_pos,
                                             class_struct_union_type);
@@ -7119,7 +7138,7 @@ is TRUE, is set only when is_implicit is FALSE.  The operand is an rvalue.
       make_expression_operand(node, result);
     } else {
       /* "this" cannot be captured. */
-      pos_error(ec_not_captured_this_in_lambda, position);
+      expr_pos_error(ec_not_captured_this_in_lambda, position);
       make_error_operand(result);
     }  /* if */
   } else {
@@ -7179,7 +7198,7 @@ wondering if it's available.
   /* This routine is similar to cast_pointer_for_field_selection. */
   if (curr_expr_kind_is_const()) {
     /* Nonstatic members are not allowed in constant expressions. */
-    pos_error(ec_expr_not_constant, member_pos);
+    expr_pos_error(ec_expr_not_constant, member_pos);
     make_error_operand(result);
     okay = FALSE;
   } else {
@@ -7217,7 +7236,7 @@ wondering if it's available.
     if (!okay) {
       /* The "this" pointer cannot be used (it doesn't exist or it has
          no relationship to the member). */
-      pos_error(ec_member_ref_requires_object, member_pos);
+      expr_pos_error(ec_member_ref_requires_object, member_pos);
       make_error_operand(result);
     } else {
       /* The "this" pointer can be used to access the member. */
@@ -7939,12 +7958,14 @@ specifier).
        lots of code that prints pointers using %lx. */
   } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
     /* The types are not exactly the same, but they are interchangeable. */
-    pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
+    if (expr_diagnostic_should_be_issued(es_remark, ec_printf_arg_mismatch)) {
+      pos_remark(ec_printf_arg_mismatch, &argument_operand->position);
+    }  /* if */
   } else {
     /* The argument type does not match the required type. */
 mismatch:
     if (!is_error_type(eff_argument_type)) {
-      pos_warning(ec_printf_arg_mismatch, &argument_operand->position);
+      expr_pos_warning(ec_printf_arg_mismatch, &argument_operand->position);
     }  /* if */
   }  /* if */
 }  /* check_printf_scanf_arg */
@@ -8147,12 +8168,12 @@ next parameter.
         if (microsoft_mode && C_mode()) {
           /* MSVC++ 4.2 allows extra arguments with just a warning in
              C mode. */
-          pos_warning(ec_too_many_arguments, &operand->position);
+          expr_pos_warning(ec_too_many_arguments, &operand->position);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          pos_error(ec_too_many_arguments, &operand->position);
+          expr_pos_error(ec_too_many_arguments, &operand->position);
         }  /* if */
       }  /* if */
       arg_block->have_param_info = FALSE;
@@ -8165,7 +8186,7 @@ next parameter.
       if (arg_block->varargs_count == NOT_LINT_VARARGS) {
         /* A lint-style varargs comment does not apply, so warning:
            extra actual argument. */
-        pos_warning(ec_too_many_arguments, &operand->position);
+        expr_pos_warning(ec_too_many_arguments, &operand->position);
         arg_block->have_param_info = FALSE;
       }  /* if */
     }  /* if */
@@ -8209,8 +8230,8 @@ next parameter.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (severity != (an_error_severity)es_none) {
-          pos_diagnostic(severity, ec_old_style_incompatible_param,
-                         &operand->position);
+          expr_pos_diagnostic(severity, ec_old_style_incompatible_param,
+                              &operand->position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8228,7 +8249,8 @@ next parameter.
     if (ptp->nonnull && op_is_null_pointer_value(operand)) {
       /* The parameter carries the GNU "nonnull" attribute and a null pointer
          is passed through it. */
-      pos_warning(ec_null_argument_for_nonnull_parameter, &operand->position);
+      expr_pos_warning(ec_null_argument_for_nonnull_parameter,
+                       &operand->position);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -8325,8 +8347,8 @@ arguments).
       explicit_position_seen = TRUE;
       if (value_pos == -2) {
         /* The format specifier was zero (e.g. "%00$s"), which is invalid. */
-        pos_warning(ec_positional_format_specifier_zero,
-                    &arg_block->closing_paren_position);
+        expr_pos_warning(ec_positional_format_specifier_zero,
+                         &arg_block->closing_paren_position);
         break;
       } else if (value_pos == -1) {
         /* The position was larger than what we are willing to check.
@@ -8352,20 +8374,20 @@ arguments).
       /* There is no argument at the given position: Issue a warning if one
          was expected and stop further checking. */
       if (type != NULL) {
-        pos_warning(ec_too_few_printf_args,
-                    &arg_block->closing_paren_position);
+        expr_pos_warning(ec_too_few_printf_args,
+                         &arg_block->closing_paren_position);
       }  /* if */
       break;
     } else if (fmt_string == NULL) {
       /* An error occurred while scanning the specifier.  Issue a warning and
          stop the checking process here. */
-      pos_warning(ec_bad_printf_format_string, &arg->operand.position);
+      expr_pos_warning(ec_bad_printf_format_string, &arg->operand.position);
       break;
     } else if (type == NULL) {
       /* There were no more formatting specifiers.  If explicit position
          fields were seen, arg can validly be non-NULL. */
       if (!explicit_position_seen) {
-        pos_warning(ec_too_many_printf_args, &arg->operand.position);
+        expr_pos_warning(ec_too_many_printf_args, &arg->operand.position);
       }  /* if */
       break;
     }  /* if */
@@ -8385,8 +8407,8 @@ is a constant null pointer.
 */
 {
   if (arg_block->arg_ctr < arg_block->sentinel_pos) {
-    pos_warning(ec_no_gnu_sentinel_argument,
-                &arg_block->closing_paren_position);
+    expr_pos_warning(ec_no_gnu_sentinel_argument,
+                     &arg_block->closing_paren_position);
   } else {
     an_operand        *sentinel;
     int               k = arg_block->arg_ctr - arg_block->sentinel_pos;
@@ -8410,14 +8432,14 @@ is a constant null pointer.
          the sentinel position is otherwise valid (constant null pointer) or
          not. */
       if (valid_sentinel_value) {
-        pos_warning(ec_gnu_sentinel_must_be_ellipsis_argument,
-                    &sentinel->position);
+        expr_pos_warning(ec_gnu_sentinel_must_be_ellipsis_argument,
+                         &sentinel->position);
       } else {
-        pos_warning(ec_no_gnu_sentinel_argument,
-                    &arg_block->closing_paren_position);
+        expr_pos_warning(ec_no_gnu_sentinel_argument,
+                         &arg_block->closing_paren_position);
       }  /* if */
     } else if (!valid_sentinel_value) {
-      pos_warning(ec_invalid_gnu_sentinel_argument, &sentinel->position);
+      expr_pos_warning(ec_invalid_gnu_sentinel_argument, &sentinel->position);
     }  /* if */
   }  /* if */
 }  /* warn_if_missing_sentinel */
@@ -8454,7 +8476,8 @@ list checking (e.g., for the presence of too few arguments).
       } else {
         /* No default arguments. */
         /* Error: too few actual arguments. */
-        pos_error(ec_too_few_arguments, &arg_block->closing_paren_position);
+        expr_pos_error(ec_too_few_arguments,
+                       &arg_block->closing_paren_position);
       }  /* if */
       /* Suppress the end-of-printf check below. */
       arg_block->fmt_string = NULL;
@@ -8465,7 +8488,8 @@ list checking (e.g., for the presence of too few arguments).
          arg_block->curr_param_type != NULL) ||
         arg_block->arg_ctr < arg_block->varargs_count) {
       /* Warning: too few actual arguments. */
-      pos_warning(ec_too_few_arguments, &arg_block->closing_paren_position);
+      expr_pos_warning(ec_too_few_arguments,
+                       &arg_block->closing_paren_position);
     }  /* if */
   }  /* if */
 }  /* process_end_of_call_arguments */
@@ -10904,12 +10928,14 @@ Adjust the operand type to match the type requirement.
         /* A NULL ambiguity_list indicates a case that was undecidable because
            of an error (no additional error is needed). */
         if (ambiguity_list != NULL) {
-          pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
-                             &operand->position, operand->type);
-          diagnose_overload_ambiguity(ambiguity_list,
-                                      (an_operand *)NULL,
-                                      (an_arg_operand_ptr)NULL,
-                                      (an_opname_kind)onk_none);
+          if (expr_error_should_be_issued()) {
+            pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
+                               &operand->position, operand->type);
+            diagnose_overload_ambiguity(ambiguity_list,
+                                        (an_operand *)NULL,
+                                        (an_arg_operand_ptr)NULL,
+                                        (an_opname_kind)onk_none);
+          }  /* if */
           free_candidate_function_list(ambiguity_list);
         }  /* if */
         conv_to_error_operand(operand);
@@ -11389,11 +11415,13 @@ select_best_function:
           } else {
             /* Error: no applicable operator function. */
             *processed = TRUE;
-            pos_st_start_error(ec_no_matching_operator_function,
-                               operator_position,
-                               opname_names[(int)kind]);
-            display_operand_types(arg_operand_list, kind);
-            end_error();
+            if (expr_error_should_be_issued()) {
+              pos_st_start_error(ec_no_matching_operator_function,
+                                 operator_position,
+                                 opname_names[(int)kind]);
+              display_operand_types(arg_operand_list, kind);
+              end_error();
+            }  /* if */
             make_error_operand(result);
             arg_operand_list_not_used = TRUE;
           }  /* if */
@@ -11406,12 +11434,15 @@ select_best_function:
             db_candidate_function_list(candidate_functions);
           }  /* if */
 #endif /* DEBUG */
-          pos_st_start_error(ec_ambiguous_operator_function, operator_position,
-                             opname_names[(int)kind]);
-          diagnose_overload_ambiguity(candidate_functions,
-                                      (an_operand *)NULL,
-                                      arg_operand_list,
-                                      kind);
+          if (expr_error_should_be_issued()) {
+            pos_st_start_error(ec_ambiguous_operator_function,
+                               operator_position,
+                               opname_names[(int)kind]);
+            diagnose_overload_ambiguity(candidate_functions,
+                                        (an_operand *)NULL,
+                                        arg_operand_list,
+                                        kind);
+          }  /* if */
           make_error_operand(result);
           arg_operand_list_not_used = TRUE;
         } else {
@@ -12127,12 +12158,14 @@ Issue an error and set *processed to TRUE if the conversion is ambiguous.
       /* A NULL ambiguity_list indicates a case that was undecidable because
          of an error (no additional error is needed). */
       if (ambiguity_list != NULL) {
-        pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
-                           &operand->position, operand->type);
-        diagnose_overload_ambiguity(ambiguity_list,
-                                    (an_operand *)NULL,
-                                    (an_arg_operand_ptr)NULL,
-                                    (an_opname_kind)onk_none);
+        if (expr_error_should_be_issued()) {
+          pos_ty_start_error(ec_ambiguous_conversion_to_builtin,
+                             &operand->position, operand->type);
+          diagnose_overload_ambiguity(ambiguity_list,
+                                      (an_operand *)NULL,
+                                      (an_arg_operand_ptr)NULL,
+                                      (an_opname_kind)onk_none);
+        }  /* if */
         free_candidate_function_list(ambiguity_list);
       }  /* if */
       conv_to_error_operand(operand);
@@ -12282,18 +12315,22 @@ a reference type (the caller should have rewritten that case).
                  is_class_struct_union_type(dest_type)) {
         /* Conversion to an incomplete class type is not possible (in this
            case, anyway).  Use a different message for clarity. */
-        pos_ty_error(ec_converting_to_incomplete_class,
-                     &source_operand->position, diag_dest_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_converting_to_incomplete_class,
+                       &source_operand->position, diag_dest_type);
+        }  /* if */
       } else {
         /* Put out the usual message (which has already been chosen to
            describe the problem). */
-        if (single_type_message) {
-          /* Single-type case. */
-          pos_ty_error(err_code, &source_operand->position, class_type);
-        } else {
-          /* Normal double-type case. */
-          type2_error_in_operand(err_code, source_operand,
-                                 source_type, diag_dest_type);
+        if (expr_error_should_be_issued()) {
+          if (single_type_message) {
+            /* Single-type case. */
+            pos_ty_error(err_code, &source_operand->position, class_type);
+          } else {
+            /* Normal double-type case. */
+            type2_error_in_operand(err_code, source_operand,
+                                   source_type, diag_dest_type);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -12301,16 +12338,19 @@ a reference type (the caller should have rewritten that case).
       /* A NULL ambiguity_list indicates a case that was undecidable because
          of an error (no additional error is needed). */
       if (ambiguity_list != NULL) {
-        if (single_type_message) {
-          pos_ty_start_error(err_code, &source_operand->position, class_type);
-        } else {
-          pos_ty2_start_error(err_code, &source_operand->position,
-                              source_type, diag_dest_type);
+        if (expr_error_should_be_issued()) {
+          if (single_type_message) {
+            pos_ty_start_error(err_code, &source_operand->position,
+                               class_type);
+          } else {
+            pos_ty2_start_error(err_code, &source_operand->position,
+                                source_type, diag_dest_type);
+          }  /* if */
+          diagnose_overload_ambiguity(ambiguity_list,
+                                      (an_operand *)NULL,
+                                      (an_arg_operand_ptr)NULL,
+                                      (an_opname_kind)onk_none);
         }  /* if */
-        diagnose_overload_ambiguity(ambiguity_list,
-                                    (an_operand *)NULL,
-                                    (an_arg_operand_ptr)NULL,
-                                    (an_opname_kind)onk_none);
         free_candidate_function_list(ambiguity_list);
       }  /* if */
     }  /* if */
@@ -12336,15 +12376,18 @@ source_type to dest_type.
        must obey certain rules, but they don't in this case.  (GNU
        compilers don't diagnose this: We issue a warning when emulating
        those compilers.) */
-    pos_diagnostic(gpp_mode ? es_warning : es_error,
-                   ec_incompatible_exception_specs, err_pos);
+    expr_pos_diagnostic(gpp_mode ? es_warning : es_error,
+                        ec_incompatible_exception_specs, err_pos);
   }  /* if */
   /* Warn on oddball conversions. */
   if (std_conv->warning_suggested != ec_no_error) {
     /* The "opt_ty2" routine puts in the types if the specific error
        message has fill-ins for them, and otherwise ignores the types. */
-    pos_opt_ty2_warning(std_conv->warning_suggested, err_pos,
-                        source_type, dest_type);
+    if (expr_diagnostic_should_be_issued(es_warning,
+                                         std_conv->warning_suggested)) {
+      pos_opt_ty2_warning(std_conv->warning_suggested, err_pos,
+                          source_type, dest_type);
+    }  /* if */
     conversion->std.warning_suggested = ec_no_error;
   }  /* if */
 }  /* issue_any_conversion_diagnostics */
@@ -12466,21 +12509,25 @@ NULL, the operand is not a parameter.
           /* In assignments and initializations, exception specifications
              under pointers-to-functions and pointers-to-member-functions
              must obey certain rules, but they don't in this case. */
-          pos_error(ec_incompatible_exception_specs, err_pos);
+          expr_pos_error(ec_incompatible_exception_specs, err_pos);
         }  /* if */
       } else if (unknown_dependent_function) {
         okay = TRUE;
         conversion->unknown_dependent_conversion = TRUE;
       } else if (ambiguous) {
         /* More than one function matches. */
-        pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,
-                     source_operand->variant.symbol);
+        if (expr_error_should_be_issued()) {
+          pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,
+                       source_operand->variant.symbol);
+        }  /* if */
         conv_to_error_operand(source_operand);
       } else {
         /* No match. */
         if (!is_error_type(dest_type)) {
-          pos_sy_error(ec_no_match_for_addr_of_overloaded_function, err_pos,
-                       source_operand->variant.symbol);
+          if (expr_error_should_be_issued()) {
+            pos_sy_error(ec_no_match_for_addr_of_overloaded_function, err_pos,
+                         source_operand->variant.symbol);
+          }  /* if */
         }  /* if */
         conv_to_error_operand(source_operand);
       }  /* if */
@@ -12538,10 +12585,12 @@ NULL, the operand is not a parameter.
 error:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* The conversion is not legal. */
-      /* The "opt_ty2" routine puts in the types if the specific error
-         message has fill-ins for them, and otherwise ignores the types. */
-      pos_opt_ty2_error(incompatible_err, err_pos,
-                        source_type, orig_dest_type);
+      if (expr_error_should_be_issued()) {
+        /* The "opt_ty2" routine puts in the types if the specific error
+           message has fill-ins for them, and otherwise ignores the types. */
+        pos_opt_ty2_error(incompatible_err, err_pos,
+                          source_type, orig_dest_type);
+      }  /* if */
       conv_to_error_operand(source_operand);
     }  /* if */
   }  /* if */
@@ -12608,7 +12657,7 @@ is used only in C++ mode.
   if (cfront_2_1_mode &&
       is_const_qualified_type(operand->type)) {
     if (!(routine_type->variant.routine.extra_info->qualifiers & TQ_CONST)) {
-      pos_warning(ec_const_function_anachronism, &operand->position);
+      expr_pos_warning(ec_const_function_anachronism, &operand->position);
       /* prep_special_selector_operand (call below) will drop the const. */
     }  /* if */
   }  /* if */
@@ -12649,7 +12698,7 @@ is used only in C++ mode.
         is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {
     /* The constructor is a trivial bitwise copy constructor. */
     *class_bitwise_copy = TRUE;
-    reference_to_trivial_copy_constructor(ctor_class, &operand->position);
+    expr_reference_to_trivial_copy_constructor(ctor_class, &operand->position);
     if (ctor_arg_conversion == NULL ||
         is_null_user_conv_descr(ctor_arg_conversion)) {
       /* No user-defined conversion on the argument, so this is a simple
@@ -12844,8 +12893,8 @@ the temporary.
     prep_class_bitwise_copy_operand(operand, dest_type);
     if (force_copy_to_temp) {
       /* Make a copy of the class object in a temporary. */
-      reference_to_trivial_copy_constructor(operand->type,
-                                            &operand->position);
+      expr_reference_to_trivial_copy_constructor(operand->type,
+                                                 &operand->position);
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_lvalue=*/FALSE,
                                              is_explicit_cast);
@@ -13092,8 +13141,11 @@ See conversion_possible for the meaning of is_transparent.
     /* Some conversions are not allowed on a nontype template argument. */
     if (nontype_template_arg &&
         !conversion_allowed_for_nontype_template_argument(&conversion->std)) {
-      pos_ty2_diagnostic(es_discretionary_error, incompatible_err, err_pos,
-                         source_operand->type, dest_type);
+      if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                           incompatible_err)) {
+        pos_ty2_diagnostic(es_discretionary_error, incompatible_err, err_pos,
+                           source_operand->type, dest_type);
+      }  /* if */
     }  /* if */
     /* The types are compatible.  Do the conversion. */
     /* Force the result to be an rvalue. */
@@ -13156,22 +13208,33 @@ elided_cctor is passed as NULL.
       /* A bitwise copy is allowed.  The trivial copy constructor is usually
          public, but it can be nonpublic if it's user-declared and
          defaulted. */
-      reference_to_trivial_copy_constructor(class_type, err_pos);
+      expr_reference_to_trivial_copy_constructor(class_type, err_pos);
     } else if (ambiguous) {
       /* More than one applicable copy constructor. */
-      pos_ty_diagnostic(strict_ansi_discretionary_severity,
-                        ec_ambiguous_copy_constructor, err_pos, class_type);
+      if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
+                                           ec_ambiguous_copy_constructor)) {
+        pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                          ec_ambiguous_copy_constructor, err_pos, class_type);
+      }  /* if */
     } else if (uncallable) {
       /* The copy constructor that might have been used is uncallable,
          e.g., because its input parameter cannot be bound to an rvalue. */
-      pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                        ec_uncallable_elided_cctor,
-                        err_pos, cctor_sym);
+      if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
+                                           ec_uncallable_elided_cctor)) {
+        pos_sy_diagnostic(strict_ansi_discretionary_severity,
+                          ec_uncallable_elided_cctor,
+                          err_pos, cctor_sym);
+      }  /* if */
     } else if (cctor_sym == NULL) {
       /* No applicable copy constructor. */
-      pos_ty_diagnostic(strict_ansi_discretionary_severity,
-                        ec_no_suitable_copy_constructor, err_pos, class_type);
-    } else if (!have_access_to_symbol(cctor_sym)) {
+      if (expr_diagnostic_should_be_issued(strict_ansi_discretionary_severity,
+                                           ec_no_suitable_copy_constructor)) {
+        pos_ty_diagnostic(strict_ansi_discretionary_severity,
+                          ec_no_suitable_copy_constructor, err_pos,
+                          class_type);
+      }  /* if */
+    } else if (expr_access_checking_should_be_done() &&
+               !have_access_to_symbol(cctor_sym)) {
       /* The copy constructor is inaccessible. */
       record_access_error(cctor_sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
                           err_pos, (a_symbol_locator*)NULL,
@@ -13355,8 +13418,8 @@ happen only in C++ mode.
       }  /* if */
     }  /* if */
     if (class_bitwise_copy) {
-      reference_to_trivial_copy_constructor(class_type,
-                                            &source_operand->position);
+      expr_reference_to_trivial_copy_constructor(class_type,
+                                                 &source_operand->position);
     }  /* if */
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion to or from an unknown template-dependent type in a
@@ -13434,15 +13497,13 @@ happen only in C++ mode.
           conversion_routine = NULL;
         } else {
           /* See if an appropriate copy constructor exists. */
-          conversion_routine = select_copy_constructor(
+          conversion_routine = expr_select_copy_constructor(
                                 class_type,
                                 get_type_qualifiers(source_operand->type),
                                 is_an_rvalue(source_operand),
-                                &source_operand->position, class_type,
+                                &source_operand->position,
                                 &class_bitwise_copy,
-                                /*record_ref=*/TRUE,
-                                curr_expr_is_potentially_evaluated(),
-                                /*allow_suppressed_ctor=*/FALSE);
+                                /*record_ref=*/TRUE);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -13803,15 +13864,13 @@ temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
       /* A copy constructor must be used.  An error is issued if there
          is no applicable copy constructor.  No access checking is done
          here because set_up_for_constructor_call does it below. */
-      cctor_routine = select_copy_constructor(
+      cctor_routine = expr_select_copy_constructor(
                                 unqual_temp_type,
                                 get_type_qualifiers(operand->type),
                                 is_an_rvalue(operand),
-                                &operand->position, unqual_temp_type,
+                                &operand->position,
                                 &class_bitwise_copy,
-                                /*record_ref=*/FALSE,
-                                curr_expr_is_potentially_evaluated(),
-                                /*allow_suppressed_ctor=*/FALSE);
+                                /*record_ref=*/FALSE);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */
@@ -14165,9 +14224,11 @@ direct binding is "possible" and not whether it is "valid".
                                                &ambiguous);
     if (ambiguous) {
       /* More than one function matches. */
-      pos_sy_error(ec_ambiguous_ptr_to_overloaded_function,
-                   &source_operand->position,
-                   source_operand->variant.symbol);
+      if (expr_error_should_be_issued()) {
+        pos_sy_error(ec_ambiguous_ptr_to_overloaded_function,
+                     &source_operand->position,
+                     source_operand->variant.symbol);
+      }  /* if */
       conv_to_error_operand(source_operand);
     } else if (unknown_dependent_function) {
       type_is_correct_or_derived = TRUE;
@@ -14290,9 +14351,9 @@ Issue a warning if it is a local entity.
       /* The expression is an lvalue or class rvalue (object) for a local
          entity.  Use a different message for temporaries and local
          variables. */
-      pos_warning(is_temp ? ec_return_ref_init_requires_temp :
-                            ec_returning_ref_to_local_variable,
-                  &operand->position);
+      expr_pos_warning(is_temp ? ec_return_ref_init_requires_temp :
+                                 ec_returning_ref_to_local_variable,
+                       &operand->position);
     }  /* if */
   }  /* if */
 }  /* check_for_returning_reference_to_local_entity */
@@ -14489,20 +14550,23 @@ been found to be acceptable, and *conversion describes it.
     }  /* if */
   } else if (is_rvalue_ref && !is_an_rvalue(source_operand)) {
     /* An rvalue reference cannot be bound to an lvalue. */
-    pos_error(ec_rvalue_reference_bound_to_lvalue, &source_operand->position);
+    expr_pos_error(ec_rvalue_reference_bound_to_lvalue,
+                   &source_operand->position);
     conv_to_error_operand(source_operand);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
     if (ambiguity_list != NULL) {
       /* The conversion is ambiguous.  Put out an error. */
-      pos_ty2_start_error(ec_ambiguous_conversion_function,
-                          &source_operand->position, orig_source_type,
-                          base_dest_type);
-      diagnose_overload_ambiguity(ambiguity_list,
-                                  (an_operand *)NULL,
-                                  (an_arg_operand_ptr)NULL,
-                                  (an_opname_kind)onk_none);
+      if (expr_error_should_be_issued()) {
+        pos_ty2_start_error(ec_ambiguous_conversion_function,
+                            &source_operand->position, orig_source_type,
+                            base_dest_type);
+        diagnose_overload_ambiguity(ambiguity_list,
+                                    (an_operand *)NULL,
+                                    (an_arg_operand_ptr)NULL,
+                                    (an_opname_kind)onk_none);
+      }  /* if */
       free_candidate_function_list(ambiguity_list);
       conv_to_error_operand(source_operand);
     } else {
@@ -14518,7 +14582,7 @@ been found to be acceptable, and *conversion describes it.
       */
       if (!strict_ansi_mode ||
           !curr_expr_is_potentially_evaluated()) {
-        pos_warning(ec_null_reference, &source_operand->position);
+        expr_pos_warning(ec_null_reference, &source_operand->position);
       } else {
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */
@@ -14527,9 +14591,12 @@ been found to be acceptable, and *conversion describes it.
                find_base_class_of(orig_source_type, base_dest_type) != NULL) {
       /* A derived-base binding is not allowed in a nontype template
          argument. */
-      pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
-                         &source_operand->position, orig_source_type,
-                         dest_type);
+      if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                           incompatible_err)) {
+        pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
+                           &source_operand->position, orig_source_type,
+                           dest_type);
+      }  /* if */
     }  /* if */
     /* Do any base-class or cv-qualifier adjustment. */
     adjust_lvalue_type(source_operand, adj_base_dest_type);
@@ -14569,9 +14636,9 @@ been found to be acceptable, and *conversion describes it.
          diagnose this.) */
       if (!exception_spec_conversion_possible(source_operand->type,
                                               base_dest_type)) {
-        pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
-                       ec_incompatible_exception_specs,
-                       &source_operand->position);
+        expr_pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
+                            ec_incompatible_exception_specs,
+                            &source_operand->position);
       }  /* if */
     }  /* if */
   } else if ((direct_binding_possible || dropping_qualifiers) &&
@@ -14617,16 +14684,18 @@ been found to be acceptable, and *conversion describes it.
     full_adjust_class_object_type(source_operand, adj_base_dest_type);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
-      if (bitwise_assignment_param) {
-        /* Use a different message for the bitwise operator= case.  The
-           normal message is confusing to programmers. */
-        pos_ty_error(ec_no_suitable_assignment_operator,
-                     &source_operand->position,
-                     f_skip_typerefs(base_dest_type));
-      } else {
-        pos_ty2_error(ec_qualifier_dropped_in_ref_init,
-                      &source_operand->position,
-                      dest_type, orig_source_type);
+      if (expr_error_should_be_issued()) {
+        if (bitwise_assignment_param) {
+          /* Use a different message for the bitwise operator= case.  The
+             normal message is confusing to programmers. */
+          pos_ty_error(ec_no_suitable_assignment_operator,
+                       &source_operand->position,
+                       f_skip_typerefs(base_dest_type));
+        } else {
+          pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                        &source_operand->position,
+                        dest_type, orig_source_type);
+        }  /* if */
       }  /* if */
       conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
@@ -14652,11 +14721,11 @@ been found to be acceptable, and *conversion describes it.
            anachronism to allow this. */
         err_severity = es_warning;
       }  /* if */
-      pos_diagnostic(err_severity,
-                     ref_to_const_volatile ?
+      expr_pos_diagnostic(err_severity,
+                          ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_from_rvalue :
                                        ec_nonconst_ref_init_from_rvalue,
-                     &source_operand->position);
+                          &source_operand->position);
       if ((int)err_severity > (int)es_warning) {
         conv_to_error_operand(source_operand);
       }  /* if */
@@ -14687,9 +14756,11 @@ been found to be acceptable, and *conversion describes it.
          cannot be used to drop the qualifiers.  cfront allows dropping
          qualifiers when passing nonclass arguments (class cases were
          handled above). */
-      pos_ty2_error(ec_qualifier_dropped_in_ref_init,
-                    &source_operand->position,
-                    dest_type, orig_source_type);
+      if (expr_error_should_be_issued()) {
+        pos_ty2_error(ec_qualifier_dropped_in_ref_init,
+                      &source_operand->position,
+                      dest_type, orig_source_type);
+      }  /* if */
       conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed &&
                !(allow_anachronisms ||
@@ -14706,11 +14777,13 @@ been found to be acceptable, and *conversion describes it.
                                        ec_nonconst_ref_init_from_rvalue,
                          source_operand);
       } else {
-        pos_ty2_error(ref_to_const_volatile ?
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ref_to_const_volatile ?
                                        ec_bad_const_volatile_ref_init :
                                        ec_bad_nonconst_ref_init,
-                      &source_operand->position,
-                      dest_type, orig_source_type);
+                        &source_operand->position,
+                        dest_type, orig_source_type);
+        }  /* if */
         conv_to_error_operand(source_operand);
       }  /* if */
     } else if (curr_expr_kind_is_const()) {
@@ -14742,10 +14815,10 @@ been found to be acceptable, and *conversion describes it.
                we're passing an argument, or if we have a constructed
                temporary in 2.1 mode, or if we're initializing a non-global
                in 3.0 mode. */
-            pos_warning(ref_to_const_volatile ?
+            expr_pos_warning(ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_anachronism :
                                        ec_nonconst_ref_init_anachronism,
-                        &source_operand->position);
+                             &source_operand->position);
             warn = TRUE;
           } else {
             /* cfront doesn't allow this case. */
@@ -14757,11 +14830,13 @@ been found to be acceptable, and *conversion describes it.
                                        ec_nonconst_ref_init_from_rvalue,
                                source_operand);
             } else {
-              pos_ty2_error(ref_to_const_volatile ?
+              if (expr_error_should_be_issued()) {
+                pos_ty2_error(ref_to_const_volatile ?
                                        ec_bad_const_volatile_ref_init :
                                        ec_bad_nonconst_ref_init,
-                            &source_operand->position,
-                            dest_type, orig_source_type);
+                              &source_operand->position,
+                              dest_type, orig_source_type);
+              }  /* if */
               conv_to_error_operand(source_operand);
             }  /* if */
             err = TRUE;
@@ -14775,11 +14850,11 @@ been found to be acceptable, and *conversion describes it.
             check_assertion(allow_anachronisms);
             severity = anachronism_error_severity;
           }  /* if */
-          pos_diagnostic(severity,
-                         ref_to_const_volatile ?
+          expr_pos_diagnostic(severity,
+                              ref_to_const_volatile ?
                                        ec_const_volatile_ref_init_anachronism :
                                        ec_nonconst_ref_init_anachronism,
-                         &source_operand->position);
+                              &source_operand->position);
           if (severity == es_error) {
             err = TRUE;
           } else {
@@ -14789,7 +14864,10 @@ been found to be acceptable, and *conversion describes it.
       }  /* if */
       if (!err && !warn) {
         /* Let the user know a temp was used. */
-        pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
+        if (expr_diagnostic_should_be_issued(es_remark,
+                                             ec_temp_used_for_ref_init)) {
+          pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -14925,8 +15003,10 @@ found to be acceptable, and *conversion describes it.
          cannot be passed.  This is usually caught when the parameter
          declaration is handled, but some modes allow such declarations
          by with a warning. */
-      abstract_class_diagnostic(es_error, ec_abstract_class_param_type,
-                                param_type, &source_operand->position);
+      if (expr_error_should_be_issued()) {
+        abstract_class_diagnostic(es_error, ec_abstract_class_param_type,
+                                  param_type, &source_operand->position);
+      }  /* if */
       conv_to_error_operand(source_operand);
     } else {
      /* Build an enk_temp_init node and a dynamic init entry that
@@ -15105,8 +15185,9 @@ cases where bitwise copying applies.
       /* The bitwise copy is defined in terms of a notional generated copy
          assignment operator which is not cv-qualified and therefore cannot
          assign into a cv-qualified left operand. */
-      pos_ty_error(ec_no_suitable_assignment_operator,
-                   err_pos, class_type);
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_no_suitable_assignment_operator, err_pos, class_type);
+      }  /* if */
     } else {
       /* The bitwise copy is defined in terms of a notional generated copy
          assignment operator whose parameter is a reference to const.
@@ -15411,8 +15492,10 @@ used only in C++ mode.
             /* Issue the ambiguity error.  Note that the base class is
                always the underlying type of op2, never of op1, in this
                case. */
-            pos_ty_error(ec_ambiguous_base_class, &op1->position,
-                         skip_typerefs(op2->type));
+            if (expr_error_should_be_issued()) {
+              pos_ty_error(ec_ambiguous_base_class, &op1->position,
+                           skip_typerefs(op2->type));
+            }  /* if */
             error_issued = TRUE;
           }  /* if */
         }  /* if */
@@ -15467,12 +15550,14 @@ used only in C++ mode.
   } else if (local_ambiguous) {
     /* The conversion is ambiguous.  Issue an error. */
     if (!error_issued) {
-      pos_ty2_start_error(ec_ambiguous_user_defined_conversion,
-                          &op1->position, op1->type, conv_dest_type);
-      diagnose_overload_ambiguity(ambiguity_list,
-                                  (an_operand *)NULL,
-                                  (an_arg_operand_ptr)NULL,
-                                  (an_opname_kind)onk_none);
+      if (expr_error_should_be_issued()) {
+        pos_ty2_start_error(ec_ambiguous_user_defined_conversion,
+                            &op1->position, op1->type, conv_dest_type);
+        diagnose_overload_ambiguity(ambiguity_list,
+                                    (an_operand *)NULL,
+                                    (an_arg_operand_ptr)NULL,
+                                    (an_opname_kind)onk_none);
+      }  /* if */
       free_candidate_function_list(ambiguity_list);
     }  /* if */
     conv_to_error_operand(op1);
@@ -15762,8 +15847,10 @@ to be copied.
        definition of an implicitly-declared copy assignment operator, it
        reports an error for such subobjects, rather than performing
        overload resolution among the remaining assignment operators. */
-    pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
-                 class_type);
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
+                   class_type);
+    }  /* if */
   } else {
 #if DEBUG
     overload_level++;
@@ -15815,30 +15902,32 @@ to be copied.
         /* There was a previously-reported error. */
       } else if (candidate_functions == NULL) {
         /* There is no applicable operator= function. */
-        if (is_const_qualified_type(source_expr->type)) {
-          /* The common case: missing const assignment operator function. */
-          pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
-                       class_type);
-        } else {
-          /* Unusual case: volatile or const-volatile expected. */
-          pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
-                       class_type);
+        if (expr_error_should_be_issued()) {
+          if (is_const_qualified_type(source_expr->type)) {
+            /* The common case: missing const assignment operator function. */
+            pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
+                         class_type);
+          } else {
+            /* Unusual case: volatile or const-volatile expected. */
+            pos_ty_error(ec_no_suitable_assignment_operator, dest_decl_pos,
+                         class_type);
+          }  /* if */
         }  /* if */
       } else if (ambiguous) {
         /* More than one operator= function applies and is a best match. */
-        pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
-                     class_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_ambiguous_assignment_operator, dest_decl_pos,
+                       class_type);
+        }  /* if */
       } else {
         /* Exactly one operator= function applies and is best. */
         proj_function_symbol = candidate_functions->function_symbol;
         function_symbol = fundamental_symbol_of(proj_function_symbol);
         /* Check that the function is accessible and mark it referenced. */
-        reference_to_implicitly_invoked_function(proj_function_symbol,
-                                                 dest_decl_pos,
-                                                 (a_type_ptr)NULL,
-                                                 /*honor_virtual=*/FALSE,
-                                                 /*evaluated=*/TRUE,
-                                                 /*instantiate=*/TRUE);
+        expr_reference_to_implicitly_invoked_function(proj_function_symbol,
+                                                      dest_decl_pos,
+                                                      (a_type_ptr)NULL,
+                                                      /*honor_virtual=*/FALSE);
         rout = function_symbol->variant.routine.ptr;
       }  /* if */
       free_candidate_function_list(candidate_functions);
@@ -15877,13 +15966,13 @@ Deduction failures are diagnosed as errors.
                              (a_template_arg *)NULL,
                              &qc_param_type, &qc_arg_type,
                              (a_boolean *)NULL)) {
-    pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+    expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     goto set_type;
   }  /* if */
   if (!deduce_from_one_pair(type, arg_type, qc_param_type, qc_arg_type,
                             &templ_arg, templ_param)) {
     /* Deduction failed. */
-    pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+    expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     goto set_type;
   }  /* if */
   if (templ_arg == NULL) {
@@ -15900,7 +15989,7 @@ Deduction failures are diagnosed as errors.
                                           CTWS_NO_OPTIONS, &subst_error);
   if (subst_error) {
     /* Substitution failed. */
-    pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+    expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     dps->type = NULL;
     goto set_type;
   }  /* if */
@@ -15909,8 +15998,10 @@ Deduction failures are diagnosed as errors.
     /* This is a declaration with multiple declarators and the type deduced
        for a previous declarator is not consistent with the current deduction:
        Issue an error. */
-    pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
-                  templ_arg->variant.type, dps->deduced_auto_type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_inconsistent_deduction_of_auto, &dps->declarator_pos,
+                    templ_arg->variant.type, dps->deduced_auto_type);
+    }  /* if */
   }  /* if */
   /* Record the type deduced for the "auto" specifier. */
   dps->deduced_auto_type = templ_arg->variant.type;

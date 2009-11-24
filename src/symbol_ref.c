@@ -2386,28 +2386,30 @@ void reference_to_implicitly_invoked_function
                                  a_type_ptr         class_of_object,
                                  a_boolean          honor_virtual,
                                  a_boolean          evaluated,
-                                 a_boolean          instantiate)
+                                 a_boolean          instantiate,
+                                 a_boolean          check_access)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class
 object is passed by value or an assignment operator that is called when
 another assignment operator function is being created.  Check that the
-special member function is accessible and mark the routine entry
-referenced.  sym can be a projection symbol.  *pos gives the source
-position of the reference.  class_of_object points to the type of the
-object for which the function is being called, which is not always the
-same as the class of which the function is a member.  This is used to
-check protected member access which only applies to objects of a
-derived class.  class_of_object may be NULL if protected member access
-checking is not needed.  Also, if the routine is compiler generated, it
-may still need to be defined, since the definition may have been put
-off until an actual reference occurred (e.g., ARM 12.8).  This function
-deals with implicitly called constructors, destructors, assignment
-operators, and conversion functions.  If honor_virtual is TRUE, and the
-function is virtual, the reference is considered to be a virtual call;
-that means the access control checking is done, but the IL entry is not
-marked as referenced.  If evaluated is FALSE, the reference is within
-an unevaluated expression; again, access control checking is done, but
+special member function is accessible (if check_access is TRUE) and
+mark the routine entry referenced.  sym can be a projection symbol.
+*pos gives the source position of the reference.  class_of_object
+points to the type of the object for which the function is being
+called, which is not always the same as the class of which the
+function is a member.  This is used to check protected member access
+which only applies to objects of a derived class.  class_of_object may
+be NULL if protected member access checking is not needed.  Also, if
+the routine is compiler generated, it may still need to be defined,
+since the definition may have been put off until an actual reference
+occurred (e.g., ARM 12.8).  This function deals with implicitly called
+constructors, destructors, assignment operators, and conversion
+functions.  If honor_virtual is TRUE, and the function is virtual, the
+reference is considered to be a virtual call; that means the access
+control checking is done, but the IL entry is not marked as
+referenced.  If evaluated is FALSE, the reference is within an
+unevaluated expression; again, access control checking is done, but
 the IL entry is not marked as referenced.  If instantiate is TRUE and
 the function is a template function, it should be instantiated.
 */
@@ -2430,9 +2432,10 @@ the function is a template function, it should be instantiated.
       is_constructor_symbol(base_sym)) {
     /* Don't check access on constructors while processing handler parameters
        in Microsoft mode. */
-  } else
+    check_access = FALSE;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  {
+  if (check_access) {
     /* Check for accessibility. */
     if (!have_access_to_symbol(sym)) {
       an_error_severity  severity = es_discretionary_error;
@@ -2469,14 +2472,15 @@ the function is a template function, it should be instantiated.
 
 a_boolean reference_to_trivial_default_constructor(
                                               a_type_ptr         class_type,
-                                              a_source_position  *pos)
+                                              a_source_position  *pos,
+                                              a_boolean          check_access)
 /*
 If class_type has an associated trivial default constructor, record a
-reference to it -- checking its accessibility, updating the cross-reference
-listing if appropriate, and assuring that it is defined, which is done (even
-though the function is not actually called) in case the definition has side
-effects.  If class_type does have a trivial default constructor representation
-return TRUE.
+reference to it -- checking its accessibility (if check_access is TRUE),
+updating the cross-reference listing if appropriate, and assuring that
+it is defined, which is done (even though the function is not actually
+called) in case the definition has side effects.  If class_type does
+have a trivial default constructor representation return TRUE.
 */
 {
   a_symbol_ptr   ctor_sym;
@@ -2488,21 +2492,24 @@ return TRUE.
     reference_to_implicitly_invoked_function(ctor_sym, pos, class_type,
                                              /*honor_virtual=*/FALSE,
                                              /*evaluated=*/TRUE,
-                                             /*instantiate=*/TRUE);
+                                             /*instantiate=*/TRUE,
+                                             check_access);
   }  /* if */
   return (ctor_sym != NULL);
 }  /* reference_to_trivial_default_constructor */
 
 
 void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
-                                           a_source_position *pos)
+                                           a_source_position *pos,
+                                           a_boolean         check_access)
 /*
 Record a reference to the trivial copy constructor of class_type
-at position pos.   Check accessibility, and record a cross-reference
-entry if appropriate.  A trivial copy constructor is usually compiler
-generated and public, so no access check is needed.  However, with
-defaulted and deleted functions, it is possible to have a user-declared
-defaulted trivial copy constructor that is nonpublic.
+at position pos.  Check accessibility (if check_access is TRUE), and
+record a cross-reference entry if appropriate.  A trivial copy
+constructor is usually compiler generated and public, so no access
+check is needed.  However, with defaulted and deleted functions, it is
+possible to have a user-declared defaulted trivial copy constructor
+that is nonpublic.
 */
 {
   a_class_symbol_supplement_ptr cssp;
@@ -2523,7 +2530,8 @@ defaulted trivial copy constructor that is nonpublic.
         reference_to_implicitly_invoked_function(sym, pos, class_type,
                                                  /*honor_virtual=*/FALSE,
                                                  /*evaluated=*/FALSE,
-                                                 /*instantiate=*/FALSE);
+                                                 /*instantiate=*/FALSE,
+                                                 check_access);
         break;
       }  /* if */
     }  /* for */

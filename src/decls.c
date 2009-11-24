@@ -11056,8 +11056,6 @@ a normal try.
                                           (a_type_qualifier_set)TQ_NONE,
                                           /*source_is_rvalue=*/FALSE,
                                           &pos, state.type, &bitwise_copy,
-                                          /*record_ref=*/TRUE,
-                                          /*evaluated=*/TRUE,
                                           allow_suppressed_ctor);
           /* Only an implicit or defaulted copy constructor can correspond
              to a bitwise copy.  However, cctor can also be NULL if the
@@ -11071,10 +11069,7 @@ a normal try.
                      (allow_suppressed_ctor &&
                       skip_typerefs(state.type)->variant.class_struct_union
                                                   .copy_ctor_decl_suppressed));
-          dtor = select_destructor(state.type, state.type, &pos,
-                                   /*honor_virtual=*/FALSE,
-                                   /*evaluated=*/TRUE,
-                                   /*instantiate=*/TRUE);
+          dtor = select_destructor(state.type, state.type, &pos);
         } else {
           /* Non classes require only bitwise copying. */
           cctor = dtor = NULL;

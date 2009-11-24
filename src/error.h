@@ -269,6 +269,10 @@ extern
 a_boolean set_severity_for_error_number(int		  error_number,
 			                an_error_severity severity,
 				        a_boolean	  make_default);
+
+extern a_boolean is_effective_error(an_error_code	error_code,
+                                    an_error_severity	severity);
+
 /*lint -sem(command_line_error, r_no)*/
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/
@@ -384,12 +388,10 @@ extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_type     *type);
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 extern void pos_ty2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_type     *type1,
                             struct a_type     *type2);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 extern void pos_opt_ty2_warning(an_error_code     error_code,
                                 a_source_position *error_pos,
                                 struct a_type     *type1,

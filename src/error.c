@@ -3366,6 +3366,22 @@ current source position and severity or restore the previously saved settings.
 }  /* check_severity */
 
 
+a_boolean is_effective_error(an_error_code	error_code,
+                             an_error_severity	severity)
+/*
+Determine the severity at which a diagnostic specified by error_code and
+severity would be issued.  Return TRUE if the diagnostic would be issued
+at a severity of discretionary error or above.
+*/
+{
+  a_boolean	result;
+
+  check_for_overridden_severity(error_code, &severity);
+  result = (int)severity >= (int)es_discretionary_error;
+  return result;
+}  /* is_effective_error */
+
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 static a_source_position *context_position_for_instantiation(
@@ -4779,8 +4795,6 @@ indicated position.
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty_warning */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-
 void pos_ty2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
                      a_type_ptr        type1,
@@ -4795,8 +4809,6 @@ indicated position.
   error_msg_types[2] = type2;
   diag_message(error_code, error_pos, es_warning, dck_standalone);
 }  /* pos_ty2_warning */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 
 void pos_opt_ty2_warning(an_error_code     error_code,
                          a_source_position *error_pos,

@@ -7050,10 +7050,12 @@ In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
 }  /* find_default_constructor */
 
 
-a_routine_ptr select_default_constructor(a_type_ptr        class_type,
+a_routine_ptr select_default_constructor_full(
+                                         a_type_ptr        class_type,
                                          a_source_position *err_pos,
                                          a_type_ptr        object_class_type,
                                          a_boolean         evaluated,
+                                         a_boolean         check_access,
                                          a_boolean         *err)
 /*
 Find and return a pointer to a routine representing a default constructor for
@@ -7063,12 +7065,12 @@ or a trivial default constructor, return NULL.  If no acceptable constructor
 is found, issue a diagnostic and return NULL.  If more than one acceptable
 constructor is found, issue a (different) diagnostic and return NULL.
 On the error cases, if err is non-NULL return *err set to TRUE.
-Check access to the constructor and issue an error if the constructor is
-not accessible.  object_class_type points to the type of the object being
-created; class_type may be a base class of object_class_type.  This is
-needed for protected member access checking.  If evaluated is FALSE,
-the reference is within an unevaluated expression.  This routine is
-only used in C++ mode.
+Check access to the constructor (if check_access is TRUE) and issue an
+error if the constructor is not accessible.  object_class_type points
+to the type of the object being created; class_type may be a base
+class of object_class_type.  This is needed for protected member
+access checking.  If evaluated is FALSE, the reference is within an
+unevaluated expression.  This routine is only used in C++ mode.
 */
 {
   a_routine_ptr ctor_routine = NULL;
@@ -7107,30 +7109,53 @@ only used in C++ mode.
                                              object_class_type,
                                              /*honor_virtual=*/FALSE,
                                              evaluated,
-                                             /*instantiate=*/TRUE);
+                                             /*instantiate=*/TRUE,
+                                             check_access);
   }  /* if */
   if (err != NULL) *err = local_err;
+  return ctor_routine;
+}  /* select_default_constructor_full */
+
+
+a_routine_ptr select_default_constructor(a_type_ptr        class_type,
+                                         a_source_position *err_pos,
+                                         a_type_ptr        object_class_type,
+                                         a_boolean         *err)
+/*
+Interface to select_default_constructor for the simple case.
+*/
+{
+  a_routine_ptr ctor_routine;
+
+  ctor_routine = select_default_constructor_full(class_type,
+                                                 err_pos,
+                                                 object_class_type,
+                                                 /*evaluated=*/TRUE,
+                                                 /*check_access=*/TRUE,
+                                                 err);
   return ctor_routine;
 }  /* select_default_constructor */
 
 
-a_routine_ptr select_destructor(a_type_ptr        class_type,
-				a_type_ptr        object_class_type,
-                                a_source_position *position,
-                                a_boolean         honor_virtual,
-                                a_boolean         evaluated,
-                                a_boolean         instantiate)
+a_routine_ptr select_destructor_full(a_type_ptr        class_type,
+                                     a_type_ptr        object_class_type,
+                                     a_source_position *position,
+                                     a_boolean         honor_virtual,
+                                     a_boolean         evaluated,
+                                     a_boolean         instantiate,
+                                     a_boolean         check_access)
 /*
-If the indicated class has a destructor, check that it is accessible, mark
-it as referenced, and return a pointer to the routine entry.  Otherwise,
-return NULL.  object_class_type points to the type of the object being
-destroyed; class_type may be a base class of object_class_type.  This is
-needed for protected member access checking.  object_class_type can be NULL
-if that checking is not needed.  If honor_virtual is TRUE, and if the
-destructor is virtual, consider this reference a virtual function
-call.  If evaluated is FALSE, the reference is within an unevaluated
-expression.  If instantiate is TRUE, the destructor is instantiated
-if necessary.  *position is the source position of the reference.
+If the indicated class has a destructor, check that it is accessible (if
+check_access is TRUE), mark it as referenced, and return a pointer to
+the routine entry.  Otherwise, return NULL.  object_class_type points
+to the type of the object being destroyed; class_type may be a base
+class of object_class_type.  This is needed for protected member
+access checking.  object_class_type can be NULL if that checking is
+not needed.  If honor_virtual is TRUE, and if the destructor is
+virtual, consider this reference a virtual function call.  If
+evaluated is FALSE, the reference is within an unevaluated expression.
+If instantiate is TRUE, the destructor is instantiated if necessary.
+*position is the source position of the reference.
 */
 {
   a_symbol_ptr  dtor_sym;
@@ -7159,7 +7184,8 @@ if necessary.  *position is the source position of the reference.
         reference_to_implicitly_invoked_function(dtor_sym, position,
                                                  object_class_type,
                                                  honor_virtual, evaluated,
-                                                 instantiate);
+                                                 instantiate,
+                                                 check_access);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
       if (cssp->has_trivial_destructor) {
@@ -7178,10 +7204,30 @@ if necessary.  *position is the source position of the reference.
     }  /* if */
   }  /* if */
   return dtor_routine;
+}  /* select_destructor_full */
+
+
+a_routine_ptr select_destructor(a_type_ptr        class_type,
+				a_type_ptr        object_class_type,
+                                a_source_position *position)
+/*
+Interface to select_destructor_full for the simple case.
+*/
+{
+  a_routine_ptr dtor_routine;
+
+  dtor_routine = select_destructor_full(class_type,
+                                        object_class_type,
+                                        position,
+                                        /*honor_virtual=*/FALSE,
+                                        /*evaluated=*/TRUE,
+                                        /*instantiate=*/TRUE,
+                                        /*check_access=*/TRUE);
+  return dtor_routine;
 }  /* select_destructor */
 
 
-a_routine_ptr select_copy_constructor(
+a_routine_ptr select_copy_constructor_full(
                                   a_type_ptr            class_type,
                                   a_type_qualifier_set  required_qualifiers,
                                   a_boolean             source_is_rvalue,
@@ -7190,7 +7236,8 @@ a_routine_ptr select_copy_constructor(
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             record_ref,
                                   a_boolean             evaluated,
-                                  a_boolean             allow_suppressed_ctor)
+                                  a_boolean             allow_suppressed_ctor,
+                                  a_boolean             check_access)
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type and accepting a first parameter whose type
@@ -7206,11 +7253,12 @@ is implicit (not user-declared, i.e., there's no associated symbol)
 and performs a bitwise copy, return NULL and *class_bitwise_copy TRUE.
 If record_ref is TRUE, a reference is recorded against the copy
 constructor selected; as a side effect, access to the copy constructor
-is checked, and an error issued if the copy constructor is
-inaccessible.  If evaluated is FALSE, the reference is within an
-unevaluated expression.  If class_type has no copy constructor because
-its declaration was suppressed, no diagnostic will be emitted if
-allow_suppressed_ctor is TRUE.  This routine is only used in C++ mode.
+is checked (if check_access is TRUE), and an error issued if the copy
+constructor is inaccessible.  If evaluated is FALSE, the reference is
+within an unevaluated expression.  If class_type has no copy
+constructor because its declaration was suppressed, no diagnostic will
+be emitted if allow_suppressed_ctor is TRUE.  This routine is only
+used in C++ mode.
 */
 {
   a_symbol_ptr  cctor_sym;
@@ -7222,7 +7270,8 @@ allow_suppressed_ctor is TRUE.  This routine is only used in C++ mode.
                                     err_pos, &ambiguous, class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
-    reference_to_trivial_copy_constructor(class_type, err_pos);
+    reference_to_trivial_copy_constructor(class_type, err_pos,
+                                          check_access);
   } else if (ambiguous) {
     /* More than one applicable copy constructor. */
     pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
@@ -7247,10 +7296,39 @@ allow_suppressed_ctor is TRUE.  This routine is only used in C++ mode.
                                                object_class_type,
                                                /*honor_virtual=*/FALSE,
                                                evaluated,
-                                               /*instantiate=*/TRUE);
+                                               /*instantiate=*/TRUE,
+                                               check_access);
     }  /* if */
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
+  return cctor_routine;
+}  /* select_copy_constructor_full */
+
+
+a_routine_ptr select_copy_constructor(
+                                  a_type_ptr            class_type,
+                                  a_type_qualifier_set  required_qualifiers,
+                                  a_boolean             source_is_rvalue,
+                                  a_source_position     *err_pos,
+                                  a_type_ptr            object_class_type,
+                                  a_boolean             *class_bitwise_copy,
+                                  a_boolean             allow_suppressed_ctor)
+/*
+Interface to select_copy_constructor_full for the simple case.
+*/
+{
+  a_routine_ptr cctor_routine;
+
+  cctor_routine = select_copy_constructor_full(class_type,
+                                               required_qualifiers,
+                                               source_is_rvalue,
+                                               err_pos,
+                                               object_class_type,
+                                               class_bitwise_copy,
+                                               /*record_ref=*/TRUE,
+                                               /*evaluated=*/TRUE,
+                                               allow_suppressed_ctor,
+                                               /*check_access=*/TRUE);
   return cctor_routine;
 }  /* select_copy_constructor */
 
@@ -8679,6 +8757,62 @@ used if error_code is not ec_no_error.
 }  /* record_access_error */
 
 
+a_boolean f_check_for_ambiguity(a_symbol_locator *locator,
+                                a_boolean        is_templ_context,
+                                a_boolean        is_qualifier,
+                                a_boolean        diagnostic_should_be_issued)
+/*
+Check whether the symbol indicated by the locator is ambiguous, and if
+so issue an error at the position indicated in the locator (if
+diagnostic_should_be_issued is TRUE), set the locator to an error
+locator, and return TRUE.  If the symbol is not ambiguous, return FALSE.
+*/
+{
+  a_boolean    err = FALSE;
+  a_symbol_ptr sym = locator->specific_symbol;
+
+  if (sym->ambiguous &&
+      !(is_templ_context && sym->kind == (a_symbol_kind)sk_projection &&
+        sym->variant.projection.injected_class_template_name_is_unambiguous)) {
+    if (microsoft_bugs && microsoft_version >= 1400 && is_qualifier &&
+        sym->kind == (a_symbol_kind)sk_projection &&
+        sym->variant.projection.injected_class_template_name_is_unambiguous) {
+      /* If a class has two base classes that are instances of the same class
+         template, the Microsoft compiler (starting with version 8) allows a
+         reference to the ambiguous injected class as the qualifier in a
+         qualified name.  This should be ambiguous, but the Microsoft
+         compiler selects the injected class name from the first base class.
+         The name following the injected class name that was used as a
+         qualifier can be any kind of member except a nonstatic data member.
+         Our emulation, however, accepts any kind of reference.  For that
+         reason, and because this is a particularly dangerous feature, we
+         give a discretionary error and let users downgrade the diagnostic
+         if they really need the feature.  It is dangerous because even in
+         the case where the name after the qualifier refers to a static
+         entity, the definition of the entity can be different in the two
+         instances of the class template being used. */
+      if (is_effective_error(ec_ambiguous_injected_template_name,
+                             es_discretionary_error)) {
+        if (diagnostic_should_be_issued) {
+          pos_sy2_diagnostic(es_discretionary_error,
+                             ec_ambiguous_injected_template_name,
+                             &locator->source_position, sym,
+                             fundamental_symbol_of(sym));
+        }  /* if */
+        err = TRUE;
+      }  /* if */
+    } else {
+      if (diagnostic_should_be_issued) {
+        pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) set_to_error_locator(*locator);
+  return err;
+}  /* f_check_for_ambiguity */
+
+
 void f_check_ambiguity_and_verify_access(a_symbol_locator *locator,
 					 a_boolean	  is_templ_context,
 					 a_boolean	  is_qualifier)
@@ -8720,33 +8854,9 @@ is TRUE if the name is followed by the "::" in a qualified name.
   /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
      either as a result of using directives or as a result of inheritance.
      Ambiguity checking must precede access control (ARM, 10.1.1). */
-  if (sym->ambiguous &&
-      !(is_templ_context && sym->kind == (a_symbol_kind)sk_projection &&
-        sym->variant.projection.injected_class_template_name_is_unambiguous)) {
-    if (microsoft_bugs && microsoft_version >= 1400 && is_qualifier &&
-        sym->variant.projection.injected_class_template_name_is_unambiguous) {
-      /* If a class has two base classes that are instances of the same class
-         template, the Microsoft compiler (starting with version 8) allows a
-         reference to the ambiguous injected class as the qualifier in a
-         qualified name.  This should be ambiguous, but the Microsoft
-         compiler selects the injected class name from the first base class.
-         The name following the injected class name that was used as a
-         qualifier can be any kind of member except a nonstatic data member.
-         Our emulation, however, accepts any kind of reference.  For that
-         reason, and because this is a particularly dangerous feature, we
-         give a discretionary error and let users downgrade the diagnostic
-         if they really need the feature.  It is dangerous because even in
-         the case where the name after the qualifier refers to a static
-         entity, the definition of the entity can be different in the two
-         instances of the class template being used. */
-      pos_sy2_diagnostic(es_discretionary_error,
-                         ec_ambiguous_injected_template_name,
-                         &locator->source_position, sym,
-                         fundamental_symbol_of(sym));
-    } else {
-      pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-      set_to_error_locator(*locator);
-    }  /* if */
+  if (f_check_for_ambiguity(locator, is_templ_context, is_qualifier,
+                            /*diagnostic_should_be_issued=*/TRUE)) {
+    /* The symbol is ambiguous.  An error has been issued. */
   } else if (locator->is_template_id) {
     /* The access of the template is checked when the template name
        is looked up.  For functions, access is checked after overload

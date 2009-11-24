@@ -359,9 +359,9 @@ address taken, and if not issue an error.
           !var->has_named_register_storage_class &&
 #endif /* NAMED_REGISTERS_ALLOWED */
           (SVR4_C_mode || strict_ansi_error_severity != es_error)) {
-	pos_warning(ec_address_of_register_variable, &rep->position);
+	expr_pos_warning(ec_address_of_register_variable, &rep->position);
       } else {
-	pos_error(ec_address_of_register_variable, &rep->position);
+	expr_pos_error(ec_address_of_register_variable, &rep->position);
 	/* Turn the reference into an error reference so that the error will
 	   be issued only once. */
 	rep->kind = (rep->kind & ~SRK_ALL_REFERENCES) | SRK_ERROR;
@@ -708,8 +708,40 @@ last two parameters from values on the expression stack.
   reference_to_implicitly_invoked_function(
                        sym, pos, class_of_object, honor_virtual,
                        curr_expr_is_potentially_evaluated(),
-                       /*instantiate=*/!expr_stack->is_default_arg_expression);
+                       /*instantiate=*/!expr_stack->is_default_arg_expression,
+                       expr_access_checking_should_be_done());
 }  /* expr_reference_to_implicitly_invoked_function */
+
+
+a_boolean expr_reference_to_trivial_default_constructor(
+                                              a_type_ptr         class_type,
+                                              a_source_position  *pos)
+/*
+Interface to reference_to_trivial_default_constructor to be used when calling
+it from within the expression-processing routines.  Supplies some arguments
+from values on the expression stack.
+*/
+{
+  a_boolean result;
+
+  result = reference_to_trivial_default_constructor(
+                                        class_type, pos,
+                                        expr_access_checking_should_be_done());
+  return result;
+}  /* expr_reference_to_trivial_default_constructor */
+
+
+void expr_reference_to_trivial_copy_constructor(a_type_ptr        class_type,
+                                                a_source_position *pos)
+/*
+Interface to reference_to_trivial_copy_constructor to be used when calling
+it from within the expression-processing routines.  Supplies some arguments
+from values on the expression stack.
+*/
+{
+  reference_to_trivial_copy_constructor(class_type, pos,
+                                        expr_access_checking_should_be_done());
+}  /* expr_reference_to_trivial_copy_constructor */
 
 
 an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
@@ -803,6 +835,8 @@ is pushed regardless of any of the other factors.
   new_entry->favor_constant_result = FALSE;
   new_entry->inside_conditional_expression = FALSE;
   new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
+  new_entry->suppress_diagnostics = FALSE;
+  new_entry->any_non_access_error_detected = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -912,6 +946,8 @@ Pop the top entry off the expr_stack.  This is done at the end of a
 major expression.
 */
 {
+  an_expr_stack_entry_ptr new_top;
+
   if (expr_stack->lifetime != NULL) {
     /* An object lifetime was pushed for the expression, so it must be
        popped now. */
@@ -926,15 +962,22 @@ major expression.
       !expr_stack->unevaluated_expr_will_be_kept_in_il) {
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
-  if (expr_stack->prev != NULL) {
+  new_top = expr_stack->prev;
+  if (new_top != NULL) {
     /* If entities were defined in the subexpression associated with the entry
        to be popped, make sure that is reflected in the entry for the
        enclosing expression. */
-    expr_stack->prev->p_end_of_entities_defined_in_expression =
+    new_top->p_end_of_entities_defined_in_expression =
                           expr_stack->p_end_of_entities_defined_in_expression;
+    /* If we detected an error during template deduction, propagate that
+       up if the parent stack entry is tracking such things. */
+    if (expr_stack->any_non_access_error_detected &&
+        new_top->suppress_diagnostics) {
+      new_top->any_non_access_error_detected = TRUE;
+    }  /* if */
   }  /* if */
   /* Pop the stack. */
-  expr_stack = expr_stack->prev;
+  expr_stack = new_top;
 }  /* pop_expr_stack */
 
 
@@ -2214,6 +2257,131 @@ modification.
   /* Nothing */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+
+a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
+                                           an_error_code     err_code)
+/*
+Return TRUE if a diagnostic with the indicated severity and error code
+should be issued.  More precisely, return FALSE if the diagnostic should
+not be issued because we are in a template deduction context.  In that
+case, if the effective level of the diagnostic (after adjustment because
+of command-line options or pragmas) is an error of some kind, set the
+any_non_access_error_detected flag in the expression stack.  (It follows
+that this routine cannot be called for access errors.)
+*/
+{
+  a_boolean should_issue = TRUE;
+
+  if (expr_stack != NULL) {
+    if (expr_stack->suppress_diagnostics) {
+      should_issue = FALSE;
+      if (is_effective_error(err_code, sev)) {
+        expr_stack->any_non_access_error_detected = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return should_issue;
+}  /* expr_diagnostic_should_be_issued */
+
+
+a_boolean expr_error_should_be_issued(void)
+/*
+Return TRUE if an error with the indicated severity should be issued.
+Should not be called for access errors.
+*/
+{
+  a_boolean should_issue = TRUE;
+
+  if (expr_stack != NULL) {
+    if (expr_stack->suppress_diagnostics) {
+      should_issue = FALSE;
+      /* Because an error cannot be downgraded, there's no issue of checking
+         whether this is indeed an error. */
+      expr_stack->any_non_access_error_detected = TRUE;
+    }  /* if */
+  }  /* if */
+  return should_issue;
+}  /* expr_error_should_be_issued */
+
+
+void expr_pos_error(an_error_code     error_code,
+                    a_source_position *error_pos)
+/*
+Report the indicated error at the indicated position.  Suppress the error
+if we're in a context where diagnostics should be suppressed, e.g.,
+a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    pos_error(error_code, error_pos);
+  }  /* if */
+}  /* expr_pos_error */
+
+
+void expr_pos_warning(an_error_code     error_code,
+                      a_source_position *error_pos)
+/*
+Report the indicated warning at the indicated position.  Suppress the warning
+if we're in a context where diagnostics should be suppressed, e.g.,
+a template deduction context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(es_warning, error_code)) {
+    pos_warning(error_code, error_pos);
+  }  /* if */
+}  /* expr_pos_warning */
+
+
+void expr_pos_diagnostic(an_error_severity sev,
+                         an_error_code     error_code,
+                         a_source_position *error_pos)
+/*
+Report the indicated diagnostic with the indicated severity at the indicated
+position.  Suppress the diagnostic if we're in a context where diagnostics
+should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(sev, error_code)) {
+    pos_diagnostic(sev, error_code, error_pos);
+  }  /* if */
+}  /* expr_pos_diagnostic */
+
+
+void expr_syntax_error(an_error_code error_code)
+/*
+Report the indicated error at the position indicated by error_position,
+then get and throw away tokens until a token is read that is in the set
+of stop tokens.  This routine is called to report and recover from syntax
+errors in the expression routines.
+*/
+{
+  /* Report the error. */
+  expr_pos_error(error_code, &error_position);
+  /* Flush tokens until something in the stop token set turns up. */
+  flush_tokens();
+}  /* expr_syntax_error */
+
+
+a_boolean expr_access_checking_should_be_done(void)
+/*
+Return TRUE if access checking should be done in the current expression
+context.  This used to suppress access-checking code when in a template
+deduction context.  In such contexts, the behavior should be as if the
+access checking is not done; it's not quite enough to simply suppress
+diagnostics, if that changes the control flow.
+*/
+{
+  a_boolean check_access = TRUE;
+
+  if (expr_stack != NULL) {
+    if (expr_stack->suppress_diagnostics) {
+      check_access = FALSE;
+    }  /* if */
+  }  /* if */
+  return check_access;
+}  /* expr_access_checking_should_be_done */
+
+
 void make_error_operand(an_operand *operand)
 /*
 Create an error operand.
@@ -2223,6 +2391,58 @@ Create an error operand.
   operand->type = error_type();
   copy_source_position(error_position, operand->position);
 }  /* make_error_operand */
+
+
+void expr_check_ambiguity_and_verify_access(a_symbol_locator *locator)
+/*
+Wrapper for check_ambiguity_and_verify_access for use within the
+expression routines.
+*/
+{
+  if (!C_mode()) {
+    /* See if we're suppressing diagnostics, e.g., because we're in a template
+       deduction context. */
+    if (!expr_stack->suppress_diagnostics) {
+      check_ambiguity_and_verify_access(locator);
+    } else {
+      /* Diagnostics are suppressed, so do only the ambiguity check to
+         change the locator to an error locator if an error would have
+         been issued. */
+      if (f_check_for_ambiguity(locator, 
+                                /*is_template_context=*/FALSE,
+                                /*is_qualifier=*/FALSE,
+                                /*diagnostic_should_be_issued=*/FALSE)) {
+        set_to_error_locator(*locator);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* expr_check_ambiguity_and_verify_access */
+
+
+void expr_overload_check_ambiguity_and_verify_access(
+                                            a_symbol_locator *locator,
+                                            a_symbol_ptr     overloaded_symbol)
+/*
+Wrapper for overload_check_ambiguity_and_verify_access for use within the
+expression routines.
+*/
+{
+  /* See if we're suppressing diagnostics, e.g., because we're in a template
+     deduction context. */
+  if (!expr_stack->suppress_diagnostics) {
+    overload_check_ambiguity_and_verify_access(locator, overloaded_symbol);
+  } else  {
+    /* Diagnostics are suppressed, so do only the ambiguity check to
+       change the locator to an error locator if an error would have
+       been issued. */
+    if (f_check_for_ambiguity(locator, 
+                              /*is_template_context=*/FALSE,
+                              /*is_qualifier=*/FALSE,
+                              /*diagnostic_should_be_issued=*/FALSE)) {
+      set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+}  /* expr_overload_check_ambiguity_and_verify_access */
 
 
 void operand_will_not_be_used_because_of_error(an_operand *operand)
@@ -2263,7 +2483,7 @@ void error_and_make_error_operand(an_error_code error_code,
 Announce an error and set the operand to an error operand.
 */
 {
-  error(error_code);
+  expr_pos_error(error_code, &error_position);
   make_error_operand(operand);
 }  /* error_and_make_error_operand */
 
@@ -2275,7 +2495,7 @@ Announce an error at the position in the operand and convert the operand to an
 error operand.
 */
 {
-  pos_error(error_code, &operand->position);
+  expr_pos_error(error_code, &operand->position);
   conv_to_error_operand(operand);
 }  /* error_in_operand */
 
@@ -2288,7 +2508,9 @@ Announce an error at the position in the operand and convert the operand to an
 error operand.  The symbol sym is cited in the error message.
 */
 {
-  pos_sy_error(error_code, &operand->position, sym);
+  if (expr_error_should_be_issued()) {
+    pos_sy_error(error_code, &operand->position, sym);
+  }  /* if */
   conv_to_error_operand(operand);
 }  /* sym_error_in_operand */
 
@@ -2302,7 +2524,9 @@ Announce an error at the position in the operand and convert the operand to an
 error operand.  The two types are cited in the error message.
 */
 {
-  pos_ty2_error(error_code, &operand->position, type1, type2);
+  if (expr_error_should_be_issued()) {
+    pos_ty2_error(error_code, &operand->position, type1, type2);
+  }  /* if */
   conv_to_error_operand(operand);
 }  /* type2_error_in_operand */
 
@@ -2543,7 +2767,6 @@ the projection symbol -- to the member actually used in the IL).
 routine is only used in C++ mode.
 */
 {
-  a_boolean             access_okay;
   a_type_ptr            curr_type, qual_curr_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
@@ -2553,15 +2776,17 @@ routine is only used in C++ mode.
   check_assertion(is_class_struct_union_type(qualifiers_model));
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else {
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
        necessary casts. */
-    access_okay = TRUE;
     /* No access checking in prototype instantiations. */
     if (is_template_dependent_context()) check_cast_access = FALSE;
+    if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
     curr_type = (*p_node)->type;
     pointer_case = is_pointer_type(curr_type);
     if (pointer_case) curr_type = type_pointed_to(curr_type);
@@ -2574,12 +2799,10 @@ routine is only used in C++ mode.
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
           /* The base class is inaccessible.  Keep going, but issue the
              error only once. */
-          if (access_okay) {
-            pos_ty_diagnostic(es_discretionary_error,
-                              ec_inaccessible_base_class, err_pos,
-                              base_class->type);
-            access_okay = FALSE;
-          }  /* if */
+          pos_ty_diagnostic(es_discretionary_error,
+                            ec_inaccessible_base_class, err_pos,
+                            base_class->type);
+          check_cast_access = FALSE;
         }  /* if */
       }  /* if */
       /* Add the cast to the next level. */
@@ -2670,14 +2893,18 @@ to be used for errors.  This routine is only used in C++ mode.
   /* The code here looks like fold_derived_class_cast. */
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    pos_ty2_error(ec_ambiguous_derived_class, err_pos,
-                  new_type_pointed_to, bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_ambiguous_derived_class, err_pos,
+                    new_type_pointed_to, bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
-                  new_type_pointed_to, bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+                    new_type_pointed_to, bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else {
     /* Use recursion to process the list backwards to generate casts. */
@@ -2708,13 +2935,17 @@ of base classes is not necessary.
   /* The code here looks like fold_pm_base_class_cast. */
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else if (any_virtual_steps_in_derivation(bcp) && !any_cfront_mode()) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
-                  pm_class_type((*p_node)->type), bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
+                    pm_class_type((*p_node)->type), bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else {
     /* Loop through the classes between the derived class and the
@@ -2799,18 +3030,23 @@ source position to be used for errors.  This routine is only used in C++ mode.
   /* The code here looks like fold_pm_derived_class_cast. */
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    pos_ty2_error(ec_ambiguous_derived_class, err_pos,
-                  new_class_pointed_to, bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_ambiguous_derived_class, err_pos,
+                    new_class_pointed_to, bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
-                  new_class_pointed_to, bcp->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
+                    new_class_pointed_to, bcp->type);
+    }  /* if */
     *p_node = error_node();
   } else {
     /* No access checking in prototype instantiations. */
     if (is_template_dependent_context()) check_cast_access = FALSE;
+    if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
@@ -3218,8 +3454,10 @@ is being done via an explicit cast; otherwise, it's implicit by context.
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
        an error. */
-    pos_sy_error(ec_indeterminate_overloaded_function,
-                 &operand->position, operand->variant.symbol);
+    if (expr_error_should_be_issued()) {
+      pos_sy_error(ec_indeterminate_overloaded_function,
+                   &operand->position, operand->variant.symbol);
+    }  /* if */
     conv_to_error_operand(operand);
   }  /* if */
   /* If the pointer to member is to a related class, or the pointer
@@ -3478,8 +3716,12 @@ is called only in those contexts that allow this special laxity.
     a_base_class_ptr bcp;
     if (related_class_pointers(operand->type, new_type, &baseward_cast, &bcp)&&
         baseward_cast && bcp->ambiguous && bcp->direct) {
-      pos_ty_warning(ec_ambiguous_cast_selects_direct_base,
-                     &operand->position, bcp->type);
+      if (expr_diagnostic_should_be_issued(
+                                      es_warning,
+                                      ec_ambiguous_cast_selects_direct_base)) {
+        pos_ty_warning(ec_ambiguous_cast_selects_direct_base,
+                       &operand->position, bcp->type);
+      }  /* if */
       check_ambiguity = FALSE;
     }  /* if */
   }  /* if */
@@ -3674,8 +3916,10 @@ the type to be complete if possible.
   complete_type_is_needed(underlying_type);
   is_complete = !is_incomplete_type(underlying_type);
   if (!is_complete) {
-    pos_ty_error(ec_cast_to_rvalue_ref_to_incomplete, err_pos,
-                 skip_typerefs(underlying_type));
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_cast_to_rvalue_ref_to_incomplete, err_pos,
+                   skip_typerefs(underlying_type));
+    }  /* if */
   }  /* if */
   return is_complete;
 }  /* rvalue_reference_cast_underlying_type_is_complete */
@@ -4103,8 +4347,8 @@ in pre-C99 C.  A diagnostic is issued in strict mode.
     /* For C++ and C99 mode, this should have been done earlier. */
     check_assertion(C_mode() && !c99_mode);
     if (strict_ansi_mode) {
-      pos_diagnostic(strict_ansi_discretionary_severity,
-                     ec_bad_rvalue_array, &operand->position);
+      expr_pos_diagnostic(strict_ansi_discretionary_severity,
+                          ec_bad_rvalue_array, &operand->position);
     }  /* if */
     /* Convert the array rvalue to a pointer to the first element. */
     do_array_to_pointer_conversion(operand);    
@@ -4162,8 +4406,8 @@ C mode.
       if (is_ellipsis && !symbol_supplement_for_class(arg_type)->is_POD &&
           curr_expr_is_evaluated()) {
         /* Warn on passing a non-POD class to an ellipsis. */
-        pos_warning(ec_non_pod_passed_to_ellipsis,
-                    &argument_operand->position);
+        expr_pos_warning(ec_non_pod_passed_to_ellipsis,
+                         &argument_operand->position);
       }  /* if */
 #if USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS
       /* If configured that way, call the copy constructor for a class object,
@@ -4703,6 +4947,7 @@ a_boolean determine_imaginary_operation_type
                                         (a_token_kind          op_token,
                                          an_operand            *operand_1,
                                          an_operand            *operand_2,
+                                         a_source_position     *err_pos,
                                          a_type_ptr            *result_type,
                                          an_expr_operator_kind *op)
 /*
@@ -4712,7 +4957,8 @@ that has an operation type different than the one determined by the
 usual arithmetic conversions.  If so, convert the operands to the
 proper operation type, set *result_type to the result type, set *op
 to the IL operator to be used, and return TRUE.  Otherwise, return FALSE,
-set *op to eok_last, and leave *result_type unchanged.
+set *op to eok_last, and leave *result_type unchanged.  err_pos gives
+a source position for any errors.
 */
 {
   a_boolean     is_special = FALSE;
@@ -4855,7 +5101,7 @@ set *op to eok_last, and leave *result_type unchanged.
             if (is_imaginary_1 && is_imaginary_2) {
               /* Imaginary *= imaginary gives zero, so it's almost
                  surely wrong. */
-              pos_warning(ec_imaginary_times_assign, &operand_1->position);
+              expr_pos_warning(ec_imaginary_times_assign, err_pos);
               /* Change the expression to one with a value of zero.
 		 Use a comma expression to preserve side-effects. */
               { an_expr_node_ptr node2 = make_node_from_operand(operand_2);
@@ -4900,6 +5146,7 @@ set *op to eok_last, and leave *result_type unchanged.
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,
+                                          a_source_position      *err_pos,
                                           a_type_ptr             *result_type,
                                           an_expr_operator_kind  *op)
 /*
@@ -4908,8 +5155,8 @@ operand_2 is a vector operation.  If so, set *result_type to the type of the
 resulting expression, *op to the IL operator kind (eok_...) representing this
 operation, and return TRUE.  If the operand types involve at least one vector
 type, but the operand types are not valid for a vector operation, issue an
-error and set *op to eok_error and *result_type to an error type (TRUE is
-still returned in such cases).
+error at *err_pos and set *op to eok_error and *result_type to an error type
+(TRUE is still returned in such cases).
 */
 {
   a_type_ptr  op1_type = skip_typerefs(operand_1->type);
@@ -4922,18 +5169,18 @@ still returned in such cases).
     /* Not a vector operation. */
     is_vector_operation = FALSE;
   } else if (!op1_is_vec || !op2_is_vec) {
-    error(ec_mixed_vector_scalar_operation);
+    expr_pos_error(ec_mixed_vector_scalar_operation, err_pos);
     *result_type = error_type();
     *op = (an_expr_operator_kind)eok_error;
   } else {
     a_type_ptr el1_type = op1_type->variant.vector.element_type;
     a_type_ptr el2_type = op2_type->variant.vector.element_type;
     if (op1_type->size != op2_type->size) {
-      error(ec_vectors_must_have_same_size);
+      expr_pos_error(ec_vectors_must_have_same_size, err_pos);
       *result_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     } else if (!identical_types(el1_type, el2_type)) {
-      error(ec_vector_element_type_mismatch);
+      expr_pos_error(ec_vector_element_type_mismatch, err_pos);
       *result_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     } else {
@@ -4948,7 +5195,8 @@ still returned in such cases).
                !is_template_param_type(el1_type)) ||
               (!is_integral_or_enum_type(el2_type) &&
                !is_template_param_type(el2_type))) {
-            error(ec_vector_operation_requires_integer_vector);
+            expr_pos_error(ec_vector_operation_requires_integer_vector,
+                           err_pos);
             *result_type = error_type();
             *op = (an_expr_operator_kind)eok_error;
             break;
@@ -5210,21 +5458,29 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
       }  /* if */
       if (nonstd_case) {
         /* A nonstandard case. */
-        pos_ty2_diagnostic(strict_ansi_error_severity,
-                           ec_incompatible_operands, operator_position,
-                           operand_1_type, operand_2_type);
+        if (expr_diagnostic_should_be_issued(strict_ansi_error_severity,
+                                             ec_incompatible_operands)) {
+          pos_ty2_diagnostic(strict_ansi_error_severity,
+                             ec_incompatible_operands, operator_position,
+                             operand_1_type, operand_2_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (std_conv.warning_suggested != ec_no_error && !nonstd_case) {
       /* Oddball cases call for a warning.  Suppress this if we issued a
          diagnostic about nonstandard use. */
-      pos_opt_ty2_warning(std_conv.warning_suggested, operator_position,
-                          operand_1_type, operand_2_type);
+      if (expr_diagnostic_should_be_issued(es_warning,
+                                           std_conv.warning_suggested)) {
+        pos_opt_ty2_warning(std_conv.warning_suggested, operator_position,
+                            operand_1_type, operand_2_type);
+      }  /* if */
     }  /* if */
   } else {
     /* The operands are not compatible. */
-    pos_ty2_error(ec_incompatible_operands, operator_position,
-                  operand_1_type, operand_2_type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_incompatible_operands, operator_position,
+                    operand_1_type, operand_2_type);
+    }  /* if */
     local_operation_type = error_type();
   }  /* if */
   *operation_type = local_operation_type;
@@ -5275,8 +5531,10 @@ there is an error.
     *operation_type = nullptr_type();
   } else {
     /* The operands are not compatible. */
-    pos_ty2_error(ec_incompatible_operands, operator_position,
-                  operand_1->type, operand_2->type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_incompatible_operands, operator_position,
+                    operand_1->type, operand_2->type);
+    }  /* if */
     *operation_type = error_type();
   }  /* if */
   return okay;
@@ -5353,8 +5611,10 @@ operator position (for errors).  Return FALSE if there is an error.
   }  /* if */
   if (!okay) {
     /* The operands are not compatible. */
-    pos_ty2_error(ec_incompatible_operands, operator_position,
-                  operand_1_type, operand_2_type);
+    if (expr_error_should_be_issued()) {
+      pos_ty2_error(ec_incompatible_operands, operator_position,
+                    operand_1_type, operand_2_type);
+    }  /* if */
     *operation_type = error_type();
   } else if (any_cfront_mode()) {
     /* Cfront doesn't allow casts of pointers to members from virtual base
@@ -5425,14 +5685,14 @@ for cases that are likely to overflow (e.g., _Fract + int).
             tp2->variant.fixed_point.is_unsigned &&
             op_is_zero_constant(operand_1)) {
           /* Special warning on 0 - x when x is unsigned. */
-          pos_warning(ec_unsigned_fixed_point_negation,
-                      &operand_2->position);
+          expr_pos_warning(ec_unsigned_fixed_point_negation,
+                           &operand_2->position);
         } else if (op_is_zero_constant(operand_1) ||
                    op_is_zero_constant(operand_2)) {
           /* No warning on x + 0, 0 + x and similar cases. */
         } else {
-          pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
-                      &integral_operand->position);
+          expr_pos_warning(ec_integer_may_not_fit_in_fixed_point_result,
+                           &integral_operand->position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5506,8 +5766,8 @@ is suggested by TR 18037.)
 #define warn_on_fixed_point_to_floating_point_conversion(operand, type)      \
   if (fixed_point_enabled && is_fixed_point_type((operand)->type) &&         \
       is_floating_type((type))) {                                            \
-    pos_warning(ec_implicit_fixed_point_to_floating_point_conversion,        \
-                &(operand)->position);                                       \
+    expr_pos_warning(ec_implicit_fixed_point_to_floating_point_conversion,   \
+                     &(operand)->position);                                  \
   }  /* if */
 
 #endif /* FIXED_POINT_ALLOWED */
@@ -5904,11 +6164,11 @@ when gnu_version would ordinarily indicate they should not be.
             error_in_operand(ec_gcc_use_of_cast_as_lvalue, operand);
           } else if (cast_type == NULL) {
             /* Warn on an ignored cast. */
-            pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+            expr_pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
           } else if (gnu_version >= 30400) {
             /* Warn on a use of an lvalue cast.  gcc started warning about this
                in 3.4. */
-            pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
+            expr_pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
           }  /* if */
         }  /* if */
         if (!is_error_operand(operand)) {
@@ -5939,7 +6199,7 @@ when gnu_version would ordinarily indicate they should not be.
           expr->variant.operation.kind ==
                                       (an_expr_operator_kind)eok_lvalue_cast) {
         /* g++ version of lvalue cast.  Warn on the nonstandard use. */
-        pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
+        expr_pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6020,7 +6280,7 @@ lvalue.  If there is an error, change the operand to an error operand.
       an_expr_node_ptr expr = skip_parens(operand->variant.expression);
       if (is_operation_node(expr) &&
           node_operator_is(expr, eok_lvalue_cast)) {
-        pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
+        expr_pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
       }  /* if */
     }  /* if */
     okay = TRUE;
@@ -6034,8 +6294,9 @@ lvalue.  If there is an error, change the operand to an error operand.
       /* An error message has already been issued for this operand. */
     } else if (gcc_mode && is_lvalue_with_complete_type) {
       /* This is a discretionary error in gcc mode. */
-      pos_diagnostic(es_discretionary_error, ec_expr_not_a_modifiable_lvalue,
-                     &operand->position);
+      expr_pos_diagnostic(es_discretionary_error,
+                          ec_expr_not_a_modifiable_lvalue,
+                          &operand->position);
       okay = TRUE;
     } else {
       error_in_operand(ec_expr_not_a_modifiable_lvalue, operand);
@@ -6209,9 +6470,11 @@ array case in strict ANSI mode.
          combined with the pointer) is a constant zero, issue a remark
          (that's a case like p[0]); otherwise, issue a warning. */
       if (op_is_zero_constant(otherop) && !strict_ansi_mode) {
-        pos_remark(err_code, &operand->position);
+        if (expr_diagnostic_should_be_issued(es_remark, err_code) {
+          pos_remark(err_code, &operand->position);
+        }  /* if */
       } else {
-        pos_warning(err_code, &operand->position);
+        expr_pos_warning(err_code, &operand->position);
       }  /* if */
     } else {
       /* A pointer, but not a valid pointer. */
@@ -6984,7 +7247,7 @@ operator_position indicates the operator position.
            "abc"[1] later, and there will be an lvalue-to-rvalue
            conversion that will flag an error if the address of the
            entity is not taken. */
-        pos_error(ec_expr_not_constant, operator_position);
+        expr_pos_error(ec_expr_not_constant, operator_position);
         make_error_operand(result);
       } else {
         /* The constant operation was not folded; create an expression
@@ -6999,7 +7262,7 @@ operator_position indicates the operator position.
           an_error_code err_code;
           if (!valid_node_if_subscript(result->variant.expression,
                                        &just_past_end, &err_code)) {
-            pos_warning(err_code, operator_position);
+            expr_pos_warning(err_code, operator_position);
           }  /* if */
         }  /* if */
         if (template_constant) {
@@ -7472,7 +7735,7 @@ indicates the operator position.
           curr_expr_is_evaluated()) {
         /* A constant operation could not be folded in a constant
            expression. */
-        pos_error(ec_expr_not_constant, start_position);
+        expr_pos_error(ec_expr_not_constant, start_position);
         make_error_operand(result);
       } else {
         /* The operation could not be folded to a constant, so build
@@ -8398,7 +8661,8 @@ an error.
       severity = (an_error_severity)es_none;
     }  /* if */
     if (severity != (an_error_severity)es_none) {
-      pos_diagnostic(severity, ec_nonstd_member_function_address, position);
+      expr_pos_diagnostic(severity, ec_nonstd_member_function_address,
+                          position);
     }  /* if */
   }  /* if */
   /* Protected members of a base class can only be accessed through an
@@ -8420,7 +8684,7 @@ an error.
       /* The Microsoft compiler does not do this check. */
       && !microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                  ) {
+      && expr_access_checking_should_be_done()) {
     (void)check_protected_member_access(member_sym, member_proj_sym, position,
                                         sym_parent_class(member_proj_sym));
   }  /* if */
@@ -8430,12 +8694,15 @@ an error.
     /* Pointer to nonstatic data member. */
     a_field_ptr field = base_member_sym->variant.field.ptr;
     if (is_reference_type(field->type)) {
-      pos_ty_error(ec_bad_member_type_in_ptr_to_member, position, field->type);
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_bad_member_type_in_ptr_to_member, position,
+                     field->type);
+      }  /* if */
       make_error_operand(result);
       goto done;
     } else if (field->is_bit_field) {
       /* Cannot make a pointer-to-member of a bit field. */
-      pos_error(ec_address_of_bit_field, position);
+      expr_pos_error(ec_address_of_bit_field, position);
     }  /* if */
     set_ptr_to_data_member_constant(field, &constant);
   } else {
@@ -8506,7 +8773,7 @@ reference entry, or is NULL if none is needed.
         /* MSVC++ (up to 8.0 at least) and g++ (up to 3.4 at least) allow
            this. */
       } else {
-        pos_error(ec_bad_use_of_main, position);
+        expr_pos_error(ec_bad_use_of_main, position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8664,23 +8931,75 @@ and the source for the copy is implied.
 }  /* alloc_expr_ctor_dynamic_init */
 
 
+a_routine_ptr expr_select_default_constructor(a_type_ptr        class_type,
+                                              a_source_position *err_pos,
+                                              a_boolean         *err)
+/*
+Interface to select_default_constructor_full for use within expression
+processing.  Supplies some arguments from expression stack values.
+*/
+{
+  a_routine_ptr ctor_routine =
+         select_default_constructor_full(class_type,
+                                         err_pos,
+                                         class_type,
+                                         curr_expr_is_potentially_evaluated(),
+                                         expr_access_checking_should_be_done(),
+                                         err);
+  return ctor_routine;
+}  /* expr_select_default_constructor */
+
+
+a_routine_ptr expr_select_copy_constructor(
+                                  a_type_ptr            class_type,
+                                  a_type_qualifier_set  required_qualifiers,
+                                  a_boolean             source_is_rvalue,
+                                  a_source_position     *err_pos,
+                                  a_boolean             *class_bitwise_copy,
+                                  a_boolean             record_ref)
+/*
+Interface to select_copy_constructor_full for use within expression processing.
+Supplies some arguments from expression stack values.
+*/
+{
+  a_routine_ptr cctor_routine;
+
+  cctor_routine = select_copy_constructor_full(
+                                        class_type,
+                                        required_qualifiers,
+                                        source_is_rvalue,
+                                        err_pos,
+                                        class_type,
+                                        class_bitwise_copy,
+                                        record_ref,
+                                        curr_expr_is_potentially_evaluated(),
+                                        /*allow_suppressed_ctor=*/FALSE,
+                                        expr_access_checking_should_be_done());
+  return cctor_routine;
+}  /* expr_select_copy_constructor */
+
+
 a_routine_ptr expr_select_destructor(a_type_ptr        class_type,
                                      a_type_ptr        object_class_type,
                                      a_source_position *position,
                                      a_boolean         honor_virtual)
 /*
-Interface to select_destructor for use within expression processing.
-Supplies the evaluated and instantiate arguments from context information
-on the expression stack.
+Interface to select_destructor_full for use within expression processing.
+Supplies some arguments from expression stack values.
 */
 {
-  a_routine_ptr rout = select_destructor(class_type, object_class_type,
-                                         position,
-                                         honor_virtual,
-                                         curr_expr_is_potentially_evaluated(),
-                                         /*instantiate=*/
-                                       !expr_stack->is_default_arg_expression);
-  return rout;
+  a_routine_ptr dtor_routine;
+
+  dtor_routine = select_destructor_full(
+                                     class_type,
+                                     object_class_type,
+                                     position,
+                                     honor_virtual,
+                                     curr_expr_is_potentially_evaluated(),
+                                     /*instantiate=*/
+                                        !expr_stack->is_default_arg_expression,
+                                     expr_access_checking_should_be_done());
+  return dtor_routine;
 }  /* expr_select_destructor */
 
 
@@ -8856,8 +9175,10 @@ TRUE.  *position is the position of the reference.  Used only in C++.
   if (!suppress_abstract_test && !microsoft_bugs &&
       is_abstract_class_type(temp_type)) {
     /* It's an error to create a temporary of an abstract class type. */
-    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                              temp_type, position);
+    if (expr_error_should_be_issued()) {
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                temp_type, position);
+    }  /* if */
   }  /* if */
   return temp_init_node;
 }  /* create_expr_temporary */
@@ -9308,7 +9629,7 @@ value).
       if (rp->is_virtual && !virtual_suppressed &&
           call_invokes_pure_virtual(rp, function_node)) {
         /* Call to pure virtual, e.g., from a constructor or destructor. */
-        pos_warning(ec_call_of_pure_virtual, err_pos);
+        expr_pos_warning(ec_call_of_pure_virtual, err_pos);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9654,7 +9975,7 @@ element, but it's not okay to actually reference it.
     (void)valid_node_if_subscript(operand->variant.expression, &just_past_end,
                                   &err_code);
     if (just_past_end) {
-      pos_warning(err_code, &operand->position);
+      expr_pos_warning(err_code, &operand->position);
     }  /* if */
   }  /* if */
 }  /* using_lvalue */
@@ -9792,7 +10113,7 @@ and if so, return TRUE.
       /* The bit field is one whose size and alignment are such that its
          address can be taken. */
       addr_can_be_taken = TRUE;
-      pos_warning(ec_address_of_bit_field, &operand->position);
+      expr_pos_warning(ec_address_of_bit_field, &operand->position);
     }  /* if */
   }  /* if */
   return addr_can_be_taken;
@@ -9816,7 +10137,7 @@ operand.  Return TRUE if an error was issued.
          the same size and alignment as one of the integral types. */
       !(addr_of_bit_field_allowed &&
         is_bit_field_operand_whose_address_can_be_taken(operand))) {
-    pos_error(ec_address_of_bit_field, err_pos);
+    expr_pos_error(ec_address_of_bit_field, err_pos);
     conv_to_error_operand(operand);
     err = TRUE;
   }  /* if */
@@ -9949,7 +10270,7 @@ explicit "&" operator in the source and *operator_position gives its position.
           curr_expr_is_evaluated()) {
         /* The "&" operation must fold to a constant in a constant
            expression. */
-        pos_error(ec_expr_not_constant, err_pos);
+        expr_pos_error(ec_expr_not_constant, err_pos);
         conv_to_error_operand(operand);
       } else {
         a_boolean need_expr = did_not_fold;
@@ -11954,9 +12275,9 @@ used in generating the function-identifying operand in a call.
       if ((!allow_ctor &&
            rout->special_kind == (a_special_function_kind)sfk_constructor) ||
           rout->special_kind == (a_special_function_kind)sfk_destructor) {
-        pos_error(ec_addr_of_constructor_or_destructor,
-                  (ampersand_position != NULL) ? ampersand_position :
-                                                 &operand->position);
+        expr_pos_error(ec_addr_of_constructor_or_destructor,
+                       (ampersand_position != NULL) ? ampersand_position :
+                                                      &operand->position);
         conv_to_error_operand(operand);
       }  /* if */
     }  /* if */
@@ -12116,9 +12437,11 @@ is a "get" if put_operand is NULL.
       getput_sym = class_qualified_id_lookup(&locator, class_type,
                                              IDL_NO_OPTIONS);
       if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
-        pos_st_error(put_operand != NULL ? ec_put_property_function_missing :
-                                           ec_get_property_function_missing,
-                     &operand->position, getput_property_name);
+        if (expr_error_should_be_issued()) {
+          pos_st_error(put_operand != NULL ? ec_put_property_function_missing :
+                                             ec_get_property_function_missing,
+                       &operand->position, getput_property_name);
+        }  /* if */
         conv_to_error_operand(operand);
       } else {
         an_operand         function_operand;
@@ -12640,7 +12963,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
            "x = constant", which was probably intended to be
            "x == constant". */
         if (is_constant_node(operand1->next)) {
-          pos_warning(ec_assign_where_compare_meant, &operand->position);
+          expr_pos_warning(ec_assign_where_compare_meant, &operand->position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12715,8 +13038,8 @@ types to get a boolean expression (see process_boolean_controlling_expression).
        value here.  Even something like "if (1) ..." might have come
        from a macro, which would be reasonable coding. */
     if (constant_pointer_case) {
-      pos_warning(ec_boolean_controlling_expr_is_constant,
-                  &orig_operand.position);
+      expr_pos_warning(ec_boolean_controlling_expr_is_constant,
+                       &orig_operand.position);
     }  /* if */
   }  /* if */
   /* Restore the original source position. */

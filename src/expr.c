@@ -48,9 +48,11 @@ expr.c -- Expression scanning routines.
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
-static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
-                                     a_boolean  has_explicit_cv_qualifiers,
-                                     a_boolean  allow_array);
+static a_boolean cast_type_pre_check(
+                                 a_type_ptr        *p_type_cast_to,
+                                 a_source_position *type_position,
+                                 a_boolean          has_explicit_cv_qualifiers,
+                                 a_boolean          allow_array);
 static void process_boolean_controlling_expression(an_operand *result);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   a_source_position        *type_position,
@@ -206,7 +208,7 @@ the initializer).  This may amount to simply discarding a prescanned
 initializer.  This routine is called for error recovery purposes.
 */
 {
-  expect_error();
+  if (expr_error_should_be_issued()) expect_error();
   if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
     /* The initializer was already scanned.  Discard the record of the
        prescan. */
@@ -345,7 +347,7 @@ C++).  Other transformations are done in all cases.
   }  /* if */
   if (!suppress_warning) {
     /* Give a warning on an expression that has no effect. */
-    pos_warning(ec_expr_has_no_effect, &operand->position);
+    expr_pos_warning(ec_expr_has_no_effect, &operand->position);
   }  /* if */
 }  /* process_void_operand */
 
@@ -626,15 +628,15 @@ This routine is also used when scanning __builtin_offsetof constructs.
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Subscripting not allowed in preprocessing expression. */
-    pos_error(ec_bad_pp_operator, &operator_position);
+    expr_pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Subscripting not allowed in integral constant expression. */
-    pos_error(ec_bad_integral_operator, &operator_position);
+    expr_pos_error(ec_bad_integral_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Subscripting not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    expr_pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -711,7 +713,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
       if (gcc_mode && is_pointer_type(pointer_operand->type) &&
                       is_void_type(type_pointed_to(pointer_operand->type))) {
         /* GNU C allows a pointer to "void" to be subscripted. */
-        pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+        expr_pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
         result_type = type_pointed_to(pointer_operand->type);
       } else if (
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -1161,7 +1163,8 @@ source position is after the closing parenthesis of the argument list.
                                     constructor_sym, source_pos,
                                     object_class_type, /*honor_virtual=*/FALSE,
                                     /*evaluated=*/FALSE,
-                                    /*instantiate=*/FALSE);
+                                    /*instantiate=*/FALSE,
+                                    expr_access_checking_should_be_done());
       optimized = TRUE;
     } else if (elision_allowed &&
                is_copy_constructor(routine, (a_type_ptr)NULL,
@@ -1226,7 +1229,8 @@ source position is after the closing parenthesis of the argument list.
                                     constructor_sym, source_pos,
                                     object_class_type, /*honor_virtual=*/FALSE,
                                     /*evaluated=*/FALSE,
-                                    /*instantiate=*/FALSE);
+                                    /*instantiate=*/FALSE,
+                                    expr_access_checking_should_be_done());
         optimized = TRUE;
       }  /* if */
     }  /* if */
@@ -1735,12 +1739,12 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
              does check that there is exactly one argument of a real floating-
              point type. */
           if (args == NULL || args2 != NULL) {
-            pos_error(ec_call_requires_one_argument, &op->position);
+            expr_pos_error(ec_call_requires_one_argument, &op->position);
             conv_to_error_operand(op);
           } else if (!is_real_floating_type(args->type) &&
                      !is_template_param_type(args->type)) {
-            pos_error(ec_call_requires_floating_point_argument,
-                      &op->position);
+            expr_pos_error(ec_call_requires_floating_point_argument,
+                           &op->position);
             conv_to_error_operand(op);
           } else {
             folded = fold_fptest_if_possible(rp, args, &result);
@@ -1820,7 +1824,7 @@ are inhibited.
     }  /* if */
   } else {
     if (!*err) {
-      error(ec_exp_comma);
+      expr_pos_error(ec_exp_comma, &pos_curr_token);
     }  /* if */
     flush_tokens();
     if (is_evaluated) {
@@ -1948,7 +1952,7 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
           } else if (in_constant_expression) {
             /* The call was not folded, but a constant-expression is required:
                Issue an error. */
-            pos_error(ec_bad_constant_function_call, &operand->position);
+            expr_pos_error(ec_bad_constant_function_call, &operand->position);
             make_error_operand(result_op);
           } else {
             /* Leave an actual call in the IL.  (The usual transformations --
@@ -1977,7 +1981,8 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
       case bfk_classify_type:
 #if FIXED_POINT_ALLOWED
         if (fixed_point_enabled && is_fixed_point_type(arg.type)) {
-          pos_error(ec_no_classification_for_fixed_point_type, &arg.position);
+          expr_pos_error(ec_no_classification_for_fixed_point_type,
+                         &arg.position);
         }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
         set_integer_constant(&result,
@@ -2074,7 +2079,7 @@ needed).
     if (*args == NULL) {
       /* If there is no first argument, we cannot determine the concrete
          version to call. */
-      pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       goto done;
     } else {
       /* Truncate the argument list to the length expected by the concrete
@@ -2087,7 +2092,8 @@ needed).
       }  /* for */
       if (*arg != NULL) {
         /* *arg points to the first excess argument. */
-        pos_warning(ec_extra_arguments_ignored, &(*arg)->operand.position);
+        expr_pos_warning(ec_extra_arguments_ignored,
+                         &(*arg)->operand.position);
         free_arg_operand_list(*arg);
         *arg = NULL;
       }  /* if */
@@ -2096,7 +2102,7 @@ needed).
     if (!is_pointer_type(dispatch_type)) {
       if (!is_error_type(dispatch_type) &&
           !is_template_dependent_type(dispatch_type)) {
-        pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+        expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       }  /* if */
       goto done;
     }  /* if */
@@ -2106,10 +2112,10 @@ needed).
       /* An error has already been issued. */
     } else if (!is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
-      pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                dispatch_type->size != 4 && dispatch_type->size != 8) {
-      pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
+      expr_pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
     } else {
       /* Find the concrete routine to dispatch the operation to. */
       a_symbol_ptr        sym;
@@ -2432,12 +2438,17 @@ C++ standard.  The current token is the "(" of the call.
            warning is issued.  In all other C modes, a remark is issued. */
         if (C_dialect == C_dialect_cplusplus ||
             (c99_mode && strict_ansi_mode)) {
-          pos_st_error(ec_undefined_identifier, &operand->position,
-                       func_sym->header->identifier);
+          if (expr_error_should_be_issued()) {
+            pos_st_error(ec_undefined_identifier, &operand->position,
+                         func_sym->header->identifier);
+          }  /* if */
         } else {
-          pos_st_diagnostic(c99_mode ? es_warning : es_remark,
-                            ec_implicit_func_decl, &operand->position,
-                            func_sym->header->identifier);
+          an_error_severity sev = c99_mode ? es_warning : es_remark;
+          if (expr_diagnostic_should_be_issued(sev,
+                                               ec_implicit_func_decl)) {
+            pos_st_diagnostic(sev, ec_implicit_func_decl, &operand->position,
+                              func_sym->header->identifier);
+          }  /* if */
         }  /* if */
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/FALSE,
@@ -2497,7 +2508,7 @@ C++ standard.  The current token is the "(" of the call.
                  is_constant_operand(operand) &&
                  is_zero_constant(&operand->variant.constant)) {
         /* Microsoft Visual C++ allows a call like 0(x) -- it is ignored. */
-        pos_warning(ec_call_of_zero, &operand->position);
+        expr_pos_warning(ec_call_of_zero, &operand->position);
         routine_type = NULL;
         routine = NULL;
         ignore_call = TRUE;
@@ -2644,7 +2655,7 @@ C++ standard.  The current token is the "(" of the call.
     /* A vacuous destructor call.  The argument list should have no
        arguments. */
     if (argument_list != NULL) {
-      pos_error(ec_too_many_arguments, &first_arg_position);
+      expr_pos_error(ec_too_many_arguments, &first_arg_position);
       conv_to_error_operand(operand);
     }  /* if */
   } else {
@@ -2676,22 +2687,24 @@ C++ standard.  The current token is the "(" of the call.
            where the object is constant and the function is not, e.g.,
              (const_obj_ptr->*pm_non_const_func)();
         */
-        pos_warning(ec_unqual_function_with_qual_object,
-                    &bound_function_selector->position);
+        expr_pos_warning(ec_unqual_function_with_qual_object,
+                         &bound_function_selector->position);
       } else {
         /* Some mismatch (more qualifiers on selector than on "this" parameter
            type). */
-        if (member_func_sym != NULL) {
-          /* The member function called is known. */
-          pos_sy_start_error(ec_unqual_named_function_with_qual_object,
-                             &bound_function_selector->position,
-                             member_func_sym);
-        } else {
-          pos_start_error(ec_unqual_function_with_qual_object,
-                          &bound_function_selector->position);
+        if (expr_error_should_be_issued()) {
+          if (member_func_sym != NULL) {
+            /* The member function called is known. */
+            pos_sy_start_error(ec_unqual_named_function_with_qual_object,
+                               &bound_function_selector->position,
+                               member_func_sym);
+          } else {
+            pos_start_error(ec_unqual_function_with_qual_object,
+                            &bound_function_selector->position);
+          }  /* if */
+          display_object_type(bound_function_selector->type);
+          end_error();
         }  /* if */
-        display_object_type(bound_function_selector->type);
-        end_error();
         conv_to_error_operand(bound_function_selector);
       }  /* if */
     }  /* if */
@@ -2825,8 +2838,10 @@ same offset, an error is issued and NULL is returned.
                 temp_field_sym->variant.field.ptr->offset_bit_remainder)) {
           /* Mismatch, so the field reference cannot be unambiguously
              resolved. */
-          pos_sy2_error(ec_pcc_field_ambiguity, &pos_curr_token,
-                        other_field_sym, temp_field_sym);
+          if (expr_error_should_be_issued()) {
+            pos_sy2_error(ec_pcc_field_ambiguity, &pos_curr_token,
+                          other_field_sym, temp_field_sym);
+          }  /* if */
           other_field_sym = NULL;
           break;
         }  /* if */
@@ -2835,8 +2850,10 @@ same offset, an error is issued and NULL is returned.
   }  /* for */
   if (temp_field_sym == NULL && other_field_sym == NULL) {
     /* No field was found. */
-    str_error(ec_not_a_field_name,
-              locator_for_curr_id.symbol_header->identifier);
+    if (expr_error_should_be_issued()) {
+      str_error(ec_not_a_field_name,
+                locator_for_curr_id.symbol_header->identifier);
+    }  /* if */
   }  /* if */
   return other_field_sym;
 }  /* other_field_with_same_name */
@@ -3045,7 +3062,9 @@ the "->".
     for (aobp = parent; aobp != NULL; aobp = aobp->parent) {
       if (identical_types(qual_class_type, aobp->class_type)) {
         /* Loop in operator-> return types. */
-        pos_ty_error(ec_op_arrow_loop, &operand->position, class_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_op_arrow_loop, &operand->position, class_type);
+        }  /* if */
         conv_to_error_operand(operand);
         goto end_of_routine;
       }  /* if */
@@ -3137,7 +3156,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
-    pos_error(ec_bad_pp_operator, &pos_curr_token);
+    expr_pos_error(ec_bad_pp_operator, &pos_curr_token);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant) ||
              curr_expr_kind_is(ek_template_arg)) {
@@ -3151,11 +3170,11 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
       allow_constant_selection = TRUE;
     } else if (curr_expr_kind_is(ek_integral_constant)) {
       /* Field selection not allowed in integral constant expression. */
-      pos_error(ec_bad_integral_operator, &pos_curr_token);
+      expr_pos_error(ec_bad_integral_operator, &pos_curr_token);
       err = TRUE;
     } else {
       /* Field selection not allowed in a template argument expression. */
-      pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
+      expr_pos_error(ec_bad_templ_arg_expr_operator, &pos_curr_token);
       err = TRUE;
     }  /* if */
   } else if (curr_expr_kind_is(ek_init_constant) &&
@@ -3297,9 +3316,11 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
       if (!is_template_context()) {
         /* The template keyword, when used for syntactic disambiguation,
            may only appear within a template. */
-        diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
-                                    : es_warning,
-                   ec_template_not_in_template);
+        expr_pos_diagnostic(strict_ansi_mode ?
+                                    strict_ansi_discretionary_severity :
+                                    es_warning,
+                            ec_template_not_in_template,
+                            &pos_curr_token);
       } else {
         gid_flags |= GID_FOLLOWS_TEMPLATE;
       }  /* if */
@@ -3365,9 +3386,11 @@ qualified_name_check:
             if (!projection_member_sym->is_class_member) {
               /* The qualified name is not the name of a class member
                  (i.e., it's the name of a namespace member). */
-              pos_sy_error(ec_not_class_member,
-                           &qualified_member_position,
-                           projection_member_sym);
+              if (expr_error_should_be_issued()) {
+                pos_sy_error(ec_not_class_member,
+                             &qualified_member_position,
+                             projection_member_sym);
+              }  /* if */
               err = TRUE;
             } else if (class_struct_union_type->
                                  variant.class_struct_union.is_nonreal_class ||
@@ -3382,9 +3405,11 @@ qualified_name_check:
                   !is_same_class_or_base_class_thereof(
                         class_struct_union_type, sym_parent_class(
                                                     projection_member_sym))) {
-                pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                             &qualified_member_position,
-                             class_struct_union_type);
+                if (expr_error_should_be_issued()) {
+                  pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                               &qualified_member_position,
+                               class_struct_union_type);
+                }  /* if */
                 err = TRUE;
               }  /* if */
             }  /* if */
@@ -3459,12 +3484,14 @@ qualified_name_check:
           locator_for_curr_id.source_position = member_position;
           if (is_arrow_operator) {
             /* "->" operator. */
-            warning(ec_old_fashioned_ptr_field_selection);
+            expr_pos_warning(ec_old_fashioned_ptr_field_selection,
+                             &member_position);
           } else {
             /* "." operator.  Convert the lvalue to an rvalue pointer, then
                use "->" instead.  Note that the test above has ensured that
                operand_1 here is an lvalue. */
-            warning(ec_old_fashioned_field_selection);
+            expr_pos_warning(ec_old_fashioned_field_selection,
+                             &member_position);
             take_address_of_lvalue(operand_1, (a_source_position*)NULL);
             is_arrow_operator = TRUE;
           }  /* if */
@@ -3484,18 +3511,20 @@ qualified_name_check:
         /* The identifier is not a member of the operand_1 class, struct,
            or union. */
         err = TRUE;
-        expect_error();
+        if (expr_error_should_be_issued()) expect_error();
         if (!operand_1_is_complete_class) {
           /* An error will be produced below because the first operand is
              not (a pointer to) a class, so do not issue an error here. */
         } else if (is_error_locator(locator_for_curr_id)) {
           /* An error was previously issued. */
         } else {
-          pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
-                         &error_position,
-                         locator_for_curr_id.symbol_header->identifier,
-                         (a_symbol_ptr)class_struct_union_type->
+          if (expr_error_should_be_issued()) {
+            pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
+                           &error_position,
+                           locator_for_curr_id.symbol_header->identifier,
+                           (a_symbol_ptr)class_struct_union_type->
                                                     source_corresp.assoc_info);
+          }  /* if */
           /* Enter an undefined symbol and record a reference against it. */
           { a_symbol_ptr undef_sym_ptr =
                            enter_undefined_member_symbol(&locator_for_curr_id);
@@ -3641,7 +3670,7 @@ qualified_name_check:
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
-    check_ambiguity_and_verify_access(&locator_for_curr_id);
+    expr_check_ambiguity_and_verify_access(&locator_for_curr_id);
     if (is_error_locator(locator_for_curr_id)) {
       /* Some error in ambiguity or access control checking. */
       make_error_operand(result);
@@ -3801,8 +3830,8 @@ nonstatic_member_function:
         case sk_union_tag:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
-          pos_error(ec_type_identifier_not_allowed,
-                    &locator_for_curr_id.source_position);
+          expr_pos_error(ec_type_identifier_not_allowed,
+                         &locator_for_curr_id.source_position);
           operand_will_not_be_used_because_of_error(operand_1);
           conv_to_error_operand(result);
           break;
@@ -3817,10 +3846,10 @@ nonstatic_member_function:
           /* A template-dependent case: We cannot tell yet whether the
              access will resolve to a field. */
         } else if (member_sym->kind != (a_symbol_kind)sk_field) {
-          pos_error(ec_offsetof_nonfield, &member_position);
+          expr_pos_error(ec_offsetof_nonfield, &member_position);
           conv_to_error_operand(result);
         } else if (member_sym->variant.field.ptr->is_bit_field) {
-          pos_error(ec_offsetof_bit_field, &member_position);
+          expr_pos_error(ec_offsetof_bit_field, &member_position);
           conv_to_error_operand(result);
         }  /* if */
       }  /* if */
@@ -3927,19 +3956,19 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Operation not allowed in preprocessor expression. */
-    pos_error(ec_bad_pp_operator, &operator_position);
+    expr_pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Operation not allowed in integral constant expression. */
-    pos_error(ec_bad_integral_operator, &operator_position);
+    expr_pos_error(ec_bad_integral_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Operation not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+    expr_pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is_const()) {
     /* Operation not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &operator_position);
+    expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -4043,9 +4072,11 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
           /* Related classes. */
         } else {
           /* Bad combination. */
-          pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
-                        &operator_position,
-                        operand_1_type, operand_2_class);
+          if (expr_error_should_be_issued()) {
+            pos_ty2_error(ec_incompatible_ptr_to_member_selection_operands,
+                          &operator_position,
+                          operand_1_type, operand_2_class);
+          }  /* if */
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -4354,7 +4385,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   is_increment = (curr_token == tok_plus_plus);
   if (curr_expr_kind_is_const()) {
     /* Postfix ++/-- not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &operator_position);
+    expr_pos_error(ec_bad_constant_operator, &operator_position);
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
   } else {
@@ -4409,11 +4440,17 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
-            pos_st_diagnostic(allow_anachronisms ? anachronism_error_severity :
-                                                   es_warning,
-                              ec_single_arg_postfix_incr_decr_anachronism,
-                              &operator_position,
-                              token_names[(int)curr_token]);
+            an_error_severity sev = allow_anachronisms ?
+                                                   anachronism_error_severity :
+                                                   es_warning;
+            if (expr_diagnostic_should_be_issued(
+                                sev,
+                                ec_single_arg_postfix_incr_decr_anachronism)) {
+              pos_st_diagnostic(sev,
+                                ec_single_arg_postfix_incr_decr_anachronism,
+                                &operator_position,
+                                token_names[(int)curr_token]);
+            }  /* if */
           }  /* if */
         } else {
           /* The anachronism does not apply, so try finding a conversion
@@ -4448,7 +4485,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                            is_function_type(type_pointed_to(operand->type)))) {
             /* In some versions of GNU C void and function pointers can be
                incremented and decremented. */
-            pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+            expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                             &operator_position);
           } else if (!check_object_pointer_operand(
                                      operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -4462,17 +4500,18 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
           /* Enum types are not allowed (because the enum promotes to integer
              for the operation, and then can't get back to enum). */
           if (allow_anachronisms) {
-            pos_diagnostic(anachronism_error_severity,
-                           ec_mixed_enum_type_anachronism, &operand->position);
+            expr_pos_diagnostic(anachronism_error_severity,
+                                ec_mixed_enum_type_anachronism,
+                                &operand->position);
           } else {
-            pos_error(ec_enum_type_not_allowed, &operator_position);
+            expr_pos_error(ec_enum_type_not_allowed, &operator_position);
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand->type)) {
           /* "++" on bool in C++ is allowed but deprecated.  "--" on bool
              is not allowed. */
           if (is_increment) {
-            pos_warning(ec_incr_of_bool_deprecated, &operand->position);
+            expr_pos_warning(ec_incr_of_bool_deprecated, &operand->position);
           } else {
             error_in_operand(ec_bool_type_not_allowed, operand);
           }  /* if */
@@ -4526,8 +4565,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
               /* _Fract types can only represent values between -1 and 1:
                  adding or subtracting one is rarely intentional in that
                  domain. */
-              pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                          &operator_position);
+              expr_pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                               &operator_position);
             }  /* if */
             break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -4616,7 +4655,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 
   if (curr_expr_kind_is_const()) {
     /* Prefix ++ and -- are not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
 
@@ -4672,7 +4711,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                            is_function_type(type_pointed_to(operand.type)))) {
             /* GNU C allows void and function pointers to be incremented and
                decremented. */
-            pos_warning(ec_nonobject_pointer_arithmetic, &start_position);
+            expr_pos_warning(ec_nonobject_pointer_arithmetic, &start_position);
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -4686,17 +4725,18 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
           /* Enum types are not allowed (because the enum promotes to integer
              for the operation, and then can't get back to enum). */
           if (allow_anachronisms) {
-            pos_diagnostic(anachronism_error_severity,
-                           ec_mixed_enum_type_anachronism, &operand.position);
+            expr_pos_diagnostic(anachronism_error_severity,
+                                ec_mixed_enum_type_anachronism,
+                                &operand.position);
           } else {
-            pos_error(ec_enum_type_not_allowed, &start_position);
+            expr_pos_error(ec_enum_type_not_allowed, &start_position);
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand.type)) {
           /* "++" on bool in C++ is allowed but deprecated.  "--" on bool
              is not allowed. */
           if (is_increment) {
-            pos_warning(ec_incr_of_bool_deprecated, &operand.position);
+            expr_pos_warning(ec_incr_of_bool_deprecated, &operand.position);
           } else {
             error_in_operand(ec_bool_type_not_allowed, &operand);
           }  /* if */
@@ -4751,8 +4791,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
               /* _Fract types can only represent values between -1 and 1:
                  adding or subtracting one is rarely intentional in that
                  domain. */
-              pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                          &start_position);
+              expr_pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                               &start_position);
             }  /* if */
             break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -4807,11 +4847,11 @@ the "&".
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Address constants not allowed in preprocessing expressions. */
-    pos_error(ec_bad_pp_operator, &start_position);
+    expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address constants not allowed in integral constant expressions. */
-    pos_error(ec_bad_integral_operator, &start_position);
+    expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   }  /* if */
 
@@ -4826,7 +4866,7 @@ the "&".
                                     variant.routine.extra_info->has_ellipsis) {
       /* "&..." used outside a function, or in a function that does not have
          an ellipsis. */
-      error(ec_bad_address_of_ellipsis);
+      expr_pos_error(ec_bad_address_of_ellipsis, &pos_curr_token);
       err = TRUE;
       make_error_operand(result);
     } else {
@@ -4836,7 +4876,9 @@ the "&".
       node->type = void_star_tp;
       make_expression_operand(node, result);
       if (strict_ansi_mode) {
-        diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_ellipsis);
+        expr_pos_diagnostic(strict_ansi_error_severity,
+                            ec_nonstd_address_of_ellipsis,
+                            &pos_curr_token);
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4910,7 +4952,7 @@ the "&".
             /* In pcc mode "&array" is the same as "array" implicitly converted
                to a pointer.  It has type "pointer-to-array-element" rather
                than "pointer to array" as in ANSI. */
-            pos_warning(ec_pcc_address_of_array, &start_position);
+            expr_pos_warning(ec_pcc_address_of_array, &start_position);
             conv_array_operand_to_pointer_operand(&operand);
           } else if (microsoft_bugs && microsoft_version < 1400 &&
                      operand_is_string_literal(&operand)) {
@@ -4923,7 +4965,8 @@ the "&".
             if (!C_mode() && was_rvalue &&
                 is_class_struct_union_type(operand.type)) {
               /* Warn on taking the address of a temporary. */
-              pos_warning(ec_taking_address_of_temporary, &start_position);
+              expr_pos_warning(ec_taking_address_of_temporary,
+                               &start_position);
             }  /* if */
             /* Convert the lvalue operand to an rvalue operand for the
                pointer. */
@@ -5000,19 +5043,19 @@ current token on entry.
 
   if (!gnu_mode) {
     /* Address-of-label only recognized in GNU modes. */
-    pos_error(ec_nonstd_address_of_label, &start_position);
+    expr_pos_error(ec_nonstd_address_of_label, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_pp)) {
     /* Address-of-label not allowed in preprocessing expressions. */
-    pos_error(ec_bad_pp_operator, &start_position);
+    expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address-of-label not allowed in integral constant expressions. */
-    pos_error(ec_bad_integral_operator, &start_position);
+    expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Address-of-label not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    expr_pos_error(ec_bad_templ_arg_expr_operator, &start_position);
     err = TRUE;
   } else {
     report_gnu_extension_if_needed(&pos_curr_token,
@@ -5021,10 +5064,11 @@ current token on entry.
 
   /* Scan the operand.  This must be a single label.  */
   (void)get_token();
+  check_assertion(curr_token == tok_identifier);
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     label = scan_label(/*is_definition=*/FALSE, /*is_declaration=*/FALSE);
   } else {
-    error(ec_nonlocal_label_reference);
+    expr_pos_error(ec_nonlocal_label_reference, &pos_curr_token);
     /* Skip over the identifier without attempting to create a label. */
     (void)get_token();
     err = TRUE;
@@ -5116,7 +5160,8 @@ output operands.
       sev = es_warning;
     }  /* if */
     if (sev != es_none) {
-      pos_diagnostic(sev, ec_expr_not_a_modifiable_lvalue, &result.position);
+      expr_pos_diagnostic(sev, ec_expr_not_a_modifiable_lvalue,
+                          &result.position);
     }  /* if */
     if ((int)sev <= (int)es_warning) {
       modifying_lvalue(&result, /*value_used=*/FALSE);
@@ -5161,15 +5206,15 @@ See section 3.3.3.2 of the standard.
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Address indirection not allowed in preprocessing expressions. */
-    pos_error(ec_bad_pp_operator, &start_position);
+    expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address indirection not allowed in integral constant expressions. */
-    pos_error(ec_bad_integral_operator, &start_position);
+    expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Address indirection not allowed in a template argument expression. */
-    pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    expr_pos_error(ec_bad_templ_arg_expr_operator, &start_position);
     err = TRUE;
   }  /* if */
 
@@ -5257,7 +5302,7 @@ Issue a diagnostic about an operation at the indicated source position
 that is invalid within a template argument expression.
 */
 {
-  pos_error(ec_non_integral_operation_in_templ_arg, err_pos);
+  expr_pos_error(ec_non_integral_operation_in_templ_arg, err_pos);
 }  /* diagnose_bad_template_arg_operation */
 
 
@@ -5382,7 +5427,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         if (is_fixed_point_type(operand.type)) {
           if (f_skip_typerefs(operand.type)->variant.fixed_point.is_unsigned) {
             /* Warn on negation of an unsigned value. */
-            pos_warning(ec_unsigned_fixed_point_negation, &start_position);
+            expr_pos_warning(ec_unsigned_fixed_point_negation,
+                             &start_position);
           }  /* if */
         } else
 #endif /* FIXED_POINT_ALLOWED */
@@ -5675,7 +5721,7 @@ Syntax:
         if (is_pointer_type(sizeof_type) &&
             is_underlying_shared_qualified_type(
                                                type_pointed_to(sizeof_type))) {
-          pos_warning(ec_nonshared_blocksizeof, &type_position);
+          expr_pos_warning(ec_nonshared_blocksizeof, &type_position);
         }  /* if */
         special_upc_size = max_upc_block_size + 1;
       }  /* if */
@@ -5701,10 +5747,10 @@ Syntax:
       /* GNU C/C++ evaluates sizeof(function-type) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
       if (gpp_mode) {
-        pos_warning(ec_sizeof_function, &type_position);
+        expr_pos_warning(ec_sizeof_function, &type_position);
       }  /* if */
     } else {
-      pos_error(ec_sizeof_function, &type_position);
+      expr_pos_error(ec_sizeof_function, &type_position);
       sizeof_type = error_type();
     }  /* if */
   } else if (is_incomplete_type(sizeof_type)) {
@@ -5712,7 +5758,7 @@ Syntax:
       /* GNU C/C++ evaluates sizeof(void) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
       if (gpp_mode) {
-        pos_warning(ec_incomplete_type_not_allowed, &type_position);
+        expr_pos_warning(ec_incomplete_type_not_allowed, &type_position);
       }  /* if */
     } else if (gpp_mode && gnu_version < 30400 &&
                is_template_dependent_context() &&
@@ -5723,7 +5769,7 @@ Syntax:
          insides of templates). */
       template_case = TRUE;
     } else {
-      pos_error(ec_incomplete_type_not_allowed, &type_position);
+      expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
       sizeof_type = error_type();
     }  /* if */
   }  /* if */
@@ -5750,7 +5796,7 @@ Syntax:
     }  /* if */
     if (multiply_by_threads_needed && in_constant_expression) {
       /* Not allowed in a constant expression. */
-      pos_error(ec_expr_not_constant, &start_position);
+      expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
       err = TRUE;
     } else if (kind == tok_upc_localsizeof) {
@@ -5776,7 +5822,7 @@ Syntax:
     /* One or more of the top array types is a variable-length array. */
     if (in_constant_expression) {
       /* Not allowed in a constant expression. */
-      pos_error(ec_expr_not_constant, &start_position);
+      expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
@@ -5798,7 +5844,7 @@ Syntax:
        cases. */
     if (in_constant_expression) {
       /* Not allowed in a constant expression. */
-      pos_error(ec_expr_not_constant, &start_position);
+      expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
@@ -5954,7 +6000,8 @@ implement <stdarg.h>, a standard feature.
     }  /* if */
   } else if (microsoft_mode) {
     /* Microsoft requires the parentheses even around an expression. */
-    pos_diagnostic(es_discretionary_error, ec_exp_lparen, &pos_curr_token);
+    expr_pos_diagnostic(es_discretionary_error, ec_exp_lparen,
+                        &pos_curr_token);
   }  /* if */
 
   if (is_type) {
@@ -6104,7 +6151,8 @@ implement <stdarg.h>, a standard feature.
       } else {
         severity = (an_error_severity)es_warning;
       }  /* if */
-      pos_diagnostic(severity, ec_alignof_incomplete_type, &start_position);
+      expr_pos_diagnostic(severity, ec_alignof_incomplete_type,
+                          &start_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
         /* In Microsoft mode, the alignment-of operator sometimes returns
@@ -6191,18 +6239,18 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
   type_name(&type);
   if (is_class_struct_union_type(type)) {
     if (!C_mode() && !symbol_supplement_for_class(type)->is_POD) {
-      pos_warning(ec_offset_in_non_POD_nonstandard, &pos_type);
+      expr_pos_warning(ec_offset_in_non_POD_nonstandard, &pos_type);
     }  /* if */
     valid_type = TRUE;
   } else if (is_template_param_type(type)) {
     valid_type = TRUE;
   } else {
-    pos_error(ec_exp_class_type, &pos_type);
+    expr_pos_error(ec_exp_class_type, &pos_type);
     valid_type = FALSE;
   }  /* if */
   /* Check for the comma. */
   if (curr_token != tok_comma) {
-    syntax_error(ec_exp_comma);
+    expr_syntax_error(ec_exp_comma);
     make_error_operand(result);
   } else {
     /* Synthesize a null operand representing an lvalue of the scanned type
@@ -6398,8 +6446,10 @@ is meant to help implement ISO/IEC TR 19768.
 
   if (!type_traits_helpers_enabled) {
     /* __is_base_of is not accepted in some modes. */
-    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                 builtin_operation_names[(int)bok_is_base_of]);
+    if (expr_error_should_be_issued()) {
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)bok_is_base_of]);
+    }  /* if */
     result_type = boolean_result_type();
   } else {
     result_type = bool_type();
@@ -6427,8 +6477,10 @@ typeB.  This construct is meant to help implement ISO/IEC TR 19768.
 
   if (!type_traits_helpers_enabled) {
     /* __is_convertible_to is not accepted in some modes. */
-    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                 builtin_operation_names[(int)bok_is_convertible_to]);
+    if (expr_error_should_be_issued()) {
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)bok_is_convertible_to]);
+    }  /* if */
     result_type = boolean_result_type();
   } else {
     result_type = bool_type();
@@ -6480,8 +6532,10 @@ These help implement the type traits suggested in ISO/IEC TR 19768.)
   }  /* switch */
   if (!type_traits_helpers_enabled) {
     /* These pseudo-functions are not accepted in this mode. */
-    pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                 builtin_operation_names[(int)bok]);
+    if (expr_error_should_be_issued()) {
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)bok]);
+    }  /* if */
     result_type = boolean_result_type();
   } else {
     result_type = bool_type();
@@ -6512,8 +6566,10 @@ is returned through *result.
   check_assertion(gnu_mode);
   if (!C_mode()) {
     /* __builtin_types_compatible_p is not accepted in C++ mode. */
-    pos_st_error(ec_feature_requires_c, &pos_curr_token,
-                 builtin_operation_names[(int)bok_types_compatible]);
+    if (expr_error_should_be_issued()) {
+      pos_st_error(ec_feature_requires_c, &pos_curr_token,
+                   builtin_operation_names[(int)bok_types_compatible]);
+    }  /* if */
   }  /* if */
   scan_call_like_builtin_operation(bok_types_compatible, result_type,
                                    iek_type, iek_type, iek_none,
@@ -7110,7 +7166,7 @@ if the type is not appropriate.
       /* Integral types are converted to double. */
       tp = float_type((a_float_kind)fk_double);
     } else if (!is_arithmetic_or_enum_type(tp)) {
-      pos_error(ec_expr_not_arithmetic, &operand.position);
+      expr_pos_error(ec_expr_not_arithmetic, &operand.position);
       tp = error_type();
     }  /* if */
   }  /* if */
@@ -7218,8 +7274,10 @@ there is an error.  func_arg_number is -1 if there was a previous error.
           (curr_token == tok_rparen && arg_number < func_arg_number)) {
         /* There is no specific function corresponding to the type.  Issue
            an error. */
-        pos_ty_error(ec_type_generic_function_mismatch, start_position,
-                     arg_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_type_generic_function_mismatch, start_position,
+                       arg_type);
+        }  /* if */
         *err = TRUE;
         if (curr_token == tok_rparen) break;
       } else {
@@ -7378,7 +7436,7 @@ Issue an error and return an error type if the type is not fixed-point.
   } else {
     tp = skip_typerefs(operand.type);
     if (!is_fixed_point_type(tp)) {
-      pos_error(ec_expr_not_fixed_point, &operand.position);
+      expr_pos_error(ec_expr_not_fixed_point, &operand.position);
       tp = error_type();
     }  /* if */
   }  /* if */
@@ -7675,7 +7733,7 @@ Syntax:
 
 */
 {
-  a_source_position start_position;
+  a_source_position start_position, operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7704,14 +7762,14 @@ Syntax:
       /* ... except that MSVC++ allows it in template arguments. */
       microsoft_template_arg_case = TRUE;
     } else {
-      pos_error(ec_bad_constant_operator, &start_position);
+      expr_pos_error(ec_bad_constant_operator, &start_position);
       err = TRUE;
     }  /* if */
   }  /* if */
   /* typeid is valid only after the type_info type has been defined in a
      header file. */
   if (!err && is_incomplete_type(type_of_type_info)) {
-    error(ec_typeid_needs_typeinfo);
+    expr_pos_error(ec_typeid_needs_typeinfo, &start_position);
   }  /* if */
   /* Advance past typeid. */
   (void)get_token();
@@ -7722,6 +7780,7 @@ Syntax:
   if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
+    operand_position = pos_curr_token;
     type_name(&typeid_type);
     /* If the type is a reference, drop that. */
     if (is_reference_type(typeid_type)) {
@@ -7752,6 +7811,7 @@ Syntax:
       expr_stack->potentially_unevaluated = TRUE;
     }  /* if */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    operand_position = operand.position;
     objectless_nonstatic_data_ref_seen =
                                 expr_stack->objectless_nonstatic_data_ref_seen;
     objectless_nonstatic_data_ref_pos =
@@ -7787,8 +7847,8 @@ Syntax:
            only in unevaluated operands, but an lvalue of a polymorphic
            class type is not an unevaluated operand.  (This test detects
            subexpressions of the operand, e.g., typeid(f(S::m)).) */
-        pos_error(ec_member_ref_requires_object,
-                  &objectless_nonstatic_data_ref_pos);
+        expr_pos_error(ec_member_ref_requires_object,
+                       &objectless_nonstatic_data_ref_pos);
       }  /* if */
       if (is_expression_operand(&operand)) {
         if (operand_complete_object_type(&operand,
@@ -7820,7 +7880,7 @@ Syntax:
       if (expr != NULL) {
         /* The Microsoft extension doesn't allow cases that require runtime
            evaluation. */
-        pos_error(ec_bad_constant_operator, &start_position);
+        expr_pos_error(ec_bad_constant_operator, &start_position);
         expr = NULL;
       } else if (is_template_dependent_type(typeid_type)) {
         /* For template-dependent cases, we must record the expression (e.g.,
@@ -7850,15 +7910,15 @@ Syntax:
            nonpolymorphic.  Since that assumption may be wrong, issue a
            warning. */
         check_assertion(expr == NULL);
-        warning(ec_typeid_of_incomplete_type);
+        expr_pos_warning(ec_typeid_of_incomplete_type, &operand_position);
       } else {
-        error(ec_incomplete_type_not_allowed);
+        expr_pos_error(ec_incomplete_type_not_allowed, &operand_position);
         err = TRUE;
       }  /* if */
     }  /* if */
   } else if (vla_enabled && is_variably_modified_type(typeid_type)) {
     /* typeid of a variable-length array is not allowed. */
-    error(ec_vla_not_allowed);
+    expr_pos_error(ec_vla_not_allowed, &operand_position);
     err = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -7954,7 +8014,7 @@ When single_operand is TRUE, the <varargs.h> form is expected:
                       "scan_va_start_operator: in preprocessing expr");
   if (curr_expr_kind_is_const()) {
     /* va_start is not allowed in constant expressions. */
-    pos_error(ec_bad_va_start, &start_position);
+    expr_pos_error(ec_bad_va_start, &start_position);
     err = TRUE;
   } else {
     /* Check if we are in a valid function for the use of va_start.
@@ -7971,8 +8031,9 @@ When single_operand is TRUE, the <varargs.h> form is expected:
       }  /* if */
     }  /* if */
     if (bad_scope) {
-      diagnostic(gnu_mode ? es_error : es_warning,
-                 ec_va_start_requires_ellipsis_function);
+      expr_pos_diagnostic(gnu_mode ? es_error : es_warning,
+                          ec_va_start_requires_ellipsis_function,
+                          &start_position);
     }  /* if */
   }  /* if */
   /* Advance past va_start. */
@@ -8093,7 +8154,7 @@ and type is the type of the argument to be extracted.
                       "scan_va_arg_operator: in preprocessing expr");
   if (curr_expr_kind_is_const()) {
     /* va_arg is not allowed in constant expressions. */
-    pos_error(ec_bad_va_arg, &start_position);
+    expr_pos_error(ec_bad_va_arg, &start_position);
     err = TRUE;
   }  /* if */
   /* Advance past va_arg. */
@@ -8116,7 +8177,7 @@ and type is the type of the argument to be extracted.
       is_array_type(type) ||
       is_reference_type(type)) {
     /* The type is not allowed to be an array, function, or reference type. */
-    pos_error(ec_bad_va_arg, &type_position);
+    expr_pos_error(ec_bad_va_arg, &type_position);
     err = TRUE;
   } else if (!C_mode() &&
              is_class_struct_union_type(type) &&
@@ -8125,15 +8186,17 @@ and type is the type of the argument to be extracted.
        if we don't check this we may try to take the address of a
        va_arg node to get the object address to call the copy
        constructor, and we'll get an abort. */
-    pos_error(ec_non_pod_va_arg, &type_position);
+    expr_pos_error(ec_non_pod_va_arg, &type_position);
     err = TRUE;
   } else if (!va_arg_returns_lvalue) {
     a_type_ptr  promoted_type = default_argument_promotion(type);
     if (!identical_types(type, promoted_type)) {
-      an_error_severity severity = (an_error_severity)es_warning;
       /* The type must possibly be obtained after default promotion. */
-      pos_ty2_diagnostic(severity, ec_va_arg_would_have_been_promoted,
-                         &type_position, type, promoted_type);
+      if (expr_diagnostic_should_be_issued(es_warning,
+                                         ec_va_arg_would_have_been_promoted)) {
+        pos_ty2_warning(ec_va_arg_would_have_been_promoted,
+                        &type_position, type, promoted_type);
+      }  /* if */
       type_to_cast_to = type;
       type = promoted_type;
     }  /* if */
@@ -8196,7 +8259,7 @@ where va_list_var is a variable declared with the builtin type va_list.
                       "scan_va_end_operator: in preprocessing expr");
   if (curr_expr_kind_is_const()) {
     /* va_end is not allowed in constant expressions. */
-    pos_error(ec_bad_va_end, &start_position);
+    expr_pos_error(ec_bad_va_end, &start_position);
     err = TRUE;
   }  /* if */
   /* Advance past va_end. */
@@ -8253,7 +8316,7 @@ builtin type va_list.
                       "scan_va_copy_operator: in preprocessing expr");
   if (curr_expr_kind_is_const()) {
     /* va_copy is not allowed in constant expressions. */
-    pos_error(ec_bad_va_copy, &start_position);
+    expr_pos_error(ec_bad_va_copy, &start_position);
     err = TRUE;
   }  /* if */
   /* Advance past va_copy. */
@@ -8403,7 +8466,7 @@ The current token is the __uuidof, unless after_keyword is TRUE, in
 which case it's the token after __uuidof.
 */
 {
-  a_source_position   start_position;
+  a_source_position   start_position, operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -8433,7 +8496,7 @@ which case it's the token after __uuidof.
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* __uuidof is not allowed in integral constant expression. */
-    pos_error(ec_bad_integral_operator, &start_position);
+    expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   }  /* if */
   /* Advance past __uuidof. */
@@ -8446,6 +8509,7 @@ which case it's the token after __uuidof.
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
     is_type = TRUE;
+    operand_position = pos_curr_token;
     type_name(&uuidof_type);
     /* If the type is a reference, drop that. */
     if (is_reference_type(uuidof_type)) {
@@ -8460,6 +8524,7 @@ which case it's the token after __uuidof.
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     is_type = FALSE;
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    operand_position = operand.position;
     operand_was_scanned = TRUE;
     /* Rule out indefinite functions. */
     do_operand_transformations(&operand,
@@ -8491,7 +8556,7 @@ which case it's the token after __uuidof.
     } else if (uuidof_type == NULL) {
       /* The type has no uuid, or more than one. */
       err = TRUE;
-      error(ec_uuidof_requires_uuid_class_type);
+      expr_pos_error(ec_uuidof_requires_uuid_class_type, &operand_position);
     }  /* if */
   }  /* if */
   if (err) {
@@ -8563,11 +8628,13 @@ Return TRUE for okay, FALSE for an error.
 
   if (identical_types(type_cast_to, operand->type)) {
     /* Do-nothing cast, okay. */
-    pos_warning(ec_nonstd_ignored_array_cast, type_position);
+    expr_pos_warning(ec_nonstd_ignored_array_cast, type_position);
   } else {
     okay = FALSE;
     if (!is_error_operand(operand)) {
-      pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+      }  /* if */
     }  /* if */
   }  /* if */
   return okay;
@@ -8608,7 +8675,8 @@ the type defines something); FALSE is returned if there is an error.
     allow_array = TRUE;
   }  /* if */
   /* Do initial checking on the type. */
-  err = cast_type_pre_check(cast_type, explicit_cv_qualifiers, allow_array);
+  err = cast_type_pre_check(cast_type, type_position,
+                            explicit_cv_qualifiers, allow_array);
   /* Check for and pass over the ">". */
   (void)required_token(tok_gt, ec_exp_gt);
   --scope_stack[depth_scope_stack].pending_templ_arg_lists;
@@ -8757,7 +8825,7 @@ Syntax:
                                               ec_rtti_in_embedded_cplusplus);
   if (curr_expr_kind_is_const()) {
     /* dynamic_cast is not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
   /* Advance past dynamic_cast. */
@@ -8818,7 +8886,7 @@ Syntax:
       /* Bad dynamic cast type. */
       err = TRUE;
       if (!is_error_type(cast_type)) {
-        pos_error(ec_bad_dynamic_cast_type, &type_position);
+        expr_pos_error(ec_bad_dynamic_cast_type, &type_position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -8864,7 +8932,7 @@ Syntax:
         if (!is_error_type(operand_type) &&
             (underlying_operand_type == NULL ||
              !is_error_type(underlying_operand_type))) {
-          pos_error(ec_bad_ptr_dynamic_cast_operand, &operand.position);
+          expr_pos_error(ec_bad_ptr_dynamic_cast_operand, &operand.position);
         }  /* if */
       }  /* if */
     } else {
@@ -8886,10 +8954,10 @@ Syntax:
         /* Bad operand type for a reference dynamic_cast. */
         err = TRUE;
         if (!is_error_type(operand_type)) {
-          pos_error(rvalue_reference_case ?
-                      ec_bad_rvalue_ref_dynamic_cast_operand :
-                      ec_bad_ref_dynamic_cast_operand,
-                    &operand.position);
+          expr_pos_error(rvalue_reference_case ?
+                           ec_bad_rvalue_ref_dynamic_cast_operand :
+                           ec_bad_ref_dynamic_cast_operand,
+                         &operand.position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8902,7 +8970,10 @@ Syntax:
        test, since only one-level pointers are involved. */
     if (any_qualifier_missing(underlying_cast_type,
                               underlying_operand_type)) {
-      pos_st_error(ec_cannot_cast_away_const, &start_position, "dynamic_cast");
+      if (expr_error_should_be_issued()) {
+        pos_st_error(ec_cannot_cast_away_const, &start_position,
+                     "dynamic_cast");
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {
@@ -8947,8 +9018,8 @@ Syntax:
     if (!is_polymorphic_class_type(underlying_operand_type)) {
       err = TRUE;
       if (!is_error_type(underlying_operand_type)) {
-        pos_error(ec_dynamic_cast_operand_must_be_polymorphic,
-                  &operand.position);
+        expr_pos_error(ec_dynamic_cast_operand_must_be_polymorphic,
+                       &operand.position);
       }  /* if */
     } else if (!rtti_enabled
 #if IA64_ABI
@@ -8959,7 +9030,7 @@ Syntax:
          not enabled.  An exception is that in the IA-64 ABI the vtable
          has a pointer to the complete object that can be used for the
          case of a dynamic_cast to void *. */
-      pos_error(ec_dynamic_cast_without_rtti, &start_position);
+      expr_pos_error(ec_dynamic_cast_without_rtti, &start_position);
       err = TRUE;
     } else {
       if (rvalue_reference_case) {
@@ -9270,7 +9341,9 @@ the position to be used for errors.
                                                       &overload_delete_sym);
   if (ambiguous) {
     /* The symbol is ambiguous. */
-    pos_sy_error(ec_ambiguous_name, position, overload_delete_sym);
+    if (expr_error_should_be_issued()) {
+      pos_sy_error(ec_ambiguous_name, position, overload_delete_sym);
+    }  /* if */
   } else if (delete_sym == NULL) {
     /* There is no available appropriate operator delete, so the deletion
        is just not done. */
@@ -9287,8 +9360,8 @@ the position to be used for errors.
       a_symbol_locator locator_for_delete;
       make_locator_for_symbol(delete_sym, &locator_for_delete);
       locator_for_delete.source_position = *position;
-      overload_check_ambiguity_and_verify_access(&locator_for_delete,
-                                                 overload_delete_sym);
+      expr_overload_check_ambiguity_and_verify_access(&locator_for_delete,
+                                                      overload_delete_sym);
     }  /* if */
     /* Mark the symbol referenced. */
     record_symbol_reference(SRK_REFERENCE, fund_delete_sym,
@@ -9367,8 +9440,11 @@ and hence we cannot examine the matching operator delete either.
 #define warn_about_missing_delete_if(cond)                                  \
 { if (/*lint --e(506)*/delete_routine == NULL && exceptions_enabled &&      \
       function_symbol != NULL && (cond)) {                                  \
-    pos_stsy_warning(ec_no_corresponding_delete, &new_position,             \
-                     (char *)(array_new ? "[]" : ""), function_symbol);     \
+    if (expr_diagnostic_should_be_issued(es_warning,                        \
+                                         ec_no_corresponding_delete)) {     \
+      pos_stsy_warning(ec_no_corresponding_delete, &new_position,           \
+                       (char *)(array_new ? "[]" : ""), function_symbol);   \
+    }  /* if */                                                             \
   }  /* if */                                                               \
 }  /* warn_about_missing_delete_if */
 
@@ -9441,7 +9517,7 @@ specification allow a variable-sized array as the top type.
 
   if (curr_expr_kind_is_const()) {
     /* "new" not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
 
@@ -9478,7 +9554,7 @@ specification allow a variable-sized array as the top type.
       placement_new = TRUE;
       if (curr_token == tok_rparen) {
         /* An empty list is not allowed. */
-        error(ec_exp_primary_expr);
+        expr_pos_error(ec_exp_primary_expr, &pos_curr_token);
         (void)get_token();
       } else {
         /* Scan the expression list as an argument list for which we do not yet
@@ -9515,7 +9591,7 @@ specification allow a variable-sized array as the top type.
   } else if (dps.auto_type_specifier_seen && !dps.has_trailing_return_type) {
     /* An auto type specifier not followed by a new-initializer or a
        trailing return type is an error. */
-    error(ec_auto_type_requires_initializer);
+    expr_pos_error(ec_auto_type_requires_initializer, &type_position);
     dps.type = error_type();
     dps.auto_type_specifier_seen = FALSE;
   }  /* if */
@@ -9544,7 +9620,7 @@ specification allow a variable-sized array as the top type.
       set_type_size(unqual_new_type);
     } else if (is_incomplete_type(new_type)) {
       /* A case like "new int[]" -- an incomplete array type. */
-      pos_error(ec_incomplete_type_not_allowed, &type_position);
+      expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
       err = TRUE;
     }  /* if */
   }  /* if */
@@ -9561,21 +9637,23 @@ specification allow a variable-sized array as the top type.
     if (is_error_type(base_new_type)) {
       /* Error already issued. */
     } else if (is_incomplete_type(base_new_type)) {
-      pos_error(ec_incomplete_type_not_allowed, &type_position);
+      expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
     } else {
-      pos_error(ec_type_must_be_object_type, &type_position);
+      expr_pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     err = TRUE;
   } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
-    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                              new_type, &type_position);
+    if (expr_error_should_be_issued()) {
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                new_type, &type_position);
+    }  /* if */
     err = TRUE;
   } else if (vla_enabled && is_variably_modified_type(new_type)) {
     /* Variable-length arrays are not allowed.  These can only come from
        typedefs, because new_type_name will not scan a VLA directly. */
-    pos_error(ec_vla_not_allowed, &type_position);
+    expr_pos_error(ec_vla_not_allowed, &type_position);
     err = TRUE;
   } else {
     /* Valid type. */
@@ -9919,11 +9997,9 @@ specification allow a variable-sized array as the top type.
            This must be done after it has been determined that initialization
            is required, but before the initialization is actually processed. */
         make_dyn_init_for_deletion_for_throw();
-        ctor_routine = select_default_constructor(base_new_type,
-                                                  &type_position,
-                                                  base_new_type,
-                                          curr_expr_is_potentially_evaluated(),
-                                                  &def_ctor_err);
+        ctor_routine = expr_select_default_constructor(base_new_type,
+                                                       &type_position,
+                                                       &def_ctor_err);
         if (!def_ctor_err) {
           do_const_test = TRUE;
           if (ctor_routine == NULL) {
@@ -9941,8 +10017,8 @@ specification allow a variable-sized array as the top type.
                                                /*implied_source=*/FALSE);
           }  /* if */
         }  /* if */
-      } else if (reference_to_trivial_default_constructor(base_new_type,
-                                                          &type_position)) {
+      } else if (expr_reference_to_trivial_default_constructor(base_new_type,
+                                                             &type_position)) {
         /* The class has an assumed trivial default constructor. */
         do_const_test = TRUE;
         is_generated_ctor = TRUE;
@@ -9961,8 +10037,10 @@ specification allow a variable-sized array as the top type.
            object, the default constructor is required to be explicitly
            declared; it can't be implicit. */
         if (is_generated_ctor && is_const_qualified_type(new_type)) {
-          type_error(ec_missing_default_constructor_on_unnamed_const,
-                     unqual_base_new_type);
+          if (expr_error_should_be_issued()) {
+            type_error(ec_missing_default_constructor_on_unnamed_const,
+                       unqual_base_new_type);
+          }  /* if */
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -9977,7 +10055,7 @@ specification allow a variable-sized array as the top type.
        scan_ctor_arguments or scan_parenthesized_initializer_expression. */
     if (array_new && curr_token != tok_rparen) {
       /* No initializer except "()" may be specified for an array type. */
-      error(ec_initializer_not_allowed_on_array_new);
+      expr_pos_error(ec_initializer_not_allowed_on_array_new, &pos_curr_token);
       err = TRUE;
     }  /* if */
     if (ctor_sym != NULL) {
@@ -10223,13 +10301,15 @@ if the selected delete routine is ambiguous.
                                                           &ambiguous);
     if (ambiguous) {
       /* The symbol is ambiguous. */
-      pos_sy_error(ec_ambiguous_name, delete_position, operator_delete_set);
+      if (expr_error_should_be_issued()) {
+        pos_sy_error(ec_ambiguous_name, delete_position, operator_delete_set);
+      }  /* if */
       operator_delete_symbol = NULL;
     } else if (operator_delete_symbol == NULL) {
       /* There is no available default operator delete.  (Perhaps this is
          a class with an operator delete, but there's no default operator
          delete.) */
-      pos_error(ec_no_appropriate_delete, delete_position);
+      expr_pos_error(ec_no_appropriate_delete, delete_position);
     } else {
       /* There is a default operator delete. */
       a_symbol_ptr fund_operator_delete =
@@ -10246,8 +10326,8 @@ if the selected delete routine is ambiguous.
         a_symbol_locator locator_for_delete;
         make_locator_for_symbol(operator_delete_symbol, &locator_for_delete);
         locator_for_delete.source_position = *delete_position;
-        overload_check_ambiguity_and_verify_access(&locator_for_delete,
-                                                   operator_delete_set);
+        expr_overload_check_ambiguity_and_verify_access(&locator_for_delete,
+                                                        operator_delete_set);
       }  /* if */
       /* Mark the routine symbol referenced, but not the IL entry (yet). */
       record_symbol_reference(SRK_REFERENCE, fund_operator_delete,
@@ -10292,7 +10372,7 @@ As an anachronism, allow an expression inside the [ ].
 
   if (curr_expr_kind_is_const()) {
     /* "delete" not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   }  /* if */
 
@@ -10323,7 +10403,7 @@ As an anachronism, allow an expression inside the [ ].
       /* This anachronism is allowed in Microsoft mode. */
       if (microsoft_mode) sev = (an_error_severity)es_warning;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      diagnostic(sev, ec_delete_count_anachronism);
+      expr_pos_diagnostic(sev, ec_delete_count_anachronism, &pos_curr_token);
       scan_nonconstant_dimension_expression(/*is_new_or_delete_bound=*/TRUE,
                                             /*is_top_level_vla_bound=*/FALSE,
                                             /*is_evaluated_sizeof_arg=*/FALSE,
@@ -10373,9 +10453,10 @@ As an anachronism, allow an expression inside the [ ].
         /* Deleting a pointer to array type is undefined behavior.  Treat it
            as an array delete, with a warning */
         array_delete = TRUE;
-        pos_warning(strict_ansi_mode ? ec_delete_of_array_type_nonstandard :
+        expr_pos_warning(strict_ansi_mode ?
+                                       ec_delete_of_array_type_nonstandard :
                                        ec_delete_of_array_type,
-                    &operand.position);
+                         &operand.position);
         cast_operand(type_after_array_to_pointer_transformation(delete_type),
                      &operand, /*is_implicit_cast=*/TRUE);
         ptr_delete_type = operand.type;
@@ -10412,7 +10493,7 @@ As an anachronism, allow an expression inside the [ ].
         /* Deleting a pointer to an incomplete class.  Give a warning,
            because we may not know how to do the right thing (like call
            a destructor). */
-        pos_warning(ec_delete_of_incomplete_class, &operand.position);
+        expr_pos_warning(ec_delete_of_incomplete_class, &operand.position);
       }  /* if */
       dtor_routine = expr_select_destructor(base_delete_type, base_delete_type,
                                             &operand.position,
@@ -10591,20 +10672,21 @@ The cast is compiler-generated if compiler_generated is TRUE.
 }  /* lvalue_cast */
 
 
-static a_boolean cast_type_pre_check(a_type_ptr *p_type_cast_to,
-                                     a_boolean  has_explicit_cv_qualifiers,
-                                     a_boolean  allow_array)
+static a_boolean cast_type_pre_check(
+                                 a_type_ptr        *p_type_cast_to,
+                                 a_source_position *type_position,
+                                 a_boolean          has_explicit_cv_qualifiers,
+                                 a_boolean          allow_array)
 /*
 Do a first check on the destination type of a cast to see if it is legal.
 This is very top-level checking applicable to all casts.  Return TRUE if
 there is an error.  *p_type_cast_to is the destination type of the cast,
 which may be updated on return if the cast should be to some other type.
-If explicit_cv_qualifiers is set, warn about those qualifiers being useless
-when the type cast to is a nonclass type.  If allow_array is TRUE, do
-not issue an error for a cast to an array type.
-This routine is called for C-style casts, C++ functional-notation type
-conversions, and C++ new-style casts.  The current error_position must
-be set to the source position of the type.
+type_position is its source position.  If explicit_cv_qualifiers is
+set, warn about those qualifiers being useless when the type cast to
+is a nonclass type.  If allow_array is TRUE, do not issue an error for
+a cast to an array type.  This routine is called for C-style casts,
+C++ functional-notation type conversions, and C++ new-style casts.
 */
 {
   a_boolean  err = FALSE;
@@ -10621,7 +10703,7 @@ be set to the source position of the type.
        it's okay and go on. */
   } else if (is_incomplete_type(type_cast_to) && !is_void_type(type_cast_to)) {
     /* This check catches incomplete enum types. */
-    error(ec_incomplete_type_not_allowed);
+    expr_pos_error(ec_incomplete_type_not_allowed, type_position);
     err = TRUE;
   } else if (is_class_struct_union_type(type_cast_to)) {
     /* Cast to a class type. */
@@ -10629,15 +10711,17 @@ be set to the source position of the type.
       /* In C++, a cast to a class is allowed. */
       /* But not in a constant expression. */
       if (curr_expr_kind_is_const()) {
-        error(ec_expr_not_constant);
+        expr_pos_error(ec_expr_not_constant, type_position);
         err = TRUE;
       }  /* if */
       /* But not a cast to an abstract class. */
       if (is_abstract_class_type(type_cast_to) &&
           /* Except in Microsoft mode before version 7.0. */
           !(microsoft_bugs && microsoft_version < 1300)) {
-        abstract_class_diagnostic(
-          es_error, ec_cast_to_abstract_class, type_cast_to, &error_position);
+        if (expr_error_should_be_issued()) {
+          abstract_class_diagnostic(
+            es_error, ec_cast_to_abstract_class, type_cast_to, type_position);
+        }  /* if */
         err = TRUE;
       }  /* if */
     } else {
@@ -10653,7 +10737,9 @@ be set to the source position of the type.
       {
         /* In C, a cast to a class type is not allowed.  Note that compound
            literal cases do not get here. */
-        type_error(ec_cast_to_bad_type, type_cast_to);
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+        }  /* if */
         err = TRUE;
       }  /* if */
     }  /* if */
@@ -10666,15 +10752,21 @@ be set to the source position of the type.
          a pointer to. */
       *p_type_cast_to = type_cast_to =
                       type_after_array_to_pointer_transformation(type_cast_to);
-      type_warning(ec_nonstd_array_cast, type_cast_to);
+      if (expr_diagnostic_should_be_issued(es_warning, ec_nonstd_array_cast)) {
+        pos_ty_warning(ec_nonstd_array_cast, type_position, type_cast_to);
+      }  /* if */
     } else {
       /* Normal case.  Casting to an array type is an error. */
-      type_error(ec_cast_to_bad_type, type_cast_to);
+      if (expr_error_should_be_issued()) {
+        pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+      }  /* if */
       err = TRUE;
     }  /* if */
   } else if (is_function_type(type_cast_to)) {
     /* Casting to a function type is not allowed. */
-    type_error(ec_cast_to_bad_type, type_cast_to);
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_cast_to_bad_type, type_position, type_cast_to);
+    }  /* if */
     err = TRUE;
   }  /* if */
   if (!err) {
@@ -10692,7 +10784,7 @@ be set to the source position of the type.
         /* Microsoft mode allows some lvalue casts where cv-qualifiers
            matter, so give no warning.  Ditto g++ mode. */
       } else {
-        warning(ec_cast_to_qualified_type);
+        expr_pos_warning(ec_cast_to_qualified_type, type_position);
         /* coverity[returned_pointer] - type_cast_to not used later. */
         *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
       }  /* if */
@@ -10727,7 +10819,7 @@ set the void_expression_lvalue flag in the expression.
       a_type_ptr  tp = type_of_call(expr);
       if (tp->kind == (a_type_kind)tk_routine &&
           tp->variant.routine.extra_info->result_should_be_used) {
-        pos_warning(ec_call_result_should_be_used, &operand->position);
+        expr_pos_warning(ec_call_result_should_be_used, &operand->position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -10873,9 +10965,9 @@ expressions allow only certain limited casts).
   }  /* if */
   if (curr_expr_kind_is(ek_integral_constant)) {
     if (err_code != ec_no_error) {
-      pos_diagnostic(err_severity, err_code,
-                     use_type_position_in_diag ? type_position :
-                                                 &operand->position);
+      expr_pos_diagnostic(err_severity, err_code,
+                          use_type_position_in_diag ? type_position :
+                                                      &operand->position);
       if (err_severity == es_error) err = TRUE;
     }  /* if */
   }  /* if */
@@ -10980,9 +11072,9 @@ expressions allow only certain limited casts).
   if (curr_expr_kind_is(ek_init_constant)) {
     /* Diagnose casts not allowed in an init-constant expression. */
     if (err_code != ec_no_error) {
-      pos_diagnostic(err_severity, err_code,
-                     use_type_position_in_diag ? type_position :
-                                                 &operand->position);
+      expr_pos_diagnostic(err_severity, err_code,
+                          use_type_position_in_diag ? type_position :
+                                                      &operand->position);
       if (err_severity == es_error) err = TRUE;
     }  /* if */
   }  /* if */
@@ -11008,11 +11100,11 @@ expressions allow only certain limited casts).
            that come from casting an integer constant to a pointer type,
            as in (int)(char *)1. */
         if (strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity,
-                         enum_type_is_integral ?
-                           ec_expr_not_arithmetic :
-                           ec_expr_not_arithmetic_or_enum,
-                         &operand->position);
+          expr_pos_diagnostic(strict_ansi_error_severity,
+                              enum_type_is_integral ?
+                                ec_expr_not_arithmetic :
+                                ec_expr_not_arithmetic_or_enum,
+                              &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
       } else if (is_template_param_type(source_type)) {
@@ -11021,7 +11113,8 @@ expressions allow only certain limited casts).
         /* Cast from non-arithmetic to integral in a nontype template
            argument. */
         if (!is_error_type(source_type)) {
-          pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
+          expr_pos_error(ec_non_arith_operation_in_templ_arg,
+                         &operand->position);
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -11036,7 +11129,8 @@ expressions allow only certain limited casts).
         /* Cast from non-arithmetic to floating in a nontype template
            argument. */
         if (!is_error_type(source_type)) {
-          pos_error(ec_non_arith_operation_in_templ_arg, &operand->position);
+          expr_pos_error(ec_non_arith_operation_in_templ_arg,
+                         &operand->position);
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -11389,7 +11483,7 @@ it to an lvalue).
     *adj_operand_type = operand->type;
   } else if (is_void_type(operand->type)) {
     /* Something like "(int &&)throw x" should not be allowed. */
-    pos_error(ec_bad_cast, type_position);
+    expr_pos_error(ec_bad_cast, type_position);
     conv_to_error_operand(operand);
     *processed = TRUE;
   } else if (is_function_type(operand->type) &&
@@ -11403,7 +11497,7 @@ it to an lvalue).
        function to reference-to-pointer (that would have to be
        a reinterpret_cast to be valid); that's allowable under
        conditionally-supported behavior. */
-    pos_error(ec_bad_cast, type_position);
+    expr_pos_error(ec_bad_cast, type_position);
     conv_to_error_operand(operand);
     *processed = TRUE;
   } else {
@@ -11461,7 +11555,7 @@ FALSE if the bound function case is not one that undergoes the conversion.
       an_operand   orig_operand;
 
       orig_operand = *operand;
-      pos_warning(ec_bound_function_must_be_called, &operand->position);
+      expr_pos_warning(ec_bound_function_must_be_called, &operand->position);
       check_assertion(sym != NULL);
       /* Make a pointer-to-member for the function. */
       make_ptr_to_member_constant_operand(sym,
@@ -11518,8 +11612,8 @@ merely transformed to something to which the cast may apply.
          int (*pf)() = (int (*)())p->f;
 
        See ARM 18.3.4. */
-    pos_diagnostic(anachronism_error_severity,
-                   ec_bound_function_cast_anachronism, start_position);
+    expr_pos_diagnostic(anachronism_error_severity,
+                        ec_bound_function_cast_anachronism, start_position);
     if (operand->virtual_function) {
       an_expr_node_ptr func_ptr_node, object_node;
       a_boolean        is_arrow_operator =
@@ -11863,7 +11957,7 @@ indicates which.
             /* Valid explicit conversion. */
             /* Issue a warning on oddball cases. */
             if (warning_suggested != ec_no_error) {
-              pos_warning(warning_suggested, start_position);
+              expr_pos_warning(warning_suggested, start_position);
             }  /* if */
             if (warning_suggested != ec_pointer_conversion_loses_bits) {
               if (is_cast_of_nonconstant_address_to_smaller_integer(
@@ -11872,7 +11966,7 @@ indicates which.
                 /* A cast of a nonconstant pointer to a small integer.  Issue
                    a warning about truncation.  The warning for constant cases
                    comes out of folding. */
-                pos_warning(ec_integer_truncated, start_position);
+                expr_pos_warning(ec_integer_truncated, start_position);
               } else if (is_pointer_type(operand->type) &&
                          !is_pointer_type(type_cast_to) &&
                          !cast_to_reference) {
@@ -11915,8 +12009,8 @@ indicates which.
                                                                variant.routine;
             a_symbol_ptr  rout_sym =
                             (a_symbol_ptr)(routine->source_corresp.assoc_info);
-            pos_warning(ec_ptr_to_member_cast_to_ptr_to_function,
-                        start_position);
+            expr_pos_warning(ec_ptr_to_member_cast_to_ptr_to_function,
+                             start_position);
             make_function_designator_operand(rout_sym,
                                          (a_boolean)operand->is_qualified_name,
                                              start_position, end_position,
@@ -11946,8 +12040,10 @@ indicates which.
                                                         operand);
             } else {
               err = TRUE;
-              pos_ty_error(ec_cast_to_bad_type, type_position,
-                           type_cast_to);
+              if (expr_error_should_be_issued()) {
+                pos_ty_error(ec_cast_to_bad_type, type_position,
+                             type_cast_to);
+              }  /* if */
             }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
           } else {
@@ -11955,11 +12051,13 @@ indicates which.
             err = TRUE;
             if (is_class_struct_union_type(type_cast_to)) {
               /* Use a special clearer message for casting to a class. */
-              pos_ty_error(ec_cast_to_bad_type, type_position,
-                           type_cast_to);
+              if (expr_error_should_be_issued()) {
+                pos_ty_error(ec_cast_to_bad_type, type_position,
+                             type_cast_to);
+              }  /* if */
             } else {
               /* Generic message. */
-              pos_error(ec_bad_cast, start_position);
+              expr_pos_error(ec_bad_cast, start_position);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -12040,7 +12138,7 @@ Syntax:
          in a const_cast. */
       microsoft_enum_cast_case = TRUE;
       do_lvalue_check = TRUE;
-      pos_warning(ec_enum_const_cast, &start_position);
+      expr_pos_warning(ec_enum_const_cast, &start_position);
     } else if (is_pointer_type(cast_type)) {
       /* A cast of a pointer type to the same type with possibly modified
          cv-qualifiers is ignored and can leave an lvalue. */
@@ -12101,7 +12199,7 @@ Syntax:
       /* Bad const_cast type. */
       err = TRUE;
       if (!is_error_type(cast_type)) {
-        pos_error(ec_bad_const_cast_type, &type_position);
+        expr_pos_error(ec_bad_const_cast_type, &type_position);
       }  /* if */
     } else {
       /* The type cast to is okay. */
@@ -12133,7 +12231,7 @@ Syntax:
             if (!is_error_operand(&operand)) {
               /* It's very hard to get here for an rvalue reference case,
                  so we don't bother with a separate message for that case. */
-              pos_error(ec_expr_not_an_lvalue, &operand.position);
+              expr_pos_error(ec_expr_not_an_lvalue, &operand.position);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -12146,7 +12244,7 @@ Syntax:
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL)) {
           err = TRUE;
-          pos_error(ec_bad_const_cast, &operand.position);
+          expr_pos_error(ec_bad_const_cast, &operand.position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12362,7 +12460,7 @@ Syntax:
           /* Valid static_cast conversion. */
           if (warning_suggested != ec_no_error) {
             /* Issue warning on oddball cases. */
-            pos_warning(warning_suggested, &start_position);
+            expr_pos_warning(warning_suggested, &start_position);
           }  /* if */
           if (is_template_dependent_context() &&
               (is_template_dependent_type(source_type) ||
@@ -12373,7 +12471,8 @@ Syntax:
                                  /*is_implicit_cast=*/FALSE,
                                  &type_position);
           } else {
-            if (related_member_pointers(adj_source_type, adj_type_cast_to,
+            if (expr_access_checking_should_be_done() &&
+                related_member_pointers(adj_source_type, adj_type_cast_to,
                                         &baseward_cast, &bcp) &&
                 baseward_cast &&
                 !bcp->ambiguous &&
@@ -12385,7 +12484,8 @@ Syntax:
                                 ec_inaccessible_base_class,
                                 &start_position,
                                 bcp->type);
-            } else if (related_class_pointers(adj_source_type,
+            } else if (expr_access_checking_should_be_done() &&
+                       related_class_pointers(adj_source_type,
                                               adj_type_cast_to,
                                               &baseward_cast, &bcp) &&
                        !baseward_cast &&
@@ -12426,8 +12526,10 @@ Syntax:
           err = TRUE;
           if (is_class_struct_union_type(type_cast_to)) {
             /* Use a special clearer message for casting to a class. */
-            pos_ty_error(ec_cast_to_bad_type, &type_position,
-                         type_cast_to);
+            if (expr_error_should_be_issued()) {
+              pos_ty_error(ec_cast_to_bad_type, &type_position,
+                           type_cast_to);
+            }  /* if */
           } else if (same_type_with_added_qualifiers(adj_source_type,
                                                      adj_type_cast_to,
                                                     /*ignore_qualifiers=*/TRUE,
@@ -12436,11 +12538,13 @@ Syntax:
                                              adj_type_cast_to,
                                              &warning_suggested)) {
             /* Use a special message for casting away constness. */
-            pos_st_error(ec_cannot_cast_away_const, &start_position,
-                         "static_cast");
+            if (expr_error_should_be_issued()) {
+              pos_st_error(ec_cannot_cast_away_const, &start_position,
+                           "static_cast");
+            }  /* if */
           } else {
             /* Generic message. */
-            pos_error(ec_bad_cast, &start_position);
+            expr_pos_error(ec_bad_cast, &start_position);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -12576,8 +12680,10 @@ Syntax:
             /* MSVC++ allows a cast of a string literal that removes
                const (presumably because formerly strings were not const). */
           } else {
-            pos_st_error(ec_cannot_cast_away_const, &start_position,
-                         "reinterpret_cast");
+            if (expr_error_should_be_issued()) {
+              pos_st_error(ec_cannot_cast_away_const, &start_position,
+                           "reinterpret_cast");
+            }  /* if */
           }  /* if */
         } else {
           /* This reinterpret_cast does not cast away constness. */
@@ -12586,7 +12692,7 @@ Syntax:
           }  /* if */
           if (warning_suggested != ec_no_error) {
             /* Issue warning on oddball cases. */
-            pos_warning(warning_suggested, &start_position);
+            expr_pos_warning(warning_suggested, &start_position);
           }  /* if */
         }  /* if */
         if (is_template_dependent_context() &&
@@ -12622,16 +12728,18 @@ Syntax:
         /* g++ (through 3.4 at least) allows a do-nothing reinterpret_cast,
            e.g., int --> int, class --> class.  No cast is actually added
            to the IL.  The result is an rvalue.  Likewise for Sun. */
-        pos_warning(ec_nonstd_reinterpret_cast, &start_position);
+        expr_pos_warning(ec_nonstd_reinterpret_cast, &start_position);
       } else {
         /* Not a valid cast. */
         err = TRUE;
         if (is_class_struct_union_type(type_cast_to)) {
           /* Use a special clearer message for casting to a class. */
-          pos_ty_error(ec_cast_to_bad_type, &type_position, type_cast_to);
+          if (expr_error_should_be_issued()) {
+            pos_ty_error(ec_cast_to_bad_type, &type_position, type_cast_to);
+          }  /* if */
         } else {
           /* Generic message. */
-          pos_error(ec_bad_cast, &start_position);
+          expr_pos_error(ec_bad_cast, &start_position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12749,7 +12857,7 @@ operators cannot be overloaded.
       make_zero_of_proper_type(operand.type, &zero);
       make_constant_operand(&zero, result);
     }  /* if */
-    pos_warning(ec_real_and_imag_applied_to_real_value, &start_pos);
+    expr_pos_warning(ec_real_and_imag_applied_to_real_value, &start_pos);
   } else if (is_complex_type(operand.type)) {
     /* A complex argument: The result type is the corresponding real
        floating-point type. */
@@ -12806,7 +12914,7 @@ both C and C++ modes.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (curr_expr_kind_is_const()) {
     /* Not allowed in a constant expression. */
-    error(ec_expr_not_constant);
+    expr_pos_error(ec_expr_not_constant, &start_position);
     err = TRUE;
   }  /* if */
   if (depth_stmt_stack < 0 ||
@@ -12818,9 +12926,10 @@ both C and C++ modes.
        copy_expr_tree). */
     if (!err) {
       if (depth_stmt_stack < 0) {
-        error(ec_statement_expression_in_function_only);
+        expr_pos_error(ec_statement_expression_in_function_only,
+                       &start_position);
       } else {
-        error(ec_statement_expr_in_default_arg);
+        expr_pos_error(ec_statement_expr_in_default_arg, &start_position);
       }  /* if */
       err = TRUE;
     }  /* if */
@@ -12874,7 +12983,7 @@ both C and C++ modes.
          statement. */
       if (sp->variant.block.extra_info->assoc_scope != NULL &&
           sp->variant.block.extra_info->assoc_scope->lifetime != NULL) {
-        pos_error(ec_destr_in_statement_expr, &start_position);
+        expr_pos_error(ec_destr_in_statement_expr, &start_position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -12904,7 +13013,7 @@ both C and C++ modes.
       /* Do not allow a statement expression to have a variably-modified type.
          (It's an unlikely case that would cause undue difficulties during IL
          lowering.) */
-      pos_error(ec_statement_expr_with_vla_type, &start_position);
+      expr_pos_error(ec_statement_expr_with_vla_type, &start_position);
       make_error_operand(result);
     } else {
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
@@ -12957,15 +13066,16 @@ set appropriately; the caller should set them on return.
   is_static = curr_expr_kind_is_const();
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* A compound literal is not allowed in an integral constant expression. */
-    pos_error(ec_bad_integral_compound_literal, type_position);
+    expr_pos_error(ec_bad_integral_compound_literal, type_position);
     err = TRUE;
   } else if (vla_enabled && is_vla_type(literal_type)) {
     /* Variable-length arrays are not allowed. */
-    pos_error(ec_vla_not_allowed, type_position);
+    expr_pos_error(ec_vla_not_allowed, type_position);
     err = TRUE;
 #if NAMED_ADDRESS_SPACES_ALLOWED
   } else if (type_qualified_with_named_address_space(literal_type)) {
-    pos_error(ec_type_with_named_address_space_not_allowed, type_position);
+    expr_pos_error(ec_type_with_named_address_space_not_allowed,
+                   type_position);
     err = TRUE;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
   } else if (is_error_type(literal_type)) {
@@ -12979,7 +13089,9 @@ set appropriately; the caller should set them on return.
        complete. */
   } else {
     /* Some other type; error. */
-    pos_ty_error(ec_bad_compound_literal_type, type_position, literal_type);
+    if (expr_error_should_be_issued()) {
+      pos_ty_error(ec_bad_compound_literal_type, type_position, literal_type);
+    }  /* if */
     err = TRUE;
   }  /* if */
   if (err) {
@@ -13126,7 +13238,7 @@ Also scans GNU statement expressions:
         if (type_defined && !C_mode() && !gpp_mode) {
           /* All g++ versions allow type definitions as part of compound
              literals. */
-          error(ec_type_definition_not_allowed);
+          expr_pos_error(ec_type_definition_not_allowed, &pos_curr_token);
         }  /* if */
         scan_compound_literal(&type_cast_to, &type_position, result,
                               local_options);
@@ -13137,13 +13249,12 @@ Also scans GNU statement expressions:
         /* Normal cast (not a compound literal). */
         a_boolean allow_array = microsoft_bugs && !C_mode();
         /* Check the type to see if it is valid in general terms. */
-        error_position = type_position;
-        err = cast_type_pre_check(&type_cast_to, explicit_cv_qualifiers,
-                                  allow_array);
+        err = cast_type_pre_check(&type_cast_to, &type_position,
+                                  explicit_cv_qualifiers, allow_array);
         if (type_defined && !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
           /* Only g++ versions earlier than 3.4 allow type definitions as part
              of casts. */
-          error(ec_type_definition_not_allowed);
+          expr_pos_error(ec_type_definition_not_allowed, &type_position);
         }  /* if */
         set_err_pos_to_curr_token();
         /* Scan the expression to be cast. */
@@ -13347,8 +13458,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
      this does a worthwhile check even in the class case (abstract class).
      However, cv-qualifiers cannot syntactically appear in this sort of
      explicit conversion. */
-  err = cast_type_pre_check(&type_cast_to, /*explicit_cv_qualifiers=*/FALSE,
-                            allow_array);
+  err = cast_type_pre_check(&type_cast_to, start_position,
+                            /*explicit_cv_qualifiers=*/FALSE, allow_array);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
@@ -13432,11 +13543,13 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
            TC1 makes this not an error, because the initialization is
            value-initialization, and there's no error for value-
            initializing a reference, but that has to be wrong. */
-        pos_error(ec_bad_cast, start_position);
+        expr_pos_error(ec_bad_cast, start_position);
         make_error_operand(result);
       } else if (is_array_type(type_cast_to)) {
         /* Also a cast to an array type, let by above in some modes. */
-        pos_ty_error(ec_cast_to_bad_type, start_position, type_cast_to);
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_cast_to_bad_type, start_position, type_cast_to);
+        }  /* if */
         make_error_operand(result);
       } else {
         /* See if the cast is valid in the current expression kind by
@@ -13461,8 +13574,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
           a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
           /* Force generation of the trivial default constructor for a
              non-POD class to detect any errors.  See core issue 302. */
-          if (reference_to_trivial_default_constructor(type_cast_to,
-                                                       start_position)) {
+          if (expr_reference_to_trivial_default_constructor(type_cast_to,
+                                                            start_position)) {
             if (!value_initialization_enabled) {
               /* Value initialization is disabled, and this is a non-POD
                  class with a trivial default constructor.  The initialization
@@ -13666,6 +13779,7 @@ be of integral type.  See section 3.3.5 of the standard.
        of the normal usual arithmetic conversion rules. */
     if (c99_mode &&
         determine_imaginary_operation_type(save_token, operand_1, &operand_2,
+                                           &operator_position,
                                            &result_type, &op)) {
     } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -13675,6 +13789,7 @@ be of integral type.  See section 3.3.5 of the standard.
        the usual arithmetic conversion rules. */
     if (gnu_mode &&
         determine_vector_operation_type(save_token, operand_1, &operand_2,
+                                        &operator_position,
                                         &result_type, &op)) {
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -13691,9 +13806,9 @@ be of integral type.  See section 3.3.5 of the standard.
       /* Warn on a division or mod by zero.  This is handled in folding.c
          for the constant case, but here if only the second operand is
          constant. */
-      pos_warning((save_token == tok_divide) ? ec_divide_by_zero :
-                                               ec_mod_by_zero,
-                  &operand_2.position);
+      expr_pos_warning((save_token == tok_divide) ? ec_divide_by_zero :
+                                                    ec_mod_by_zero,
+                       &operand_2.position);
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2,
                         result_type, result, &operator_position);
@@ -13788,7 +13903,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         if (gcc_mode && (is_void_type(type_pointed_to(operand_1->type)) ||
                          is_function_type(type_pointed_to(operand_1->type)))) {
           /* GNU C accepts arithmetic on void and function pointers. */
-          pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+          expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                           &operator_position);
         } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
@@ -13867,7 +13983,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
              the address of a label. */
           if (!operand_is_address_of_label(operand_1) &&
               !operand_is_address_of_label(&operand_2)) {
-            pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+            expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                             &operator_position);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (!check_object_pointer_operand(
@@ -13878,10 +13995,13 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                    is_void_type(type_pointed_to(operand_2.type))) {
           /* Microsoft (both C and C++, as of 7.1) allows "void *" as the
              second (but not the first) operand. */
-          pos_ty2_diagnostic(es_warning,
-                             ec_nonstandard_ptr_minus_ptr,
-                             &operator_position,
-                             operand_1->type, operand_2.type);
+          if (expr_diagnostic_should_be_issued(es_warning,
+                                               ec_nonstandard_ptr_minus_ptr)) {
+            pos_ty2_diagnostic(es_warning,
+                               ec_nonstandard_ptr_minus_ptr,
+                               &operator_position,
+                               operand_1->type, operand_2.type);
+          }  /* if */
           operation_type = operand_1->type;
         } else if (!check_object_pointer_operand(
                                   &operand_2, ec_expr_not_pointer_to_object)) {
@@ -13893,11 +14013,16 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
              a conversion is allowed between the operands. */
           if (nonstd_case &&
               !(any_cfront_mode() || microsoft_mode)) {
-            pos_ty2_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
-                                                : es_warning,
-                               ec_nonstandard_ptr_minus_ptr,
-                               &operator_position,
-                               operand_1->type, operand_2.type);
+            an_error_severity sev = strict_ansi_mode ?
+                                          strict_ansi_error_severity :
+                                          es_warning;
+            if (expr_diagnostic_should_be_issued(sev,
+                                               ec_nonstandard_ptr_minus_ptr)) {
+              pos_ty2_diagnostic(sev,
+                                 ec_nonstandard_ptr_minus_ptr,
+                                 &operator_position,
+                                 operand_1->type, operand_2.type);
+            }  /* if */
           }  /* if */
         }  /* if */
         result_type = integer_type(targ_ptrdiff_t_int_kind);
@@ -13919,7 +14044,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                        is_function_type(type_pointed_to(operand_2.type)))) {
         /* Fine, but issue a warning because some versions of GNU C (2.96 in
            particular) are more strict. */
-        pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+        expr_pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
       } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
         /* Pointer to incomplete array is also allowed. */
@@ -13948,6 +14073,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         if (c99_mode &&
             determine_imaginary_operation_type(save_token,
                                                operand_1, &operand_2,
+                                               &operator_position,
                                                &result_type, &op)) {
           operation_type = NULL;
         } else
@@ -13958,6 +14084,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            the usual arithmetic conversion rules. */
         if (gnu_mode &&
             determine_vector_operation_type(save_token, operand_1, &operand_2,
+                                            &operator_position,
                                             &result_type, &op)) {
           operation_type = NULL;
         } else
@@ -14109,7 +14236,9 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
          constant. */
       check_shift_count(&operand_2.variant.constant, operand_1->type,
                         &err_code);
-      if (err_code != ec_no_error) pos_warning(err_code, &operand_2.position);
+      if (err_code != ec_no_error) {
+        expr_pos_warning(err_code, &operand_2.position);
+      }  /* if */
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &error_position);
@@ -14275,10 +14404,10 @@ standard.
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
-      pos_error(ec_complex_type_not_allowed, &operand_1->position);
+      expr_pos_error(ec_complex_type_not_allowed, &operand_1->position);
       operation_type = error_type();
     } else if (is_nonreal_floating_type(operand_2.type)) {
-      pos_error(ec_complex_type_not_allowed, &operand_2.position);
+      expr_pos_error(ec_complex_type_not_allowed, &operand_2.position);
       operation_type = error_type();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
@@ -14302,7 +14431,7 @@ standard.
         if (upc_mode && is_shared_void_star_type(operation_type)) {
           /* Cannot do lt/gt/le/ge comparisons involving shared void* pointers,
              since they have no absolute ordering. */
-          pos_error(ec_upc_shared_void_comparison, &operator_position);
+          expr_pos_error(ec_upc_shared_void_comparison, &operator_position);
           make_error_operand(result);
           operand_will_not_be_used_because_of_error(operand_1);
           operand_will_not_be_used_because_of_error(&operand_2);
@@ -14314,8 +14443,8 @@ standard.
           /* Pointer to member types cannot be compared using relational
              operators.  (The case where operand_1 has a pointer to member
              type was already caught above.) */
-          pos_error(ec_expr_not_arithmetic_or_enum_or_pointer,
-                    &operand_2.position);
+          expr_pos_error(ec_expr_not_arithmetic_or_enum_or_pointer,
+                         &operand_2.position);
           operation_type = error_type();
         } else {
           (void)check_compatibility_of_nullptr_operands(operand_1, &operand_2,
@@ -14364,12 +14493,14 @@ standard.
           if (second_is_constant ?
                               (save_token == tok_ge || save_token == tok_lt) :
                               (save_token == tok_gt || save_token == tok_le)) {
-            pos_warning(ec_unsigned_compare_with_zero, &operator_position);
+            expr_pos_warning(ec_unsigned_compare_with_zero,
+                             &operator_position);
           }  /* if */
         } else if (constant_sign < 0) {
           /* Comparison of an unsigned value with a negative constant.
              No cases make sense. */
-          pos_warning(ec_unsigned_compare_with_negative, &operator_position);
+          expr_pos_warning(ec_unsigned_compare_with_negative,
+                           &operator_position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -14519,7 +14650,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                                       &constant_sign) &&
           constant_sign < 0) {
         /* Comparison of an unsigned value with a negative constant. */
-        pos_warning(ec_unsigned_compare_with_negative, &operator_position);
+        expr_pos_warning(ec_unsigned_compare_with_negative,
+                         &operator_position);
       }  /* if */
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
@@ -14609,10 +14741,10 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
 #if C99_IL_EXTENSIONS_SUPPORTED
     } else if (is_nonreal_floating_type(operand_1->type)) {
       /* Complex and imaginary operands are unordered. */
-      pos_error(ec_complex_type_not_allowed, &operand_1->position);
+      expr_pos_error(ec_complex_type_not_allowed, &operand_1->position);
       result_type = error_type();
     } else if (is_nonreal_floating_type(operand_2.type)) {
-      pos_error(ec_complex_type_not_allowed, &operand_2.position);
+      expr_pos_error(ec_complex_type_not_allowed, &operand_2.position);
       result_type = error_type();
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
@@ -14632,7 +14764,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
         if (upc_mode && is_shared_void_star_type(result_type)) {
           /* Cannot do comparisons involving shared void* pointers,
              since they have no absolute ordering. */
-          pos_error(ec_upc_shared_void_comparison, &operator_position);
+          expr_pos_error(ec_upc_shared_void_comparison, &operator_position);
           make_error_operand(result);
           operand_will_not_be_used_because_of_error(operand_1);
           operand_will_not_be_used_because_of_error(&operand_2);
@@ -14673,11 +14805,12 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
                                                       &constant_sign)) {
         if (constant_sign == 0) {
           /* Comparison of an unsigned value with zero. */
-          pos_warning(ec_unsigned_compare_with_zero, &operator_position);
+          expr_pos_warning(ec_unsigned_compare_with_zero, &operator_position);
         } else if (constant_sign < 0) {
           /* Comparison of an unsigned value with a negative constant.
              No cases make sense. */
-          pos_warning(ec_unsigned_compare_with_negative, &operator_position);
+          expr_pos_warning(ec_unsigned_compare_with_negative,
+                           &operator_position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -14766,6 +14899,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 #if GNU_VECTOR_TYPES_ALLOWED
     if (gnu_mode &&
         determine_vector_operation_type(save_token, operand_1, &operand_2,
+                                        &operator_position,
                                         &result_type, &op)) {
       /* GCC accepts any vector type for these operators, even floating-point
          vector types. */
@@ -15451,8 +15585,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       if (conv_2_to_3_possible && conv_3_to_2_possible) {
         /* Each operand can be converted to the other, so the operation
            is ambiguous. */
-        pos_ty2_error(ec_ambiguous_question_operator, &operator_position,
-                      operand_2.type, operand_3.type);
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_ambiguous_question_operator, &operator_position,
+                        operand_2.type, operand_3.type);
+        }  /* if */
         err = TRUE;
       } else if (conv_2_to_3_possible || conv_3_to_2_possible) {
         if (conv_2_to_3_possible) {
@@ -15591,8 +15727,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          (because if they both were, they would have the same types),
          so use the type of the third. */
       result_type = operand_3.type;
-      pos_ty2_warning(ec_incompatible_operands, &operator_position,
-                      operand_2.type, operand_3.type);
+      if (expr_diagnostic_should_be_issued(es_warning,
+                                           ec_incompatible_operands)) {
+        pos_ty2_warning(ec_incompatible_operands, &operator_position,
+                        operand_2.type, operand_3.type);
+      }  /* if */
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_2,
                                                                   result_type);
     } else if (microsoft_mode && C_mode() && microsoft_version <= 1200 &&
@@ -15604,8 +15743,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          The third operand is a void expression and the second is not,
          so use the type of the second. */
       /* result_type = operand_2.type; -- already set. */
-      pos_ty2_warning(ec_incompatible_operands, &operator_position,
-                      operand_2.type, operand_3.type);
+      if (expr_diagnostic_should_be_issued(es_warning,
+                                           ec_incompatible_operands)) {
+        pos_ty2_warning(ec_incompatible_operands, &operator_position,
+                        operand_2.type, operand_3.type);
+      }  /* if */
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
                                                                   result_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15672,10 +15814,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           nullptr_case = operand_2_is_nullptr;
           pos = operand_2.position;
         }  /* if */
-        pos_warning(ptr_case ?     ec_ptr_conv_to_bool :
-                    nullptr_case ? ec_nullptr_conv_to_bool :
-                                   ec_ptr_to_member_conv_to_bool,
-                    &pos);
+        expr_pos_warning(ptr_case ?     ec_ptr_conv_to_bool :
+                         nullptr_case ? ec_nullptr_conv_to_bool :
+                                        ec_ptr_to_member_conv_to_bool,
+                         &pos);
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
@@ -15810,8 +15952,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
            are recognized here.  C++ class cases are handled above; this
            code deals only with error cases in C++. */
         if (!types_are_compatible(operand_2.type, operand_3.type)) {
-          pos_ty2_error(ec_incompatible_operands, &operator_position,
-                        operand_2.type, operand_3.type);
+          if (expr_error_should_be_issued()) {
+            pos_ty2_error(ec_incompatible_operands, &operator_position,
+                          operand_2.type, operand_3.type);
+          }  /* if */
           err = TRUE;
         }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -15827,8 +15971,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         err = TRUE;
       } else {
         /* Incompatible operands. */
-        pos_ty2_error(ec_incompatible_operands, &operator_position,
-                      operand_2.type, operand_3.type);
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_incompatible_operands, &operator_position,
+                        operand_2.type, operand_3.type);
+        }  /* if */
         err = TRUE;
       }  /* if */
       /* Cast operands 2 and 3 to the result type if necessary. */
@@ -15892,9 +16038,9 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
        For one thing, the code in IL lowering does not know how to
        build the right region table if there are several assignments
        to "this" in one constructor. */
-    pos_diagnostic(exceptions_enabled ? es_error :
-                                        anachronism_error_severity,
-                   ec_assignment_to_this, &operand->position);
+    expr_pos_diagnostic(exceptions_enabled ? es_error :
+                                             anachronism_error_severity,
+                        ec_assignment_to_this, &operand->position);
     orig_operand = *operand;
     make_lvalue_variable_operand(this_var,
                                  &orig_operand.position,
@@ -15941,8 +16087,11 @@ accepted as a null pointer constant.
           orig_operand = *operand;
           make_constant_operand(expr->variant.constant, operand);
           restore_operand_details(operand, &orig_operand);
-          pos_ty2_warning(ec_bad_initializer_type, &operand->position,
-                          orig_operand.type, dest_type);
+          if (expr_diagnostic_should_be_issued(es_warning,
+                                               ec_bad_initializer_type)) {
+            pos_ty2_warning(ec_bad_initializer_type, &operand->position,
+                            orig_operand.type, dest_type);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -15973,7 +16122,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 
   if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &operator_position);
+    expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -16115,7 +16264,7 @@ See section 3.3.16 of the standard.
 
   if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &operator_position);
+    expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16208,11 +16357,11 @@ See section 3.3.16 of the standard.
           /* Enum types are not allowed (because the enum promotes to integer
              for the operation, and then can't get back to enum). */
           if (allow_anachronisms) {
-            pos_diagnostic(anachronism_error_severity,
-                           ec_mixed_enum_type_anachronism,
-                           &operand_1->position);
+            expr_pos_diagnostic(anachronism_error_severity,
+                                ec_mixed_enum_type_anachronism,
+                                &operand_1->position);
           } else {
-            pos_error(ec_enum_type_not_allowed, &operator_position);
+            expr_pos_error(ec_enum_type_not_allowed, &operator_position);
             conv_to_error_operand(operand_1);
           }  /* if */
         }  /* if */
@@ -16228,7 +16377,8 @@ See section 3.3.16 of the standard.
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode &&
               determine_vector_operation_type(
-                      save_token, operand_1, &operand_2, &result_type, &op)) {
+                      save_token, operand_1, &operand_2, &operator_position,
+                      &result_type, &op)) {
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
@@ -16260,7 +16410,8 @@ See section 3.3.16 of the standard.
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode &&
               determine_vector_operation_type(
-                      save_token, operand_1, &operand_2, &result_type, &op)) {
+                      save_token, operand_1, &operand_2, &operator_position,
+                      &result_type, &op)) {
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
@@ -16303,8 +16454,8 @@ See section 3.3.16 of the standard.
                 if (nonobject_pointer) {
                   /* GNU C accepts arithmetic on void and function pointers.
                      Issue a warning in any case. */
-                  pos_warning(ec_nonobject_pointer_arithmetic,
-                              &operator_position);
+                  expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                                   &operator_position);
                 }  /* if */
                 pointer_add_sub = TRUE;
               }  /* if */
@@ -16322,7 +16473,8 @@ See section 3.3.16 of the standard.
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode &&
               determine_vector_operation_type(
-                 save_token, operand_1, &operand_2, &result_type, &op)) {
+                 save_token, operand_1, &operand_2, &operator_position,
+                 &result_type, &op)) {
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
@@ -16392,6 +16544,7 @@ See section 3.3.16 of the standard.
           if (c99_mode &&
               determine_imaginary_operation_type(save_token,
                                                  operand_1, &operand_2,
+                                                 &operator_position,
                                                  &operation_type, &op)) {
             /* A compound-assignment involving imaginary arithmetic: The notion
                of an "operation type" is tenuous in this case.  For example,
@@ -16450,9 +16603,10 @@ operation_type_determined:
              save_token == tok_remainder_assign) &&
             curr_expr_is_evaluated() && op_is_zero_constant(&operand_2)) {
           /* Warn on a division or mod by zero. */
-          pos_warning((save_token == tok_divide_assign) ? ec_divide_by_zero :
+          expr_pos_warning((save_token == tok_divide_assign) ?
+                                                          ec_divide_by_zero :
                                                           ec_mod_by_zero,
-                      &operand_2.position);
+                           &operand_2.position);
         }  /* if */
         if ((save_token == tok_shift_left_assign ||
              save_token == tok_shift_right_assign) &&
@@ -16463,7 +16617,7 @@ operation_type_determined:
           check_shift_count(&operand_2.variant.constant, operand_1->type,
                             &err_code);
           if (err_code != ec_no_error) {
-            pos_warning(err_code, &operand_2.position);
+            expr_pos_warning(err_code, &operand_2.position);
           } /* if */
         }  /* if */
       }  /* if */
@@ -16673,11 +16827,11 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   if (!exceptions_enabled) {
     /* Support for exceptions is suppressed for this compilation.  Note that
        semantic errors will not be issued on this throw expression. */
-    pos_error(ec_no_exception_support, &pos_curr_token);
+    expr_pos_error(ec_no_exception_support, &pos_curr_token);
     err = TRUE;
   } else if (curr_expr_kind_is_const()) {
     /* "throw" not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;
   } else {
     /* Exceptions are outside the "Embedded C++" subset. */
@@ -16752,12 +16906,15 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         if (!microsoft_mode) {
           error_in_operand(ec_ptr_incomplete_throw, &operand);
         } else {
-          pos_warning(ec_ptr_incomplete_throw, &operand.position);
+          expr_pos_warning(ec_ptr_incomplete_throw, &operand.position);
         }  /* if */
       }  /* if */
     } else if (is_abstract_class_type(throw_type)) {
-      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
-                                throw_type, &operand.position);
+      if (expr_error_should_be_issued()) {
+        abstract_class_diagnostic(es_error,
+                                  ec_abstract_class_object_not_allowed,
+                                  throw_type, &operand.position);
+      }  /* if */
       conv_to_error_operand(&operand);
     }  /* if */
   }  /* if */
@@ -16863,7 +17020,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
   if (curr_expr_kind_is_const()) {
     /* Comma operator not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &pos_curr_token);
+    expr_pos_error(ec_bad_constant_operator, &pos_curr_token);
     err = TRUE;
   }  /* if */
 
@@ -17182,12 +17339,14 @@ an appropriate error code.
 
 static a_boolean bad_nested_function_variable_ref(
                                           a_symbol_ptr         sym_ptr,
+                                          a_source_position    *ref_pos,
                                           an_operand           *operand,
                                           a_ref_entry_ptr      *rep,
                                           a_lambda_capture_ptr *lambda_capture)
 /*
 sym_ptr is a symbol for a variable being referenced in an expression.
-Issue an error and return TRUE if the reference is invalid because either
+The reference is at source position ref_pos.  Issue an error and return
+TRUE if the reference is invalid because either
 
 (1)  we are inside a local class, and the variable is a nonstatic variable
      from an enclosing function (ARM 9.8), or
@@ -17198,7 +17357,6 @@ The symbol may be a top-level anonymous union (references to field symbols
 within that anonymous union result in the present routine being called
 with the sk_variable symbol for the union).
 
-error_position is used for the position of any error or warning.
 operand is the operand for the variable reference, and *rep is the list
 of reference entries for the reference.  On an error, they are updated
 to reflect the error.
@@ -17273,7 +17431,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
           bad_ref = TRUE;
         } else {
           /* See if the variable has been or can be captured now. */
-          *lambda_capture = lambda_capture_for_variable(var, &error_position);
+          *lambda_capture = lambda_capture_for_variable(var, ref_pos);
           if (*lambda_capture == NULL) {
             bad_ref = TRUE;
             error_issued_already = TRUE;
@@ -17292,7 +17450,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
            not in a member function definition of the class (the latter
            would require a reference between two different function
            scope memory regions). */
-        warning(ec_ref_to_nested_function_var);
+        expr_pos_warning(ec_ref_to_nested_function_var, ref_pos);
       } else {
         bad_ref = TRUE;
       }  /* if */
@@ -17302,7 +17460,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
     if (!error_issued_already) {
       /* Issue the error. */
       if (err_code == ec_no_error) err_code = ec_ref_to_nested_function_var;
-      error(err_code);
+      expr_pos_error(err_code, ref_pos);
     }  /* if */
     make_error_operand(operand);
     /* Avoid further diagnostics by making this an error reference. */
@@ -17562,8 +17720,11 @@ invalid uses of typename.
        according to the ARM lookup rules but is returned in support of the
        nested class anachronism (ARM 18.3.5).  Issue an anachronism
        diagnostic. */
-    sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                   locator_for_curr_id.specific_symbol);
+    if (expr_diagnostic_should_be_issued(anachronism_error_severity,
+                                         ec_nested_class_anachronism)) {
+      sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                     locator_for_curr_id.specific_symbol);
+    }  /* if */
   }  /* if */
   if (sym_ptr == NULL) {
     if (is_error_locator(locator_for_curr_id)) {
@@ -17579,8 +17740,10 @@ invalid uses of typename.
         /* In a constant expression, an undefined identifier is still
            flagged as "undefined" -- it makes the error message clearer. */
         enter_undefined_symbol(sym_ptr);
-        str_error(ec_undefined_identifier,
-                  locator_for_curr_id.symbol_header->identifier);
+        if (expr_error_should_be_issued()) {
+          str_error(ec_undefined_identifier,
+                    locator_for_curr_id.symbol_header->identifier);
+        }  /* if */
         record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
                                                           SRK_ERROR),
                                 sym_ptr, &locator_for_curr_id.source_position,
@@ -17643,7 +17806,7 @@ invalid uses of typename.
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
-    check_ambiguity_and_verify_access(&locator_for_curr_id);
+    expr_check_ambiguity_and_verify_access(&locator_for_curr_id);
     if (is_error_locator(locator_for_curr_id)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
@@ -17691,7 +17854,10 @@ variable:
              inside a default argument expression, we're not allowed to
              reference local variables of any containing function.
              Check for those. */
-          if (bad_nested_function_variable_ref(sym_ptr, result, &rep,
+          if (bad_nested_function_variable_ref(sym_ptr,
+                                               &locator_for_curr_id.
+                                                               source_position,
+                                               result, &rep,
                                                &lambda_capture)) {
             /* Error. */
           } else if (lambda_capture != NULL) {
@@ -17811,6 +17977,8 @@ normal_function:
               rep = NULL;
             } else if (bad_nested_function_variable_ref(
                                                   anon_var_sym,
+                                                  &locator_for_curr_id.
+                                                               source_position,
                                                   result, &rep,
                                                   (a_lambda_capture **)NULL)) {
               /* If we're inside a local class, we are not allowed to reference
@@ -17870,13 +18038,13 @@ normal_function:
                   /* Objectless references to non-static data members are
                      permitted in C++0x and accepted by the Sun compiler. */
                 } else if (strict_ansi_mode) {
-                  pos_diagnostic(strict_ansi_discretionary_severity,
-                                 ec_member_ref_requires_object,
-                                 &locator_for_curr_id.source_position);
+                  expr_pos_diagnostic(strict_ansi_discretionary_severity,
+                                      ec_member_ref_requires_object,
+                                      &locator_for_curr_id.source_position);
                 } else if (gnu_mode || microsoft_mode) {
-                  pos_diagnostic(es_discretionary_error,
-                                 ec_member_ref_requires_object,
-                                 &locator_for_curr_id.source_position);
+                  expr_pos_diagnostic(es_discretionary_error,
+                                      ec_member_ref_requires_object,
+                                      &locator_for_curr_id.source_position);
                 }  /* if */
                 goto do_selection;
               }  /* if */
@@ -18286,7 +18454,7 @@ These cases are handled here by coalescing two tokens.
     if (equals_first) {
       /* "=-" form. */
       start_position = pos_curr_token;
-      pos_warning(ec_old_fashioned_assignment_operator, &start_position);
+      expr_pos_warning(ec_old_fashioned_assignment_operator, &start_position);
       (void)get_token();
       pos_curr_token = start_position;
       curr_token = compound_token;
@@ -18672,7 +18840,9 @@ which of the various keywords was used.
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
     if (!gnu_mode) {
-      str_error(ec_id_can_only_appear_in_function, token_spelling);
+      if (expr_error_should_be_issued()) {
+        str_error(ec_id_can_only_appear_in_function, token_spelling);
+      }  /* if */
       make_error_operand(result);
       goto end_of_routine;
     }  /* if */
@@ -18800,7 +18970,7 @@ token following the operator, and should not be discarded.
     set_curr_token_to_function_name_string(/*do_concat=*/FALSE);
   }  /* if */
   if (curr_token != tok_string_literal) {
-    syntax_error(ec_exp_string_literal);
+    expr_syntax_error(ec_exp_string_literal);
     err = TRUE;
   } else {
     if (is_error_constant(&const_for_curr_token)) {
@@ -18822,7 +18992,7 @@ token following the operator, and should not be discarded.
         case chk_char16_t:
         case chk_char32_t:
           /* u"..." and U"..." strings are invalid here. */
-          error(ec_lprefix_and_uliteral);
+          expr_pos_error(ec_lprefix_and_uliteral, &pos_curr_token);
           set_error_constant(&const_for_curr_token);
           err = TRUE;
           break;
@@ -18884,11 +19054,11 @@ and the other function-name tokens.
   start_position = pos_curr_token;
   if (curr_expr_kind_is(ek_pp)) {
     /* __LPREFIX not allowed in preprocessing expression. */
-    pos_error(ec_bad_pp_operator, &start_position);
+    expr_pos_error(ec_bad_pp_operator, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* __LPREFIX not allowed in integral constant expression. */
-    pos_error(ec_bad_integral_operator, &start_position);
+    expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   }  /* if */
   /* Scan the operator and operand, and set the current token to
@@ -19049,16 +19219,13 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       /* Find the proper copy constructor for copying a class object or an
          element of an array of class objects. */
       a_type_ptr dest_class_type = skip_typerefs(base_dest_type);
-      cctor_routine = select_copy_constructor(
+      cctor_routine = expr_select_copy_constructor(
                                 dest_class_type,
                                 get_type_qualifiers(operand.type),
                                 /*source_is_rvalue=*/FALSE,
                                 capture_pos,
-                                dest_class_type,
                                 &do_bitwise_copy,
-                                /*record_ref=*/TRUE,
-                                curr_expr_is_potentially_evaluated(),
-                                /*allow_suppressed_ctor=*/FALSE);
+                                /*record_ref=*/TRUE);
       if (cctor_routine == NULL && !do_bitwise_copy) {
         /* An error was detected and diagnosed. */
         err = TRUE;
@@ -19193,11 +19360,11 @@ Scan a C++ lambda expression, e.g., something like
   start_pos = pos_curr_token;
   if (curr_expr_kind_is_const()) {
     /* A lambda is not allowed in a constant expression. */
-    pos_error(ec_bad_constant_lambda, &start_pos);
+    expr_pos_error(ec_bad_constant_lambda, &start_pos);
     err = TRUE;
   } else if (!curr_expr_is_potentially_evaluated()) {
     /* A lambda is not allowed in an unevaluated expression. */
-    pos_error(ec_bad_unevaluated_lambda, &start_pos);
+    expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
     err = TRUE;
   }  /* if */
   /* Push an entry on the expression stack so that we have our own
@@ -19369,8 +19536,7 @@ see expr.h).
       if (curr_expr_kind_is(ek_pp)) {
         /* "::" means nothing in a preprocessing expression, since there
            are no identifiers. */
-        set_err_pos_to_curr_token();
-        error(ec_bad_pp_operator);
+        expr_pos_error(ec_bad_pp_operator, &pos_curr_token);
         (void)get_token();
         make_error_operand(&local_result);
         break;
@@ -19562,8 +19728,11 @@ see expr.h).
           ensure_temp_text_buffer_space(len_of_curr_token + 1);
           strncpy(temp_text_buffer, start_of_curr_token, len_of_curr_token);
           temp_text_buffer[len_of_curr_token] = 0;
-          pos_st_remark(ec_undefined_preproc_id, &pos_curr_token,
-                        temp_text_buffer);
+          if (expr_diagnostic_should_be_issued(es_remark,
+                                               ec_undefined_preproc_id)) {
+            pos_st_remark(ec_undefined_preproc_id, &pos_curr_token,
+                          temp_text_buffer);
+          }  /* if */
         }  /* if */
         const_for_curr_token.from_undefined_preproc_id = FALSE;
       }  /* if */
@@ -19779,9 +19948,9 @@ scan_new:
            a new, e.g., new (double *)[17].  Give the syntax error only
            in strict mode. */
         if (!token_ends_expr(curr_token, PREC_PREFIX, local_options)) {
-          pos_diagnostic(strict_ansi_discretionary_severity,
-                         ec_operator_not_allowed,
-                         &pos_curr_token);
+          expr_pos_diagnostic(strict_ansi_discretionary_severity,
+                              ec_operator_not_allowed,
+                              &pos_curr_token);
         }  /* if */
       }  /* if */
       break;
@@ -19865,7 +20034,7 @@ type_start:
              variant "enum E const(3)"). */
           cast_type = simple_type_specifier_sequence();
           if (is_qualified_type(cast_type)) {
-            error(ec_bad_type_qualifier);
+            expr_pos_error(ec_bad_type_qualifier, &error_position);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -19903,7 +20072,7 @@ type_start:
     default:
 bad_start_of_primary:
       set_err_pos_to_curr_token();
-      syntax_error(ec_exp_primary_expr);
+      expr_syntax_error(ec_exp_primary_expr);
       make_error_operand(&local_result);
   }  /* switch */
 
@@ -19937,8 +20106,10 @@ bad_start_of_primary:
         /* The undefined symbol is about to be the operand of some
            operation other than a call, so it's truly undefined. */
         enter_undefined_symbol(local_result.variant.symbol);
-        str_error(ec_undefined_identifier,
-                  local_result.variant.symbol->header->identifier);
+        if (expr_error_should_be_issued()) {
+          str_error(ec_undefined_identifier,
+                    local_result.variant.symbol->header->identifier);
+        }  /* if */
         make_error_operand(&local_result);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -20090,7 +20261,7 @@ bad_start_of_primary:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (has_discarded_typename) {
-    pos_warning(ec_invalid_typename_specifier, &typename_position);
+    expr_pos_warning(ec_invalid_typename_specifier, &typename_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Set error_position to the start of the expression. */
@@ -20105,8 +20276,10 @@ bad_start_of_primary:
        declaration -- it will yield an error.  The standard says
        "expression ... consists solely of an identifier" (3.3.2.2). */
     enter_undefined_symbol(local_result.variant.symbol);
-    str_error(ec_undefined_identifier,
-              local_result.variant.symbol->header->identifier);
+    if (expr_error_should_be_issued()) {
+      str_error(ec_undefined_identifier,
+                local_result.variant.symbol->header->identifier);
+    }  /* if */
     make_error_operand(&local_result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_property_ref_operand(&local_result)) {
@@ -20667,9 +20840,9 @@ a warning if the value returned is the address of a local variable.
   if (is_address_of_auto_object(expr, &is_temp)) {
     /* The expression is the address of a local entity.  Use a different
        message for temporaries and local variables. */
-    pos_warning(is_temp ? ec_returning_ptr_to_local_temp :
-                          ec_returning_ptr_to_local_variable,
-                err_pos);
+    expr_pos_warning(is_temp ? ec_returning_ptr_to_local_temp :
+                               ec_returning_ptr_to_local_variable,
+                     err_pos);
   }  /* if */
 }  /* check_for_return_of_address_of_local_variable */
 
@@ -20719,7 +20892,7 @@ type to be the type of return_op.
     /* More than one return in a lambda with an implicit return type and the
        current return statement is non-void.  An error will be issued when
        the complete lambda body has been parsed. */
-    expect_error();
+    if (expr_error_should_be_issued()) expect_error();
   }  /* if */
 }  /* check_and_adjust_lambda_return_type_if_needed */
 
@@ -20813,7 +20986,7 @@ required_type will be void if the expression should have void type
       } else if (gcc_mode) {
         /* In GNU C mode a type mismatch results in a warning only. */
         if (!is_void_type(result.type)) {
-          pos_warning(err_code, &result.position);
+          expr_pos_warning(err_code, &result.position);
         }  /* if */
       } else {
         /* Check that the expression has void type. */
@@ -20937,7 +21110,7 @@ and [expr.const] in the ISO C++98 standard.
          can't generally enter the expression, but with some extensions it
          is possible to get here with a non-integral expression. */
       if (!is_error_constant(constant)) {
-        pos_error(ec_expr_not_integral_constant, &result.position);
+        expr_pos_error(ec_expr_not_integral_constant, &result.position);
         set_error_constant(constant);
       }  /* if */
     }  /* if */
@@ -21098,12 +21271,13 @@ expression context.  Return either *is_constant TRUE and a constant value in
           if (constant_sign < 0) {
             /* VLA bounds must be positive (or possibly zero in GNU C mode;
                the zero-length case is checked by the caller). */
-            error(ec_array_size_must_be_positive);
+            expr_pos_error(ec_array_size_must_be_positive, &result.position);
             set_error_constant(constant);
           }  /* if */
         } else if (constant_sign < 0) {
           /* A negative value is an error. */
-          error(ec_new_array_size_must_be_nonnegative);
+          expr_pos_error(ec_new_array_size_must_be_nonnegative,
+                         &result.position);
           set_error_constant(constant);
         } else if (constant_sign == 0) {
           /* A zero value is returned as an expression to avoid confusing
@@ -21549,8 +21723,10 @@ nonstandard class member constants.  Assumes copy-initialization
       check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       if (!is_string_type(required_type) ||
           !check_string_constant_initializer(&required_type, string_con)) {
-        pos_ty2_error(ec_bad_initializer_type, &result.position,
-                      result.type, required_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_bad_initializer_type, &result.position,
+                        result.type, required_type);
+        }  /* if */
         set_error_constant(constant);
       } else {
         copy_constant(string_con, constant);
@@ -21558,8 +21734,10 @@ nonstandard class member constants.  Assumes copy-initialization
     } else {
       /* Not string literal case (compound literal). */
       if (!types_are_compatible(result.type, required_type)) {
-        pos_ty2_error(ec_bad_initializer_type, &result.position,
-                      result.type, required_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_bad_initializer_type, &result.position,
+                        result.type, required_type);
+        }  /* if */
         conv_to_error_operand(&result);
       }  /* if */
       extract_constant_from_operand(&result, constant);
@@ -21581,10 +21759,10 @@ nonstandard class member constants.  Assumes copy-initialization
     if (upc_mode && constant != NULL) {
       /* We cannot use THREADS or MYTHREAD as a constant initializer. */
       if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
-        error(ec_threads_constant_not_allowed);
+        expr_pos_error(ec_threads_constant_not_allowed, &result.position);
         set_error_constant(constant);
       } else if (constant->kind == (a_constant_repr_kind)ck_upc_mythread) {
-        error(ec_mythread_constant_not_allowed);
+        expr_pos_error(ec_mythread_constant_not_allowed, &result.position);
         set_error_constant(constant);
       }  /* if */
     }  /* if */
@@ -21772,7 +21950,9 @@ and the array repetition.
   if (!gpp_mode) {
     /* Normal modes -- a non-empty mem-initializer is not allowed for an
        array. */
-    sym_error(ec_array_member_initialization, field_sym);
+    if (expr_error_should_be_issued()) {
+      sym_error(ec_array_member_initialization, field_sym);
+    }  /* if */
     flush_to_end_of_arg_list();
   } else {
     /* Only GNU C++ (currently) allows explicit initializers for nonstatic
@@ -21801,16 +21981,18 @@ and the array repetition.
          operation. */
       a_routine_ptr  cctor;
       a_boolean      bitwise_copy;
-      cctor = select_copy_constructor(el_type, get_type_qualifiers(src_type),
-                                      /*source_is_rvalue=*/FALSE,
-                                      &operand.position, el_type,
-                                      &bitwise_copy,
-                                      /*record_ref=*/TRUE, /*evaluated=*/TRUE,
-                                      /*allow_suppressed_ctor=*/FALSE);
+      cctor = expr_select_copy_constructor(el_type,
+                                           get_type_qualifiers(src_type),
+                                           /*source_is_rvalue=*/FALSE,
+                                           &operand.position,
+                                           &bitwise_copy,
+                                           /*record_ref=*/TRUE);
       if (bitwise_copy) {
         /* g++ doesn't allow this feature if the class has a bitwise
            copy constructor. */
-        sym_error(ec_bad_array_member_initialization, field_sym);
+        if (expr_error_should_be_issued()) {
+          sym_error(ec_bad_array_member_initialization, field_sym);
+        }  /* if */
       } else if (cctor == NULL) {
         /* An error was issued by select_copy_constructor. */
       } else {
@@ -21828,7 +22010,9 @@ and the array repetition.
         cip->source_expr = make_node_from_operand(&operand);
       }  /* if */
     } else {
-      sym_error(ec_bad_array_member_initialization, field_sym);
+      if (expr_error_should_be_issued()) {
+        sym_error(ec_bad_array_member_initialization, field_sym);
+      }  /* if */
     }  /* if */
     pop_expr_stack();
   }  /* if */
@@ -22084,10 +22268,13 @@ required_type_determined:
       a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
       if (!check_string_constant_initializer_full(&required_type, string_con,
                                                   p_excess)) {
-        pos_ty2_error(ec_bad_initializer_type, &error_position,
-                      orig_string_type, required_type);
+        if (expr_error_should_be_issued()) {
+          pos_ty2_error(ec_bad_initializer_type, &error_position,
+                        orig_string_type, required_type);
+        }  /* if */
       } else if (excess) {
-        warning(ec_excess_characters_in_literal_ignored);
+        expr_pos_warning(ec_excess_characters_in_literal_ignored,
+                         &error_position);
       }  /* if */
       copy_constant(string_con, constant);
       *is_constant = TRUE;
@@ -22106,7 +22293,7 @@ required_type_determined:
          The expression "1" is ignored as an excess initializer for field e. */
       if (empty_aggregate) {
         /* An excess initializer for an empty aggregate. */
-        pos_warning(ec_excess_initializers_ignored, &result.position);
+        expr_pos_warning(ec_excess_initializers_ignored, &result.position);
         clear_constant(constant, (a_constant_repr_kind)ck_aggregate);
         constant->type = required_type;
       } else {
@@ -22305,9 +22492,9 @@ things like (void *)1 as case constants.
     if (!is_error_type(constant->type)) {
       if (is_floating_type(constant->type)) {
         /* MSVC++ doesn't allow floating constants. */
-        pos_error(ec_expr_not_integral_constant, &result.position);
+        expr_pos_error(ec_expr_not_integral_constant, &result.position);
       } else {
-        pos_warning(ec_expr_not_integral_constant, &result.position);
+        expr_pos_warning(ec_expr_not_integral_constant, &result.position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -22451,12 +22638,15 @@ integer expression for the thread number.
   do_operand_transformations(&operand, options);
   if (is_pointer_type(operand.type)) {
     if (!is_ptr_to_shared_type(operand.type)) {
-      pos_error(ec_bad_affinity, &operator_position);
+      expr_pos_error(ec_bad_affinity, &operator_position);
       make_error_operand(&operand);
     }  /* if */
   } else {
     if (is_shared_qualified_type(operand.type)) {
-      pos_remark(ec_shared_affinity_type, &operator_position);
+      if (expr_diagnostic_should_be_issued(es_remark,
+                                           ec_shared_affinity_type)) {
+        pos_remark(ec_shared_affinity_type, &operator_position);
+      }  /* if */
     }  /* if */
     /* Handle as an integer expression */
     process_integer_expression(&operand, /*is_switch_expr=*/FALSE);
@@ -22574,15 +22764,17 @@ this routine is called only when microsoft_mode is TRUE.
         variable = sym_ptr->variant.static_data_member.variable;
         break;
       default:
-        pos_sy_error(ec_based_requires_variable_name, &operand.position,
-                     projection_sym_ptr);
+        if (expr_error_should_be_issued()) {
+          pos_sy_error(ec_based_requires_variable_name, &operand.position,
+                       projection_sym_ptr);
+        }  /* if */
         break;
     }  /* if */
     if (variable != NULL) {
       /* Make sure the variable has a pointer type. */
       if (!is_pointer_type(variable->type)) {
         if (!is_error_type(variable->type)) {
-          pos_error(ec_based_var_must_be_ptr, &operand.position);
+          expr_pos_error(ec_based_var_must_be_ptr, &operand.position);
         }  /* if */
         variable = NULL;
       } else if (!in_file_scope(variable)) {
@@ -22590,7 +22782,7 @@ this routine is called only when microsoft_mode is TRUE.
            point to function scope memory entities.  This would happen if
            we allowed non-static local __based variables.*/
         if (!is_error_type(variable->type)) {
-          pos_error(ec_based_var_cannot_be_local, &operand.position);
+          expr_pos_error(ec_based_var_cannot_be_local, &operand.position);
         }  /* if */
         variable = NULL;
       }  /* if */

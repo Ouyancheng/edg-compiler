@@ -3653,21 +3653,34 @@ extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
                                              a_boolean   *ambiguous,
                                              a_boolean   *trivial);
 
+extern a_routine_ptr select_default_constructor_full(
+                                         a_type_ptr        class_type,
+                                         a_source_position *err_pos,
+                                         a_type_ptr        object_class_type,
+                                         a_boolean         evaluated,
+                                         a_boolean         check_access,
+                                         a_boolean         *err);
+
 extern a_routine_ptr select_default_constructor
 					(a_type_ptr        class_type,
                                          a_source_position *err_pos,
 					 a_type_ptr	   object_class_type,
-                                         a_boolean         evaluated,
                                          a_boolean         *err);
 
-extern a_routine_ptr select_destructor(a_type_ptr       class_type,
-				       a_type_ptr       object_class_type,
-                                       a_source_position *position,
-                                       a_boolean        honor_virtual,
-                                       a_boolean        evaluated,
-                                       a_boolean        instantiate);
+extern a_routine_ptr select_destructor_full(
+                                     a_type_ptr        class_type,
+                                     a_type_ptr        object_class_type,
+                                     a_source_position *position,
+                                     a_boolean         honor_virtual,
+                                     a_boolean         evaluated,
+                                     a_boolean         instantiate,
+                                     a_boolean         check_access);
 
-extern a_routine_ptr select_copy_constructor(
+extern a_routine_ptr select_destructor(a_type_ptr        class_type,
+				       a_type_ptr        object_class_type,
+                                       a_source_position *position);
+
+extern a_routine_ptr select_copy_constructor_full(
                                   a_type_ptr            class_type,
                                   a_type_qualifier_set  required_qualifiers,
                                   a_boolean             source_is_rvalue,
@@ -3676,6 +3689,16 @@ extern a_routine_ptr select_copy_constructor(
                                   a_boolean             *class_bitwise_copy,
                                   a_boolean             record_ref,
                                   a_boolean             evaluated,
+                                  a_boolean             allow_suppressed_ctor,
+                                  a_boolean             check_access);
+
+extern a_routine_ptr select_copy_constructor(
+                                  a_type_ptr            class_type,
+                                  a_type_qualifier_set  required_qualifiers,
+                                  a_boolean             source_is_rvalue,
+                                  a_source_position     *err_pos,
+                                  a_type_ptr            object_class_type,
+                                  a_boolean             *class_bitwise_copy,
                                   a_boolean             allow_suppressed_ctor);
 
 extern a_symbol_ptr find_copy_assignment_operator(
@@ -3710,9 +3733,9 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
 extern void f_check_ambiguity_and_verify_access
-				(a_symbol_locator	*loc,
-				 a_boolean		is_templ_context,
-				 a_boolean		is_qualifier);
+				(a_symbol_locator *loc,
+				 a_boolean	  is_templ_context,
+				 a_boolean	  is_qualifier);
 
 extern void perform_deferred_access_checks(void);
 
@@ -3761,19 +3784,22 @@ and is_qualifier flags are passed to the routine called.
   }  /* if */                                                         \
 }  /* check_ambiguity_and_access_with_template_flag */
 
+a_boolean f_check_for_ambiguity(a_symbol_locator *locator,
+                                a_boolean        is_templ_context,
+                                a_boolean        is_qualifier,
+                                a_boolean        diagnostic_should_be_issued);
 
 /*
 Check to see if a symbol found is ambiguous.  If so, call a routine to
-report the error.  Note that although the routine called also does
-access checking, the access checks will not be done because the
-the access checks are suppressed when an ambiguity error is detected.
-The locator is set to an error locator by f_check_ambiguity_and_verify_access.
+report the error.  The locator is set to an error locator if there is
+an error.
 */
 #define check_for_ambiguity(locator)					\
 { if ((locator)->specific_symbol != NULL &&				\
       (locator)->specific_symbol->ambiguous) {				\
-    f_check_ambiguity_and_verify_access(locator, /*is_template_id=*/FALSE, \
-                                        /*is_qualifier=*/FALSE);	\
+    (void)f_check_for_ambiguity(locator, /*is_template_id=*/FALSE,      \
+                                /*is_qualifier=*/FALSE,                 \
+                                /*diagnostic_should_be_issued=*/TRUE);  \
   }  /* if */                                                         	\
 }  /* check_for_ambiguity */
 

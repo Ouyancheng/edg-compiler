@@ -791,7 +791,7 @@ routine is called in C++ mode only.
         /* Get the default constructor.  Note that it is an error if it
            is missing. */
         ctor_rp = select_default_constructor(element_type, &pos_curr_token,
-                                             element_type, /*evaluated=*/TRUE,
+                                             element_type,
                                              (a_boolean *)NULL);
       }  /* if */
       if (ctor_rp == NULL) {
@@ -904,7 +904,6 @@ This routine is called in C++ mode only.
         /* Get the default constructor.  Note that it is an error if it
            is missing. */
         ctor_rp = select_default_constructor(tp, &pos_curr_token, tp,
-                                             /*evaluated=*/TRUE,
                                              (a_boolean *)NULL);
         if (ctor_rp == NULL) {
           /* Trivial default constructor, or error of some sort. */
@@ -2908,8 +2907,7 @@ detection of uninitialized fields).
     if (is_array_type(*type)) tp = underlying_array_element_type(tp);
     tp = skip_typerefs(tp);
     if (is_immediate_class_type(tp)) {
-      dtor_rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
-                                  /*evaluated=*/TRUE, /*instantiate=*/TRUE);
+      dtor_rp = select_destructor(tp, tp, err_pos);
       if (dtor_rp != NULL) any_dynamic_init = TRUE;
     }  /* if */
     if (any_dynamic_init) {
@@ -3591,10 +3589,7 @@ returned set to TRUE.
       /* Although the entity has no constructor, it may have a destructor that
          needs to be recorded in the dynamic init entry (if any). */
       if (cssp != NULL && init_dip != NULL) {
-        init_dip->destructor = select_destructor(vp_type, vp_type, source_pos,
-                                                 /*honor_virtual=*/FALSE,
-                                                 /*evaluated=*/TRUE,
-                                                 /*instantiate=*/TRUE);
+        init_dip->destructor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type) ||
@@ -3733,9 +3728,7 @@ returned set to TRUE.
            for a constructor.  This is to catch the unusual case in which a
            user has defined a destructor but the object can be initialized
            without a constructor. */
-        dtor = select_destructor(vp_type, vp_type, source_pos,
-                                 /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                 /*instantiate=*/TRUE);
+        dtor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
       if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
@@ -3995,9 +3988,7 @@ FALSE is returned) for non-class objects.
         /* There are user-declared constructor(s) and/or implicitly-declared
            nontrivial constructors.  Look for a default constructor. */
         a_boolean err;
-        ctor = select_default_constructor(tp, err_pos, tp,
-                                          /*evaluated=*/TRUE,
-                                          &err);
+        ctor = select_default_constructor(tp, err_pos, tp, &err);
         if (err) {
           /* Some error, already diagnosed, e.g., no default constructor. */
         } else if (is_const &&
@@ -4040,14 +4031,13 @@ FALSE is returned) for non-class objects.
              constructor will be called.  We apply the as-if rule and suppress
              the call (since it's a no-op), but the definition still needs to
              be generated, since it may have side-effects. */
-          if (reference_to_trivial_default_constructor(tp, err_pos)) {
+          if (reference_to_trivial_default_constructor(tp, err_pos,
+                                                      /*check_access=*/TRUE)) {
             def_init_performed = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
-      dtor = select_destructor(tp, tp, err_pos,
-                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                               /*instantiate=*/TRUE);
+      dtor = select_destructor(tp, tp, err_pos);
       if (ctor == NULL && dtor == NULL && !is_nonreal_class && !var->is_vla) {
         /* No constructor for default initialization; no destructor either.
            Not a variable-length array (VLA). */
@@ -5040,7 +5030,8 @@ scan_paren:
             }  /* if */
           } else if (curr_token == tok_rparen && cssp != NULL &&
                      reference_to_trivial_default_constructor(
-                                         init_type, &error_position)) {
+                                         init_type, &error_position,
+                                         /*check_access=*/TRUE)) {
             /* We fake a call to the trivial default constructor for the
                class.  No call is actually made, but the constructor
                definition is triggered (in case there are side-effects).
@@ -5320,8 +5311,6 @@ scan_paren:
                                        /*source_is_rvalue=*/FALSE,
                                        &err_pos, object_class_type,
                                        &bitwise_copy,
-                                       /*record_ref=*/TRUE,
-                                       /*evaluated=*/TRUE,
                                        /*allow_suppressed_ctor=*/FALSE);
         }  /* if */
         if (bitwise_copy) {
@@ -5390,7 +5379,8 @@ scan_paren:
           } else {
             /* If there is a trivial default constructor for this class,
                treat this as a reference to it. */
-            (void)reference_to_trivial_default_constructor(tp, &err_pos);
+            (void)reference_to_trivial_default_constructor(tp, &err_pos,
+                                                        /*check_access=*/TRUE);
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
@@ -5424,7 +5414,6 @@ scan_paren:
           continue;
         }  /* if */
         rp = select_default_constructor(tp, &err_pos, object_class_type,
-                                        /*evaluated=*/TRUE,
                                         (a_boolean *)NULL);
         if (rp == NULL) {
           /* No constructor to call. */
@@ -5452,10 +5441,7 @@ scan_paren:
         } else {
           /* Implicit initialization -- the destructor has not yet been
              looked up. */
-          dip->destructor = select_destructor(tp, object_class_type, &err_pos,
-                                              /*honor_virtual=*/FALSE,
-                                              /*evaluated=*/TRUE,
-                                              /*instantiate=*/TRUE);
+          dip->destructor = select_destructor(tp, object_class_type, &err_pos);
         }  /* if */
         /* Record the need for a destruction in the context of the current
            lifetime if dip->destructor != NULL.   Note: when the field is an
@@ -5634,9 +5620,7 @@ though neither constructors nor initialization is involved here.)
                             (bcp->direct && !bcp->is_virtual)) {
         /* If the virtual base class or direct base class has a destructor, a
            dynamic init entry will be required. */
-        rp = select_destructor(bcp->type, class_type, &source_pos,
-                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                               /*instantiate=*/TRUE);
+        rp = select_destructor(bcp->type, class_type, &source_pos);
         if (rp != NULL) {
           cip = alloc_ctor_init((a_constructor_init_kind)
                                                     (bcp->is_virtual ?
@@ -5704,9 +5688,7 @@ though neither constructors nor initialization is involved here.)
         tp = skip_typerefs(tp);
       }  /* if */
       if (is_immediate_class_type(tp)) {
-        rp = select_destructor(tp, tp, &source_pos,
-                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                               /*instantiate=*/TRUE);
+        rp = select_destructor(tp, tp, &source_pos);
         if (rp != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);

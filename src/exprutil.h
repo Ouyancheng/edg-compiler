@@ -657,6 +657,18 @@ typedef struct an_expr_stack_entry {
 			   (specifically, one with potentially_evaluated
 			   set to FALSE).  Normally, such expressions are
 			   discarded. */
+  a_byte_boolean
+		suppress_diagnostics;
+			/* TRUE if diagnostics should be suppressed in the
+			   current context.  This is set when an expression
+			   is rescanned in a template deduction (SFINAE)
+			   context. */
+  a_byte_boolean
+		any_non_access_error_detected;
+			/* TRUE if any error was detected and suppressed
+			   because suppress_diagnostics is TRUE.  Access
+			   errors do not set this flag because that's
+			   the way SFINAE errors are defined (see N2634). */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -955,6 +967,14 @@ extern void expr_reference_to_implicitly_invoked_function
                                              a_type_ptr        class_of_object,
                                              a_boolean         honor_virtual);
 
+extern a_boolean expr_reference_to_trivial_default_constructor(
+                                              a_type_ptr         class_type,
+                                              a_source_position  *pos);
+
+extern void expr_reference_to_trivial_copy_constructor(
+                                                a_type_ptr        class_type,
+                                                a_source_position *pos);
+
 extern an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
                                                         a_param_type_ptr ptp);
 
@@ -1069,6 +1089,7 @@ extern a_boolean determine_imaginary_operation_type
                                         (a_token_kind          op_token,
                                          an_operand            *operand_1,
                                          an_operand            *operand_2,
+                                         a_source_position     *err_pos,
                                          a_type_ptr            *result_type,
                                          an_expr_operator_kind *op);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -1077,6 +1098,7 @@ extern a_boolean determine_imaginary_operation_type
 a_boolean determine_vector_operation_type(a_token_kind           op_token,
                                           an_operand             *operand_1,
                                           an_operand             *operand_2,
+                                          a_source_position      *err_pos,
                                           a_type_ptr             *result_type,
                                           an_expr_operator_kind  *op);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -1288,6 +1310,19 @@ extern a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
                                              a_boolean        add_default_args,
                                              a_boolean        implied_source);
 
+extern a_routine_ptr expr_select_default_constructor(
+                                         a_type_ptr        class_type,
+                                         a_source_position *err_pos,
+                                         a_boolean         *err);
+
+extern a_routine_ptr expr_select_copy_constructor(
+                                  a_type_ptr            class_type,
+                                  a_type_qualifier_set  required_qualifiers,
+                                  a_boolean             source_is_rvalue,
+                                  a_source_position     *err_pos,
+                                  a_boolean             *class_bitwise_copy,
+                                  a_boolean             record_ref);
+
 extern a_routine_ptr expr_select_destructor(
                                      a_type_ptr        class_type,
                                      a_type_ptr        object_class_type,
@@ -1484,7 +1519,32 @@ extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 extern a_type_ptr type_after_bit_field_integral_promotion(
                                                        an_expr_node_ptr node);
 
+extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
+                                                  an_error_code     err_code);
+
+extern a_boolean expr_error_should_be_issued(void);
+
+extern void expr_pos_error(an_error_code     error_code,
+                           a_source_position *error_pos);
+
+extern void expr_pos_warning(an_error_code     error_code,
+                             a_source_position *error_pos);
+
+extern void expr_pos_diagnostic(an_error_severity sev,
+                                an_error_code     error_code,
+                                a_source_position *error_pos);
+
+extern void expr_syntax_error(an_error_code error_code);
+
+extern a_boolean expr_access_checking_should_be_done(void);
+
 extern void make_error_operand(an_operand *operand);
+
+extern void expr_check_ambiguity_and_verify_access(a_symbol_locator *locator);
+
+extern void expr_overload_check_ambiguity_and_verify_access(
+                                           a_symbol_locator *locator,
+                                           a_symbol_ptr     overloaded_symbol);
 
 extern void operand_will_not_be_used_because_of_error(an_operand *operand);
 
