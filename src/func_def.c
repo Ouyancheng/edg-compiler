@@ -791,7 +791,7 @@ and for the instantiation of template functions.
         /* Push a class symbol reactivation scope, to make class member names
            visible for processing the function definition.  If the class is a
            member of a namespace, reactivating the namespace is treated as a
-           namespace extensions, except in GNU C++ mode.  E.g.:
+           namespace extension, except in GNU C++ mode.  E.g.:
              namespace N { struct S { void f(); }; }
              void N::S::f() {
                void g();  // ::g in g++ mode, N::g otherwise.
