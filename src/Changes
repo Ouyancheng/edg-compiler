@@ -1,5 +1,22 @@
 Version 4.2
 
+11/24/09 [EDGcpfe/10221]
+Improper lowering of cast of std::nullptr_t to pointer to member function type
+
+Expressions of std::nullptr_t type that are cast to a pointer to member
+function type had been replaced during lowering by a constant aggregate
+representing a null pointer to member function constant.  These aggregate
+constants had caused an assertion failure (in
+repr_for_ptr_to_member_function_constant in lower_il.c) in some pointer to
+member function comparison cases and have now been replaced with a temporary
+variable initialized to the proper value.  For example (--c++0x):
+
+  struct S { void f(); };
+  bool f(bool b) {
+    return &S::f != (b ? nullptr : nullptr);
+  }
+
+
 11/24/09 [EDGcpfe/10222]
 Improperly lowered lvalue eok_comma on some std::nullptr_t operations
 

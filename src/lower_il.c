@@ -10502,10 +10502,11 @@ effects.  The expression has typically been previously lowered (and is
 not lowered by this routine).
 */
 {
-  a_constant       zero_constant;
+  a_constant_ptr   zero_constant;
   an_expr_node_ptr zero_node;
 
   check_assertion(is_or_was_nullptr_type(expr->type) && !expr->is_lvalue);
+  zero_constant = alloc_constant((a_constant_repr_kind)ck_integer);
   if (is_or_was_ptr_to_member_function_type(type) ||
       is_or_was_ptr_to_data_member_type(type)) {
     /* Pointer to member types may (if in the file scope) or may not (if
@@ -10513,15 +10514,18 @@ not lowered by this routine).
        in order to generate the appropriate constant, but the constant can't
        have the unlowered type, so overwrite it with the original type
        we were given. */
-    make_zero_of_proper_type(get_underlying_type(type), &zero_constant);
-    lower_ptr_to_member_constant(&zero_constant);
-    zero_constant.type = type;
+    make_zero_of_proper_type(get_underlying_type(type), zero_constant);
+    lower_ptr_to_member_constant(zero_constant);
+    zero_constant->type = type;
+    /* Note that the constant created here is a "troublesome aggregate
+       constant", and as such will be replaced by a variable when the
+       expression node is created below. */
   } else {
     /* Eventually, all std::nullptr_t types will be lowered to void*, so
        create a zero of type void* for the value of the expression.*/
-    make_zero_of_proper_type(void_star_type(), &zero_constant);
+    make_zero_of_proper_type(void_star_type(), zero_constant);
   }  /* if */
-  zero_node = alloc_node_for_constant(&zero_constant);
+  zero_node = make_node_for_il_constant(zero_constant);
   /* Add a cast to the desired type. */
   zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
