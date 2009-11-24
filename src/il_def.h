@@ -1331,7 +1331,8 @@ typedef struct an_attribute_group {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		end_position;
-			/* The position of the end of the attribute group				  construct. */
+			/* The position of the end of the attribute group
+			   construct. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_attribute_group;
 
