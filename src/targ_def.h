@@ -555,7 +555,7 @@ rvalue_references_enabled.
 #if DEFAULT_RVALUE_REFERENCES_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED
  #error -- Cannot set DEFAULT_RVALUE_REFERENCES_ENABLED to TRUE when \
            CPP0X_IL_EXTENSIONS_SUPPORTED is FALSE
-#endif /* DEFAULT_RVALUE_REFERENCES_ENABLED && !CPP0X_IL_EXTENSIONS_SUPPORTED */
+#endif /* DEFAULT_RVALUE_REFERENCES_ENABLED && ... */
 
 /*
 Flag that is TRUE if the C++0x nullptr keyword should be enabled in other
