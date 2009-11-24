@@ -12425,7 +12425,9 @@ std::nullptr_t with an equivalent zero constant (pointer to member cases
 have been handled during lowering).  Expressions that have side-effects
 are maintained (as the first operand of a comma operation).  Must not be
 called as part of a pre-order expression traversal (infinite loop would
-occur when expression is changed into a comma operation).
+occur when expression is changed into a comma operation).  This routine
+can't introduce any lvalue-returning operations (the lowering post pass has
+already processed these).
 */
 {
   if (!expr->is_lvalue &&
@@ -12480,8 +12482,6 @@ the expression has been traversed (post-order), so it is suited to
 optimizations that require operands be optimized first. 
 */
 {
-  /* Transform expressions involving std::nullptr_t types. */
-  rewrite_nullptr_expr_if_necessary(expr);
 #if LOWER_LVALUE_RETURNING_OPERATIONS
   /* Transform lvalue-returning assignments, prefix ++/--, and "?" and ","
      operators into valid C.  This must be called as part of post processing
@@ -12493,6 +12493,10 @@ optimizations that require operands be optimized first.
      node is processed on the next iteration. */
   lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
+  /* Nothing invoked at this point in the expression lowering can introduce
+     lvalue-returning C++ operations (which would need lowering). */
+  /* Transform expressions involving std::nullptr_t types. */
+  rewrite_nullptr_expr_if_necessary(expr);
 }  /* perform_post_pass_on_lowered_node_post_expr */
 
 

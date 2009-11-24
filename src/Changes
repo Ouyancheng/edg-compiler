@@ -1,5 +1,21 @@
 Version 4.2
 
+11/24/09 [EDGcpfe/10222]
+Improperly lowered lvalue eok_comma on some std::nullptr_t operations
+
+Lowering of certain operations with type std::nullptr_t could result in
+improper lowering of an inserted eok_comma operation (leaving
+returns_lvalue_instead_of_usual_rvalue set to TRUE), resulting in an assertion
+failure ("dump_expr: lvalue-returning operation") in C generating back end
+configurations.  This is now fixed.  For example (--c++0x):
+
+  typedef decltype(nullptr) T;
+  void f() {
+    T t;
+    t = (T&&)nullptr;
+  }
+
+
 11/23/09 [EDGcpfe/10238]
 GNU C++ compatibility: Meaning of block-extern declarations in namespaces
 
