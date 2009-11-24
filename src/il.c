@@ -13687,8 +13687,11 @@ name lookup options.
           *copy_error = TRUE;
         } else if (other_con != NULL &&
                    !identical_types(new_type, other_con->type) &&
+                   !is_pointer_type(new_type) &&
+                   !is_ptr_to_member_type(new_type) &&
                    is_nullptr_type(other_con->type)) {
-          /* You can't convert a nullptr constant to another type. */
+          /* A nullptr can only be converted to a pointer or pointer to member
+             type. */
           *copy_error = TRUE;
         } else {
           if (other_con != NULL) *constant = *other_con;
