@@ -13967,22 +13967,19 @@ cast.  See lower_expr for typical invocation.
                be rewritten, however, since it's now a cast of a struct
                type. */
             type = expr->type;
-            if ((is_or_was_ptr_to_member_function_type(type) ||
-                 is_or_was_ptr_to_data_member_type(type)) &&
-                 is_or_was_nullptr_type(operand_node->type)) {
-              /* Replace a cast of a std::nullptr_t type to a pointer to member
-                 with a constant of the proper type. */
-              overwrite_node(expr, expr_for_nullptr_type(expr->type,
-                                                         operand_node));
+            if (is_or_was_nullptr_type(type) ||
+                ((is_or_was_ptr_to_member_function_type(type) ||
+                  is_or_was_ptr_to_data_member_type(type)) &&
+                  is_or_was_nullptr_type(operand_node->type))) {
+              /* Replace a cast to a std::nullptr_t type, or a cast of a
+                 std::nullptr_t type to a pointer to member type with a
+                 constant of the proper type. */
+              overwrite_node(expr, expr_for_nullptr_type(type, operand_node));
             } else if (is_or_was_ptr_to_member_function_type(expr->type)) {
               /* Preserve the result type because it tells us how to call
                  the kind of routine we've selected. */
               overwrite_node(expr, operand_node);
               expr->type = type;
-            } else if (is_or_was_nullptr_type(type)) {
-              /* Replace a cast to a std::nullptr_t type with a constant of
-                 the proper type. */
-              overwrite_node(expr, expr_for_nullptr_type(type, operand_node));
             }  /* if */
 #if LOWER_COMPLEX
             if (is_nonreal_floating_type(expr->type) ||
