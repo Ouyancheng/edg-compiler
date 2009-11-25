@@ -2480,10 +2480,16 @@ typedef unsigned long an_eh_type_flags_set;
 #define ETS_LAST		0x20
 			/* TRUE if this is the last type specification in
 			   the array. */
-#define ETS_IS_POINTER_TO_MEMBER 0x40
-			/* A pointer to member type is specified by typeinfo.
-			   Note that this differs from the pointer case: the
-			   typeinfo refers to the pointer to member type. */
+#define ETS_IS_POINTER_TO_DATA_MEMBER 0x40
+			/* A pointer to data member type is specified by
+			   typeinfo.  Note that this differs from the pointer
+			   case: the typeinfo refers to the pointer to data
+			   member type. */
+#define ETS_IS_POINTER_TO_MEMBER_FUNCTION 0x80
+			/* A pointer to member function type is specified by
+			   typeinfo.  Note that this differs from the pointer
+			   case: the typeinfo refers to the pointer to
+			   member function type. */
 #endif /* GENERATE_EH_TABLES */
 
 #if GENERATE_EH_TABLES
@@ -2521,10 +2527,11 @@ Return a pointer to the variable.
     if (qualifiers & TQ_VOLATILE) {
       flags_value |= ETS_VOLATILE;
     }  /* if */
-    /* The underlying type is a pointer to member type. */
-    if (is_or_was_ptr_to_member_function_type(type) ||
-        is_or_was_ptr_to_data_member_type(type)) {
-      flags_value |= ETS_IS_POINTER_TO_MEMBER;
+    /* See if the underlying type is a pointer to member type. */
+    if (is_or_was_ptr_to_data_member_type(type)) {
+      flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
+    } else if (is_or_was_ptr_to_member_function_type(type)) {
+      flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
     }  /* if */
     if (done) {
       flags_value |= ETS_LAST;
@@ -2578,9 +2585,10 @@ the cv-qualifiers and passes the type through.
     *flags_value |= ETS_IS_REFERENCE;
   }  /* if */
   /* Note a top-level pointer to member type. */
-  if (is_or_was_ptr_to_member_function_type(eff_type) ||
-      is_or_was_ptr_to_data_member_type(eff_type)) {
-    *flags_value |= ETS_IS_POINTER_TO_MEMBER;
+  if (is_or_was_ptr_to_data_member_type(eff_type)) {
+    *flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
+  } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
+    *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
   }  /* if */
   if (is_pointer_type(eff_type) && !is_or_was_nullptr_type(eff_type)) {
     a_type_ptr under_ptr = type_pointed_to(eff_type);
@@ -2610,9 +2618,10 @@ the cv-qualifiers and passes the type through.
       if (qualifiers & TQ_VOLATILE) {
         *flags_value |= ETS_VOLATILE;
       }  /* if */
-      if (is_or_was_ptr_to_member_function_type(eff_type) ||
-          is_or_was_ptr_to_data_member_type(eff_type)) {
-        *flags_value |= ETS_IS_POINTER_TO_MEMBER;
+      if (is_or_was_ptr_to_data_member_type(eff_type)) {
+        *flags_value |= ETS_IS_POINTER_TO_DATA_MEMBER;
+      } else if (is_or_was_ptr_to_member_function_type(eff_type)) {
+        *flags_value |= ETS_IS_POINTER_TO_MEMBER_FUNCTION;
       }  /* if */
     }  /* if */
   }  /* if */

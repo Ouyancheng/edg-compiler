@@ -22,6 +22,11 @@ Throw processing for exception handling.
 
 #if EXCEPTION_HANDLING
 
+/*
+A class used to declare a pointer-to-member object in a_throw_stack_entry.
+*/
+struct a_dummy_class {};
+
 /* Structure used to maintain a stack of throws that are currently
    being processed. */
 typedef struct a_throw_stack_entry *a_throw_stack_entry_ptr;
@@ -62,7 +67,23 @@ typedef struct a_throw_stack_entry {
 			   conversion from a pointer to derived to a pointer
 			   to base.  This buffer is used to store the modified
 		  	   pointer.  The original pointer must be preserved for
-			   use by a rethrow. */
+			   use by a rethrow.  This is also used when a nullptr
+			   is thrown.  It can be caught as a pointer value.
+			   The pointer value is constructed here. */
+  void* a_dummy_class::*
+		ptr_to_data_member_buffer;
+			/* A piece of memory large enough to store a
+			   pointer-to-member that points to a nonstatic data
+			   member.  When a nullptr is thrown it can be caught
+			   as a pointer-to-member.  The pointer-to-member
+			   value is constructed here. */
+  void* (a_dummy_class::*
+		ptr_to_member_function_buffer)();
+			/* A piece of memory large enough to store a
+			   pointer-to-member that points to a member function.
+			   When a nullptr is thrown it can be caught
+			   as a pointer-to-member.  The pointer-to-member
+			   value is constructed here. */
   an_eh_stack_entry_ptr
 		nearest_enclosing_try_block;
 			/* Pointer to the nearest enclosing try block
@@ -920,22 +941,25 @@ permitted.
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 241 */
 
-static int check_exception_type_specifications
-                        (an_exception_type_specification_ptr  etsp,
-                         a_type_info_impl_ptr		      type_info,
-			 an_ETS_flag_set		      flags,
-			 an_ETS_flag_set		      *ptr_flags,
-			 an_access_flag_string                access_flags,
-			 a_boolean			      use_access_flags,
-			 void**				      object_ptr,
-			 an_exception_type_specification_ptr* etsp_found)
+static int check_exception_type_specifications(
+		an_exception_type_specification_ptr	etsp,
+		a_type_info_impl_ptr			type_info,
+		an_ETS_flag_set				flags,
+		an_ETS_flag_set				*ptr_flags,
+		an_access_flag_string			access_flags,
+		a_boolean				use_access_flags,
+		void					**object_ptr,
+		an_exception_type_specification_ptr	*etsp_found,
+		a_boolean				*nullptr_conv_needed)
 /*
 Examine the exception type information associated with a given try block or
 throw specification and determine whether any of the entries match the
 object being thrown.  Returns 0 if no matching catch was found.  If a match
 is found the position in the catch array is returned (actually, the array
 index plus 1).  A pointer to the exception type specification of the matching
-entry is returned in etsp_found.
+entry is returned in etsp_found.  A flag indicating whether or not the match
+involved a conversion from nullptr to a pointer or pointer to member type
+is returned via nullptr_conv_needed (if it is not NULL).
 */
 {
   int		        result = 0;
@@ -943,6 +967,7 @@ entry is returned in etsp_found.
   a_boolean	        done = FALSE;
   a_boolean		is_ptr;
 
+  if (nullptr_conv_needed != NULL) *nullptr_conv_needed = FALSE;
   *etsp_found = NULL;
   is_ptr = is_pointer(flags, ptr_flags);
   do {
@@ -1010,6 +1035,7 @@ entry is returned in etsp_found.
       /* A thrown std::nullptr_t matches a pointer or pointer to member
          type. */
       match = TRUE;
+      if (nullptr_conv_needed != NULL) *nullptr_conv_needed = TRUE;
 #endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
     } else if (ets_is_ptr != is_ptr) {
       /* One is a pointer and the other is not.  This can't be a match. */
@@ -1189,6 +1215,7 @@ a try block with a catch that matches the type of the object thrown.
   an_ETS_flag_set		*throw_ptr_flags;
   an_exception_type_specification_ptr
 				etsp_found;
+  a_boolean			nullptr_conv_needed;
   an_access_flag_string         access_flags;
   a_boolean			use_access_flags;
 
@@ -1263,7 +1290,8 @@ a try block with a catch that matches the type of the object thrown.
 				(ehsep->variant.try_block.catch_entries,
 				 thrown_type_info, throw_flags,
                                  throw_ptr_flags, access_flags,
-				 use_access_flags, &object_ptr, &etsp_found);
+				 use_access_flags, &object_ptr, &etsp_found,
+                                 &nullptr_conv_needed);
         } else {
           /* An internal try block, which has no catch entries.  An internal
              try block is equivalent to a "catch (...)".  Set result to 1 to
@@ -1314,7 +1342,7 @@ a try block with a catch that matches the type of the object thrown.
 				   thrown_type_info, throw_flags,
                                    throw_ptr_flags, access_flags,
 				   use_access_flags, (void**)NULL,
-                                   &dummy_etsp);
+                                   &dummy_etsp, (a_boolean*)NULL);
       }  /* if */
       if (result == 0) {
         destination_ehsep = ehsep;
@@ -1457,6 +1485,25 @@ a try block with a catch that matches the type of the object thrown.
          pointer is preserved in case it is needed by a rethrow. */
       *(void**)object_buffer_ptr = object_ptr;
       __caught_object_address = object_buffer_ptr;
+    } else if (nullptr_conv_needed) {
+      /* The thrown object is nullptr and the catch is of a pointer or
+         pointer-to-member.  Create a null pointer of the appropriate
+         kind and pass the address of that object. */
+      if (is_pointer(etsp_found->flags, etsp_found->ptr_flags)) {
+        /* The nullptr is being caught by a normal pointer. */
+        curr_throw_stack_entry->pointer_buffer = NULL;
+        __caught_object_address = &curr_throw_stack_entry->pointer_buffer;
+      } else if ((etsp_found->flags & ETS_IS_POINTER_TO_DATA_MEMBER) != 0) {
+        /* The nullptr is being caught by a pointer-to-data-member. */
+        curr_throw_stack_entry->ptr_to_data_member_buffer = NULL;
+        __caught_object_address =
+                     (void*)&curr_throw_stack_entry->ptr_to_data_member_buffer;
+      } else {
+        /* The nullptr is being caught by a pointer-to-member-function. */
+        curr_throw_stack_entry->ptr_to_member_function_buffer = NULL;
+        __caught_object_address =
+            (void*)&curr_throw_stack_entry->ptr_to_member_function_buffer;
+      }  /* if */
     } else {
       /* The thrown object is not a pointer.  object_ptr starts out with the
          same value as object_buffer_ptr but may be modified my a
@@ -1895,7 +1942,7 @@ and flag combination is allowed.
 				   type, flags, ptr_flags,
                                    (an_access_flag_string)NULL,
 				   /*use_access_flags=*/FALSE, (void**)NULL,
-                                   &dummy_etsp);
+                                   &dummy_etsp, (a_boolean*)NULL);
     if (catch_pos != 0) result = TRUE;
   }  /* if */
   return result;
