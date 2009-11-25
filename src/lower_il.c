@@ -12663,8 +12663,9 @@ expr->next is preserved.
       overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
     }  /* if */
     if (is_void_type(expr->type)) {
-      /* Set result_is_not_used flag if the expression type is void (it may
-         have been changed above and in those cases the flag should be set). */
+      /* Set result_is_not_used flag if the expression type is void (it is
+         already set on this node, but it may not be correctly set on operands
+         of this node if the expression type has been changed to void). */
       set_expr_result_not_used(expr);
     }  /* if */
   } else {
