@@ -13972,7 +13972,7 @@ cast.  See lower_expr for typical invocation.
                   is_or_was_ptr_to_data_member_type(type)) &&
                   is_or_was_nullptr_type(operand_node->type))) {
               /* Replace a cast to a std::nullptr_t type, or a cast of a
-                 std::nullptr_t type to a pointer to member type with a
+                 std::nullptr_t type to a pointer to member type, with a
                  constant of the proper type. */
               overwrite_node(expr, expr_for_nullptr_type(type, operand_node));
             } else if (is_or_was_ptr_to_member_function_type(expr->type)) {
