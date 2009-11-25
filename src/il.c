@@ -13607,7 +13607,7 @@ name lookup options.
 {
   a_constant_ptr con_copy, other_con;
   a_type_ptr     new_type;
-  a_type_ptr     con_type;
+  a_type_ptr     copied_con_type;
   a_boolean      did_not_fold;
   a_template_param_coordinate_ptr
                  coordinates;
@@ -13678,8 +13678,8 @@ name lookup options.
                                  constant);
         /* Get the type of the copied constant from either other_con or
            constant, as appropriate. */
-        con_type = type_of_copied_template_expr((an_expr_node_ptr)NULL,
-                                                constant, other_con); 
+        copied_con_type = type_of_copied_template_expr((an_expr_node_ptr)NULL,
+                                                       constant, other_con); 
         if (same_entities(new_type, con->type) &&
             other_con == con->variant.template_param.variant.constant) {
           /* No change in the type or constant. */
@@ -13690,10 +13690,10 @@ name lookup options.
           /* You can't cast to an incomplete type, a class type, a
              function type, or an array type. */
           *copy_error = TRUE;
-        } else if (!identical_types(new_type, con_type) &&
+        } else if (!identical_types(new_type, copied_con_type) &&
                    !is_pointer_type(new_type) &&
                    !is_ptr_to_member_type(new_type) &&
-                   is_nullptr_type(con_type)) {
+                   is_nullptr_type(copied_con_type)) {
           /* A nullptr can only be converted to a pointer or pointer to member
              type. */
           *copy_error = TRUE;
