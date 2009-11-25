@@ -1,5 +1,24 @@
 Version 4.2
 
+11/24/09 [EDGcpfe/10243]
+Error suppression in expression-processing routines
+
+In preparation for some SFINAE changes (see N2634), the diagnostic
+output in the expression-processing rutines (expr.c, exprutil.c, and
+overload.c) has been reworked so that diagnostics can be suppressed
+when necessary.  Customer additions to those files may have to be
+updated.  For many of the simpler diagnostics, a simple change of
+called routine is sufficient:
+
+  pos_error       --> expr_pos_error
+  pos_warning     --> expr_pos_warning
+  pos_diagnostic  --> expr_pos_diagnostic
+
+Other calls have to be enclosed in a test of expr_error_should_be_issued
+or expr_diagnostic_should_be_issued, as appropriate.  Any access-checking
+code must be conditioned on expr_access_checking_should_be_done.
+
+
 11/24/09 [EDGcpfe/10216]
 Lowering of cast of pointer to member function to std::nullptr_t
 
