@@ -8791,14 +8791,14 @@ locator, and return TRUE.  If the symbol is not ambiguous, return FALSE.
          the case where the name after the qualifier refers to a static
          entity, the definition of the entity can be different in the two
          instances of the class template being used. */
+      if (diagnostic_should_be_issued) {
+        pos_sy2_diagnostic(es_discretionary_error,
+                           ec_ambiguous_injected_template_name,
+                           &locator->source_position, sym,
+                           fundamental_symbol_of(sym));
+      }  /* if */
       if (is_effective_error(ec_ambiguous_injected_template_name,
                              es_discretionary_error)) {
-        if (diagnostic_should_be_issued) {
-          pos_sy2_diagnostic(es_discretionary_error,
-                             ec_ambiguous_injected_template_name,
-                             &locator->source_position, sym,
-                             fundamental_symbol_of(sym));
-        }  /* if */
         err = TRUE;
       }  /* if */
     } else {
