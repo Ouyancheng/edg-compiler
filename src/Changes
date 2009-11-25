@@ -120,9 +120,9 @@ void (because it contains an eok_question operation whose second and
 third operands have different types after being rewritten), it is possible that
 the result_is_not_used flag may be set incorrectly in some portion of the
 expression.  For users of the C generating back end, this had resulted in an
-assertion failure in check_result_not_used_flag.  For example (--c++0x):
+assertion failure in check_result_not_used_flag.  For example:
 
-  typedef decltype(nullptr) T;
+  typedef int T;
   T x;
   void f() {
     0, (0, (0 ? *new T : x));
