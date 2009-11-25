@@ -10493,19 +10493,18 @@ static an_expr_node_ptr expr_for_nullptr_type(a_type_ptr       type,
                                               an_expr_node_ptr expr)
 /*
 Returns an expression of the specified type that can be used as a replacement
-for the input expression (an rvalue expression of type std::nullptr_t).
-Typically the returned expression is simply a constant zero of the specified
-type, but can also be something more complicated (e.g., when the type is a
-pointer to member type), and can also contain the original expression as the
-first operand of a comma operation in cases where the expression has side
-effects.  The expression has typically been previously lowered (and is
-not lowered by this routine).
+for the input expression (an rvalue).  Typically the returned expression is
+simply a constant zero of the specified type, but can also be something more
+complicated (e.g., when the type is a pointer to member type), and can also
+contain the original expression as the first operand of a comma operation in
+cases where the expression has side effects.  The expression has typically been
+previously lowered (and is not lowered by this routine).
 */
 {
   a_constant_ptr   zero_constant;
   an_expr_node_ptr zero_node;
 
-  check_assertion(is_or_was_nullptr_type(expr->type) && !expr->is_lvalue);
+  check_assertion(!expr->is_lvalue);
   zero_constant = alloc_constant((a_constant_repr_kind)ck_integer);
   if (is_or_was_ptr_to_member_function_type(type) ||
       is_or_was_ptr_to_data_member_type(type)) {
@@ -10529,14 +10528,6 @@ not lowered by this routine).
   /* Add a cast to the desired type. */
   zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
-    /* Strip any top level casts to std::nullptr_t (the comma node will
-       have the correct type and these aren't necessary). */
-    while (is_operation_node(expr) &&
-           node_operator_is(expr, eok_cast) &&
-           is_or_was_nullptr_type(expr->type)) {
-      expr = expr->variant.operation.operands;
-      check_assertion(expr != NULL);
-    }  /* if */
     zero_node = make_comma_node(copy_node(expr), zero_node);
   }  /* if */
   return zero_node;
@@ -13988,6 +13979,10 @@ cast.  See lower_expr for typical invocation.
                  the kind of routine we've selected. */
               overwrite_node(expr, operand_node);
               expr->type = type;
+            } else if (is_or_was_nullptr_type(type)) {
+              /* Replace a cast to a std::nullptr_t type with a constant of
+                 the proper type. */
+              overwrite_node(expr, expr_for_nullptr_type(type, operand_node));
             }  /* if */
 #if LOWER_COMPLEX
             if (is_nonreal_floating_type(expr->type) ||
