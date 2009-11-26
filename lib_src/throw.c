@@ -1214,8 +1214,8 @@ a try block with a catch that matches the type of the object thrown.
   an_ETS_flag_set		throw_flags;
   an_ETS_flag_set		*throw_ptr_flags;
   an_exception_type_specification_ptr
-				etsp_found;
-  a_boolean			nullptr_conv_needed;
+				etsp_found = NULL;
+  a_boolean			nullptr_conv_needed = FALSE;
   an_access_flag_string         access_flags;
   a_boolean			use_access_flags;
 
