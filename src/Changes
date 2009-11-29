@@ -1,5 +1,15 @@
 Version 4.2
 
+11/28/09 [EDGcpfe/10255]
+Using nullptr in integral constant expressions
+
+Use of nullptr, cast to an integral type, in an integral constant expression
+is well-formed; however, the front end formerly issued an error for such
+constructs.  This is now fixed.  For example:
+
+  enum E { e0 = int(nullptr) };   // No longer an error
+
+
 11/28/09 [EDGcpfe/10245]
 Using std::nullptr_t() as a non-type template argument
 

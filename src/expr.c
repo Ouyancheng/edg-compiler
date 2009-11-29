@@ -10901,8 +10901,9 @@ expressions allow only certain limited casts).
      integral constant expressions. */
   if (is_integral_or_enum_type(dest_type)) {
     /* Okay, cast is to integral type. */
-    /* The cast should be from an arithmetic or enum type. */
-    if (is_arithmetic_or_enum_type(source_type)) {
+    /* The cast should be from an arithmetic or enum type or std::nullptr_t. */
+    if (is_arithmetic_or_enum_type(source_type) ||
+        is_nullptr_type(source_type)) {
       /* Okay. */
       valid_in_integral_const_expr = TRUE;
     } else if (is_pointer_type(source_type) &&
