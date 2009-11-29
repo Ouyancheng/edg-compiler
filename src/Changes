@@ -1,5 +1,17 @@
 Version 4.2
 
+11/28/09 [EDGcpfe/10245]
+Using std::nullptr_t() as a non-type template argument
+
+The front end previously issued an error when an explicit temporary of type
+std::nullptr_t is used as a non-type template argument.  This is now fixed.
+For example:
+
+  typedef decltype(nullptr) nullptr_t;
+  template<int* P> struct S { };
+  S<nullptr_t()> s;    // Formerly an error, now accepted
+
+
 11/24/09 [EDGcpfe/10243]
 Error suppression in expression-processing routines
 
