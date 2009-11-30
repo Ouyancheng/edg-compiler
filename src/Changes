@@ -6573,6 +6573,21 @@ i.e., the use of the variable is not replaced by the constant itself.
     g(s,s);  // Now passes "s" for both arguments, not "abc"
   }
 
+12/22/08 [EDGcpfe/9168]
+C++0x: local and unnamed types as template arguments
+
+In C++0x mode, local and unnamed types can be used as template arguments
+(this was already allowed in some modes).
+
+  template <typename T> void f(T){}
+  enum {e1};
+  int main() {
+    struct B {} b;
+    f(b);
+    f(e1);
+  }
+
+
 12/19/08 [EDGcpfe/9395]
 Abort in trans_corresp.c on complex nested template cases
 
