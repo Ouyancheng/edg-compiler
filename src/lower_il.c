@@ -10493,7 +10493,10 @@ static an_expr_node_ptr expr_for_nullptr_type(a_type_ptr       type,
                                               an_expr_node_ptr expr)
 /*
 Returns an expression of the specified type that can be used as a replacement
-for the input expression (an rvalue).  Typically the returned expression is
+for the input expression (an rvalue).  The input expression is either an
+expression whose type is std::nullptr_t or one that has been cast to
+std::nullptr_t.  The returned expression yields a std::nullptr_t value that is
+cast to the specified type (if needed).  Typically the returned expression is
 simply a constant zero of the specified type, but can also be something more
 complicated (e.g., when the type is a pointer to member type), and can also
 contain the original expression as the first operand of a comma operation in
