@@ -11151,8 +11151,8 @@ expressions allow only certain limited casts).
                is_constant_operand(operand) &&
                is_or_might_be_null_pointer_constant(
                                                  &operand->variant.constant)) {
-      /* Cast of a null pointer constant to a pointer or pointer-to-member
-         type (allowed as an extension) or to std::nullptr_t. */
+      /* Okay: cast of a null pointer constant to a pointer or
+         pointer-to-member type or to std::nullptr_t. */
     } else if (microsoft_mode &&
                is_pointer_type(dest_type) && is_pointer_type(operand->type) &&
                f_same_entities(type_pointed_to(dest_type),
