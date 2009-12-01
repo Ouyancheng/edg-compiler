@@ -1,5 +1,20 @@
 Version 4.2
 
+12/1/09  [EDGcpfe/10268]
+Abort on multiple lambdas in namespace reactivation scope
+
+An abort could occur (in add_lambda_closure_to_types_list) if multiple
+lambdas occurred in a namespace reactivation scope.  This could occur if
+a variable was declared in a namespace scope and then defined outside of
+the namespace.  Now fixed.
+
+  namespace N {
+    extern int i;
+  }
+  int N::i = []{return 1;}() + []{return 2;}();
+
+
+
 11/28/09 [EDGcpfe/10255]
 Using nullptr in integral constant expressions
 

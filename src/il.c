@@ -7500,17 +7500,19 @@ done to add the type to the end of the types list for the enclosing class.
        to the types list of the namespace that was reactivated. */
     a_scope_ptr		sp;
     a_namespace_ptr	nsp = scope_stack[scope_level].assoc_namespace;
+    a_scope_pointers_block_ptr
+			pointers_block;
     sp = nsp->variant.assoc_scope;
     set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
+    pointers_block = scope_stack[scope_level].assoc_pointers_block;
     if (sp->types == NULL) {
       sp->types = type_ptr;
     } else {
-      a_scope_pointers_block_ptr	pointers_block;
-      a_type_ptr			prev_type;
-      pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
+      a_type_ptr	prev_type;
       prev_type = pointers_block->last_type;
       prev_type->next = type_ptr;
     }  /* if */
+    pointers_block->last_type = type_ptr;
   } else {
     /* Normal case -- just use the normal add_to_types_list process. */
     add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
