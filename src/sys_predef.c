@@ -1978,7 +1978,7 @@ global array named_register_storage_classes (see targ_def.h).
 }  /* enter_predefined_named_registers */
 
 #endif /* NAMED_REGISTERS_ALLOWED */
-#if GCC_BUILTIN_VARARGS
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
 
 static void enter_builtin_va_list_type(void)
 /*
@@ -2010,7 +2010,7 @@ On x86-64 (at least on Linux), it is an array of one element of struct type.
   builtin_va_list_type->is_builtin_va_list = TRUE;
 }  /* enter_builtin_va_list_type */
 
-#endif /* GCC_BUILTIN_VARARGS */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
 
 void enter_system_specific_predeclared_symbols(void)
 /*

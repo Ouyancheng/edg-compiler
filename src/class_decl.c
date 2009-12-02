@@ -11969,7 +11969,11 @@ information about the member declaration, respectively.
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
     scan_fs_integral_constant_expression(&decl_info->bit_field_size);
-    scan_gnu_declarator_attributes(&decl_info->decl_state);
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_attributes_enabled) {
+      scan_gnu_declarator_attributes(&decl_info->decl_state);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Update the end position of the declarator to include the bit field
        size construct. */
@@ -14956,7 +14960,7 @@ passed via template_decl.
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gnu_mode) {
+      if (gnu_attributes_enabled) {
         /* Scan prefix declarator attributes.  Note that those can only
            appear after a comma separating two declarators.  Any attributes
            prefixing a leading declarator will have been parsed as part of
@@ -14966,6 +14970,8 @@ passed via template_decl.
            to ignore these prefix declarator attributes altogether when they
            appear on class members.  We implement the documented behavior. */
         scan_gnu_declarator_attributes(decl_state);
+      }  /* if */
+      if (gnu_mode) {
         if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
           /* GNU C allows VLA fields in local classes.  We will scan such
              fields in GNU C mode, but issue a warning that the field will

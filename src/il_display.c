@@ -2720,6 +2720,9 @@ Display the indicated routine.
   if (ptr->specialized_with_old_syntax) {
     disp_boolean("specialized_with_old_syntax", TRUE);
   }  /* if */
+  if (ptr->never_throws) {
+    disp_boolean("never_throws", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_in_class_specialization) {
     disp_boolean("is_in_class_specialization", TRUE);
@@ -2780,9 +2783,6 @@ Display the indicated routine.
   }  /* if */
   if (ptr->always_inline) {
     disp_boolean("always_inline", TRUE);
-  }  /* if */
-  if (ptr->never_throws) {
-    disp_boolean("never_throws", TRUE);
   }  /* if */
   if (ptr->gnu_c89_inline) {
     disp_boolean("gnu_c89_inline", TRUE);

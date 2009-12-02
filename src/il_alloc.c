@@ -2220,6 +2220,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_specialized              = FALSE;
   rp->specialized_with_old_syntax = FALSE;
   rp->is_prototype_instantiation  = FALSE;
+  rp->never_throws                = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->is_in_class_specialization  = FALSE;
   rp->declared_only_as_friend     = FALSE;
@@ -2245,7 +2246,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->no_check_memory_usage       = FALSE;
   rp->never_inline                = FALSE;
   rp->always_inline               = FALSE;
-  rp->never_throws                = FALSE;
   rp->gnu_c89_inline              = FALSE;
   rp->implicit_alias              = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */

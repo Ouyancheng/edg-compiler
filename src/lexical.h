@@ -223,8 +223,8 @@ typedef enum /*a_token_kind*/ {
   tok_near,
   tok_far,
 #endif /* NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   tok_attribute,
+#if GNU_EXTENSIONS_ALLOWED
   tok_va_start_single_operand,
   tok_builtin_types_compatible,
   tok_gnu_real,

@@ -10353,6 +10353,11 @@ typedef struct a_routine {
 			/* TRUE if this routine represents the prototype
 			   instantiation of a function template or a member
 			   function of a class template. */
+  a_bit_field	never_throws:1;
+			/* TRUE for routines declared with the attribute
+			   "nothrow"; this is an assertion by the programmer
+			   that the routine will not throw an exception (the
+			   front end does not check that assertion). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field
 		is_in_class_specialization:1;
@@ -10435,11 +10440,6 @@ typedef struct a_routine {
 			   "always_inline"; this indicates that a code
 			   generator should attempt to inline calls to this
 			   routine even at the lowest optimization levels. */
-  a_bit_field	never_throws:1;
-			/* TRUE for routines declared with the GNU attribute
-			   "nothrow"; this is an assertion by the programmer
-			   that the routine will not throw an exception (the
-			   front end does not check that assertion). */
   a_bit_field	gnu_c89_inline:1;
 			/* TRUE if this is an "inline" routine declared with
 			   the GNU attribute "gnu_inline". */

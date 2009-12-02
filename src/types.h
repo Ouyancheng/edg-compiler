@@ -821,13 +821,13 @@ extern void disentangle_default_args(a_type_ptr  rtp1,
 extern a_type_ptr multilevel_composite_pointer_type(a_type_ptr type_1,
                                                     a_type_ptr type_2);
 
+#if GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr copy_gnu_type_properties(a_type_ptr  dst,
                                            a_type_ptr  src);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern
 a_boolean overload_distinguishable(a_symbol_ptr		old_sym_ptr,
