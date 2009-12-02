@@ -5493,14 +5493,17 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 
 static an_expr_node_ptr make_runtime_sizeof_expr(a_boolean  is_type,
                                                  a_type_ptr type,
-                                                 an_operand *operand)
+                                                 an_operand *operand,
+                                                 an_operand *result)
 /*
 Create an enk_runtime_sizeof expression for a sizeof and return a pointer
 to it.  If is_type is TRUE, this is a "sizeof(type)", and "type" indicates
 the type.  If is_type is FALSE, this is a "sizeof expression", and
-"operand" indicates the expression.
+"operand" indicates the expression.  If result is non-NULL, an operand for
+the sizeof result is built and returned there.
 */
 {
+  a_boolean        template_case = FALSE;
   an_expr_node_ptr node =
                         alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
 
@@ -5512,8 +5515,10 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
   } else {
     /* sizeof expression. */
     an_expr_node_ptr expr;
-    if (is_template_dependent_context()) {
+    if (is_template_dependent_context() &&
+        is_template_dependent_type(operand->type)) {
       /* An expression in a prototype instantiation. */
+      template_case = TRUE;
       prep_generic_operand(operand);
     }  /* if */
     expr = make_node_from_operand(operand);
@@ -5524,6 +5529,11 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
       a_variable_ptr var = expr->variant.variable;
       var->source_corresp.referenced = TRUE;
     }  /* if */
+  }  /* if */
+  if (result != NULL) {
+    /* Build an operand for the result. */
+    make_expression_operand(node, result);
+    result->is_template_generic = template_case;
   }  /* if */
   return node;
 }  /* make_runtime_sizeof_expr */
@@ -5829,10 +5839,9 @@ Syntax:
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime.  Note the use of orig_sizeof_type
          to preserve typedefs. */
-      an_expr_node_ptr node =
-                 make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
+      (void)make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand,
+                                     result);
       operand_was_used = !is_type;
-      make_expression_operand(node, result);
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
   } else if (SIZEOF_TYPE_IS_UNKNOWN(sizeof_type)) {
@@ -5849,10 +5858,9 @@ Syntax:
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
-      an_expr_node_ptr node =
-                 make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
+      (void)make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand,
+                                     result);
       operand_was_used = !is_type;
-      make_expression_operand(node, result);
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
   } else {
@@ -5897,13 +5905,15 @@ Syntax:
             is_type = TRUE;
           }  /* if */
           constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
-                                                   &operand);
+                                                   &operand,
+                                                   (an_operand *)NULL);
           operand_was_used = !is_type;
           switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */
       }  /* if */
     }  /* if */
     make_constant_operand(&constant, result);
+    result->is_template_generic = template_case;
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (multiply_by_threads_needed && !err && !is_error_operand(result)) {
@@ -5952,6 +5962,7 @@ implement <stdarg.h>, a standard feature.
   an_operand          operand;
   a_constant          constant;
   a_boolean           is_parenthesized = FALSE, is_type = FALSE;
+  a_boolean           template_case = FALSE;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -6115,6 +6126,7 @@ implement <stdarg.h>, a standard feature.
   } else if (!C_mode() && is_template_dependent_context() &&
              is_template_dependent_type(alignof_type)) {
     /* For __ALIGNOF__ of a template type, use a ck_template_param. */
+    template_case = TRUE;
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
                                  (a_template_param_constant_kind)tpck_alignof);
@@ -6177,6 +6189,7 @@ implement <stdarg.h>, a standard feature.
                      targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
+  result->is_template_generic = template_case;
   if (operand_was_scanned && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
@@ -7663,6 +7676,7 @@ enk_typeid entry should be created.
 */
 {
   an_expr_node_ptr typeid_node;
+  a_boolean        template_case = is_template_dependent_type(typeid_type);
   a_type_ptr       const_type_info = make_qualified_type(
                                               type_of_type_info,
                                               (a_type_qualifier_set)TQ_CONST);
@@ -7671,12 +7685,13 @@ enk_typeid entry should be created.
     /* Create a constant (either ck_address/abk_typeid or ck_template_param/
        tpck_typeid). */
     a_constant  typeid_con;
-    if (!is_template_dependent_type(typeid_type)) {
+    if (!template_case) {
       /* Non-template-dependent case: Use a ck_address/abk_typeid constant. */
       make_typeid_constant(typeid_type, &typeid_con);
     } else {
       /* Template-dependent case: Use a ck_template_param/tpck_typeid
          constant. */
+      template_case = TRUE;
       clear_constant(&typeid_con, (a_constant_repr_kind)ck_template_param);
       set_template_param_constant_kind(
                     &typeid_con, (a_template_param_constant_kind)tpck_typeid);
@@ -7700,6 +7715,7 @@ enk_typeid entry should be created.
     typeid_node->is_lvalue = TRUE;
   }  /* if */
   make_lvalue_expression_operand(typeid_node, result);
+  result->is_template_generic = template_case;
   set_used_in_exception_or_rtti_flag(typeid_type);
 }  /* make_typeid_operand */
 
@@ -8589,6 +8605,7 @@ which case it's the token after __uuidof.
     make_lvalue_expression_operand(add_indirection_to_node(
                                          alloc_node_for_constant(&uuidof_con)),
                                    result);
+    result->is_template_generic = template_case;
   }  /* if */
   if (operand_was_scanned) {
     if (!operand_was_used) {
@@ -8854,8 +8871,8 @@ Syntax:
         complete_class_type_is_needed(underlying_cast_type);
         if (!is_incomplete_type(underlying_cast_type)) {
           cast_type_okay = TRUE;
-        } if (!strict_ansi_mode &&
-              is_prototype_instantiation_context()) {
+        } else if (!strict_ansi_mode &&
+                   is_prototype_instantiation_context()) {
           /* The type might be complete at some later point when a real
              instantiation is done, so let it by. */
           cast_type_okay = TRUE;
@@ -8918,8 +8935,8 @@ Syntax:
           complete_class_type_is_needed(underlying_operand_type);
           if (!is_incomplete_type(underlying_operand_type)) {
             operand_type_okay = TRUE;
-          } if (!strict_ansi_mode &&
-                is_prototype_instantiation_context()) {
+          } else if (!strict_ansi_mode &&
+                     is_prototype_instantiation_context()) {
             /* The type might be complete at some later point when a real
                instantiation is done, so let it by. */
             operand_type_okay = TRUE;
@@ -9507,6 +9524,7 @@ specification allow a variable-sized array as the top type.
   a_dynamic_init_ptr
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
+  a_boolean         template_case = FALSE;
   a_boolean         force_dependent = FALSE;
   a_decl_parse_state
                     dps;
@@ -9769,6 +9787,7 @@ specification allow a variable-sized array as the top type.
                                                          unqual_base_new_type);
       }  /* if */
     }  /* if */
+    if (unknown_dependent_new) template_case = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode && gnu_version < 40000 && operator_new_symbol == NULL &&
         depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
@@ -9968,6 +9987,10 @@ specification allow a variable-sized array as the top type.
     arg_operand_list = NULL;
     arg_match_list = NULL;
   }  /* if */
+  if (is_template_dependent_context() &&
+      is_template_dependent_type(new_type)) {
+    template_case = TRUE;
+  }  /* if */
   /* If the new routine will be called (and not folded into a constructor),
      the initializer expression is actually inside a conditional expression
      context, because if the allocation fails the initialization will
@@ -10091,8 +10114,7 @@ specification allow a variable-sized array as the top type.
         warn_about_missing_delete_if(TRUE);
         needs_initialization = (dip != NULL);
       }  /* if */
-    } else if (is_template_dependent_context() &&
-               is_template_dependent_type(new_type)) {
+    } else if (template_case) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(
                                       &dps.prescanned_auto_initializer, &dip);
@@ -10221,6 +10243,7 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     /* Make an operand for the result. */
     make_expression_operand(new_node, result);
+    result->is_template_generic = template_case;
   }  /* if */
   /* Free the lists if they have not been freed already. */
   if (arg_operand_list != NULL) {
@@ -10611,6 +10634,7 @@ As an anachronism, allow an expression inside the [ ].
     ndsp->routine = delete_routine;
     /* Make an operand for the result. */
     make_expression_operand(delete_node, result);
+    result->is_template_generic = template_case;
   }  /* if */
 
   set_operand_position(result, &start_position, &operand.end_position,
@@ -13542,6 +13566,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                           /*is_lvalue=*/FALSE,
                                           /*is_explicit_cast=*/TRUE);
     make_expression_operand(temp_init_node, result);
+    result->is_template_generic = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

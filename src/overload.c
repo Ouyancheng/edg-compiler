@@ -7262,6 +7262,7 @@ wondering if it's available.
                           /*is_implicit_cast=*/TRUE,
                           /*is_reinterpret_cast=*/FALSE,
                           /*reinterpret_sementics=*/FALSE);
+        result->is_template_generic = TRUE;
       } else {
         /* Cast the "this" value to the class of the member. */
         /* Note that no ARM 11.5 protected member access check is needed,
@@ -14891,6 +14892,7 @@ been found to be acceptable, and *conversion describes it.
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
+  source_operand->is_template_generic = template_case;
 }  /* prep_reference_initializer_operand */
 
 
