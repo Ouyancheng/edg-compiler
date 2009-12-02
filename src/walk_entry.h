@@ -1331,6 +1331,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->name_reference, a_name_reference_ptr,
                  iek_name_reference);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+        conditionally_clear_fe_pointer(ptr->rescan_info);
         switch (ptr->kind) {
           case enk_error:
             /* No pointers. */

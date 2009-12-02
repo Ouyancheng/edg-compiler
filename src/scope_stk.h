@@ -1054,6 +1054,18 @@ scopes.  It is also TRUE when is_nonreal_instantiation is TRUE.
 
 
 /*
+TRUE if we are in a context in which an expression is being scanned
+that could later potentially participate in template argument deduction
+and/or template argument substitution into an expression.
+*/
+#define is_template_deduction_context()					\
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH &&		\
+   ( depth_scope_stack == depth_template_declaration_scope ||           \
+    (depth_scope_stack == depth_template_declaration_scope+1 &&         \
+     scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_func_prototype)))
+
+
+/*
 TRUE if we are in a template prototype instantiation context, which
 includes template declaration scopes.  This is similar to
 is_template_dependent_context, but excludes nonreal instantiations.

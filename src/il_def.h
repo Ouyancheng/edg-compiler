@@ -82,13 +82,17 @@ typedef struct a_destructible_entity_descr
 typedef struct an_init_pos_descr
                              an_init_pos_descr_dummy_typedef;
 #endif /* DO_IL_LOWERING */
+typedef struct a_new_delete_supplement
+                              *a_new_delete_supplement_ptr;
 
 /* Opaque type definition for an_arg_operand (used in the expression
    processing routines, but a pointer to it appears in a front-end only
    field in the IL; its structure is not known here). */
 typedef struct an_arg_operand *an_arg_operand_ptr;
-typedef struct a_new_delete_supplement
-                              *a_new_delete_supplement_ptr;
+/* Opaque type definition for an_expr_rescan_info_entry (used in the
+   expression processing routines, but a pointer to it appears in a
+   front-end only field in the IL; its structure is not known here). */
+typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
 
 /*
 Data structures related to source position and correspondence:
@@ -12015,6 +12019,12 @@ typedef struct an_expr_node {
 			   node refers to (e.g., a function name for an
 			   enk_routine). */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  an_expr_rescan_info_entry_ptr
+		rescan_info;
+			/* For expressions scanned in templates that might
+			   be rescanned later to redo semantic analysis,
+			   points to extra front-end-only information that
+			   is needed for the rescan.  NULL otherwise. */
 } an_expr_node;
 
 /*

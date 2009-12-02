@@ -359,6 +359,10 @@ typedef struct an_operand {
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
+  a_bit_field	is_template_generic:1;
+			/* TRUE if this operand has some template-dependent
+			   aspect that makes it impossible to know exactly
+			   what its value or operation is. */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
@@ -463,6 +467,23 @@ typedef struct an_arg_operand {
 			/* The argument value. */
 } an_arg_operand;
 
+
+/*
+Entry used to attach front-end-only information to an_expr_node for
+use when the expression is rescanned to do semantic analysis as part
+of template deduction.
+*/
+/* The typedef an_expr_rescan_info_entry_ptr is defined in il_def.h. */
+typedef struct an_expr_rescan_info_entry {
+  a_source_position
+		position;
+			/* Start position. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* End position. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} an_expr_rescan_info_entry;
 
 /*
 Copy the source position from an expression operand into an expression node.
@@ -669,6 +690,13 @@ typedef struct an_expr_stack_entry {
 			   because suppress_diagnostics is TRUE.  Access
 			   errors do not set this flag because that's
 			   the way SFINAE errors are defined (see N2634). */
+  a_byte_boolean
+		template_deduction_declaration_context;
+			/* TRUE if the expression being scanned is in a context
+			   where template deduction might be done later.
+			   Extra information is saved that will be needed if
+			   the semantic analysis on the expression is redone
+			   during template deduction. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -1422,6 +1450,8 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         a_boolean       is_qualified_name,
                                         a_ref_entry_ptr rep,
                                         an_operand      *operand);
+
+extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 

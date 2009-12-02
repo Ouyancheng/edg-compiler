@@ -72,6 +72,7 @@ Counts of entries allocated, for debugging purposes.
 */
 static unsigned long
 		num_arg_operands_allocated,
+		num_expr_rescan_info_entries_allocated,
 		num_ref_entries_allocated,
 		num_dynamic_init_dtor_fixups_allocated;
 #endif /* DEBUG */
@@ -794,6 +795,9 @@ as in a decltype.
                                old_entry->is_decltype_or_typeof_arg_expression;
     new_entry->inside_conditional_expression =
                                       old_entry->inside_conditional_expression;
+    new_entry->suppress_diagnostics |= old_entry->suppress_diagnostics;
+    new_entry->template_deduction_declaration_context |=
+                             old_entry->template_deduction_declaration_context;
   }  /* if */
 }  /* transfer_context_from_enclosing_expr_stack_entry */
 
@@ -837,6 +841,8 @@ is pushed regardless of any of the other factors.
   new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
   new_entry->suppress_diagnostics = FALSE;
   new_entry->any_non_access_error_detected = FALSE;
+  new_entry->template_deduction_declaration_context =
+                                               is_template_deduction_context();
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -1541,6 +1547,7 @@ values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->is_routine_name_followed_by_left_paren = FALSE;
   operand->is_dummy_lvalue = FALSE;
+  operand->is_template_generic = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -1641,6 +1648,9 @@ Display an expression operand for debugging purposes.
       (void)fprintf(f_debug, "<bad operand state>, ");
       break;
   }  /* switch */
+  if (operand->is_template_generic) {
+    (void)fprintf(f_debug, "template generic, ");
+  }  /* if */
   (void)fprintf(f_debug, "type = ");
   if (operand->type == NULL) {
     (void)fprintf(f_debug, "NULL");
@@ -2034,12 +2044,19 @@ value is TRUE.
 }  /* clone_operand */
 
 
-an_expr_node_ptr make_node_from_operand(an_operand *operand)
+an_expr_node_ptr extract_node_from_operand(an_operand *operand)
 /*
-Make a node from an operand.  If the operand contains a constant, allocate a
-constant record and copy the constant value to it.  If the operand is an error
-operand, create an error node.  If the operand is an expression, return the
-expression node.
+Extract an expression from an operand.  If the operand contains a
+constant, allocate a constant node and copy the constant value to it.
+If the operand is an error operand, create an error node.  If the
+operand is an expression, return the expression node.  This routine
+does not preserve information from the operand as extra information
+added to the expression and should be used when the expression is
+either (a) going to be simply tested or traversed for some property,
+and not saved, or (b) going to be immediately put back into
+an_operand, with the original operand information restored via a call
+to restore_operand_details.  Otherwise, use make_node_from_operand
+instead.
 */
 {
   an_expr_node_ptr node;
@@ -2066,6 +2083,48 @@ expression node.
 	("make_node_from_operand: converting unexpected operand kind");
 #endif /* CHECKING */
   }  /* switch */
+  return node;
+}  /* extract_node_from_operand */
+
+
+static void save_operand_info_in_expr_rescan_info_entry(
+                                                     an_operand       *operand,
+                                                     an_expr_node_ptr node)
+/*
+The expression "node" represents the operand "operand", and it will potentially
+be rescanned later to redo semantic analysis for template deduction.  Save
+any extra information from the operand in an expression rescan info
+entry attached to the expression node so it will be available for the rescan.
+*/
+{
+  an_expr_rescan_info_entry_ptr eriep = node->rescan_info;
+
+  if (eriep == NULL) {
+    eriep = (an_expr_rescan_info_entry_ptr)alloc_fe(
+                                            sizeof(an_expr_rescan_info_entry));
+#if DEBUG
+    num_expr_rescan_info_entries_allocated++;
+#endif /* DEBUG */
+    node->rescan_info = eriep;
+  }  /* if */
+  eriep->position = operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  eriep->end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* save_operand_info_in_expr_rescan_info_entry */
+
+
+an_expr_node_ptr make_node_from_operand(an_operand *operand)
+/*
+Return an expression node to represent the given operand, creating one
+if necessary.  Extra information that is in the an_operand entry is
+in some cases preserved as extra information attached to the expression
+node; see extract_node_from_operand for an alternative that does not do
+that extra work.
+*/
+{
+  an_expr_node_ptr node = extract_node_from_operand(operand);
+
 #if RECORD_FORM_OF_NAME_REFERENCE
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
@@ -2084,7 +2143,13 @@ expression node.
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-
+  if (expr_stack->template_deduction_declaration_context &&
+      operand->is_template_generic) {
+    /* For an expression that may be rescanned to do semantic analysis
+       later for template deduction, save extra information from the
+       operand. */
+    save_operand_info_in_expr_rescan_info_entry(operand, node);
+  }  /* if */
   return node;
 }  /* make_node_from_operand */
 
@@ -2218,6 +2283,7 @@ destroyed its source position, etc.  Restore such things from
   if (operand->is_operand_of_address_of) {
     operand->ampersand_position = orig_operand->ampersand_position;
   }  /* if */
+  operand->is_template_generic = orig_operand->is_template_generic;
 }  /* restore_operand_details */
 
 
@@ -2740,6 +2806,7 @@ operand in *result.
   make_template_param_expr_constant(node, &con);
   /* Make the operand. */
   make_constant_operand(&con, result);
+  result->is_template_generic = TRUE;
 }  /* make_template_param_expr_constant_operand */
 
 
@@ -3373,6 +3440,7 @@ is_qualified_name is TRUE if the source form used a qualified name.
     prep_generic_template_argument_list(template_arg_list);
     make_constant_operand(&con, operand);
   }  /* if */
+  operand->is_template_generic = TRUE;
 }  /* make_unknown_dependent_function_operand */
 
 
@@ -5876,6 +5944,7 @@ as an lvalue.
     make_lvalue_expression_operand(expr, operand);
     if (is_function) operand->state = (an_operand_state)os_function_designator;
     restore_operand_details(operand, &orig_operand);
+    operand->is_template_generic = TRUE;
   }  /* if */
 }  /* change_template_param_constant_operand_to_lvalue */
 
@@ -6618,7 +6687,7 @@ pointer value.
 
   if (is_an_lvalue(operand)) {
     a_constant       con;
-    an_expr_node_ptr expr = make_node_from_operand(operand);
+    an_expr_node_ptr expr = extract_node_from_operand(operand);
     if (constant_lvalue_address(expr, &con,
                                 /*address_escapes=*/FALSE,
                                 (a_boolean *)NULL)) {
@@ -7328,6 +7397,7 @@ it will be used as an rvalue or an lvalue.
     conv_sym_for_member_operand_to_ptr_to_member(operand,
                                                  (a_source_position *)NULL);
   }  /* if */
+  operand->is_template_generic = TRUE;
 }  /* do_generic_operand_transformations */
 
 
@@ -7406,6 +7476,7 @@ the expression.
   /* We don't know how this operand is used, so set a special kind
      of reference. */
   change_ref_kinds(operand->ref_entries_list, SRK_PROTO_INST_REF);
+  operand->is_template_generic = TRUE;
 }  /* prep_generic_operand_full */
 
 
@@ -7605,6 +7676,7 @@ e.g., if the source operand is an lvalue.
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
   operand->is_id_expression = FALSE;
+  operand->is_template_generic = TRUE;
 }  /* generic_cast_operand */
 
 
@@ -7682,6 +7754,7 @@ it happens in prototype instantiations.  op is the operator to be used.
   }  /* if */
   do_binary_operation(op, operand_1, operand_2, result_type,
                       result, operator_position);
+  result->is_template_generic = TRUE;
 }  /* template_binary_operation */
 
 
@@ -7855,6 +7928,7 @@ it happens in prototype instantiations.  op is the operator to be used.
     do_unary_operation(op, operand, result_type,
                        result, start_position);
   }  /* if */
+  result->is_template_generic = TRUE;
   result->ruled_out_expr_kinds = operand->ruled_out_expr_kinds;
 }  /* template_unary_operation */
 
@@ -8231,6 +8305,7 @@ still provided).
                         /*result_is_an_lvalue=*/FALSE,
                         /*suppress_class_rvalue_temp=*/TRUE,
                         is_gnu_two_operand_form, result);
+  result->is_template_generic = TRUE;
 }  /* template_question_operation */
 
 
@@ -12156,7 +12231,7 @@ by an "&" operator and *ampersand_position gives its position.
   check_assertion(is_expression_operand(operand) &&
                   is_a_function_designator(operand));
   orig_operand = *operand;
-  expr = operand->variant.expression;
+  expr = make_node_from_operand(operand);
   check_assertion(expr->is_lvalue || is_error_node(expr));
   /* Try to fold to a constant address in a context that prefers a
      constant result.   However, if we're going to call this function,
@@ -13069,7 +13144,9 @@ Display and return the amount of space used for various expression tables.
   db_space_used_lost("dynamic init dtor fixup", avail_dynamic_init_dtor_fixups,
                       num_dynamic_init_dtor_fixups_allocated,
                       a_dynamic_init_dtor_fixup);
-
+  db_space_used("expr rescan info entry",
+                num_expr_rescan_info_entries_allocated,
+                an_expr_rescan_info_entry);
   db_space_used_total();
 
   return grand_total;
@@ -13100,6 +13177,7 @@ Do one-time initialization of variables related to expression processing.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if DEBUG
       pch_saved_var_array_elem(num_arg_operands_allocated),
+      pch_saved_var_array_elem(num_expr_rescan_info_entries_allocated),
       pch_saved_var_array_elem(num_ref_entries_allocated),
       pch_saved_var_array_elem(num_dynamic_init_dtor_fixups_allocated),
       pch_saved_var_array_elem(num_arg_match_summaries_allocated),
@@ -13153,6 +13231,7 @@ for each compilation.
 #if DEBUG
   num_arg_match_summaries_allocated      = 0;
   num_arg_operands_allocated             = 0;
+  num_expr_rescan_info_entries_allocated = 0;
   num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */

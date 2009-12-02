@@ -2725,6 +2725,7 @@ its kind to the indicated kind.
 #if RECORD_FORM_OF_NAME_REFERENCE
   node->name_reference = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  node->rescan_info = NULL;
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 

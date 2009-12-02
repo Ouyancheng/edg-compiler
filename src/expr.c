@@ -2735,6 +2735,7 @@ C++ standard.  The current token is the "(" of the call.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
     }  /* if */
     make_expression_operand(call_node, result);
+    result->is_template_generic = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -2892,7 +2893,7 @@ if compiler_generated is TRUE.  The operand for the selection is created in
      fields of such anonymous parents and insert the elided field
      selections. */
   if (field_sym->variant.field.anonymous_parent_object != NULL) {
-    an_expr_node_ptr orig_node = make_node_from_operand(result);
+    an_expr_node_ptr orig_node = result->variant.expression;
     adjust_nonstandard_anonymous_object_field_references(orig_node,
                                                          field_sym,
                                                          /*std_also=*/FALSE);
@@ -3597,7 +3598,7 @@ qualified_name_check:
                                                 dtor_type;
       an_operand orig_operand;
       orig_operand = *operand_1;
-      node = make_node_from_operand(operand_1);
+      node = extract_node_from_operand(operand_1);
       if (!identical_types(node->type, new_type)) {
         /* There is an actual type change here (probably one involving
            cv-qualifiers). */
