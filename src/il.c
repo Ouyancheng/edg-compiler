@@ -3773,6 +3773,9 @@ members), and does not enter those.
            and pointing to an entry of type a_template_arg (in file scope). */
         could_be_orphan = TRUE;
         break;
+      case iek_attribute:
+        could_be_orphan = TRUE;
+        break;
       default:
         could_be_orphan = FALSE;
         break;
@@ -10203,29 +10206,95 @@ the original type.
 }  /* routine_type_without_this_class */
 
 
-void ensure_routine_type_is_modifiable(a_type_ptr  *tp)
+void ensure_underlying_function_type_is_modifiable(a_type_ptr  *p_type,
+                                                   a_type_ptr  *func_type)
 /*
-The given type is a routine type or a typedef for a routine type (or, perhaps,
-an error type).  Ensure that a routine-specific modification can be made to
-the type by replacing *tp by a copy of the underlying routine type in the
-typedef case.
+The type *p_type should be a function type or a function type under tk_typeref,
+tk_pointer, and/or tk_ptr_to_member nodes.  If none of the tk_typeref
+involved are typedefs or typeof/decltype nodes, leave *p_type unchanged and set
+*func_type to the underlying function type.  Otherwise, create a new function
+type (returned through func_type) and replace *p_type by an equivalent type
+that doesn't involve typedefs or typeof/decltype nodes.
 */
 {
-  if ((*tp)->kind == (a_type_kind)tk_routine ||
-      (*tp)->kind == (a_type_kind)tk_error) {
-    /* Nothing to be done. */
-  } else if ((*tp)->kind == (a_type_kind)tk_typeref &&
-             (typeref_is_typedef(*tp) ||
-              typeref_is_decltype_or_typeof(*tp))) {
-    /* We cannot apply the attribute to the type underlying the typedef.
-       So make a copy of that type. */
-    a_type_ptr  new_rtp = alloc_type((a_type_kind)tk_routine);
-    copy_type(skip_typerefs(*tp), new_rtp);
-    *tp = new_rtp;
+  a_boolean   make_new_type = FALSE;
+  a_type_ptr  tp = *p_type;
+
+  /* First go down the chain of type entries looking for typedefs and/or
+     decltype entries. */
+  do {
+    switch (tp->kind) {
+      case tk_routine:
+        *func_type = tp;
+        break;
+      case tk_pointer:
+        tp = tp->variant.pointer.type;
+        break;
+      case tk_ptr_to_member:
+        tp = tp->variant.ptr_to_member.type;
+        break;
+      case tk_typeref:
+        if (typeref_is_typedef(tp) || typeref_is_decltype_or_typeof(tp)) {
+          make_new_type = TRUE;
+        } else {
+          tp = tp->variant.typeref.type;
+        }  /* if */
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } while (tp->kind != (a_type_kind)tk_routine && !make_new_type);
+  if (make_new_type) {
+    /* Duplicate the type chain, without duplicating typedefs. */
+    a_boolean   done = FALSE;
+    a_type_ptr  *p_entry = p_type;
+    tp = *p_type;
+    while (!done) {
+      a_boolean  attrib_only = tp->kind == (a_type_kind)tk_typeref &&
+                               (typeref_is_typedef(tp) ||
+                                typeref_is_decltype_or_typeof(tp));
+      if (attrib_only) {
+        /* If there is an intervening typedef/decltype/typeof entry, do not
+           copy the entry proper, but record any attributes that it may
+           carry. */
+        if (tp->source_corresp.attributes != NULL) {
+          *p_entry =
+                  make_typeref_with_attributes(tp->variant.typeref.type,
+                                               tp->source_corresp.attributes);
+        }  /* if */
+      } else {
+        *p_entry = alloc_type(tp->kind);
+        copy_type(tp, *p_entry);
+      }  /* if */
+      /* Move to the next underlying type if appropriate. */
+      switch (tp->kind) {
+        case tk_routine:
+          *func_type = *p_entry;
+          done = TRUE;
+          break;
+        case tk_pointer:
+          tp = tp->variant.pointer.type;
+          p_entry = &(*p_entry)->variant.pointer.type;
+          break;
+        case tk_ptr_to_member:
+          tp = tp->variant.ptr_to_member.type;
+          p_entry = &(*p_entry)->variant.ptr_to_member.type;
+          break;
+        case tk_typeref:
+          if (!attrib_only || tp->source_corresp.attributes != NULL) {
+            /* A new entry was created to match the origin tk_typeref entry. */
+            p_entry = &(*p_entry)->variant.typeref.type;
+          }  /* if */
+          tp = tp->variant.typeref.type;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* while */
   } else {
-    unexpected_condition();
+    *func_type = tp;
   }  /* if */
-}  /* ensure_routine_type_is_modifiable */
+}  /* ensure_underlying_function_type_is_modifiable */
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS

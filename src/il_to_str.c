@@ -85,6 +85,7 @@ Clear an output control block to default values.
 #if RECORD_FORM_OF_NAME_REFERENCE
   octl->output_name_reference     = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
@@ -194,6 +195,32 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 }  /* form_unsigned_hex */
 
 #endif /* DEBUG */
+
+static void output_type_attributes(
+                         a_type_ptr                            type,
+                         a_type_ptr                            stop_type,
+                         an_il_to_str_output_control_block_ptr octl)
+/*
+The given type may contain typerefs that carry attributes: Render those
+attributes if octl->output_attributes is non-NULL (and use that routine to
+output those attributes).  stop_type is a type along the typeref chain (or
+stop_type == type if there are no typerefs): Do not render attributes
+associated with that type entry or entries under it.
+*/
+{
+  if (octl->output_attributes != NULL) {
+    while (type != stop_type) {
+      check_assertion(type->kind == (a_type_kind)tk_typeref);
+      if (type->variant.typeref.for_type_attributes) {
+        check_assertion(type->source_corresp.attributes != NULL);
+        octl->output_attributes(type->source_corresp.attributes,
+                                al_explicit, /*primary_only=*/FALSE);
+      }  /* if */
+      type = type->variant.typeref.type;
+    }  /* while */
+  }  /* if */
+}  /* output_type_attributes */
+
 
 #if !PROTOTYPE_INSTANTIATIONS_IN_IL
 static a_source_correspondence_ptr source_corresp_for_template_param(
@@ -1416,13 +1443,18 @@ by octl.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      { a_boolean need_leading_space = FALSE;
-        if (!octl->defer_vector_attribute) {
-          form_vector_type_attribute(type, &need_leading_space, octl);
-          octl->output_str(" ", octl);
-        }  /* if */
-        form_type(type->variant.vector.element_type, octl);
-      }
+      /* GNU vector types are formed by associating the "vector_size" or
+         "mode" attribute with the underlying element type.  If attributes
+         are rendered from an_attribute entries, we only render the element
+         type here.  Otherwise, we form the attribute also, unless it must
+         be deferred to meet GCC requirements (which happens when vector_size
+         occurs in a typedef definition). */
+      if (!octl->defer_vector_attribute && octl->output_attributes == NULL) {
+        a_boolean need_leading_space = FALSE;
+        form_vector_type_attribute(type, &need_leading_space, octl);
+        octl->output_str(" ", octl);
+      }  /* if */
+      form_type(type->variant.vector.element_type, octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_nullptr:
@@ -1582,6 +1614,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* NEAR_AND_FAR_ALLOWED */
   a_upc_block_size
               upc_block_size = UPC_BLOCK_SIZE_NONE;
+  a_type_ptr  orig_type = type;
+  a_boolean   render_attributes = FALSE;
 
   if (type == NULL) {
     /* NULL type pointer. */
@@ -1627,6 +1661,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
         upc_block_size = type->variant.typeref.upc_block_size;
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      if (type->variant.typeref.for_type_attributes) {
+        /* The underlying type was modified with an attribute. */
+        render_attributes = TRUE;
+      }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
@@ -1691,6 +1729,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
+    if (render_attributes) output_type_attributes(orig_type, type, octl);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_first_part(type->variant.ptr_to_member.type,
@@ -1716,6 +1755,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
+    if (render_attributes) output_type_attributes(orig_type, type, octl);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     a_boolean  is_lambda = is_lambda_body_routine_type(type);
@@ -1780,6 +1820,7 @@ handle_specifiers_type:
                             /*need_trailing_space=*/TRUE, octl);
       }  /* if */
       form_type_specifier(type, octl);
+      if (render_attributes) output_type_attributes(orig_type, type, octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->has_microsoft_w64_specifier &&
           !(octl->gen_compilable_code && octl->c_generating_back_end)) {
@@ -2045,6 +2086,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
   a_boolean   suppress_const = (options & FTO_SUPPRESS_CONST) != 0;
   a_type_qualifier_set
               qualifiers = TQ_NONE;
+  a_type_ptr  orig_type = type;
+  a_boolean   render_attributes = FALSE;
 
   if (type == NULL) {
     /* NULL type pointer.  Handled in form_type_first_part. */
@@ -2077,6 +2120,10 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
         qualifiers &= ~TQ_CONST;
         suppress_const = FALSE;
       }  /* if */
+      if (type->variant.typeref.for_type_attributes) {
+        /* The underlying type was modified with an attribute. */
+        render_attributes = TRUE;
+      }  /* if */
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
@@ -2097,6 +2144,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")", octl);
     form_function_declarator(type, octl);
+    if (render_attributes) output_type_attributes(orig_type, type, octl);
     if ((type->variant.routine.extra_info->trailing_return_type ||
          is_lambda_body_routine_type(type)) &&
         !octl->c_generating_back_end) {
@@ -2120,6 +2168,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          declarator parentheses are needed. */
       if (under_lhs_declarator) octl->output_str(")", octl);
       form_array_declarator(type, octl);
+      if (render_attributes) output_type_attributes(orig_type, type, octl);
       if (suppress_const) options |= FTO_SUPPRESS_CONST;
       form_type_second_part(type->variant.array.element_type,
                             /*under_lhs_declarator=*/FALSE,

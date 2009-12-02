@@ -1951,9 +1951,6 @@ in the secondary source sequence entry that need to be set.
       if (flags & SSSD_MARKED_AS_GNU_EXTENSION) {
         sssdp->marked_as_gnu_extension = TRUE;
       }  /* if */
-      if (flags & SSSD_HAS_ALIAS_ATTRIBUTE) {
-        sssdp->has_alias_attribute = TRUE;
-      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */

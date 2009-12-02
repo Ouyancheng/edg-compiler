@@ -621,22 +621,9 @@ extern int fileno(FILE *);
 /*lint -esym(765, node_is_pointer_with_restrict_semantics)*/
 /*lint -esym(714, node_is_pointer_with_restrict_semantics)*/
 
-/*FIXME: The following entities are only temporarily unused. */
-/*lint -esym(759, add_end_of_parse_action)*/
-/*lint -esym(765, add_end_of_parse_action)*/
-/*lint -esym(714, add_end_of_parse_action)*/
-/*lint -esym(759, unscan_attributes)*/
-/*lint -esym(765, unscan_attributes)*/
-/*lint -esym(714, unscan_attributes)*/
 /*lint -esym(769,an_attribute_arg_kind_tag::aak_last)*/
-/*lint -esym(769,an_attribute_family_tag::af_gnu)*/
 /*lint -esym(769,an_attribute_family_tag::af_ms_declspec)*/
-/*lint -esym(769,an_attribute_location_tag::al_tag_name)*/
 /*lint -esym(769,an_attribute_location_tag::al_base_specifier)*/
-/*lint -esym(769,an_attribute_location_tag::al_specifier)*/
-/*lint -esym(769,an_attribute_location_tag::al_post_ptr_or_ref)*/
-/*lint -esym(769,an_attribute_location_tag::al_post_array)*/
-/*lint -esym(769,an_attribute_location_tag::al_post_func)*/
 /*lint -esym(769,an_attribute_location_tag::al_trailing_return)*/
 /*lint -esym(769,an_attribute_location_tag::al_other)*/
 /*lint -esym(769,an_attribute_location_tag::al_last)*/

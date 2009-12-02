@@ -1434,6 +1434,7 @@ to default values.
                  defined_with_abstract_class_modifier = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      pte->variant.class_struct_union.final = FALSE;
       pte->variant.class_struct_union.any_const_member = FALSE;
       pte->variant.class_struct_union.any_volatile_member = FALSE;
       pte->variant.class_struct_union.any_mutable_member = FALSE;
@@ -1575,6 +1576,7 @@ to default values.
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.typeref.is_typeof = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      pte->variant.typeref.for_type_attributes = FALSE;
 #if CENTERLINE_CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -3412,6 +3414,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->next                  = NULL;
   udp->position              = null_source_position;
   clear_tagged_ptr(udp->entity);
+  udp->attributes            = NULL;
   udp->is_using_directive    = FALSE;
   udp->is_class_member       = FALSE;
   udp->hidden                = FALSE;
@@ -3645,7 +3648,6 @@ and return a pointer to it.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
   sssdp->marked_as_gnu_extension     = FALSE;
-  sssdp->has_alias_attribute         = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   sssdp->is_decl_after_first_in_comma_list = FALSE;
   sssdp->explicit_storage_class      = FALSE;
@@ -4210,23 +4212,24 @@ it.  The entry is allocated in the current memory region.
 
 an_attribute_ptr alloc_attribute(void)
 /*
-Allocate an attribute and return a pointer to it.  The argument is allocated
-in the current memory region.
+Allocate an attribute in file scope memory and return a pointer to it.  The
+argument is allocated in the current memory region.
 */
 {
   an_attribute_ptr  ap;
 
-  ap = (an_attribute_ptr)alloc_cil(sizeof(an_attribute));
+  ap = alloc_il_of_type(an_attribute);
   ap->next = NULL;
-  ap->kind = (an_attribute_kind)ak_unrecognized;
-  ap->family = (an_attribute_family)af_internal;
-  ap->syntactic_location = (an_attribute_location)al_implicit;
+  ap->kind = (a_byte_attribute_kind)ak_unrecognized;
+  ap->family = (a_byte_attribute_family)af_internal;
+  ap->syntactic_location = (a_byte_attribute_location)al_implicit;
   ap->on_primary_declaration = FALSE;
+  ap->transforms_type_specifier = FALSE;
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;
   ap->group = NULL;
-  ap->extra_info = NULL;
+  ap->assoc_info = NULL;
   ap->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ap->end_position = null_source_position;
@@ -4240,15 +4243,15 @@ in the current memory region.
 
 an_attribute_arg_ptr alloc_attribute_arg(void)
 /*
-Allocate an attribute argument and return a pointer to it.  The argument is
-allocated in the current memory region.
+Allocate an attribute argument in file scope memory and return a pointer to it.
+The argument is allocated in the current memory region.
 */
 {
   an_attribute_arg_ptr  aap;
 
-  aap = (an_attribute_arg_ptr)alloc_cil(sizeof(an_attribute_arg));
+  aap = alloc_il_of_type(an_attribute_arg);
   aap->next = NULL;
-  aap->kind = (an_attribute_arg_kind)aak_token;
+  aap->kind = (an_attribute_arg_kind)aak_empty;
   aap->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = null_source_position;
@@ -4263,13 +4266,13 @@ allocated in the current memory region.
 
 an_attribute_group_ptr alloc_attribute_group(void)
 /*
-Allocate an attribute group and return a pointer to it.  The group entry is
-allocated in the current memory region.
+Allocate an attribute group in file scope memory and return a pointer to it.
+The group entry is allocated in the current memory region.
 */
 {
   an_attribute_group_ptr  agp;
 
-  agp = (an_attribute_group_ptr)alloc_cil(sizeof(an_attribute_group));
+  agp = alloc_il_of_type(an_attribute_group);
   agp->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   agp->end_position = null_source_position;
@@ -4462,8 +4465,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used_other("asm function bodies",
                       asm_function_body_space_allocated, "");
 #endif /* ASM_SUPPORT_NEEDED */
-  db_space_used("attributes", num_attributes_allocated, an_attribute);
-  db_space_used("attribute args", num_attribute_args_allocated,
+  db_space_used("attribute", num_attributes_allocated, an_attribute);
+  db_space_used("attribute arg", num_attribute_args_allocated,
                 an_attribute_arg);
   db_space_used("attribute group", num_attribute_groups_allocated,
                 an_attribute_group);

@@ -34,10 +34,14 @@ typedef struct a_source_line_modif *a_source_line_modif_ptr;
 /*
 Token kinds.  See 3.1, 3.1.1, 3.1.5, 3.1.6 in standard.
 If this enumeration is changed, be sure to change token_names and
-opname_kind_for_token below.
+opname_kind_for_token below.  "Complex tokens" should be listed before the
+tok_last_complex_token constant.  In this context, a "complex token" is token
+that either (a) is not visible in the source (like an end-of-source token), or
+(b) has a large number of distinct forms (like identifiers, numbers, etc.).
 */
 typedef enum /*a_token_kind*/ {
   /* Complex tokens: */
+  tok_error                 /* Error token. */,
   tok_identifier,
   tok_float_constant,
   tok_fixed_point_constant,
@@ -50,8 +54,11 @@ typedef enum /*a_token_kind*/ {
   tok_pp_number,
   tok_digit_sequence,
   tok_cpp_quote,
-  tok_ptr_to_member,	/* C++ only */
-  tok_last_complex_token = tok_ptr_to_member,
+  tok_ptr_to_member 	    /* C++ only */,
+  tok_removed_default_arg   /* Placeholder for a removed default argument. */,
+  tok_unimplemented         /* Token used to indicate keywords that are not
+                               yet implemented. */,
+  tok_last_complex_token = tok_unimplemented,
   /* Operators (standard, 3.1.5; sizeof appears with keywords): */
   tok_lbracket              /* [ */,
   tok_rbracket              /* ] */,
@@ -311,12 +318,6 @@ typedef enum /*a_token_kind*/ {
   tok_is_polymorphic,
   tok_is_union,
   tok_nullptr,
-  /* Token used to indicate keywords that are not yet implemented. */
-  tok_unimplemented,
-  /* Error token. */
-  tok_error,
-  /* Placeholder for a removed default argument. */
-  tok_removed_default_arg,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -325,7 +326,7 @@ typedef enum /*a_token_kind*/ {
 Define the type to be used as a more compact representation of a_token_kind.
 */
 #ifndef TYPE_FOR_A_SMALL_TOKEN_KIND
-#define TYPE_FOR_A_SMALL_TOKEN_KIND a_byte
+#define TYPE_FOR_A_SMALL_TOKEN_KIND unsigned short
 #endif /* ifndef TYPE_FOR_A_SMALL_TOKEN_KIND */
 
 typedef TYPE_FOR_A_SMALL_TOKEN_KIND a_small_token_kind;
@@ -335,9 +336,10 @@ Table of names corresponding to token kinds.
 */
 EXTERN char	*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
-= {"identifier", "float constant", "fixed-point constant", "int constant",
-   "char constant", "string literal", "end of source", "newline",
-   "header name", "pp number", "digit sequence", "cpp quote", "ptr to member", 
+= {"error", "identifier", "float constant", "fixed-point constant",
+   "int constant", "char constant", "string literal", "end of source",
+   "newline", "header name", "pp number", "digit sequence", "cpp quote",
+   "ptr to member", "removed default arg", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -418,7 +420,6 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__is_polymorphic",
    "__is_union",
    "nullptr",
-   "unimplemented", "error", "removed default arg",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -625,7 +626,9 @@ typedef struct a_token_cache {
 /* Array of opname kinds indexed by token kind. */
 EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if VAR_INITIALIZERS
-= {(an_opname_kind)onk_none,          /* tok_identifier */
+= {
+   (an_opname_kind)onk_none,          /* tok_error */
+   (an_opname_kind)onk_none,          /* tok_identifier */
    (an_opname_kind)onk_none,          /* tok_float_constant */
    (an_opname_kind)onk_none,          /* tok_fixed_point_constant */
    (an_opname_kind)onk_none,          /* tok_int_constant */
@@ -638,6 +641,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_digit_sequence */
    (an_opname_kind)onk_none,          /* tok_cpp_quote */
    (an_opname_kind)onk_none,          /* tok_ptr_to_member */
+   (an_opname_kind)onk_none,          /* tok_removed_default_arg */
+   (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbrace */
    (an_opname_kind)onk_none,          /* tok_rbrace */
    (an_opname_kind)onk_function_call, /* operator() starts with tok_lparen */
@@ -879,9 +884,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_polymorphic */
    (an_opname_kind)onk_none,          /* tok_is_union */
    (an_opname_kind)onk_none,          /* tok_nullptr */
-   (an_opname_kind)onk_none,          /* tok_unimplemented */
-   (an_opname_kind)onk_none,          /* tok_error */
-   (an_opname_kind)onk_none,          /* tok_removed_default_arg */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */

@@ -2809,6 +2809,89 @@ may be emitted at the given position.
 }  /* update_membership_of_class */
 
 
+void attach_tag_attributes(an_attribute_ptr  attributes,
+                           a_type_ptr        type,
+                           a_boolean         is_definition,
+                           a_boolean         is_forward_decl,
+                           a_boolean         ignore_gnu_attributes)
+/*
+The given attributes were specified on the given type after a "class", "enum",
+"struct", or "union" keyword.  Attach and apply the attributes to the type.
+If is_definition is TRUE, the attributes appeared on the type definition.  If
+is_forward_decl is TRUE, the attributes appeared on an autonomous forward
+declaration; i.e., something like:
+  class [[]] X;
+rather than e.g.
+  class [[]] X *p;
+If ignore_gnu_attributes is TRUE, turn any recognized GNU attributes into
+ak_unrecognized attributes (which means they will have no further effect), and
+issue a warning.
+*/
+{
+  a_boolean         gnu_warning_emitted = FALSE, std_error_emitted = FALSE;
+  an_attribute_ptr  ap;
+
+  if (is_error_type(type)) {
+    /* Nothing to do (i.e., silently ignore the attributes). */
+  } else if (is_template_param_type(type)) {
+    /* We can get here in some nonstandard cases like "enum [[]] T x;" where T
+       is a template parameter.  Ignore the attributes (with a warning). */
+    if (attributes != NULL) {
+      pos_warning(ec_attributes_ignored, &attributes->position);
+    }  /* if */
+  } else {
+    check_assertion(is_immediate_class_type(type) ||
+                    is_immediate_enum_type(type));
+    /* Traverse the attribute list and record whether the attribute was on a
+       "primary" declaration (i.e., a definition). */
+    for (ap = attributes; ap != NULL; ap = ap->next) {
+      ap->on_primary_declaration = is_definition;
+      if (ap->family == (a_byte_attribute_family)af_std) {
+        /* Standard attributes cannot appear in this syntactic location if no
+           class/enum definition follows. */
+        if (!is_definition && !is_forward_decl) {
+          if (!std_error_emitted) {
+            pos_error(ec_invalid_std_attribute_location, &ap->position);
+            std_error_emitted = TRUE;
+          }  /* if */
+          ap->kind = (a_byte_attribute_kind)ak_unrecognized;
+        }  /* if */
+      } else if (ap->family == (a_byte_attribute_family)af_gnu) {
+        /* GNU attributes in this syntactic location are ignored in most
+           contexts that aren't definitions. */
+        if (ignore_gnu_attributes &&
+            ap->kind != (a_byte_attribute_kind)ak_unrecognized &&
+            ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+          if (!gnu_warning_emitted) {
+            pos_warning(is_immediate_class_type(type) ?
+                          ec_attribute_ignored_on_incomplete_class_decl :
+                          ec_enum_attribute_ignored,
+                        &ap->group->position);
+            gnu_warning_emitted = TRUE;
+          }  /* if */
+          ap->kind = (a_byte_attribute_kind)ak_unrecognized;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    attach_attributes(attributes, (char*)type, iek_type);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (is_forward_decl) {
+      /* If a source sequence entry was recorded (which would necessarily be a
+         secondary entry, since this is not a definition), associate a copy of
+         the given attributes with that entry. */
+      a_source_sequence_entry_ptr
+                      ssep = last_matching_source_sequence_entry((char*)type);
+      if (ssep != NULL) {
+        check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes =
+                                          copy_of_attributes_list(attributes);
+      }  /* if */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+}  /* attach_tag_attributes */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
     (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS) || \
     !MICROSOFT_EXTENSIONS_ALLOWED
@@ -2893,6 +2976,7 @@ Microsoft attributes preceding the class specifier (if any).
   a_symbol_ptr            parent_sym;
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
+  an_attribute_ptr        tag_attributes = NULL;
   a_boolean               is_local_class = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
@@ -2922,10 +3006,6 @@ Microsoft attributes preceding the class specifier (if any).
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   a_boolean               tag_name_access_checks_deferred = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  a_gnu_attribute_ptr     attributes = NULL;
-  a_source_position       attr_pos;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   a_source_position       pos_link_scope;
 #endif /* SUN_EXTENSIONS_ALLOWED */
@@ -2982,6 +3062,7 @@ Microsoft attributes preceding the class specifier (if any).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     (void)get_token();
+    tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
       a_boolean  local_err;
@@ -2994,13 +3075,6 @@ Microsoft attributes preceding the class specifier (if any).
                                    &extended_decl_info, &local_err);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode) {
-      /* Look for any attributes that apply to this type. */
-      attr_pos = pos_curr_token;
-      attributes = scan_gnu_attributes();
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
     if (sun_linker_scope_allowed) {
       /* Scan and record any __hidden/__symbolic/__global tokens. */
@@ -3795,6 +3869,33 @@ Microsoft attributes preceding the class specifier (if any).
        declaration. */
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
+  /* Now that we have a type, we can apply any attributes attached to it. */
+  if (tag_attributes != NULL) {
+    a_boolean  ignore_gnu_attributes = FALSE;
+    if (gnu_mode) {
+      /* In GNU mode, attributes appearing between the class/struct/union
+         keyword and the type name are ignored if the elaborated name specifier
+         is not followed by a class type definition and if this is not an
+         explicit class template instantiation directive. */
+      a_boolean  definition_follows = is_class_definition;
+      if (!definition_follows && tag_sym != NULL && tag_sym->is_class_member &&
+          !is_explicit_instantiation) {
+        /* We may be dealing with a class nested in a class template.  E.g.:
+             template<class T> struct S { class __attribute((...)) N {}; };
+           The nested declaration will look like "class __attribute((...)) N;"
+           in such cases (with the definition being processed after the
+           enclosing class is completed). */
+        a_symbol_ptr  proto_sym = corresp_prototype_for_class_symbol(tag_sym);
+        definition_follows = (proto_sym != NULL && proto_sym->defined);
+      }  /* if */
+      if (!definition_follows &&
+          (!is_explicit_instantiation || is_declarator_start())) {
+        ignore_gnu_attributes = TRUE;
+      }  /* if */
+    }  /* if */
+    attach_tag_attributes(tag_attributes, class_type, is_class_definition,
+                          curr_token == tok_semicolon, ignore_gnu_attributes);
+  }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_class_definition && prefix_decl_modifiers != NULL &&
@@ -3816,7 +3917,6 @@ Microsoft attributes preceding the class specifier (if any).
                                         &locator.source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-  /* Now that we have a type, we can apply any attributes attached to it. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_abstract) {
     class_type->variant.class_struct_union.abstract = TRUE;
@@ -3846,31 +3946,6 @@ Microsoft attributes preceding the class specifier (if any).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    if (attributes != NULL) {
-      /* In GNU mode, attributes appearing between the class/struct/union
-         keyword and the type name are ignored if the elaborated name specifier
-         is not followed by a class type definition and if this is not an
-         explicit class template instantiation directive. */
-      a_boolean  definition_follows = is_class_definition;
-      if (!definition_follows && tag_sym != NULL && tag_sym->is_class_member &&
-          !is_explicit_instantiation) {
-        /* We may be dealing with a class nested in a class template.  E.g.:
-             template<class T> struct S { class __attribute((...)) N {}; };
-           The nested declaration will look like "class __attribute((...)) N;"
-           in such cases (with the definition being processed after the
-           enclosing class is completed). */
-        a_symbol_ptr  proto_sym = corresp_prototype_for_class_symbol(tag_sym);
-        definition_follows = (proto_sym != NULL && proto_sym->defined);
-      }  /* if */
-      if (definition_follows ||
-          (is_explicit_instantiation && !is_declarator_start())) {
-        apply_gnu_attributes_to_type(attributes, class_type,
-                                     /*is_typedef=*/FALSE);
-      } else {
-        pos_warning(ec_attribute_ignored_on_incomplete_class_decl, &attr_pos);
-      }  /* if */
-      free_gnu_attribute_list(attributes);
-    }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (!C_mode() && is_immediate_class_type(class_type)) {
       /* If no ELF visibility was explicitly specified, use that of the
@@ -4411,6 +4486,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_symbol_ptr                 tag_sym;
   a_boolean                    tag_id_present;
   a_type_ptr                   enum_type;
+  an_attribute_ptr             tag_attributes;
   a_type_ptr                   enum_con_type;
   a_symbol_ptr                 enum_sym;
   a_constant                   constant;
@@ -4436,10 +4512,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
-#if GNU_EXTENSIONS_ALLOWED
-  a_gnu_attribute_ptr          attributes = NULL;
-  a_source_position            attr_pos;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4471,6 +4543,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
+  tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Scan Microsoft-specific modifiers.  Most are invalid or ignored, but
@@ -4486,13 +4559,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     check_extended_decl_info_for_enum(&extended_decl_info, &diag_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && curr_token == tok_attribute) {
-    /* Look for any attributes that apply to this type. */
-    attr_pos = pos_curr_token;
-    attributes = scan_gnu_attributes();
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
      of a new tag or a reference to an existing tag. */
   tag_id_present = is_expr_qualified_name_start();
@@ -4816,8 +4882,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
          large enough to represent all the enumerator values.  It won't be
          known until the definition is complete. */
       enum_con_type = NULL;
-      /* For an enum in a class template the enumerators must be treated as
-         dependent. */
+      /* For an enum in a class template the enumerators must be treated as dependent. */
       is_dependent_enum = tag_sym->corresp_nonreal_or_nested_type != NULL;
     } else {
       /* In C the type of the constants is always "int", regardless of
@@ -5159,19 +5224,9 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     } else {
       enum_type->variant.integer.enum_info.constant_list = constant_list;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode) {
-      /* Look for any attributes that apply to this type. */
-      *last_gnu_attribute_link(&attributes) =
-              f_scan_gnu_attributes((a_token_sequence_number*)NULL, &end_pos);
-      apply_gnu_attributes_to_type(attributes, enum_type,
-                                   /*is_typedef=*/FALSE);
-      free_gnu_attribute_list(attributes);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Issue a warning if the current token is in a file different from the
-       last token of the enum definition. */
-    check_for_file_with_unterminated_type_definition(&end_pos);
+    attach_tag_attributes(tag_attributes, enum_type, is_definition,
+                          /*is_forward_decl=*/FALSE,
+                          /*ignore_gnu_attributes=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
         depth_innermost_function_scope == NO_SCOPE_NUMBER &&
@@ -5225,18 +5280,36 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         enum_con->type = enum_type;
       }  /* for */
     }  /* if */
+    if (gcc_mode && curr_token == tok_attribute) {
+      /* Check for something like "enum E { e } __attribute((deprecated));". */
+      an_attribute_ptr  attributes =
+                            scan_gnu_attribute_groups(al_post_tag_definition);
+      if (attributes != NULL) {
+        end_pos = end_position_of_attributes;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (decl_pos_block != NULL) {
+          /* Update the recorded end position to the end of the attributes
+             specifier. */
+          decl_pos_block->specifiers_range.end = curr_construct_end_position;
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        mark_primary_decl_attributes(attributes);
+        attach_attributes(attributes, (char*)enum_type, iek_type);
+      }  /* if */
+    }  /* if */
+
     /* If entities dependent on this enum type were declared before it was
        defined, they will have been recorded on a fixup list.  Go through
        the fixup list and complete the declarations. */
     check_dependent_type_fixup_list(tag_sym);
-#if GNU_EXTENSIONS_ALLOWED
+    /* Issue a warning if the current token is in a file different from the
+       last token of the enum definition. */
+    check_for_file_with_unterminated_type_definition(&end_pos);
   } else {
     /* No brace-enclosed list follows. */
-    if (attributes != NULL) {
-      pos_warning(ec_enum_attribute_ignored, &attr_pos);
-      free_gnu_attribute_list(attributes);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    attach_tag_attributes(tag_attributes, enum_type, is_definition,
+                          curr_token == tok_semicolon && !strict_ansi_mode,
+                          /*ignore_gnu_attributes=*/TRUE);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
@@ -7319,6 +7392,131 @@ is set to TRUE if an error is issued.
 }  /* process_auto_specifier */
 
 
+static void scan_specifier_attributes(a_decl_flag_set     flags,
+                                      a_decl_parse_state  *dps,
+                                      a_boolean           *std_attr_seen)
+/*
+Scan specifier attributes and record them in *dps.  flags is the set of input
+flags passed to the call of decl_specifiers (which in turn called this
+function).  Issue an error if attributes appear in a context that doesn't
+allow for them (as indicated by flags); such attributes are otherwise ignored.
+*std_attr_seen is set to TRUE if standard attributes were encountered, and to
+FALSE otherwise.
+*/
+{
+  an_attribute_ptr  ap = scan_attributes(al_specifier);
+
+  *std_attr_seen = FALSE;
+  if (ap != NULL) {
+    a_boolean         disallow_std = !(flags & DSI_STD_ATTRIBUTES_ALLOWED);
+    a_boolean         disallow_gnu = !(flags & DSI_GNU_ATTRIBUTES_ALLOWED);
+    a_boolean         error_emitted = FALSE;
+    an_attribute_ptr  *p_ap = &ap;
+    /* Traverse the attributes dropping any that aren't allowed and recording
+       the presence of a standard attribute (if one is allowed). */
+    do {
+      a_boolean  drop_attribute = FALSE;
+      if (disallow_gnu && (*p_ap)->family == (a_byte_attribute_family)af_gnu) {
+        drop_attribute = TRUE;
+      } else if ((*p_ap)->family == (a_byte_attribute_family)af_std) {
+        if (disallow_std) {
+          drop_attribute = TRUE;
+        } else {
+          *std_attr_seen = TRUE;
+        }  /* if */
+      }  /* if */
+      if (drop_attribute) {
+        if (!error_emitted) {
+          pos_error(ec_attribute_not_allowed, &(*p_ap)->position);
+          error_emitted = TRUE;
+        }  /* if */
+        *p_ap = (*p_ap)->next;
+      } else {
+        p_ap = &(*p_ap)->next;
+      }  /* if */
+    } while (*p_ap != NULL);
+    *last_attribute_link(&dps->specifier_attributes) = ap;
+  }  /* if */
+}  /* scan_specifier_attributes */
+
+
+static void attach_specifier_attributes(a_decl_parse_state  *dps)
+/*
+Attach "specifier attributes" to the type indicated by the specifiers (which
+produces a new type).  For standard C++0x attributes, "specifier attributes"
+are in principle those attributes that were scanned after seeing the
+decl-specifiers.  E.g., in
+  [[noreturn]] int [[XYZ::abc]] f();
+[[noreturn]] is a prefix attribute and [[XYZ::abc]] is a specifier attribute.
+In GNU mode, however, there is no distinction between prefix and specifier
+attributes; instead, each attribute kind either applies to the declaration as
+a whole or to the specifiers type.  E.g.:
+  __attribute((vector_size(16))) int __attribute((noreturn)) g();
+is equivalent to
+  __attribute((noreturn)) int __attribute((vector_size(16))) g();
+(the vector_size attribute applies to the specifiers type and the noreturn
+attribute applies to the declaration as a whole).  This routine therefore
+moves any GNU entries on the dps->specifier_attributes list that don't apply
+to types to the dps->prefix_attributes list, and any GNU entries on the
+dps->prefix_attributes that do apply to types to the dps->specifier_attributes
+list.
+*/
+{
+  if (dps->prefix_attributes != NULL || dps->specifier_attributes != NULL) {
+    an_attribute_ptr  to_prefix = NULL, to_specifier = NULL;
+    an_attribute_ptr  *end_to_prefix, *end_to_specifier, *end_specifier, *p_ap;
+    end_to_prefix = &to_prefix;
+    end_to_specifier = &to_specifier;
+    /* First move any non-type attributes from the specifiers list to the
+       prefix list. */
+    p_ap  = &dps->specifier_attributes;
+    while (*p_ap != NULL) {
+      if (!is_type_transforming_attribute(*p_ap) &&
+          !is_unrecognized_attr(*p_ap)) {
+        /* Move the attribute to the prefix attributes list. */
+        an_attribute_ptr  ap = *p_ap;
+        if (ap->family == (a_byte_attribute_family)af_std) {
+          pos_st_error(ec_wrong_entity_for_attribute, &ap->position, ap->name);
+        }  /* if */
+        *p_ap = ap->next;
+        ap->syntactic_location = (a_byte_attribute_location)al_prefix;
+        *end_to_prefix = ap;
+        end_to_prefix = &ap->next;
+      } else {
+        /* Proceed to the next attribute. */
+        p_ap = &(*p_ap)->next;
+      }  /* if */
+    }  /* while */
+    end_specifier = p_ap;
+    /* Now move any type attributes from the prefix list to the specifiers
+       list. */
+    p_ap  = &dps->prefix_attributes;
+    while (*p_ap != NULL) {
+      if (is_type_transforming_attribute(*p_ap) &&
+          !is_unrecognized_attr(*p_ap)) {
+        /* Move the attribute to the specifier attributes list. */
+        an_attribute_ptr  ap = *p_ap;
+        if (ap->family == (a_byte_attribute_family)af_std) {
+          pos_st_error(ec_wrong_entity_for_attribute, &ap->position, ap->name);
+        }  /* if */
+        *p_ap = ap->next;
+        ap->syntactic_location = (a_byte_attribute_location)al_specifier;
+        *end_to_specifier = ap;
+        end_to_specifier = &ap->next;
+      } else {
+        /* Proceed to the next attribute. */
+        p_ap = &(*p_ap)->next;
+      }  /* if */
+    }  /* while */
+    *p_ap = to_prefix;
+    *end_specifier = to_specifier;
+    if (dps->specifier_attributes != NULL) {
+      attach_type_attributes(&dps->specifiers_type, dps->specifier_attributes);
+    }  /* if */
+  }  /* if */
+}  /* attach_specifier_attributes */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -7575,9 +7773,13 @@ storage_class_specifier:
           if (no_remaining_token) goto no_get_token;
         }
         break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_lbracket:
-        if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
-            (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
+        /* A Microsoft or C++0x attribute (presumably). */
+        if (next_token() == tok_lbracket) {
+          /* A C++0x standard attribute. */
+        } else if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
+                   (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
           /* Microsoft attributes have to precede any specifiers.  They are
              only recognized in Microsoft C++ mode. */
           goto something_unexpected;
@@ -7588,25 +7790,27 @@ storage_class_specifier:
                  &state->ms_attributes, (input_flags & DSI_IS_PARAMETER) != 0);
           goto no_get_token;
         }  /* if */
-        /*NOTREACHED*/
-        break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
+        /*FALLTHROUGH*/
       case tok_attribute:
-        specifier_allows_vacuous_decl = TRUE;
-        if ((input_flags & DSI_GNU_ATTRIBUTES_ALLOWED) != 0) {
-          /* Scan the attributes. */
-          *state->p_gnu_declarator_attributes = scan_gnu_attributes();
-          state->p_gnu_declarator_attributes =
-                  last_gnu_attribute_link(state->p_gnu_declarator_attributes);
-        } else {
-          /* Attributes are not allowed here.  Scan them anyhow, and then
-             throw them away. */
-          error(ec_attribute_not_allowed);
-          free_gnu_attribute_list(scan_gnu_attributes());
-        }  /* if */
-        goto no_get_token;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        { a_boolean         std_attr_seen;
+          scan_specifier_attributes(input_flags, state, &std_attr_seen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          if (decl_pos_block != NULL) {
+            decl_pos_block->specifiers_range.end = curr_construct_end_position;
+          }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          if (std_attr_seen) {
+            /* Standard attributes must be the last item in a decl-specifier
+               sequence.  (We do accept other forms of attributes after them,
+               but no other specifier kinds.) */
+            goto something_unexpected;
+          } else {
+            specifier_allows_vacuous_decl = TRUE;
+          }  /* if */
+        }
+        goto no_get_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_microsoft_w64:
         /* __w64 (or _w64).  Syntactically, this is like a cv-qualifier
@@ -8805,7 +9009,7 @@ destructor_name:
       default:
         /* Something unexpected.  After the first time, we can just exit
            the loop (we've taken all we're supposed to).  The first time,
-           this is an error. */
+           this is usually an error. */
 something_unexpected:
         if (!any_decl_specifiers_seen) {
           if (!(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
@@ -9057,15 +9261,7 @@ exit_loop:
 #endif /* DEBUG */
   state->storage_class = state->declared_storage_class;
   state->decl_specifiers_error = err;
-#if GNU_EXTENSIONS_ALLOWED
-  if (state->gnu_attributes != NULL) {
-    state->specifiers_type =
-                   apply_type_transforming_attributes(state->specifiers_type,
-                                                      &state->gnu_attributes);
-    state->p_gnu_declarator_attributes =
-                              last_gnu_attribute_link(&state->gnu_attributes);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  attach_specifier_attributes(state);
   /* state->type and state->declared_type may get updated by a subsequent call
      to declarator(...) or by other adjustments (e.g., decay of array types to
      pointer types). */

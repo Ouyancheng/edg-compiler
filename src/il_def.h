@@ -679,8 +679,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_lambda */			"lambda",
 /* iek_lambda_capture */		"lambda-capture",
 /* iek_attribute */			"attribute",
-/* iek_attribute_arg */			"attribute_arg",
-/* iek_attribute_group */		"attribute_group",
+/* iek_attribute_arg */			"attribute-arg",
+/* iek_attribute_group */		"attribute-group",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -783,7 +783,7 @@ typedef struct a_name_reference *a_name_reference_ptr;
 
 /*
 The type "pointer-to-attribute" is used in secondary source sequence entries.
-The complete a_name_reference type is defined later.
+The complete an_attribute type is defined later.
 */
 typedef struct an_attribute *an_attribute_ptr;
 
@@ -927,9 +927,12 @@ typedef struct a_src_seq_secondary_decl {
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   an_attribute_ptr
 		attributes;	
-			/* The attributes list specified on this
-			   declaration.  (This is a copy of the list of
-			   attributes recorded in "entity".) */
+			/* The attributes list specified on this declaration.
+			   (Each attribute appertaining to a secondary
+			   declaration is recorded twice: Once here and once
+			   in the source correspondence entry for the declared
+			   entity.  I.e., the entries here are copies of those
+			   recorded in "entity" for this declaration.) */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   an_ELF_visibility_kind
 		ELF_visibility;
@@ -999,11 +1002,6 @@ typedef struct a_src_seq_secondary_decl {
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the corresponding declaration was preceded
 			   by the GNU keyword __extension__. */
-  a_bit_field	has_alias_attribute:1;
-			/* TRUE if the entry represents the particular
-			   declaration on which an alias attribute appeared
-			   (two declarations of the same entity cannot both
-			   have an alias attribute). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	is_decl_after_first_in_comma_list:1;
 			/* This declaration appeared in a comma-separated
@@ -1327,27 +1325,43 @@ typedef struct a_name_reference {
 typedef struct an_attribute_group *an_attribute_group_ptr;
 typedef struct an_attribute_group {
   /* Structure to represent an attribute group.  E.g., [[noreturn]] or
-     [[noreturn, final]] in C++0x. */
+     [[noreturn, final]] in C++0x, or __attribute((noreturn)) in GNU modes.
+     Note that attribute groups do not appear on lists, nor are they pointed
+     to directly by entities to which they apply.  Instead, the entities
+     point to the attributes contained by the group, and those attributes
+     point to a group.  This is expected to be the most convenient approach
+     for most applications. */
   a_source_position
 		position;
-			/* The source position of the attribute group
-			   construct. */
+			/* The source position of the first token of the
+			   attribute group construct (e.g., the first '['
+			   for the standard attribute syntax or the
+			   '__attribute' token for the GNU syntax). */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		end_position;
-			/* The position of the end of the attribute group
-			   construct. */
+			/* The end position of the last token of the attribute
+			   group construct (e.g., the last ']' in the standard
+			   attribute syntax). */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_attribute_group;
 
 
 enum an_attribute_arg_kind_tag {
+  /* An attribute argument entry can represent several kinds of arguments. */
   aak_empty,		/* If an attribute has an empty argument list, that
 			   list is represented by a single aak_empty entry.
-			   (E.g., [[ attrib() ]]). */
-  aak_token,
-  aak_constant,
-  aak_type,
+			   (E.g., __attribute(( nonnull() )) has an aak_empty
+			   argument, but __attribute((nonnull)) has no
+			   attribute arguments at all.) */
+  aak_raw_token,	/* Raw tokens are used for unrecognized attributes in
+			   particular, and can include commas.  E.g., (z, =)
+			   could be represented with three raw tokens: "z",
+			   "," and "=". */
+  aak_token,		/* A single token argument.  E.g., (z, =) could be
+			   represented with two tokens: "z" and "=". */
+  aak_constant,		/* A constant argument. */
+  aak_type,		/* A type argument. */
   aak_last
 };
 
@@ -1356,6 +1370,9 @@ typedef a_byte an_attribute_arg_kind;
 
 typedef struct an_attribute_arg *an_attribute_arg_ptr;
 typedef struct an_attribute_arg {
+  /* Structure to represent the arguments of an attribute.  Each argument
+     corresponds to one entry, but an entry is also produced for an empty
+     argument list ("()" as opposed to ""). */
   an_attribute_arg_ptr
 		next;
 			/* Next in a linked list of attribute arguments. */
@@ -1386,27 +1403,31 @@ typedef struct an_attribute_arg {
 } an_attribute_arg;
 
 
-enum an_attribute_family_tag {
+typedef enum an_attribute_family_tag {
+  /* Attributes can be specified using different syntactical constructs.  Each
+     construct kind corresponds to a "family" of attributes. */
   af_internal,		/* To annotate IL properties that do not come from an
 			   attribute-like construct.  E.g., on a template this
 			   might reflect the effect of a #pragma directive. */
   af_std,		/* An attribute specified using the standard C++0x
 			   syntax [[ ... ]]. */
   af_gnu,		/* An attribute specified using the GNU __attribute
-			   syntax. */
+			   syntax.  (The GNU syntax is emulated by other
+			   compilers, including Sun's.) */
   af_ms_declspec,	/* An attribute specified using the Microsoft
 			   __declspec construct. */
-  af_last
-};
+  af_last		/*lint -esym(769,an_attribute_family_tag::af_last)*/
+} an_attribute_family;
 
-typedef a_byte an_attribute_family;
+/* For storing an attribute family more compactly. */
+typedef a_byte a_byte_attribute_family;
 
 
 /*
 An enumeration describing where (syntactically) in a construct an attribute
 was encountered.
 */
-enum an_attribute_location_tag {
+typedef enum an_attribute_location_tag {
   al_implicit,		/* The attribute did not appear explicitly in the
 			   source. */
   al_prefix,		/* The attribute is the first element of a declaration
@@ -1415,6 +1436,9 @@ enum an_attribute_location_tag {
   al_tag_name,		/* The attribute appears after "enum", "struct",
 			   "union", or "class" but before the definition of
 			   that associated entity. */
+  al_post_tag_definition,
+			/* The attribute appears after a class definition
+			   (possible only with GNU attributes). */
   al_base_specifier,	/* The attribute appears in a base class specifier or
 			   in an explicit enum base type specifier. */
   al_specifier,		/* The attribute is part of the declaration
@@ -1423,64 +1447,143 @@ enum an_attribute_location_tag {
 			   declarator-id. */
   al_post_ptr_or_ref,	/* The attribute immediately follows a pointer,
 			   reference, or pointer-to-member declarator
-			   operator. */
+			   operator.  (Standard attributes only.) */
   al_post_array,	/* The attribute immediately follows an array
-			   declarator. */
+			   declarator.  (Standard attributes only.) */
   al_post_func,		/* The attribute immediately follows a function
-			   declarator. */
+			   declarator.  (Standard attributes only.) */
+  al_postfix,		/* The attribute follows the top-level declarator.
+			   (GNU attributes only; al_postfix attributes have
+			   the same effect as al_declarator_id attributes.) */
+  al_id_equivalent,	/* The attribute appeared in an unusual place, but
+			   is treated as if it were a declarator-id attribute.
+			   (GNU attributes only.)  E.g.,
+			       int* __attribute((weak)) f() { return 0; }
+			   In this example, the attribute couldn't appear as
+			   a postfix attribute (because GCC doesn't allow
+			   postfix attributes on function definitions.  In
+			   cases with multiple declarators, a prefix attribute
+			   would not be appropriate either. */
   al_trailing_return,	/* The attribute is the first element of a trailing
 			   return type. */
-  al_other,		/* Any other case not described above. */
+  al_post_initializer,	/* The attributes following a parenthesized initializer
+			   (allowed in some GNU C++ modes only). */
+  al_namespace,		/* The attributes appear on a namespace definition. */
+  al_label,		/* The attribute follows a label name in a label
+			   declaration. */
+  al_explicit,		/* This value is never recorded in attribute entries,
+			   but it is passed into some routines to indicate
+			   that an operation should apply to all non-implicit
+			   attributes. */
   al_last
-};
+} an_attribute_location;
 
-typedef a_byte an_attribute_location;
+typedef a_byte a_byte_attribute_location;
 
 
-enum an_attribute_kind_tag {
+typedef enum an_attribute_kind_tag {
   ak_unrecognized,	/* For unrecognized attributes. */
-  ak_empty_group,	/* A pseudo-attribute marking the presence of an
-			   empty attribute group (like [[]] in C++0x). */
-  ak_align,		/* "align" (std, ms_declspec) or "aligned" (gnu). */
-  ak_noreturn,		/* "noreturn" (std, gnu, ms_declspec). */
+  ak_empty_attr,	/* A pseudo-attribute marking the presence of an empty
+			   attribute.  Usually this appears in entirely empty
+			   groups (like [[]] in C++0x), but in GNU modes, a
+			   group can contain multiple empty attributes (e.g.,
+			   __attribute((,,,)) ). */
+  ak_align,		/* "align" (std) or "aligned" (gnu). */
+  ak_noreturn,		/* "noreturn" (std, gnu) or "volatile" (gnu). */
   ak_final,		/* "final" (std). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */
-  ak_nothrow,		/* "nothrow" (std, gnu, ms_declspec). */
-  ak_last
-};
+  ak_nothrow,		/* "nothrow" (std, gnu). */
 
-typedef unsigned short an_attribute_kind;
+  ak_alias,		/* "alias" (gnu). */
+  ak_always_inline,	/* "always_inline" (gnu). */
+  ak_cleanup,		/* "cleanup" (gnu). */
+  ak_const,		/* "const" (gnu). */
+  ak_constructor,	/* "constructor" (gnu). */
+  ak_deprecated,	/* "deprecated" (gnu). */
+  ak_destructor,	/* "destructor" (gnu). */
+  ak_format,		/* "format" (gnu). */
+  ak_format_arg,	/* "format_arg" (gnu). */
+  ak_gnu_inline,	/* "gnu_inline" (gnu). */
+  ak_malloc,		/* "malloc" (gnu). */
+  ak_mode,		/* "mode" (gnu). */
+  ak_no_instrument_function,
+			/* "no_instrument_function" (gnu). */
+  ak_no_check_memory_usage,
+			/* "no_check_memory_usage" (gnu). */
+  ak_nocommon,		/* "nocommon" (gnu). */
+  ak_noinline,		/* "noinline" (gnu). */
+  ak_nonnull,		/* "nonnull" (gnu). */
+  ak_packed,		/* "packed" (gnu). */
+  ak_pure,		/* "pure" (gnu). */
+  ak_section,		/* "section" (gnu). */
+  ak_sentinel,		/* "sentinel" (gnu). */
+  ak_strong,		/* "strong" (gnu). */
+  ak_transparent_union,	/* "transparent_union" (gnu). */
+  ak_unused,		/* "unused" (gnu). */
+  ak_used,		/* "used" (gnu). */
+  ak_warn_unused_result,
+			/* "warn_unused_result" (gnu). */
+  ak_weak,		/* "weak" (gnu). */
+  ak_weakref,		/* "weakref" (gnu). */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  ak_naked,		/* "naked" (gnu). */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  ak_cdecl,		/* "cdecl" (gnu). */
+  ak_stdcall,		/* "stdcall" (gnu). */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  ak_visibility,	/* "visibility" (gnu). */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  ak_init_priority,	/* "init_priority" (gnu). */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+  ak_vector_size,	/* "vector_size" (gnu). */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  ak_last
+} an_attribute_kind;
+
+typedef a_byte a_byte_attribute_kind;
 
 /*
-Data structure describing an "attribute"; i.e., a general annotation like a
-GNU attribute or Microsoft __declspec as it appeared in the source.  In many
-cases, such constructs also affect an IL entry directly (e.g., the "alignment"
-field of a type or variable in case of an alignment attribute), but in other
-cases this data structure is the only record of the construct.  Attributes can
-also be used to annotate properties that are so infrequent that a dedicated IL
-field cannot be justified (in such cases there isn't necessarily a matching
-source construct for that attribute).
+Data structure describing an "attribute" as it appeared in the source.
+Currently "attributes" include the following general annotation constructs:
+  - standard [[ ... ]] attributes, and
+  - GNU-style __attribute((...)) attributes.
+In many cases, such annotations also affect an IL entry directly (e.g., the
+"alignment" field of a type or variable in case of an alignment attribute),
+but in other cases this data structure is the only record of the construct.
+Attributes can also be used to annotate properties that are so infrequent that
+a dedicated IL field cannot be justified (in such cases there isn't
+necessarily a matching source construct for that attribute).
 */
 typedef struct an_attribute {
   an_attribute_ptr
 		next;
 			/* Next in a linked list of attributes. */
-  an_attribute_kind
+  a_byte_attribute_kind
 		kind;
 			/* The specific of attribute that was encountered. */
-  an_attribute_family
+  a_byte_attribute_family
 		family;	/* The kind of construct that was used to express the
 			   attribute in the source. */
-  an_attribute_location
+  a_byte_attribute_location
 		syntactic_location;
 			/* The syntactic location of the attribute. */
   a_bit_field
 		on_primary_declaration:1;
-			/* The attribute appeared on the primary_declaration of
+			/* The attribute appeared on the primary declaration of
 			   an entity.  (Some attributes on a definition take
-			   precedence on the same attribute applied to another
-			   declaration of the same entity.) */
+			   precedence over the same attribute applied to
+			   another declaration of the same entity.) */
+  a_bit_field
+		transforms_type_specifier:1;
+			/* TRUE if this attribute appertains to a type
+			   specifier and produces a new type as a result.
+			   Currently, this is only TRUE for GNU mode and
+			   vector_size attributes. */
   char		*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   char		*namespace_name;
@@ -1497,9 +1600,12 @@ typedef struct an_attribute {
 			/* The attribute group this attribute belongs to.
 			   (NULL for attribute families that don't have a
 			   notion of grouping.) */
-  void		*extra_info;
+  void		*assoc_info;
 			/* Additional attribute-specific information (NULL if
-			   there is none). */
+			   there is none).  The value recorded here by the
+			   front end (if any) is not for use by a back end.
+			   However, back ends can make use of this field for
+			   their own purposes. */
   a_source_position
 		position;
 			/* The position of the attribute. */
@@ -1969,6 +2075,10 @@ typedef struct a_using_decl {
 			   using-declaration specifies an overload set, each
 			   function or function template is recorded
 			   individually. */
+  an_attribute_ptr
+		attributes;
+			/* A list of attributes (NULL if none) specified on
+			   this using-declaration or using-directive. */
   a_bit_field	is_using_directive:1;
 			/* TRUE if this is a using-directive and FALSE if it
 			   is a using-declaration. */
@@ -6279,6 +6389,14 @@ typedef struct a_type {
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
+		final:1;
+			/* TRUE if this class was defined with the attribute
+			   "final", which means that every one of its virtual
+			   member functions is "final" (note that this is
+			   different from the "sealed" keyword applied to a
+			   class, even though "sealed" and "final" mean the
+			   same thing when applied to a member function). */
+      a_bit_field
                 any_const_member:1;
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */
@@ -6603,6 +6721,12 @@ typedef struct a_type {
 			/* The type was created by a typeof operator
                            (a GNU C extension). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      a_bit_field
+		for_type_attributes:1;
+			/* When TRUE, the underlying type has type-transforming
+			   attributes applied to it and this entry's attributes
+			   field (in source_corresp) describes those
+			   attributes. */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */

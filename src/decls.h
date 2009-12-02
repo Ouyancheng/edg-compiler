@@ -245,6 +245,11 @@ Type of callback functions to call at end of declaration processing.
 */
 typedef void a_decl_parse_callback_function(a_decl_parse_state_ptr);
 
+/*
+A structure describing an action to be taken during declaration parsing.
+Actions can be chained (currently, the actions happen at the end of
+declaration processing).
+*/
 typedef struct a_decl_parse_callback *a_decl_parse_callback_ptr;
 typedef struct a_decl_parse_callback {
   a_decl_parse_callback_ptr
@@ -325,6 +330,10 @@ typedef struct a_decl_parse_state {
 		secondary_declarator:1;
 			/* TRUE if the current declaration corresponds to a
 			   secondary declarator (e.g., "y" in "int x, y;"). */
+  a_bit_field
+		is_definition:1;
+			/* TRUE if the current declaration defines a variable
+			   or function. */
   a_bit_field
 		in_nested_declarator:1;
 			/* TRUE while parsing a nested declarator. */
@@ -454,12 +463,16 @@ typedef struct a_decl_parse_state {
 			   end. */
   an_attribute_ptr
 		prefix_attributes;
-			/* A list of attributes scanned at the start of the
-			   declaration. */
+			/* A list of non-type-transforming attributes scanned
+			   at the start of the declaration. */
   an_attribute_ptr
 		id_attributes;
 			/* A list of attributes scanned right after the
 			   declarator-id. */
+  an_attribute_ptr
+		specifier_attributes;
+			/* A list of attributes scanned as part of the
+			   declaration specifiers. */
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Extended declaration information (most of it
@@ -475,16 +488,6 @@ typedef struct a_decl_parse_state {
 		asm_name_pos;
 			/* The position of the string literal specified by a
 			   GNU asm name construct (if any). */
-  a_gnu_attribute_ptr
-		gnu_attributes;
-			/* A list of GNU attributes scanned for the current
-			   declaration. */
-  a_gnu_attribute_ptr
-		*p_gnu_declarator_attributes;
-			/* A pointer to the pointer in the GNU attributes list
-			   that points to the declarator attributes.
-			   (If there are only declarator attributes, this
-			   points to the "gnu_attributes" field itself.) */
   a_named_register_id
 		register_id;
 			/* An integer representing a named register storage
@@ -514,8 +517,7 @@ typedef struct a_decl_parse_state {
   a_type_ptr
 		prev_type;
 			/* If the current declaration is a redeclaration, the
-			   type previously recorded for the declared entity
-			   (currently only set for variable declarations). */
+			   type previously recorded for the declared entity. */
   a_type_ptr
 		auto_type;
 			/* The tk_template_param type used to represent the
@@ -583,19 +585,31 @@ argument.
 #define init_decl_parse_state(ps) {                                          \
   *(ps) = null_decl_parse_state;                                             \
   (ps)->start_pos = pos_curr_token;                                          \
-  (ps)->p_gnu_declarator_attributes = &(ps)->gnu_attributes;                 \
 }
+
+/*
+Macro to record in a parsing state that a type error was encountered.
+*/
+#define invalidate_type(ps)                                                  \
+  ((ps)->type = (ps)->declared_type = (ps)->specifiers_type = error_type())
 
 extern void add_end_of_parse_action(a_decl_parse_callback_function  *fn,
                                     a_decl_parse_state              *dps);
 
 extern void run_end_of_parse_actions(a_decl_parse_state  *dps);
 
+extern void attach_parse_state_to_attributes(a_decl_parse_state  *dps);
+
+extern void detach_parse_state_from_attributes(a_decl_parse_state  *dps);
+
 extern void attach_decl_attributes(a_decl_parse_state  *dps,
                                    a_boolean           primary_decl);
 
 extern void attach_param_attributes(a_decl_parse_state  *dps,
                                     a_param_type_ptr    ptp);
+
+extern void check_prefix_attributes_without_a_declarator(
+                                                    a_decl_parse_state  *dps);
 
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
 
@@ -691,8 +705,7 @@ a_boolean scan_conversion_operator(
 
 extern a_type_ptr type_keyword(void);
 
-extern void adjust_parameter_type(a_type_ptr           *type_ptr,
-                                  a_gnu_attribute_ptr  attributes);
+extern void adjust_parameter_type(a_type_ptr           *type_ptr);
 
 extern a_boolean is_single_param_operator_new_or_delete(
                                                    a_symbol_locator *locator,
@@ -703,8 +716,7 @@ extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_symbol_locator  *locator);
 
 extern void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
-                                            a_source_position    *error_pos,
-                                            a_gnu_attribute_ptr  attributes);
+                                            a_source_position    *error_pos);
 
 void check_old_specialization_allowed(a_symbol_ptr       sym,
                                       a_source_position  *pos);
@@ -723,16 +735,16 @@ extern void check_main_function(a_func_info_block_ptr  func_info,
                                 a_source_position_ptr  pos);
 
 #if GNU_EXTENSIONS_ALLOWED
-extern void scan_gnu_declarator_attributes(
-                                        char*                *asm_name,
-                                        a_source_position    *asm_name_pos,
-                                        a_gnu_attribute_ptr  *attributes,
-                                        a_boolean            *new_attributes,
-                                        a_storage_class      declared_storage,
-                                        a_boolean            is_function);
+extern void scan_gnu_asm_name(a_decl_parse_state  *dps);
 
-extern void gnu_attributes_after_parenthesized_initializer(
-                                                         a_variable_ptr  var);
+extern void scan_gnu_declarator_attributes(a_decl_parse_state  *dps);
+
+extern
+void gnu_attributes_after_parenthesized_initializer(a_variable_ptr      var,
+                                                    a_decl_parse_state  *dps);
+
+extern void report_gnu_postfix_attributes_on_function_definition(
+                                                    a_decl_parse_state  *dps);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -842,11 +854,11 @@ extern a_variable_ptr condition_declaration(void);
 
 extern void static_assert_declaration(a_boolean  leave_semicolon);
 
-extern void make_using_directive(a_namespace_ptr      nsp,
-				 a_scope_depth	      depth,
-                                 a_source_position    *pos,
-		   	         a_boolean	      compiler_generated,
-				 a_gnu_attribute_ptr  attributes); 
+extern void make_using_directive(a_namespace_ptr    nsp,
+				 a_scope_depth	    depth,
+                                 a_source_position  *pos,
+		   	         a_boolean	    compiler_generated,
+				 an_attribute_ptr   attributes); 
 
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED

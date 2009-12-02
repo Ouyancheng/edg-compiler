@@ -459,6 +459,22 @@ routine type, and return a pointer to it.
 }  /* make_implicit_this_param_variable */
 
 
+static void attach_param_variable_attributes(a_variable_ptr  vp)
+/*
+The given variable is a parameter variable.  If any attributes specified on
+the parameter really apply to the underlying variable, apply them to the
+variable.
+*/
+{
+  a_param_type_ptr  ptp = vp->assoc_param_type;
+
+  if (ptp->attributes != NULL) {
+    an_attribute_ptr  vap = get_param_variable_attr_copies(ptp);
+    attach_attributes(vap, (char*)vp, iek_variable);
+  }  /*  */
+}  /* attach_param_variable_attributes */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /* ARGSUSED */ /* <-- declared_type not used in that case. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -618,12 +634,7 @@ pointer decay).
   }  /* if */
   vp->assoc_param_type = ptp;
   ptp->name = vp->source_corresp.name;
-#if GNU_EXTENSIONS_ALLOWED
-  if (param_id->attributes != NULL) {
-    apply_gnu_attributes_to_variable(param_id->attributes, vp,
-                                     /*is_definition=*/TRUE);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  attach_param_variable_attributes(vp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   {
   a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
@@ -1250,11 +1261,10 @@ this_class information.  Update rout_type with information from prev_type.
 }  /* adjust_member_routine_type */
 
 
-#if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || \
-    !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* decl_modifiers, decl_pos_block, and attributes are not used in
-                all configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL || ... */
+#if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_modifiers and decl_pos_block are not used in some
+                configurations. */
+#endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void define_member_function(a_symbol_locator            *locator,
                                    a_decl_parse_state          *dps,
                                    a_func_info_block           *func_info,
@@ -1268,12 +1278,13 @@ function is similar to that of decl_routine, which is called for
 the definitions of ordinary functions.  After doing some error checking,
 it calls reconcile_routine_types to merge the current type with the type
 on a prior declaration.
+The function's declaration is described by locator, dps, and func_info.
+Existing type information (from the matching in-class declaration) is returned
+through *old_type.  Extended position information is recorded in
+*decl_pos_block.  *linkage_ptr is set to idl_external, and *ext_sym is set to
+NULL.
 This function is also called in the case of a nondefining out-of-class
-member declaration (allowed in some Microsoft modes only).  The function's
-declaration is described by locator, dps and func_info.  Existing type
-information (from the matching in-class declaration) is returned through
-*old_type.  Extended position information is recorded in *decl_pos_block.
-*linkage_ptr is set to idl_external, and *ext_sym is set to NULL.
+member declaration (allowed in some Microsoft modes only).
 */
 {
   a_type_ptr           type_ptr = dps->type;
@@ -1561,12 +1572,6 @@ information (from the matching in-class declaration) is returned through
     /* Mark the routine to indicate that, though really belonging to the
        scope of its parent class, it is defined elsewhere. */
     if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
-    if (dps->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(dps->gnu_attributes, rp,
-                                      /*is_redecl=*/TRUE);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!microsoft_out_of_class_redecl) {
       record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
@@ -1654,6 +1659,9 @@ information (from the matching in-class declaration) is returned through
   }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
   dps->sym = sym;
+#if GNU_EXTENSIONS_ALLOWED
+  report_gnu_postfix_attributes_on_function_definition(dps);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   attach_decl_attributes(dps, func_info->is_definition);
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any

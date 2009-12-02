@@ -32,6 +32,117 @@ declarator.c -- Scanning of declarators.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "il_walk.h"
 
+static void scan_declarator_attributes(a_decl_parse_state  *dps,
+                                       a_type_ptr          *p_type)
+/*
+Scan attributes that appear after a declarator component other than the
+declarator-id.  *p_type is the type formed by the particular declarator
+component being parsed.  (Because of the way types are built up through
+declarators, **p_type may not be fully formed yet.  For example, the type
+pointed to by a pointer type may still by NULL.)
+GCC allows attributes after array and function declarators only for non-nested
+declarators.  Such attributes are placed on the state->id_attributes list
+(i.e., they are treated as appertaining to the declared entity, rather than to
+the type formed by the declarator component as would be the case with
+standard-attribute syntax).
+*/
+{
+  a_type_ptr                      type = *p_type;
+  enum an_attribute_location_tag  syn_loc;
+  an_attribute_ptr                attributes;
+
+  /* Determine the syntactic location from the type. */
+  switch (skip_typerefs_not_typedefs(type)->kind) {
+    case tk_error:
+      expect_error();
+      break;
+    case tk_pointer:
+    case tk_ptr_to_member:
+      syn_loc = al_post_ptr_or_ref;
+      break;
+    case tk_array:
+      syn_loc = al_post_array;
+      break;
+    case tk_routine:
+      syn_loc = al_post_func;
+      break;
+    default:
+      /* This can only validly happen with GNU attributes specified as the
+         first construct in a nested declarator or after an outermost
+         parenthesized declarator.  In the first case, they are treated like
+         specifier attributes (e.g., "int (__attribute((mode(DI))) x);" is
+         treated like "int __attribute((mode(DI))) x;").  In the second case
+         they are treated as declarator-id attributes. */
+      if (dps->in_nested_declarator) {
+        syn_loc = al_specifier;
+      } else {
+        syn_loc = al_postfix;
+      }  /* if */
+  }  /* if */
+  /* Scan the attributes. */
+  attributes = scan_attributes(syn_loc);
+  /* Reclassify attributes if necessary. */
+  if (attributes != NULL) {
+    if (gnu_attributes_enabled) {
+      /* Move any non-type-transforming GNU attributes to the
+         dps->id_declarator list, and change their syntactic location to
+         al_postfix or al_id_equivalent. */
+      an_attribute_ptr  ap, *p_from = &attributes, *p_to;
+      a_boolean         error_issued = FALSE;
+      p_to = last_attribute_link(&dps->id_attributes);
+      do {
+        ap = *p_from;
+        if (ap->family == (a_byte_attribute_family)af_gnu &&
+            !is_type_transforming_attribute(ap)) {
+          *p_from = ap->next;
+          /* Non-nested postfix attributes are recorded as al_postfix.  Others
+             are recorded as al_id_equivalent. */
+          if (!dps->in_nested_declarator &&
+              (syn_loc == al_post_func || syn_loc == al_post_array)) {
+            ap->syntactic_location = (a_byte_attribute_location)al_postfix;
+          } else {
+            ap->syntactic_location =
+                                  (a_byte_attribute_location)al_id_equivalent;
+          }  /* if */
+          *p_to = ap;
+          p_to = &ap->next;
+        } else if (dps->in_nested_declarator) {
+          if (ap->syntactic_location ==
+                                      (a_byte_attribute_location)al_postfix) {
+            /* A non-GNU attribute after a nested declarator is not valid. */
+            if (!error_issued) {
+              pos_error(ec_invalid_std_attribute_location, &ap->position);
+              error_issued = TRUE;
+            }  /* if */
+            make_attr_unrecognized(ap);
+          }  /* if */
+          p_from = &ap->next;
+        }  /* if */
+      } while (*p_from != NULL);
+    }  /*if */
+  }  /* if */
+  if (attributes != NULL) {
+    if (syn_loc == al_specifier) {
+      /* Declarator attributes (in a nested declarator) treated as specifier
+         attributes.  Only GNU attributes are allowed in this case. */
+      an_attribute_ptr  ap = attributes;
+      a_boolean         error_issued = FALSE;
+      for (; ap != NULL; ap = ap->next) {
+        if (ap->family != (a_byte_attribute_family)af_gnu) {
+          if (!error_issued) {
+            pos_error(ec_invalid_std_attribute_location, &ap->position);
+            error_issued = TRUE;
+          }  /* if */
+          make_attr_unrecognized(ap);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Apply the remaining attributes to the type. */
+    transform_type_with_attributes(p_type, attributes);
+  }  /* if */
+}  /* scan_declarator_attributes */
+
+
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
 member_type is to be used in a pointer-to-member type.  Check its validity
@@ -1826,7 +1937,7 @@ if this is the function declarator in a friend function declaration.
                  that instantiates to "void" is treated as a function taking
                  no parameters. */
               pos_error(ec_void_param_not_allowed, &param_type_pos);
-              param_state.type = error_type();
+              invalidate_type(&param_state);
             } else {
               if (param_state.decl_specifiers_error) {
                 /* An error already occurred during the call to
@@ -1856,7 +1967,7 @@ if this is the function declarator in a friend function declaration.
         }  /* if */
         if (defines_something && C_dialect == C_dialect_cplusplus) {
           pos_error(ec_type_definition_not_allowed, &param_type_pos);
-          param_state.type = error_type();
+          invalidate_type(&param_state);
         } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
           /* No type specifier (aside from const or volatile) appeared among
              the declaration specifiers.  Issue a diagnostic. */
@@ -1896,8 +2007,7 @@ if this is the function declarator in a friend function declaration.
           }  /* if */
           declarator(di_flags, &param_state, 
                      /*member_parent_type=*/(a_type_ptr)NULL, &param_locator,
-                     (a_func_info_block_ptr)NULL, &local_decl_pos_block,
-                     param_state.p_gnu_declarator_attributes);
+                     (a_func_info_block_ptr)NULL, &local_decl_pos_block);
 #if RECORD_HIDDEN_NAMES_IN_IL
           if (!C_mode() && param_locator.symbol_header != NULL) {
             /* In C++, parameter names may hide names from surrounding
@@ -1911,19 +2021,9 @@ if this is the function declarator in a friend function declaration.
           set_to_error_locator(param_locator);
           check_pending_qualifiers_used(&param_state);
         }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-        if (gnu_mode) {
-          /* Scan any postfix attributes that apply to the function parameter
-             and append them to the (possibly empty) list of attributes already
-             scanned. */
-          *last_gnu_attribute_link(param_state.p_gnu_declarator_attributes) =
-                                                         scan_gnu_attributes();
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         /* Check that the type is legal, and do required adjustments. */
         check_use_of_auto_type(&param_state);
-        check_and_adjust_parameter_type(&param_state.type, &param_type_pos,
-                                        param_state.gnu_attributes);
+        check_and_adjust_parameter_type(&param_state.type, &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;
@@ -1966,8 +2066,7 @@ if this is the function declarator in a friend function declaration.
            associated with the parameter declaration.  These go on to the
            the param-id list. */
         add_to_param_id_list(&param_locator, param_state.type,
-                             &param_type_pos, param_storage_class,
-                             param_state.gnu_attributes, func_info,
+                             &param_type_pos, param_storage_class, func_info,
                              param_state.source_sequence_entry,
                              &last_param_id);
         last_param_id->declared_type = param_state.declared_type;
@@ -1979,14 +2078,6 @@ if this is the function declarator in a friend function declaration.
 	last_param_id->identifier_range =
                             local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if GNU_EXTENSIONS_ALLOWED
-        /* Attributes that apply to the parameter (as opposed to its
-           type) are only allowed on top-level declarators. */
-        if (!is_top_level_declarator) {
-          check_for_invalid_param_attributes(last_param_id->symbol,
-                                             param_state.gnu_attributes);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         if (remove_qualifiers_from_param_types) {
           /* Strip off top-level type qualifiers.  They are not part of the
              type signature of a C++ function -- see 8.3.5 para 3.  However,
@@ -2408,7 +2499,6 @@ if this is the function declarator in a friend function declaration.
         add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
                              (a_source_position*)NULL,
                              (a_storage_class)sc_unspecified, 
-                             (a_gnu_attribute_ptr)NULL,
                              func_info, (a_source_sequence_entry_ptr)NULL,
                              &last_param_id);
         /* Update the param-id entry just created with the source position
@@ -2462,6 +2552,7 @@ if this is the function declarator in a friend function declaration.
                                           disallow_exception_spec,
                                           is_typedef_decl, decl_pos_block);
   }  /* if */
+  scan_declarator_attributes(state, new_type_ptr);
   /* Pop the function prototype scope if needed. */
   if (must_pop_function_prototype_scope) pop_scope();
   if (!is_top_level_declarator) {
@@ -2940,6 +3031,7 @@ constant.
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
   copy_source_position(start_pos, error_position);
+  scan_declarator_attributes(dps, new_type_ptr);
   db_exit();
 }  /* array_declarator */
 
@@ -3485,8 +3577,7 @@ a_type_ptr pointer_declarator(
                       a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers,
                       a_boolean             *ptr_to_member_scanned,
-                      a_decl_pos_block_ptr  decl_pos_block,
-                      a_gnu_attribute_ptr   *attributes)
+                      a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan the pointer component of a declarator.  This is "*", "&", "&&", or "C::*"
 (where C is a class type) optionally followed by "const" and/or "volatile".
@@ -3891,14 +3982,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                             upc_block_size);
       consume_any_stray_microsoft_rparen();
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    /* Attributes may appear after the pointer declarator in some cases. */
-    if (attributes != NULL && gnu_mode) {
-      /* Advance to the end of the list. */
-      attributes = last_gnu_attribute_link(attributes);
-      *attributes = scan_gnu_attributes();
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    scan_declarator_attributes(state, &complete_type);
     ref_to_ref_allowed = FALSE;
     /* Keep looping as long as there are pointer declarators. */
   }  /* for */
@@ -3985,6 +4069,58 @@ is an exception to that rule, or if microsoft bugs mode is disabled.
                            opname != (an_opname_kind)onk_subscript &&
                            opname != (an_opname_kind)onk_arrow;
 }  /* is_microsoft_static_operator */
+
+
+static void scan_id_attributes(a_decl_parse_state  *dps)
+/*
+Scan attributes following a declarator-id.  If this includes GNU attributes,
+reclassify them as appropriate (e.g., in some GNU modes, type-transforming
+attributes are applied to the underlying type).
+*/
+{
+  an_attribute_ptr  attributes = scan_attributes(al_declarator_id);
+
+  if (attributes != NULL) {
+    if (gnu_mode &&
+        dps->declared_storage_class != (a_storage_class)sc_typedef) {
+      /* Type transforming attributes are reclassified as specifier attributes
+         or post-pointer-or-reference attributes (except on typedef
+         declarations, where the attribute is associated with the typedef
+         entry itself). */
+      an_attribute_ptr  ap, tt_attributes = NULL;
+      an_attribute_ptr  *p_from = &attributes, *p_to = &tt_attributes;
+      a_byte_attribute_location  to_syn_loc;
+      switch (skip_typerefs_not_typedefs(dps->declared_type)->kind) {
+        case tk_pointer:
+        case tk_ptr_to_member:
+          to_syn_loc = (a_byte_attribute_location)al_post_ptr_or_ref;
+          break;
+        default:
+          to_syn_loc = (a_byte_attribute_location)al_specifier;
+      }  /* switch */
+      /* Extract (and reclassify) type transforming GNU attributes. */
+      do {
+        ap = *p_from;
+        if (ap->family == (a_byte_attribute_family)af_gnu &&
+            is_type_transforming_attribute(ap)) {
+          *p_from = ap->next;
+          ap->syntactic_location = to_syn_loc;
+          *p_to = ap;
+          p_to = &ap->next;
+        } else {
+          p_from = &ap->next;
+        }  /* if */
+      } while (*p_from != NULL);
+      /* Apply any extracted attributes to dps->declared_type. */
+      if (tt_attributes != NULL) {
+        attach_type_attributes(&dps->declared_type, tt_attributes);
+      }  /* if */
+    }  /* if */
+    /* Append the remaining attributes (if any) to the list pointed to by
+       dps->id_attributes. */
+    *last_attribute_link(&dps->id_attributes) = attributes;
+  }  /* if */
+}  /* scan_id_attributes */
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4516,7 +4652,7 @@ declared entity is known to not be a function.
       locator->is_conversion_name = TRUE;
     }  /* if */
   }  /* if */
-  dps->id_attributes = scan_attributes(al_declarator_id);
+  scan_id_attributes(dps);
   db_exit();
 }  /* scan_real_declarator_id */
 
@@ -4605,6 +4741,7 @@ locator->specific_symbol to point to the correct symbol entry.
   }  /* if */
 }  /* process_conversion_function_declarator */
 
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
                      Microsoft mode, and p_left_qualifiers is used only when
@@ -4627,8 +4764,7 @@ static void r_declarator(
                   a_type_qualifier_set        *p_unbound_qualifiers,
                   a_source_sequence_entry_ptr *declarator_ssep,
                   a_func_info_block           *func_info,
-                  a_decl_pos_block_ptr        decl_pos_block,
-                  a_gnu_attribute_ptr         *attributes)
+                  a_decl_pos_block_ptr        decl_pos_block)
 /*
 Scan a declarator (3.5.4) or an abstract declarator (3.5.5), depending on the
 values of real_declarator_allowed and abstract_declarator_allowed (real,
@@ -4719,7 +4855,6 @@ The syntax is:
   a_type_qualifier_set  unbound_qualifiers;
   a_boolean             disallow_default_args, disallow_exception_spec;
   a_func_info_block     *local_func_info;
-  a_gnu_attribute_ptr   *last_attribute_ptr = NULL;
   a_boolean             threads_dimension_allowed = FALSE;
   a_boolean             pointer_to_member_scanned;
   a_boolean             parenthesized_new_declarator = FALSE;
@@ -4766,7 +4901,7 @@ The syntax is:
                                      &left_call_conv, &unbound_call_conv,
                                      &left_qualifiers, &unbound_qualifiers,
                                      &pointer_to_member_scanned,
-                                     decl_pos_block, attributes);
+                                     decl_pos_block);
   if (complete_type != NULL && complete_type != specifiers_type) {
     /* We scanned a pointer or reference component. */
     *output_flags |= DO_HAS_PTR_OR_REF_COMPONENT;
@@ -4775,17 +4910,11 @@ The syntax is:
       *output_flags |= DO_HAS_PTR_TO_MEMBER_COMPONENT;
     }  /* if */
     if (specifiers_type != NULL) {
-      /* E.g., in "int *(*f)()" set state->type to "int*" just before
-         processing the nested declarator. */
-      state->type = complete_type;
+      /* E.g., in "int *(*f)()" set state->type and state->declared_type to
+         "int*" just before processing the nested declarator. */
+      state->type = state->declared_type = complete_type;
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL) {
-    /* Advance to the end of the attribute list. */
-    last_attribute_ptr = last_gnu_attribute_link(attributes);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode && complete_type != NULL &&
       is_underlying_shared_qualified_type(complete_type)) {
@@ -4812,22 +4941,23 @@ The syntax is:
        We can differentiate the two cases because in the case of a nested
        declarator the next token must be a "*", "(", or "[", whereas in the
        function case it is ")", "...", or a declaration specifier. */
-    a_decl_flag_set  local_do_flags;
-
+    a_decl_flag_set       local_do_flags;
+    a_type_qualifier_set  saved_qualifiers = state->qualifiers;
+    a_source_position     saved_qualifiers_pos;
+    a_boolean             saved_in_nested_declarator =
+                                                  state->in_nested_declarator;
     (void)get_token();
-#if GNU_EXTENSIONS_ALLOWED
-    /* Attributes may appear as the first construct of a parenthesized
-       declarator. */
-    if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
-      check_assertion(last_attribute_ptr != NULL);
-      *last_attribute_ptr = scan_gnu_attributes();
-      if (*attributes == NULL) {
-        *attributes = *last_attribute_ptr;
+    { an_attribute_ptr  prescanned_attributes;
+      /* Scan any attributes, but "unscan" them right away.  We cannot decide
+         their syntactic location at this time, so we'll "rescan" them once we
+         know whether we are dealing with a nested declarator or a function
+         declarator. */ 
+      prescanned_attributes = scan_attributes(al_prefix);
+      if (prescanned_attributes != NULL) {
+        unscan_attributes(prescanned_attributes);
       }  /* if */
-      /* Advance to the end of the list. */
-      last_attribute_ptr = last_gnu_attribute_link(last_attribute_ptr);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    }
+    state->in_nested_declarator = TRUE;
     if (abstract_declarator_allowed) {
       if (curr_token == tok_rparen ||
           is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
@@ -4838,6 +4968,14 @@ The syntax is:
       }  /* if */
     }  /* if */
     /* This parenthesis begins a nested declarator. */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && curr_token == tok_attribute) {
+      /* Attributes may appear as the first construct of a parenthesized
+         declarator.  They are treated as if they appeared before the
+         parentheses. */
+      scan_declarator_attributes(state, &state->type);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
@@ -4861,34 +4999,27 @@ The syntax is:
     }  /* if */
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     add_stop_token(tok_rparen);
-    { /* Call r_declarator recursively to parse the nested declarator.  Some
-         state must be saved and restored for this call.  For example,
-         "int const (* const g())()" has two meaningless const qualifiers
-         that are diagnosed, but when declarator processing is completed,
-         *state->qualifiers should reflect the outermost qualifier (i.e.,
-         the first one in this example). */
-      a_type_qualifier_set  saved_qualifiers = state->qualifiers;
-      a_source_position     saved_qualifiers_pos;
-      a_boolean             saved_in_nested_declarator =
-                                                  state->in_nested_declarator;
-      saved_qualifiers_pos = state->qualifiers_pos;
-      state->in_nested_declarator = TRUE;
-      /* Get the nested declarator, removing the flag allowing parenthesized
-         initializers from the input_flags bit vector.  (The other flags are
-         passed on in the recursive call.) */
-      r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
-                   &local_do_flags, state,
-                   /*specifiers_type=*/(a_type_ptr)NULL, member_parent_type,
-                   locator, &derived_type, &bottom_derived_type,
-                   is_constructor, is_destructor,
-                   &inner_left_call_conv, &unbound_call_conv,
-                   &inner_left_qualifiers, &unbound_qualifiers,
-                   declarator_ssep, func_info, decl_pos_block,
-                   last_attribute_ptr);
-      state->in_nested_declarator = saved_in_nested_declarator;
-      state->qualifiers = saved_qualifiers;
-      state->qualifiers_pos = saved_qualifiers_pos;
-    }
+    /* Call r_declarator recursively to parse the nested declarator.  Some
+       state must be saved and restored for this call.  For example,
+       "int const (* const g())()" has two meaningless const qualifiers
+       that are diagnosed, but when declarator processing is completed,
+       *state->qualifiers should reflect the outermost qualifier (i.e., the
+       first one in this example). */
+    saved_qualifiers = state->qualifiers;
+    saved_qualifiers_pos = state->qualifiers_pos;
+    /* Get the nested declarator, removing the flag allowing parenthesized
+       initializers from the input_flags bit vector.  (The other flags are
+       passed on in the recursive call.) */
+    r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
+                 &local_do_flags, state, /*specifiers_type=*/(a_type_ptr)NULL,
+                 member_parent_type, locator, &derived_type,
+                 &bottom_derived_type, is_constructor, is_destructor,
+                 &inner_left_call_conv, &unbound_call_conv,
+                 &inner_left_qualifiers, &unbound_qualifiers,
+                 declarator_ssep, func_info, decl_pos_block);
+    state->in_nested_declarator = saved_in_nested_declarator;
+    state->qualifiers = saved_qualifiers;
+    state->qualifiers_pos = saved_qualifiers_pos;
     if (local_do_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
       /* A nested declarator that contained a pointer, pointer-to-member, or
          reference component.  If we were to scan an array bound next, the
@@ -4904,16 +5035,6 @@ The syntax is:
         *output_flags |= DO_HAS_PTR_TO_MEMBER_COMPONENT;
       }  /* if */
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode &&
-        last_attribute_ptr != NULL && *last_attribute_ptr != NULL) {
-      check_assertion(attributes != NULL);
-      if (*attributes == NULL) {
-        *attributes = *last_attribute_ptr;
-      }  /* if */
-      last_attribute_ptr = last_gnu_attribute_link(last_attribute_ptr);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Copy the position of the declarator-id into declarator_pos. */
@@ -4951,6 +5072,13 @@ The syntax is:
     /* Check for and get the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
+#if GNU_EXTENSIONS_ALLOWED
+    if (curr_token == tok_attribute && !state->in_nested_declarator) {
+      /* GNU attributes may appear after the outermost nested declarator.
+         They are treated as declarator-id attributes. */
+      scan_gnu_declarator_attributes(state);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* Not a nested declarator. */
     /* An identifier is expected next, but is omitted in the 
@@ -4993,6 +5121,11 @@ The syntax is:
                               &parenthesized_initializer_allowed,
                               &not_a_function_declarator,
                               &member_parent_type, decl_pos_block);
+      /* Type attributes may have changed state->declared_type, which should
+         stay in sync with complete_type in non-nested contexts. */
+      if (!state->in_nested_declarator) {
+        complete_type = state->declared_type;
+      }  /* if */
       /* Reset declarator_pos to correspond to the position of the
          declarator-id.  Doing this after the call to scan_real_declarator_id
          ensures the position is that of the main identifier (and not e.g.
@@ -5413,23 +5546,6 @@ function_lparen:
     if (specifiers_type == NULL) *p_left_qualifiers = left_qualifiers;
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  /* Scan a postfix attribute specification (but not on nested declarators). */
-  if (attributes != NULL && gnu_mode && curr_token == tok_attribute &&
-      specifiers_type != NULL) {
-    check_assertion(last_attribute_ptr != NULL);
-    *last_attribute_ptr = scan_gnu_attributes();
-    if (*last_attribute_ptr != NULL) {
-      if (*attributes == NULL) {
-        *attributes = *last_attribute_ptr;
-      }  /* if */
-      *output_flags |= DO_POSTFIX_ATTRIBUTES;
-      /* Advance to the end of the list. */
-      /* coverity[returned_pointer] - last_attribute_pointer not used later. */
-      last_attribute_ptr = last_gnu_attribute_link(last_attribute_ptr);
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator.  Do some checks for special
        member functions and set complete_type appropriately, so that it can
@@ -5664,17 +5780,17 @@ In a class prototype instantiation context for a member declaration like:
   class X {} x;
 
 The type used for the declaration of "x" must be the associated nonreal type.
-If we are in such a context, update the type in the decl_parse_state.
+If we are in such a context, update the types in the decl_parse_state.
 */
 {
-  if (scope_stack[depth_scope_stack].kind ==
-                                        (a_scope_kind)sck_class_struct_union) {
-    a_type_ptr		tp = state->type;
+  if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
+    a_type_ptr  tp = state->type;
     if (tp->source_corresp.is_class_member) {
-      a_symbol_ptr	sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
-      a_symbol_ptr	nonreal_sym;
-      if (sym != (nonreal_sym = nonreal_type_if_nested_prototype_type(sym))) {
-        state->type = nonreal_sym->variant.type.ptr;
+      a_symbol_ptr  sym = symbol_for(tp);
+      a_symbol_ptr  nonreal_sym = nonreal_type_if_nested_prototype_type(sym);
+      if (sym != nonreal_sym) {
+        state->specifiers_type = state->declared_type = state->type =
+                                                nonreal_sym->variant.type.ptr;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5686,8 +5802,7 @@ void declarator(a_decl_flag_set             input_flags,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
                 a_func_info_block           *func_info,
-                a_decl_pos_block_ptr        decl_pos_block,
-                a_gnu_attribute_ptr         *attributes)
+                a_decl_pos_block_ptr        decl_pos_block)
 /*
 Scan a declarator.  This is an interface routine for r_declarator, provided
 so that parameters needed only on recursive calls for nested declarators
@@ -5739,18 +5854,7 @@ the parameters.
                &bottom_derived_type, &is_constructor, &is_destructor,
                (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
                (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
-               &state->source_sequence_entry, func_info, decl_pos_block,
-               attributes);
-#if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL && *attributes != NULL) {
-    /* Mark the attributes scanned by the call to r_declarator as "declarator
-       attributes". */
-    a_gnu_attribute_ptr  ap = *attributes;
-    for (; ap != NULL; ap = ap->next) {
-      ap->is_declarator_attribute = TRUE;
-    }  /* for */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+               &state->source_sequence_entry, func_info, decl_pos_block);
   if (is_constructor) {
     state->do_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */

@@ -3705,6 +3705,27 @@ extension.  For example:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean base_is_final(a_base_class_ptr  bcp)
+/*
+Return TRUE if bcp is on a derivation path involving a "final" base class.
+*/
+{
+  a_boolean                    result = FALSE;
+  a_base_class_derivation_ptr  derivation = bcp->derivation;
+  
+  for (; derivation != NULL; derivation = derivation->next) {
+    a_derivation_step_ptr   ds = derivation->path;
+    for (; ds != NULL; ds = ds->next) {
+      if (ds->base_class->type->variant.class_struct_union.final) {
+        result = TRUE;
+        goto done;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+done:
+  return result;
+}  /* base_is_final */
+
 static void check_virtual_function_override(
                                   a_class_def_state_ptr  class_state,
                                   a_symbol_ptr           overrider_sym,
@@ -3742,6 +3763,8 @@ return_types_are_override_compatible.
     pos_sy_error(use_final_diag ? ec_override_of_final_function
                                 : ec_override_of_sealed_function,
                  source_pos, overridden_sym);
+  } else if (base_is_final(bcp)) {
+    pos_sy_error(ec_override_of_final_function, source_pos, overridden_sym);
   } else {
     /* Record the virtual function override in the base class entry.
        It can be used later, e.g., for building a virtual function
@@ -6986,6 +7009,7 @@ possibility.
             (void)update_src_seq_secondary_decl(
                                (char *)rp, func_info->declared_type, name_ref,
                                SSSD_FRIEND_DECL, &decl_info->decl_pos_block);
+            wrapup_sse_for_simple_decl(state);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -8552,6 +8576,27 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
   }  /* if */
 }  /* check_defaulted_or_deleted_function */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+static void copy_gnu_class_properties_to_routine(a_type_ptr     class_type,
+                                             a_routine_ptr  routine)
+/*
+routine is a member function of class_type.  Copy any properties of class_type
+(specified by GNU attributes) that should be propagated to its member
+functions.
+*/
+{
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (routine->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+    routine->ELF_visibility = class_type_supp(class_type)->ELF_visibility;
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+}  /* copy_class_gnu_properties_to_routine */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
@@ -8582,6 +8627,7 @@ implicitly declared member functions.
   a_symbol_ptr                  overridden_function = NULL;
 
   db_enter(3, "decl_member_function");
+  decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
   if (decl_state->storage_class == (a_storage_class)sc_static) {
     /* A static member function. */
@@ -8786,14 +8832,9 @@ implicitly declared member functions.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    /* Apply any GNU attributes to the routine. */
-    if (decl_state->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(decl_state->gnu_attributes, rtn,
-                                      /*is_redecl=*/FALSE);
-    }  /* if */
     /* Propagate any class attributes that also apply to its member
        functions. */
-    copy_class_attributes_to_routine(class_type, rtn);
+    copy_gnu_class_properties_to_routine(class_type, rtn);
     /* Record the assembly name. */
     if (decl_state->asm_name != NULL) {
       rtn->asm_name = decl_state->asm_name;
@@ -8958,6 +8999,7 @@ implicitly declared member functions.
                                           decl_state->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
+    wrapup_sse_for_simple_decl(decl_state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {
       /* Since this is a definition, record the current lint argsused and
@@ -9273,6 +9315,7 @@ declarations.)
   a_scope_depth                     effective_decl_level;
 
   db_enter(3, "decl_member_function_template");
+  decl_state->is_definition = func_info->is_definition;
   if (!is_error_locator(*locator)) {
     if (is_single_param_operator_new_or_delete(locator, member_type)) {
       /* Overloading should not be allowed on the single-argument version
@@ -9467,16 +9510,9 @@ declarations.)
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
+    attach_decl_attributes(&decl_info->decl_state,
+                           (a_boolean)func_info->is_definition);
 #if GNU_EXTENSIONS_ALLOWED
-    /* Apply any GNU attributes to the routine. */
-    if (decl_state->gnu_attributes != NULL) {
-      apply_gnu_attributes_to_routine(decl_info->decl_state.gnu_attributes,
-                                      rtn, /*is_redecl=*/FALSE);
-      /* Move the attributes list to the template symbol supplement so it can
-         be applied to real instantiations as well. */
-      tssp->attributes = decl_info->decl_state.gnu_attributes;
-      decl_info->decl_state.gnu_attributes = NULL;
-    }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (rtn->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
       /* If no ELF visibility attribute was specified on the member template
@@ -9534,21 +9570,25 @@ and it is legal for virtual member functions only.
   }  /* if */
   if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
-  } else if (pure_specifier_allowed && rout->sealed) {
+  } else if (pure_specifier_allowed &&
+             (rout->sealed || class_type->variant.class_struct_union.final)) {
     /* Making a pure virtual member sealed/final is useless, but while
        Microsoft makes the "sealed" case an error, the C++0x standard does not
        prohibit the "[[final]]" case. */
     an_attribute_ptr  final_ap =
                     find_attribute(ak_final, rout->source_corresp.attributes);
-    if (final_ap == NULL) {
+    if (!rout->sealed) {
+      check_assertion(class_type->variant.class_struct_union.final);
+      pos_warning(ec_pure_final_virtual, &pos_curr_token);
+    } else if (final_ap == NULL) {
       /* The routine was declared with "sealed". */
       check_assertion(microsoft_mode);
       pos_error(ec_pure_specifier_on_sealed_member, &pos_curr_token);
+      pure_specifier_allowed = FALSE;
     } else {
       /* The routine was declared with "final". */
       pos_warning(ec_pure_final_virtual, &final_ap->position);
     }  /* if */
-    pure_specifier_allowed = FALSE;
   }  /* if */
   /* Advance past the "=". */
   (void)get_token();
@@ -9679,6 +9719,29 @@ unnamed class.
   return unnamed;
 }  /* is_or_is_nested_within_unnamed_class */
     
+#if GNU_EXTENSIONS_ALLOWED
+
+#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+static void copy_gnu_class_properties_to_variable(a_type_ptr      class_type,
+                                                  a_variable_ptr  var)
+/*
+var is a static data member of class_type.  Copy any properties of class_type
+(from attributes applied to the class) that should be propagated to its static
+data members.
+*/
+{
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  if (var->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+    a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+    var->ELF_visibility = ctsp->ELF_visibility;
+  }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+}  /* copy_gnu_class_properties_to_variable */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_class_def_state_ptr   class_state,
@@ -9709,11 +9772,6 @@ specific information about the member declaration, respectively.
     /* Abstract class objects are prohibited (ARM 10.3). */
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               member_type, &locator->source_position);
-#if GNU_EXTENSIONS_ALLOWED
-  } else if (decl_state->gnu_attributes != NULL) {
-    member_type = apply_gnu_attributes_to_variable_type(
-                                     decl_state->gnu_attributes, member_type);
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
      of a static data member. */
@@ -9940,14 +9998,9 @@ specific information about the member declaration, respectively.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    if (decl_state->gnu_attributes != NULL) {
-      /* Apply the attributes to the variable declaration. */
-      apply_gnu_attributes_to_variable(decl_state->gnu_attributes, var,
-                                       /*is_definition=*/FALSE);
-    }  /* if */
-    /* Propagate any class attributes that also apply to its static data
+    /* Propagate any class properties that also apply to its static data
        members. */
-    copy_class_attributes_to_variable(class_type, var);
+    copy_gnu_class_properties_to_variable(class_type, var);
     /* If applicable, record the asm-name. */
     if (decl_state->asm_name != NULL) {
       var->asm_name_or_reg.name = decl_state->asm_name;
@@ -11482,6 +11535,26 @@ the position indicated by the given locator.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
+static void attach_field_attributes(a_decl_parse_state  *dps,
+                                    a_field_ptr         field)
+/*
+Attach the attributes recorded in *dps to the given field.
+*/
+{
+  if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
+    if (dps->secondary_declarator) {
+      dps->prefix_attributes = copy_of_attributes_list(dps->prefix_attributes);
+    }  /* if */
+    attach_parse_state_to_attributes(dps);
+    mark_primary_decl_attributes(dps->id_attributes);
+    attach_attributes(dps->id_attributes, (char*)field, iek_field);
+    mark_primary_decl_attributes(dps->prefix_attributes);
+    attach_attributes(dps->prefix_attributes, (char*)field, iek_field);
+    detach_parse_state_from_attributes(dps);
+  }  /* if */
+}  /* attach_field_attributes */
+
+
 static a_field_ptr decl_nonstatic_data_member(
                                       a_symbol_locator        *locator,
                                       a_class_def_state_ptr   class_state,
@@ -11504,27 +11577,11 @@ be entered.
   a_symbol_ptr                   member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      unnamed_field = decl_info->is_unnamed_field;
-#if GNU_EXTENSIONS_ALLOWED
-  a_gnu_attribute_ptr            *last_attribute;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_nonstatic_data_member");
   /* Create the field entry. */
   field = alloc_field();
   field->is_bit_field = decl_info->is_bit_field;
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode) {
-    /* Find the last attribute. */
-    last_attribute = last_gnu_attribute_link(&decl_state->gnu_attributes);
-    /* Scan the attributes that follow the declarator.  This must happen after
-       any bit field size is scanned, but before the type of the field is
-       checked. */
-    *last_attribute = scan_gnu_attributes();
-    /* Apply the attributes to the field. */
-    decl_state->type = apply_gnu_attributes_to_variable_type(
-                                decl_state->gnu_attributes, decl_state->type);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_info->is_member_template) {
     /* Error -- suppress incomplete-type errors, etc.. */
     set_to_named_error_locator(*locator);
@@ -11650,18 +11707,13 @@ be entered.
      record_symbol_declaration (since the latter clears that information). */
   update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  attach_decl_attributes(decl_state, /*primary_decl=*/TRUE);
+  attach_field_attributes(decl_state, field);
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    /* Apply the attributes to the field. */
-    apply_gnu_attributes_to_field(decl_state->gnu_attributes, field);
     /* Check if a deprecated type was involved in this declaration.
        Unlike other similar cases, the warning is issued even when the field
        itself is marked as deprecated. */
     warn_about_use_of_deprecated_type(member_type, &locator->source_position);
-    /* We are done with the postfix attributes. */
-    free_gnu_attribute_list(*last_attribute);
-    *last_attribute = NULL;
     /* An asm name is not allowed on a field. */
     if (decl_state->asm_name != NULL) {
       pos_error(ec_field_with_asm_name_not_allowed, &decl_state->asm_name_pos);
@@ -11917,6 +11969,7 @@ information about the member declaration, respectively.
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
     scan_fs_integral_constant_expression(&decl_info->bit_field_size);
+    scan_gnu_declarator_attributes(&decl_info->decl_state);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Update the end position of the declarator to include the bit field
        size construct. */
@@ -14132,12 +14185,8 @@ routine.
       }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
-    if (decl_state->gnu_attributes != NULL) {
-      pos_warning(ec_attribute_not_allowed,
-                  &decl_state->gnu_attributes->position);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Prefix attributes require a declarator. */
+    check_prefix_attributes_without_a_declarator(decl_state);
   }  /* if */
 }  /* check_missing_declarator_in_member_declaration */
 
@@ -14794,7 +14843,6 @@ passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean                         is_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    a_gnu_attribute_ptr               declarator_attributes = NULL;
     a_boolean                         is_function = FALSE;
 
     declarator_start_pos = pos_curr_token;
@@ -14917,11 +14965,7 @@ passed via template_decl.
            declarator only.  However, in reality, the GNU compiler appears
            to ignore these prefix declarator attributes altogether when they
            appear on class members.  We implement the documented behavior. */
-        scan_gnu_declarator_attributes((char**)NULL, &decl_state->asm_name_pos,
-                                       &declarator_attributes,
-                                       (a_boolean*)NULL,
-                                       decl_state->declared_storage_class,
-                                       /*is_function=*/FALSE);
+        scan_gnu_declarator_attributes(decl_state);
         if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
           /* GNU C allows VLA fields in local classes.  We will scan such
              fields in GNU C mode, but issue a warning that the field will
@@ -14936,7 +14980,7 @@ passed via template_decl.
          functions do not have an implicit "this" pointer. The class pointer
          will be ignored for data members.) */
       declarator(di_flags, decl_state, class_type, &locator, &func_info,
-                 &decl_info.decl_pos_block, &declarator_attributes);
+                 &decl_info.decl_pos_block);
       do_flags = decl_state->do_flags;
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
@@ -14957,17 +15001,8 @@ passed via template_decl.
       }  /* if */
       is_function = (!is_typedef && is_function_type(decl_state->type));
 #if GNU_EXTENSIONS_ALLOWED
-      { a_boolean  has_postfix_attributes =
-                                      (do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
-        scan_gnu_declarator_attributes(&decl_state->asm_name,
-                                       &decl_state->asm_name_pos,
-                                       &declarator_attributes,
-                                       &has_postfix_attributes,
-                                       decl_state->storage_class, is_function);
-        /* Combine the specifier and declarator attributes (they are separated
-           again at the end of the loop). */
-        *decl_state->p_gnu_declarator_attributes = declarator_attributes;
-      }
+      scan_gnu_asm_name(decl_state);
+      scan_gnu_declarator_attributes(decl_state);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     remove_stop_token(tok_colon);
@@ -15401,11 +15436,6 @@ passed via template_decl.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-    /* We are done with the declarator attributes. */
-    *decl_state->p_gnu_declarator_attributes = NULL;
-    free_gnu_attribute_list(declarator_attributes);
-#endif /* GNU_EXTENSIONS_ALLOWED */
     if (curr_token == tok_comma) {
       /* Another declarator is presumably coming next. */
       check_use_of_auto_type(decl_state);
@@ -15451,10 +15481,6 @@ next_declaration:;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  /* We are done with the prefix attributes. */
-  free_gnu_attribute_list(decl_state->gnu_attributes);
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected
        for this declaration. */
@@ -16110,9 +16136,6 @@ classes.
   a_scope_depth                   class_scope_depth;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
-  a_gnu_attribute_ptr             attributes;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
   a_routine_ptr                   rout;
 #endif /* DO_IL_LOWERING && IA64_ABI */
@@ -16585,22 +16608,23 @@ next_declaration:
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-#if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && curr_token == tok_attribute) {
-      /* Process attributes that apply to this class. */
-      attributes = f_scan_gnu_attributes(&last_token_number_of_definition,
-                                         &end_pos);
+      an_attribute_ptr  attributes =
+                            scan_gnu_attribute_groups(al_post_tag_definition);
+      if (attributes != NULL) {
+        last_token_number_of_definition = last_token_number_of_attributes;
+        end_pos = end_position_of_attributes;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (decl_pos_block != NULL) {
-        /* Update the recorded end position to the end of the attributes
-           specifier. */
-        decl_pos_block->specifiers_range.end = end_pos;
-      }  /* if */
+        if (decl_pos_block != NULL) {
+          /* Update the recorded end position to the end of the attributes
+             specifier. */
+          decl_pos_block->specifiers_range.end = curr_construct_end_position;
+        }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      apply_gnu_attributes_to_type(attributes, class_type,
-                                   /*is_typedef=*/FALSE);
+        mark_primary_decl_attributes(attributes);
+        attach_attributes(attributes, (char*)class_type, iek_type);
+      }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Issue a warning if the current token is in a file different from the
        last token of the class definition. */
     check_for_file_with_unterminated_type_definition(&end_pos);

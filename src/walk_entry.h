@@ -2345,6 +2345,7 @@ do_set_proper_definition_needed_flag:
            can be a constant, e.g., in a prototype instantiation. */
         walk_ptr(ptr->entity.ptr, a_char_ptr,
                  (an_il_entry_kind)ptr->entity.kind);
+        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
         if (ptr->is_class_member) {
           remap_ptr(ptr->qualifier.class_type, a_type_ptr, iek_type);
         } else {
@@ -2911,6 +2912,7 @@ after_entry_from_class:
                   iek_name_reference);
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
@@ -3052,11 +3054,11 @@ after_entry_from_class:
     case iek_attribute:
       { an_attribute_ptr  ptr = (an_attribute_ptr)entry_ptr;
         remap_next_ptr(ptr->next, an_attribute_ptr, iek_attribute);
-        walk_string_ptr(ptr->name, iek_other_text, 0);
-        walk_string_ptr(ptr->namespace_name, iek_other_text, 0);
+        walk_string_ptr(ptr->name, iek_id_name, 0);
+        walk_string_ptr(ptr->namespace_name, iek_id_name, 0);
         walk_list(ptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
         walk_ptr(ptr->group, an_attribute_group_ptr, iek_attribute_group);
-        conditionally_clear_fe_pointer(ptr->extra_info);
+        conditionally_clear_fe_pointer(ptr->assoc_info);
       }
       break;
     case iek_attribute_arg:
@@ -3064,7 +3066,8 @@ after_entry_from_class:
         remap_next_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
         switch (ptr->kind) {
           case aak_token:
-            walk_string_ptr(ptr->variant.token, iek_other_text, 0);
+          case aak_raw_token:
+            walk_string_ptr(ptr->variant.token, iek_id_name, 0);
             break;
           case aak_constant:
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
@@ -3229,6 +3232,7 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_name_qualifier_ptr,
                                         iek_name_qualifier);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  walk_orphan_entry_list_for_entry_kind(an_attribute_ptr, iek_attribute);
   /* Note that no orphan list walking is needed for iek_source_sequence_entry
      nor for its subordinate entries like iek_src_seq_secondary_decl
      and iek_src_seq_end_of_construct, since such entries will

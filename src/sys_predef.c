@@ -1434,7 +1434,7 @@ Enter the standard predeclared functions for GCC.
     /* If there is a predeclared va_list type use it.  (This is the case when
        GCC_BUILTIN_VARARGS is true.) */
     va_list_type = builtin_va_list_type;
-    adjust_parameter_type(&va_list_type, (a_gnu_attribute_ptr)NULL);
+    adjust_parameter_type(&va_list_type);
   } else {
 #if GCC_BUILTIN_VARARGS
     unexpected_condition();

@@ -55,6 +55,12 @@ typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
 typedef a_boolean a_typedef_visibility_test_function(a_type_ptr type);
 typedef a_typedef_visibility_test_function
                                        *a_typedef_visibility_test_function_ptr;
+typedef void an_output_attributes_function(
+                           an_attribute_ptr       attributes,
+                           an_attribute_location  syntactic_location,
+                           a_boolean              primary_only);
+typedef an_output_attributes_function *an_output_attributes_function_ptr;
+
 /* If you add a field here, add it also to
    clear_il_to_str_output_control_block. */
 typedef struct an_il_to_str_output_control_block {
@@ -112,6 +118,10 @@ typedef struct an_il_to_str_output_control_block {
 			   and FALSE otherwise (if the name_reference pointer
 			   is NULL, for instance). */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  an_output_attributes_function_ptr
+	output_attributes;
+			/* Function to output attributes.  NULL if no
+			   attributes should be output. */
   a_typedef_visibility_test_function_ptr
 	is_typedef_invisible;
 			/* Function that indicates whether a given typedef

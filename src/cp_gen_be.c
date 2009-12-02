@@ -3080,9 +3080,11 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
     }  /* if */
     set_output_position(&aap->position);
     switch (aap->kind) {
+      case aak_raw_token:
+        write_tok_str(aap->variant.token);
+        break;
       case aak_token:
         write_tok_str(aap->variant.token);
-        write_space();
         break;
       case aak_constant:
         gen_constant(aap->variant.constant, /*need_parens=*/FALSE);
@@ -3093,6 +3095,15 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
       default:
         unexpected_condition();
     }  /* switch */
+    if (aap->next != NULL) {
+      /* Another argument follows.  Separate raw tokens by whitespace, and
+         other arguments by commas. */
+      if (aap->kind == (an_attribute_arg_kind)aak_raw_token) {
+        write_space();
+      } else {
+        write_tok_str(", ");
+      }  /* if */
+    }  /* if */
   }  /* for */
   write_tok_str(")");
 }  /* gen_attribute_arg_list */
@@ -3100,40 +3111,41 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
 
 static void gen_attribute(an_attribute_ptr  ap)
 /*
-Generate the given attribute (no including the attribute group delimiters).
+Generate the given attribute (not including the attribute group delimiters).
 */
 {
-  if (ap->namespace_name != NULL) {
-    check_assertion(ap->family == (an_attribute_family)af_std);
+  if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+    if (ap->namespace_name != NULL) {
+      check_assertion(ap->family == (a_byte_attribute_family)af_std);
+      write_tok_str(ap->name);
+      write_tok_str("::");
+    }  /* if */
     write_tok_str(ap->name);
-    write_tok_str("::");
-  }  /* if */
-  write_tok_str(ap->name);
-  if (ap->arguments != NULL) {
-    gen_attribute_arg_list(ap);
+    if (ap->arguments != NULL) {
+      gen_attribute_arg_list(ap);
+    }  /* if */
   }  /* if */
 }  /* gen_attribute */
 
 
-static void gen_attribute_group_start(an_attribute_ptr  ap)
+static void gen_attribute_group_start(an_attribute_ptr  ap,
+                                      a_boolean         primary_decl)
 /*
-Generate the beginning of an attribute group.
+Generate the beginning of the attribute group associated with the given
+attribute.  If primary_decl is TRUE, this appears on a primary declaration
+(usually, a definition): This affects the rendering of whitespace for
+al_id_equivalent attributes.
 */
 {
   check_assertion(ap->group != NULL);
   set_output_position(&ap->group->position);
   /* Depending on the syntactic location, a space is added at the front or
      the end of the group (for aesthetic reasons). */
-  switch (ap->syntactic_location) {
-    case al_prefix:
-      /* No leading space. */
-      break;
-    case al_declarator_id:
-      write_space();
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+  if (ap->syntactic_location != (a_byte_attribute_location)al_prefix &&
+      (ap->syntactic_location != (a_byte_attribute_location)al_id_equivalent ||
+       !primary_decl)) {
+    write_space();
+  }  /* if */
   switch (ap->family) {
     case af_std:
       write_tok_str("[[");
@@ -3150,9 +3162,13 @@ Generate the beginning of an attribute group.
 }  /* gen_attribute_group_start */
 
 
-static void gen_attribute_group_end(an_attribute_ptr  ap)
+static void gen_attribute_group_end(an_attribute_ptr  ap,
+                                    a_boolean         primary_decl)
 /*
-Generate the end of an attribute group.
+Generate the end of the attribute group associated with the given attribute.
+If primary_decl is TRUE, this appears on a primary declaration (usually, a
+definition): This affects the rendering of whitespace for al_id_equivalent
+attributes.
 */
 {
   switch (ap->family) {
@@ -3170,22 +3186,17 @@ Generate the end of an attribute group.
   }  /* switch */
   /* Depending on the syntactic location, a space is added at the front or
      the end of the group (for aesthetic reasons). */
-  switch (ap->syntactic_location) {
-    case al_prefix:
-      write_space();
-      break;
-    case al_declarator_id:
-      /* No trailing space. */
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+  if (ap->syntactic_location == (a_byte_attribute_location)al_prefix ||
+      (ap->syntactic_location == (a_byte_attribute_location)al_id_equivalent &&
+       primary_decl)) {
+    write_space();
+  }  /* if */
 }  /* gen_attribute_group_end */
 
 
-static void gen_attributes(an_attribute_ptr                attributes,
-                           enum an_attribute_location_tag  syntactic_location,
-                           a_boolean                       primary_only)
+static void gen_attributes(an_attribute_ptr       attributes,
+                           an_attribute_location  syntactic_location,
+                           a_boolean              primary_only)
 /*
 Generate the non-internal attributes with the given syntactic location recorded
 in the given list.  If primary_only is TRUE, only generate attributes that are
@@ -3196,20 +3207,26 @@ marked as being associated with the primary declaration.
   an_attribute_group_ptr  agp = NULL;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (ap->family == (an_attribute_family)af_internal) continue;
-    if (ap->syntactic_location != (an_attribute_location)syntactic_location) {
+    /* Internal attributes didn't appear in the source: Don't render them. */
+    if (ap->family == (a_byte_attribute_family)af_internal) continue;
+    /* al_explicit indicates that all non-implicit attributes should be
+       rendered. */
+    if (ap->syntactic_location !=
+                              (a_byte_attribute_location)syntactic_location &&
+        !(syntactic_location == al_explicit &&
+          ap->syntactic_location != (a_byte_attribute_location)al_implicit)) {
       continue;
     }  /* if */
     if (primary_only && !ap->on_primary_declaration) continue;
     if (ap->group != agp) {
-      gen_attribute_group_start(ap);
+      gen_attribute_group_start(ap, primary_only);
       agp = ap->group;
     } else {
       write_tok_str(", ");
     }  /* if */
     gen_attribute(ap);
     if (ap->next == NULL || ap->group != ap->next->group) {
-      gen_attribute_group_end(ap);
+      gen_attribute_group_end(ap, primary_only);
     }  /* if */
   }  /* if */
 }  /* gen_attributes */
@@ -3976,11 +3993,14 @@ Otherwise, just return "type".
 
 
 static void gen_tag_reference(a_type_ptr             type,
-                              a_gen_name_options_set options)
+                              a_gen_name_options_set options,
+                              an_attribute_ptr       attributes)
 /*
 Generate a reference to the indicated type, which is a class, struct, union,
 or enum; options may be GN_DECLARATION if the reference is in a secondary
 declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
+attributes lists attributes associated with this reference: Render only the
+al_tag_name attributes (if any).
 */
 {
   a_source_sequence_scan_state saved_state;
@@ -4028,6 +4048,7 @@ declaration ("struct S;") or GN_NO_OPTIONS for other kinds of reference.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     write_tok_str(tag_kind_str);
+    gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target &&
@@ -4243,7 +4264,8 @@ A reference is not the definition.
       gen_possibly_dependent_type_name(orig_type);
     } else {
       /* Use an elaborated type specifier, e.g., "class X". */
-      gen_tag_reference(type, (a_gen_name_options_set)GN_NO_OPTIONS);
+      gen_tag_reference(type, (a_gen_name_options_set)GN_NO_OPTIONS,
+                        (an_attribute_ptr)NULL);
     }  /* if */
   }  /* if */
 }  /* gen_type_reference */
@@ -4623,10 +4645,6 @@ default arguments should be suppressed (needed for template specializations).
                                           /*suppress_specifiers=*/FALSE,
                                           GDO_NO_OPTIONS,
                                           (a_name_reference_ptr)NULL);
-#if GNU_EXTENSIONS_ALLOWED
-          (void)form_variable_attributes(param_var,
-                                         /*need_leading_space=*/TRUE, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (msvc_is_generated_code_target &&
@@ -4991,6 +5009,8 @@ is the one associated with the definition of the enum.
   } else {
     write_tok_str("enum");
   }  /* if */
+  gen_attributes(type->source_corresp.attributes, al_tag_name,
+                 /*primary_only=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_dialect_is_generated_code_target &&
       type->variant.integer.uuid_string != NULL) {
@@ -5135,10 +5155,8 @@ is the one associated with the definition of the enum.
     adv_curr_source_sequence_entry();
   }
   write_tok_ch('}');
-#if GNU_EXTENSIONS_ALLOWED
-  /* Emit any attributes associated with the type. */
-  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
+                 /*primary_only=*/TRUE);
 }  /* gen_enum_definition */
 
 
@@ -5367,14 +5385,15 @@ of a comma list, and *another_decl_in_comma_list is returned TRUE if the
 declaration following this one is such a continuation.
 */
 {
-  a_field_ptr field = ss_entry_ptr(curr_source_sequence_entry, a_field_ptr);
+  a_field_ptr       field =
+                        ss_entry_ptr(curr_source_sequence_entry, a_field_ptr);
+  an_attribute_ptr  attributes = field->source_corresp.attributes;
 
   /* Advance past the source sequence entry for the field. */
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&field->source_corresp);
-  gen_attributes(field->source_corresp.attributes, al_prefix,
-                 /*primary_only=*/FALSE);
+  gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
   if (field->source_corresp.marked_as_gnu_extension) {
     write_tok_str("__extension__ ");
@@ -5424,9 +5443,8 @@ declaration following this one is such a continuation.
       write_unsigned_num((unsigned long)field->bit_size);
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  gen_attributes(attributes, al_postfix, /*primary_only=*/FALSE);
+  gen_attributes(attributes, al_id_equivalent, /*primary_only=*/FALSE);
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                                (a_name_linkage_kind)nlk_none);
@@ -5639,6 +5657,8 @@ is the one associated with the definition of the class.
   set_output_position(&type->source_corresp.decl_position);
   /* Put out the tag kind, e.g., "class". */
   write_tok_str(tag_keyword(type));
+  gen_attributes(type->source_corresp.attributes, al_tag_name,
+                 /*primary_only=*/TRUE);
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_dialect_is_generated_code_target) {
@@ -5647,12 +5667,6 @@ is the one associated with the definition of the class.
     gen_microsoft_class_decl_modifiers(type, /*is_definition=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  /* Emit any attributes associated with the type. */
-  if (form_type_attributes(type, /*need_leading_space=*/FALSE, &octl)) {
-    write_space();
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   gen_sun_link_scope_specifiers(ctsp->decl_modifiers);
 #endif /* SUN_EXTENSIONS_ALLOWED */
@@ -5741,6 +5755,8 @@ is the one associated with the definition of the class.
   }
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
+  gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
+                 /*primary_only=*/TRUE);
 }  /* gen_class_definition */
 
 
@@ -5760,11 +5776,9 @@ of a comma list, and *another_decl_in_comma_list is returned TRUE if the
 declaration following this one is such a continuation.
 */
 {
-  a_type_ptr under_type;
-  a_boolean  anon_union_case = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-  a_boolean  need_leading_space = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  a_type_ptr        under_type;
+  a_boolean         anon_union_case = FALSE;
+  an_attribute_ptr  attributes;
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
@@ -5781,8 +5795,10 @@ declaration following this one is such a continuation.
       anon_union_case = TRUE;
       under_type = (a_type_ptr)sec_decl->entity.ptr;
     }  /* if */
+    attributes = sec_decl->attributes;
   } else {
     under_type = type->variant.typeref.type;
+    attributes = type->source_corresp.attributes;
   }  /* if */
   /* Advance past the source sequence entry for the typedef itself. */
   /* This does not use check_for_and_take_source_seq_entry on purpose,
@@ -5790,6 +5806,7 @@ declaration following this one is such a continuation.
      and this routine is called for each one. */
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
+  gen_attributes(attributes, al_prefix, sec_decl != NULL);
   if (anon_union_case) {
     /* The strange nonstandard anonymous union case described above. */
     gen_type_name(under_type);
@@ -5846,22 +5863,13 @@ declaration following this one is such a continuation.
                                          suppress_specifiers,
                                          GDO_NO_OPTIONS,
                                          (a_name_reference_ptr)NULL);
-#if GNU_EXTENSIONS_ALLOWED
-      /* Emit any attributes associated with the typedef. */
-#if GNU_VECTOR_TYPES_ALLOWED
-      octl.defer_vector_attribute = FALSE;
-      if (under_type->kind == (a_type_kind)tk_vector) {
-        /* Put out the vector size attribute that was deferred. */
-        form_vector_type_attribute(under_type, &need_leading_space, &octl);
-      }  /* if */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-      (void)form_type_attributes(type, need_leading_space, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                         type->variant.typeref.surrounding_name_linkage_state);
   }  /* if */
+  gen_attributes(attributes, al_postfix, sec_decl != NULL);
+  gen_attributes(attributes, al_id_equivalent, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
 }  /* gen_typedef_definition */
 
@@ -6125,6 +6133,7 @@ this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  an_attribute_ptr             attributes = NULL;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -6141,6 +6150,7 @@ this one is such a continuation.
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = sec_decl->specialized_with_new_syntax;
+    attributes = sec_decl->attributes;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
       assoc_template = ss_entry_ptr(curr_source_sequence_entry,
@@ -6321,7 +6331,7 @@ this one is such a continuation.
         type->has_been_declared = TRUE;
       }  /* if */
       saved_has_been_declared = type->has_been_declared;
-      gen_tag_reference(type, options | GN_DECLARATION);
+      gen_tag_reference(type, options | GN_DECLARATION, attributes);
       if (friend_decl) {
         /* Don't set type->has_been_declared for a friend declaration: it will
            not be visible until it is really declared and so will require an
@@ -10132,21 +10142,15 @@ Generate code for a namespace definition or namespace alias declaration.
 {
   a_src_seq_secondary_decl_ptr sec_decl;
   a_namespace_ptr              nsp;
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  an_ELF_visibility_kind       ELF_visibility, saved_ELF_visibility;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  an_attribute_ptr             attributes = NULL;
 
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     nsp = ss_entry_ptr(sec_decl, a_namespace_ptr);
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    ELF_visibility = sec_decl->ELF_visibility;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    attributes = sec_decl->attributes;
   } else {
     nsp = ss_entry_ptr(curr_source_sequence_entry, a_namespace_ptr);
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    ELF_visibility = nsp->ELF_visibility;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    attributes = nsp->source_corresp.attributes;
   }  /* if */
   /* Advance past the source sequence entry for the namespace. */
   adv_curr_source_sequence_entry();
@@ -10158,20 +10162,7 @@ Generate code for a namespace definition or namespace alias declaration.
     /* Put out the name of the namespace. */
     gen_unqualified_name(&nsp->source_corresp, iek_namespace);
   }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  /* Save the ELF visibility associated with the primary namespace definition,
-     and store the current visibility in the namespace entry.  Declarations
-     generated within this definition can then easily retrieve the relevant
-     ELF visibility. */
-  saved_ELF_visibility = nsp->ELF_visibility;
-  nsp->ELF_visibility = ELF_visibility;
-  if (gcc_is_generated_code_target) {
-    a_boolean need_leading_space = TRUE;
-    form_ELF_visibility_attribute(
-                            ELF_visibility, &nsp->source_corresp,
-                            &need_leading_space, &octl);
-  }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  gen_attributes(attributes, al_namespace, sec_decl == NULL);
   if (nsp->is_namespace_alias) {
     /* A namespace alias declaration, e.g.,
          namespace alias_name = existing_name;
@@ -10205,11 +10196,6 @@ Generate code for a namespace definition or namespace alias declaration.
     pop_name_context();
     write_tok_ch('}');
   }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  /* Restore the ELF visibility associated with the primary namespace
-     definition in this translation unit. */
-  nsp->ELF_visibility = saved_ELF_visibility;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* gen_namespace */
 
 
@@ -10227,6 +10213,7 @@ Generate code for a namespace "using" directive.
   write_tok_str("using namespace ");
   gen_name(&nsp->source_corresp, iek_namespace, GN_USING_DIRECTIVE,
            (a_boolean *)NULL);
+  gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
   write_tok_ch(';');
 }  /* gen_using_directive */
 
@@ -10295,6 +10282,7 @@ Generate code for a class member or nonmember using-declaration.
     }  /* if */
   }  /* if */
   gen_unqualified_name(scp, entry_kind);
+  gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
   write_tok_ch(';');
 }  /* gen_using_declaration */
 
@@ -10498,7 +10486,8 @@ Generate code for an instantiation directive.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Allow qualified names in instantiation directives. */
           class_type->has_been_declared = TRUE;
-          gen_tag_reference(class_type, (a_gen_name_options_set)GN_NO_OPTIONS);
+          gen_tag_reference(class_type, (a_gen_name_options_set)GN_NO_OPTIONS,
+                            (an_attribute_ptr)NULL);
           write_tok_ch(';');
         }
         break;
@@ -11089,11 +11078,8 @@ one that yields the value) of a statement expression.
       gen_unqualified_name(&statement->variant.label.ptr->source_corresp,
                            iek_label);
       write_tok_ch(':');
-#if GNU_EXTENSIONS_ALLOWED
-      /* Emit attributes associated with the label. */
-      (void)form_label_attributes(statement->variant.label.ptr,
-                                  /*need_leading_space=*/TRUE, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+      gen_attributes(statement->variant.label.ptr->source_corresp.attributes,
+                     al_label, /*primary_only=*/FALSE);
       write_tok_ch(';');
       break;
     case stmk_return:
@@ -11704,6 +11690,8 @@ initialization is in a condition declaration if is_condition is TRUE.
       default:
         unexpected_condition_str("gen_initializer: bad init kind");
     }  /* switch */
+    gen_attributes(var->source_corresp.attributes, al_post_initializer,
+                   /*primary_only=*/TRUE);
     if (context_pop_required) {
       /* Pop the name context for a class/namespace member. */
       pop_name_context_if_member(&var->source_corresp);
@@ -11742,7 +11730,6 @@ declaration following this one is such a continuation.
   a_template_ptr	       assoc_template;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
-  a_boolean                    attributes_follow_initializer = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_name_reference_ptr         name_ref = NULL;
   an_attribute_ptr             attributes;
@@ -12044,54 +12031,12 @@ declaration following this one is such a continuation.
   } else {
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
-  {
-    a_variable_ptr  aliased_variable = var->aliased_variable;
-    if (sec_decl != NULL && !sec_decl->has_alias_attribute) {
-      /* Temporarily disable the "alias" attribute if the current source
-         sequence entry does not correspond to a declaration with such an
-         attribute. */
-      var->aliased_variable = NULL;
-    }  /* if */
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-    if (is_definition && var->has_parenthesized_initializer &&
-        gcc_is_generated_code_target && gnu_target_version_number < 30400) {
-      /* Versions of g++ prior to 3.4 give a syntax error if attributes
-         precede a parenthesized initializer.  (Note that member constants
-         use the "=" form, so they are not affected by this issue;
-         has_parenthesized_initializer will always be FALSE, so a member
-         constant never ends up here.) */
-      attributes_follow_initializer = TRUE;
-    } else 
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
-    /* Do not insert code here. */
-    {
-      /* Emit attributes associated with this variable. */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-      a_gnu_init_priority saved_init_priority = var->init_priority;
-      if (!is_definition) {
-        /* The init_priority attribute is allowed only on definitions.
-           Suppress it from this non-definition declaration. */
-        var->init_priority = 0;
-      }  /* if */
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-      (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-      /* Restore the init_priority attribute for use in the defining
-         declaration. */
-      var->init_priority = saved_init_priority;
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    }  /* if */
-    var->aliased_variable = aliased_variable;
-  }
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  gen_attributes(attributes, al_postfix, is_definition);
+  gen_attributes(attributes, al_id_equivalent, is_definition);
   /* Output the initializer, if any. */
   if (consider_initialization) {
     gen_initializer(var, is_condition);
-#if GNU_EXTENSIONS_ALLOWED
-    if (attributes_follow_initializer) {
-      (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (embedded_constructs) {
     /* Skip the end-of-construct marker.  Also skip preprocessing directives
@@ -12976,6 +12921,9 @@ handle_as_definition:
     /* Attributes should appear after extern "..." but before storage class
        specifiers. */
     gen_attributes(attributes, al_prefix, is_definition);
+    if (is_definition) {
+      gen_attributes(attributes, al_id_equivalent, is_definition);
+    }  /* if */
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
@@ -13030,16 +12978,6 @@ handle_as_definition:
                             !out_of_class_redecl) ||
                            (decl_scope_of(&rout->source_corresp) ==
                                                curr_name_context->assoc_scope);
-#if GNU_EXTENSIONS_ALLOWED
-  if (is_definition) {
-    /* Emit attributes associated with the routine.  For definitions, the
-       attributes must be part of the specifier.  For nondefining declarations,
-       we put them after the declarator (see below). */
-    if (form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl)) {
-      write_space();
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate a declaration for the routine name with the right type. */
   in_friend_declaration = friend_decl;
   gen_routine_specifiers_and_declaration(rout, rout_type,
@@ -13081,19 +13019,14 @@ handle_as_definition:
 #if GNU_EXTENSIONS_ALLOWED
     /* Emit any user-specified assembly symbol for this routine. */
     form_asm_name(rout->asm_name, &octl);
-    {
-      a_routine_ptr  aliased_routine = rout->aliased_routine;
-      if (sec_decl != NULL && !sec_decl->has_alias_attribute) {
-        /* Temporarily disable the "alias" attribute if the current source
-           sequence entry does not correspond to a declaration with such an
-           attribute. */
-        rout->aliased_routine = NULL;
-      }  /* if */
-      /* Emit attributes associated with the routine. */
-      (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
-      rout->aliased_routine = aliased_routine;
-    }
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    gen_attributes(attributes, al_postfix, is_definition);
+    if (!is_definition) {
+      /* "Id-equivalent attributes" are best rendered at the end of a
+         declarator, except for function definitions (where postfix attributes
+         are not allowed). */
+      gen_attributes(attributes, al_id_equivalent, is_definition);
+    }  /* if */
     /* For a pure virtual function, add "= 0".  (If the "abstract" function
        modifier has been generated already do not output the "= 0" since it
        would be redundant.) */
@@ -13492,6 +13425,7 @@ Initialize for the C++/C-generating back end.
 #if RECORD_FORM_OF_NAME_REFERENCE
   octl.output_name_reference = gen_name_from_name_reference;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  octl.output_attributes = gen_attributes;
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;

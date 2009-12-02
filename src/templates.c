@@ -2778,6 +2778,18 @@ might not be able to if the template itself has not yet been defined.
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
                                               PS_NO_OPTIONS);
+/* FIXME XXX: verify -- partial specializations? */
+      if (tssp->attributes != NULL) {
+        /* Some attributes appeared on the definition.  Apply them to the
+           instantiated class. */
+        an_attribute_ptr  ap;
+        ap = copy_of_attributes_with_substitution(
+                   tssp->attributes, tssp->cache.decl_info->parameters,
+                   template_arg_list, CTWS_NO_OPTIONS, (a_boolean*)NULL);
+        attach_tag_attributes(ap, class_type, /*is_definition=*/TRUE,
+                              /*is_forward_decl=*/FALSE,
+                              /*ignore_gnu_attributes=*/FALSE);
+      }  /* if */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -3401,15 +3413,13 @@ A pointer to the head of the list is returned in tcsp.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
-#if GNU_EXTENSIONS_ALLOWED
   if (tssp->attributes != NULL) {
-    /* When parsing the template, some attributes were encountered
-       between the class-key ("class", "struct", or "union") and the
-       class template name. */
-    apply_gnu_attributes_to_type(tssp->attributes, prototype_type,
-                                 /*is_typedef=*/FALSE);
+    /* When parsing the template, some attributes were encountered between the
+       class-key ("class", "struct", or "union") and the template name. */
+    attach_tag_attributes(tssp->attributes, prototype_type,
+                          /*is_definition=*/TRUE, /*is_forward_decl=*/FALSE,
+                          /*ignore_gnu_attributes=*/FALSE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Scan the base specifiers list, if any, and the body of the class.
      The pending class definition counter is incremented while processing
      the instantiation.  This ensures that the fixup of the instantiation
@@ -3708,7 +3718,7 @@ user later during real instantiations.
 
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
-#if GNU_EXTENSIONS_ALLOWED
+#if /*FIXME*/0 && GNU_EXTENSIONS_ALLOWED
   if (dps->gnu_attributes != NULL) {
     /* Allow the attributes specified to modify the type with which the
        static data member was defined. */
@@ -4442,7 +4452,8 @@ and the class instantiation will detect the runaway case.
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
-#if GNU_EXTENSIONS_ALLOWED
+/* FIXME XXX: Write equivalent; *dps missing? */
+#if /*FIXME*/0 && GNU_EXTENSIONS_ALLOWED
   if (tssp->attributes != NULL) {
     apply_gnu_attributes_to_variable(tssp->attributes, var_ptr,
                                      /*is_definition=*/TRUE);
@@ -5195,7 +5206,7 @@ prototype instantiation is considered as a potential match.
                                              class_type);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
+#if /*FIXME*/0 && GNU_EXTENSIONS_ALLOWED
       if (tssp->attributes != NULL) {
         /* When parsing the template, some attributes were encountered
            between the class-key ("class", "struct", or "union") and the
@@ -7709,7 +7720,7 @@ make_new_type:
           if (tp != ptp->type) {
             /* The type is not the one originally pointed to.  Adjust
                the parameter type, if needed. */
-            adjust_parameter_type(&tp, (a_gnu_attribute_ptr)NULL);
+            adjust_parameter_type(&tp);
             if (remove_qualifiers_from_param_types) { /* Strip off
                  top-level type qualifiers.  They are not part of the
                  type signature of a C++ function -- see 8.3.5 para 3.
@@ -8540,7 +8551,7 @@ information.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, state, parent_class, locator, func_info,
-               decl_pos_block, &state->gnu_attributes);
+               decl_pos_block);
     check_use_of_auto_type(state);
     remove_declarator_sse(state, depth_scope_stack);
     if (decl_scope_err) {
@@ -8993,9 +9004,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     a_source_position	        locator_position;
 #endif /* DECL_MODIFIERS_IN_USE */
     a_template_cache_ptr        tcp;
-#if GNU_EXTENSIONS_ALLOWED
-    a_gnu_attribute_ptr         attributes = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
@@ -9060,9 +9068,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #if DECL_MODIFIERS_IN_USE
       /* Note that locator_position is not updated in this case. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
-      attributes = tssp->attributes;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       a_decl_parse_state  state;
       a_func_info_block	  func_info;
@@ -9079,9 +9084,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 				/*is_specialization=*/FALSE, &locator,
                                 &func_info, templ_rout, tip, &decl_pos_block);
       rout_type = state.type;
-#if GNU_EXTENSIONS_ALLOWED
-      attributes = state.gnu_attributes;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the prototype scope symbols in the instance pointer. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -9143,17 +9145,23 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                               sym, &sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);
-    /* We use the attributes copied from the prototype instantiation rather
-       than scanning them from the cache.  That ensures that we pick up the
-       complete set of attributes that might have been specified.  E.g.:
-         template<class T> [[noreturn]] void f();
-         template<class T> void f() { throw 1; }  // Implicit [[noreturn]]
-         template void f<int>();  // No attributes in cache, but
-                                  // templ_rout->source_corresp.attributes is
-                                  // not null.
-    */
-    rp->source_corresp.attributes =
-               copy_of_attributes_list(templ_rout->source_corresp.attributes);
+    if (templ_rout->source_corresp.attributes != NULL) {
+      /* We use the attributes copied from the prototype instantiation rather
+         than scanning them from the cache.  That ensures that we pick up the
+         complete set of attributes that might have been specified.  E.g.:
+           template<class T> [[noreturn]] void f();
+           template<class T> void f() { throw 1; }  // Implicit [[noreturn]]
+           template void f<int>();  // No attributes in cache, but
+                                    // templ_rout->source_corresp.attributes is
+                                    // not null.
+      */
+      an_attribute_ptr  inst_attr;
+      inst_attr = copy_of_attributes_with_substitution(
+                       templ_rout->source_corresp.attributes,
+                       tssp->variant.function.decl_cache.decl_info->parameters,
+                       templ_arg_list, CTWS_NO_OPTIONS, (a_boolean*)NULL);
+      attach_attributes(inst_attr, (char*)rp, iek_routine);
+    }  /* if */
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;
@@ -9168,9 +9176,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
-      if (attributes != NULL) {
-        apply_gnu_attributes_to_routine(attributes, rp, /*is_redecl=*/FALSE);
-      }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       if (rp->source_corresp.is_class_member &&
           rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
@@ -11991,9 +11996,7 @@ declaration of a partial specialization declared outside of its class.
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  a_gnu_attribute_ptr               attributes = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  an_attribute_ptr                  attributes = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                         saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -12058,13 +12061,7 @@ declaration of a partial specialization declared outside of its class.
                                  &extended_decl_info, &err);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  if (curr_token == tok_attribute) {
-    /* Attributes embedded in the elaborated name.  They will be recorded
-       in the template symbol supplement later on. */
-    attributes = scan_gnu_attributes();
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  attributes = scan_attributes(al_tag_name);
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                        GID_USE_PROTOTYPE_NOT_NONREAL |
@@ -12638,6 +12635,11 @@ friend_template_checks_done:
        is never done. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           decl_state->is_partial_specialization);
+    
+  }  /* if */
+/* XXX: primary attributes and attaching secondary to secondary SSEs? */
+  if (tssp->attributes == NULL || is_definition) {
+    tssp->attributes = attributes;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -12652,20 +12654,6 @@ friend_template_checks_done:
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL) {
-    /* If this is a class template definition, record the attributes so they
-       can be applied at instantiation time. */
-    if (is_definition) {
-      check_assertion(tssp->attributes == NULL);
-      tssp->attributes = attributes;
-    } else {
-      pos_warning(ec_attribute_ignored_on_incomplete_class_decl,
-                  &attributes->position);
-      free_gnu_attribute_list(attributes);
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_state->is_partial_specialization && !is_redecl) {
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
@@ -12737,9 +12725,9 @@ friend_template_checks_done:
         (void)get_token();
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gnu_mode && curr_token == tok_attribute) {
+      if (gnu_attributes_enabled && curr_token == tok_attribute) {
         decr_token_set_array_element(stop_tokens, tok_rbrace);
-        /* Cache the __atribute__ token and the next token (which should be
+        /* Cache the __attribute__ token and the next token (which should be
            a left parenthesis).  Then scan (and cache) through the matching
            right parenthesis. */
         cache_curr_token(definition_token_cache);
@@ -13156,7 +13144,7 @@ depends on a template parameter type, return TRUE in *template_dependent
                   &state, &decl_pos_block);
   if (state.dso_flags & DSO_DEFINES_SOMETHING) {
     pos_error(ec_type_definition_not_allowed, &state.start_pos);
-    state.type = error_type();
+    invalidate_type(&state);
   }  /* if */
   if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
@@ -13170,8 +13158,7 @@ depends on a template parameter type, return TRUE in *template_dependent
               DI_ABSTRACT_DECLARATOR_ALLOWED |
               DI_IS_TEMPLATE_PARAM_DECL),
              &state, /*member_parent_type=*/(a_type_ptr)NULL, param_locator,
-             (a_func_info_block_ptr)NULL, &decl_pos_block,
-             (a_gnu_attribute_ptr *)NULL);
+             (a_func_info_block_ptr)NULL, &decl_pos_block);
   if (is_unnamed != NULL) {
     /* Return a flag indicating whether the parameter is unnamed. */
     *is_unnamed = (state.do_flags & DO_REAL_DECLARATOR_SCANNED) == 0;
@@ -13186,7 +13173,7 @@ depends on a template parameter type, return TRUE in *template_dependent
   }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
-  adjust_parameter_type(&state.type, (a_gnu_attribute_ptr)NULL);
+  adjust_parameter_type(&state.type);
   /* Check for illegal nontype parameter types.  Template parameters of
      void type, class type, and floating point type are not permitted
      by the standard.  Floating point template parameters are still
@@ -13200,19 +13187,19 @@ depends on a template parameter type, return TRUE in *template_dependent
     pos_error(ec_void_template_parameter, &state.start_pos);
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types. */
-    state.type = error_type();
+    invalidate_type(&state);
   } else if (is_class_struct_union_type(tp)) {
     /* A template parameter cannot have class type. */
     pos_error(ec_template_parameter_has_class_type, &state.start_pos);
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types.  In particular,
        nontype parameters with incomplete class types are problematic. */
-    state.type = error_type();
+    invalidate_type(&state);
   } else if (rvalue_references_enabled && is_rvalue_reference_type(tp)) {
     /* A template parameter cannot have an rvalue reference type as there is
        no way it could be used. */
     pos_error(ec_rvalue_ref_template_parameter, &state.start_pos);
-    state.type = error_type();
+    invalidate_type(&state);
   } else if (tp->kind == (a_type_kind)tk_float) {
     if (!floating_point_template_parameters_allowed) {
       /* A floating-point template parameter type is no longer allowed
@@ -13228,7 +13215,7 @@ depends on a template parameter type, return TRUE in *template_dependent
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (tp->kind == (a_type_kind)tk_vector) {
     pos_error(ec_vector_template_parameter, &state.start_pos);
-    state.type = error_type();
+    invalidate_type(&state);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
   *param_type_ptr = state.type;
@@ -13460,7 +13447,7 @@ parameter entry for the parameter.
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
 			     /*is_friend_decl=*/FALSE);
-    if (microsoft_mode) {
+    if (microsoft_mode && !nonclass_prototype_instantiations) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done. */
       def_arg_involves_template_param = TRUE;
@@ -15793,16 +15780,7 @@ the declaration token cache.
       prescan_decl_modifiers();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
-    if (curr_token == tok_attribute) {
-      /* Skip over any GNU attributes. */
-      (void)get_token();
-      if (curr_token == tok_lparen) {
-        flush_until_matching_token();
-        (void)get_token();
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    skip_over_attributes();
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
                                         GID_IS_TEMPLATE_PRESCAN |
@@ -16251,9 +16229,6 @@ any non-empty template parameter lists that were scanned.
            attributes that will need to be applied during instantiation. */
         if (tssp != NULL) {
           p_template_body_cache = &tssp->cache.tokens;
-#if GNU_EXTENSIONS_ALLOWED
-          tssp->attributes = dps->gnu_attributes;
-#endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
       } else if (is_function_type(dps->type)) {
         sym = function_template_declaration(decl_state, &locator, &func_info);
@@ -16791,7 +16766,6 @@ that follows.
   a_source_correspondence       *scp;
   a_routine_ptr                 rp;
   a_variable_ptr                vp;
-  a_boolean			is_definition;
   a_boolean			is_constructor = FALSE;
   a_decl_pos_block              decl_pos_block;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16805,7 +16779,8 @@ that follows.
   /* The pragmas were extracted before the "template <>" was scanned.
      Reactivate them now. */
   reactivate_curr_construct_pragmas(decl_state->pragmas_bound_to_template);
-  /* First scan the decl-specifiers. */
+  /* First scan the prefix attributes and decl-specifiers. */
+  dps->prefix_attributes = scan_attributes(al_prefix);
   dsi_flags = DSI_IS_SPECIALIZATION | DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
               DSI_INLINE_ALLOWED    | DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
               DSI_TYPE_SPECIFIER_ALLOWED;
@@ -16909,7 +16884,7 @@ that follows.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, dps, decl_state->class_declared_in, &locator,
-               &func_info, &decl_pos_block, dps->p_gnu_declarator_attributes);
+               &func_info, &decl_pos_block);
     do_flags = dps->do_flags;
     sym = NULL;
     has_parenthesized_initializer =
@@ -17028,8 +17003,8 @@ that follows.
         vp->type = composite_type(vp->type, dps->type);
         /* The Microsoft compiler treats a static data member specialization
            declaration as a definition. */
-        is_definition = (microsoft_bugs || curr_token == tok_assign ||
-                         has_parenthesized_initializer);
+        dps->is_definition = (microsoft_bugs || curr_token == tok_assign ||
+                              has_parenthesized_initializer);
       } else {
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                         sym->kind == (a_symbol_kind)sk_member_function);
@@ -17047,7 +17022,7 @@ that follows.
             func_info.is_defaulted = TRUE;
           }  /* if */
         }  /* if */
-        is_definition = (curr_token == tok_lbrace ||
+        dps->is_definition = (curr_token == tok_lbrace ||
                          curr_token == tok_try ||
                          (curr_token == tok_colon && is_constructor) ||
                          func_info.is_deleted || func_info.is_defaulted);
@@ -17093,7 +17068,7 @@ that follows.
                              &tip->pos_of_first_reference, sym);
           if (severity == es_error) sym = NULL;
         }  /* if */
-      } else if (is_definition && sym->defined) {
+      } else if (dps->is_definition && sym->defined) {
         /* The entity has already been defined. */
         if (microsoft_bugs && microsoft_version == 1200 && rp != NULL &&
             already_specialized) {
@@ -17114,7 +17089,7 @@ that follows.
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
           sym = NULL;
         }  /* if */
-      } else if (!already_specialized || is_definition) {
+      } else if (!already_specialized || dps->is_definition) {
         scp->decl_position = dps->declarator_pos;
       }  /* if */
     }  /* if */
@@ -17140,7 +17115,7 @@ that follows.
       prev_sym_pos = sym->decl_position;
 #endif /* DECL_MODIFIERS_IN_USE */
       dps->sym = sym;
-      if (is_definition) {
+      if (dps->is_definition) {
         srk_flags |= SRK_DEFINITION;
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
           srk_flags |= SRK_INITIALIZATION;
@@ -17158,9 +17133,9 @@ that follows.
                                 dps->source_sequence_entry);
       /* If this is not a definition, set the decl_position.  For definitions,
          it will be set by record_symbol_declaration. */
-      if (!is_definition) sym->decl_position = scp->decl_position;
+      if (!dps->is_definition) sym->decl_position = scp->decl_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (is_definition || first_decl) {
+      if (dps->is_definition || first_decl) {
         update_decl_pos_info(scp, &decl_pos_block);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -17175,7 +17150,7 @@ that follows.
         a_name_reference_ptr  name_ref = NULL;
         /* Do fixup on the source sequence entry that was just created to
            represent the current declaration. */
-        if (!is_definition) {
+        if (!dps->is_definition) {
           an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
 #if RECORD_FORM_OF_NAME_REFERENCE
           name_ref = qualifiable_name_reference(&locator, scp);
@@ -17202,14 +17177,9 @@ that follows.
           /* Inline may not be specified. */
           pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
         }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-        if (dps->gnu_attributes != NULL) {
-          apply_gnu_attributes_to_variable(dps->gnu_attributes, vp,
-                                           is_definition);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+        attach_decl_attributes(dps, dps->is_definition);
         /* Deal with initializer. */
-        if (is_definition) {
+        if (dps->is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
           sym->variant.static_data_member.variable->storage_class =
@@ -17249,7 +17219,7 @@ that follows.
 #if GNU_EXTENSIONS_ALLOWED
           if (gpp_mode && has_parenthesized_initializer &&
               curr_token == tok_attribute) {
-            gnu_attributes_after_parenthesized_initializer(vp);
+            gnu_attributes_after_parenthesized_initializer(vp, dps);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         }  /* if */
@@ -17265,7 +17235,8 @@ that follows.
           sym->decl_position = prev_sym_pos;
           update_variable_decl_modifiers(vp, &dps->decl_modifiers,
                                          &locator.source_position,
-                                         already_specialized, is_definition);
+                                         already_specialized,
+                                         dps->is_definition);
           sym->decl_position = saved_sym_pos;
         }
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -17290,7 +17261,7 @@ that follows.
           name_ref = qualifiable_name_reference(&locator, scp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
-          if (is_definition) {
+          if (dps->is_definition) {
             /* The defining declaration of the routine.  Record the declared
                type and the form of the declarator. */
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -17364,7 +17335,8 @@ that follows.
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_internal;
         } else {
-          rp->storage_class = is_definition? (a_storage_class)sc_unspecified :
+          rp->storage_class =
+                         dps->is_definition? (a_storage_class)sc_unspecified :
                                              (a_storage_class)sc_extern;
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
@@ -17373,8 +17345,7 @@ that follows.
           func_info.function_type_from_typedef = TRUE;
           dps->type = skip_typerefs(dps->type);
         }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-        if (dps->gnu_attributes != NULL) {
+        if (dps->prefix_attributes != NULL || dps->id_attributes != NULL) {
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           an_ELF_visibility_kind  saved_ELF_visibility = rp->ELF_visibility;
           if (!already_specialized) {
@@ -17386,9 +17357,7 @@ that follows.
             rp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
           }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-          /* Apply the attributes to the routine. */
-          apply_gnu_attributes_to_routine(dps->gnu_attributes, rp,
-                                          already_specialized);
+          attach_decl_attributes(dps, dps->is_definition);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           if (!already_specialized &&
               rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
@@ -17399,7 +17368,6 @@ that follows.
           }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
         {
           /* update_routine_decl_modifiers expects the position recorded in
@@ -17412,12 +17380,13 @@ that follows.
           sym->decl_position = prev_sym_pos;
           update_routine_decl_modifiers(rp, &dps->decl_modifiers,
                                         &locator.source_position,
-                                        already_specialized, is_definition,
+                                        already_specialized,
+                                        dps->is_definition,
                                         (a_boolean)rp->is_inline);
           sym->decl_position = saved_sym_pos;
         }
 #endif /* DECL_MODIFIERS_IN_USE */
-        if (is_definition) {
+        if (dps->is_definition) {
           /* This is a defining declaration of the function template. */
           func_info.is_definition = TRUE;
           if (func_info.function_type_from_typedef) {
@@ -22270,7 +22239,7 @@ instantiation.
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
     declarator(di_flags, &state, (a_type_ptr)NULL, &locator, &func_info,
-               &decl_pos_block, (a_gnu_attribute_ptr *)NULL);
+               &decl_pos_block);
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);

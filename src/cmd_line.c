@@ -3136,6 +3136,8 @@ checked again here.)
        macros. */
     variadic_macros_allowed = TRUE;
   }  /* if */
+  /* Recent Sun compilers accept some GNU attributes. */
+  gnu_attributes_enabled = TRUE;
 }  /* check_and_set_sun_mode_options */
 
 
@@ -3239,6 +3241,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   permissive_gnu_vector_conversions_enabled = (gnu_version >= 40000 &&
                                                gnu_version < 40300);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  gnu_attributes_enabled = TRUE;
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -8786,6 +8789,7 @@ variables declared in cmd_line.h.
   decls_using_types_without_linkage_allowed = FALSE;
   trailing_return_types_enabled = FALSE;
   std_attributes_enabled = FALSE;
+  gnu_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

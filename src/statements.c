@@ -178,10 +178,9 @@ suppress warnings that might otherwise be issued later.
 
 static void check_reachability_following_expression(an_expr_node_ptr  node)
 /*
-If the indicated expression node represents a throw or (in Microsoft and GNU
-modes) a call of a function that may not return, update the current
-"reachability" to indicate that the code directly following the expression is
-(or may be) unreachable.
+If the indicated expression node represents a throw or a call of a function
+that may not return, update the current "reachability" to indicate that the
+code directly following the expression is (or may be) unreachable.
 */
 {
   if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
@@ -200,8 +199,7 @@ modes) a call of a function that may not return, update the current
          (throw c, y)
        but it doesn't seem worth it. */
     set_unreachable(curr_reachability);
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode || gnu_mode) {
+  } else {
     if (is_call_node(node)) {
       a_boolean   routine_does_not_return = FALSE;
       a_type_ptr  routine_type;
@@ -232,7 +230,6 @@ modes) a call of a function that may not return, update the current
         curr_reachability.suppress_unreachable_warning = TRUE;
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* check_reachability_following_expression */
 
@@ -5871,11 +5868,10 @@ it is followed by a colon.)
   check_assertion_str(curr_token == tok_colon, "statement: expected colon");
   (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && curr_token == tok_attribute) {
-    a_gnu_attribute_ptr  attributes = scan_gnu_attributes();
+  if (gnu_attributes_enabled && curr_token == tok_attribute) {
+    an_attribute_ptr  attributes = scan_gnu_attribute_groups(al_label);
     if (attributes != NULL) {
-      apply_gnu_attributes_to_label(attributes, label);
-      free_gnu_attribute_list(attributes);
+      attach_attributes(attributes, (char*)label, iek_label);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

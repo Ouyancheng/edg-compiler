@@ -3176,7 +3176,7 @@ file scope if it refers to the namespace being popped.
         make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE,
                              &null_source_position,
                              /*compiler_generated=*/TRUE,
-			     (a_gnu_attribute_ptr)NULL);
+			     (an_attribute_ptr)NULL);
         any_using_dirs_added = TRUE;
         switch_back_to_original_region(region_to_switch_back_to);
       }  /* if */

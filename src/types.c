@@ -7331,8 +7331,8 @@ unique to each type (e.g., by calling disentangle_default_args).
   if (rtsp2->trailing_return_type != comp_trailing_return_type) {
     return_type2_as_comp_type = FALSE;
   }  /* if */
-  /* The composite type will have the "does_not_return" set to TRUE if either
-     of the original types has it set to TRUE. */
+  /* The composite type will have the "does_not_return" flag set to TRUE if
+     either of the original types has it set to TRUE. */
   comp_does_not_return = rtsp1->does_not_return || rtsp2->does_not_return;
   if (rtsp1->does_not_return != comp_does_not_return) {
     return_type1_as_comp_type = FALSE;
@@ -7355,7 +7355,7 @@ unique to each type (e.g., by calling disentangle_default_args).
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Compute the composite calling convention if we're in Microsoft mode.
-     In GNU mode, this is done by copy_gnu_type_attributes. */
+     In GNU mode, this is done by copy_gnu_type_properties. */
   if (microsoft_mode) {
     comp_calling_convention = rtsp1->calling_convention;
     if (comp_calling_convention == (a_calling_convention)cc_default) {
@@ -7617,6 +7617,78 @@ make_new_comp_type:
   return comp_type;
 }  /* composite_routine_type */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+a_type_ptr copy_gnu_type_properties(a_type_ptr  dst,
+                                    a_type_ptr  src)
+/*
+Copy any GNU type properties (set by attributes) in type dst to type src.
+*/
+{
+  a_type_ptr  result = dst;
+
+  src = skip_typerefs(src);
+  dst = skip_typerefs(dst);
+  if (dst == src) {
+    /* Nothing to be done. */
+  } else {
+    switch (src->kind) {
+      case tk_routine:
+        { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
+          src_rtsp = src->variant.routine.extra_info;
+          dst_rtsp = dst->variant.routine.extra_info;
+#if USER_CONTROL_OF_STRUCT_PACKING
+          if (src->alignment_set_explicitly &&
+              src->alignment > dst->alignment) {
+            dst->alignment = src->alignment;
+            dst->alignment_set_explicitly = TRUE;
+          }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_X86_ATTRIBUTES_ALLOWED
+          if (src_rtsp->calling_convention !=
+                                           (a_calling_convention)cc_default &&
+              dst_rtsp->calling_convention !=
+                                           (a_calling_convention)cc_stdcall) {
+            dst_rtsp->calling_convention = src_rtsp->calling_convention;
+          }  /* if */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+          if (src_rtsp->does_not_return) {
+            dst_rtsp->does_not_return = TRUE;
+          }  /* if */
+          if (src_rtsp->is_const) {
+            dst_rtsp->is_const = TRUE;
+          }  /* if */
+          if (src_rtsp->result_should_be_used) {
+            dst_rtsp->result_should_be_used = TRUE;
+          }  /* if */
+          if (src_rtsp->arg_pragma != (a_pragma_kind)pk_none) {
+            dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
+            dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
+          }  /* if */
+          if (src_rtsp->prototyped && dst_rtsp->prototyped) {
+            /* Copy any "nonnull" attributes. */
+            a_param_type_ptr  src_ptp = src_rtsp->param_type_list;
+            a_param_type_ptr  dst_ptp = dst_rtsp->param_type_list;
+            while (src_ptp != NULL) {
+              check_assertion(dst_ptp != NULL);
+              if (src_ptp->nonnull) dst_ptp->nonnull = TRUE;
+              src_ptp = src_ptp->next;
+              dst_ptp = dst_ptp->next;
+            }  /* while */
+          }  /* if */
+          /* Update the result since a skip_typerefs was applied to dst. */
+          result = dst;
+        }
+        break;
+      default:
+        /* No properties to copy. */
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* copy_gnu_type_properties */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_type_ptr composite_type(a_type_ptr type_1,
                           a_type_ptr type_2)
@@ -7793,8 +7865,8 @@ calling disentangle_default_args).
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && skip_typerefs(type_1)->kind == skip_typerefs(type_2)->kind) {
-    comp_type = copy_gnu_type_attributes(comp_type, type_1);
-    comp_type = copy_gnu_type_attributes(comp_type, type_2);
+    comp_type = copy_gnu_type_properties(comp_type, type_1);
+    comp_type = copy_gnu_type_properties(comp_type, type_2);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();

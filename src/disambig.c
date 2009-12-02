@@ -321,9 +321,9 @@ attribute list.  It simply requires that the brackets be properly nested
     /* Bypass the second left bracket. */
     cache_curr_token(&state->cache);
     (void)get_token();
-    /* Look for the closing parenthesis of the attribute. */
+    /* Look for the closing bracket of the attribute. */
     for (;;) {
-      if (state != NULL) cache_curr_token(&state->cache);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token == tok_rbracket) {
         /* A right bracket.  Break out if this is a zero-level bracket. */

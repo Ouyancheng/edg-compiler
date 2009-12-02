@@ -16808,21 +16808,12 @@ the source form (e.g., digraphs are returned as ordinary tokens).
 {
   char  *result;
 
-  if (curr_token == tok_identifier ||
-      (start_of_curr_token != NULL && is_keyword_token(curr_token))) {
-    /* For identifiers and non-cached keywords, reuse the string already
-       stored in IL memory. */
+  if (curr_token == tok_identifier) {
+    /* For identifiers reuse the string already stored in IL memory. */
     result = locator_for_curr_id.symbol_header->identifier;
-  } else if (start_of_curr_token != NULL) {
-    /* The token can be retrieved from the source line. */
-    sizeof_t  len = end_of_curr_token - start_of_curr_token + 1;
-    result = alloc_primary_file_scope_il(len + 1);
-    memcpy(result, start_of_curr_token, len);
-    result[len] = '\0';
   } else {
-    /* No source characters are available (presumably we're getting tokens
-       from a cache).  Create a cache containing the current token and create
-       the string from that. */
+    /* No source characters are (reliably) available.  Create a cache
+       containing the current token and recreate the string from that. */
     a_token_cache cache;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);

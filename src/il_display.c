@@ -1703,6 +1703,9 @@ Display the indicated type entry.
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (ptr->variant.class_struct_union.final) {
+        disp_boolean("final", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.any_const_member) {
         disp_boolean("any_const_member", TRUE);
       }  /* if */
@@ -1865,10 +1868,13 @@ Display the indicated type entry.
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.typeref.is_typeof) {
-        disp_boolean("is_typeof",
-                     (a_boolean)ptr->variant.typeref.is_typeof);
+        disp_boolean("is_typeof", (a_boolean)ptr->variant.typeref.is_typeof);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      if (ptr->variant.typeref.for_type_attributes) {
+        disp_boolean("for_type_attributes",
+                     (a_boolean)ptr->variant.typeref.for_type_attributes);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member",
@@ -4257,7 +4263,7 @@ Display the indicated attribute entry.
 
   switch (ap->kind) {
     case ak_unrecognized:        kind_name = "unrecognized";        break;
-    case ak_empty_group:         kind_name = "empty group";         break;
+    case ak_empty_attr:          kind_name = "empty attribute";     break;
     case ak_align:               kind_name = "align";               break;
     case ak_noreturn:            kind_name = "noreturn";            break;
     case ak_final:               kind_name = "final";               break;
@@ -4266,7 +4272,8 @@ Display the indicated attribute entry.
     default:                     kind_name = "** BAD KIND **";      break;
   }  /* switch */
   disp_name("kind");
-  (void)printf("%s", kind_name);
+  (void)printf("%s\n", kind_name);
+  disp_ptr("next", (char *)ap->next, iek_attribute);
   switch (ap->family) {
     case af_internal:            family_name = "internal";          break;
     case af_std:                 family_name = "std";               break;
@@ -4275,7 +4282,7 @@ Display the indicated attribute entry.
     default:                     family_name = "** BAD FAMILY **";  break;
   }  /* switch */
   disp_name("family");
-  (void)printf("%s", family_name);
+  (void)printf("%s\n", family_name);
   switch (ap->syntactic_location) {
     case al_implicit:            loc_name = "implicit";             break;
     case al_prefix:              loc_name = "prefix";               break;
@@ -4287,14 +4294,18 @@ Display the indicated attribute entry.
     case al_post_array:          loc_name = "post array";           break;
     case al_post_func:           loc_name = "post func";            break;
     case al_trailing_return:     loc_name = "trailing return";      break;
-    case al_other:               loc_name = "(other)";              break;
+    case al_post_initializer:    loc_name = "post initializer";     break;
     default:                     loc_name = "** BAD LOCATION **";   break;
   }  /* switch */
   disp_name("syntactic_location");
-  (void)printf("%s", loc_name);
+  (void)printf("%s\n", loc_name);
   if (ap->on_primary_declaration) {
     disp_boolean("on_primary_declaration",
                  (a_boolean)ap->on_primary_declaration);
+  }  /* if */
+  if (ap->transforms_type_specifier) {
+    disp_boolean("transforms_type_specifier",
+                 (a_boolean)ap->transforms_type_specifier);
   }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
@@ -4322,18 +4333,25 @@ Display the indicated attribute argument entry.
   char  *kind_name;
 
   switch (aap->kind) {
+    case aak_empty:              kind_name = "empty";               break;
+    case aak_raw_token:          kind_name = "raw token";           break;
     case aak_token:              kind_name = "token";               break;
     case aak_constant:           kind_name = "constant";            break;
-    case aak_type      :         kind_name = "type";                break;
+    case aak_type:               kind_name = "type";                break;
     default:                     kind_name = "** BAD KIND **";      break;
   }  /* switch */
   disp_name("kind");
-  (void)printf("%s", kind_name);
+  (void)printf("%s\n", kind_name);
+  disp_ptr("next", (char *)aap->next, iek_attribute_arg);
   disp_source_position("position", &aap->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &aap->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   switch (aap->kind) {
+    case aak_empty:
+      /* No variant field. */
+      break;
+    case aak_raw_token:
     case aak_token:
       disp_string_ptr("token", aap->variant.token, iek_other_text,
                       (sizeof_t)0);
@@ -4775,6 +4793,7 @@ Display the indicated using-directive entry.
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
   disp_source_position("position", &ptr->position);
+  disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
   disp_boolean("is_using_directive", ptr->is_using_directive);
   if (!ptr->is_using_directive) {
     /* Either a class member using-declaration or a nonmember
@@ -5434,6 +5453,7 @@ Display the indicated source sequence secondary declaration entry.
              iek_name_reference);
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  disp_ptr("attributes", (char *)sssdp->attributes, iek_attribute);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   if (sssdp->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
     disp_ELF_visibility_kind(sssdp->ELF_visibility);
@@ -5463,9 +5483,6 @@ Display the indicated source sequence secondary declaration entry.
 #if GNU_EXTENSIONS_ALLOWED
   if (sssdp->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
-  }  /* if */
-  if (sssdp->has_alias_attribute) {
-    disp_boolean("has_alias_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (sssdp->is_decl_after_first_in_comma_list) {

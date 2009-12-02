@@ -235,19 +235,16 @@ abstract or real declarator.
 			   but even when that is not the case -- presumably
 			   because the declarator was parenthesized -- this
 			   bit may become set. */
-#define DO_POSTFIX_ATTRIBUTES ((a_decl_flag_set)0x40)
-			/* This bit is set if the declarator included
-			   trailing GNU-style attributes. */
-#define DO_HAS_PTR_OR_REF_COMPONENT ((a_decl_flag_set)0x80)
+#define DO_HAS_PTR_OR_REF_COMPONENT ((a_decl_flag_set)0x40)
 			/* This bit is set if the declarator has a pointer or
 			   reference component (including pointer-to-members).
 			   E.g., it is set for "(*x[3])[4]" but not for
 			   "y[3][4]"). */
-#define DO_HAS_PTR_TO_MEMBER_COMPONENT ((a_decl_flag_set)0x100)
+#define DO_HAS_PTR_TO_MEMBER_COMPONENT ((a_decl_flag_set)0x80)
 			/* This bit is set if a pointer-to-member declarator
 			   was scanned.  DO_HAS_PTR_OR_REF_COMPONENT is always
 			   set when this bit is set. */
-#define DO_RPAREN_IN_NEW_DECLARATOR ((a_decl_flag_set)0x200)
+#define DO_RPAREN_IN_NEW_DECLARATOR ((a_decl_flag_set)0x100)
 			/* This bit is set in GNU C++ mode when a right
 			   parenthesis has been seen inside a new-declarator
 			   (which is only possible due to a GNU bug). */
@@ -283,8 +280,7 @@ void declarator(a_decl_flag_set             input_flags,
                 a_type_ptr                  member_parent_type,
                 a_symbol_locator            *locator,
                 a_func_info_block           *func_info,
-                a_decl_pos_block_ptr        decl_pos_block,
-		a_gnu_attribute_ptr         *attributes);
+                a_decl_pos_block_ptr        decl_pos_block);
 
 extern
 a_type_ptr pointer_declarator(
@@ -296,8 +292,7 @@ a_type_ptr pointer_declarator(
                       a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers,
                       a_boolean             *ptr_to_member_scanned,
-                      a_decl_pos_block_ptr  decl_pos_block,
-		      a_gnu_attribute_ptr   *attributes);
+                      a_decl_pos_block_ptr  decl_pos_block);
 
 extern
 void array_declarator(a_decl_parse_state    *dps,

@@ -1146,12 +1146,6 @@ typedef struct a_param_id {
 			/* Source-sequence information saved during declarator
 			   processing. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
-  struct a_gnu_attribute
-  		*attributes;
-			/* The GNU attributes associated with this
-			   parameter. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   a_variable_ptr
 		dummy_vla_variable;
 			/* A dummy variable created for scanning a VLA
@@ -2032,12 +2026,10 @@ typedef struct a_template_symbol_supplement {
   char		*name;
 			/* The mangled name of the entity.  Used for exported
 			   templates. */
-#if GNU_EXTENSIONS_ALLOWED
-  struct a_gnu_attribute
-		*attributes;
-			/* GNU attributes specified on this template.  They
-			   need to be applied to every instantiation. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+  an_attribute_ptr
+		attributes;
+			/* Attributes specified on this template that need to
+			   be applied to every instantiation. */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
@@ -2110,10 +2102,10 @@ typedef struct a_template_symbol_supplement {
       a_template_ptr
 		substituted_param_template;
 			/* For a class template associated with a template
-			   template template parameter, if the template
-			   template parameter for which this is an argument
-			   has a template parameter with a dependent type,
-			   this points to the rescanned template parameter.
+			   template parameter, if the template template
+			   parameter for which this is an argument has a
+			   template parameter with a dependent type, this
+			   points to the rescanned template parameter.
 			   This comes up in cases like
 			   "template <class T, template <T t> struct X> ...".
 			   The rescanned version of the parameter list must
@@ -4030,10 +4022,10 @@ extern void add_to_param_id_list(a_symbol_locator            *locator,
                                  a_type_ptr                  type_ptr,
                                  a_source_position           *type_pos,
                                  a_storage_class             storage_class,
-                                 struct a_gnu_attribute      *attributes,
                                  a_func_info_block_ptr       func_info,
                                  a_source_sequence_entry_ptr param_ssep,
                                  a_param_id_ptr              *last_param_id);
+
 extern a_param_id_ptr param_id_on_list(a_symbol_locator *locator,
                                        a_param_id_ptr    param_id_list);
 

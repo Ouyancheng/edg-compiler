@@ -991,6 +991,11 @@ EXTERN a_boolean
 			/* TRUE if C++0x attribute syntax (e.g., [[final]]) is
 			   accepted. */
 
+EXTERN a_boolean
+		gnu_attributes_enabled;
+			/* TRUE if GNU attribute syntax is accepted (e.g.,
+			   __attribute((noreturn))). */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention

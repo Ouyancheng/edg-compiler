@@ -125,6 +125,12 @@ extern void update_membership_of_class(a_symbol_ptr       tag_sym,
                                        a_scope_depth      decl_level,
                                        a_source_position  *diag_pos);
 
+extern void attach_tag_attributes(an_attribute_ptr  attributes,
+                                  a_type_ptr        type,
+                                  a_boolean         is_definition,
+                                  a_boolean         is_forward_decl,
+                                  a_boolean         ignore_gnu_attributes);
+
 extern void decl_spec_one_time_init(void);
 
 /* Constants defining bits in the input bit vector used in calls to
@@ -225,7 +231,10 @@ extern void decl_spec_one_time_init(void);
 			   sequence "enum E {" and the "{" should not taken to
 			   introduce an enum definition (instead, it is the
 			   beginning of the lambda body). */
-#define DSI_LAST DSI_NO_TAG_DEFINITION
+#define DSI_STD_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x8000000)
+			/* If this bit is set, standard attributes are valid
+			   declaration specifiers. */
+#define DSI_LAST DSI_STD_ATTRIBUTES_ALLOWED
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 
