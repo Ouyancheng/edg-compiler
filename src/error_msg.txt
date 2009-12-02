@@ -1904,7 +1904,6 @@ ec_gnu_inline_requires_inline;;"the \"gnu_inline\" attribute is ignored on non-i
 ec_carries_dependency_not_on_first_decl;;"%n previously declared without the carries_dependency attribute"
 ec_bad_array_member_initialization;;"invalid initializer for array %n"
 ec_cl_must_specify_cpp0x_mode;;"must specify C++0X mode when building runtime library"
-ec_expr_not_null_ptr_constant;;"expression must be a null pointer constant"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

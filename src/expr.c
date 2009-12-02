@@ -11036,15 +11036,10 @@ expressions allow only certain limited casts).
       err_code = ec_expr_not_ptr_to_member;
     }  /* if */
   } else if (is_nullptr_type(dest_type)) {
-    /* Casting to std::nullptr_t; source must be a null pointer constant. */
-    if (is_constant_operand(operand) &&
-        is_or_might_be_null_pointer_constant(&operand->variant.constant)) {
-      /* Okay. */
-      valid_in_const_expr = TRUE;
-    } else {
-      err_severity = es_error;
-      err_code = ec_expr_not_null_ptr_constant;
-    }  /* if */
+    /* Okay: casting to std::nullptr_t.  (Restrictions on the operand of
+       such a cast are the same in all contexts and are enforced
+       elsewhere.) */
+    valid_in_const_expr = TRUE;
   } else if (is_lvalue_reference_type(dest_type)) {
     /* A cast to a reference type is allowed (but not to an rvalue reference
        type, since that would produce an rvalue). */
@@ -11147,13 +11142,16 @@ expressions allow only certain limited casts).
         err = TRUE;
       }  /* if */
     } else if ((is_pointer_type(dest_type) ||
-                is_ptr_to_member_type(dest_type) ||
-                is_nullptr_type(dest_type)) &&
+                is_ptr_to_member_type(dest_type)) &&
                is_constant_operand(operand) &&
                is_or_might_be_null_pointer_constant(
                                                  &operand->variant.constant)) {
       /* Okay: cast of a null pointer constant to a pointer or
-         pointer-to-member type or to std::nullptr_t. */
+         pointer-to-member type. */
+    } else if (is_nullptr_type(dest_type)) {
+      /* Okay: cast to std::nullptr_t.  (The restrictions on the operand of
+         such a cast are the same in all contexts and are enforced
+         elsewhere.) */
     } else if (microsoft_mode &&
                is_pointer_type(dest_type) && is_pointer_type(operand->type) &&
                f_same_entities(type_pointed_to(dest_type),
