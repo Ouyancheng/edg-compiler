@@ -1,5 +1,18 @@
 Version 4.2
 
+12/2/09  [EDGcpfe/10273]
+Internal error on truncated template
+
+An internal error (in copy_tokens_from_cache) could occur on a
+template definition that was truncated causing the end of file to
+appear in the body of the template.  The internal error would occur if
+certain kinds of disambiguation were triggered at the point at which
+the file was truncated.  Now fixed.
+
+  template <class T, class U> bool f(T x, U y) {
+  decltype (
+
+
 12/1/09  [EDGcpfe/10268]
 Abort on multiple lambdas in namespace reactivation scope
 

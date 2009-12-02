@@ -1287,7 +1287,7 @@ is actually the first token to not be included in the cache.
       first_ctp_to_copy = ctp->next;
     }  /* if */
   }  /* for */
-  check_assertion_str(ctp != NULL,
+  check_assertion_str(ctp != NULL || first_tsn == NO_TOKEN_SEQUENCE_NUMBER,
                       "copy_tokens_from_cache: first_tsn missing");
   last_ctp_to_copy = ctp;
   for (; ctp != NULL; ctp = ctp->next) {
@@ -1305,13 +1305,14 @@ is actually the first token to not be included in the cache.
       last_ctp_to_copy = ctp->next;
     }  /* if */
   }  /* for */
-  check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
+  check_assertion_str(ctp != NULL || last_tsn == NO_TOKEN_SEQUENCE_NUMBER,
+                      "copy_tokens_from_cache: last_tsn missing");
   /* The final token sequence number will be greater than last_tsn if the
      token referred to by last_tsn is the second ">" of a ">>" that was
      split into two tokens.  The code below will copy the ">>" and the copied
      token will then be adjusted to a ">". */
-  adjust_final_token = ctp->token_sequence_number > last_tsn &&
-                       last_tsn != NO_TOKEN_SEQUENCE_NUMBER;
+  adjust_final_token = last_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
+                       ctp->token_sequence_number > last_tsn;
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
     /* Make a copy of the token to be added. */
