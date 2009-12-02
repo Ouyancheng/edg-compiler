@@ -12528,12 +12528,13 @@ and return a pointer to it.
 a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
 /*
 Return TRUE if type is a bad type for an operand of an expression in
-a template argument, i.e., it is not integral or enum.
+a template argument, i.e., it is not integral, enum, or std::nullptr_t.
 */
 {
   a_boolean is_bad_type;
 
-  if (is_integral_or_enum_type(type)) {
+  if (is_integral_or_enum_type(type) ||
+      is_nullptr_type(type)) {
     is_bad_type = FALSE;
   } else if (gpp_mode && is_floating_type(type)) {
     /* g++ allows floating-point values in a template argument as long as

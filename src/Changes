@@ -1,5 +1,17 @@
 Version 4.2
 
+12/2/09  [EDGcpfe/10263]
+Use of nullptr in non-type template arguments
+
+The front end incorrectly issued an error when nullptr appears as an
+operand in an expression used as a non-type template argument.  This is now
+fixed.  For example:
+
+  typedef decltype(nullptr) nullptr_t;
+  template <int* x> struct A {};
+  A<true ? nullptr : nullptr> a3;
+
+
 12/2/09  [EDGcpfe/10265]
 Casting to std::nullptr_t in an integral constant expression
 
