@@ -1,5 +1,15 @@
 Version 4.2
 
+12/2/09  [EDGcpfe/10265]
+Casting to std::nullptr_t in an integral constant expression
+
+The front end incorrectly issued an error when a cast to std::nullptr_t
+appears in an integral constant expression.  This is now fixed.  For example:
+
+  typedef decltype(nullptr) nullptr_t;
+  int x[(nullptr_t)nullptr ? 3 : 4];    // No longer an error
+
+
 12/2/09  [EDGcpfe/10273]
 Internal error on truncated template
 

@@ -10951,6 +10951,11 @@ expressions allow only certain limited casts).
       use_type_position_in_diag = TRUE;
       if (err_severity == es_error) valid_in_integral_const_expr = FALSE;
     }  /* if */
+  } else if (is_nullptr_type(dest_type)) {
+    /* Okay: casting to std::nullptr_t.  (Restrictions on the operand of
+       such a cast are the same in all contexts and are enforced
+       elsewhere.) */
+    valid_in_integral_const_expr = TRUE;
   } else if (is_template_param_type(dest_type)) {
     /* Casting to an unknown template parameter type is okay. */
     valid_in_integral_const_expr = TRUE;
