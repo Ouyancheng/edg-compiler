@@ -8970,9 +8970,6 @@ symbol entry, and return a pointer to it in state->sym.
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
   a_namespace_ptr          nsp;
   a_symbol_ptr             loc_sym;
-#if GNU_EXTENSIONS_ALLOWED
-  a_boolean                linkage_name = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_typedef");
   if (state->auto_type != NULL) {
@@ -9302,9 +9299,6 @@ symbol entry, and return a pointer to it in state->sym.
             recompute_discriminator = TRUE;
           }  /* if */
 #endif /* NEED_NAME_MANGLING */
-#if GNU_EXTENSIONS_ALLOWED
-          linkage_name = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
           set_source_corresp_name(&tp->source_corresp, locator->symbol_header);
 #if NEED_NAME_MANGLING
           if (recompute_discriminator) {
