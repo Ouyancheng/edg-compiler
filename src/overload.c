@@ -14531,9 +14531,8 @@ been found to be acceptable, and *conversion describes it.
           /* Replace an indefinite function by the address of an unknown
              function in the set. */
           conv_indefinite_function_operand_to_unknown_dependent_function(
-                                                               source_operand);
-          /* Make an lvalue for the unknown function. */
-          change_nonreal_member_constant_operand_to_lvalue(source_operand);
+                                                    source_operand,
+                                                    /*force_to_rvalue=*/FALSE);
         }  /* if */
       } else {
         /* Binding a reference to an rvalue in a constant expression. */

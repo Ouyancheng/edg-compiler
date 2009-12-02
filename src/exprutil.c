@@ -3445,13 +3445,18 @@ is_qualified_name is TRUE if the source form used a qualified name.
 
 
 void conv_indefinite_function_operand_to_unknown_dependent_function(
-                                                           an_operand *operand)
+                                                    an_operand *operand,
+                                                    a_boolean  force_to_rvalue)
 /*
 Convert the indicated operand (which must be an indefinite function) to
-an rvalue for the address of an unknown dependent function.  This is used in
-prototype instantiations when the function to be selected is not known.
+a constant operand representing an unknown dependent function.  The lvalueness
+of the operand is preserved unless force_to_rvalue is TRUE, in which case
+the result is an rvalue.  This is used in prototype instantiations when the
+function to be selected is not known.
 */
 {
+  a_boolean was_lvalue = is_a_function_designator(operand);
+
   check_assertion(is_indefinite_function_operand(operand) &&
                   is_template_dependent_context());
   make_unknown_dependent_function_operand(operand->variant.symbol,
@@ -3460,6 +3465,9 @@ prototype instantiations when the function to be selected is not known.
                                           (a_boolean)operand->
                                                              is_qualified_name,
                                           operand);
+  if (!force_to_rvalue && was_lvalue) {
+    change_template_param_constant_operand_to_lvalue(operand);
+  }  /* if */
 }  /* conv_indefinite_function_operand_to_unknown_dependent_function */
 
 
@@ -3515,10 +3523,9 @@ is being done via an explicit cast; otherwise, it's implicit by context.
   } else if (unknown_dependent_function) {
     /* The cast occurs in a prototype instantiation and it is not possible
        to determine which function to use. */
-    conv_indefinite_function_operand_to_unknown_dependent_function(operand);
-    if (reference_case) {
-      change_template_param_constant_operand_to_lvalue(operand);
-    }  /* if */
+    conv_indefinite_function_operand_to_unknown_dependent_function(
+                                          operand,
+                                          /*force_to_rvalue=*/!reference_case);
   } else {
     /* The cast doesn't select one of the overloaded functions, so it's
        an error. */
@@ -6003,7 +6010,8 @@ member function.  If no nonreal member is found, return NULL.
 }  /* conv_nonreal_member_constant_expr_to_lvalue */
 
 
-void change_nonreal_member_constant_operand_to_lvalue(an_operand *operand)
+static void change_nonreal_member_constant_operand_to_lvalue(
+                                                           an_operand *operand)
 /*
 If the indicated operand is an rvalue indicating the value of a
 member of a nonreal class, change it to an lvalue that refers to
@@ -7379,23 +7387,31 @@ the parameters.
 }  /* do_binary_operation */
 
 
-static void do_generic_operand_transformations(an_operand *operand)
+static void do_generic_operand_transformations(an_operand *operand,
+                                               a_boolean  force_to_rvalue)
 /*
 Do transformations that are appropriate on a generic operand, i.e.,
 an operand in a template-dependent operation, where we can't tell
 what will be done with the operand.  In particular, we can't tell whether
-it will be used as an rvalue or an lvalue.
+it will be used as an rvalue or an lvalue, unless force_to_rvalue is TRUE,
+in which case we force the operand to be an rvalue.
 */
 {
   check_assertion(is_template_dependent_context());
   if (is_indefinite_function_operand(operand)) {
     /* Replace an indefinite function by the address of an unknown
        function in the set.  The result is always an rvalue. */
-    conv_indefinite_function_operand_to_unknown_dependent_function(operand);
+    conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                              operand,
+                                                              force_to_rvalue);
+    force_to_rvalue = FALSE;
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand,
                                                  (a_source_position *)NULL);
+  }  /* if */
+  if (force_to_rvalue) {
+    do_operand_transformations(operand, TOPT_NO_OPTIONS);
   }  /* if */
   operand->is_template_generic = TRUE;
 }  /* do_generic_operand_transformations */
@@ -7408,10 +7424,7 @@ an operand in a template-dependent operation, when it is known that the
 operand will definitely be used as an rvalue.
 */
 {
-  do_generic_operand_transformations(operand);
-  /* Doing the generic transformations first avoids an error on
-     an indefinite function. */
-  do_operand_transformations(operand, TOPT_NO_OPTIONS);
+  do_generic_operand_transformations(operand, /*force_to_rvalue=*/TRUE);
 }  /* do_rvalue_generic_operand_transformations */
 
 
@@ -7458,7 +7471,8 @@ the expression.
     if (lvalue_expected) {
       change_nonreal_member_constant_operand_to_lvalue(operand);
     }  /* if */
-    do_generic_operand_transformations(operand);
+    do_generic_operand_transformations(operand,
+                                       /*force_to_rvalue=*/FALSE);
   }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     check_assertion(!rvalue_expected);
@@ -7880,7 +7894,7 @@ it happens in prototype instantiations.  op is the operator to be used.
         error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
                          operand);
       } else {
-        do_generic_operand_transformations(operand);
+        do_generic_operand_transformations(operand, /*force_to_rvalue=*/FALSE);
       }  /* if */
     } else {
       /* In all other cases, the operand is an rvalue. */
