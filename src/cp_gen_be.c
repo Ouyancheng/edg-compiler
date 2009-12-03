@@ -3209,6 +3209,11 @@ marked as being associated with the primary declaration.
   for (ap = attributes; ap != NULL; ap = ap->next) {
     /* Internal attributes didn't appear in the source: Don't render them. */
     if (ap->family == (a_byte_attribute_family)af_internal) continue;
+    /* Don't render attributes that the target compiler will not parse. */
+    if (msvc_is_generated_code_target &&
+        ap->family == (a_byte_attribute_family)af_gnu) {
+      continue;
+    }  /* if */
     /* al_explicit indicates that all non-implicit attributes should be
        rendered. */
     if (ap->syntactic_location !=
