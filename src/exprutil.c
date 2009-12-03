@@ -2439,7 +2439,11 @@ diagnostics, if that changes the control flow.
 {
   a_boolean check_access = TRUE;
 
-  if (expr_stack != NULL) {
+  if (is_template_dependent_context()) {
+    /* No access checking in prototype instantiations, since we may not have
+       complete information. */
+    check_access = FALSE;
+  } else if (expr_stack != NULL) {
     if (expr_stack->suppress_diagnostics) {
       check_access = FALSE;
     }  /* if */
@@ -2851,8 +2855,6 @@ routine is only used in C++ mode.
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
        necessary casts. */
-    /* No access checking in prototype instantiations. */
-    if (is_template_dependent_context()) check_cast_access = FALSE;
     if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
     curr_type = (*p_node)->type;
     pointer_case = is_pointer_type(curr_type);
@@ -3111,8 +3113,6 @@ source position to be used for errors.  This routine is only used in C++ mode.
     }  /* if */
     *p_node = error_node();
   } else {
-    /* No access checking in prototype instantiations. */
-    if (is_template_dependent_context()) check_cast_access = FALSE;
     if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
