@@ -5,7 +5,7 @@ Non-lowered type_kind for lowered assignment to pointer to member
 
 type_kinds are supposed to be lowered (see the Changes for entry for
 EDGcpfe/10048), but were not properly lowered in the case of a routine added
-during lowering to to zero-initialize an entity of pointer to member type.
+during lowering to zero-initialize an entity of pointer to member type.
 For example:
 
   struct A {};
