@@ -846,7 +846,7 @@ constructor.  We now emulate that in g++ mode.
 GNU C++ compatibility: internal error on typeof a template static data member
 
 An internal error (in complete_template_static_data_member_type_is_needed)
-could occur when a GNU __typeof was used to to determine the type of a
+could occur when a GNU __typeof was used to determine the type of a
 template static data member of the current class.  Now fixed.
 
   template <int i> struct C { };
