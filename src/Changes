@@ -1,5 +1,21 @@
 Version 4.2
 
+12/3/09  [EDGcpfe/10266]
+Casting to std::nullptr_t
+
+The front end accepted a cast of a pointer or pointer to member to
+std::nullptr_t, on the grounds that such a cast is the inverse of a
+standard conversion.  Although the current draft Standard does not forbid
+these casts, this omission is almost certainly the result of an oversight
+when the nullptr keyword was adopted, and an issue will be raised with the
+C++ Standard Committee.  In the meantime, the front end has been changed to
+treat such casts as errors.  For example:
+
+  typedef decltype(nullptr) nullptr_t;
+  void* p = nullptr;
+  nullptr_t np = static_cast<nullptr_t>(p);    // Now an error
+
+
 12/3/09  [EDGcpfe/10276]
 Non-lowered type_kind for lowered assignment to pointer to member
 

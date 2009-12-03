@@ -6464,7 +6464,7 @@ exception specifications are not checked.
       /* Qualifiers are being dropped. */
       okay = FALSE;
     }  /* if */
-  } else if ((!is_bool_type(source_type) &&
+  } else if ((!is_bool_type(source_type) && !is_nullptr_type(dest_type) &&
               impl_conversion_possible(dest_type,
                                        /*source_is_constant=*/FALSE,
                                        /*source_is_string_literal=*/FALSE,
@@ -6484,7 +6484,10 @@ exception specifications are not checked.
               is_object_type(type_pointed_to(dest_type)))) {
     /* The inverse implicit conversion can be done.  Note that the
        inverse of conversions to bool is not allowed (see [expr.static.cast]
-       paragraph 9). */
+       paragraph 9).  The Standard does not currently disallow the inverse
+       of the null pointer and null pointer-to-member conversions, but
+       that appears to have been an oversight, so casts to std::nullptr_t
+       are also not permitted. */
     okay = TRUE;
     /* If the conversion is a pointer or pointer to member conversion, make
        sure qualifiers are not being removed. */
