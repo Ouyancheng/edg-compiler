@@ -5399,10 +5399,11 @@ be passed down.
        goto start_of_try;
      This convinces C compilers that the indicated variables must be stored
      out when modified in the try block. */
-  { a_statement_ptr  block_stmt, call_stmt, goto_stmt;
-    an_expr_node_ptr arg_list = NULL, call_node;
-    a_context_ptr    context;
-    a_variable_ptr   var;
+  { a_statement_ptr    block_stmt, call_stmt, goto_stmt;
+    an_expr_node_ptr   arg_list = NULL, call_node;
+    a_context_ptr      context;
+    a_variable_ptr     var;
+    an_insert_location block_insert_location;
     /* Work up through the context stack from the current location (the
        try block) out to the function scope.  At each scope, look for local
        variables that are modified within the try and add them to the
@@ -5427,20 +5428,18 @@ be passed down.
                                         &suppress_optim_on_vars_in_try_routine,
                                          void_type(),
                                          arg_list);
-      /* Perform a lowering post-pass on the expression to optimize it
-         and clean up any remaining issues. */
-      perform_post_pass_on_lowered_expression(call_node);
       call_stmt = alloc_expr_statement(call_node);
       /* Add a block statement as the "else" of the last "if" for a catch
          handler. */
       block_stmt = alloc_statement((a_statement_kind)stmk_block);
       prev_if_stmt->variant.if_stmt.else_statement = block_stmt;
       /* Put the call into the block. */
-      block_stmt->variant.block.statements = call_stmt;
+      set_block_start_insert_location(block_stmt, &block_insert_location);
+      insert_statement(call_stmt, &block_insert_location);
       /* Put the goto following the call. */
       goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
       goto_stmt->variant.label.ptr = label;
-      call_stmt->next = goto_stmt;
+      insert_statement(goto_stmt, &block_insert_location);
     }  /* if */
   }
 #endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */

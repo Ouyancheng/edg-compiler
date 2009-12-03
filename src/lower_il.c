@@ -3478,30 +3478,38 @@ void insert_statement(a_statement_ptr        statement,
                       an_insert_location_ptr insert_location)
 /*
 Insert the statement "statement" at *insert_location.  Update *insert_location
-so the next insertion will be after the statement added.
+so the next insertion will be after the statement added.  A lowering post pass
+is performed on any top level expressions contained in the statement, but the
+caller is responsible for performing the post pass on any expressions that
+may be introduced at a secondary statement level (e.g., in a block or loop
+statement).
 */
 {
   a_statement_ptr         insert_stmt;
   an_insert_location_kind kind = insert_location->kind;
 
+  /* If the statement we're about to insert has any expressions, make sure
+     they have been run through the lowering post pass before the statement
+     is inserted.  Note that only top level expressions are examined here;
+     if the statement contains other expressions that need a lowering post
+     pass performed on them (e.g., in the body of a loop statement), it
+     is the caller's responsibility to perform a lowering post pass before
+     calling this routine. */
   if (statement->expr != NULL) {
-    /* If the statement we're about to insert has any expressions, make sure
-       they have been run through the lowering post pass before the statement
-       is inserted. */
     perform_post_pass_on_lowered_expression(statement->expr);
-    if (statement->kind == (a_statement_kind)stmk_for) {
-      /* For statements have additional expressions. */
-      if (statement->variant.for_loop.extra_info->increment != NULL) {
-        perform_post_pass_on_lowered_expression(
-                            statement->variant.for_loop.extra_info->increment);
-      }  /* if */
-#if UPC_EXTENSIONS_ALLOWED
-      if (statement->variant.for_loop.extra_info->affinity != NULL) {
-        perform_post_pass_on_lowered_expression(
-                             statement->variant.for_loop.extra_info->affinity);
-      }  /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (statement->kind == (a_statement_kind)stmk_for) {
+    /* For statements have additional expressions. */
+    if (statement->variant.for_loop.extra_info->increment != NULL) {
+      perform_post_pass_on_lowered_expression(
+                          statement->variant.for_loop.extra_info->increment);
     }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+    if (statement->variant.for_loop.extra_info->affinity != NULL) {
+      perform_post_pass_on_lowered_expression(
+                           statement->variant.for_loop.extra_info->affinity);
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_expr_insert_location_kind(kind)) {
     /* Insert within an expression. */
