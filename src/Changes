@@ -7,7 +7,6 @@ The front end incorrectly issued an error when nullptr appears as an
 operand in an expression used as a non-type template argument.  This is now
 fixed.  For example:
 
-  typedef decltype(nullptr) nullptr_t;
   template <int* x> struct A {};
   A<true ? nullptr : nullptr> a3;
 
