@@ -3201,9 +3201,9 @@ to a temporary, and return a pointer to the temporary.
      way.  If such things did come up, they would probably come up
      as enk_temp_init nodes, and one could change to the address of the
      class temporary and store that in the temporary here. */
-  if (is_immediate_class_type(temp_type) &&
+  if (is_class_struct_union_type(temp_type) &&
       /* Watch out for types created by IL lowering. */
-      temp_type->source_corresp.assoc_info != NULL) {
+      skip_typerefs(temp_type)->source_corresp.assoc_info != NULL) {
     if (!symbol_supplement_for_class(temp_type)->
                                         construction_by_bitwise_copy_allowed) {
       internal_error("assign_expr_to_temp: temp of class type with cctor");
