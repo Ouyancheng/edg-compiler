@@ -7783,12 +7783,14 @@ storage_class_specifier:
           /* Microsoft attributes have to precede any specifiers.  They are
              only recognized in Microsoft C++ mode. */
           goto something_unexpected;
+#if MICROSOFT_EXTENSIONS_ALLOWED
         } else {
           /* Microsoft attributes are valid here.  Append them to any
              attributes that we might have seen before. */
           scan_and_append_microsoft_attributes(
                  &state->ms_attributes, (input_flags & DSI_IS_PARAMETER) != 0);
           goto no_get_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         /*FALLTHROUGH*/
