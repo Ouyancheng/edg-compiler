@@ -2389,12 +2389,14 @@ Print a typedef declaration.
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
 #if GNU_VECTOR_TYPES_ALLOWED
-      octl.defer_vector_attribute = FALSE;
-      if (type->variant.typeref.type->kind == (a_type_kind)tk_vector) {
-        /* Put out the vector size attribute that was deferred. */
-        form_vector_type_attribute(type->variant.typeref.type,
-                                   &need_leading_space, &octl);
-      }  /* if */
+      { a_type_ptr  vtp = skip_typerefs_not_typedefs(
+                                                  type->variant.typeref.type);
+        octl.defer_vector_attribute = FALSE;
+        if (vtp->kind == (a_type_kind)tk_vector) {
+          /* Put out the vector size attribute that was deferred. */
+          form_vector_type_attribute(vtp, &need_leading_space, &octl);
+        }  /* if */
+      }
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       (void)form_type_attributes(type, need_leading_space, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
