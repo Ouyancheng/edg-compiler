@@ -1,5 +1,21 @@
 Version 4.2
 
+12/3/09  [EDGcpfe/10262]
+Undefined behavior when lowering some assignments to temporaries when
+CHECKING is TRUE
+
+In configurations where CHECKING is TRUE, the creation of an assignment of an
+expression whose type is a typedef for a class to a temporary had caused
+a segmentation violation and is now fixed.  For example:
+
+  struct A {
+    void f() {}
+  };
+  typedef void (A::*pmf)(void);
+  pmf p;
+  bool b = (p != (throw, &A::f));
+
+
 12/2/09  [EDGcpfe/10263]
 Use of nullptr in non-type template arguments
 
