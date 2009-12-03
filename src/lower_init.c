@@ -6624,6 +6624,9 @@ to a constructor to be called after the zeroing have been done.
                                (an_insert_location *)NULL);
     copy_expr = make_comma_node(copy_expr, ctor_call);
   }  /* if */
+  /* Perform a lowering post-pass on the expression to optimize it and clean up
+     any remaining issues. */
+  perform_post_pass_on_lowered_expression(copy_expr);
   copy_stmt = alloc_expr_statement(copy_expr);
   if (need_array_count) {
     /* Loop case -- the copy statement is the body of the loop. */

@@ -5427,6 +5427,9 @@ be passed down.
                                         &suppress_optim_on_vars_in_try_routine,
                                          void_type(),
                                          arg_list);
+      /* Perform a lowering post-pass on the expression to optimize it
+         and clean up any remaining issues. */
+      perform_post_pass_on_lowered_expression(call_node);
       call_stmt = alloc_expr_statement(call_node);
       /* Add a block statement as the "else" of the last "if" for a catch
          handler. */

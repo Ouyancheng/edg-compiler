@@ -1,5 +1,22 @@
 Version 4.2
 
+12/3/09  [EDGcpfe/10276]
+Non-lowered type_kind for lowered assignment to pointer to member
+
+type_kinds are supposed to be lowered (see the Changes for entry for
+EDGcpfe/10048), but were not properly lowered in the case of a routine added
+during lowering to to zero-initialize an entity of pointer to member type.
+For example:
+
+  struct A {};
+  typedef double A::*pd;
+  struct B {
+    pd a[37];
+    B();
+  };
+  B::B() : a() {}
+
+
 12/3/09  [EDGcpfe/10262]
 Undefined behavior when lowering some assignments to temporaries when
 CHECKING is TRUE
