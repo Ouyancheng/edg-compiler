@@ -527,7 +527,6 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
 #if GNU_EXTENSIONS_ALLOWED
-    enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
     /* g++ 3.4 and later support an __offsetof keyword that appears to be
        identical to our __INTADDR__.  Only g++ 3.4(.x) appears to use this
        for the implementation of the offsetof macro, however.  Later versions
@@ -563,6 +562,11 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
     enter_keyword((a_token_kind)tok_alignof, "__alignof");
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_attributes_enabled) {
+    enter_gnu_keyword((a_token_kind)tok_attribute, "__attribute");
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   if (near_and_far_enabled()) {
     /* Enter "near" and "far" keywords. */
