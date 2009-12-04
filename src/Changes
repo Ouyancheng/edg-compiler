@@ -1,5 +1,23 @@
 Version 4.2
 
+12/4/09  [EDGcpfe/10264]
+Non-type template parameter of type std::nullptr_t with integral null pointer
+constant
+
+The current draft C++ Standard does not permit use of std::nullptr_t as the
+type of a non-type template parameter, although in anticipation of a change
+in this regard the front end currently accepts this usage.  It is expected
+that if the Standard Committee makes this change, use of an integral null
+pointer constant as an argument to such a parameter will require a cast,
+just as a cast is necessary when passing 0 to a non-type template parameter
+with a pointer type.  The front end formerly did not enforce that
+requirement for std::nullptr_t but now does.  For example:
+
+  typedef decltype(nullptr) nullptr_t;
+  template<nullptr_t NULL> struct S { };
+  S<0> s_null;    // Now an error, requires a cast
+
+
 12/3/09  [EDGcpfe/8293,EDGcpfe/9067,EDGcpfe/9253,EDGcpfe/9531,EDGcpfe/9861,
           EDGcpfe/10280]
 Attributes

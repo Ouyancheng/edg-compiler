@@ -717,9 +717,10 @@ typedef struct a_std_conv_descr {
 		pointer_normalization_needed;
 			/* TRUE if the conversion involves converting an
 			   integral null pointer constant to a pointer type
-			   or a pointer type to "void *".  (Note that this
-			   does not apply to conversion of std::nullptr_t
-			   to a pointer or pointer-to-member type.) */
+			   or std::nullptr_t or converting a pointer type
+			   to "void *".  (Note that this does not apply to
+			   conversion of std::nullptr_t to a pointer or
+			   pointer-to-member type.) */
   a_byte_boolean
 		nontrivial_conversion;
 			/* TRUE if the conversion is, in the terms of
