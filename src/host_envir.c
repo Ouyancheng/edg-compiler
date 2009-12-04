@@ -4361,7 +4361,10 @@ null-terminated.
 {
   char          *p;
   unsigned long len = 0;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   a_boolean	is_native = FALSE;
+  a_boolean	err;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 #if EDG_WIN32
@@ -4386,7 +4389,6 @@ null-terminated.
     char ch = *p;
     if (!escape_nonprintable_chars || isprint((unsigned char)ch)) {
       int	ch_len;
-      a_boolean	err;
       /* If the character is printable, or if we are not escaping nonprintable
          characters, emit the character normally.  This is done so that
          characters from extended character sets and multibyte characters will
@@ -4397,8 +4399,10 @@ null-terminated.
         add_char_to_text_buffer(buffer, '\\');
         len++;
       }  /* if */
-      /* Output all of the characters of a multibyte sequence so that the
-         length returned will be correct. */
+      /* Output all of the characters of a multibyte sequence so that
+         the length returned will be correct.  Note that err and
+         is_native are only used by the mbc_length_full macro when
+         MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE. */
       for (ch_len = mbc_length_full(p, &err, is_native);
            ch_len > 0; ch_len--, p++) {
         add_char_to_text_buffer(buffer, *p);

@@ -2323,6 +2323,10 @@ Locale to set when multibyte characters are enabled in source code.
    is not enabled. */
 #define mbc_length_simple(ptr) (1)
 
+/* Allow mbc_length_full to be used when multibyte character support
+   is not enabled. */
+#define mbc_length_full(ptr, err, is_native) (1)
+
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 #if UNICODE_SOURCE_SUPPORTED
