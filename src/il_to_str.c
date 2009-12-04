@@ -1229,6 +1229,39 @@ expression if available, or NULL otherwise.
   return expr;
 }  /* decltype_arg */
 
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+
+#if !BACK_END_IS_C_GEN_BE
+static
+#endif /* !BACK_END_IS_C_GEN_BE */
+void form_vector_type_attribute(
+                     a_type_ptr                            type,
+                     a_boolean                             *need_leading_space,
+                     an_il_to_str_output_control_block_ptr octl)
+/*
+Output a GNU "vector_size" attribute as required by the specified type,
+which must be a tk_vector, in the way described by octl.  If
+*need_leading_space is TRUE, precede the attribute with a leading space.
+*need_leading_space is set to TRUE to indicate that a space will be needed
+after the attribute.
+*/
+{
+  check_assertion(type->kind == (a_type_kind)tk_vector);
+  if (*need_leading_space) {
+    octl->output_str(" ", octl);
+  }  /* if */
+  octl->output_str("__attribute((vector_size(", octl);
+  if (type->variant.vector.size_constant != NULL) {
+    form_constant(type->variant.vector.size_constant,
+                  /*need_parens=*/FALSE, octl);
+  } else {
+    form_unsigned_num((a_host_large_unsigned)type->size, octl);
+  }  /* if */
+  octl->output_str(")))", octl);
+  *need_leading_space = TRUE;
+}  /* form_vector_type_attribute */
+
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 
 static void form_type_specifier(a_type_ptr                            type,
                                 an_il_to_str_output_control_block_ptr octl)
@@ -4646,6 +4679,7 @@ way described by octl.
 }  /* form_lvalue_address_constant */
 
 #if GNU_EXTENSIONS_ALLOWED
+#if BACK_END_IS_C_GEN_BE
 
 static void form_simple_attribute(
                    char                                   *attribute_name,
@@ -4728,44 +4762,17 @@ described by octl.
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
-#if !BACK_END_IS_CP_GEN_BE
-/*ARGSUSED*/ /* <-- scp not used in some configurations. */
-#endif /* !BACK_END_IS_CP_GEN_BE */
-void form_ELF_visibility_attribute(
+static void form_ELF_visibility_attribute(
                    an_ELF_visibility_kind                 visibility,
-                   a_source_correspondence_ptr            scp,
                    a_boolean                              *need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
 Output the given visibility as an attribute specification (provided it is
 not evk_unspecified).  If *need_leading_space is TRUE, precede the attribute
 with a leading space.  If an attribute is output, set *need_leading_space to
-TRUE.  Do the output in the way described by octl.  scp points to the source
-correspondence of the IL entry (and is used to avoid emitting the attribute
-if it is implicit in its parent class or namespace).
+TRUE.  Do the output in the way described by octl.
 */
 {
-#if BACK_END_IS_CP_GEN_BE
-  check_assertion(scp != NULL);
-  if (octl->gen_compilable_code) {
-    /* For routine and variable entries that are members of classes or
-       namespaces, do not emit the visibility attribute if it is equivalent
-       to that implied by the surrounding scope. */
-    an_ELF_visibility_kind  default_visibility =
-                                      (an_ELF_visibility_kind)evk_unspecified;
-    if (scp->is_class_member) {
-      default_visibility =
-                       class_type_supp(scp_parent_class(scp))->ELF_visibility;
-    } else if (scp_is_namespace_member(scp)) {
-      default_visibility = scp_parent_namespace(scp)->ELF_visibility;
-    }  /* if */
-    if (visibility == default_visibility) {
-      /* The visibility is already implicitly set through an attribute on the
-         enclosing class.  Do not emit it on the individual members. */
-      visibility = (an_ELF_visibility_kind)evk_unspecified;
-    }  /* if */
-  }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
   switch (visibility) {
     case evk_unspecified:
       /* No visibility attribute. */
@@ -4900,36 +4907,6 @@ Do the output in the way described by octl.
 }  /* form_routine_type_attributes */
 
 
-#if GNU_VECTOR_TYPES_ALLOWED
-void form_vector_type_attribute(
-                     a_type_ptr                            type,
-                     a_boolean                             *need_leading_space,
-                     an_il_to_str_output_control_block_ptr octl)
-/*
-Output a GNU "vector_size" attribute as required by the specified type,
-which must be a tk_vector, in the way described by octl.  If
-*need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE to indicate that a space will be needed
-after the attribute.
-*/
-{
-  check_assertion(type->kind == (a_type_kind)tk_vector);
-  if (*need_leading_space) {
-    octl->output_str(" ", octl);
-  }  /* if */
-  octl->output_str("__attribute((vector_size(", octl);
-  if (type->variant.vector.size_constant != NULL) {
-    form_constant(type->variant.vector.size_constant,
-                  /*need_parens=*/FALSE, octl);
-  } else {
-    form_unsigned_num((a_host_large_unsigned)type->size, octl);
-  }  /* if */
-  octl->output_str(")))", octl);
-  *need_leading_space = TRUE;
-}  /* form_vector_type_attribute */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-
-
 a_boolean form_type_attributes(
                     a_type_ptr                             type,
                     a_boolean                              need_leading_space,
@@ -4942,11 +4919,7 @@ to determine if a leading space is still needed).  Do the output in the way
 described by octl.
 */
 {
-  if (!octl->gen_compilable_code
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      || gcc_is_generated_code_target
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-                                     ) {
+  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     /* First emit the attributes that when appearing on a typedef would be
        recorded in the typedef entry itself (as opposed to the underlying
        type). */
@@ -4959,7 +4932,6 @@ described by octl.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
       form_ELF_visibility_attribute(class_type_supp(type)->ELF_visibility,
-                                    &type->source_corresp,
                                     &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -5003,11 +4975,7 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      || gcc_is_generated_code_target
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-                                     ) {
+  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (var->alignment != 0) {
       /* Output the alignment attribute. */
@@ -5036,8 +5004,8 @@ Do the output in the way described by octl.
       octl->output_str(")))", octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(var->ELF_visibility, &var->source_corresp,
-                                  &need_leading_space, octl);
+    form_ELF_visibility_attribute(var->ELF_visibility, &need_leading_space,
+                                  octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (var->is_weak && !var->is_weakref) {
       /* The "weakref" attribute implies the "weak" attribute: We don't need
@@ -5107,11 +5075,7 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      || gcc_is_generated_code_target
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-                                     ) {
+  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     if (field->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
@@ -5151,11 +5115,7 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      || gcc_is_generated_code_target
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-                                     ) {
+  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     if (rout->is_initialization_routine) {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       if (rout->ctor_priority != 0) {
@@ -5224,14 +5184,13 @@ Do the output in the way described by octl.
     if (rout->always_inline) {
       form_simple_attribute("__always_inline__", &need_leading_space, octl);
     }  /* if */
-#if GCC_IS_GENERATED_CODE_TARGET || \
-    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
+#if GCC_IS_GENERATED_CODE_TARGET
     /* The "gnu_inline" attribute isn't recognized by older GNU compilers, but
        on those compilers the associated semantics are enabled by default. */
     if (rout->gnu_c89_inline && gnu_target_version_number >= 40200) {
       form_simple_attribute("__gnu_inline__", &need_leading_space, octl);
     }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
     if (rout->never_throws) {
       form_simple_attribute("__nothrow__", &need_leading_space, octl);
     }  /* if */
@@ -5260,8 +5219,8 @@ Do the output in the way described by octl.
       form_simple_attribute("__weakref__", &need_leading_space, octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(rout->ELF_visibility, &rout->source_corresp,
-                                  &need_leading_space, octl);
+    form_ELF_visibility_attribute(rout->ELF_visibility, &need_leading_space,
+                                  octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   return need_leading_space;
@@ -5280,11 +5239,7 @@ need_leading_space is TRUE, return TRUE (this allows the caller to
 determine if a leading space is still needed).
 */
 {
-  if (!octl->gen_compilable_code
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      || gcc_is_generated_code_target
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-                                     ) {
+  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     if (label->has_gnu_unused_attribute) {
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
@@ -5292,6 +5247,7 @@ determine if a leading space is still needed).
   return need_leading_space;
 }  /* form_label_attributes */
 
+#endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
 void form_asm_name(char                                   *asm_name,

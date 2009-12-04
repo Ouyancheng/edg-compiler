@@ -368,6 +368,7 @@ extern a_source_correspondence_ptr source_corresp_for_template_param(
 
 #if GNU_EXTENSIONS_ALLOWED
 
+#if BACK_END_IS_C_GEN_BE
 extern a_boolean form_type_attributes(
                    a_type_ptr                             type,
                    a_boolean                              need_leading_space,
@@ -379,14 +380,6 @@ extern void form_vector_type_attribute(
                      a_boolean                             *need_leading_space,
                      an_il_to_str_output_control_block_ptr octl);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-void form_ELF_visibility_attribute(
-                   an_ELF_visibility_kind                 visibility,
-                   a_source_correspondence_ptr            scp,
-                   a_boolean                              *need_leading_space,
-                   an_il_to_str_output_control_block_ptr  octl);
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 extern a_boolean form_variable_attributes(
                    a_variable_ptr                         var,
@@ -407,6 +400,7 @@ extern a_boolean form_label_attributes(
                    a_label_ptr                            label,
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
+#endif /* BACK_END_IS_C_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 extern void form_asm_name(char                                   *asm_name,

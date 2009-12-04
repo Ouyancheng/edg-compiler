@@ -809,8 +809,7 @@ error checking and type adjustments as required.
   } else {
     /* Verify that the parameter type is not a qualified function type. */
     a_type_ptr  rtp = skip_typerefs(*type_ptr);
-    if ((*type_ptr)->kind == (a_type_kind)tk_typeref &&
-        typeref_is_typedef(*type_ptr) &&
+    if (type_is_typedef(*type_ptr) &&
         rtp->kind == (a_type_kind)tk_routine &&
         (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
          rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
@@ -6592,8 +6591,7 @@ for use in generating cross-reference output describing this declaration.
 #endif /* CHECKING */
     /* Verify that we are not declaring a const or volatile function through
        a typedef (other cases are caught while parsing). */
-    if (type_ptr->kind == (a_type_kind)tk_typeref &&
-        typeref_is_typedef(type_ptr) &&
+    if (type_is_typedef(type_ptr) &&
         (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
          rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
       pos_error(ec_bad_qualified_function_type, &locator->source_position);

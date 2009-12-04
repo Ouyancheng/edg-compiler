@@ -263,10 +263,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,find_ms_attribute_for_entity)*/
 /*lint -esym(714,find_ms_attribute_for_entity)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-/*lint -esym(759,form_ELF_visibility_attribute)*/
-/*lint -esym(765,form_ELF_visibility_attribute)*/
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 #if !DEBUG
 /*lint -esym(749,pfs_last)*/
