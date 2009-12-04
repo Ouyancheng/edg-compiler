@@ -1891,7 +1891,8 @@ the attribute to get marked as unrecognized.
   an_attr_application_fn
              *appl_fn = known_attr_appl_table[(int)ap->kind].appl_fn;
 
-  if (check_target_entity_match(constr, ap, entity, entity_kind)) {
+  if (check_target_entity_match(constr, ap, entity, entity_kind) &&
+      !is_unrecognized_attr(ap)) {
     if (appl_fn != NULL) {
       entity = appl_fn(ap, entity, entity_kind);
     }  /* if */
