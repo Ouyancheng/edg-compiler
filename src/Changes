@@ -96,8 +96,7 @@ For example:
 
 
 12/3/09  [EDGcpfe/10262]
-Undefined behavior when lowering some assignments to temporaries when
-CHECKING is TRUE
+Abort during lowering of some assignments to temporaries when CHECKING is TRUE
 
 In configurations where CHECKING is TRUE, the creation of an assignment of an
 expression whose type is a typedef for a class to a temporary had caused
