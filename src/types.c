@@ -6331,14 +6331,13 @@ See conversion_possible.
          std::nullptr_t or a 0-valued integral constant expression) can be
          converted to std::nullptr_t. */
       okay = TRUE;
-      if (!is_nullptr(source_type)) {
-        /* Converting an integral null pointer constant to std::nullptr_t.
-           This is a nontrivial conversion and also requires a cast when
-           the conversion is for a non-type template argument to a non-type
-           template parameter: set the appropriate flags. */
-        std_conv->nontrivial_conversion = TRUE;
-        std_conv->pointer_normalization_needed = TRUE;
-      }  /* if */
+      std_conv->nontrivial_conversion = !is_nullptr(source_type);
+      /* We only want to set pointer_normalization_needed for integral
+         types: there should be an error for attempting to pass 0 to a
+         non-type template parameter of type std::nullptr_t without a cast,
+         but passing a template parameter should be allowed, since it might
+         be instantiated as std::nullptr_t. */
+      std_conv->pointer_normalization_needed = is_integral(source_type);
     }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
