@@ -1,5 +1,24 @@
 Version 4.2
 
+12/4/09  [EDGcpfe/10288]
+An lvalue eok_comma operation can make its way through lowering to a back end
+
+Some expressions generated during lowering may have resulted in an lvalue
+returning eok_comma operation in the IL.  The following example had generated
+incorrect IL.  In configurations that use the C generating back end (4.0 and
+later), the example had caused an assertion failure ("dump_expr:
+lvalue-returning operation").
+
+  struct A {
+    int x;
+    static int y;
+    A(int z = 0) {}
+  } a;
+  void f() {
+    (a = 0).y;
+  }
+
+
 12/4/09  [EDGcpfe/10264]
 Non-type template parameter of type std::nullptr_t with integral null pointer
 constant
