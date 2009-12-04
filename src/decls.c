@@ -4644,7 +4644,7 @@ flag when is_declaration is TRUE.
         severity = es_remark;
       }  /* if */
       err_code = is_function ? ec_type_with_no_linkage_in_function :
-                               ec_type_with_no_linkage_in_var_with_linkage,
+                               ec_type_with_no_linkage_in_var_with_linkage;
       pos_diagnostic(severity, err_code, error_pos);
     }  /* if */
   }  /* if */
