@@ -15692,6 +15692,7 @@ function declaration.
       func_info->is_definition = TRUE;
     }  /* if */
   }  /* if */
+  dps->is_definition = func_info->is_definition;
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_deduced_template_param(dps->type);

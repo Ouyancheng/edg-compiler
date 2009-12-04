@@ -41,6 +41,10 @@ In C++0x mode, the attributes "align", "noreturn", "nothrow", "final", and
 
   [[noreturn]] void f() {}  // Warning is issued: calls to f() do return.
 
+(The standard attributes feature was added to the C++0x working paper by
+document N2761, adopted at the September, 2008 (San Francisco) meeting.  Some
+of the attributes were added subsequently through additional documents.)
+
 In GNU C++ mode, attributes with template-dependent arguments are now handled
 correctly.  For example:
 
