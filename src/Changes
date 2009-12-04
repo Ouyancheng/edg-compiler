@@ -1,5 +1,49 @@
 Version 4.2
 
+12/3/09  [EDGcpfe/8293,EDGcpfe/9067,EDGcpfe/9253,EDGcpfe/9531,EDGcpfe/9861,
+          EDGcpfe/10280]
+Attributes
+
+The original framework supporting GNU attributes in the front end dealt with
+a few attributes for GNU C compatibility.  Since then, many attributes have
+been added and most are also accepted in C++ modes.  The original framework
+didn't make it particularly convenient to add simple attributes, and it didn't
+deal well with C++ templates.  It also did not provide much support for source
+analysis of attributes (for example, no position information was available in
+the IL for attribute constructs).
+
+Because of these limitations and the needs of C++0x attributes, the front end
+now includes a new framework for attributes (that replaces the original GNU
+attributes framework).  It initially implements GNU attributes and C++0x
+attributes, but it is also designed to handle Microsoft-style __declspec
+attributes in the future.
+
+In C++0x mode, the attributes "align", "noreturn", "nothrow", "final", and
+"carries_dependency" are now supported.  For example:
+
+  [[noreturn]] void f() {}  // Warning is issued: calls to f() do return.
+
+In GNU C++ mode, attributes with template-dependent arguments are now handled
+correctly.  For example:
+
+  template<int N> struct S {
+    struct __attribute((aligned(N))) {} s;  // Previously an error (invalid
+  };                                        // attribute argument); now okay.
+
+When both GNU_EXTENSIONS_ALLOWED and SUN_EXTENSIONS_ALLOWED are TRUE, the
+front end now accepts GNU attributes in Sun mode.  (When GNU_EXTENSIONS_ALLOWED
+is TRUE, the global variable gnu_attributes_enabled now controls whether GNU
+attributes are accepted.)
+
+Attributes are now represented directly in the IL (via an_attribute entries).
+The new configuration macro RECORD_UNRECOGNIZED_ATTRIBUTES determines whether
+unrecognized attributes are recorded in the IL (when FALSE, unrecognized
+attributes elicit a warning).
+
+Adding new attributes is now much simplified: See the comments at the top of
+attribute.c for an overview.
+
+
 12/3/09  [EDGcpfe/10266]
 Casting to std::nullptr_t
 

@@ -11,6 +11,56 @@
 
 attribute.c -- Processing of attributes.
 
+
+How to Add a New Attribute
+==========================
+The attribute framework is designed to make it relatively easy to add a new
+attribute.  Typically, adding an attribute involves three or four steps:
+
+  (1) Add a new ak_... attribute kind constant in il_def.h.
+      For example: ak_section.
+
+  (2) Add a new row to the table known_attr_table[] below.  For example:
+        { "section", "(sn)", "gx", ak_section },
+      Such a row describes the source form of the attribute ("section"),
+      what kind of arguments (if any) the attribute takes ("(sn)" means that
+      a normal string literal is expected), and which mode the attribute
+      should be accepted in ("gx" means that all GNU C and C++ modes should
+      accept the attribute).
+      See the definition of struct an_attr_descr for details.
+
+  (3) Add a new row to the table known_attr_appl_table[] below.  For example:
+        { ak_section, "r|v:-a!", apply_section_attr },
+      Such a row describes simple constraints for the entity to which the
+      attribute is applied ("r|v:-a!" means that the entity must be a routine
+      or a non-automatic variable), and which function to call to "apply" the
+      attribute (apply_section_attr in this case) which may check additional
+      constraints and/or update the IL entry for the entity.  (If no function
+      should be called, specify NO_APPL_FN instead.)
+      See the definition of struct an_attr_appl_descr for details.
+
+  (4) Write the application function specified in step 3 (if any).
+
+Even when none of these steps is taken, an unrecognized attribute will still
+automatically be recorded in the IL when record_unrecognized_attributes is
+TRUE (when FALSE, a warning is issued for unrecognized attributes). 
+
+For attributes that are only of interest to a back end, it is conceivable that
+no application function is required or that the application function does not
+update the target IL entry because the an_attribute entry that is automatically
+recorded is sufficient for the back end (ak_carries_dependency is currently an
+example of the latter).
+
+It is recommended that attributes not produce an entirely new IL entry, but
+instead just modify the entry they apply to "in place".  Some GNU attributes
+(mode and vector_size) do however produce a new a_type entry when applied to
+another a_type entry.  For that reason, the application function type is:
+    typedef char* an_attr_application_fn(an_attribute_ptr  ap,
+                                         char              *entity,
+                                         an_il_entry_kind  entity_kind);
+The returned value is the entity resulting from applying the given attribute
+to the given entity (in most cases the returned entity is the given entity,
+since attributes usually do not create new entries).
 */
 
 /*
