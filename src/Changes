@@ -12,11 +12,6 @@ This is now fixed.  For example:
   A<true> a;
   int i = f<int,0>(a);
 
-(This example is currently accepted by the front end only in Microsoft
-mode, pending action by the C++ Standard Committee on core issue 936 to
-determine whether it is permissible to compare a value of type
-std::nullptr_t with an integral null pointer constant.)
-
 
 12/4/09  [EDGcpfe/10288]
 An lvalue eok_comma operation can make its way through lowering to a back end
