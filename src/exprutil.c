@@ -2439,7 +2439,7 @@ diagnostics, if that changes the control flow.
 {
   a_boolean check_access = TRUE;
 
-  if (is_template_dependent_context()) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* No access checking in prototype instantiations, since we may not have
        complete information. */
     check_access = FALSE;
