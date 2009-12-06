@@ -1,5 +1,21 @@
 Version 4.2
 
+12/6/09  [EDGcpfe/10297]
+Comparing nullptr with an integral null pointer constant
+
+The current draft C++ Standard does not allow comparison of a value of type
+std::nullptr_t with an integral null pointer constant nor to use them as
+the second and third operands of a conditional (?:) operator, so the front
+end treated such expressions as errors (except in Microsoft mode, where
+they were accepted).  The C++ Standard Committee is expected to change this
+rule at the next meeting (see core language issue 963), however, so the
+front end has been changed to follow suit.  For example, the following two
+declarations are now accepted without error in --strict mode:
+
+  bool b = nullptr == 0;
+  int* p = b ? nullptr : 0;
+
+
 12/6/09  [EDGcpfe/10296]
 Comparing nullptr with a dependent-type constant during argument deduction
 

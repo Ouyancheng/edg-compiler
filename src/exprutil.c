@@ -5577,12 +5577,9 @@ pointer-to-member types are handled by
 check_compatibility_of_pointer_operands and
 check_ptr_to_member_operands_for_compatibility, respectively.)  Check to
 see that the operands are compatible, i.e., that both are of type
-std::nullptr_t or that the other is an integral null pointer constant (this
-case is currently allowed only in Microsoft mode, pending clarification
-from the C++ Standard Committee).  operator_position gives the operator
-position (for errors).  If the operands are compatible, set *operation_type
-to nullptr_type(); otherwise, set it to error_type().  Return FALSE if
-there is an error.
+std::nullptr_t or that the other is an integral null pointer constant.  If
+the operands are compatible, set *operation_type to nullptr_type();
+otherwise, set it to error_type().  Return FALSE if there is an error.
 */
 {
   a_boolean okay = FALSE;
@@ -5594,11 +5591,11 @@ there is an error.
   if (is_nullptr_type(operand_1->type)) {
     okay =
         (is_nullptr_type(operand_2->type) ||
-         (microsoft_mode && is_constant_operand(operand_2) &&
+         (is_constant_operand(operand_2) &&
           is_or_might_be_null_pointer_constant(&operand_2->variant.constant)));
   } else {
     check_assertion(is_nullptr_type(operand_2->type));
-    okay = microsoft_mode && is_constant_operand(operand_1) &&
+    okay = is_constant_operand(operand_1) &&
            is_or_might_be_null_pointer_constant(&operand_1->variant.constant);
   }  /* if */
   if (okay) {
