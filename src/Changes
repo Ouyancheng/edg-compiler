@@ -1,5 +1,23 @@
 Version 4.2
 
+12/6/09  [EDGcpfe/10296]
+Comparing nullptr with a dependent-type constant during argument deduction
+
+The front end formerly failed an assertion when comparing nullptr to a
+a constant with a dependent type during template argument deduction.
+This is now fixed.  For example:
+
+  template<bool N> struct A { };
+  template<typename T, T t> int f(A<t == nullptr>);
+  A<true> a;
+  int i = f<int,0>(a);
+
+(This example is currently accepted by the front end only in Microsoft
+mode, pending action by the C++ Standard Committee on core issue 936 to
+determine whether it is permissible to compare a value of type
+std::nullptr_t with an integral null pointer constant.)
+
+
 12/4/09  [EDGcpfe/10288]
 An lvalue eok_comma operation can make its way through lowering to a back end
 

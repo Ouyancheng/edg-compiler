@@ -12819,7 +12819,11 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_gnu_min:
       case eok_gnu_max:
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        do_usual_arith_conversions = TRUE;
+        if (!is_nullptr_type(type_1) && !is_nullptr_type(type_2)) {
+          /* The usual arithmetic conversions are not performed if one of
+             the operands has type std::nullptr_t. */
+          do_usual_arith_conversions = TRUE;
+        }  /* if */
         break;
       case eok_add_assign:
       case eok_subtract_assign:
