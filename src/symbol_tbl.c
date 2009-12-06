@@ -7772,7 +7772,7 @@ functions befriending_list_test and class_scope_test.
   a_scope_depth           scope_depth;
   a_type_ptr              skip_to_class = NULL;
 
-  if (is_template_dependent_context()) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
     have_member_privilege = TRUE;
@@ -8581,7 +8581,7 @@ in the source program.
   a_symbol_ptr	fund_sym = fundamental_symbol_of(symbol);
   a_boolean	have_access = TRUE;
 
-  if (is_template_dependent_context()) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
   } else if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -9085,7 +9085,7 @@ kinds of symbols.
     pos_sy_error(ec_ambiguous_name, &locator->source_position,
                  overloaded_symbol);
     set_to_error_locator(*locator);
-  } else if (is_template_dependent_context()) {
+  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
        checking cannot be done for a template, only for instances. */
   } else if (!overloaded_symbol->is_class_member) {
@@ -9195,7 +9195,7 @@ established that the member is protected in the naming class.
   a_type_ptr       base_class;
   a_base_class_ptr bcp;
 
-  if (is_template_dependent_context()) {
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking in prototype instantiations.
        One can check access only in instances of templates, not in
        the templates themselves. */
