@@ -5568,24 +5568,35 @@ handle_field_selection:
                                         template_constant)) {
               /* The operand has a constant address.  Fold the base class
                  cast into it. */
-              a_boolean        did_not_fold;
-              a_base_class_ptr bcp;
-              check_assertion(is_class_struct_union_type(op1->type) &&
-                              is_class_struct_union_type(expr->type));
-              bcp = find_base_class_of(op1->type, expr->type);
-              check_assertion(bcp != NULL);
-              fold_base_class_cast(&conaddr1, bcp, expr->type, con,
-                                   /*check_cast_access=*/FALSE,
-                                   /*check_ambiguity=*/FALSE,
-                                   (a_boolean)expr->variant.operation.
-                                                            compiler_generated,
-                                   /*is_object_pointer=*/FALSE,
-                                   &did_not_fold,
-                                   &error_position);
-              /* A cast to a virtual base class might not fold to a
-                 constant even if the original pointer is a constant. */
-              if (!did_not_fold) {
+              if (is_template_dependent_type(expr->type) ||
+                  *template_constant) {
+                /* The type cast to is dependent or the source is dependent,
+                   so add a template param cast. */
+                make_template_param_cast_constant(&conaddr1, con, expr->type,
+                                                  !expr->variant.operation.
+                                                           compiler_generated);
+                *template_constant = TRUE;
                 is_constant_addr = TRUE;
+              } else {
+                a_boolean        did_not_fold;
+                a_base_class_ptr bcp;
+                check_assertion(is_class_struct_union_type(op1->type) &&
+                                is_class_struct_union_type(expr->type));
+                bcp = find_base_class_of(op1->type, expr->type);
+                check_assertion(bcp != NULL);
+                fold_base_class_cast(&conaddr1, bcp, expr->type, con,
+                                     /*check_cast_access=*/FALSE,
+                                     /*check_ambiguity=*/FALSE,
+                                     (a_boolean)expr->variant.operation.
+                                                            compiler_generated,
+                                     /*is_object_pointer=*/FALSE,
+                                     &did_not_fold,
+                                     &error_position);
+                /* A cast to a virtual base class might not fold to a
+                   constant even if the original pointer is a constant. */
+                if (!did_not_fold) {
+                  is_constant_addr = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
             break;
@@ -5597,9 +5608,10 @@ handle_field_selection:
               /* The address of the operand is constant.  Adjust its type
                  and it is also the address of the result lvalue. */
               a_type_ptr new_type = make_pointer_type(expr->type);
-              if (is_template_dependent_type(expr->type)) {
-                /* The type cast to is dependent, so add a template param
-                   cast. */
+              if (is_template_dependent_type(expr->type) ||
+                  *template_constant) {
+                /* The type cast to is dependent or the source is dependent,
+                   so add a template param cast. */
                 make_template_param_cast_constant(&conaddr1, con, new_type,
                                                   !expr->variant.operation.
                                                            compiler_generated);

@@ -1,5 +1,29 @@
 Version 4.2
 
+12/7/09  [EDGcpfe/10295]
+Abort on base class conversion in template when folding constant address
+
+There was an abort in get_pointer_offset ("bad kind") on attempting to
+fold an lvalue to a constant address in the presence of a conversion to a
+base class where the underlying address is template-dependent.  Now fixed.
+The problem presented itself in a use of offsetof with --parse_templates
+and --microsoft:
+
+  #define offsetof(s,m) \
+    (size_t)&reinterpret_cast<const volatile char&>((((s *)0)->m))
+  template <class T> class SmartPtrBase {
+   public:
+    T* p;
+  };
+  template <class T> class SmartPtr : public SmartPtrBase<T> {};
+  template <class T> void function() {
+    struct Foo {
+      SmartPtr<char> m_ptr;
+    };
+    size_t offset = offsetof(Foo, m_ptr.p);
+  }
+
+
 12/7/09  [EDGcpfe/10291]
 Assertion failure when lowering certain pointer to member function comparisons
 
