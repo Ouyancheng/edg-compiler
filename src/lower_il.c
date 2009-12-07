@@ -3474,48 +3474,53 @@ Do the same for any other stmk_inits immediately following it.
 }  /* mark_stmk_inits_as_following_exec_statement */
 
 
-void insert_statement(a_statement_ptr        statement,
-                      an_insert_location_ptr insert_location)
+void insert_statement_full(a_statement_ptr        statement,
+                           an_insert_location_ptr insert_location,
+                           a_boolean              perform_post_pass)
 /*
 Insert the statement "statement" at *insert_location.  Update *insert_location
-so the next insertion will be after the statement added.  A lowering post pass
-is performed on any top level expressions contained in the statement, but the
-caller is responsible for performing the post pass on any expressions that
-may be introduced at a secondary statement level (e.g., in a block or loop
-statement).
+so the next insertion will be after the statement added.  If perform_post_pass
+is TRUE, a lowering post pass is performed on any top level expressions
+contained in the statement, but the caller is responsible for performing the
+post pass on any expressions that may be introduced at a secondary statement
+level (e.g., in a block or loop statement).  Performing a lowering post pass
+is harmless (so a value of TRUE is safe), but expensive so it should be
+avoided if not necessary.
 */
 {
   a_statement_ptr         insert_stmt;
   an_insert_location_kind kind = insert_location->kind;
 
-  /* If the statement we're about to insert has any expressions, make sure
-     they have been run through the lowering post pass before the statement
-     is inserted.  Note that only top level expressions are examined here;
-     if the statement contains other expressions that need a lowering post
-     pass performed on them (e.g., in the body of a loop statement), it
-     is the caller's responsibility to perform a lowering post pass before
-     calling this routine. */
-  if (statement->expr != NULL) {
-    perform_post_pass_on_lowered_expression(statement->expr);
-  }  /* if */
-  if (statement->kind == (a_statement_kind)stmk_for) {
-    /* For statements have additional expressions. */
-    if (statement->variant.for_loop.extra_info->increment != NULL) {
-      perform_post_pass_on_lowered_expression(
-                          statement->variant.for_loop.extra_info->increment);
+  if (perform_post_pass) {
+    /* If the statement we're about to insert has any expressions, make sure
+       they have been run through the lowering post pass before the statement
+       is inserted.  Note that only top level expressions are examined here;
+       if the statement contains other expressions that need a lowering post
+       pass performed on them (e.g., in the body of a loop statement), it
+       is the caller's responsibility to perform a lowering post pass before
+       calling this routine. */
+    if (statement->expr != NULL) {
+      perform_post_pass_on_lowered_expression(statement->expr);
     }  /* if */
+    if (statement->kind == (a_statement_kind)stmk_for) {
+      /* For statements have additional expressions. */
+      if (statement->variant.for_loop.extra_info->increment != NULL) {
+        perform_post_pass_on_lowered_expression(
+                            statement->variant.for_loop.extra_info->increment);
+      }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
-    if (statement->variant.for_loop.extra_info->affinity != NULL) {
-      perform_post_pass_on_lowered_expression(
-                           statement->variant.for_loop.extra_info->affinity);
-    }  /* if */
+      if (statement->variant.for_loop.extra_info->affinity != NULL) {
+        perform_post_pass_on_lowered_expression(
+                             statement->variant.for_loop.extra_info->affinity);
+      }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
   if (is_expr_insert_location_kind(kind)) {
     /* Insert within an expression. */
 #if CHECKING
     if (statement->kind != (a_statement_kind)stmk_expr) {
-      internal_error("insert_statement: cannot insert non-expr statement");
+      internal_error("insert_statement_full: cannot insert non-expr statement");
     }  /* if */
 #endif /* CHECKING */
     /* Note that the expression statement is just discarded. */
@@ -3534,7 +3539,7 @@ statement).
         insert_stmt->variant.block.statements = statement;
       } else {
         check_assertion_str(kind == ilk_after_statement,
-                            "insert_statement: bad insert location kind");
+                            "insert_statement_full: bad insert location kind");
         /* Normal case -- insert after insert_stmt. */
         statement->next = insert_stmt->next;
         insert_stmt->next = statement;
@@ -3548,7 +3553,7 @@ statement).
       mark_stmk_inits_as_following_exec_statement(statement->next);
     }  /* if */
   }  /* if */
-}  /* insert_statement */
+}  /* insert_statement_full */
 
 
 a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,

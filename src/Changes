@@ -1,5 +1,29 @@
 Version 4.2
 
+12/7/09  [EDGcpfe/10281, EDGcpfe/10282]
+Memory region issues when inlining
+
+The lowering post pass introduced as part of the expression rewrite
+changes for 4.0 (see the 7/24/08 Changes entry) was mistakenly being performed
+on expressions being used as the source for an inlined function rather than
+on the copied expressions.  Though mostly harmless, in certain cases the
+post pass could modify the expression, resulting in an expression that
+crossed memory regions.  Incorrectly modified expressions could result in many
+different failure modes, including (but not limited to) assertion failures
+"remap_ptr_to_entry_number: pointer in secondary trans unit" and
+"set_expr_node_kind: bad kind".  For example (--c++0x):
+
+  typedef decltype(nullptr) nullptr_t;
+  template <template <class _T, _T x> class T> struct A {
+    T<nullptr_t, nullptr> x;
+  };
+  template <class T, T x> struct B {
+    T y;
+    B() : y(x) {}
+  };
+  A<B> ab;
+
+
 12/7/09  [EDGcpfe/10295]
 Abort on base class conversion in template when folding constant address
 

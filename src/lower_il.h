@@ -863,6 +863,17 @@ extern void mark_stmk_inits_as_following_exec_statement(
 extern void insert_statement(a_statement_ptr        statement,
                              an_insert_location_ptr insert_location);
 
+/*
+Macro for typical call to insert_statement_full where a lowering post pass
+is necessary.
+*/
+#define insert_statement(statement, insert_location) \
+  insert_statement_full(statement, insert_location, /*perform_post_pass=*/TRUE)
+
+extern void insert_statement_full(a_statement_ptr        statement,
+                                  an_insert_location_ptr insert_location,
+                                  a_boolean              perform_post_pass);
+
 extern a_statement_ptr insert_expr_statement(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);

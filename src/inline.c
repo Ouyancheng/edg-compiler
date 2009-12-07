@@ -58,11 +58,21 @@ static a_scope_ptr
 			   with this scope is being expanded as an inline. */
 
 
+static an_expr_node_ptr copy_expr_tree_for_inlining(an_expr_node_ptr expr)
 /*
-Interface macro to copy_expr_tree.
+Return a copy of the specified expression tree with remapped parameter
+variables replaced with appropriate values for the invocation of the function
+currently being inlined.  copy_expr_tree calls back to
+adjust_copied_expression_for_inlining to perform the appropriate remappings.
+A lowering post pass is performed on the resulting expression (to address any
+optimization issues that may arise as a result of the variable remapping).
 */
-#define copy_expr_tree_for_inlining(expr) \
-  copy_expr_tree((expr), CE_DOING_INLINING_OF_FUNCTION_CALL)
+{
+  expr = copy_expr_tree(expr, CE_DOING_INLINING_OF_FUNCTION_CALL);
+  perform_post_pass_on_lowered_expression(expr);
+  return expr;
+}  /* copy_expr_tree_for_inlining */
+
 
 #if STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION
 /*ARGSUSED*/
@@ -857,8 +867,6 @@ because of remapped variables.
       set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
       expr->variant.constant = alloc_shareable_constant(&constant);
     }  /* if */
-    /* Perform a lowering post pass on this inlined expression. */
-    perform_post_pass_on_lowered_expression(expr);
   }  /* if */
 }  /* adjust_copied_expression_for_inlining */
 
@@ -1021,7 +1029,11 @@ static a_statement_ptr copy_inlined_statement(
                                            an_insert_location *insert_location)
 /*
 Make a copy of the indicated statement, insert it at *insert_location, and
-return a pointer to the copy.
+return a pointer to the copy.  Note that any top level expressions that may
+exist in the "input" statement are copied to the "output" statement (though
+they are likely invalid in their new context) and should be overwritten by
+the caller as appropriate.  No lowering post pass is performed on any
+expressions contained in the statement.
 */
 {
   a_statement_ptr new_statement = alloc_statement(statement->kind);
@@ -1032,7 +1044,8 @@ return a pointer to the copy.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   new_statement->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  insert_statement(new_statement, insert_location);
+  insert_statement_full(new_statement, insert_location,
+                        /*perform_post_pass=*/FALSE);
   return new_statement;
 }  /* copy_inlined_statement */
 
@@ -1050,7 +1063,9 @@ be done, in any context, also set *inlinable FALSE.  If statement is NULL,
 do nothing.  Note that the insert location may be an expression insert
 location; in that case, only expressions can be inserted, so other kinds
 of statements can be inserted only if they can be turned into expressions.
-If not, *failed is set.
+If not, *failed is set.  Expressions are run through a lowering post pass
+as they are copied and not when they are inserted (as part of a statement)
+into the IL tree.
 */
 {
   an_expr_node_ptr   stmt_expr, expr;
@@ -1282,11 +1297,13 @@ If not, *failed is set.
           if (!*failed) {
             if (result_is_then) {
               /* The result is the "then" statement. */
-              insert_statement(then_stmt, insert_location);
+              insert_statement_full(then_stmt, insert_location,
+                                    /*perform_post_pass=*/FALSE);
             } else if (result_is_else) {
               /* The result is the "else" statement. */
               if (else_stmt != NULL) {
-                insert_statement(else_stmt, insert_location);
+                insert_statement_full(else_stmt, insert_location,
+                                      /*perform_post_pass=*/FALSE);
               }  /* if */
             } else {
               /* Insert an "if" statement. */
@@ -1314,7 +1331,8 @@ If not, *failed is set.
           new_statement->variant.block.extra_info->final_position =
               statement->variant.block.extra_info->final_position;
 #endif /* !STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
-          insert_statement(new_statement, insert_location);
+          insert_statement_full(new_statement, insert_location,
+                                /*perform_post_pass=*/FALSE);
           /* Copies of the statements in the block will be inserted under the
              copy of the block statement. */
           set_block_start_insert_location(new_statement, &sub_insert_location);
@@ -1432,11 +1450,12 @@ If not, *failed is set.
              supplement. */
           new_statement = alloc_statement((a_statement_kind)stmk_for);
           set_inline_statement_positions(new_statement, statement);
-          insert_statement(new_statement, insert_location);
           new_statement->expr = stmt_expr;
           new_statement->variant.for_loop.statement = stmt;
           new_statement->variant.for_loop.extra_info->initialization=init_stmt;
           new_statement->variant.for_loop.extra_info->increment=increment_expr;
+          insert_statement_full(new_statement, insert_location,
+                                /*perform_post_pass=*/FALSE);
         }
         break;
       case stmk_decl:
