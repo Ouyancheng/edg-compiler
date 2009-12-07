@@ -11731,12 +11731,12 @@ variables can have changed since the first reference.
   an_expr_node_ptr comp_expr;
 
   if (is_constant_node(expr) &&
-      (expr->variant.constant->kind ==
-                                      (a_constant_repr_kind)ck_ptr_to_member &&
-       expr->variant.constant->variant.ptr_to_member.is_function_ptr)) {
+      expr->variant.constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     a_targ_ptrdiff_t delta, idx, offset;
     a_routine_ptr    routine;
 
+    check_assertion(expr->variant.constant->
+                                        variant.ptr_to_member.is_function_ptr);
     /* Constant case.  Generate an expression for the proper constant
        value of the proper component. */
     repr_for_ptr_to_member_function_constant(expr->variant.constant,
