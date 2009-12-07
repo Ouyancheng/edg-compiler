@@ -149,13 +149,13 @@ treat such casts as errors.  For example:
 
 
 12/3/09  [EDGcpfe/10276]
-Non-lowered type_kind for lowered assignment to pointer to member
+Non-lowered type_kind for lowered assignment to pointer to member (IA-64 ABI)
 
 type_kinds are supposed to be lowered (see the Changes for entry for
 EDGcpfe/10048), but were not properly lowered in the case of a routine added
 during lowering to zero-initialize an entity of pointer to member type.
-For example (fails an assertion check in dump_expr when using the IA-64 ABI
-and the C generating back end):
+In C generating back end configurations that use the IA-64 ABI, this example
+fails an assertion check in dump_expr:
 
   struct A {};
   typedef double A::*pd;
