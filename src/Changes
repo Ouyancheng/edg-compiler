@@ -154,8 +154,8 @@ Non-lowered type_kind for lowered assignment to pointer to member (IA-64 ABI)
 type_kinds are supposed to be lowered (see the Changes for entry for
 EDGcpfe/10048), but were not properly lowered in the case of a routine added
 during lowering to zero-initialize an entity of pointer to member type.
-In C generating back end configurations that use the IA-64 ABI, this example
-fails an assertion check in dump_expr:
+This problem is specific to the IA-64 ABI.  In C generating back end
+configurations, this example fails an assertion check in dump_expr:
 
   struct A {};
   typedef double A::*pd;
