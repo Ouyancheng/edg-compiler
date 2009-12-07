@@ -20,8 +20,8 @@ declarations are now accepted without error in --strict mode:
 Comparing nullptr with a dependent-type constant during argument deduction
 
 The front end formerly failed an assertion when comparing nullptr to a
-a constant with a dependent type during template argument deduction.
-This is now fixed.  For example:
+constant with a dependent type during template argument deduction.  This is
+now fixed.  For example:
 
   template<bool N> struct A { };
   template<typename T, T t> int f(A<t == nullptr>);
