@@ -3117,7 +3117,7 @@ Generate the given attribute (not including the attribute group delimiters).
   if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
     if (ap->namespace_name != NULL) {
       check_assertion(ap->family == (a_byte_attribute_family)af_std);
-      write_tok_str(ap->name);
+      write_tok_str(ap->namespace_name);
       write_tok_str("::");
     }  /* if */
     write_tok_str(ap->name);

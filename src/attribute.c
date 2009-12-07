@@ -870,7 +870,7 @@ That includes unrecognized attributes.)
       default:
 default_case:
         *p_aap = alloc_attribute_arg();
-        (*p_aap)->kind = (an_attribute_arg_kind)aak_token;
+        (*p_aap)->kind = (an_attribute_arg_kind)aak_raw_token;
         (*p_aap)->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         (*p_aap)->end_position = end_pos_curr_token;

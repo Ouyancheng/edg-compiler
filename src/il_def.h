@@ -1389,7 +1389,7 @@ typedef struct an_attribute_arg {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   union {
     /* When kind == aak_empty: no variant fields. */
-    /* When kind == aak_token: */
+    /* When kind == aak_token or aak_raw_token: */
     char	*token; /* The character sequence forming the argument
 			   token. */
     /* When kind == aak_constant: */
