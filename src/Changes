@@ -1,5 +1,23 @@
 Version 4.2
 
+12/7/09  [EDGcpfe/10291]
+Assertion failure when lowering certain pointer to member function comparisons
+
+Typically, when lowering a pointer to member function comparison, any pointer
+to member function constant operands are operated on before they are lowered,
+but in certain cases (like the example below where the constant appears
+multiple times in an expression in the file scope), it's possible that the
+constant has already been lowered; this had caused an assertion failure 
+(in repr_for_ptr_to_member_function_constant in lower_il.c) and is now fixed.
+For example:
+
+  struct A {
+    void f(void) {}
+  };
+  void (A::*p)(void);
+  bool x = (0 == (&A::f, (&A::f == p)));
+
+
 12/6/09  [EDGcpfe/10297]
 Comparing nullptr with an integral null pointer constant
 

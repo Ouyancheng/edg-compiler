@@ -11717,27 +11717,23 @@ static an_expr_node_ptr expr_for_pmf_component(
                                               a_boolean        vars_can_change)
 /*
 expr points to an expression for an rvalue of a pointer-to-member-function
-type.  It has been lowered unless it is a constant.  Generate an expression
-that is the value of the component of the pointer-to-member-function
-structure identified by field, and return a pointer to the expression.
-If the input expression is a constant, the generated expression is
-just the proper constant value of the proper component.  Otherwise,
-it is an rvalue field selection of the proper field.  need_copy is
-TRUE if make_reusable_copy needs to be called on expr in the nonconstant
-case.  If so, vars_can_change indicates whether the values of variables
-can have changed since the first reference.
+type.  It is either a constant (lowered or unlowered) or an expression that has
+already been lowered.  Generate an expression that is the value of the
+component of the pointer-to-member-function structure identified by field, and
+return a pointer to the expression.  If the input expression is an unlowered
+constant, the generated expression is just the proper constant value of the
+proper component.  Otherwise, it is an rvalue field selection of the proper
+field.  need_copy is TRUE if make_reusable_copy needs to be called on expr in
+the nonconstant case.  If so, vars_can_change indicates whether the values of
+variables can have changed since the first reference.
 */
 {
   an_expr_node_ptr comp_expr;
 
-  if (!is_constant_node(expr)) {
-    /* The general case, not a constant.  Generate a field selection. */
-    if (need_copy) expr = make_reusable_copy(expr, vars_can_change);
-    comp_expr = node_to_select_field_from_rvalue(expr, field);
-    /* For the integral cases, do integral promotion if necessary.  This is
-       harmless for non-integral cases. */
-    comp_expr = integral_promote_node(comp_expr);
-  } else {
+  if (is_constant_node(expr) &&
+      (expr->variant.constant->kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member &&
+       expr->variant.constant->variant.ptr_to_member.is_function_ptr)) {
     a_targ_ptrdiff_t delta, idx, offset;
     a_routine_ptr    routine;
 
@@ -11780,6 +11776,27 @@ can have changed since the first reference.
       /* Make an expression for the constant. */
       comp_expr = alloc_node_for_constant(&constant);
     }  /* if */
+  } else {
+    a_variable_ptr  temp_var;
+    if (is_constant_node(expr) &&
+        check_for_troublesome_aggregate_constant(expr->variant.constant,
+                                                 /*const_okay=*/TRUE,
+                                                 &temp_var)) {
+      check_assertion(is_or_was_ptr_to_member_function_type(expr->type));
+      /* This expression node is a pointer-to-member-function constant, which
+         has become a struct represented by a ck_aggregate constant.  Since a
+         ck_aggregate constant is not allowed here, use the value of a
+         temporary variable initialized with the ck_aggregate constant. */
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+      expr->variant.variable = temp_var;
+    }  /* if */
+    /* The general case -- not an unlowered pointer-to-member-function
+       constant.  Generate a field selection. */
+    if (need_copy) expr = make_reusable_copy(expr, vars_can_change);
+    comp_expr = node_to_select_field_from_rvalue(expr, field);
+    /* For the integral cases, do integral promotion if necessary.  This is
+       harmless for non-integral cases. */
+    comp_expr = integral_promote_node(comp_expr);
   }  /* if */
   return comp_expr;
 }  /* expr_for_pmf_component */
