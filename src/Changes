@@ -1,5 +1,23 @@
 Version 4.2
 
+12/8/09  [EDGcpfe/10307]
+GNU C++ compatibility: template keyword with missing template argument list
+
+A change made in version 4.1 resulted in spurious errors in some uses of
+the "template" keyword in g++ mode when gnu_version is >= 30400.  Now fixed.
+See the 12/19/08 entry for information about the original change.
+
+  struct A {
+    template <class T> class B {};
+  };
+  template <template <class> class TT> struct X {
+    TT<int> y;
+  };
+  template <class T> struct C {
+    X<T::template B> x;  // error on this line
+  };
+
+
 12/7/09  [EDGcpfe/10308]
 GNU compatibility: removal of duplicate search paths with the -I- option
 

@@ -12238,10 +12238,19 @@ err_pos is the position to be used to report any errors.
   a_template_ptr			result = NULL;
   a_boolean				any_errors = FALSE;
   a_template_symbol_supplement_ptr	tssp;
+  an_identifier_options_set		options;
 
-  if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
-    sym = coalesce_and_lookup_generalized_identifier(
-                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+
+  options = GID_TEMPLATE_ARGS_OPTIONAL;
+  if (gpp_mode && gnu_version >= 30400) {
+    /* The GNU compiler treats "T::template X" as a class template.  Normally
+       the "template" keyword there is only used to disambiguate a "<"
+       following an identifier. */
+    options |= GID_CLASS_TEMPLATE_REQUIRED;
+  }  /* if */
+  if (is_generalized_identifier_start(options)) {
+    sym = coalesce_and_lookup_generalized_identifier(options, ilm_normal,
+                                                     &err);
     /* In early g++ mode, if the symbol found is an injected template symbol,
        replace it with the template that it represents. */
     if (gpp_mode && gnu_version < 30400 && sym != NULL &&
@@ -14832,10 +14841,15 @@ selection operator, in which case it points to the type of the left operand.
           if (gpp_mode && gnu_version >= 30400) {
             /* g++ allows usage like "p->A::template f()", where the name (at
                least during the prototype instantiation) is not a template.
-               Ignore the template keyword in this case. */
+               Ignore the template keyword in this case.  An exception is made
+               when the caller specifies the GID_CLASS_TEMPLATE_REQUIRED
+               option. */
             a_token_kind	second_token;
             (void)next_two_tokens(tok_identifier, &second_token);
-            if (second_token != tok_lt) is_template = FALSE;
+            if (second_token != tok_lt &&
+                (options & GID_CLASS_TEMPLATE_REQUIRED) == 0) {
+              is_template = FALSE;
+            }  /* if */
           }  /* if */
           if (!cpp0x_mode && strict_ansi_mode &&
               !is_template_context() && !in_if_exists) {
