@@ -1402,8 +1402,8 @@ If attributes are ahead in the token stream, skip over them.
 }  /* skip_over_attributes */
 
 
-static void report_bad_attribute_target(an_error_severity  sev,
-                                        an_attribute_ptr   ap)
+void report_bad_attribute_target(an_error_severity  sev,
+                                 an_attribute_ptr   ap)
 /*
 Issue a diagnostic with the given severity indicating that the given attribute
 doesn't apply to the entity on which it is specified.  The given attribute is

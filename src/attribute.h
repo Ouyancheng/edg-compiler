@@ -54,9 +54,23 @@ extern a_boolean check_transparent_union(a_type_ptr        tp,
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+/*
+Return TRUE if the given attribute is unrecognized or a empty attribute.  Such
+attributes cannot be "applied" to any entities.
+*/
+#define is_unapplicable_attr(ap)                                             \
+  ((ap)->kind == (a_byte_attribute_kind)ak_unrecognized ||                   \
+   (ap)->kind == (a_byte_attribute_kind)ak_empty_attr)
+
+/*
+Return TRUE if the given attribute is unrecognized.
+*/
 #define is_unrecognized_attr(ap)                                             \
   ((ap)->kind == (a_byte_attribute_kind)ak_unrecognized)
 
+/*
+Reclassify the given attribute as "unrecognized".
+*/
 #define make_attr_unrecognized(ap)                                           \
   { (ap)->kind = (a_byte_attribute_kind)ak_unrecognized; }
 
@@ -81,6 +95,9 @@ EXTERN a_source_position
 			   scanned). */
 
 extern void skip_over_attributes(void);
+
+extern void report_bad_attribute_target(an_error_severity  sev,
+                                        an_attribute_ptr   ap);
 
 extern void attach_attributes(an_attribute_ptr  attributes,
                               char              *entity,

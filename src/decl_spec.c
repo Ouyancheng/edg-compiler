@@ -2854,14 +2854,12 @@ issue a warning.
             pos_error(ec_invalid_std_attribute_location, &ap->position);
             std_error_emitted = TRUE;
           }  /* if */
-          ap->kind = (a_byte_attribute_kind)ak_unrecognized;
+          make_attr_unrecognized(ap);
         }  /* if */
       } else if (ap->family == (a_byte_attribute_family)af_gnu) {
         /* GNU attributes in this syntactic location are ignored in most
            contexts that aren't definitions. */
-        if (ignore_gnu_attributes &&
-            ap->kind != (a_byte_attribute_kind)ak_unrecognized &&
-            ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+        if (ignore_gnu_attributes && !is_unapplicable_attr(ap)) {
           if (!gnu_warning_emitted) {
             pos_warning(is_immediate_class_type(type) ?
                           ec_attribute_ignored_on_incomplete_class_decl :
@@ -2869,7 +2867,7 @@ issue a warning.
                         &ap->group->position);
             gnu_warning_emitted = TRUE;
           }  /* if */
-          ap->kind = (a_byte_attribute_kind)ak_unrecognized;
+          make_attr_unrecognized(ap);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -7472,11 +7470,11 @@ list.
     p_ap  = &dps->specifier_attributes;
     while (*p_ap != NULL) {
       if (!is_type_transforming_attribute(*p_ap) &&
-          !is_unrecognized_attr(*p_ap)) {
+          !is_unapplicable_attr(*p_ap)) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
         if (ap->family == (a_byte_attribute_family)af_std) {
-          pos_st_error(ec_wrong_entity_for_attribute, &ap->position, ap->name);
+          report_bad_attribute_target(es_error, ap);
         }  /* if */
         *p_ap = ap->next;
         ap->syntactic_location = (a_byte_attribute_location)al_prefix;
@@ -7493,11 +7491,11 @@ list.
     p_ap  = &dps->prefix_attributes;
     while (*p_ap != NULL) {
       if (is_type_transforming_attribute(*p_ap) &&
-          !is_unrecognized_attr(*p_ap)) {
+          !is_unapplicable_attr(*p_ap)) {
         /* Move the attribute to the specifier attributes list. */
         an_attribute_ptr  ap = *p_ap;
         if (ap->family == (a_byte_attribute_family)af_std) {
-          pos_st_error(ec_wrong_entity_for_attribute, &ap->position, ap->name);
+          report_bad_attribute_target(es_error, ap);
         }  /* if */
         *p_ap = ap->next;
         ap->syntactic_location = (a_byte_attribute_location)al_specifier;
