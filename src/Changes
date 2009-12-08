@@ -1,5 +1,20 @@
 Version 4.2
 
+12/7/09  [EDGcpfe/10308]
+GNU compatibility: removal of duplicate search paths with the -I- option
+
+The change described in the 11/23/09 entry for removing search paths that
+are specified as both system and non-system did not correctly handle the
+case when the search path that was removed was the one immediately
+preceding the -I- option, which identifies the start of paths to be used
+for the <...> form of header name.  For example, command line options of
+the form
+
+  -Ifoo -I- --sys_include foo
+
+could result in failure to find any system headers.  This is now fixed.
+
+
 12/7/09  [EDGcpfe/10281, EDGcpfe/10282]
 Memory region issues when inlining
 

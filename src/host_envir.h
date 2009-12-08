@@ -2627,7 +2627,8 @@ extern void pop_primary_include_search_dir(char	*dir_name,
 
 extern void add_to_template_search_path(char		*dir_name);
 #if !STANDALONE_UTILITY_PROGRAM
-extern void remove_duplicate_system_includes(void);
+extern void remove_duplicate_system_includes(
+                            a_directory_name_entry_ptr *include_path_boundary);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 EXTERN a_boolean

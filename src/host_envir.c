@@ -485,10 +485,15 @@ The space is allocated in general (not IL or FE) memory.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void remove_duplicate_system_includes(void)
+void remove_duplicate_system_includes(
+                             a_directory_name_entry_ptr *include_path_boundary)
 /*
-Go through the search path and remove any non-system include directories that
-are also specified as system include directories.
+Go through the search path and remove any non-system include directories
+that are also specified as system include directories.  If -I- was
+specified on the command line, the pointer to which include_path_boundary
+points will be non-NULL and will point to the directory immediately
+preceding the -I- option; this pointer will be updated appropriately if
+that directory is removed because of duplication.
 */
 {
   a_directory_name_entry_ptr	dnep1;
@@ -508,8 +513,17 @@ are also specified as system include directories.
           /* Remove the non-system entry from the list. */
           if (prev_dnep1 != NULL) {
             prev_dnep1->next = dnep1->next;
+            if (*include_path_boundary == dnep1) {
+              /* The preceding directory becomes the one immediately before
+                 -I-. */
+              *include_path_boundary = prev_dnep1;
+            }  /* if */
           } else {
             incl_search_path = dnep1->next;
+            if (*include_path_boundary == dnep1) {
+              /* There are no remaining directories before -I-. */
+              *include_path_boundary = NULL;
+            }  /* if */
           }  /* if */
 #if DEBUG
           if (db_flag_is_set("incl_search_path")) {
