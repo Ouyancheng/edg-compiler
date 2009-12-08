@@ -912,7 +912,8 @@ at *err_pos.  result->type need not be set on entry.
        necessary casts. */
     access_okay = TRUE;
     /* No access checking in prototype instantiations. */
-    if (in_front_end && is_template_dependent_context()) {
+    if (in_front_end &&
+        scope_stack[depth_scope_stack].in_prototype_instantiation) {
       check_cast_access = FALSE;
     }  /* if */
     orig_type = type_pointed_to(constant_1->type);
@@ -1377,7 +1378,8 @@ error, it is issued at *err_pos.  If the cast cannot be folded,
     set_error_constant(result);
   } else {
     /* No access checking in prototype instantiations. */
-    if (in_front_end && is_template_dependent_context()) {
+    if (in_front_end &&
+        scope_stack[depth_scope_stack].in_prototype_instantiation) {
       check_cast_access = FALSE;
     }  /* if */
     if (check_cast_access) {
