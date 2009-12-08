@@ -3838,7 +3838,7 @@ Template static data members initialized outside the class are now always
 considered non-constant.
 
 
-5/13/09  [EDGcpfe/9422]
+5/13/09  [EDGcpfe/9778]
 Microsoft compatibility: internal error on missing uuid attribute arguments
 
 An internal error could occur (in process_ms_attr_uuid) if a uuid
