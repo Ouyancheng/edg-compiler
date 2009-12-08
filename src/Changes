@@ -1,5 +1,20 @@
 Version 4.2
 
+12/8/09  [EDGcpfe/10283]
+Missing diagnostic on namespace declared with template-id in GNU C++ mode
+
+In g++ mode when gnu_version is < 40300, a class and a namespace can be
+declared with the same name in a given scope (see the Changes entry of
+6/12/09).  However, the front end silently ignored what looked like template
+arguments following the namespace name in such cases (a regression introduced
+in version 4.1).  For example:
+
+  template <class T> struct A {};
+  namespace A<short> {}  // Previously unintentionally accepted in g++ mode.
+
+This is now fixed: An error is issued for such constructs.
+
+
 12/8/09  [EDGcpfe/10269]
 Invalid IL (and bad generated C) for lambda in initializer for namespace-scope
 variable
