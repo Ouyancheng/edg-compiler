@@ -182,9 +182,10 @@ correctly.  For example:
   };                                        // attribute argument); now okay.
 
 When both GNU_EXTENSIONS_ALLOWED and SUN_EXTENSIONS_ALLOWED are TRUE, the
-front end now accepts GNU attributes in Sun mode.  (When GNU_EXTENSIONS_ALLOWED
-is TRUE, the global variable gnu_attributes_enabled now controls whether GNU
-attributes are accepted.)
+front end now accepts some GNU attributes in Sun mode.  The Sun mode
+attributes are "aligned", "constructor", "destructor", "packed", "visibility",
+and "weak".  (When GNU_EXTENSIONS_ALLOWED is TRUE, the global variable
+gnu_attributes_enabled now controls whether GNU attribute syntax is accepted.)
 
 Attributes are now represented directly in the IL (via an_attribute entries).
 The new configuration macro RECORD_UNRECOGNIZED_ATTRIBUTES determines whether

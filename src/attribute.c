@@ -188,6 +188,7 @@ static an_attr_descr known_attr_table[] = {
 #if USER_CONTROL_OF_STRUCT_PACKING
   { "align", "(ct)", "c+", ak_align },
   { "aligned", "?(ci)", "gx", ak_align },
+  { "aligned", "?(ci)", "s+", ak_align },
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   { "noreturn", "", "1c+", ak_noreturn },
   { "noreturn", "", "gx", ak_noreturn },
@@ -205,12 +206,14 @@ static an_attr_descr known_attr_table[] = {
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "constructor", "", "gx", ak_constructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  { "constructor", "", "s+", ak_constructor },
   { "deprecated", "", "gx(30100-)", ak_deprecated },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "destructor", "?(ci)", "gx", ak_destructor },
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "destructor", "", "gx", ak_destructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  { "destructor", "", "s+", ak_destructor },
   { "format", "(n,ci,ci)", "gx", ak_format },
   { "format_arg", "(ci)", "gx", ak_format_arg },
   { "gnu_inline", "", "gx", ak_gnu_inline },
@@ -223,6 +226,7 @@ static an_attr_descr known_attr_table[] = {
   { "nonnull", "?(?ci+)", "gx", ak_nonnull },
 #if USER_CONTROL_OF_STRUCT_PACKING
   { "packed", "", "gx", ak_packed },
+  { "packed", "", "s+", ak_packed },
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   { "pure", "", "gx", ak_pure },
   { "section", "(sn)", "gx", ak_section },
@@ -234,6 +238,7 @@ static an_attr_descr known_attr_table[] = {
   { "volatile", "", "gx", ak_noreturn },
   { "warn_unused_result", "", "gx", ak_warn_unused_result },
   { "weak", "", "gx", ak_weak },
+  { "weak", "", "s+", ak_weak },
   { "weakref", "?(sn)", "gx(40100-)", ak_weakref },
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
   { "naked", "", "gx", ak_naked },
@@ -244,6 +249,7 @@ static an_attr_descr known_attr_table[] = {
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   { "visibility", "(sn)", "gx", ak_visibility },
+  { "visibility", "(sn)", "s+", ak_visibility },
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "init_priority", "(ci)", "g+", ak_init_priority },
@@ -2050,9 +2056,12 @@ error.
           default:
             unexpected_condition();
         }  /* switch */
-        if (*p_err && p_error == NULL && !substitution_error_reported) {
-          pos_error(ec_bad_attribute_template_substitution, &aap->position);
-          substitution_error_reported = TRUE;
+        if (*p_err) {
+          if (p_error == NULL && !substitution_error_reported) {
+            pos_error(ec_bad_attribute_template_substitution, &aap->position);
+            substitution_error_reported = TRUE;
+          }  /* if */
+          make_attr_unrecognized(*p_attr);
         }  /* if */
         p_aap = &(*p_aap)->next;
         aap = aap->next;
