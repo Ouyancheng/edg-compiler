@@ -11783,6 +11783,8 @@ variables can have changed since the first reference.
     }  /* if */
   } else {
     a_variable_ptr  temp_var;
+    /* The general case -- not an unlowered pointer-to-member-function
+       constant.  Generate a field selection. */
     if (is_constant_node(expr) &&
         check_for_troublesome_aggregate_constant(expr->variant.constant,
                                                  /*const_okay=*/TRUE,
@@ -11794,10 +11796,9 @@ variables can have changed since the first reference.
          temporary variable initialized with the ck_aggregate constant. */
       set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
       expr->variant.variable = temp_var;
+    } else if (need_copy) {
+      expr = make_reusable_copy(expr, vars_can_change);
     }  /* if */
-    /* The general case -- not an unlowered pointer-to-member-function
-       constant.  Generate a field selection. */
-    if (need_copy) expr = make_reusable_copy(expr, vars_can_change);
     comp_expr = node_to_select_field_from_rvalue(expr, field);
     /* For the integral cases, do integral promotion if necessary.  This is
        harmless for non-integral cases. */
