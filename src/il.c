@@ -7516,6 +7516,11 @@ done to add the type to the end of the types list for the enclosing class.
       prev_type->next = type_ptr;
     }  /* if */
     pointers_block->last_type = type_ptr;
+    /* We are adding a type to the types list of a namespace scope.  Add
+       a placeholder type to the types list of the filescope -- it's used
+       by IL lowering to get the order right when it promotes namespace
+       types to the file scope. */
+    add_placeholder_for_namespace_type(type_ptr);
   } else {
     /* Normal case -- just use the normal add_to_types_list process. */
     add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
