@@ -76,7 +76,7 @@ fixed.  For example:
     void f(void) {}
   };
   void (A::*p)(void);
-  bool x = (0 == (&A::f, (&A::f == p)));
+  bool x = (&A::f, (&A::f == p));
 
 
 12/6/09  [EDGcpfe/10297]
