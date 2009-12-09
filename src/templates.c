@@ -2778,7 +2778,6 @@ might not be able to if the template itself has not yet been defined.
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
                                               PS_NO_OPTIONS);
-/* FIXME XXX: verify -- partial specializations? */
       if (tssp->attributes != NULL) {
         /* Some attributes appeared on the definition.  Apply them to the
            instantiated class. */
@@ -3718,16 +3717,6 @@ user later during real instantiations.
 
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
-#if /*FIXME*/0 && GNU_EXTENSIONS_ALLOWED
-  if (dps->gnu_attributes != NULL) {
-    /* Allow the attributes specified to modify the type with which the
-       static data member was defined. */
-    var_ptr->type = apply_gnu_attributes_to_variable_type(dps->gnu_attributes,
-                                                          var_ptr->type);
-    apply_gnu_attributes_to_variable(dps->gnu_attributes, var_ptr,
-                                     /*is_definition=*/TRUE);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   var_ptr->declared_type = var_ptr->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4452,13 +4441,6 @@ and the class instantiation will detect the runaway case.
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
-/* FIXME XXX: Write equivalent; *dps missing? */
-#if /*FIXME*/0 && GNU_EXTENSIONS_ALLOWED
-  if (tssp->attributes != NULL) {
-    apply_gnu_attributes_to_variable(tssp->attributes, var_ptr,
-                                     /*is_definition=*/TRUE);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Call record_symbol_declaration *after* the template instantiation scope
      is pushed -- correct behavior for source sequence entry generation
      depends on it. */
@@ -5206,15 +5188,6 @@ prototype instantiation is considered as a potential match.
                                              class_type);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if /*FIXME*/0 && GNU_EXTENSIONS_ALLOWED
-      if (tssp->attributes != NULL) {
-        /* When parsing the template, some attributes were encountered
-           between the class-key ("class", "struct", or "union") and the
-           class template name. */
-        apply_gnu_attributes_to_type(tssp->attributes, class_type,
-                                     /*is_typedef=*/FALSE);
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
 #if DEBUG
     if (db_sym_trace("instantiations", sym)) {
@@ -8654,6 +8627,8 @@ where the class declared an incomplete array type.
   clear_decl_pos_block(&decl_pos_block);
   init_decl_parse_state(&state);
   state.trailing_return_type_allowed = trailing_return_types_enabled;
+  state.is_definition = TRUE;
+  state.sym = sym;
   rescan_reusable_cache(&tssp->variant.static_data_member.decl_cache.tokens);
   scan_template_declaration(&state, /*is_initial_decl=*/FALSE,
                             /*is_member_decl=*/FALSE, (a_type_ptr)NULL,
@@ -8662,6 +8637,7 @@ where the class declared an incomplete array type.
                             (a_routine_ptr)NULL, tip, &decl_pos_block);
   (void)reconcile_static_data_member_types(sym, state.type,
                                            &locator.source_position);
+  attach_decl_attributes(&state, /*primary_decl=*/TRUE);
 }  /* rescan_static_data_member_declaration */
 
 
@@ -14885,6 +14861,7 @@ template symbol supplement for this template should be returned to the caller.
     /* This is a template definition of a static data member of a
        class template. */
     a_type_ptr  type = dps->type;
+    dps->is_definition = TRUE;
 #if CHECKING
     if (sym->variant.static_data_member.instance_ptr->template_sym != sym) {
       internal_error("template_declaration: bad instance for static mem");
