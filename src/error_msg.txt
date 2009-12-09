@@ -1914,6 +1914,8 @@ ec_attr_requires_local_variable;;"attribute %sq requires an local variable"
 ec_attributes_ignored;;"attributes ignored here"
 ec_unattached_attribute;;"attribute does not apply to any entity"
 ec_bad_attribute_template_substitution;;"bad attribute argument substitution"
+ec_bad_tls_model_attr_arg;;"the argument of the \"tls_model\" attribute must be \"global-dynamic\", \"local-dynamic\", \"initial-exec\", or \"local-exec\""
+ec_inconsistent_tls_model_attr_arg;;"the declaration %p specified a different \"tls_model\" argument"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

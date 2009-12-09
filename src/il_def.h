@@ -1542,6 +1542,9 @@ typedef enum an_attribute_kind_tag {
 #if GNU_VECTOR_TYPES_ALLOWED
   ak_vector_size,	/* "vector_size" (gnu). */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  ak_tls_model,		/* "tls_model" (gnu). */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   ak_last
 } an_attribute_kind;
 

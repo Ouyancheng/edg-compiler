@@ -1,5 +1,16 @@
 Version 4.2
 
+12/9/09  [EDGcpfe/9848]
+
+GNU compatibility: Attribute tls_model
+
+In GNU modes with gnu_version >= 30300, the front end now supports attribute
+"tls_model" on thread-local variables (in configurations that set the macro
+THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED to TRUE).  For example:
+
+  __thread int x __attribute((tls_model("global-dynamic")));
+
+
 12/9/09  [EDGcpfe/10309]
 Unlowered pointer to member function constant in some file scope aggregates
 

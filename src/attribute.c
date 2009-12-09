@@ -257,6 +257,9 @@ static an_attr_descr known_attr_table[] = {
 #if GNU_VECTOR_TYPES_ALLOWED
   { "vector_size", "(ci)", "gx", ak_vector_size },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  { "tls_model", "(sn)", "gx(30300-)", ak_tls_model },
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   { "test_1", "(sn?,n)", "c+[EDG]", ak_unrecognized },
@@ -398,6 +401,9 @@ static an_attr_application_fn apply_init_priority_attr;
 #if GNU_VECTOR_TYPES_ALLOWED
 static an_attr_application_fn apply_vector_size_attr;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+static an_attr_application_fn apply_tls_model_attr;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -462,6 +468,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #if GNU_VECTOR_TYPES_ALLOWED
   { ak_vector_size, "T", apply_vector_size_attr },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  { ak_tls_model, "r|v|d|p", apply_tls_model_attr },
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
   { ak_last, "!!ERROR", NO_APPL_FN }
 };
@@ -4251,6 +4260,65 @@ error type.
 }  /* apply_vector_size_attr */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+
+static char* apply_tls_model_attr(an_attribute_ptr  ap,
+                                  char              *entity,
+                                  an_il_entry_kind  entity_kind)
+/*
+Check the validity of the GNU "tls_model" attribute for the given entity and
+return that entity.
+*/
+{
+  char *valid_model_names[] = { "global-dynamic", "local-dynamic",
+                                "initial-exec", "local-exec", NULL };
+
+  check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
+                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
+  if (entity_kind != iek_variable) {
+    report_bad_attribute_target(es_warning, ap);
+  } else {
+    /* A variable: Check that is has thread-local storage. */
+    a_variable_ptr      vp = (a_variable_ptr)entity;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    if (!(vp->decl_modifiers & DM_THREAD) != 0 &&
+        !(dps != NULL && (dps->decl_modifiers.flags & DM_THREAD) != 0)) {
+      report_bad_attribute_target(es_warning, ap);
+    } else {
+      /* Check that the model name (the attribute argument) is valid. */
+      a_constant_ptr    arg = ap->arguments->variant.constant;
+      char              **pvmn = valid_model_names;
+      check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+      for (; *pvmn != NULL; ++pvmn) {
+        if (strcmp(arg->variant.string.value, *pvmn) == 0) break;
+      }  /* for */
+      if (*pvmn == NULL) {
+        pos_error(ec_bad_tls_model_attr_arg, &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (dps != NULL && !dps->first_decl) {
+        an_attribute_ptr  prev_ap;
+        a_constant_ptr    prev_arg;
+        prev_ap = find_attribute(ak_tls_model, vp->source_corresp.attributes);
+        if (prev_ap != NULL) {
+          check_assertion(prev_ap->arguments != NULL &&
+                          prev_ap->arguments->kind ==
+                                         (an_attribute_arg_kind)aak_constant);
+          prev_arg = prev_ap->arguments->variant.constant;
+          check_assertion(prev_arg->kind == (a_constant_repr_kind)ck_string);
+          if (strcmp(arg->variant.string.value,
+                     prev_arg->variant.string.value)) {
+            pos2_diagnostic(es_error, ec_inconsistent_tls_model_attr_arg,
+                            &ap->arguments->position, &prev_ap->position);
+            make_attr_unrecognized(ap);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_tls_model_attr */
+
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*

@@ -5036,6 +5036,18 @@ Do the output in the way described by octl.
       form_string_argument_attribute("__section__", var->section,
                                      &need_leading_space, octl);
     }  /* if */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+    if ((var->decl_modifiers & DM_THREAD) != 0) {
+      an_attribute_ptr  ap = find_attribute(ak_tls_model,
+                                            var->source_corresp.attributes);
+      if (ap != NULL) {
+        a_constant_ptr  mncp = ap->arguments->variant.constant;
+        form_string_argument_attribute("__tls_model__",
+                                      mncp->variant.string.value,
+                                       &need_leading_space, octl);
+      }  /* if */
+    }  /* if */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
     if (var->aliased_variable != NULL) {
       char  *attr_str = var->is_weakref ? (char*)"__weakref__"
                                         : (char*)"__alias__";
