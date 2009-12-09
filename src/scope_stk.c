@@ -7629,11 +7629,20 @@ inside of the instantiation scope pushed for the specialization.
   a_scope_stack_entry_ptr	initial_ssep = &scope_stack[initial_depth];
   a_scope_stack_entry_ptr	curr_ssep = &scope_stack[depth_scope_stack];
   a_scope_stack_entry_ptr	prev_ssep = curr_ssep-1;
+  a_scope_depth			outer_templ_decl_depth = initial_depth;
+  a_scope_stack_entry_ptr	outer_templ_decl_ssep;
 
+  /* Look for the outermost template declaration scope. */
+  while (scope_stack[outer_templ_decl_depth-1].kind ==
+                                      (a_scope_kind)sck_template_declaration) {
+    --outer_templ_decl_depth;
+  }  /* while */
+  outer_templ_decl_ssep = &scope_stack[outer_templ_decl_depth];
   if (initial_ssep == prev_ssep) {
     /* Make the previous scope for the first namespace reactivation
-       point to the previous scope of the template declaration scope. */
-    curr_ssep->previous_scope = initial_ssep->previous_scope;
+       point to the previous scope of the outermost template declaration
+       scope. */
+    curr_ssep->previous_scope = outer_templ_decl_ssep->previous_scope;
   } else {
     /* Subsequent reactivation scopes will have their previous scope entry
        set to point to the template declaration scope.  Reset the previous
@@ -7642,7 +7651,7 @@ inside of the instantiation scope pushed for the specialization.
   }  /* if */
   /* Make the previous scope of the template declaration scope the innermost
      namespace reactivation scope. */
-  initial_ssep->previous_scope = depth_scope_stack;
+  outer_templ_decl_ssep->previous_scope = depth_scope_stack;
   /* Name lookups should begin at the template declaration scope. */
   depth_of_initial_lookup_scope = scope_depth_of(initial_ssep);
 }  /* set_template_decl_lookup_sequence */
@@ -7656,9 +7665,15 @@ the stack.
 */
 {
   a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			outer_templ_decl_depth = depth_scope_stack;
 
-  ssep = &scope_stack[depth_scope_stack];
-  ssep->previous_scope = depth_scope_stack-1;
+  /* Look for the outermost template declaration scope. */
+  while (scope_stack[outer_templ_decl_depth-1].kind ==
+                                      (a_scope_kind)sck_template_declaration) {
+    --outer_templ_decl_depth;
+  }  /* while */
+  ssep = &scope_stack[outer_templ_decl_depth];
+  ssep->previous_scope = outer_templ_decl_depth-1;
   depth_of_initial_lookup_scope = depth_scope_stack;
 }  /* reset_template_decl_lookup_sequence */
 

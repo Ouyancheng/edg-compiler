@@ -1,5 +1,21 @@
 Version 4.2
 
+12/9/09  [EDGcpfe/10189]
+Incorrect lookup with multiple template parameter clauses
+
+Name lookup was not done properly in the presence of multiple template
+parameter clauses.  This resulted in errors such as finding the incorrect
+B in the definition of N::C<B>::f(B) in the example below.  Now fixed.
+
+  namespace N {
+    template<class B> struct C {
+      template<class T> void f(B);
+    };
+    template<class T> class B {};
+  }
+  template<class B> template<class T> void N::C<B>::f(B) {;}
+
+
 12/8/09  [EDGcpfe/10283]
 Missing diagnostic on namespace declared with template-id in GNU C++ mode
 
