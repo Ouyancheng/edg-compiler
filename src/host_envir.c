@@ -513,17 +513,14 @@ that directory is removed because of duplication.
           /* Remove the non-system entry from the list. */
           if (prev_dnep1 != NULL) {
             prev_dnep1->next = dnep1->next;
-            if (*include_path_boundary == dnep1) {
-              /* The preceding directory becomes the one immediately before
-                 -I-. */
-              *include_path_boundary = prev_dnep1;
-            }  /* if */
           } else {
             incl_search_path = dnep1->next;
-            if (*include_path_boundary == dnep1) {
-              /* There are no remaining directories before -I-. */
-              *include_path_boundary = NULL;
-            }  /* if */
+          }  /* if */
+          if (*include_path_boundary == dnep1) {
+            /* We removed the directory immediately preceding -I-: change
+               the boundary marker either to the one before that or, if the
+               removed directory was the head of the list, to NULL. */
+            *include_path_boundary = prev_dnep1;
           }  /* if */
 #if DEBUG
           if (db_flag_is_set("incl_search_path")) {
