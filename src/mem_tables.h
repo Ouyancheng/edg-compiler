@@ -163,6 +163,13 @@ primary translation unit counterparts.
 #define clear_il_lowering_flag(epp)                                   \
   (epp->il_lowering_flag = initial_value_for_il_lowering_flag)
 
+/*
+Macro used to copy the value of the il_lowering_flag from one IL entity
+to another.
+*/
+#define copy_il_lowering_flag(from_il_entity, to_il_entity)           \
+{ il_entry_prefix_of((char *)to_il_entity).il_lowering_flag =         \
+                 il_entry_prefix_of((char *)from_il_entity).il_lowering_flag; }
 
 /*
 Macro used by clear_il_entry_prefix to clear the keep-in-IL flag in

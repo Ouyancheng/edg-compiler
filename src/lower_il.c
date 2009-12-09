@@ -18182,18 +18182,11 @@ been removed from the scope variables list).
            This might be expensive space-wise, since this might be
            an aggregate, but there are no good alternatives. */
         { a_memory_region_number region_to_switch_back_to = NULL_region_number;
-          a_boolean              saved_initial_value_for_il_lowering_flag =
-                                            initial_value_for_il_lowering_flag;
           switch_to_file_scope_region(&region_to_switch_back_to);
-          /* Make sure the copy is created with flags indicating it
-             has not been lowered yet. */
-          initial_value_for_il_lowering_flag = FALSE;
           variable->initializer.constant =
                            copy_constant_full(lsvip->initializer.constant,
                                               (a_constant_ptr)NULL,
                                               CE_REPLACE_STRINGS_BY_VARIABLES);
-          initial_value_for_il_lowering_flag =
-                                      saved_initial_value_for_il_lowering_flag;
           switch_back_to_original_region(region_to_switch_back_to);
         }
         if (variable->storage_class == (a_storage_class)sc_unspecified

@@ -1,5 +1,23 @@
 Version 4.2
 
+12/9/09  [EDGcpfe/10309]
+Unlowered pointer to member function constant in some file scope aggregates
+
+In configurations that enable exception handling, a pointer to member
+function constant that appears in a file scope aggregate that also contains 
+members that require destruction resulted in the pointer to member function
+constant not being lowered.  For example (with -x):
+
+  struct A {
+    ~A() {}
+    void f(void) {}
+  };
+  struct B {
+    void (A::*pmf)(void);
+    A a;
+  } b[] = { &A::f, A() };
+
+
 12/9/09  [EDGcpfe/10189]
 Incorrect lookup with multiple template parameter clauses
 

@@ -5111,6 +5111,10 @@ copy_constant_full should be called to start a copy.
     new_constant = alloc_shareable_constant(new_constant);
   } else if (new_constant_in_il) {
     fix_memory_region_problems_in_copied_constant(new_constant);
+    /* Copy the value of the il_lowering_flag from one constant to the other
+       (otherwise, when initial_value_for_il_lowering_flag is TRUE, it appears
+       that a copied constant has become lowered and this isn't the case). */
+    copy_il_lowering_flag(old_constant, new_constant);
   }  /* if */
   return new_constant; /*lint !e809*/
 }  /* i_copy_constant_full */
