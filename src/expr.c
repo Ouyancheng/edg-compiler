@@ -3991,7 +3991,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
        is handled by check_for_operator_overloading. */
     template_binary_operation((an_expr_operator_kind)eok_pm_field,
                               operand_1, &operand_2,
-                              result, &operator_position);
+                              result, &operator_position,
+                              operator_tok_seq_number);
     processed = TRUE;
   } else {
     if (is_arrow_operator &&
@@ -12867,9 +12868,12 @@ operators cannot be overloaded.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position      end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                         operator_tok_seq_number;
   an_operand             operand;
 
   copy_source_position(pos_curr_token, start_pos);
+  operator_tok_seq_number = curr_token_sequence_number;
   /* Skip over the "__real" or "__imag" operator token. */
   (void)get_token();
   scan_expr(&operand, PREC_CAST, EOPT_NO_OPTIONS);
@@ -12920,7 +12924,8 @@ operators cannot be overloaded.
       do_unary_operation(op, &operand, result_type, result, &start_pos);
     }  /* if */
   } else if (is_template_param_type(operand.type)) {
-    template_unary_operation(op, &operand, result, &start_pos);
+    template_unary_operation(op, &operand, result, &start_pos,
+                             operator_tok_seq_number);
   } else {
     error_in_operand(ec_real_and_imag_require_complex_argument, &operand);
     make_error_operand(result);
@@ -15394,9 +15399,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position     question_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                        question_tok_seq_number;
   a_boolean             operand_1_is_const = FALSE;
   a_boolean             operand_1_is_false = FALSE;
   a_boolean             result_is_an_lvalue = FALSE;
@@ -15419,9 +15424,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   db_enter(4, "scan_conditional_operator");
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   question_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  question_tok_seq_number = curr_token_sequence_number;
   /* Skip the "?" token. */
   (void)get_token();
 
@@ -15520,11 +15524,14 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         (is_template_dependent_type(operand_1->type) ||
          is_template_dependent_type(operand_2.type) ||
          is_template_dependent_type(operand_3.type))) {
-      /* If either operand has a template parameter type, we cannot
+      /* If any operand has a template parameter type, we cannot
          check the operand types.  Just produce an expression with
          a generic operator. */
       template_question_operation(operand_1, &operand_2, &operand_3,
-                                  is_gnu_two_operand_form, result);
+                                  is_gnu_two_operand_form,
+                                  &question_position,
+                                  question_tok_seq_number,
+                                  result);
       processed = TRUE;
     } else if (curr_expr_kind_is(ek_template_arg) &&
                (is_bad_type_for_template_arg_operand(operand_1->type) ||
@@ -16034,6 +16041,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     /* Build the expression. */
     do_question_operation(operand_1, &operand_2, &operand_3, result_type,
                           result_is_an_lvalue, suppress_class_rvalue_temp,
+                          /*template_case=*/FALSE,
                           is_gnu_two_operand_form, result);
     if (result_is_an_lvalue) {
       /* The result is an lvalue, so its reference list is the union

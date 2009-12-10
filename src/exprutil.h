@@ -483,6 +483,14 @@ typedef struct an_expr_rescan_info_entry {
 		end_position;
 			/* End position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_source_position
+		operator_position;
+			/* Position of the expression operator, if there is
+			   one; null_source_position otherwise. */
+  a_token_sequence_number
+		operator_token_sequence_number;
+			/* Token sequence number for the operator, if there
+			   is one.  NO_TOKEN_SEQUENCE_NUMBER otherwise. */
 } an_expr_rescan_info_entry;
 
 /*
@@ -1682,11 +1690,12 @@ extern an_expr_node_ptr prep_generic_argument_list(
                                              an_arg_operand *arg_operand_list);
 
 extern void template_binary_operation(
-                                     an_expr_operator_kind op,
-                                     an_operand            *operand_1,
-                                     an_operand            *operand_2,
-                                     an_operand            *result,
-                                     a_source_position     *operator_position);
+                              an_expr_operator_kind  op,
+                              an_operand             *operand_1,
+                              an_operand             *operand_2,
+                              an_operand             *result,
+                              a_source_position      *operator_position,
+                              a_token_sequence_number operator_tok_seq_number);
 
 extern void do_unary_operation(an_expr_operator_kind op,
                                an_operand            *operand,
@@ -1694,10 +1703,12 @@ extern void do_unary_operation(an_expr_operator_kind op,
                                an_operand            *result,
                                a_source_position     *start_position);
 
-extern void template_unary_operation(an_expr_operator_kind op,
-                                     an_operand            *operand,
-                                     an_operand            *result,
-                                     a_source_position     *start_position);
+extern
+void template_unary_operation(an_expr_operator_kind   op,
+                              an_operand              *operand,
+                              an_operand              *result,
+                              a_source_position       *start_position,
+                              a_token_sequence_number operator_tok_seq_number);
 
 extern void do_question_operation(an_operand *operand_1,
                                   an_operand *operand_2,
@@ -1705,14 +1716,18 @@ extern void do_question_operation(an_operand *operand_1,
                                   a_type_ptr result_type,
                                   a_boolean  result_is_an_lvalue,
                                   a_boolean  suppress_class_rvalue_temp,
+                                  a_boolean  template_case,
                                   a_boolean  is_gnu_two_operand_form,
                                   an_operand *result);
 
-extern void template_question_operation(an_operand *operand_1,
-                                        an_operand *operand_2,
-                                        an_operand *operand_3,
-                                        a_boolean  is_gnu_two_operand_form,
-                                        an_operand *result);
+extern void template_question_operation(
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               an_operand              *operand_3,
+                               a_boolean               is_gnu_two_operand_form,
+                               a_source_position       *question_position,
+                               a_token_sequence_number question_tok_seq_number,
+                               an_operand              *result);
 
 extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 

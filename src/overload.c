@@ -10980,12 +10980,13 @@ Adjust the operand type to match the type requirement.
 
 
 static void make_generic_operation_operand(
-                                          an_opname_kind    kind,
-                                          a_boolean         unary_operator,
-                                          an_operand        *operand_1,
-                                          an_operand        *operand_2,
-                                          an_operand        *result,
-                                          a_source_position *operator_position)
+                               an_opname_kind          kind,
+                               a_boolean               unary_operator,
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               an_operand              *result,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number)
 /*
 Make an operand for a "generic" operation, i.e., one on template-dependent
 operands in a prototype instantiation.  kind indicates the operation,
@@ -10993,6 +10994,7 @@ and unary_operator is TRUE if the operation is a unary operation.
 operand_1 and operand_2 are the operands (operand_2 is needed only
 for non-unary operations).  The result operand is returned in *result.
 *operator_position gives the source position of the operator.
+operator_tok_seq_number gives the token sequence number of the operator.
 */
 {
   an_expr_operator_kind generic_op =
@@ -11000,11 +11002,13 @@ for non-unary operations).  The result operand is returned in *result.
 
   if (unary_operator) {
     template_unary_operation(generic_op, operand_1, result,
-                             operator_position);
+                             operator_position,
+                             operator_tok_seq_number);
   } else {
     /* Two-operand operation. */
     template_binary_operation(generic_op, operand_1, operand_2,
-                              result, operator_position);
+                              result, operator_position,
+                              operator_tok_seq_number);
   }  /* if */
 }  /* make_generic_operation_operand */
 
@@ -11114,7 +11118,8 @@ such cases (where operator overloading might apply, but we can't tell).
        check for operator overloading.  Just build an expression with a
        generic operator. */
     make_generic_operation_operand(kind, unary_operator, operand_1, operand_2,
-                                   result, operator_position);
+                                   result, operator_position,
+                                   operator_tok_seq_number);
     *processed = TRUE;
   } else if (!curr_expr_kind_is_const()) {
     /* Check for operator overloading (but not in constant expressions). */
@@ -11392,7 +11397,8 @@ select_best_function:
              overload resolution.  Create a generic expression. */
           make_generic_operation_operand(kind, unary_operator,
                                          operand_1, operand_2,
-                                         result, operator_position);
+                                         result, operator_position,
+                                         operator_tok_seq_number);
           check_assertion(!dependent_call);
           if (is_prototype_instantiation_context()) {
             /* Make sure this call is treated as a nondependent call in

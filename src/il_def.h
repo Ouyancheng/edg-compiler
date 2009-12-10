@@ -91,7 +91,8 @@ typedef struct a_new_delete_supplement
 typedef struct an_arg_operand *an_arg_operand_ptr;
 /* Opaque type definition for an_expr_rescan_info_entry (used in the
    expression processing routines, but a pointer to it appears in a
-   front-end only field in the IL; its structure is not known here). */
+   front-end only field in the IL; its structure is not known here).
+   It is defined in exprutil.h. */
 typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
 
 /*

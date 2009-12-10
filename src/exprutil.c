@@ -2087,6 +2087,30 @@ instead.
 }  /* extract_node_from_operand */
 
 
+static an_expr_rescan_info_entry_ptr alloc_expr_rescan_info_entry(void)
+/*
+Allocate an expression rescan information entry (used to save information
+needed to do a rescan of an expression to redo semantic analysis later),
+set its fields to default values, and return a pointer to it.
+*/
+{
+  an_expr_rescan_info_entry_ptr eriep;
+
+  eriep = (an_expr_rescan_info_entry_ptr)alloc_fe(
+                                            sizeof(an_expr_rescan_info_entry));
+#if DEBUG
+  num_expr_rescan_info_entries_allocated++;
+#endif /* DEBUG */
+  eriep->position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  eriep->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  eriep->operator_position = null_source_position;
+  eriep->operator_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  return eriep;
+}  /* alloc_expr_rescan_info_entry */
+
+
 static void save_operand_info_in_expr_rescan_info_entry(
                                                      an_operand       *operand,
                                                      an_expr_node_ptr node)
@@ -2100,18 +2124,44 @@ entry attached to the expression node so it will be available for the rescan.
   an_expr_rescan_info_entry_ptr eriep = node->rescan_info;
 
   if (eriep == NULL) {
-    eriep = (an_expr_rescan_info_entry_ptr)alloc_fe(
-                                            sizeof(an_expr_rescan_info_entry));
-#if DEBUG
-    num_expr_rescan_info_entries_allocated++;
-#endif /* DEBUG */
-    node->rescan_info = eriep;
+    node->rescan_info = eriep = alloc_expr_rescan_info_entry();
   }  /* if */
+  /* Note that we do not clear all fields.  In particular, operator_position
+     and operator_token_sequence_number will often have been set previously
+     by record_operator_position_in_rescan_info. */
   eriep->position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   eriep->end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* save_operand_info_in_expr_rescan_info_entry */
+
+
+static void record_operator_position_in_rescan_info(
+                               an_operand              *operand,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number)
+/*
+Record the operator position and operator token sequence number in the rescan
+information associated with the expression attached to operand.  Allocate the
+rescan info if necessary (the usual case is that the rescan information will
+need to be allocated).
+*/
+{
+  check_assertion(operand->is_template_generic);
+  if (!is_error_operand(operand) &&
+      expr_stack->template_deduction_declaration_context) {
+    an_expr_node_ptr              node = expr_node_from_operand(operand);
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion_str(node != NULL,
+                        "recording operator pos, missing expr");
+    eriep = node->rescan_info;
+    if (eriep == NULL) {
+      node->rescan_info = eriep = alloc_expr_rescan_info_entry();
+    }  /* if */
+    eriep->operator_position = *operator_position;
+    eriep->operator_token_sequence_number = operator_tok_seq_number;
+  }  /* if */
+}  /* record_operator_position_in_rescan_info */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
@@ -7721,11 +7771,12 @@ Return a list of argument expressions.
 }  /* prep_generic_argument_list */
 
 
-void template_binary_operation(an_expr_operator_kind op,
-                               an_operand            *operand_1,
-                               an_operand            *operand_2,
-                               an_operand            *result,
-                               a_source_position     *operator_position)
+void template_binary_operation(an_expr_operator_kind  op,
+                               an_operand             *operand_1,
+                               an_operand             *operand_2,
+                               an_operand             *result,
+                               a_source_position      *operator_position,
+                               a_token_sequence_number operator_tok_seq_number)
 /*
 This routine is a wrapper for do_binary_operation for the case where
 an expression is being built from operands whose types are based
@@ -7766,6 +7817,8 @@ it happens in prototype instantiations.  op is the operator to be used.
   do_binary_operation(op, operand_1, operand_2, result_type,
                       result, operator_position);
   result->is_template_generic = TRUE;
+  record_operator_position_in_rescan_info(result, operator_position,
+                                          operator_tok_seq_number);
 }  /* template_binary_operation */
 
 
@@ -7859,10 +7912,11 @@ indicates the operator position.
 }  /* do_unary_operation */
 
 
-void template_unary_operation(an_expr_operator_kind op,
-                              an_operand            *operand,
-                              an_operand            *result,
-                              a_source_position     *start_position)
+void template_unary_operation(an_expr_operator_kind   op,
+                              an_operand              *operand,
+                              an_operand              *result,
+                              a_source_position       *start_position,
+                              a_token_sequence_number operator_tok_seq_number)
 /*
 This routine is a wrapper for do_unary_operation for the case where
 an expression is being built from an operand whose type is based
@@ -7941,6 +7995,14 @@ it happens in prototype instantiations.  op is the operator to be used.
   }  /* if */
   result->is_template_generic = TRUE;
   result->ruled_out_expr_kinds = operand->ruled_out_expr_kinds;
+  if (op == (an_expr_operator_kind)eok_address_of &&
+      result->is_operand_of_address_of) {
+    /* The "&" operator is implicit and its position is saved in the operand,
+       so we don't try to save it again. */
+  } else {
+    record_operator_position_in_rescan_info(result, start_position,
+                                            operator_tok_seq_number);
+  }  /* if */
 }  /* template_unary_operation */
 
 
@@ -8059,6 +8121,7 @@ void do_question_operation(an_operand *operand_1,
                            a_type_ptr result_type,
                            a_boolean  result_is_an_lvalue,
                            a_boolean  suppress_class_rvalue_temp,
+                           a_boolean  template_case,
                            a_boolean  is_gnu_two_operand_form,
                            an_operand *result)
 /*
@@ -8067,9 +8130,9 @@ are the operands.  result_type is the result type.  The result is an lvalue
 if result_is_an_lvalue is TRUE.  The operand is built in *result.
 Constant operations are folded if appropriate.  suppress_class_rvalue_temp
 is TRUE if the generation of an extra temporary for the result of a
-class rvalue case should be suppressed.  is_gnu_two_operand_form
-is TRUE if this is a GNU two-operand "?" (a synthesized operand_2 is
-still provided).
+class rvalue case should be suppressed.  template_case is TRUE if this
+is a template-dependent case.  is_gnu_two_operand_form is TRUE if this is
+a GNU two-operand "?" (a synthesized operand_2 is still provided).
 */
 {
   a_boolean  operand_1_is_const, do_folding = FALSE;
@@ -8099,7 +8162,12 @@ still provided).
        cases we don't.  In some of those other cases we don't fold because we
        can't easily do so (for example, if there were destructible objects
        attached to the second or third operand). */
-    if (curr_expr_kind_is_const()) {
+    if (template_case) {
+      /* Don't fold template-dependent cases.  If the operation is constant
+         the expression will be placed under a ck_template_param constant
+         below. */
+      do_folding = FALSE;
+    } else if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
       do_folding = TRUE;
     } else if (is_constant_operand(operand_2) &&
@@ -8183,15 +8251,17 @@ still provided).
     /* Some error. */
     make_error_operand(result);
   } else if (curr_expr_kind_is_const() &&
+             !operand_1_is_const &&
              curr_expr_is_evaluated() &&
              !(!C_mode() &&
-               is_template_dependent_context() &&
                is_constant_operand(operand_1) &&
                operand_1->variant.constant.kind ==
                                     (a_constant_repr_kind)ck_template_param)) {
     /* A constant expression where the value of the first operand is
        not known at compile time, except a template-dependent
-       value.  Error. */
+       value.  Error.  Note that we don't test template_case because
+       it isn't TRUE when an operand is dependent but has a non-dependent
+       type. */
     error_in_operand(ec_constant_value_not_known, operand_1);
     make_error_operand(result);
   } else {
@@ -8260,6 +8330,8 @@ still provided).
                                is_result_for_class_rvalue_question_mark = TRUE;
         }  /* if */
       }  /* if */
+      /* Note that we don't test template_case here because it isn't TRUE
+         when an operand is dependent but has a non-dependent type. */
       if (!C_mode() &&
           (is_template_param_constant_operand(operand_1) ||
            is_template_param_constant_operand(operand_2) ||
@@ -8285,11 +8357,14 @@ still provided).
 }  /* do_question_operation */
 
 
-void template_question_operation(an_operand *operand_1,
-                                 an_operand *operand_2,
-                                 an_operand *operand_3,
-                                 a_boolean  is_gnu_two_operand_form,
-                                 an_operand *result)
+void template_question_operation(
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               an_operand              *operand_3,
+                               a_boolean               is_gnu_two_operand_form,
+                               a_source_position       *question_position,
+                               a_token_sequence_number question_tok_seq_number,
+                               an_operand              *result)
 /*
 This routine is a wrapper for do_question_operation for the case where
 an expression is being built from operands whose types are based
@@ -8297,7 +8372,8 @@ on template parameter types.  When the current expression kind is
 constant, this can happen in nontype template arguments.  Otherwise,
 it happens in prototype instantiations.  is_gnu_two_operand_form is
 TRUE if this is a GNU two-operand "?" (a synthesized operand_2 is
-still provided).
+still provided).  question_position and question_tok_seq_number give
+the position and token sequence number of the "?" operator.
 
 */
 {
@@ -8315,8 +8391,11 @@ still provided).
                         type_of_unknown_templ_param_nontype,
                         /*result_is_an_lvalue=*/FALSE,
                         /*suppress_class_rvalue_temp=*/TRUE,
+                        /*template_case=*/TRUE,
                         is_gnu_two_operand_form, result);
   result->is_template_generic = TRUE;
+  record_operator_position_in_rescan_info(result, question_position,
+                                          question_tok_seq_number);
 }  /* template_question_operation */
 
 
