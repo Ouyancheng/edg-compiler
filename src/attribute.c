@@ -2082,23 +2082,6 @@ error.
 }  /* copy_of_attributes_with_substitution */
 
 
-an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
-                                  an_attribute_ptr       attributes)
-/*
-Return the first attribute of the given kind in the given list of attributes,
-or NULL if there is no such item.  (Use the macro find_attribute to avoid an
-explicit cast to a_byte_attribute_kind.)
-*/
-{
-  an_attribute_ptr  ap;
-
-  for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (ap->kind == kind) break;
-  }  /* for */
-  return ap;
-}  /* f_find_attribute */
-
-
 void mark_primary_decl_attributes(an_attribute_ptr  attributes)
 /*
 Set the on_primary_decl flag to TRUE in each of the attribute entries in the

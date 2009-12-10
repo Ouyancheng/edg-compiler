@@ -20134,6 +20134,24 @@ scan_alignof_operator for details).
 }  /* alignment_of_variable */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+
+an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
+                                  an_attribute_ptr       attributes)
+/*
+Return the first attribute of the given kind in the given list of attributes,
+or NULL if there is no such item.  (Use the macro find_attribute to avoid an
+explicit cast to a_byte_attribute_kind.)
+*/
+{
+  an_attribute_ptr  ap;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (ap->kind == kind) break;
+  }  /* for */
+  return ap;
+}  /* f_find_attribute */
+
+
 #if CHECKING
 #if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
 /*

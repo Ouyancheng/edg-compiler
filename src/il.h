@@ -1971,6 +1971,12 @@ extern void enter_predeclared_class(a_type_ptr         predeclared_type,
 
 extern a_targ_alignment alignment_of_variable(a_variable_ptr  vp);
 
+extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
+                                         an_attribute_ptr       attributes);
+
+#define find_attribute(kind, attributes)                                     \
+  (f_find_attribute((a_byte_attribute_kind)(kind), (attributes)))
+
 /*
 Type used as a hash value of a constant entry.
 */

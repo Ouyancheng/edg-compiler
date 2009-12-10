@@ -127,12 +127,6 @@ extern an_attribute_ptr copy_of_attributes_with_substitution(
                                              a_ctws_options_set    options,
                                              a_boolean             *err);
 
-extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
-                                         an_attribute_ptr       attributes);
-
-#define find_attribute(kind, attributes)                                     \
-  (f_find_attribute((a_byte_attribute_kind)(kind), (attributes)))
-
 /*
 Return TRUE if the given attribute may produce a new type entry when applied
 to an existing type entry.
