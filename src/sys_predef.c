@@ -1483,7 +1483,15 @@ Enter the standard predeclared functions for GCC.
                           va_list);
   enter_gnu_builtin_func5(___vsprintf_chk, int,
                           char_star, int, size_t, const_char_star, va_list);
-  enter_gnu_builtin_func0(_abort, no_return);
+  { /* Don't use a macro to declare __builtin_abort since we must set the
+       "does_not_return" flag in the routine. */
+    a_routine  *rp = make_gnu_builtin_function(
+                        bfk_abort, no_return_type,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        /*is_varargs=*/FALSE);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+  }
   enter_gnu_builtin_func1(_abs, int, int);
   enter_gnu_builtin_real_math_funcs1(_acos);
   enter_gnu_builtin_real_math_funcs1(_acosh);
@@ -1554,9 +1562,27 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(_eh_return_data_regno, int, int);
   enter_gnu_builtin_real_math_funcs1(_erf);
   enter_gnu_builtin_real_math_funcs1(_erfc);
-  enter_gnu_builtin_func1(_exit, no_return, int);
-  enter_gnu_builtin_func1(__exit, no_return, int);
-  enter_gnu_builtin_func1(__Exit, no_return, int);
+  { /* Don't use a macro to declare __builtin_exit etc. since we must set the
+       "does_not_return" flag in the routine. */
+    a_routine  *rp = make_gnu_builtin_function(
+                        bfk_exit, no_return_type,
+                        int_type, (a_type*)NULL, (a_type*)NULL,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        /*is_varargs=*/FALSE);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+    rp = make_gnu_builtin_function(
+                        bfk__exit, no_return_type,
+                        int_type, (a_type*)NULL, (a_type*)NULL,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        /*is_varargs=*/FALSE);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+    rp = make_gnu_builtin_function(
+                        bfk__Exit, no_return_type,
+                        int_type, (a_type*)NULL, (a_type*)NULL,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        /*is_varargs=*/FALSE);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+  }
   enter_gnu_builtin_real_math_funcs1(_exp);
   enter_gnu_builtin_real_math_funcs1(_exp10);
   enter_gnu_builtin_real_math_funcs1(_exp2);
@@ -1657,7 +1683,14 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(_log1p);
   enter_gnu_builtin_real_math_funcs1(_log2);
   enter_gnu_builtin_real_math_funcs1(_logb);
-  enter_gnu_builtin_func2(_longjmp, no_return, void_star, int);
+  { /* Don't use a macro to declare __builtin_longjmp since we must set the
+       "does_not_return" flag in the routine. */
+    a_routine  *rp = make_gnu_builtin_function(
+                        bfk_longjmp, no_return_type,
+                        void_star_type, int_type, (a_type*)NULL, (a_type*)NULL,
+                        (a_type*)NULL, (a_type*)NULL, /*is_varargs=*/FALSE);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+  }
   enter_gnu_builtin_func1(_lrint, long, double);
   enter_gnu_builtin_func1(_lrintf, long, floating);
   enter_gnu_builtin_func1(_lrintl, long, long_double);
@@ -1774,7 +1807,15 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(_toupper, int, int); /*lint !e123*/
   enter_gnu_builtin_func1(_towlower, wint_t, wint_t);
   enter_gnu_builtin_func1(_towupper, wint_t, wint_t);
-  enter_gnu_builtin_func0(_trap, no_return);
+  { /* Don't use a macro to declare __builtin_trap since we must set the
+       "does_not_return" flag in the routine. */
+    a_routine  *rp = make_gnu_builtin_function(
+                        bfk_trap, no_return_type,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        (a_type*)NULL, (a_type*)NULL, (a_type*)NULL,
+                        /*is_varargs=*/FALSE);
+    rp->type->variant.routine.extra_info->does_not_return = TRUE;
+  }
   enter_gnu_builtin_real_math_funcs1(_trunc);
   enter_gnu_builtin_func0(_unwind_init, no_return);
   enter_gnu_builtin_func3(_vfprintf, int,

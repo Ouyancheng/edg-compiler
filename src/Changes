@@ -1,5 +1,19 @@
 Version 4.2
 
+12/11/09 [EDGcpfe/10170]
+GNU built-in functions that do not return
+
+The GNU built-in function __builtin_abort, __builtin_exit, __builtin__exit,
+__builtin__Exit, __builtin_longjmp, and __builtin_trap are now marked as not
+returning (i.e., the "does_not_return" flag in the associated routine type
+supplement is TRUE).  This prevents spurious warnings in some functions
+declared with the "noreturn" attribute.  E.g.:
+
+  __attribute((noreturn)) void f() {  // Previously elicited a spurious
+    __builtin_exit(2);                // warning claiming that f does return.
+  }
+
+
 12/11/09 [EDGcpfe/10319]
 Reduce the number of cases where lowering is delayed when waiting for module id
 
