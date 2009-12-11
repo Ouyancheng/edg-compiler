@@ -1,5 +1,29 @@
 Version 4.2
 
+12/11/09 [EDGcpfe/10193]
+Bit-field size constraints in templates
+
+The front end performs a number of checks on the size of a bit-field and its
+relation to the base type of that field, and issues diagnostics accordingly.
+However, when the type and/or size of a bit field was template-dependent,
+spurious warnings or errors could be emitted.  For example:
+
+  enum E { start, end = 0xFFFF };
+  template<typename T, int n> struct S {
+    T b1: 36;  // Triggered a spurious warning when int is a 32-bit type.
+    E e: n;    // Triggered a spurious warning.
+  };
+
+This is now fixed.
+
+A related change was also made to avoid emitting confusing diagnostics on a
+bit field that was already diagnosed as an error.  For example:
+
+  struct X { double d:36; };  // Triggered a confusing warning about the
+                              // bit field size after reporting an error
+                              // about the bit field type.
+
+
 12/9/09  [EDGcpfe/9848]
 GNU compatibility: Attribute tls_model
 

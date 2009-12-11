@@ -11023,7 +11023,7 @@ be updated on return.
   unsigned long    bit_field_size, max_size_allowed;
   unsigned long    declared_bit_field_size;
   a_type_ptr       base_type = *p_base_type;
-  a_boolean        err = FALSE, is_signed = FALSE;
+  a_boolean        err = FALSE, is_signed = FALSE, templated_type = FALSE;
   a_type_ptr       bit_field_type;
   an_integer_kind  int_kind;
 
@@ -11033,7 +11033,9 @@ be updated on return.
      in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
      integral or enum type. */
   bit_field_type = skip_typerefs(base_type);
-  if (!is_integral_or_enum_type(bit_field_type)) {
+  if (is_template_dependent_type(bit_field_type)) {
+    templated_type = TRUE;
+  } else if (!is_integral_or_enum_type(bit_field_type)) {
     /* Diagnostic has already been issued. */
     bit_field_type = integer_type((an_integer_kind)ik_int);
   }  /* if */
@@ -11049,6 +11051,7 @@ be updated on return.
        is not known.  Use a small value that is not 1. */
     declared_bit_field_size = bit_field_size = targ_char_bit;
   } else {
+    a_boolean  ovflo = FALSE;
 #if CHECKING
     if (size_constant->kind != (a_constant_repr_kind)ck_integer) {
       internal_error("apply_bit_field_size: size not int");
@@ -11056,14 +11059,19 @@ be updated on return.
 #endif /* CHECKING */
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type. */
-    max_size_allowed = (unsigned long)(bit_field_type->size*targ_char_bit);
+    if (templated_type || is_error_type(*p_base_type)) {
+      max_size_allowed =
+                  (unsigned long)(TARG_SIZEOF_LARGEST_INTEGER*targ_char_bit);
+    } else {
+      max_size_allowed = (unsigned long)(bit_field_type->size*targ_char_bit);
+    }  /* if */
     bit_field_size = (unsigned long)
-                       unsigned_value_of_integer_constant(size_constant, &err);
+                     unsigned_value_of_integer_constant(size_constant, &ovflo);
     declared_bit_field_size = bit_field_size;
-    /* Note that one reason for err to be TRUE is if the constant is
+    /* Note that one reason for ovflo to be TRUE is if the constant is
        less than zero. */
-    if (err || bit_field_size > max_size_allowed) {
-      if (err || (C_mode() && !(gcc_mode && gnu_version < 30400))) {
+    if (ovflo || bit_field_size > max_size_allowed) {
+      if (ovflo || (C_mode() && !(gcc_mode && gnu_version < 30400))) {
         /* Force the declared size to something reasonable. */
         error(ec_bad_bit_field_size);
         declared_bit_field_size = max_size_allowed;
@@ -11108,11 +11116,16 @@ be updated on return.
     }  /* if */
   }  /* if */
   /* Determine the signedness of the bit field. */
-  if (bit_field_type->variant.integer.enum_type) {
+  if (templated_type) {
+    /* Signedness constraints cannot be checked. */
+  } else if (bit_field_type->variant.integer.enum_type) {
     /* The integral type is an enum type.  Give a warning if any of the
        enumeration's constants will not fit in the bit field, and determine
        whether the bit field should be signed or unsigned. */
-    check_enum_type_for_bit_field(bit_field_type, bit_field_size, &is_signed);
+    if (size_constant->kind != (a_constant_repr_kind)ck_template_param) {
+      check_enum_type_for_bit_field(bit_field_type, bit_field_size,
+                                    &is_signed);
+    }  /* if */
   } else {
     int_kind = bit_field_type->variant.integer.int_kind;
     if (bit_field_type->variant.integer.explicitly_signed ||
