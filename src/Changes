@@ -1,7 +1,6 @@
 Version 4.2
 
 12/9/09  [EDGcpfe/9848]
-
 GNU compatibility: Attribute tls_model
 
 In GNU modes with gnu_version >= 30300, the front end now supports attribute
