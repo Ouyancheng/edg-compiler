@@ -6671,9 +6671,11 @@ a safe return (but may cause excess memory usage).
          externalized too, and we can't generate the externalized name
          now because we don't have the module id yet. */
       result = TRUE;
-    } else if (local_types_as_template_args_enabled) {
-      /* To be on the safe side, assume that any routine can generate an
-         individuated type and therefore require a module id. */
+    } else if (local_types_as_template_args_enabled &&
+               scope->types != NULL) {
+      /* If a routine has local types and they could potentially be used
+         as a template argument (thus needing individuation and a module id),
+         delay lowering of the routine. */
       result = TRUE;
     } else {
       /* If any parent of the routine is an unnamed namespace, or the

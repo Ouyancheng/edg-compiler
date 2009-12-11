@@ -20970,9 +20970,10 @@ be used, but there are exceptions.
     check_assertion(scp != NULL &&
                     (kind == (an_il_entry_kind)iek_variable ||
                      kind == (an_il_entry_kind)iek_routine));
-    if (scp->parent_scope == il_header.primary_scope ||
-        (scp_is_class_or_namespace_member(scp) &&
-         !is_member_of_unnamed_namespace(scp))) {
+    if ((scp->parent_scope == il_header.primary_scope ||
+         (scp_is_class_or_namespace_member(scp) &&
+          !is_member_of_unnamed_namespace(scp))) &&
+        !seq_is_in_system_header(scp->decl_position.seq)) {
       /* Only consider definitions in file/namespace/class scopes. */
       if (kind == (an_il_entry_kind)iek_variable) {
         a_variable_ptr variable = (a_variable_ptr)scp;

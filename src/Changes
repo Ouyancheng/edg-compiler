@@ -1,5 +1,24 @@
 Version 4.2
 
+12/11/09 [EDGcpfe/10319]
+Reduce the number of cases where lowering is delayed when waiting for module id
+
+A change was made in version 4.1 (see Changes entry for EDGcpfe/9904) to
+delay lowering of a function scope if lowering of that function scope might
+lead to a mangling request that cannot be satisfied because a module id
+has not yet been determined.  With this change, lowering of all routines
+was delayed in modes where local types are allowed as template arguments
+(i.e., --c++0x or --microsoft_version >= 1400).  This contributed to increased
+compilation times when pre-compiled header files were used as routines stored
+in the PCH files were no longer lowered (in the modes specified above),
+necessitating lowering of these routines when the PCH files were later used.
+A change has been made to delay lowering in these modes only when the function
+contains local types.
+
+Separately, a change has been made to disqualify any entity in a system header
+file from being the basis of a module id.
+
+
 12/11/09 [EDGcpfe/10193]
 Bit-field size constraints in templates
 
