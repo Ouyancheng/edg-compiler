@@ -1,5 +1,20 @@
 Version 4.2
 
+12/11/09 [EDGcpfe/10289]
+Abort on cast of std::nullptr_t expression to pointer to member function
+
+Casting of an expression with side effects whose type is std::nullptr_t to a
+pointer to member function can result in the lowered expression having the
+incorrect type if the expression contains an eok_comma or eok_question
+operation.  In C generating back end configurations this caused an assertion
+failure (e.g., "dump_expr: bad type on eok_comma").  For example (--c++0x):
+
+  typedef decltype(nullptr) nullptr_t;
+  struct A {};
+  void f() {};
+  void (A::*pmf)(void) = (nullptr_t) (f(), nullptr);
+
+
 12/11/09 [EDGcpfe/10170]
 GNU built-in functions that do not return
 

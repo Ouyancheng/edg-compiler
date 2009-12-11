@@ -10502,6 +10502,19 @@ already), do nothing.
 }  /* change_result_type_of_operator_returning_bool */
 
 
+static a_type_ptr lowered_nullptr_type()
+/*
+Return a lowered std::nullptr type.
+*/
+{
+  a_type_ptr  type;
+  type = alloc_type((a_type_kind)tk_typeref);
+  type->variant.typeref.type = void_star_type();
+  type->variant.typeref.orig_type = alloc_type((a_type_kind)tk_nullptr);
+  return type;
+}  /* lowered_nullptr_type */
+
+
 static an_expr_node_ptr expr_for_nullptr_type(a_type_ptr       type,
                                               an_expr_node_ptr expr)
 /*
@@ -10536,9 +10549,9 @@ previously lowered (and is not lowered by this routine).
        constant", and as such will be replaced by a variable when the
        expression node is created below. */
   } else {
-    /* Eventually, all std::nullptr_t types will be lowered to void*, so
-       create a zero of type void* for the value of the expression.*/
-    make_zero_of_proper_type(void_star_type(), zero_constant);
+    /* Create a zero of lowered std::nullptr type for the value of the
+       expression. */
+    make_zero_of_proper_type(lowered_nullptr_type(), zero_constant);
   }  /* if */
   zero_node = make_node_for_il_constant(zero_constant);
   /* Add a cast to the desired type. */
