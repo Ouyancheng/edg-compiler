@@ -6672,10 +6672,12 @@ a safe return (but may cause excess memory usage).
          now because we don't have the module id yet. */
       result = TRUE;
     } else if (local_types_as_template_args_enabled &&
-               scope->types != NULL) {
+               (scope->types != NULL || scope->variables != NULL)) {
       /* If a routine has local types and they could potentially be used
          as a template argument (thus needing individuation and a module id),
-         delay lowering of the routine. */
+         delay lowering of the routine.  Static variables promoted out of
+         functions also need individuation, so delay lowering of scopes
+         with static variables as well. */
       result = TRUE;
     } else {
       /* If any parent of the routine is an unnamed namespace, or the
