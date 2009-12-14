@@ -214,7 +214,7 @@ the routine type is updated accordingly).  Return the symbol for the function.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
-static a_routine_ptr make_gnu_builtin_function(
+static a_routine_ptr f_make_gnu_builtin_function(
                                    a_builtin_function_kind  bfk,
 				   a_type_ptr               return_type,
 				   a_type_ptr               param1_type,
@@ -252,8 +252,16 @@ is returned.
                                rout_type);
   sym->variant.routine.ptr->variant.builtin_function_kind = bfk;
   return sym->variant.routine.ptr;
-}  /* make_gnu_builtin_function */
+}  /* f_make_gnu_builtin_function */
 
+
+/*
+A convenience macro to avoid having to use a cast to a_builtin_function_kind
+in invocations.
+*/
+#define make_gnu_builtin_function(bfk, rt, p1t, p2t, p3t, p4t, p5t, p6, va)  \
+  (f_make_gnu_builtin_function((a_builtin_function_kind)bfk,                 \
+                               rt, p1t, p2t, p3t, p4t, p5t, p6, va))
 
 /*
 Most of the time, the return value of make_gnu_builtin_function is ignored.
