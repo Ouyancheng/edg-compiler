@@ -11033,7 +11033,7 @@ be updated on return.
      in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
      integral or enum type. */
   bit_field_type = skip_typerefs(base_type);
-  if (is_template_dependent_type(bit_field_type)) {
+  if (is_template_param_type(bit_field_type)) {
     templated_type = TRUE;
   } else if (!is_integral_or_enum_type(bit_field_type)) {
     /* Diagnostic has already been issued. */
