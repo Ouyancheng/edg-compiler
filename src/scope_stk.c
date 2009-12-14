@@ -6647,6 +6647,30 @@ encoding that depends on the (as yet) un-computed discriminator.
 #endif /* NEED_NAME_MANGLING */
 #if MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
 
+static a_boolean scope_contains_local_types_or_static_variables(
+                                                             a_scope_ptr scope)
+/*
+Recursively inspect the scope to determine if it contains any local types or
+static variables.
+*/
+{
+  a_boolean   result = FALSE;
+  a_scope_ptr sp;
+  
+  if (scope->variables != NULL || scope->types != NULL) {
+    result = TRUE;
+  } else {
+    for (sp = scope->scopes; sp != NULL; sp = sp->next) {
+      if (scope_contains_local_types_or_static_variables(sp)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* scope_contains_local_types_or_static_variables */
+
+
 static a_boolean must_wait_for_module_id(a_routine_ptr routine)
 /*
 Returns TRUE if lowering of the routine should be delayed because a module
@@ -6672,7 +6696,7 @@ a safe return (but may cause excess memory usage).
          now because we don't have the module id yet. */
       result = TRUE;
     } else if (local_types_as_template_args_enabled &&
-               (scope->types != NULL || scope->variables != NULL)) {
+               scope_contains_local_types_or_static_variables(scope)) {
       /* If a routine has local types and they could potentially be used
          as a template argument (thus needing individuation and a module id),
          delay lowering of the routine.  Static variables promoted out of
