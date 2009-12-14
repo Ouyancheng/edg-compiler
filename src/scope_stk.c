@@ -30,6 +30,9 @@ scope_stk.c - Management of the scope stack and related routines.
 #include "lower_il.h"
 #include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
+#if NEED_NAME_MANGLING
+#include "lower_name.h"
+#endif /* NEED_NAME_MANGLING */
 /* exprutil.h is needed to get an_expr_stack_entry for the scope stack. */
 #include "exprutil.h"
 /* statement.h is needed because of wrapup_control_flow_processing call. */
@@ -6703,6 +6706,18 @@ a safe return (but may cause excess memory usage).
          functions also need individuation, so delay lowering of scopes
          with static variables as well. */
       result = TRUE;
+#if DO_FULL_PORTABLE_EH_LOWERING
+    } else if (exceptions_enabled &&
+               skip_typerefs(routine->type)->variant.routine.extra_info->
+                                             exception_specification != NULL &&
+               exception_specification_contains_an_individuated_entity(
+                                                              routine->type)) {
+      /* Lowering of a routine whose type contains an exception specification
+         where an unnamed type is used in the exception specification causes
+         a reference to the typeinfo for the type, resulting in a module id
+         reference. */
+      result = TRUE;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
     } else {
       /* If any parent of the routine is an unnamed namespace, or the
          routine type refers to an unnamed namespace, wait for a module id. */

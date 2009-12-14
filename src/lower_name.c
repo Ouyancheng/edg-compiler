@@ -4365,13 +4365,27 @@ needs to be individuated.
 }  /* ttt_type_needs_to_be_individuated */
 
 
+a_boolean exception_specification_contains_an_individuated_entity(
+                                                       a_type_ptr routine_type)
+/*
+Returns TRUE if any of the types in the specified routine type's exception
+specification need to be individuated.
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = TTT_EXCEPTION_SPECS |
+                                             TTT_SKIP_TYPEREFS;
+  return traverse_type_tree(routine_type, ttt_type_needs_to_be_individuated,
+                            tt_flags);
+}  /* exception_specification_contains_an_individuated_entity */
+
+
 a_boolean routine_contains_an_individuated_entity(a_routine_ptr routine)
 /*
 Returns TRUE if the specified routine needs to be individuated, or contains
 any components that need to be individuated.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean result;
 
   if (entity_needs_to_be_individuated(&routine->source_corresp, iek_routine)) {
     result = TRUE;

@@ -129,6 +129,9 @@ extern void name_lower_init(void);
 extern a_boolean routine_contains_an_individuated_entity(
                                                         a_routine_ptr routine);
 
+extern a_boolean exception_specification_contains_an_individuated_entity(
+                                                      a_type_ptr routine_type);
+
 #endif /* NEED_NAME_MANGLING */
 #endif /* ifndef LOWER_NAME_H */
 
