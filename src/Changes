@@ -1,5 +1,23 @@
 Version 4.2
 
+12/14/09 [EDGcpfe/10315]
+Abort when lowering zero initialization of some classes with std::nullptr_t
+
+When performing zero initialization of an entity that contains both
+a pointer to data member and an entity of type std::nullptr_t, an assertion
+failure had occurred (in lower_zero_initialization in lower_il.c).  This
+is now fixed.  For example (--c++0x):
+
+  struct A {
+    int A::*pm;
+    decltype(nullptr) n;
+    void f();
+  };
+  void f() {
+    A().f();
+  }
+
+
 12/14/09 [EDGcpfe/10256]
 C++-generating back end: RECORD_FORM_OF_NAME_REFERENCE and template arguments
 

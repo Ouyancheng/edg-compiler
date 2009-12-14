@@ -4134,6 +4134,7 @@ or contain a pointer to data member, which must be initialized to -1.
       case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_pointer:
+      case tk_nullptr:
         make_zero_of_proper_type(type, &zero_con);
         con = alloc_unshared_constant(&zero_con);
         break;
