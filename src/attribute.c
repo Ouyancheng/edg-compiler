@@ -3820,8 +3820,8 @@ Apply the GNU "weakref" attribute to the given entity and return that entity.
   /* We already checked the target constraint "r|v".  Now check whether the
      entity is external (but apply the attribute even if that constraint
      fails since it results in better error recovery). */
-  (void)check_target_entity_match(gnu_version < 40200 ? "r:+x!|v:+x!"
-                                                      : "r:-x!|v:-x!",
+  (void)check_target_entity_match(gnu_version < 40200 ? (char*)"r:+x!|v:+x!"
+                                                      : (char*)"r:-x!|v:-x!",
                                   ap, entity, entity_kind);
   if (entity_kind == iek_routine) {
     ((a_routine_ptr)entity)->is_weak = TRUE;
