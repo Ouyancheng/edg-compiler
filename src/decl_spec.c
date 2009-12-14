@@ -8374,12 +8374,17 @@ storage_class_specifier:
           if ((sign == sign_signed) == (curr_token == tok_signed)) {
             /* Either "signed signed" or "unsigned unsigned".  Issue an error,
                except in Microsoft, cfront, and early GNU C modes (GNU C++
-               issues an error). */
-            diagnostic((any_cfront_mode() ||
-                        microsoft_mode ||
-                        (gcc_mode && gnu_version < 30300)) ? es_warning
-                                                           : es_error,
-                       ec_dupl_decl_specifier);
+               issues an error; GCC 3.3.x and 3.4.x only permits the
+               duplication in typedef declarations). */
+            an_error_severity  sev = es_error;
+            if (any_cfront_mode() || microsoft_mode ||
+                (gcc_mode && (gnu_version < 30300 ||
+                              (state->declared_storage_class ==
+                                                (a_storage_class)sc_typedef &&
+                               gnu_version < 40000)))) {
+              sev = es_warning;
+            }  /* if */
+            pos_diagnostic(sev, ec_dupl_decl_specifier, &pos_curr_token);
           } else {
             /* Mixing signs. */
             bad_combination_of_type_specifiers = TRUE;

@@ -1,5 +1,16 @@
 Version 4.2
 
+12/14/09 [EDGcpfe/10320]
+GNU C compatibility: Duplicate signed/unsigned in typedef declarations
+
+In GNU C mode, the front end accepts duplicate "signed" or "unsigned" keywords
+when gnu_version < 30300.  Now, it also accepts this duplication in typedef
+declarations when gnu_version < 40000.  For example:
+
+  typedef unsigned unsigned char X;  // Accepted in GNU C mode with
+                                     // gnu_version < 40000.
+
+
 12/14/09 [EDGcpfe/10315]
 Abort when lowering zero initialization of some classes with std::nullptr_t
 
