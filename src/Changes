@@ -1,5 +1,27 @@
 Version 4.2
 
+12/14/09 [EDGcpfe/10256]
+C++-generating back end: RECORD_FORM_OF_NAME_REFERENCE and template arguments
+
+When the front end is configured with RECORD_FORM_OF_NAME_REFERENCE as
+TRUE, the form of the reference captured for a name appearing in a template
+argument is the one used in the first reference to the template instance.
+If that reference occurs nested inside a class or namespace and the
+argument refers to a member of that class or namespace or one of its
+parents using an unqualified or partially-qualified name, the
+C++-generating back end used that form of the name in the argument, even in
+contexts in which the name is no longer visible, resulting in erroneous
+generated code.  This has been fixed by never using the captured form of
+name reference when generating template arguments.  For example:
+
+  namespace N {
+    struct S { void f(); };
+    template <void (S::*)()> struct Z { };
+    Z<&S::f> z;
+  }
+  N::Z<&N::S::f> zz;    // Formerly generated as "N::Z< &S::f>"
+
+
 12/11/09 [EDGcpfe/10289]
 Abort on cast of std::nullptr_t expression to pointer to member function
 

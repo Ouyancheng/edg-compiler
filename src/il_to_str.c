@@ -317,6 +317,20 @@ is put out.
 */
 {
   if (tap != NULL) {
+#if RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE
+    /* Name references in template arguments are captured from the first
+       use of the instance.  If that use was nested inside a class or
+       namespace, the names may have been unqualified or partially
+       qualified references to members of that class or namespace or its
+       parents.  However, the instance can be used outside that context, in
+       which case the names in template arguments would need to be fully
+       qualified -- the form captured in the name reference won't work.
+       For safety's sake, we effectively turn off the name reference
+       facility for the duration of the template argument list. */
+    an_output_name_reference_function_ptr saved_output_name_reference =
+                                                   octl->output_name_reference;
+    octl->output_name_reference = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE */
     octl->output_str("<", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
@@ -340,6 +354,9 @@ is put out.
          with ">". */
       octl->output_str(" ", octl);
     }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE
+    octl->output_name_reference = saved_output_name_reference;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE */
   }  /* if */
 }  /* form_template_args */
 
