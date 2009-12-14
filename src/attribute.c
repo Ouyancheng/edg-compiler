@@ -4311,7 +4311,7 @@ return that entity.
   if (entity_kind != iek_variable) {
     report_bad_attribute_target(es_warning, ap);
   } else {
-    /* A variable: Check that is has thread-local storage. */
+    /* A variable: Check that it has thread-local storage. */
     a_variable_ptr      vp = (a_variable_ptr)entity;
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
     if (!(vp->decl_modifiers & DM_THREAD) != 0 &&
