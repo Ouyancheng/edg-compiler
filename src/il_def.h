@@ -1497,6 +1497,7 @@ typedef enum an_attribute_kind_tag {
   ak_nothrow,		/* "nothrow" (std, gnu). */
 
   ak_alias,		/* "alias" (gnu). */
+  ak_alloc_size,        /* "alloc_size" (gnu). */
   ak_always_inline,	/* "always_inline" (gnu). */
   ak_cleanup,		/* "cleanup" (gnu). */
   ak_const,		/* "const" (gnu). */

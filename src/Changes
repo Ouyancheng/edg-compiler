@@ -1,5 +1,14 @@
 Version 4.2
 
+12/14/09 [EDGcpfe/9568]
+GNU compatibility: Attribute alloc_size
+
+In GNU modes with gnu_version > 40200, the front end now accepts attribute
+alloc_size.  For example:
+
+  void* allocate(int n) __attribute((alloc_size(1)));
+
+
 12/14/09 [EDGcpfe/10320]
 GNU C compatibility: Duplicate signed/unsigned in typedef declarations
 

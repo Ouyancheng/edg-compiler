@@ -198,6 +198,7 @@ static an_attr_descr known_attr_table[] = {
   { "nothrow", "", "gx", ak_nothrow },
 
   { "alias", "(sn)", "gx", ak_alias },
+  { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
   { "cleanup", "(n)", "gc", ak_cleanup },
   { "const", "", "gx", ak_const },
@@ -358,6 +359,7 @@ static an_attr_application_fn apply_carries_dependency_attr;
 static an_attr_application_fn apply_nothrow_attr;
 #if GNU_EXTENSIONS_ALLOWED
 static an_attr_application_fn apply_alias_attr;
+static an_attr_application_fn apply_alloc_size_attr;
 static an_attr_application_fn apply_always_inline_attr;
 static an_attr_application_fn apply_cleanup_attr;
 static an_attr_application_fn apply_const_attr;
@@ -424,6 +426,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
 #if GNU_EXTENSIONS_ALLOWED
   { ak_alias, "r|v:-l!", apply_alias_attr },
+  { ak_alloc_size, "", apply_alloc_size_attr },
   { ak_always_inline, "r", apply_always_inline_attr },
   { ak_cleanup, "v|p", apply_cleanup_attr },
   { ak_const, "t|r|v|d", apply_const_attr },
@@ -2615,6 +2618,53 @@ return the routine or variable.  This function may also be called for the
   }  /* if */
   return entity;
 }  /* apply_alias_attr */
+
+
+static char* apply_alloc_size_attr(an_attribute_ptr  ap,
+                                   char              *entity,
+                                   an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "alloc_size" attribute to the given entity if applicable, and
+return that entity.
+*/
+{
+  a_type_ptr  func_type;
+
+  check_assertion(ap->arguments != NULL);
+  switch (entity_kind) {
+    case iek_routine:
+    case iek_variable:
+    case iek_field:
+    case iek_param_type:
+    case iek_type:
+      func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+      break;
+    default:
+      func_type = NULL;
+  }  /* switch */
+  if (func_type == NULL) {
+    report_bad_attribute_target(es_warning, ap);
+  } else {
+    /* Check that the attribute parameters denote a valid parameter index. */
+    a_host_large_integer  p1, p2 = 0, n_params = 0;
+    a_param_type_ptr      ptp = func_type->variant.routine.extra_info
+                                         ->param_type_list;
+    if (func_type->variant.routine.extra_info->this_class != NULL) {
+      /* For nonstatic member function, the implicit "*this" parameter is
+         number one, and the first declared parameter is numbered two. */
+      ++n_params;
+    }  /* if */
+    for (; ptp != NULL; ++n_params, ptp = ptp->next);
+    if (get_attr_arg_integer(ap->arguments, ap, 1, n_params, &p1) &&
+        (ap->arguments->next == NULL ||
+         get_attr_arg_integer(ap->arguments->next, ap, 1, n_params, &p2))) {
+      /* The attribute arguments are valid. */
+    } else {
+      make_attr_unrecognized(ap);
+    }
+  }  /* if */
+  return entity;
+}  /* apply_alloc_size_attr */
 
 
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
