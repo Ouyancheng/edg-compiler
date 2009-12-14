@@ -29,6 +29,12 @@ pch.c -- Precompiled header processing.
 #include "decls.h"
 #include "statements.h"
 #include "macro.h"
+#if MANGLE_ALL_NAMES
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
+#include "lower_name.h"
+#endif /* MANGLE_ALL_NAMES */
 
 
 #define PCH_ID_STRING_LENGTH 128
@@ -203,6 +209,17 @@ We're about to write a precompiled header file.  Make any needed updates to
 the data structures that will be written out.
 */
 {
+#if MANGLE_ALL_NAMES
+  if (name_mangling_needed()) {
+    /* Do name mangling for all entities.  Typically this isn't done until
+       lowering of the file scope, but having mangled names in the PCH file
+       greatly reduces the time spent during compilation of files that use
+       the PCH file.  Entities whose mangled names depend on a module id (e.g.,
+       unnamed namespaces) aren't given mangled names in this pass; they will
+       receive mangled names during the usual name mangling phase. */
+    do_all_name_mangling(/*mangling_pre_pass=*/TRUE);
+  }  /* if */
+#endif /* MANGLE_ALL_NAMES */
   /* To avoid any surprises, we ensure that the routines list is up-to-date by
      performing all scheduled moves prior to writing the precompiled header
      file. */

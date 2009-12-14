@@ -3287,8 +3287,10 @@ created; the caller must set it.
          conflict can arise if the two entities are different in nature (e.g.,
          a C linkage declaration in a namespace can conflict with a C++
          variable declaration in global namespace because the latter variable's
-         name is not mangled). */
-      old_name = scp->name;
+         name is not mangled).  Note that the old entity may already have
+         been given a mangled name (if it was mangled before being written
+         to a PCH file), so compare against the unmangled name. */
+      old_name = unmangled_name_of(scp);
       new_name = locator->symbol_header->identifier;
       check_assertion(old_name != NULL);
       if (!C_mode() && !is_function) {

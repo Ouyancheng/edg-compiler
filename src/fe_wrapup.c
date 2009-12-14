@@ -36,11 +36,6 @@ fe_wrapup.c - End of front end processing.
 #endif /* DO_IL_LOWERING */
 #if MANGLE_ALL_NAMES
 #include "lower_name.h"
-#if DO_IL_LOWERING
-#define name_mangling_needed() (il_lowering_needed())
-#else /* !DO_IL_LOWERING */
-#define name_mangling_needed() (!C_mode())
-#endif /* DO_IL_LOWERING */
 #endif /* MANGLE_ALL_NAMES */
 #if DEBUG
 #include "exprutil.h"
@@ -343,8 +338,11 @@ it needs to be executed after all templates have been instantiated.
 #if MANGLE_ALL_NAMES
   if (name_mangling_needed()) {
     /* Do name mangling for all entities.  This has to be done before
-       the names for statics referenced from templates are externalized. */
-    do_all_name_mangling();
+       the names for statics referenced from templates are externalized.
+       If we're using a PCH file (either creating one or using a previously
+       created file), the names available at the time of the PCH file creation
+       have already been mangled (and won't be mangled again). */
+    do_all_name_mangling(/*mangling_pre_pass=*/FALSE);
 #if DO_IL_LOWERING
     if (any_exported_templates()) {
       /* In a compilation with exported templates, all statics are potentially

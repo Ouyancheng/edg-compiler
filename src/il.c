@@ -11994,10 +11994,6 @@ static a_routine_ptr
 			/* A pointer to an array of pointers to placeholder
 			   routines. */
 
-static char
-		*routine_move_placeholder_name = "<routine move placeholder>";
-			/* A dummy name for placeholders. */
-
 static sizeof_t
 		n_scheduled_routine_moves;
 
@@ -12120,6 +12116,7 @@ remove_placeholders:
      (which are identified by their unique "source_corresp.name" pointer). */
   p_rp = &scope_of_scheduled_routine_moves->routines;
   while (n_scheduled_routine_moves > 0) {
+    check_assertion(*p_rp != NULL);
     if ((*p_rp)->source_corresp.name == routine_move_placeholder_name) {
       *p_rp = (*p_rp)->next;
       --n_scheduled_routine_moves;

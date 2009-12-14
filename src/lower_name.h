@@ -26,6 +26,13 @@ lower_name.h -- Declarations related to lower_name.c (name mangling for
 #include "il.h"
 #endif /* ifndef IL_H */
 
+/* Define a macro that tells whether or not name mangling is needed. */
+#if DO_IL_LOWERING
+#define name_mangling_needed() (il_lowering_needed())
+#else /* !DO_IL_LOWERING */
+#define name_mangling_needed() (!C_mode())
+#endif /* DO_IL_LOWERING */
+
 #if !IA64_ABI
 
 /*
@@ -118,7 +125,7 @@ extern void mangle_member_constant_name(a_constant_ptr con);
 
 extern void do_type_name_mangling(void);
 
-extern void do_all_name_mangling(void);
+extern void do_all_name_mangling(a_boolean mangling_pre_pass);
 
 extern void do_final_name_mangling(void);
 

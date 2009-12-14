@@ -1338,10 +1338,21 @@ Set the name information in the source correspondence entry based on the
 information in sym_header.
 */
 {
-  /* Note that the identifier name was allocated in the intermediate language
-     memory area (see find_symbol); it can therefore be used without
-     copying. */
-  sc->name = sym_header->identifier;
+#if NEED_NAME_MANGLING
+  if (sc->name_has_been_mangled) {
+    /* If using a PCH file, it's possible that this name has already been
+       mangled; if so, no action is necessary. */
+    check_assertion(sym_header->identifier == sc->unmangled_name ||
+                    strcmp(sym_header->identifier, sc->unmangled_name) == 0);
+  } else
+#endif /* NEED_NAME_MANGLING */
+  /* Do not insert code here. */
+  { 
+    /* Note that the identifier name was allocated in the intermediate language
+       memory area (see find_symbol); it can therefore be used without
+       copying. */
+    sc->name = sym_header->identifier;
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sc->microsoft_identifier_used = sym_header->microsoft_identifier_used;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

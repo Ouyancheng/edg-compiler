@@ -1593,10 +1593,11 @@ except for the Microsoft extension of an in-class specialization.)
 */
 {
   while (routine != NULL && (
-#if NEED_NAME_MANGLING
-         /* Some routines are generated as part of prelowering. */
-         routine->source_corresp.name_has_been_mangled ||
-#endif /* NEED_NAME_MANGLING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+         /* Skip covariant routines generated during lowering. */
+         (routine->compiler_generated &&
+          routine->overridden_function_for_covariant_return_type != NULL) ||
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if MICROSOFT_EXTENSIONS_ALLOWED
          /* Interface slots are generated for derived classes, and can
             therefore differ from one derivation to another. */
@@ -1623,10 +1624,12 @@ a_routine_list_entry nodes.
 */
 {
   while (rle != NULL && (
-#if NEED_NAME_MANGLING
-         /* Some routines are generated as part of prelowering. */
-         rle->routine->source_corresp.name_has_been_mangled ||
-#endif /* NEED_NAME_MANGLING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+         /* Skip covariant routines generated during lowering. */
+          (rle->routine->compiler_generated &&
+           rle->routine->overridden_function_for_covariant_return_type !=
+                                                                       NULL) ||
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
           (rle->routine->is_template_function &&

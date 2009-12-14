@@ -27,6 +27,13 @@ il.h -- Declarations related to the intermediate language.
 EXTERN a_memory_region_number
 		curr_il_region_number;
 
+/* A dummy name for placeholders. */
+EXTERN char     *routine_move_placeholder_name
+#if VAR_INITIALIZERS
+                         = "<routine move placeholder>"
+#endif /* VAR_INITIALIZERS */
+                                                       ;
+
 
 #if ORPHAN_PROCESSING_NEEDED
 /*
