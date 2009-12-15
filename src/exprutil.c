@@ -5638,26 +5638,35 @@ otherwise, set it to error_type().  Return FALSE if there is an error.
                   !is_pointer_type(operand_2->type) &&
                   !is_ptr_to_member_type(operand_1->type) &&
                   !is_ptr_to_member_type(operand_2->type));
-  if (is_nullptr_type(operand_1->type)) {
-    okay =
-        (is_nullptr_type(operand_2->type) ||
-         (is_constant_operand(operand_2) &&
-          is_or_might_be_null_pointer_constant(&operand_2->variant.constant)));
-  } else {
-    check_assertion(is_nullptr_type(operand_2->type));
-    okay = is_constant_operand(operand_1) &&
-           is_or_might_be_null_pointer_constant(&operand_1->variant.constant);
-  }  /* if */
-  if (okay) {
-    /* The operation type will be nullptr_type(). */
-    *operation_type = nullptr_type();
-  } else {
-    /* The operands are not compatible. */
-    if (expr_error_should_be_issued()) {
-      pos_ty2_error(ec_incompatible_operands, operator_position,
-                    operand_1->type, operand_2->type);
-    }  /* if */
+  if (is_error_type(operand_1->type) || is_error_type(operand_2->type)) {
+    /* An error type is compatible, but the result type will also be an
+       error type. */
+    okay = TRUE;
     *operation_type = error_type();
+  } else {
+    if (is_nullptr_type(operand_1->type)) {
+      okay =
+          (is_nullptr_type(operand_2->type) ||
+           (is_constant_operand(operand_2) &&
+            is_or_might_be_null_pointer_constant(&operand_2->
+                                                           variant.constant)));
+    } else {
+      check_assertion(is_nullptr_type(operand_2->type));
+      okay = is_constant_operand(operand_1) &&
+             is_or_might_be_null_pointer_constant(&operand_1->
+                                                             variant.constant);
+    }  /* if */
+    if (okay) {
+      /* The operation type will be nullptr_type(). */
+      *operation_type = nullptr_type();
+    } else {
+      /* The operands are not compatible. */
+      if (expr_error_should_be_issued()) {
+        pos_ty2_error(ec_incompatible_operands, operator_position,
+                      operand_1->type, operand_2->type);
+      }  /* if */
+      *operation_type = error_type();
+    }  /* if */
   }  /* if */
   return okay;
 }  /* check_compatibility_of_nullptr_operands */
