@@ -200,7 +200,9 @@ static an_attr_descr known_attr_table[] = {
   { "alias", "(sn)", "gx", ak_alias },
   { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
+  { "artificial", "", "gx(40000-)", ak_artificial },
   { "cleanup", "(n)", "gc", ak_cleanup },
+  { "cold", "", "gx(40300-)", ak_cold },
   { "const", "", "gx", ak_const },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "constructor", "?(ci)", "gx", ak_constructor },
@@ -215,9 +217,13 @@ static an_attr_descr known_attr_table[] = {
   { "destructor", "", "gx", ak_destructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "destructor", "", "s+", ak_destructor },
+  { "error", "(sn)", "gx(40000-)", ak_error },
+  { "externally_visible", "", "gx(40000-)", ak_externally_visible },
+  { "flatten", "", "gx(40000-)", ak_flatten },
   { "format", "(n,ci,ci)", "gx", ak_format },
   { "format_arg", "(ci)", "gx", ak_format_arg },
   { "gnu_inline", "", "gx", ak_gnu_inline },
+  { "hot", "", "gx(40300-)", ak_hot },
   { "malloc", "", "gx", ak_malloc },
   { "mode", "(n)", "gx", ak_mode },
   { "no_instrument_function", "", "gx", ak_no_instrument_function },
@@ -238,6 +244,7 @@ static an_attr_descr known_attr_table[] = {
   { "used", "", "gx", ak_used },
   { "volatile", "", "gx", ak_noreturn },
   { "warn_unused_result", "", "gx", ak_warn_unused_result },
+  { "warning", "(sn)", "gx(40000-)", ak_warning },
   { "weak", "", "gx", ak_weak },
   { "weak", "", "s+", ak_weak },
   { "weakref", "?(sn)", "gx(40100-)", ak_weakref },
@@ -313,6 +320,7 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "r"  : routines
 			       "m"  : class member
+			       "i"  : inline
 			       "v"  : virtual
                                "x"  : external linkage
 			     "v"  : variables
@@ -428,14 +436,20 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_alias, "r|v:-l!", apply_alias_attr },
   { ak_alloc_size, "", apply_alloc_size_attr },
   { ak_always_inline, "r", apply_always_inline_attr },
+  { ak_artificial, "r:+i", NO_APPL_FN },
   { ak_cleanup, "v|p", apply_cleanup_attr },
+  { ak_cold, "r", NO_APPL_FN },
   { ak_const, "t|r|v|d", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
   { ak_deprecated, "t|c|e|r|v|d", apply_deprecated_attr },
   { ak_destructor, "r", apply_destructor_attr },
+  { ak_error, "r", NO_APPL_FN },
+  { ak_externally_visible, "r:+x|v:+x", NO_APPL_FN },
+  { ak_flatten, "r", NO_APPL_FN },
   { ak_format, "t|r|v|d", apply_format_attr },
   { ak_format_arg, "r", apply_format_arg_attr },
   { ak_gnu_inline, "r", apply_gnu_inline_attr },
+  { ak_hot, "r", NO_APPL_FN },
   { ak_malloc, "r", apply_malloc_attr },
   { ak_mode, "T", apply_mode_attr },
   { ak_no_instrument_function, "r", apply_no_instrument_function_attr },
@@ -452,6 +466,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_unused, "c|e|t|r|v|p|l|n|u", apply_unused_attr },
   { ak_used, "r|v:-a", apply_used_attr },
   { ak_warn_unused_result, "t|r|v|d", apply_warn_unused_result_attr },
+  { ak_warning, "r", NO_APPL_FN },
   { ak_weak, "r:+x!|v:+x!", apply_weak_attr },
   { ak_weakref, "r|v", apply_weakref_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1587,6 +1602,18 @@ attribute ap applied to the given routine matches those constraints.
         } else {
           if (constr[0] == '+') {
             err = ec_attribute_requires_external_linkage;
+          }  /* if */
+        }  /* if */
+        constr += 2;
+      } else if (constr[1] == 'i') {
+        /* Check for inline. */
+        if (routine->is_inline) {
+          if (constr[0] == '-') {
+            err = ec_attr_disallows_inline;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            err = ec_attr_requires_inline;
           }  /* if */
         }  /* if */
         constr += 2;

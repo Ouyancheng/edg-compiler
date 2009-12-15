@@ -1499,14 +1499,21 @@ typedef enum an_attribute_kind_tag {
   ak_alias,		/* "alias" (gnu). */
   ak_alloc_size,        /* "alloc_size" (gnu). */
   ak_always_inline,	/* "always_inline" (gnu). */
+  ak_artificial,        /* "artificial" (gnu). */
   ak_cleanup,		/* "cleanup" (gnu). */
+  ak_cold,		/* "cold" (gnu). */
   ak_const,		/* "const" (gnu). */
   ak_constructor,	/* "constructor" (gnu). */
   ak_deprecated,	/* "deprecated" (gnu). */
   ak_destructor,	/* "destructor" (gnu). */
+  ak_error,		/* "error" (gnu). */
+  ak_externally_visible,
+			/* "externally_visible" (gnu). */
+  ak_flatten,		/* "flatten" (gnu). */
   ak_format,		/* "format" (gnu). */
   ak_format_arg,	/* "format_arg" (gnu). */
   ak_gnu_inline,	/* "gnu_inline" (gnu). */
+  ak_hot,		/* "hot" (gnu). */
   ak_malloc,		/* "malloc" (gnu). */
   ak_mode,		/* "mode" (gnu). */
   ak_no_instrument_function,
@@ -1526,6 +1533,7 @@ typedef enum an_attribute_kind_tag {
   ak_used,		/* "used" (gnu). */
   ak_warn_unused_result,
 			/* "warn_unused_result" (gnu). */
+  ak_warning,		/* "warning" (gnu). */
   ak_weak,		/* "weak" (gnu). */
   ak_weakref,		/* "weakref" (gnu). */
 #if GNU_NAKED_ATTRIBUTE_ALLOWED

@@ -1,5 +1,37 @@
 Version 4.2
 
+12/15/09 [EDGcpfe/9690]
+GNU compatibility: Attributes error and warning
+
+In GNU modes with gnu_version >= 40000, the front end now accepts attributes
+error and warning on function declarations.  Note that the attributes are
+recorded in the IL, but no diagnostics implied by these attributes are emitted
+by the front end since such diagnostics depend on back end optimizations.
+For example:
+
+  __attribute((error("Not eliminated"))) void f() {}
+  int main() {
+    f();  // The front end will not issue an error on this call.  If a
+  }       // back end does not eliminate the call, it is responsible for
+          // emitting the diagnostic.
+
+
+12/15/09 [EDGcpfe/9690]
+GNU compatibility: Attribute externally_visible
+
+In GNU modes with gnu_version >= 40000, the front end now accepts attribute
+externally_visible on function and variable declarations with external
+linkage.
+
+
+12/15/09 [EDGcpfe/9690]
+GNU compatibility: Attributes artificial, cold, flatten, and hot
+
+The attributes artificial, cold, flatten and hot are now accepted by the front
+end in some GNU C and C++ modes.  "artificial" and "flatten" require
+gnu_version >= 40000; "cold" and "hot" require gnu_version >= 40300.
+
+
 12/15/09 [EDGcpfe/10323]
 Instantiate entities before precompiled header file creation
 

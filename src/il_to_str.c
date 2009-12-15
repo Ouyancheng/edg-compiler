@@ -5086,6 +5086,9 @@ Do the output in the way described by octl.
                             iek_routine, octl);
       octl->output_str(")))", octl);
     }  /* if */
+    form_recorded_gnu_attribute(ak_externally_visible,
+                                var->source_corresp.attributes,
+                                &need_leading_space, octl);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     form_ELF_visibility_attribute(var->ELF_visibility, &need_leading_space,
                                   octl);
@@ -5121,14 +5124,8 @@ Do the output in the way described by octl.
     }  /* if */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     if ((var->decl_modifiers & DM_THREAD) != 0) {
-      an_attribute_ptr  ap = find_attribute(ak_tls_model,
-                                            var->source_corresp.attributes);
-      if (ap != NULL) {
-        a_constant_ptr  mncp = ap->arguments->variant.constant;
-        form_string_argument_attribute("__tls_model__",
-                                      mncp->variant.string.value,
-                                       &need_leading_space, octl);
-      }  /* if */
+      form_recorded_gnu_attribute(ak_tls_model, var->source_corresp.attributes,
+                                  &need_leading_space, octl);
     }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
     if (var->aliased_variable != NULL) {
@@ -5215,6 +5212,21 @@ Do the output in the way described by octl.
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     form_recorded_gnu_attribute(ak_alloc_size, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_artificial, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_cold, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_error, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_externally_visible,
+                                rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_flatten, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_hot, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_warning, rout->source_corresp.attributes,
                                 &need_leading_space, octl);
     if (rout->is_initialization_routine) {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
