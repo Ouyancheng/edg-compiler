@@ -23,10 +23,10 @@ declarations when gnu_version < 40000.  For example:
 12/14/09 [EDGcpfe/10315]
 Abort when lowering zero initialization of some classes with std::nullptr_t
 
-When performing zero initialization of an entity that contains both
-a pointer to data member and an entity of type std::nullptr_t, an assertion
-failure had occurred (in lower_zero_initialization in lower_il.c).  This
-was a problem only in the IA-64 ABI and is now fixed.  For example (--c++0x):
+An assertion failure had occurred (in lower_zero_initialization in lower_il.c)
+when lowering the zero initialization of an entity that contains both a pointer
+to data member and an entity of type std::nullptr_t.  This was a problem only
+in the IA-64 ABI and is now fixed.  For example (--c++0x):
 
   struct A {
     int A::*pm;
