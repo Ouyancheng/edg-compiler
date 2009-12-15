@@ -1573,10 +1573,11 @@ is TRUE if the cast is implicit.
   a_boolean  is_function_ptr;
 
 #if CHECKING
-  /* The only valid constant is zero. */
-  if (old_constant->kind != (a_constant_repr_kind)ck_integer ||
-      old_constant->implicit_cast ||
-      !is_zero_constant(old_constant)) {
+  /* The only valid constants are zero or nullptr. */
+  if ((old_constant->kind != (a_constant_repr_kind)ck_integer ||
+       old_constant->implicit_cast ||
+       !is_zero_constant(old_constant)) &&
+      !is_nullptr_type(old_constant->type)) {
     internal_error("conv_integer_to_ptr_to_member: bad source constant");
   }  /* if */
 #endif /* CHECKING */
@@ -1726,6 +1727,7 @@ is maintained, by adding a cast if necessary.
     set_constant_kind(&new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant.variant.integer_value,
                       (a_host_large_integer)0);
+    new_constant.implicit_cast = TRUE;
     goto exit;
   }  /* if */
   if (vla_enabled && !is_implicit_cast &&
@@ -2121,7 +2123,8 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
     is_false = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_integer &&
              constant->implicit_cast) {
-    /* Check for NULL pointer constant (0 cast to a pointer type). */
+    /* Check for NULL pointer constant (the nullptr keyword or 0 cast to a
+       pointer type). */
     is_false = (cmplit_integer_constant(constant,
                                         (a_host_large_integer)0) == 0);
   } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
@@ -5248,10 +5251,12 @@ as the position for any diagnostics issued.
     result->null_pointer_constant_ruled_out =
                         constant_1->null_pointer_constant_ruled_out ||
                         constant_1->kind != (a_constant_repr_kind)ck_integer ||
-                        constant_1->implicit_cast ||
+                        (constant_1->implicit_cast &&
+                         !is_nullptr_type(constant_1->type)) ||
                         constant_2->null_pointer_constant_ruled_out ||
                         constant_2->kind != (a_constant_repr_kind)ck_integer ||
-                        constant_2->implicit_cast;
+                        (constant_2->implicit_cast &&
+                         !is_nullptr_type(constant_2->type));
     if (depends_on_fp_mode && !constant_context) {
       /* In a non-constant context, leave an operation to be done at runtime
          if its result depends on the floating-point mode. */

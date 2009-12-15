@@ -4154,7 +4154,7 @@ precedence confusion.  Do the output in the way described by octl.
       } else if (constant->implicit_cast) {
         if (
 #if DEBUG
-            octl->debug_output ||
+            (octl->debug_output && !is_nullptr_type(con_type)) ||
 #endif /* DEBUG */
             octl->c_generating_back_end) {
           /* Give full information about implicit casts when generating

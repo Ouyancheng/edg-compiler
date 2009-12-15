@@ -2681,11 +2681,14 @@ typedef struct a_constant {
 			   the field is set to chk_default (which equals
 			   chk_char). */
   a_bit_field	implicit_cast:1;
-                        /* If this is TRUE, then the value indicated by
-                           the representation has been cast to the type
+                        /* If this is TRUE, then the value indicated by the
+                           representation has been cast to the type
                            indicated above and it's not a "natural" fit.
                            Used for integer constants cast to pointer types
-                           and one pointer type cast to another.  Note that,
+                           and one pointer type cast to another.  Also used
+                           for the representation of nullptr (a zero-valued
+                           integer of type std::nullptr_t), even though
+                           there is no casting involved.  Note that,
                            despite the name, this cast is not necessarily
                            implicit in the source; it might be an explicit
                            cast. */
