@@ -12271,7 +12271,7 @@ parent operation.
         ((child_op = child1->variant.operation.kind) ==
                                          (an_expr_operator_kind)eok_question ||
          child_op == (an_expr_operator_kind)eok_comma)) {
-      if (expr->variant.operation.kind != (an_expr_operator_kind)eok_comma) {
+      if (op != (an_expr_operator_kind)eok_comma) {
         /* The first operand of expr is an lvalue-returning "?" or ",".
            That is, expr is the node on top of a "?" or ",". */
         an_expr_node_ptr child2 = child1->next;
@@ -12380,7 +12380,10 @@ parent operation.
         }  /* if */
       } else {
         /* An lvalue-returning "?" or "," operation as the first operand of
-           a "," operation. */
+           a "," operation.  These can arise during lowering when a node
+           is turned into a "," operation and its first operand is an lvalue.
+           Fix this here by rewriting this discarded lvalue as an rvalue. */
+        check_assertion(child1->result_is_not_used);
         rewrite_discarded_lvalue_as_rvalue(child1);
       }  /* if */
     } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&

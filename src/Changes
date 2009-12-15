@@ -334,12 +334,12 @@ now fixed.  For example:
 
 
 12/4/09  [EDGcpfe/10288]
-An lvalue eok_comma operation can make its way through lowering to a back end
+Lowering inadvertently introduces an lvalue as first operand of an eok_comma
 
-Some expressions generated during lowering may have resulted in an lvalue
-returning eok_comma operation in the IL.  The following example had generated
-incorrect IL.  In configurations that use the C generating back end (4.0 and
-later), the example had caused an assertion failure ("dump_expr:
+Some expressions generated during lowering resulted in an eok_comma
+operation whose first operand is an lvalue.  The example that follows had
+generated incorrect IL.  In (4.0 and later) configurations that use the C
+generating back end, the example had caused an assertion failure ("dump_expr:
 lvalue-returning operation").
 
   struct A {
