@@ -3747,7 +3747,14 @@ symbol must be added to the inactive list.
                instantiation. */
             old_sym_ptr->decl_scope >=
                          scope_stack[depth_innermost_function_scope].number) {
-          hidden_sym = old_sym_ptr;
+          a_scope_stack_entry_ptr	ssep;
+          /* Make sure the symbol would actually be visible. */
+          for (ssep = scope_stack_entry_for(depth_scope_stack); ssep != NULL;
+               ssep = previous_scope_of(ssep)) {
+            if (old_sym_ptr->decl_scope == ssep->number) break;
+          }  /* for */
+          /* If we found a matching scope in above, the symbol was hidden. */
+          if (ssep != NULL) hidden_sym = old_sym_ptr;
         }  /* if */
         /* If the symbol is not being entered in the innermost scope, skip
            past any symbols on the active list from the scopes inside the

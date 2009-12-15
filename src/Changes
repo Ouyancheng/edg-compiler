@@ -1,5 +1,23 @@
 Version 4.2
 
+12/15/09 [EDGcpfe/10326]
+Spurious "declaration hides parameter" remark on friend function in template
+
+The definition of a friend function of a class template is not evaluated
+unless it is used.  If the evaluation was initiated by a reference from
+another function, a variable declared in the friend could result in a
+spurious "declaration hides parameter" remark.  Now fixed.
+
+  template<typename T> struct A {
+    friend void f(A*) { int k; };  // spurious '"k" hides parameter"
+    inline void g(T k) { f(this); }
+  };
+  int main() {
+    A<int> a;
+    a.g(1);
+  }
+
+
 12/15/09 [EDGcpfe/9690]
 GNU compatibility: Attributes error and warning
 
