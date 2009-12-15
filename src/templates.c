@@ -20968,12 +20968,14 @@ specific definition that made it unnecessary.
 static void inline_function_wrapup(void);
 
 
-static void template_and_inline_function_wrapup_for_trans_unit(void)
+static void template_and_inline_function_wrapup_for_trans_unit(
+                                                           a_boolean do_inline)
 /*
 For the current translation unit, generate any instantiations needed by that
 translation unit; generate any virtual destructors that may be required;
 and determine which extern inline functions require definitions in this
-translation unit.
+translation unit.  do_inline is TRUE if inline function wrapup
+should be done, FALSE if it should be suppressed.
 */
 {
   /* Do any template instantiation that may be required.  This is called
@@ -21010,7 +21012,7 @@ function bodies now.
        inline functions are generated. */
     do {
       additional_instantiation_wrapup_required = FALSE;
-      template_and_inline_function_wrapup_for_trans_unit();
+      template_and_inline_function_wrapup_for_trans_unit(/*do_inline=*/FALSE);
     } while (additional_instantiation_wrapup_required);
   }  /* if */
   in_instantiation_wrapup = FALSE;
@@ -21062,7 +21064,7 @@ translation unit.
       push_translation_unit_stack(tup);
       /* Do the actual processing of instantiations, virtual destructors,
          and inline functions. */
-      template_and_inline_function_wrapup_for_trans_unit();
+      template_and_inline_function_wrapup_for_trans_unit(/*do_inline=*/TRUE);
 #if CHECKING
       after_instantiation_wrapup = TRUE;
 #endif /* CHECKING */
