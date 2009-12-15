@@ -4780,6 +4780,65 @@ described by octl.
   *need_leading_space = TRUE;
 }  /* form_unsigned_argument_attribute */
 
+
+static void form_recorded_gnu_attribute(
+                   an_attribute_kind                      kind,
+                   an_attribute_ptr                       attributes,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl)
+/*
+If the given list of attributes contains an attribute of the given kind,
+render that attribute as a GNU attribute.  If *need_leading_space is TRUE,
+precede the attribute with a leading space.  *need_leading_space is set to
+TRUE if an attribute is emitted, to indicate that a space will be needed after
+the attribute.  Do the output in the way described by octl.
+*/
+{
+  an_attribute_ptr  ap = find_attribute(kind, attributes);
+
+  if (ap != NULL) {
+    if (*need_leading_space) {
+      octl->output_str(" ", octl);
+    }  /* if */
+    octl->output_str("__attribute__((", octl);
+    octl->output_str(ap->name, octl);
+    if (ap->arguments != NULL) {
+      /* An attribute with arguments: Render them. */
+      an_attribute_arg_ptr  aap = ap->arguments;
+      octl->output_str("(", octl);
+      for (; aap != NULL; aap = aap->next) {
+        /* Emit the attribute argument. */
+        switch (aap->kind) {
+          case aak_empty:
+            /* Nothing to emit. */
+            break;
+          case aak_token:
+          case aak_raw_token:
+            octl->output_str(aap->variant.token, octl);
+            break;
+          case aak_constant:
+            form_constant(aap->variant.constant, /*need_parens=*/FALSE, octl);
+            break;
+          case aak_type:
+            form_type(aap->variant.type, octl);
+            break;
+          default:
+            unexpected_condition();
+        }  /* for */
+        /* Check if a separator must be issued. */
+        if (aap->next != NULL) {
+          if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
+            octl->output_str(", ", octl);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      octl->output_str(")", octl);
+    }  /*if */
+    octl->output_str("))", octl);
+    *need_leading_space = TRUE;
+  }  /* if */
+}  /* form_recorded_gnu_attribute */
+
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 static void form_ELF_visibility_attribute(
@@ -4965,6 +5024,8 @@ described by octl.
          trigger were already issued by the front end. */
       form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
+    form_recorded_gnu_attribute(ak_alloc_size, type->source_corresp.attributes,
+                                &need_leading_space, octl);
     /* The following attributes would be recorded on the underlying type
        if the attribute appeared on a typedef. */
     type = skip_typerefs(type);
@@ -4996,6 +5057,8 @@ Do the output in the way described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+    form_recorded_gnu_attribute(ak_alloc_size, var->source_corresp.attributes,
+                                &need_leading_space, octl);
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (var->alignment != 0) {
       /* Output the alignment attribute. */
@@ -5108,6 +5171,9 @@ Do the output in the way described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+    form_recorded_gnu_attribute(ak_alloc_size,
+                                field->source_corresp.attributes,
+                                &need_leading_space, octl);
     if (field->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
@@ -5148,6 +5214,8 @@ Do the output in the way described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+    form_recorded_gnu_attribute(ak_alloc_size, rout->source_corresp.attributes,
+                                &need_leading_space, octl);
     if (rout->is_initialization_routine) {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       if (rout->ctor_priority != 0) {
