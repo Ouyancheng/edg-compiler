@@ -20989,9 +20989,11 @@ should be done, FALSE if it should be suppressed.
   /* Process any deferred friend fixups that may have been postponed
      until the end of the translation unit. */
   process_deferred_friend_fixup_list();
-  /* Determine which extern inline functions should have bodies emitted
-     as part of this translation unit. */
-  inline_function_wrapup();
+  if (do_inline) {
+    /* Determine which extern inline functions should have bodies emitted
+       as part of this translation unit. */
+    inline_function_wrapup();
+  }  /* if */
 }  /* template_and_inline_function_wrapup_for_trans_unit */
 
 
