@@ -29,6 +29,7 @@ pch.c -- Precompiled header processing.
 #include "decls.h"
 #include "statements.h"
 #include "macro.h"
+#include "templates.h"
 #if MANGLE_ALL_NAMES
 #if DO_IL_LOWERING
 #include "lower_il.h"
@@ -220,6 +221,11 @@ the data structures that will be written out.
     do_all_name_mangling(/*mangling_pre_pass=*/TRUE);
   }  /* if */
 #endif /* MANGLE_ALL_NAMES */
+  if (instantiate_before_pch_creation) {
+    /* Generate any instantiations that should be included in the precompiled
+       header. */
+    template_and_inline_function_processing_for_pch();
+  }  /* if */
   /* To avoid any surprises, we ensure that the routines list is up-to-date by
      performing all scheduled moves prior to writing the precompiled header
      file. */

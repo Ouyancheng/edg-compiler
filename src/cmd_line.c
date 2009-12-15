@@ -2188,6 +2188,7 @@ process.
   operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
   string_literals_are_const = FALSE;
   arg_dependent_lookup_enabled = FALSE;
+  instantiate_before_pch_creation = FALSE;
   instantiate_extern_inline = FALSE;
   do_dependent_name_processing = FALSE;
   nonstandard_instantiation_lookup_enabled = FALSE;
@@ -5241,6 +5242,11 @@ file.
 #else /* !defined(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE) */
   comment_undefined_macro_name(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE);
 #endif /* defined(INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE) */
+#if defined(INSTANTIATE_BEFORE_PCH_CREATION)
+  define_numeric_valued_macro(INSTANTIATE_BEFORE_PCH_CREATION);
+#else /* !defined(INSTANTIATE_BEFORE_PCH_CREATION) */
+  comment_undefined_macro_name(INSTANTIATE_BEFORE_PCH_CREATION);
+#endif /* defined(INSTANTIATE_BEFORE_PCH_CREATION) */
 #if defined(INSTANTIATE_EXTERN_INLINE)
   define_numeric_valued_macro(INSTANTIATE_EXTERN_INLINE);
 #else /* !defined(INSTANTIATE_EXTERN_INLINE) */
@@ -8746,6 +8752,7 @@ variables declared in cmd_line.h.
   allow_dollar_in_id_chars = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS;
   display_compilation_time = FALSE;
   instantiation_mode = DEFAULT_INSTANTIATION_MODE;
+  instantiate_before_pch_creation = INSTANTIATE_BEFORE_PCH_CREATION;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   automatic_instantiation_mode = DEFAULT_AUTOMATIC_INSTANTIATION_MODE;
   suppress_instantiation_flags = FALSE;

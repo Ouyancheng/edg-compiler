@@ -617,6 +617,20 @@ instantiation_mode, which can be changed by a command-line option.
 #endif /* ifndef DEFAULT_INSTANTIATION_MODE */
 
 /*
+Flag that is TRUE if, when a precompiled header file is generated, any
+instantiations that are needed will be done before the PCH file is generated
+so that they will not have to be generated for each file that uses the PCH
+file.
+*/
+#ifndef INSTANTIATE_BEFORE_PCH_CREATION
+#if INSTANTIATE_TEMPLATES_EVERYWHERE_USED
+#define INSTANTIATE_BEFORE_PCH_CREATION TRUE
+#else /* !INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+#define INSTANTIATE_BEFORE_PCH_CREATION FALSE
+#endif /* INSTANTIATE_TEMPLATES_EVERYWHERE_USED */
+#endif /* ifndef INSTANTIATE_BEFORE_PCH_CREATION */
+
+/*
 Flag that is TRUE to enable automatic instantiation support for templates.
 This flag determines whether the code for automatic instantiation is
 to be compiled.  When automatic instantiation is on, the front end

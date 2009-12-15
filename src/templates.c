@@ -20967,6 +20967,56 @@ specific definition that made it unnecessary.
 /* Forward declaration. */
 static void inline_function_wrapup(void);
 
+
+static void template_and_inline_function_wrapup_for_trans_unit(void)
+/*
+For the current translation unit, generate any instantiations needed by that
+translation unit; generate any virtual destructors that may be required;
+and determine which extern inline functions require definitions in this
+translation unit.
+*/
+{
+  /* Do any template instantiation that may be required.  This is called
+     first because it may generate additional function bodies and class
+     definitions that need to be processed by the operations that
+     follow. */
+  do_any_needed_instantiations();
+  /* Go through the classes in the file scope and each namespace scope
+     and generate bodies for virtual destructors, as required. */
+  generate_required_virtual_destructor_bodies(il_header.primary_scope);
+  /* Process any deferred friend fixups that may have been postponed
+     until the end of the translation unit. */
+  process_deferred_friend_fixup_list();
+  /* Determine which extern inline functions should have bodies emitted
+     as part of this translation unit. */
+  inline_function_wrapup();
+}  /* template_and_inline_function_wrapup_for_trans_unit */
+
+
+void template_and_inline_function_processing_for_pch(void)
+/*
+We are about to write a precompiled header file.  If there are instantiations
+or inline function bodies that we know will be needed for each file that
+either generates or uses the PCH, generate those instantiations or inline
+function bodies now.
+*/
+{
+  check_assertion(!in_instantiation_wrapup);
+  /* Consider this processing to take place during instantiation wrapup. */
+  in_instantiation_wrapup = TRUE;
+  if (instantiation_mode == tim_used || instantiation_mode == tim_all) {
+    /* Iterate over the routines that do instantiations and inline function
+       processing.  These are repeated until no additional instantiations or
+       inline functions are generated. */
+    do {
+      additional_instantiation_wrapup_required = FALSE;
+      template_and_inline_function_wrapup_for_trans_unit();
+    } while (additional_instantiation_wrapup_required);
+  }  /* if */
+  in_instantiation_wrapup = FALSE;
+}  /* template_and_inline_function_processing_for_pch */
+
+
 void template_and_inline_function_wrapup(void)
 /*
 For each translation unit, generate any instantiations needed by that
@@ -21010,20 +21060,9 @@ translation unit.
       tup->additional_instantiation_wrapup_required = FALSE;
       /* Push the translation unit. */
       push_translation_unit_stack(tup);
-      /* Do any template instantiation that may be required.  This is called
-         first because it may generate additional function bodies and class
-         definitions that need to be processed by the operations that
-         follow. */
-      do_any_needed_instantiations();
-      /* Go through the classes in the file scope and each namespace scope
-         and generate bodies for virtual destructors, as required. */
-      generate_required_virtual_destructor_bodies(il_header.primary_scope);
-      /* Process any deferred friend fixups that may have been postponed
-         until the end of the translation unit. */
-      process_deferred_friend_fixup_list();
-      /* Determine which extern inline functions should have bodies emitted
-         as part of this translation unit. */
-      inline_function_wrapup();
+      /* Do the actual processing of instantiations, virtual destructors,
+         and inline functions. */
+      template_and_inline_function_wrapup_for_trans_unit();
 #if CHECKING
       after_instantiation_wrapup = TRUE;
 #endif /* CHECKING */

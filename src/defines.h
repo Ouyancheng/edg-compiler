@@ -743,6 +743,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifndef INSTANTIATE_EXTERN_INLINE
 #define INSTANTIATE_EXTERN_INLINE 1
 #endif /* ifndef INSTANTIATE_EXTERN_INLINE */
+#ifndef INSTANTIATE_BEFORE_PCH_CREATION
+#define INSTANTIATE_BEFORE_PCH_CREATION TRUE
+#endif /* ifndef INSTANTIATE_BEFORE_PCH_CREATION */
 #ifndef MAINTAIN_NEEDED_FLAGS
 #define MAINTAIN_NEEDED_FLAGS 1
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */

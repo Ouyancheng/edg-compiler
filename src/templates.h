@@ -634,6 +634,8 @@ extern void set_master_instance_for_new_canonical_variable(
 
 extern void set_master_instance_information(void);
 
+extern void template_and_inline_function_processing_for_pch(void);
+
 extern void template_and_inline_function_wrapup(void);
 
 extern void remove_unneeded_static_data_member_instantiations(void);

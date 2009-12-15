@@ -748,6 +748,13 @@ EXTERN a_template_instantiation_mode
                 instantiation_mode;
                         /* The default template instantiation mode. */
 
+EXTERN a_boolean
+		instantiate_before_pch_creation;
+			/* TRUE if instantiations should be done before a
+			    precompiled header file is created so that they
+			    will not have to be done in each file that uses
+			    the PCH. */
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 EXTERN a_boolean
                 automatic_instantiation_mode;
