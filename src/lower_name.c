@@ -4485,7 +4485,7 @@ available) will create the dummy namespace.
                                     curr_translation_unit;
   module_id = module_id_for_source_corresp(scp);
   if (module_id != NULL && tup->individuated_namespace == NULL) {
-    char *name, *module_id = module_id_for_source_corresp(scp);
+    char *name;
     nsp = alloc_fe_of_type(a_namespace);
     clear_namespace(nsp, /*is_alias=*/FALSE);
 #if IA64_ABI
