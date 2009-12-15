@@ -2654,7 +2654,7 @@ return that entity.
          number one, and the first declared parameter is numbered two. */
       ++n_params;
     }  /* if */
-    for (; ptp != NULL; ++n_params, ptp = ptp->next);
+    for (; ptp != NULL; ptp = ptp->next) ++n_params;
     if (get_attr_arg_integer(ap->arguments, ap, 1, n_params, &p1) &&
         (ap->arguments->next == NULL ||
          get_attr_arg_integer(ap->arguments->next, ap, 1, n_params, &p2))) {
