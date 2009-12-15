@@ -1,6 +1,6 @@
 Version 4.2
 
-12/14/09 [EDGcpfe/9568]
+12/14/09 [EDGcpfe/9568,EDGcpfe/9690]
 GNU compatibility: Attribute alloc_size
 
 In GNU modes with gnu_version > 40200, the front end now accepts attribute
