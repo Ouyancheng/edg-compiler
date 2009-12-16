@@ -307,7 +307,7 @@ typedef struct a_mangling_control_block {
 			/* TRUE to suppress extra information on partial
 			   specialization arguments. */
 #endif /* !IA64_ABI */
-  a_boolean	needs_module_id;
+  a_boolean	lacking_module_id;
 			/* TRUE if the entity being mangled depends on a
 			   module id that is not yet available.  In cases where
 			   the mangling is being performed during a mangling
@@ -467,7 +467,7 @@ Set the fields of the indicated mangling control block to default values.
 #else /* !IA64_ABI */
   mctl->suppress_partial_spec_args = FALSE;
 #endif /* !IA64_ABI */
-  mctl->needs_module_id = FALSE;
+  mctl->lacking_module_id = FALSE;
 }  /* clear_mangling_control_block */
 
 #if IA64_ABI
@@ -608,8 +608,8 @@ static void start_mangling(a_mangling_control_block_ptr mctl)
 /*
 Do initialization for mangling one name.  This includes setting
 mangling_text_buffer to a new mangling buffer, then clearing it and mctl.
-Must be paired with a corresponding call to end_mangling
-(or pop_mangling_text_buffer if end_mangling is not needed).
+Must be paired with a corresponding call to end_mangling_full
+(or pop_mangling_text_buffer if end_mangling_full is not needed).
 */
 {
   clear_mangling_control_block(mctl);
@@ -694,9 +694,9 @@ compatibility omit the underscore in version 30400 and later.
 
 #endif /* IA64_ABI */
 
-static char *end_mangling(a_source_correspondence      *scp,
-                          a_boolean                    final,
-                          a_mangling_control_block_ptr mctl)
+static char *end_mangling_full(a_source_correspondence      *scp,
+                               a_boolean                    final,
+                               a_mangling_control_block_ptr mctl)
 /*
 Do processing at the end of mangling a name, which is in the mangling
 buffer.  At the least, this includes adding the final null character.
@@ -707,12 +707,14 @@ mangling pre-pass and a module id is required for this name.  If scp
 is non-NULL, allocate a copy of the name in the IL memory region, and
 update scp to point to it.  If final is TRUE, it's okay to do final
 mangling, which may produce a name that can no longer be embedded in
-other mangled names.
+other mangled names.  The caller can inspect mctl->lacking_module_id to
+determine if the mangled name needed a module id (as mentioned above, NULL is
+also returned in this case).
 */
 {
   char *buffer;
 
-  if (mctl->needs_module_id) {
+  if (mctl->lacking_module_id) {
     /* Some part of the mangled name requires a module id that is not
        available yet.  If we're mangling early (e.g., when generating a PCH
        file), simply discard the mangled name -- the correct mangled name will
@@ -741,7 +743,7 @@ other mangled names.
       } while (ch != '\0');
       check_assertion_str(mctl->num_leftover_spaces == 0 &&
                           mangling_text_buffer->size == mctl->length,
-                          "end_mangling: wrong number of leftover spaces");
+                         "end_mangling_full: wrong number of leftover spaces");
     }  /* if */
     buffer = mangling_text_buffer->buffer;
     if (final) {
@@ -777,6 +779,24 @@ other mangled names.
   /* We're done with this mangling text buffer. */
   pop_mangling_text_buffer();
   return buffer;
+}  /* end_mangling_full */
+
+
+static char *end_mangling(a_boolean                    final,
+                          a_mangling_control_block_ptr mctl)
+/*
+An interface to end_mangling_full where the mangled name is not stored in
+the entity, but rather returned to the caller for some other use.  Callers
+expect that the returned name is non-NULL (which means this routine cannot
+be called too early i.e., before a module id is available for entities
+that need a module id in their mangled name).  If final is TRUE, it's okay to
+do final mangling, which may produce a name that can no longer be embedded in
+other mangled names.
+*/
+{
+  char *name = end_mangling_full((a_source_correspondence *)NULL, final, mctl);
+  check_assertion(name != NULL);
+  return name;
 }  /* end_mangling */
 
 
@@ -3304,6 +3324,16 @@ functions with the same signature).
   (type_is_lambda_in_default_argument((type)) &&                        \
    !(type)->source_corresp.is_local_to_function)
 
+static char    *placeholder_name = "";
+                        /* A character string that is returned in place of a
+                           module id, namespace name, or type name when no
+                           module id is available (i.e., in a mangling
+                           pre-pass).  Returning a non-NULL string in these
+                           cases allows the mangling of the name to proceed
+                           without undue error checking; the mangled name will
+                           be discarded by end_mangling_full when it sees that
+                           mctl->lacking_module_id is TRUE. */
+
 #if !IA64_ABI
 
 static void mangled_specialization_indication(a_mangling_control_block *mctl)
@@ -3340,6 +3370,109 @@ and "routine" is the routine to which the entity is local.
   }  /* if */
 }  /* add_local_name_suffix */
 
+
+static char *fabricate_name_for_unnamed_type(a_type_ptr               type,
+                                             a_mangling_control_block *mctl)
+/*
+Return a fabricated name (already allocated in the file scope memory region)
+for the specified unnamed type.  If the fabricated name for the type requires a
+module id and none is available (as happens during a mangling pre-pass), a
+placeholder name is returned and mctl->lacking_module_id is set to TRUE.
+*/
+{
+  a_mangling_control_block local_mctl;
+  char                     *fabricated_name, *name;
+  unsigned long            discriminator;
+
+  start_mangling(&local_mctl);
+  if (type_is_lambda_closure(type)) {
+    /* Generate a class name for the lambda closure class. */
+    a_type_ptr    call_operator_type;
+    call_operator_type = call_operator_function_type_for_lambda(type);
+    check_assertion(symbol_supplement_for_class(type) != NULL);
+    discriminator = symbol_supplement_for_class(type)->discriminator;
+    check_assertion(discriminator != 0);
+    if (mangle_as_lambda_in_default_argument(type)) {
+      /* A lambda used in a default argument is given a name with the
+         following format:
+
+          __Ud1_2_Fv__L0__f__FiT1 <-- name given to lambda in default arg:
+                                      void f(int i=[]{return 0;}(),int k=0)
+                    ^^^^^^^^^^^^^---- Local to function f(int,int).
+                  ^^----------------- Lambda operator() function type.
+                ^-------------------- Declared in trailing parameter 2.
+              ^---------------------- Instance 1 (within parameter).
+          ^^^^----------------------- __Ud indicates lambda in default arg.
+
+         Note that not all lambdas defined in default arguments are
+         mangled as such -- lambdas defined in default arguments of
+         functions declared in the function scope are mangled as though
+         they appear in the function scope (to avoid possible conflicts
+         with similarly defined lambdas).
+         */
+      a_routine_ptr enclosing_routine;
+      add_str_to_mangled_name("__Ud", &local_mctl);
+      add_number_to_mangled_name(discriminator, &local_mctl);
+      add_to_mangled_name('_', &local_mctl);
+      add_mangling_for_default_arg_in_local_type(type, &enclosing_routine,
+                                                 &local_mctl);
+      add_to_mangled_name('_', &local_mctl);
+      mangled_encoding_for_function_type(call_operator_type,
+                                         /*do_return_type=*/FALSE,
+                                         /*do_markers=*/TRUE,
+                                         &local_mctl);
+      add_local_name_suffix((unsigned long)0, enclosing_routine, &local_mctl);
+    } else {
+      /* All other lambdas are given a name with the following format:
+
+           __Ul1_Fif <-- name given to lambda:
+                         [](int, float)->float {return 0.0;}(i, f);
+                 ^^^---- Lambda operator() function type (int, float).
+               ^-------- Instance (within parent scope).
+           ^^^^--------- "__Ul" indicates lambda, "__Um" indicates
+                         lambda in a member initializer.
+         */
+      if (type_is_lambda_in_initializer(type)) {
+        add_str_to_mangled_name("__Um", &local_mctl);
+      } else {
+        add_str_to_mangled_name("__Ul", &local_mctl);
+      }  /* if */
+      add_number_to_mangled_name(discriminator, &local_mctl);
+      add_to_mangled_name('_', &local_mctl);
+      mangled_encoding_for_function_type(call_operator_type,
+                                         /*do_return_type=*/FALSE,
+                                         /*do_markers=*/TRUE,
+                                         &local_mctl);
+    }  /* if */
+  } else {
+    /* All other unnamed types are simply mangled with __Ut followed by
+       the discriminator number (as calculated by the front end). */
+    add_str_to_mangled_name("__Ut", &local_mctl);
+    if (is_immediate_class_type(type)) {
+      discriminator = symbol_supplement_for_class(type)->discriminator;
+    } else {
+      check_assertion(is_immediate_enum_type(type));
+      discriminator =
+               symbol_for(type)->variant.enumeration.extra_info->discriminator;
+    }  /* if */
+    check_assertion(discriminator != 0);
+    add_number_to_mangled_name(discriminator, &local_mctl);
+  }  /* if */
+  fabricated_name = end_mangling_full((a_source_correspondence *)NULL,
+                                      /*final=*/FALSE, &local_mctl);
+  if (local_mctl.lacking_module_id) {
+    /* We can't fabricate the type's mangled name; alert the caller that
+       the name we're returning is not the final name. */
+    name = placeholder_name;
+    mctl->lacking_module_id = TRUE;
+  } else {
+    /* Allocate space for the generated name and copy it. */
+    name = alloc_lowered_name_string(local_mctl.length);
+    (void)strcpy(name, fabricated_name);
+  }  /* if */
+  return name;
+}  /* fabricate_name_for_unnamed_type */
+
 #endif /* !IA64_ABI */
 
 /*
@@ -3348,25 +3481,25 @@ Seed number for unnamed type names.
 static unsigned long
 		unnamed_type_seed;
 
-
-static char *give_unnamed_class_or_enum_a_name(a_type_ptr type)
+static char *give_unnamed_class_or_enum_a_name(a_type_ptr               type,
+                                               a_mangling_control_block *mctl)
 /*
 If the indicated class or enum type is unnamed, fabricate a name (if it needs
 one) and return that name.  In the Cfront ABI, all unnamed types are given a
-fabricated name here (mangling then uses this name as it would any other class
-or enum type name); the exception to this rule is during the mangling pre-pass
-where this routine will leave the name as NULL (and return NULL).  In the IA-64
-ABI, only a small set of unnamed types are given a name (those generated by the
-compiler and anonymous unions).  The rest of the unnamed types have encodings
-specified by the IA-64 ABI and are encoded as needed.  Can return NULL in the
-IA-64 ABI.  Returns NULL in the Cfront ABI only during the mangling pre-pass.
+fabricated name here (see the exception for the mangling pre-pass below).
+Mangling then uses this name as it would any other class or enum type name.
+In the IA-64 ABI, only a small set of unnamed types are given a name (those
+generated by the compiler and anonymous unions).  The rest of the unnamed types
+have encodings specified by the IA-64 ABI and are encoded as needed.  Can
+return NULL in the IA-64 ABI.  In the Cfront ABI, during a mangling pre-pass,
+the module id may not be available; in this case the type remains unnamed
+(until a future call) and a placeholder name is returned (so mangling can
+proceed), but mctl->lacking_module_id is set so the mangled name will
+eventually be discarded.  
 */
 {
   char            *name;
   char            buffer[50];
-#if !IA64_ABI
-  unsigned long   discriminator;
-#endif /* !IA64_ABI */
 
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
@@ -3396,92 +3529,12 @@ IA-64 ABI.  Returns NULL in the Cfront ABI only during the mangling pre-pass.
       /* In the Cfront ABI, all unnamed types are assigned generated names
          and the normal mangling mechanism for class/enum types is used for
          the generation of mangled names. */
-      a_mangling_control_block mctl;
-      char                     *generated_name;
-      start_mangling(&mctl);
-      if (type_is_lambda_closure(type)) {
-        /* Generate a class name for the lambda closure class. */
-        a_type_ptr    call_operator_type;
-        call_operator_type = call_operator_function_type_for_lambda(type);
-        check_assertion(symbol_supplement_for_class(type) != NULL);
-        discriminator = symbol_supplement_for_class(type)->discriminator;
-        check_assertion(discriminator != 0);
-        if (mangle_as_lambda_in_default_argument(type)) {
-          /* A lambda used in a default argument is given a name with the
-             following format:
-
-              __Ud1_2_Fv__L0__f__FiT1 <-- name given to lambda in default arg:
-                                          void f(int i=[]{return 0;}(),int k=0)
-                        ^^^^^^^^^^^^^---- Local to function f(int,int).
-                      ^^----------------- Lambda operator() function type.
-                    ^-------------------- Declared in trailing parameter 2.
-                  ^---------------------- Instance 1 (within parameter).
-              ^^^^----------------------- __Ud indicates lambda in default arg.
-
-             Note that not all lambdas defined in default arguments are
-             mangled as such -- lambdas defined in default arguments of
-             functions declared in the function scope are mangled as though
-             they appear in the function scope (to avoid possible conflicts
-             with similarly defined lambdas).
-             */
-          a_routine_ptr enclosing_routine;
-          add_str_to_mangled_name("__Ud", &mctl);
-          add_number_to_mangled_name(discriminator, &mctl);
-          add_to_mangled_name('_', &mctl);
-          add_mangling_for_default_arg_in_local_type(type, &enclosing_routine,
-                                                     &mctl);
-          add_to_mangled_name('_', &mctl);
-          mangled_encoding_for_function_type(call_operator_type,
-                                             /*do_return_type=*/FALSE,
-                                             /*do_markers=*/TRUE,
-                                             &mctl);
-          add_local_name_suffix((unsigned long)0, enclosing_routine, &mctl);
-        } else {
-          /* All other lambdas are given a name with the following format:
-
-               __Ul1_Fif <-- name given to lambda:
-                             [](int, float)->float {return 0.0;}(i, f);
-                     ^^^---- Lambda operator() function type (int, float).
-                   ^-------- Instance (within parent scope).
-               ^^^^--------- "__Ul" indicates lambda, "__Um" indicates
-                             lambda in a member initializer.
-             */
-          if (type_is_lambda_in_initializer(type)) {
-            add_str_to_mangled_name("__Um", &mctl);
-          } else {
-            add_str_to_mangled_name("__Ul", &mctl);
-          }  /* if */
-          add_number_to_mangled_name(discriminator, &mctl);
-          add_to_mangled_name('_', &mctl);
-          mangled_encoding_for_function_type(call_operator_type,
-                                             /*do_return_type=*/FALSE,
-                                             /*do_markers=*/TRUE,
-                                             &mctl);
-        }  /* if */
-      } else {
-        /* All other unnamed types are simply mangled with __Ut followed by
-           the discriminator number (as calculated by the front end). */
-        add_str_to_mangled_name("__Ut", &mctl);
-        if (is_immediate_class_type(type)) {
-          discriminator = symbol_supplement_for_class(type)->discriminator;
-        } else {
-          check_assertion(is_immediate_enum_type(type));
-          discriminator =
-               symbol_for(type)->variant.enumeration.extra_info->discriminator;
-        }  /* if */
-        check_assertion(discriminator != 0);
-        add_number_to_mangled_name(discriminator, &mctl);
-      }  /* if */
-      generated_name = end_mangling((a_source_correspondence *)NULL,
-                                    /*final=*/FALSE, &mctl);
-      if (generated_name == NULL) {
+      name = fabricate_name_for_unnamed_type(type, mctl);
+      if (mctl->lacking_module_id) {
         /* The mangled name requires a module id and none is available yet. */
         check_assertion(in_mangling_pre_pass);
-        name = NULL;
+        name = placeholder_name;
       } else {
-        /* Allocate space for the generated name and copy it. */
-        name = alloc_lowered_name_string(mctl.length);
-        (void)strcpy(name, generated_name);
         type->source_corresp.name = name;
         type->source_corresp.unnamed_entity_given_fabricated_name = TRUE;
       }  /* if */
@@ -3492,12 +3545,15 @@ IA-64 ABI.  Returns NULL in the Cfront ABI only during the mangling pre-pass.
 }  /* give_unnamed_class_or_enum_a_name */
 
 
-static char *module_id_for_source_corresp(a_source_correspondence *scp)
+static char *module_id_for_source_corresp(a_source_correspondence  *scp,
+                                          a_mangling_control_block *mctl)
 /*
 Return the module id for the translation unit which the given source
 correspondence is part of.  For a source correspondence with no
 associated symbol, use the current translation unit.  During the mangling
-pre-pass, return NULL if no module id is currently available.
+pre-pass, return a placeholder name if no module id is currently available and
+set mctl->lacking_module_id to alert the caller that the mangled name under
+construction should be discarded.
 */
 {
   a_translation_unit_ptr tup;
@@ -3508,16 +3564,26 @@ pre-pass, return NULL if no module id is currently available.
   module_id = *tup->module_id_ptr;
   /* The module id must have been created previously if we're not in the
      mangling pre-pass. */
-  check_assertion(in_mangling_pre_pass || module_id != NULL);
+  if (module_id == NULL) {
+    /* Alert the caller that the name needs a module id that is not yet
+       available. */
+    check_assertion(in_mangling_pre_pass);
+    mctl->lacking_module_id = TRUE;
+    module_id = placeholder_name;
+  }
   return module_id;
 }  /* module_id_for_source_corresp */
 
 
-static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
+static char *give_unnamed_namespace_a_name(a_namespace_ptr          nsp,
+                                           a_mangling_control_block *mctl)
 /*
-If the indicated namespace is unnamed, give it a name unless we're in the
-mangling pre-pass, in which case no name is given (subsequent calls once
-the module id has been chosen will give the namespace an appropriate name).
+If the indicated namespace is unnamed, give it a name (if possible).  If we're
+in the mangling pre-pass and a module id is not yet available,
+mctl->lacking_module_id will be set to TRUE and a placeholder name will be
+returned.
+A subsequent call (once the module id has been chosen) will give the namespace
+an appropriate name.
 */
 {
   char     *name, *prefix;
@@ -3526,10 +3592,12 @@ the module id has been chosen will give the namespace an appropriate name).
   /* Note that we may be changing a namespace that is not being lowered yet,
      but that's okay -- the name in the IL entry is not used by the front
      end. */
-  if (nsp->source_corresp.name == NULL) {
+  name = nsp->source_corresp.name;
+  if (name == NULL) {
     /* The namespace is unnamed, so make up a name. */
     char            *module_id;
     a_namespace_ptr parent_nsp;
+    a_boolean       lacking_module_id = FALSE;
     /* The name is __N followed by the module id. */
     check_assertion(!nsp->source_corresp.is_class_member);
     parent_nsp = parent_namespace_or_null(nsp);
@@ -3540,10 +3608,13 @@ the module id has been chosen will give the namespace an appropriate name).
       module_id = "";
     } else {
       check_assertion(!nsp->is_namespace_alias);
-      module_id = module_id_for_source_corresp(&nsp->source_corresp);
+      module_id = module_id_for_source_corresp(&nsp->source_corresp, mctl);
+      lacking_module_id = mctl->lacking_module_id;
     }  /* if */
-    if (module_id == NULL) {
-      /* No module id is available yet, leave the namespace unnamed for now. */
+    if (lacking_module_id) {
+      /* No module id is available yet, return a temporary name for now
+         so mangling can continue. */
+      name = placeholder_name;
     } else {
 #if IA64_ABI
       /* g++ uses "_GLOBAL__N_" and recognizes that in its demangler. */
@@ -3559,17 +3630,21 @@ the module id has been chosen will give the namespace an appropriate name).
       nsp->source_corresp.name_has_been_mangled = TRUE;
     }  /* if */
   }  /* if */
+  return name;
 }  /* give_unnamed_namespace_a_name */
 
 
-static char *give_unnamed_template_param_member_a_name(a_type_ptr type)
+static char *give_unnamed_template_param_member_a_name(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
 /*
-Give an unnamed template param member type that refers to an unnamed
-enum or class member the same name as the original type (which has previously
-or will now become named via a call to give_unnamed_*_a_name).  Set its name
-mangling fields to match that of the original type (which can be NULL in
-the mangling pre-pass).  Returns the name of the template param member which
-can be NULL in the mangling pre-pass.
+Give an unnamed template param member type that refers to an unnamed enum or
+class member the same name as the original type (which has previously or will
+now most likely become named via a call to give_unnamed_class_or_enum_a_name).
+Set its name mangling fields to match that of the original type (which can be
+NULL in the mangling pre-pass).  Returns the name of the template param member
+which can be NULL in the mangling pre-pass (in which case
+mctl->lacking_module_id is set to TRUE).
 */
 {
   a_type_ptr nested_type;
@@ -3582,8 +3657,8 @@ can be NULL in the mangling pre-pass.
   if (nested_type != NULL) {
     if (is_immediate_class_type(nested_type) ||
         is_immediate_enum_type(nested_type)) {
-      type->source_corresp.name =
-                                give_unnamed_class_or_enum_a_name(nested_type);
+      (void)give_unnamed_class_or_enum_a_name(nested_type, mctl);
+      type->source_corresp.name = nested_type->source_corresp.name;
       type->source_corresp.unmangled_name =
                                     nested_type->source_corresp.unmangled_name;
       type->source_corresp.name_has_been_mangled =
@@ -3950,11 +4025,7 @@ Generate an encoding for the specified unnamed (class or enum) type.
     add_to_mangled_name('_', mctl);
   } else {
     if (unnamed_type_has_no_discriminator(type)) {
-      name = give_unnamed_class_or_enum_a_name(type);
-      if (name == NULL) {
-        mctl->needs_module_id = TRUE;
-        goto done;
-      }  /* if */
+      name = give_unnamed_class_or_enum_a_name(type, mctl);
       /* For compiler generated class/enums, generate an encoding based on the
          unique name that has just been assigned. */
       add_number_to_mangled_name((unsigned long)strlen(name), mctl);
@@ -3983,15 +4054,10 @@ Generate an encoding for the specified unnamed (class or enum) type.
      added by the caller. */
   name = unmangled_or_fabricated_name_of(&type->source_corresp);
   if (name == NULL) {
-    name = give_unnamed_class_or_enum_a_name(type);
-    if (name == NULL) {
-      mctl->needs_module_id = TRUE;
-      goto done;
-    }  /* if */
+    name = give_unnamed_class_or_enum_a_name(type, mctl);
   }  /* if */
   add_str_to_mangled_name(name, mctl);
 #endif /* IA64_ABI */
-done:;
 }  /* mangled_unnamed_type_encoding */
 
 
@@ -4462,7 +4528,8 @@ any components that need to be individuated.
 
 
 static a_namespace_ptr make_individuated_namespace(
-                                                  a_source_correspondence *scp)
+                                                a_source_correspondence  *scp,
+                                                a_mangling_control_block *mctl)
 /*
 Return a pointer to a dummy namespace used for mangling of entities that
 need to be individuated.  These entities are mangled "as if" they were part
@@ -4470,34 +4537,41 @@ of a top-level namespace whose name is the concatenation of "_INTERNAL"
 (or "__INTERNAL" for the Cfront ABI) and the module id.  This is an EDG
 extension.  scp is the source correspondence of (a component) of the entity and
 is used to generate the correct module id for the entity.  In cases where
-the module id has not been determined, the dummy namespace isn't created
-and NULL is returned to the caller.  Subsequent calls (when a module id is
-available) will create the dummy namespace.
+the module id has not yet been determined, the dummy namespace is unnamed
+and mctl->lacking_module_id is set to TRUE (signaling that any mangled names
+that use this namespace should be discarded).  A subsequent call will give the
+namespace an appropriate name once the module id is chosen.
 */
 {
   static a_namespace_ptr nsp;
   a_translation_unit_ptr tup;
-  char                   *module_id;
 
   /* Each translation unit is individuated with a different name, make
      sure we use the correct one. */
   tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
                                     curr_translation_unit;
-  module_id = module_id_for_source_corresp(scp);
-  if (module_id != NULL && tup->individuated_namespace == NULL) {
-    char *name;
+  nsp = tup->individuated_namespace;
+  if (nsp == NULL) {
+    /* Allocate the individuated namespace for this translation unit. */
     nsp = alloc_fe_of_type(a_namespace);
     clear_namespace(nsp, /*is_alias=*/FALSE);
-#if IA64_ABI
-    name = (char *)alloc_general(strlen(module_id)+1+9);
-    (void)strcpy(name, "_INTERNAL");
-#else /* !IA64_ABI */
-    name = (char *)alloc_general(strlen(module_id)+1+10);
-    (void)strcpy(name, "__INTERNAL");
-#endif /* IA64_ABI */
-    (void)strcat(name, module_id);
-    nsp->source_corresp.name = name;
     tup->individuated_namespace = nsp;
+  }  /* if */
+  if (nsp->source_corresp.name == NULL) {
+    char *name, *module_id = module_id_for_source_corresp(scp, mctl);
+    /* Namespace needs a real name, see if we can give it one. */
+    if (!mctl->lacking_module_id) {
+      /* Construct a real name for the namespace. */
+#if IA64_ABI
+      name = (char *)alloc_general(strlen(module_id)+1+9);
+      (void)strcpy(name, "_INTERNAL");
+#else /* !IA64_ABI */
+      name = (char *)alloc_general(strlen(module_id)+1+10);
+      (void)strcpy(name, "__INTERNAL");
+#endif /* IA64_ABI */
+      (void)strcat(name, module_id);
+      nsp->source_corresp.name = name;
+    }  /* if */
   }  /* if */
   return tup->individuated_namespace;
 }  /* make_individuated_namespace */
@@ -4843,24 +4917,14 @@ new_substitution:
       /* Use a dummy namespace pointer for all individuated namespace
          manglings.  Having a namespace pointer ensures that substitutions
          (for the IA-64 ABI) will be handled properly. */
-      nsp = make_individuated_namespace(scp);
-      if (nsp == NULL) {
-        mctl->needs_module_id = TRUE;
+      nsp = make_individuated_namespace(scp, mctl);
+      if (mctl->lacking_module_id) {
+        /* If the individuated namespace doesn't yet have a name, no
+           sense in continuing. */
         goto done;
       }  /* if */
     } else {
       nsp = scp_parent_namespace_or_null(scp);
-    }  /* if */
-    name = unmangled_or_fabricated_name_of(&nsp->source_corresp);
-    if (name == NULL) {
-      /* For an unnamed namespace, generate a name (or use the name previously
-         generated). */
-      give_unnamed_namespace_a_name(nsp);
-      name = nsp->source_corresp.name;
-      if (name == NULL) {
-        mctl->needs_module_id = TRUE;
-        goto done;
-      }  /* if */
     }  /* if */
 #if IA64_ABI
     if (needs_to_be_individuated &&
@@ -4870,9 +4934,10 @@ new_substitution:
          (e.g., "namespace std { enum {} e; }").  The "St" substitution is
          typically used to mangle this, but we need to add the individuated
          namespace first before that substitution is performed below. */
-      a_namespace_ptr insp = make_individuated_namespace(scp);
-      if (insp == NULL) {
-        mctl->needs_module_id = TRUE;
+      a_namespace_ptr insp = make_individuated_namespace(scp, mctl);
+      if (mctl->lacking_module_id) {
+        /* If the individuated namespace doesn't yet have a name, no
+           sense in continuing. */
         goto done;
       }  /* if */
       mangled_name_with_length(unmangled_or_fabricated_name_of(
@@ -4889,6 +4954,12 @@ new_substitution:
                                  mctl);
     }  /* if */
 #endif /* IA64_ABI */
+    name = unmangled_or_fabricated_name_of(&nsp->source_corresp);
+    if (name == NULL) {
+      /* For an unnamed namespace, generate a name (or use the name previously
+         generated). */
+      name = give_unnamed_namespace_a_name(nsp, mctl);
+    }  /* if */
     /* Put out the namespace name preceded by the length of the name, e.g.,
        "NNN" --> "3NNN". */
     mangled_name_with_length(name, mctl);
@@ -4980,9 +5051,10 @@ discriminator (if necessary).
          (e.g., "namespace std { enum {} e; }").  The "St" substitution is
          typically used to mangle this, but we need to add the individuated
          namespace first before that substitution is performed below. */
-      a_namespace_ptr nsp = make_individuated_namespace(scp);
-      if (nsp == NULL) {
-        mctl->needs_module_id = TRUE;
+      a_namespace_ptr nsp = make_individuated_namespace(scp, mctl);
+      if (mctl->lacking_module_id) {
+        /* If the individuated namespace doesn't yet have a name, no
+           sense in continuing. */
         goto done;
       }  /* if */
       add_to_mangled_name('N', mctl);
@@ -5523,10 +5595,7 @@ Add to the mangled name the encoding for the type "type".
           case tptk_member:
             /* Type selected from a template parameter type, e.g., T::x. */
             if (!has_name(type)) {
-              if (give_unnamed_template_param_member_a_name(type) == NULL) {
-                mctl->needs_module_id = TRUE;
-                goto end_of_routine;
-              }  /* if */
+              (void)give_unnamed_template_param_member_a_name(type, mctl);
             }  /* if */
             mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
             break;
@@ -5681,8 +5750,8 @@ add_substitution_for_qualified_type:
   if (qualifiers != TQ_NONE) {
     alloc_substitution((char *)qualified_type, iek_type, mctl);
   }  /* if */
-#endif /* IA64_ABI */
 end_of_routine:;
+#endif /* IA64_ABI */
 }  /* mangled_encoding_for_type */
 
 
@@ -6442,8 +6511,8 @@ is_variable is TRUE, a routine otherwise.
        B <length> <module-id>
      This is not in the ABI spec.  It's an EDG extension.  It can appear
      as a prefix to a name. */
-  char *module_id = module_id_for_source_corresp(scp);
-  check_assertion(module_id != NULL);
+  char *module_id = module_id_for_source_corresp(scp, mctl);
+  check_assertion(!mctl->lacking_module_id);
   add_to_mangled_name('B', mctl);
   mangled_name_with_length(module_id, mctl);
 #endif /* !IA64_ABI */
@@ -6468,8 +6537,8 @@ the indicated source correspondence.
        __STF__name__module_id  (function)
      Only the part after "name" is put out here.
   */
-  module_id = module_id_for_source_corresp(scp);
-  check_assertion(module_id != NULL);
+  module_id = module_id_for_source_corresp(scp, mctl);
+  check_assertion(!mctl->lacking_module_id);
   add_str_to_mangled_name("__", mctl);
   add_str_to_mangled_name(module_id, mctl);
 #else /* IA64_ABI */
@@ -6733,9 +6802,7 @@ to the point where the base name appears.
                                             base_name_offset,
                                             &mctl);
     }  /* if */
-    mangled_name = end_mangling((a_source_correspondence *)NULL,
-                                /*final=*/TRUE, &mctl);
-    check_assertion(mangled_name != NULL);
+    mangled_name = end_mangling(/*final=*/TRUE, &mctl);
   }  /* if */
   return mangled_name;
 }  /* get_mangled_function_name_full */
@@ -6902,9 +6969,7 @@ or a static data member (e.g., not a file scope variable).
       end_externalized_name(&variable->source_corresp, &mctl);
     }  /* if */
 #endif /* DO_IL_LOWERING */
-    mangled_name = end_mangling((a_source_correspondence *)NULL,
-                                /*final=*/TRUE, &mctl);
-    check_assertion(mangled_name != NULL);
+    mangled_name = end_mangling(/*final=*/TRUE, &mctl);
   }  /* if */
   return mangled_name;
 }  /* get_mangled_member_variable_name */
@@ -6936,22 +7001,21 @@ is what mangled_type_name generates, plus a prefix.
   a_mangling_control_block mctl;
 
   error_position = type->source_corresp.decl_position;
+  clear_mangling_control_block(&mctl);
   if (!has_name(type) &&
       !type->source_corresp.name_has_been_mangled) {
     /* Give an unnamed class or enum a name if necessary.  This must be done
        early because in some cases it suppresses the need for a parent
-       qualifier (name_has_been_mangled is set to TRUE). */
+       qualifier (name_has_been_mangled is set to TRUE).  If a module id
+       is required (and not available), mctl.lacking_module_id will be set
+       to TRUE (and mangling of this type will be postponed). */
     if ((is_immediate_class_type(type) || is_immediate_enum_type(type)) &&
         unnamed_type_has_no_discriminator(type)) {
-      if (give_unnamed_class_or_enum_a_name(type) == NULL) {
-        goto done;
-      } /* if */
+      (void)give_unnamed_class_or_enum_a_name(type, &mctl);
     } else if (type->kind == (a_type_kind)tk_template_param &&
                type->variant.template_param.kind == 
                                  (a_template_param_constant_kind)tptk_member) {
-      if (give_unnamed_template_param_member_a_name(type) == NULL) {
-        goto done;
-      } /* if */
+      (void)give_unnamed_template_param_member_a_name(type, &mctl);
     }  /* if */
   }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing
@@ -6960,6 +7024,8 @@ is what mangled_type_name generates, plus a prefix.
   if (!type->source_corresp.name_has_been_mangled &&
       /* Ignore placeholder typerefs. */
       (type->kind != (a_type_kind)tk_typeref || typeref_is_typedef(type)) &&
+      /* Skip types needing a module id for now. */
+      !mctl.lacking_module_id &&
       /* Mangle nested types. */
       (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
        /* Mangle types that need to be individuated. */
@@ -6980,9 +7046,8 @@ is what mangled_type_name generates, plus a prefix.
     /* Note final=FALSE to prevent compression and truncation at this
        time, so that the name can be reused.  final_entity_name_mangling
        will do the compression or truncation if necessary. */
-    (void)end_mangling(&type->source_corresp, /*final=*/FALSE, &mctl);
+    (void)end_mangling_full(&type->source_corresp, /*final=*/FALSE, &mctl);
   }  /* if */
-done:;
 }  /* mangle_type_name */
 
 
@@ -7078,7 +7143,7 @@ member constant, or (as an extension) a declared class member constant.
       add_discriminator_if_necessary(&con->source_corresp, &mctl);
     }  /* if */
 #endif /* IA64_ABI */
-    (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
+    (void)end_mangling_full(&con->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */
 }  /* mangle_member_constant_name */
 
@@ -7164,11 +7229,11 @@ Mangle the name of the indicated function, if necessary.
        time, so that the name can be used in building names of types
        and variables promoted out of the routine.  do_final_name_mangling
        will do the compression or truncation if necessary. */
-    (void)end_mangling(&routine->source_corresp, /*final=*/FALSE, &mctl);
+    (void)end_mangling_full(&routine->source_corresp, /*final=*/FALSE, &mctl);
 #else /* IA64_ABI */
     /* In the IA64 ABI, the final mangled name should be computed
        immediately. */
-    (void)end_mangling(&routine->source_corresp, /*final=*/TRUE, &mctl);
+    (void)end_mangling_full(&routine->source_corresp, /*final=*/TRUE, &mctl);
 #endif /* IA64_ABI */
   }  /* if */
 }  /* mangle_function_name */
@@ -7213,7 +7278,7 @@ variable.
     /* Note final=FALSE to prevent compression and truncation at this
        time, in case the name is externalized later.  do_final_name_mangling
        will do the compression or truncation if necessary. */
-    (void)end_mangling(&variable->source_corresp, /*final=*/FALSE, &mctl);
+    (void)end_mangling_full(&variable->source_corresp, /*final=*/FALSE, &mctl);
   }  /* if */
 }  /* mangle_member_variable_name */
 
@@ -7251,12 +7316,14 @@ also does type name mangling.
   /* Visit all namespaces. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
+      a_mangling_control_block  mctl;
+      clear_mangling_control_block(&mctl);
       /* Make sure that an unnamed namespace in a secondary translation unit
          is given a mangled name in that translation unit, so it has the
          right module id.  If the namespace contains only types, the name
          wouldn't otherwise be mangled at this time. */
-      give_unnamed_namespace_a_name(nsp);
-      if (nsp->source_corresp.name == NULL) {
+      (void)give_unnamed_namespace_a_name(nsp, &mctl);
+      if (mctl.lacking_module_id) {
         /* No name is available yet; this is okay when we're mangling early
            (e.g., before PCH file generation), but there's no need to mangle
            anything else in this unnamed namespace at this time (all of the
@@ -7737,9 +7804,7 @@ be copied elsewhere.
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* Add the derived class name. */
   mangled_vtbl_class_name(class_type, &mctl);
-  buffer = end_mangling((a_source_correspondence *)NULL,
-                        /*final=*/TRUE, &mctl);
-  check_assertion(buffer != NULL);
+  buffer = end_mangling(/*final=*/TRUE, &mctl);
   return buffer;
 }  /* mangled_vtbl_name */
 
@@ -7757,9 +7822,7 @@ The name returned is in a temporary buffer and must be copied elsewhere.
 
   start_mangling(&mctl);
   mangled_class_name_internal(type, &mctl);
-  buffer = end_mangling((a_source_correspondence *)NULL,
-                        /*final=*/TRUE, &mctl);
-  check_assertion(buffer != NULL);
+  buffer = end_mangling(/*final=*/TRUE, &mctl);
   return buffer;
 }  /* mangled_class_name */
 
@@ -7780,9 +7843,7 @@ type-as-subobject of class_type.
     mangled_type_name(class_type, &mctl);
     /* Not "final" because this type will go through the final processing
        later.  We don't want to (e.g.) compress twice. */
-    temp_name = end_mangling((a_source_correspondence *)NULL,
-                             /*final=*/FALSE, &mctl);
-    check_assertion(temp_name != NULL);
+    temp_name = end_mangling(/*final=*/FALSE, &mctl);
     new_name_ptr = alloc_lowered_name_string((sizeof_t)strlen(temp_name)+1);
     (void)strcpy(new_name_ptr, temp_name);
     subobject_type->source_corresp.name = new_name_ptr;
@@ -7808,9 +7869,7 @@ be copied elsewhere.
   add_str_to_mangled_name(prefix, &mctl);
   /* Add the mangled name of the type. */
   mangled_encoding_for_type(type, &mctl);
-  buffer = end_mangling((a_source_correspondence *)NULL,
-                        /*final=*/TRUE, &mctl);
-  check_assertion(buffer != NULL);
+  buffer = end_mangling(/*final=*/TRUE, &mctl);
   return buffer;
 }  /* mangled_prefixed_type_encoding */
 
@@ -7862,9 +7921,7 @@ The name returned is in a temporary buffer and must be copied elsewhere.
   start_mangling(&mctl);
   /* Add the mangled name of the type. */
   mangled_encoding_for_type(type, &mctl);
-  buffer = end_mangling((a_source_correspondence *)NULL,
-                        /*final=*/TRUE, &mctl);
-  check_assertion(buffer != NULL);
+  buffer = end_mangling(/*final=*/TRUE, &mctl);
   return buffer;
 }  /* mangled_typeinfo_string */
 
@@ -8105,7 +8162,7 @@ be embedded in other mangled names.
                         /*emit_underscore=*/TRUE, &mctl);
     }  /* if */
 #endif /* !IA64_ABI */
-    (void)end_mangling(scp, final, &mctl);
+    (void)end_mangling_full(scp, final, &mctl);
 #if !IA64_ABI
   } else if (kind == iek_type &&
              !scp->name_has_been_mangled &&
@@ -8207,7 +8264,8 @@ pointer, or performs the "this" adjustments.
                           /*base_name_offset=*/(sizeof_t *)NULL,
                           &mctl);
   }  /* if */
-  (void)end_mangling(&entry_routine->source_corresp, /*final=*/TRUE, &mctl);
+  (void)end_mangling_full(&entry_routine->source_corresp, /*final=*/TRUE,
+                          &mctl);
 }  /* mangle_covariant_return_type_entry_name */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */

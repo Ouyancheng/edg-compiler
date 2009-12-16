@@ -1,5 +1,19 @@
 Version 4.2
 
+12/16/09 [EDGcpfe/10231]
+Name mangling pre-pass before precompiled header file generation
+
+In an attempt to reduce the total amount of compilation time when using
+precompiled header files, a name mangling pre-pass is now invoked before
+writing a precompiled header file.  Although this slightly increases the
+compilation time when creating a precompiled header file, it often reduces the
+compilation time when the precompiled header file is subsequently used.  During
+this mangling pre-pass, any entities (e.g., members of unnamed namespaces,
+unnamed types) whose mangled name is dependent on the value of the "module id"
+are skipped (leaving these entities unmangled until the regular mangling pass
+near the end of the compilation).
+
+
 12/16/09 [EDGcpfe/10240]
 Abort after malformed string in GNU asm declaration
 
