@@ -3137,8 +3137,10 @@ checked again here.)
        macros. */
     variadic_macros_allowed = TRUE;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   /* Recent Sun compilers accept some GNU attributes. */
   gnu_attributes_enabled = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* check_and_set_sun_mode_options */
 
 
