@@ -1,5 +1,21 @@
 Version 4.2
 
+12/16/09 [EDGcpfe/10240]
+Abort after malformed string in GNU asm declaration
+
+A malformed string in a GNU asm declaration could cause the front end to
+incorrectly access memory (and often abort) later on.  For example:
+
+  void f() {
+    int i = 0.0;
+    asm("
+        : : "r"(i) );  // First argument is a malformed (unterminated) string
+  }                    // string when gnu_version >= 30300.  This triggered an
+                       // abort in validate_symbolic_operand_references.
+
+This is now fixed.
+
+
 12/16/09 [EDGcpfe/10128]
 Microsoft compatibility: template parameters in old-style specialization
 

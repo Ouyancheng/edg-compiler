@@ -280,24 +280,27 @@ the form "%[<name>]" it contains against the given list of operands.  Invalid
 references are reported at the given position.
 */
 {
-  char  *pc = asm_string->variant.string.value;
-
-  while (*pc != '\0') {
-    if (pc[0] == '%' && (pc[1] == '[' || (pc[1] != '\0' && pc[2] == '['))) {
-      /* We found a "%[" or "%X[" (where X is an output format modifier)
-         construct.  Look up the symbolic operand reference that (normally)
-         follows.  The call to find_symbol_operand will trigger any needed
-         diagnostics. */
-      ++pc;
-      if (*pc != '[')  {
-        /* An output format modifier between the '%' and '['. */
+  if (asm_string->kind == (a_constant_repr_kind)ck_string) {
+    char  *pc = asm_string->variant.string.value;
+    while (*pc != '\0') {
+      if (pc[0] == '%' && (pc[1] == '[' || (pc[1] != '\0' && pc[2] == '['))) {
+        /* We found a "%[" or "%X[" (where X is an output format modifier)
+           construct.  Look up the symbolic operand reference that (normally)
+           follows.  The call to find_symbol_operand will trigger any needed
+           diagnostics. */
         ++pc;
-      } /* if */
-      (void)find_symbolic_operand(&pc, operands, diag_pos);
-    } else {
-      ++pc;
-    }  /* if */
-  }  /* while */
+        if (*pc != '[')  {
+          /* An output format modifier between the '%' and '['. */
+          ++pc;
+        } /* if */
+        (void)find_symbolic_operand(&pc, operands, diag_pos);
+      } else {
+        ++pc;
+      }  /* if */
+    }  /* while */
+  } else {
+    expect_error();
+  }  /* if */
 }  /* validate_symbolic_operand_references */
 
 #if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
