@@ -1,5 +1,26 @@
 Version 4.2
 
+12/16/09 [EDGcpfe/10128]
+Microsoft compatibility: template parameters in old-style specialization
+
+The Microsoft compiler allows the use of template parameters in old-style
+specializations.  We now emulate this in Microsoft mode.  Note that older
+versions of the Microsoft compiler allowed template parameters to be used
+in all kinds of specializations, but the other uses were no longer
+supported as of version 7.1 (see 3/31/05 entry for more information).
+
+  template <int i> struct C {
+    int f();
+  };
+  int C<1>::f() {
+    return i;  // i is visible in Microsoft mode
+  }
+  int main() {
+    C<1> c;
+    return c.f();
+  }
+
+
 12/15/09 [EDGcpfe/10326]
 Spurious "declaration hides parameter" remark on friend function in template
 

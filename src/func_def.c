@@ -807,9 +807,16 @@ and for the instantiation of template functions.
              void N::S::f() {
                void g();  // ::g in g++ mode, N::g otherwise.
              }
-        */
-        push_class_reactivation_scope(class_type,
-                                      /*extend_namespace=*/!gpp_mode);
+           In Microsoft mode, old-style specializations (those without the
+           "template <>" can make use of the template parameters of the
+           enclosing class template. */
+        push_class_and_template_reactivation_scope_full(
+                               class_type,
+                               /*reactivate_template_params=*/
+                                         microsoft_mode &&
+                                         rout_ptr->specialized_with_old_syntax,
+                               /*extend_namespace=*/!gpp_mode,
+                               /*force_new_entry_for_namespace=*/FALSE);
       }  /* if */
     } else {
       nsp = parent_namespace_or_null(rout_ptr);
