@@ -30,7 +30,7 @@ another function, a variable declared in the friend could result in a
 spurious "declaration hides parameter" remark.  Now fixed.
 
   template<typename T> struct A {
-    friend void f(A*) { int k; };  // spurious '"k" hides parameter"
+    friend void f(A*) { int k; };  // spurious '"k" hides parameter'
     inline void g(T k) { f(this); }
   };
   int main() {
