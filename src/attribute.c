@@ -642,9 +642,11 @@ there is an applicable one; otherwise, return NULL.
       sizeof_t  len;
       name += 2;
       len = strlen(name);
-      if (name[len-1] == '_' && name[len-2] == '_') {
+      /* Strip two trailing underscores if present, but only if that leaves at
+         least one character in the name. */
+      if (len > 2 && name[len-1] == '_' && name[len-2] == '_') {
         len -= 2;
-        if (len >= MAX_ATTRIBUTE_NAME_LENGTH) goto search_done;
+        if (len > MAX_ATTRIBUTE_NAME_LENGTH) goto search_done;
         (void)strncpy(buf, name, size_t_arg(len));
         buf[len] = '\0';
         name = buf;
