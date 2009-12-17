@@ -147,16 +147,16 @@ typedef struct an_attr_descr {
 			   family: 'c' for [[...]] (standard C++0x), 'g' for
 			   __attribute((...)) in GNU modes, 's' for
 			   __attribute((...)) in Sun mode, and 'm' for
-			   __declspec(...) in Microsoft mode.  cond[1] is
+			   __declspec(...) in Microsoft mode.  cstr[1] is
 			   '+' if the attribute only applies in C++ modes,
 			   'c' if it only applies in C mode, and 'x' if it
 			   applies in both C and C++ modes (some combinations
 			   are impossible; e.g. "sc" is meaningless since there
 			   is no "Sun C" mode).  For standard attributes, the
 			   first two characters can be followed by a bracketed
-			   namespace name.  E.g., if name is "test" and cond
+			   namespace name.  E.g., if name is "test" and cstr
 			   is "c+[xyz]", then this is a description entry for
-			   [[xyz::test ... ]].  If cond[0] is 'g' or 'm', the
+			   [[xyz::test ... ]].  If cstr[0] is 'g' or 'm', the
 			   first two characters can be followed by a
 			   parenthesized range of applicable versions.  E.g.,
 			   "gx(30100-39999)" means the attribute is valid in 
