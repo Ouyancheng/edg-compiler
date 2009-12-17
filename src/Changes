@@ -1,5 +1,28 @@
 Version 4.2
 
+12/17/09 [EDGcpfe/10312,EDGcpfe/10313]
+Template substitution resulting in expressions involving std::nullptr_t
+
+The draft C++ Standard permits only a limited set of operations on operands
+of type std::nullptr_t, and attempts to use nullptr in invalid ways are
+caught in ordinary code when the expression is scanned.  Template argument
+substitution bypasses these checks, however; this formerly allowed creation
+of invalid expressions, resulting in various aborts.  This has now been
+addressed by checking the validity of expressions involving operands of type
+std::nullptr_t during template argument substitution and treating invalid
+expressions as substitution failures.  For example:
+
+  typedef decltype(nullptr) nullptr_t;
+  template<template<nullptr_t _T> class T, typename U, U N>
+    void f(T<~N>) { }
+  template<nullptr_t N> struct B { };
+  void g() {
+    B<nullptr> b;
+    f<B, nullptr_t, nullptr>(b);  // Formerly aborted, now gives
+                                  // "no matching instance" error
+  }
+
+
 12/16/09 [EDGcpfe/10231]
 Name mangling pre-pass before precompiled header file generation
 

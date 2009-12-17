@@ -12880,10 +12880,15 @@ to TRUE.  *source_pos gives the source position for errors.
     }  /* if */
   } else if (op == (an_expr_operator_kind)eok_question) {
     /* Three-operand operation, i.e., "?" */
-    /* If the operands have the same type, use that type.  Otherwise, do
-       the usual arithmetic conversions. */
+    /* If the operands have the same type, use that type.  Otherwise, if
+       one of the operands has type std::nullptr_t, use that type.
+       Otherwise, do the usual arithmetic conversions. */
     if (!types_are_compatible(type_2, type_3)) {
-      result_type = usual_arithmetic_conversions(type_2, type_3);
+      if (is_nullptr_type(type_2) || is_nullptr_type(type_3)) {
+        result_type = nullptr_type();
+      } else {
+        result_type = usual_arithmetic_conversions(type_2, type_3);
+      }  /* if */
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       result_type, source_pos);
       cast_copied_template_param_expr(operand_3, constant_3, alloc_con_3,
@@ -13202,6 +13207,108 @@ expression.  See copy_template_param_expr for the parameter descriptions.
 }  /* copy_template_param_builtin_operation */
 
 
+static a_boolean template_nullptr_operation_types_are_compatible(
+                                                         a_type_ptr     type_1,
+                                                         a_constant_ptr con_1,
+                                                         a_type_ptr     type_2,
+                                                         a_constant_ptr con_2)
+/*
+Return TRUE if two operands of the specified types (at least one of which
+must be std::nullptr_t) and, if the operands are constant, with the
+specified values, can be used together in an expression.  This is called
+from check_template_nullptr_operation to determine whether an expression is
+permitted in a template argument expression.  It is similar to
+check_compatibility_of_nullptr_operands; the principle difference is that
+the latter does not accept pointer and pointer-to-member types, which must
+be handled separately by the caller, while this function handles pointer
+and pointer-to-member types, as well as dependent types, directly.
+*/
+{
+  a_boolean  compatible_types;
+
+  check_assertion(is_nullptr_type(type_1) || is_nullptr_type(type_2));
+  if (is_nullptr_type(type_1)) {
+    compatible_types = (is_nullptr_type(type_2) ||
+                        is_pointer_type(type_2) ||
+                        is_ptr_to_member_type(type_2) ||
+                        is_template_dependent_type(type_2) ||
+                        (con_2 != NULL &&
+                         is_null_pointer_constant(con_2)));
+  } else {
+    compatible_types = (is_pointer_type(type_1) ||
+                        is_ptr_to_member_type(type_1) ||
+                        is_template_dependent_type(type_1) ||
+                        (con_1 != NULL &&
+                         is_null_pointer_constant(con_1)));
+  }  /* if */
+  return compatible_types;
+}  /* template_nullptr_operation_types_are_compatible */
+
+
+static void check_template_nullptr_operation(an_expr_operator_kind op,
+                                             a_type_ptr            op1_type,
+                                             a_constant_ptr        op1_con,
+                                             a_type_ptr            op2_type,
+                                             a_constant_ptr        op2_con,
+                                             a_type_ptr            op3_type,
+                                             a_constant_ptr        op3_con,
+                                             a_boolean             *copy_error)
+/*
+Called from copy_template_param_expr to determine whether an operation
+involving operands of type std::nullptr_t is permissible in an expression
+that is the result of substituting template arguments into a template
+argument expression.  The types of the operands are given by the opN_type
+parameters, and if the operand is a constant, its value is given by the
+opN_con parameters (NULL if the value is a non-constant expression).  If op
+is an operation that is not permitted on an operand of type std::nullptr_t,
+or if the type or value of the other operand is not compatible with
+std::nullptr_t, set *copy_error to TRUE.  (No checking is needed or done if
+*copy_error is already TRUE.)
+*/
+{
+  if (!*copy_error) {
+    switch (op) {
+      case eok_address_of:
+      case eok_reference_to:
+      case eok_cast:
+      case eok_ref_cast:
+      case eok_bool_cast:
+      case eok_dot_vacuous_destructor_call:
+      case eok_parens:
+      case eok_land:
+      case eok_lor:
+      case eok_comma:
+        /* These are okay with no restrictions. */
+        break;
+      case eok_eq:
+      case eok_ne:
+      case eok_gt:
+      case eok_lt:
+      case eok_ge:
+      case eok_le:
+        if (!template_nullptr_operation_types_are_compatible(op1_type, op1_con,
+                                                             op2_type,
+                                                             op2_con)) {
+          *copy_error = TRUE;
+        }  /* if */
+        break;
+      case eok_question:
+        if (!template_nullptr_operation_types_are_compatible(op2_type, op2_con,
+                                                             op3_type,
+                                                             op3_con)) {
+          *copy_error = TRUE;
+        }  /* if */
+        break;
+      default:
+        /* All other operators are not permitted at all or are not permitted
+           with an operand of type std::nullptr_t. */
+        *copy_error = TRUE;
+        break;
+    }  /* switch */
+  }  /* if */
+}  /* check_template_nullptr_operation */
+                                    
+
 static an_expr_node_ptr copy_template_param_expr(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
@@ -13276,6 +13383,9 @@ options is a set of name lookup options.
         an_expr_node_ptr operand_3 = NULL;
         an_expr_node_ptr new_operand_1, new_operand_2 = NULL;
         an_expr_node_ptr new_operand_3 = NULL;
+        a_type_ptr       new_op1_type = NULL;
+        a_type_ptr       new_op2_type = NULL;
+        a_type_ptr       new_op3_type = NULL;
         a_constant       constant_1, constant_2, constant_3;
         a_constant_ptr   alloc_con_1, alloc_con_2 = NULL, alloc_con_3 = NULL;
         a_boolean        folded_to_constant = FALSE;
@@ -13291,6 +13401,11 @@ options is a set of name lookup options.
                                                  copy_error,
                                                  &constant_1,
                                                  &alloc_con_1);
+        if (!*copy_error) {
+          new_op1_type = new_operand_1 != NULL ? new_operand_1->type :
+                         alloc_con_1 != NULL ? alloc_con_1->type :
+                         constant_1.type;
+        }  /* if */
         if (operand_2 != NULL) {
           new_operand_2 = copy_template_param_expr(operand_2,
                                                    template_arg_list,
@@ -13301,6 +13416,11 @@ options is a set of name lookup options.
                                                    copy_error,
                                                    &constant_2,
                                                    &alloc_con_2);
+          if (!*copy_error) {
+            new_op2_type = new_operand_2 != NULL ? new_operand_2->type :
+                           alloc_con_2 != NULL ? alloc_con_2->type :
+                           constant_2.type;
+          }  /* if */
           operand_3 = operand_2->next;
           if (operand_3 != NULL) {
             new_operand_3 = copy_template_param_expr(operand_3,
@@ -13312,7 +13432,33 @@ options is a set of name lookup options.
                                                      copy_error,
                                                      &constant_3,
                                                      &alloc_con_3);
+            if (!*copy_error) {
+              new_op3_type = new_operand_3 != NULL ? new_operand_3->type :
+                             alloc_con_3 != NULL ? alloc_con_3->type :
+                             constant_3.type;
+            }  /* if */
           }  /* if */
+        }  /* if */
+        if ((new_op1_type != NULL && is_nullptr_type(new_op1_type) &&
+             op != (an_expr_operator_kind)eok_question) ||
+            (new_op2_type != NULL && is_nullptr_type(new_op2_type)) ||
+            (new_op3_type != NULL && is_nullptr_type(new_op3_type))) {
+          /* Only a small subset of possible operations are permitted on
+             operands of type std::nullptr_t.  If substitution has resulted
+             in an expression involving such operands, check to make sure
+             it is one of the permitted ones; if not, substitution fails. */
+          a_constant_ptr op1_con = new_operand_1 != NULL ? NULL :
+                                   alloc_con_1 != NULL ? alloc_con_1 :
+                                   &constant_1;
+          a_constant_ptr op2_con = new_operand_2 != NULL ? NULL :
+                                   alloc_con_2 != NULL ? alloc_con_2 :
+                                   &constant_2;
+          a_constant_ptr op3_con = new_operand_3 != NULL ? NULL :
+                                   alloc_con_3 != NULL ? alloc_con_3 :
+                                   &constant_3;
+          check_template_nullptr_operation(op, new_op1_type, op1_con,
+                                           new_op2_type, op2_con, new_op3_type,
+                                           op3_con, copy_error);
         }  /* if */
         if (*copy_error) break;
         /* Do the usual arithmetic conversion or the like on the operands
