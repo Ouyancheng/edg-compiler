@@ -511,6 +511,11 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_noop, "__noop");
       enter_keyword((a_token_kind)tok_microsoft_identifier, "__identifier");
     }  /* if */
+    if (nullptr_enabled) {
+      /* The Microsoft compiler recognizes "__nullptr" as a native-only
+         synonym for "nullptr". */
+      enter_keyword((a_token_kind)tok_nullptr, "__nullptr");
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_traits_helpers_enabled ||

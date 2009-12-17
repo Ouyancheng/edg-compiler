@@ -1,5 +1,16 @@
 Version 4.2
 
+12/17/09 [EDGcpfe/10337]
+Microsoft compatibility: __nullptr keyword
+
+The Microsoft compiler recognizes the __nullptr keyword as a synonym (in
+native code only) for the C++0x nullptr keyword.  The front end has now been
+changed to accept __nullptr as an alternate spelling for nullptr in Microsoft
+mode.  For example:
+
+  int* p = __nullptr;   // valid in --microsoft mode
+
+
 12/17/09 [EDGcpfe/10338]
 Destructible entity descriptors were being lost during compilation
 
