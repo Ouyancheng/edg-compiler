@@ -708,8 +708,8 @@ is non-NULL, allocate a copy of the name in the IL memory region, and
 update scp to point to it.  If final is TRUE, it's okay to do final
 mangling, which may produce a name that can no longer be embedded in
 other mangled names.  The caller can inspect mctl->lacking_module_id to
-determine if the mangled name needed a module id (as mentioned above, NULL is
-also returned in this case).
+determine if the mangled name needed a module id and one was not available in a
+pre-pass (as mentioned above, NULL is also returned in this case).
 */
 {
   char *buffer;
