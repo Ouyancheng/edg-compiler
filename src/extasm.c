@@ -299,6 +299,7 @@ references are reported at the given position.
       }  /* if */
     }  /* while */
   } else {
+    check_assertion(is_error_constant(asm_string));
     expect_error();
   }  /* if */
 }  /* validate_symbolic_operand_references */
