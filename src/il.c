@@ -39,6 +39,7 @@ il.c -- Construction of intermediate language trees.
 #include "trans_corresp.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
+#include "lower_init.h"
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
@@ -17768,7 +17769,8 @@ void remove_from_destruction_list(a_dynamic_init_ptr  dip)
 /*
 If the specified dynamic init entry is associated with an object lifetime,
 unlink it from the latter's destructions list, and clear the pointer in
-the dynamic init entry to the object lifetime.
+the dynamic init entry to the object lifetime.  Free a destructible entity
+description if one is associated with this dip.
 */
 {
   an_object_lifetime_ptr  olp = dip->lifetime, colp;
@@ -17822,6 +17824,12 @@ the dynamic init entry to the object lifetime.
        be set if and only if it is on the list of the entry pointed to. */
     dip->lifetime = NULL;
   }  /* if */
+#if DO_IL_LOWERING
+  if (dip->destructible_entity_descr != NULL) {
+    free_destructible_entity_descr(dip->destructible_entity_descr);
+    dip->destructible_entity_descr = NULL;
+  }  /* if */
+#endif /* DO_IL_LOWERING */
 }  /* remove_from_destruction_list */
 
 
