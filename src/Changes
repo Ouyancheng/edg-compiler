@@ -1,5 +1,22 @@
 Version 4.2
 
+12/17/09 [EDGcpfe/10150]
+Spurious error on call of __sync_... function in template
+
+In GNU modes, the front end accepts various built-in functions for atomic
+memory access when the configuration macro GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+is TRUE (see Changes entry of 7/31/07).  However, a spurious error was issued
+when a call to such a function appears in a function template and the first
+argument's type is "pointer to template parameter" (during prototype
+instatiation).  For example:
+
+  template<typename T> void f(T *p, T n) {
+    __sync_fetch_and_add(p, n);  // Previously triggered a spurious error
+  }                              // in some GNU modes.
+
+This is now fixed.
+
+
 12/17/09 [EDGcpfe/10337]
 Microsoft compatibility: __nullptr keyword
 

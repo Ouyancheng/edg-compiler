@@ -2101,7 +2101,7 @@ needed).
     dispatch_type = skip_typerefs((*args)->operand.type);
     if (!is_pointer_type(dispatch_type)) {
       if (!is_error_type(dispatch_type) &&
-          !is_template_dependent_type(dispatch_type)) {
+          !is_template_param_type(dispatch_type)) {
         expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       }  /* if */
       goto done;
@@ -2110,6 +2110,10 @@ needed).
     dispatch_type = skip_typerefs(dispatch_type);
     if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
+      expect_error();
+    } else if (is_template_param_type(dispatch_type)) {
+      /* The transformation cannot be done (and is not needed) in template-
+         dependent contexts. */
     } else if (!is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
       expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
