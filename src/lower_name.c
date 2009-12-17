@@ -3481,6 +3481,9 @@ Seed number for unnamed type names.
 static unsigned long
 		unnamed_type_seed;
 
+#if IA64_ABI
+/*ARGSUSED*/ /* <-- mctl is unused in that case. */
+#endif /* IA64_ABI */
 static char *give_unnamed_class_or_enum_a_name(a_type_ptr               type,
                                                a_mangling_control_block *mctl)
 /*
