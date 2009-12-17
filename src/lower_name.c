@@ -3390,6 +3390,14 @@ later use).
   char                     *fabricated_name, *name;
   unsigned long            discriminator;
 
+  /* Note that the fabricated name is created using the mangling text buffer
+     utilities (e.g., start_mangling, add.*to_mangled_name, etc.) rather than
+     string utilities (because some of the functions that are called already
+     place their output into mangling text buffers).  The fabricated name
+     created here is placed in a separate mangling text buffer than the name
+     currently being mangled (as represented by the argument mctl), though
+     presumably the caller will then add this name to that buffer as well
+     (after saving the fabricated name for later use). */
   start_mangling(&local_mctl);
   if (type_is_lambda_closure(type)) {
     /* Generate a class name for the lambda closure class. */
