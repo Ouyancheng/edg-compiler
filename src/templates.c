@@ -1756,8 +1756,8 @@ done in declarative contexts and when taking the address of an overloaded
 function).
 */
 {
-  a_boolean	type_1_is_reference, type1_is_rvalue_reference = FALSE;
-  a_boolean	type_2_is_reference, type2_is_rvalue_reference = FALSE;
+  a_boolean	type_1_is_reference;
+  a_boolean	type_2_is_reference;
   a_boolean	qualifiers_dropped1 = FALSE;
   a_boolean	qualifiers_dropped2 = FALSE;
   a_boolean	type_under_ref_is_function = FALSE;
@@ -1772,7 +1772,6 @@ function).
   /* Remove any top level references. */
   type_1_is_reference = is_reference_type(param_type1);
   if (type_1_is_reference) {
-    type1_is_rvalue_reference = is_rvalue_reference_type(param_type1);
     param_type1 = type_pointed_to(param_type1);
     /* The "ref. vs. ptr check" below needs to know if we have a reference
        to function parameter. */
@@ -1782,7 +1781,6 @@ function).
   }  /* if */
   type_2_is_reference = is_reference_type(param_type2);
   if (type_2_is_reference) {
-    type2_is_rvalue_reference = is_rvalue_reference_type(param_type2);
     param_type2 = type_pointed_to(param_type2);
     /* The "ref. vs. ptr check" below needs to know if we have a reference
        to function parameter. */
@@ -1810,8 +1808,7 @@ function).
       }  /* if */
     }  /* if */
   }  /* if */
-  if ((type_1_is_reference && type_2_is_reference &&
-       type1_is_rvalue_reference == type2_is_rvalue_reference) ||
+  if ((type_1_is_reference && type_2_is_reference) ||
       ((type_1_is_reference || type_2_is_reference) &&
        use_nonstd_partial_ordering)) {
     /* If both types are references, remove any common qualifiers so

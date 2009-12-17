@@ -1,5 +1,20 @@
 Version 4.2
 
+12/17/09 [EDGcpfe/10336]
+Partial ordering and rvalue references
+
+Formerly, partial ordering required references to be of the same kind (rvalue
+or lvalue) in order to determine the ordering of parameters.  Now the kind
+of reference does not have any effect on partial ordering.
+
+  template<class T> void f(const T &x) { }
+  template<class T> void f(T &&x) { }
+  int main() {
+    const int i = 1;
+    f(i);  // formerly ambiguous, now accepted
+  }
+
+
 12/17/09 [EDGcpfe/10312,EDGcpfe/10313]
 Template substitution resulting in expressions involving std::nullptr_t
 
