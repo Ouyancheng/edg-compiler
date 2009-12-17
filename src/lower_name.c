@@ -352,12 +352,10 @@ static a_boolean
                 in_mangling_pre_pass;
                         /* TRUE if we're in a mangling "pre-pass" (e.g.,
                            before generating a PCH file).  In a mangling
-                           pre-pass, entities whose mangled names would
-                           incorporate a module id are not given mangled names
-                           (typically a module id is unavailable at this point
-                           in the compilation).  Such entities are given
-                           mangled names during the regular name mangling
-                           processing. */
+                           pre-pass, entities whose mangled names can't be
+                           generated yet (e.g., because a module id is
+                           unavailable at this point in the compilation) are
+                           left to be mangled later. */
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
@@ -788,7 +786,7 @@ static char *end_mangling(a_boolean                    final,
 An interface to end_mangling_full where the mangled name is not stored in
 the entity, but rather returned to the caller for some other use.  Callers
 expect that the returned name is non-NULL (which means this routine cannot
-be called too early i.e., before a module id is available for entities
+be called too early, e.g., before a module id is available for entities
 that need a module id in their mangled name).  If final is TRUE, it's okay to
 do final mangling, which may produce a name that can no longer be embedded in
 other mangled names.
@@ -3378,6 +3376,14 @@ Return a fabricated name (already allocated in the file scope memory region)
 for the specified unnamed type.  If the fabricated name for the type requires a
 module id and none is available (as happens during a mangling pre-pass), a
 placeholder name is returned and mctl->lacking_module_id is set to TRUE.
+Note that the fabricated name is created using the mangling text buffer
+utilities (e.g., start_mangling, add.*to_mangled_name, etc.) rather than 
+string utilities (because some of the functions that are called already place
+their output into mangling text buffers).  The fabricated name created here is
+placed in a separate mangling text buffer than the name currently being mangled
+(as represented by the argument mctl), though presumably the caller will then
+add this name to that buffer as well (after saving the fabricated name for
+later use).
 */
 {
   a_mangling_control_block local_mctl;
@@ -3573,7 +3579,7 @@ construction should be discarded.
     check_assertion(in_mangling_pre_pass);
     mctl->lacking_module_id = TRUE;
     module_id = placeholder_name;
-  }
+  }  /* if */
   return module_id;
 }  /* module_id_for_source_corresp */
 
@@ -3615,7 +3621,7 @@ an appropriate name.
       lacking_module_id = mctl->lacking_module_id;
     }  /* if */
     if (lacking_module_id) {
-      /* No module id is available yet, return a temporary name for now
+      /* No module id is available yet; return a temporary name for now
          so mangling can continue. */
       name = placeholder_name;
     } else {
@@ -3637,7 +3643,7 @@ an appropriate name.
 }  /* give_unnamed_namespace_a_name */
 
 
-static char *give_unnamed_template_param_member_a_name(
+static void give_unnamed_template_param_member_a_name(
                                                 a_type_ptr               type,
                                                 a_mangling_control_block *mctl)
 /*
@@ -3645,9 +3651,7 @@ Give an unnamed template param member type that refers to an unnamed enum or
 class member the same name as the original type (which has previously or will
 now most likely become named via a call to give_unnamed_class_or_enum_a_name).
 Set its name mangling fields to match that of the original type (which can be
-NULL in the mangling pre-pass).  Returns the name of the template param member
-which can be NULL in the mangling pre-pass (in which case
-mctl->lacking_module_id is set to TRUE).
+NULL in the mangling pre-pass).
 */
 {
   a_type_ptr nested_type;
@@ -3660,6 +3664,11 @@ mctl->lacking_module_id is set to TRUE).
   if (nested_type != NULL) {
     if (is_immediate_class_type(nested_type) ||
         is_immediate_enum_type(nested_type)) {
+      /* First, give the original type a name if possible, then copy the
+         relevant pieces to the template parameter.  Note that the name
+         returned by give_unnamed_class_or_enum_a_name can differ from the
+         name stored in the source correspondence (if the mangling pre-pass
+         can't assign a name yet). */
       (void)give_unnamed_class_or_enum_a_name(nested_type, mctl);
       type->source_corresp.name = nested_type->source_corresp.name;
       type->source_corresp.unmangled_name =
@@ -3670,7 +3679,6 @@ mctl->lacking_module_id is set to TRUE).
               nested_type->source_corresp.unnamed_entity_given_fabricated_name;
     }  /* if */
   }  /* if */
-  return type->source_corresp.name;
 }  /* give_unnamed_template_param_member_a_name */
 
 
@@ -5598,7 +5606,7 @@ Add to the mangled name the encoding for the type "type".
           case tptk_member:
             /* Type selected from a template parameter type, e.g., T::x. */
             if (!has_name(type)) {
-              (void)give_unnamed_template_param_member_a_name(type, mctl);
+              give_unnamed_template_param_member_a_name(type, mctl);
             }  /* if */
             mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
             break;
@@ -7018,7 +7026,7 @@ is what mangled_type_name generates, plus a prefix.
     } else if (type->kind == (a_type_kind)tk_template_param &&
                type->variant.template_param.kind == 
                                  (a_template_param_constant_kind)tptk_member) {
-      (void)give_unnamed_template_param_member_a_name(type, &mctl);
+      give_unnamed_template_param_member_a_name(type, &mctl);
     }  /* if */
   }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing
@@ -7365,9 +7373,9 @@ void do_all_name_mangling(a_boolean mangling_pre_pass)
 /*
 Do any required name mangling.  This is called at the beginning of lowering of
 the file scope (mangling_pre_pass is FALSE) as well as before writing a PCH
-file (so names in the PCH file only need to be mangled once).  It processes
-everything in the file scope and also function-local entities that require
-mangling.  Final name mangling is not done yet -- see do_final_name_mangling.
+file (mangling_pre_pass is TRUE).  It processes everything in the file scope
+and also function-local entities that require mangling.  Final name mangling is
+not done yet -- see do_final_name_mangling.
 */
 {
   /* If we're doing the mangling pre-pass, set a flag that indicates that
