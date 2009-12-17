@@ -564,7 +564,7 @@ static a_boolean in_attr_cond_range(unsigned long  version,
                                     char           *cond_range)
 /*
 cond_range is the "version range" portion of the cond string in an attribute
-descriptions entry (an_attr_descr).  Return TRUE if version lies in the
+description entry (an_attr_descr).  Return TRUE if version lies in the
 indicated range.
 */
 {
@@ -574,12 +574,12 @@ indicated range.
   check_assertion(str[0] == '(');
   str += 1;
   if (str[0] != '-') {
-    check_assertion(str[0] >= '0' && str[1] <= '9');
+    check_assertion(str[0] >= '0' && str[0] <= '9');
     min_version = strtoul(str, &str, 10);
   }  /* if */
   if (str[0] == '-') {
     str += 1;
-    if (str[0] >= '0' && str[1] <= '9') {
+    if (str[0] >= '0' && str[0] <= '9') {
       max_version = strtoul(str, &str, 10);
     }  /* if */
   } else {
