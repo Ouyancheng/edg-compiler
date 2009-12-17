@@ -3376,14 +3376,6 @@ Return a fabricated name (already allocated in the file scope memory region)
 for the specified unnamed type.  If the fabricated name for the type requires a
 module id and none is available (as happens during a mangling pre-pass), a
 placeholder name is returned and mctl->lacking_module_id is set to TRUE.
-Note that the fabricated name is created using the mangling text buffer
-utilities (e.g., start_mangling, add.*to_mangled_name, etc.) rather than 
-string utilities (because some of the functions that are called already place
-their output into mangling text buffers).  The fabricated name created here is
-placed in a separate mangling text buffer than the name currently being mangled
-(as represented by the argument mctl), though presumably the caller will then
-add this name to that buffer as well (after saving the fabricated name for
-later use).
 */
 {
   a_mangling_control_block local_mctl;
