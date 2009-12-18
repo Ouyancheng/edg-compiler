@@ -1,5 +1,20 @@
 Version 4.2
 
+12/18/09 [EDGcpfe/10340]
+String literals are now const by default in C++ mode
+
+C++98 made string literals const (unlike C).  Formerly, we made them
+non-const in default mode for compatibility purposes.  Most compilers
+now make string literals const, so string literals are now const by default
+in C++ mode.
+
+  void f(char*){}        // #1
+  void f(const char*){}  // #2
+  int main() {
+    f("hello");  // now calls #2 in default mode
+  }
+
+
 12/17/09 [EDGcpfe/10176]
 Instantiation of nested class that is part of another declaration
 

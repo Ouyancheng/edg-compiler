@@ -310,7 +310,7 @@ The variable can also be controlled from the command line by
 --[no_]const_string_literals.
 */
 #ifndef DEFAULT_STRING_LITERALS_ARE_CONST
-#define DEFAULT_STRING_LITERALS_ARE_CONST FALSE
+#define DEFAULT_STRING_LITERALS_ARE_CONST TRUE
 #endif /* ifndef DEFAULT_STRING_LITERALS_ARE_CONST */
 
 /*
