@@ -2874,7 +2874,7 @@ issue a warning.
           make_attr_unrecognized(ap);
         } else if (is_type_transforming_attribute(ap)) {
           /* Don't accept attributes like vector_size in this context. */
-          report_bad_attribute_target(es_warning, ap);
+          report_bad_attribute_target(es_error, ap);
         }  /* if */
       }  /* if */
     }  /* for */
