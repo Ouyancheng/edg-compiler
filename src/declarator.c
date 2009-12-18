@@ -106,8 +106,9 @@ standard-attribute syntax).
           }  /* if */
           *p_to = ap;
           p_to = &ap->next;
-        } else if (dps->in_nested_declarator) {
-          if (ap->syntactic_location ==
+        } else {
+          if (dps->in_nested_declarator &&
+              ap->syntactic_location ==
                                       (a_byte_attribute_location)al_postfix) {
             /* A non-GNU attribute after a nested declarator is not valid. */
             if (!error_issued) {
