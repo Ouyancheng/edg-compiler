@@ -5242,6 +5242,23 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     attach_tag_attributes(tag_attributes, enum_type, is_definition,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
+    if (gnu_mode && curr_token == tok_attribute) {
+      /* Check for something like "enum E { e } __attribute((packed));". */
+      an_attribute_ptr  attributes =
+                            scan_gnu_attribute_groups(al_post_tag_definition);
+      if (attributes != NULL) {
+        end_pos = end_position_of_attributes;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (decl_pos_block != NULL) {
+          /* Update the recorded end position to the end of the attributes
+             specifier. */
+          decl_pos_block->specifiers_range.end = curr_construct_end_position;
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        mark_primary_decl_attributes(attributes);
+        attach_attributes(attributes, (char*)enum_type, iek_type);
+      }  /* if */
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
         depth_innermost_function_scope == NO_SCOPE_NUMBER &&
@@ -5295,24 +5312,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         enum_con->type = enum_type;
       }  /* for */
     }  /* if */
-    if (gcc_mode && curr_token == tok_attribute) {
-      /* Check for something like "enum E { e } __attribute((deprecated));". */
-      an_attribute_ptr  attributes =
-                            scan_gnu_attribute_groups(al_post_tag_definition);
-      if (attributes != NULL) {
-        end_pos = end_position_of_attributes;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (decl_pos_block != NULL) {
-          /* Update the recorded end position to the end of the attributes
-             specifier. */
-          decl_pos_block->specifiers_range.end = curr_construct_end_position;
-        }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        mark_primary_decl_attributes(attributes);
-        attach_attributes(attributes, (char*)enum_type, iek_type);
-      }  /* if */
-    }  /* if */
-
     /* If entities dependent on this enum type were declared before it was
        defined, they will have been recorded on a fixup list.  Go through
        the fixup list and complete the declarations. */
