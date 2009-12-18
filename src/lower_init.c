@@ -9653,8 +9653,8 @@ an aggregate, for lowering of designated initializers.
 */
 typedef struct an_aggregate_position {
   a_boolean	array_init;
-			/* TRUE if the aggregate is an array, FALSE for
-			   a struct/union. */
+			/* TRUE if the aggregate is an array or vector, FALSE
+			   for a struct/union. */
   a_field_ptr	curr_field;
 			/* Current field, when array_init == FALSE. */
   a_targ_size_t	curr_elem;
@@ -9663,7 +9663,7 @@ typedef struct an_aggregate_position {
   a_type_ptr	member_type;
 			/* Current member type. */
   a_targ_size_t	number_of_elements;
-			/* Number of elements in the array when
+			/* Number of elements in the array or vector when
 			   array_init == TRUE. */
 } an_aggregate_position;
 
@@ -9691,16 +9691,32 @@ position of the first member of the aggregate constant aggr_con.
   check_assertion(aggr_con != NULL &&
                   aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
   aggr_type = f_skip_typerefs(aggr_con->type);
-  aggr_pos->array_init = (aggr_type->kind == (a_type_kind)tk_array);
+  aggr_pos->array_init = (aggr_type->kind == (a_type_kind)tk_array
+#if GNU_VECTOR_TYPES_ALLOWED
+                           || aggr_type->kind == (a_type_kind)tk_vector
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                                                       );
   aggr_pos->curr_field = NULL;
   aggr_pos->curr_elem = 0;
   aggr_pos->member_type = NULL;
   aggr_pos->number_of_elements = 0;
   if (aggr_pos->array_init) {
-    /* Initializing members of an array. */
-    aggr_pos->member_type = f_skip_typerefs(array_element_type(aggr_type));
-    aggr_pos->number_of_elements =
+    if (aggr_type->kind == (a_type_kind)tk_array) {
+      /* Initializing members of an array. */
+      aggr_pos->member_type = f_skip_typerefs(array_element_type(aggr_type));
+      aggr_pos->number_of_elements =
                            aggr_type->variant.array.variant.number_of_elements;
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else {
+      /* Initializing members of a vector. */
+      check_assertion(aggr_type->kind == (a_type_kind)tk_vector);
+      aggr_pos->member_type = f_skip_typerefs(aggr_type->
+                                                  variant.vector.element_type);
+      check_assertion(aggr_pos->member_type->size != 0);
+      aggr_pos->number_of_elements = aggr_type->size /
+                                                   aggr_pos->member_type->size;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    }  /* if */
   } else {
     /* Initializing members of a struct or union. */
     a_field_ptr first_field =
@@ -9760,12 +9776,11 @@ the first member of the aggregate.
 {
   a_constant_ptr con;
 
-  if (!is_aggregate_or_union_type(type)) {
-    /* Simple scalar case. */
-    a_constant zero_constant;
-    make_lowered_zero_of_proper_type(rvalue_type(type), &zero_constant);
-    con = alloc_unshared_constant(&zero_constant);
-  } else {
+  if (is_aggregate_or_union_type(type)
+#if GNU_VECTOR_TYPES_ALLOWED
+      || is_vector_type(type)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                             ) {
     /* Aggregate type. */
     an_aggregate_position aggr_pos;
     con = alloc_constant((a_constant_repr_kind)ck_aggregate);
@@ -9777,6 +9792,11 @@ the first member of the aggregate.
       con->variant.aggregate.last_constant =
                                  make_init_zero_constant(aggr_pos.member_type);
     }  /* if */
+  } else {
+    /* Simple scalar case. */
+    a_constant zero_constant;
+    make_lowered_zero_of_proper_type(rvalue_type(type), &zero_constant);
+    con = alloc_unshared_constant(&zero_constant);
   }  /* if */
   return con;
 }  /* make_init_zero_constant */

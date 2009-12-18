@@ -1,5 +1,22 @@
 Version 4.2
 
+12/18/09 [EDGcpfe/10333]
+Abort when lowering partially initialized aggregate containing vector types
+
+In configurations where vectors are permitted (typically GNU modes), the
+lowering of an aggregate constant that contains designated initializers and
+partially initializes an aggregate that contains vector types can cause an
+abort in lowering.  When EXPENSIVE_CHECKING is TRUE, any aggregate involving
+vector types and designated initializers had caused an abort
+("lower_aggregate_designated_initializers: type mismatch").  When
+EXPENSIVE_CHECKING is FALSE, a use of designated initializers that caused
+lowering to insert a zero of vector type, had resulted in an assertion failure
+("form_constant: error constant").  Both of these are now fixed.  For example
+(--gcc):
+
+  int __attribute__((vector_size(16))) x[2] = { [1] = { 1 } };
+
+
 12/18/09 [EDGcpfe/10340]
 String literals are now const by default in C++ mode
 
