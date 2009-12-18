@@ -2846,7 +2846,8 @@ issue a warning.
     check_assertion(is_immediate_class_type(type) ||
                     is_immediate_enum_type(type));
     /* Traverse the attribute list and record whether the attribute was on a
-       "primary" declaration (i.e., a definition). */
+       "primary" declaration (i.e., a definition).  Also issue diagnostics for
+       invalid combinations. */
     for (ap = attributes; ap != NULL; ap = ap->next) {
       ap->on_primary_declaration = is_definition;
       if (ap->family == (a_byte_attribute_family)af_std) {
@@ -2871,6 +2872,9 @@ issue a warning.
             gnu_warning_emitted = TRUE;
           }  /* if */
           make_attr_unrecognized(ap);
+        } else if (is_type_transforming_attribute(ap)) {
+          /* Don't accept attributes like vector_size in this context. */
+          report_bad_attribute_target(es_warning, ap);
         }  /* if */
       }  /* if */
     }  /* for */
