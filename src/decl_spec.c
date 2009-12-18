@@ -1917,13 +1917,16 @@ caution when modifying this routine.
 
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
-    if (next_tok == tok_semicolon) {
-      if (*check_for_vacuous_decl && C_dialect != C_dialect_pcc &&
-          !is_ref_within_new_expr) {
+    if (next_tok == tok_semicolon || next_tok == tok_removed_template_body) {
+      if ((*check_for_vacuous_decl || next_tok == tok_removed_template_body) &&
+          C_dialect != C_dialect_pcc && !is_ref_within_new_expr) {
         /* This may be a "vacuous declaration" (e.g. "struct S;" or "enum E;").
            The effect of a vacuous declaration (unless we are in pcc mode) is
            to establish the name in the current scope, even if the tag name
-           exists in a containing scope or is inherited from a base class. */
+           exists in a containing scope or is inherited from a base class.
+           The body of a nested class of a class template that is part of
+           another declaration is replaced with a "removed template body"
+           token.  Consider that a vacuous declaration too. */
         is_vacuous_declaration = TRUE;
       }  /* if */
     } else if (*is_friend_decl) {
@@ -3440,18 +3443,22 @@ Microsoft attributes preceding the class specifier (if any).
           set_to_named_error_locator(locator);
           err = TRUE;
         } else if (is_class_definition ||
-                   (curr_token == tok_semicolon && !is_ref_within_new_expr &&
+                   ((curr_token == tok_semicolon ||
+                     curr_token == tok_removed_template_body) &&
+                    !is_ref_within_new_expr &&
                     !is_friend_decl && !is_explicit_instantiation)) {
           /* We have a specific declaration of a template class. */
           if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
-              !(microsoft_mode && !is_class_definition) &&
+              !(microsoft_mode && !is_class_definition &&
+                !curr_token == tok_removed_template_body) &&
               (!sym_is_class_or_namespace_member(tag_sym) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
             /* Explicit specializations of class templates must appear in the
                file or namespace scope in which the template was originally
                declared or in a scope enclosing the original scope.  In
                Microsoft mode, that restriction is not imposed if the
-               specialization is not a definition. */
+               specialization is not a definition.  A removed template body
+               is treated as a definition. */
             pos_sy_error(ec_bad_scope_for_specialization,
                          &tag_position, tag_sym);
             tag_sym = NULL;
@@ -3660,6 +3667,7 @@ Microsoft attributes preceding the class specifier (if any).
        related fields (e.g., name linkage). */
     { a_boolean  def_or_vacuous_decl =
                       (is_class_definition ||
+                       curr_token == tok_removed_template_body ||
                        (vacuous_decl_allowed && curr_token == tok_semicolon));
       update_membership_of_class(tag_sym, def_or_vacuous_decl,
                                  effective_decl_level, &decl_start_pos);
@@ -3678,6 +3686,9 @@ Microsoft attributes preceding the class specifier (if any).
          corresponding prototype class. */
       set_nested_template_class_symbol_info(tag_sym, type_kind);
     }  /* if */
+    /* If the current token marks a removed template body, skip past that
+       special token. */
+    if (curr_token == tok_removed_template_body) (void)get_token();
     srk_flags = SRK_DECLARATION;
     if (is_class_definition) srk_flags |= SRK_DEFINITION;
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
@@ -3784,7 +3795,8 @@ Microsoft attributes preceding the class specifier (if any).
       check_assertion(sun_mode ||
                       (microsoft_bugs && microsoft_version < 1400));
     } else if (is_class_definition || is_predeclared_type_decl ||
-               (curr_token == tok_semicolon &&
+               ((curr_token == tok_semicolon ||
+                 curr_token == tok_removed_template_body) &&
                 (vacuous_decl_allowed ||
                  is_friend_decl || is_template_specific_decl)) ||
                previously_invisible) {
@@ -3894,6 +3906,7 @@ Microsoft attributes preceding the class specifier (if any).
     attach_tag_attributes(tag_attributes, class_type, is_class_definition,
                           curr_token == tok_semicolon, ignore_gnu_attributes);
   }  /* if */
+  check_assertion(curr_token != tok_removed_template_body);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_class_definition && prefix_decl_modifiers != NULL &&

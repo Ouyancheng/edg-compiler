@@ -1,5 +1,22 @@
 Version 4.2
 
+12/17/09 [EDGcpfe/10176]
+Instantiation of nested class that is part of another declaration
+
+Formerly, the if a nested class of a class template was part of some other
+declaration (e.g., in the typedef of "type" in the example below), the front
+end would instantiate the nested class as part of the instantiation of the
+enclosing class.  Such nested classes are now only instantiated if needed
+(just like normal nested classes of class templates).
+
+  template <typename T> struct C {
+    typedef struct S { T t; } type;
+  };
+  struct D {
+    C<D> c;  // used to give incomplete type error during instantiation
+  };
+
+
 12/17/09 [EDGcpfe/10150]
 Spurious error on call of __sync_... function in template
 

@@ -3101,31 +3101,34 @@ tokens during the token string creation process.
 }  /* create_extracted_body_entry_for_friend */
 
 
-static void replace_body_with_semicolon(a_template_cache_segment_ptr tcsp)
+static void remove_body_from_cache(
+			a_template_cache_segment_ptr	tcsp,
+			a_token_kind			repl_token_kind)
 /*
 tcsp points to a template cache entry for a member function or member class.
-Remove the body from the cache.  If it was not already followed by a
-semicolon, add a semicolon to the cache.
+Remove the body from the cache.  If the body was not already followed by a
+repl_token_kind, add repl_token_kind to the cache.
 */
 {
-  a_boolean		insert_semicolon = FALSE;
+  a_boolean		insert_token = FALSE;
   a_cached_token_ptr	before_first_token = tcsp->before_first_token;
   a_cached_token_ptr	first_token = before_first_token->next;
   a_cached_token_ptr	last_token = tcsp->last_token;
   a_cached_token_ptr	ctp;
-  a_cached_token_ptr	semicolon_token;
+  a_cached_token_ptr	body_repl_token;
 
   /* See if the last token in the cache is followed by an optional
-     semicolon.  Only insert one if there is not already one there. */
+     repl_token_kind token.  Only insert one if there is not already one
+     there. */
   for (ctp = tcsp->last_token->next; ctp != NULL; ctp = ctp->next) {
     /* Ignore pragma tokens. */
     if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
       continue;
     }  /* if */
-    if (ctp->token != (a_small_token_kind)tok_semicolon) {
-      insert_semicolon = TRUE;
+    if (ctp->token != (a_small_token_kind)repl_token_kind) {
+      insert_token = TRUE;
     } else {
-      semicolon_token = ctp;
+      body_repl_token = ctp;
     }  /* if */
     break;
   }  /* for */
@@ -3134,21 +3137,21 @@ semicolon, add a semicolon to the cache.
                                         (a_token_extra_info_kind)teik_pragma) {
     first_token = first_token->next;
   }  /* while */
-  if (insert_semicolon) {
-    /* Make a new cached token entry for a semicolon, the function body
-       will be replaced with the semicolon.  Give it the same token
+  if (insert_token) {
+    /* Make a new cached token entry for the replacement token.  The
+       body will be replaced with the new token.  Give it the same token
        sequence number as the first token of the body. */
     a_cached_token_ptr	replacement_token;
-    replacement_token = build_cached_token(tok_semicolon,
+    replacement_token = build_cached_token(repl_token_kind,
                                            tcsp->first_token_number,
                                            &first_token->source_position);
     /* Link the replacement token into the cache in the place of
        the body. */
     replacement_token->next = last_token->next;
     before_first_token->next = replacement_token;
-    semicolon_token = replacement_token;
+    body_repl_token = replacement_token;
   } else {
-    /* No semicolon is needed.  Link the tokens to remove the member
+    /* No replacement token is needed.  Link the tokens to remove the member
        body.  Update the token sequence number of the token that now
        follows the function declarator to have the token sequence number
        of the opening brace of the function.  This is needed for matching
@@ -3160,17 +3163,17 @@ semicolon, add a semicolon to the cache.
   }  /* if */
   /* Unlink the rest of the cache from the last token of the body. */
   last_token->next = NULL;
-  /* Update the semicolon token with information about the tokens that
+  /* Update the replacement token with information about the tokens that
      have been removed. */
-  check_assertion(semicolon_token->extra_info_kind ==
+  check_assertion(body_repl_token->extra_info_kind ==
                                            (a_token_extra_info_kind)teik_none);
-  semicolon_token->extra_info_kind =
+  body_repl_token->extra_info_kind =
                                   (a_token_extra_info_kind)teik_extracted_body;
-  semicolon_token->variant.extracted_template.symbol = tcsp->symbol;
-  semicolon_token->variant.extracted_template.semicolon_inserted =
-                                                              insert_semicolon;
-  semicolon_token->variant.extracted_template.next_in_token_string = NULL;
-}  /* replace_body_with_semicolon */
+  body_repl_token->variant.extracted_template.symbol = tcsp->symbol;
+  body_repl_token->variant.extracted_template.semicolon_inserted =
+                              insert_token && repl_token_kind == tok_semicolon;
+  body_repl_token->variant.extracted_template.next_in_token_string = NULL;
+}  /* remove_body_from_cache */
 
 
 static void remove_default_arg(a_template_cache_segment_ptr tcsp)
@@ -3276,7 +3279,7 @@ and a list of the unprocessed entries is returned to the caller.
              tokens that were removed from
              the original cache. */
           { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            replace_body_with_semicolon(tcsp);
+            remove_body_from_cache(tcsp, tok_semicolon);
             free_tokens_from_reusable_cache(first_token, &tcp->tokens);
           }
 #if DEBUG
@@ -3285,16 +3288,20 @@ and a list of the unprocessed entries is returned to the caller.
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
-          /* Only extract the body of the nested class if it is a
-             "standalone" nested class (i.e., one that is not anonymous
-             and is not followed by a declarator). */
-          if (!tcsp->template_info->
-                          variant.class_template.not_standalone_nested_class) {
+          /* Do not remove the body of anonymous unions. */
+          if (!is_unnamed_tag_symbol(tcsp->symbol)) {
             a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            replace_body_with_semicolon(tcsp);
+            a_token_kind	repl_token_kind;
+            /* Normally, the body of the class is replaced with a semicolon.
+               But when the body is part of some other declaration, it is
+               replaced with a special placeholder token. */
+            repl_token_kind = tcsp->template_info->variant.
+                                class_template.not_standalone_nested_class
+                                   ? tok_removed_template_body : tok_semicolon;
+            remove_body_from_cache(tcsp, repl_token_kind);
             /* Remove the tokens for the nested class from the original
                cache to the cache for the nested class.  The tokens have
-               actually already been unliked from the first cache, but
+               actually already been unlinked from the first cache, but
                information such as token counts must be adjusted. */
             move_cached_tokens(first_token, &tcp->tokens,
                                &tcsp->template_info->cache.tokens);

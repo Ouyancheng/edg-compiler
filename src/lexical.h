@@ -56,6 +56,7 @@ typedef enum /*a_token_kind*/ {
   tok_cpp_quote,
   tok_ptr_to_member 	    /* C++ only */,
   tok_removed_default_arg   /* Placeholder for a removed default argument. */,
+  tok_removed_template_body /* Placeholder for a removed template body. */,
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -339,7 +340,8 @@ EXTERN char	*token_names[(int)tok_last+1]
 = {"error", "identifier", "float constant", "fixed-point constant",
    "int constant", "char constant", "string literal", "end of source",
    "newline", "header name", "pp number", "digit sequence", "cpp quote",
-   "ptr to member", "removed default arg", "unimplemented",
+   "ptr to member", "removed default arg", "removed template body",
+   "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -642,6 +644,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_cpp_quote */
    (an_opname_kind)onk_none,          /* tok_ptr_to_member */
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */
+   (an_opname_kind)onk_none,          /* tok_removed_template_body */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbrace */
    (an_opname_kind)onk_none,          /* tok_rbrace */
