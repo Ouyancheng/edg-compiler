@@ -2489,6 +2489,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
           alignment = targ_alignof_ptr_to_data_member;
         }  /* if */
         break;
+      case tk_nullptr:
+        size = size_of_pointer_to(void_type(), &alignment);
+        break;
 #if CHECKING
       case tk_class:
       case tk_struct:
@@ -2499,9 +2502,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_vector:
         /* Vector types get their size set when they are created. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-      case tk_nullptr:
-        size = size_of_pointer_to(void_type(), &alignment);
-        break;
       default:
         internal_error("set_type_size: bad type kind");
 #endif /* CHECKING */
