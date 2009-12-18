@@ -3454,7 +3454,7 @@ Microsoft attributes preceding the class specifier (if any).
           /* We have a specific declaration of a template class. */
           if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
               !(microsoft_mode && !is_class_definition &&
-                !curr_token == tok_removed_template_body) &&
+                curr_token == tok_semicolon) &&
               (!sym_is_class_or_namespace_member(tag_sym) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
             /* Explicit specializations of class templates must appear in the
