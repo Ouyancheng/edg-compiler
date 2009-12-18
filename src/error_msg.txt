@@ -1452,7 +1452,7 @@ ec_class_and_inherited_member_instance_have_dll_interface;;"member %nd already h
 ec_vla_in_return_type;;"a variable-length array is not allowed in a function return type"
 ec_ptr_to_member_of_vla_type;;"variable-length array type is not allowed in pointer to member of type %t"
 ec_statement_expr_with_vla_type;;"the result of a statement expression cannot have a type involving a variable-length array"
-ec_trigraph_ignored;;"support for trigraphs is disabled"
+REMOVED;ec_trigraph_ignored;;"support for trigraphs is disabled"
 ec_attribute_requires_external_linkage;;"the %sq attribute can only appear on functions and variables with external linkage"
 ec_cl_strict_mode_incompatible_with_ignore_std;;"strict mode is incompatible with treating namespace std as an alias for the global namespace"
 ec_in_expansion_of_macro;INTERNAL;"in expansion of macro \"%s\" %p,"
