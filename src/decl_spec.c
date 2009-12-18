@@ -4897,7 +4897,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
          large enough to represent all the enumerator values.  It won't be
          known until the definition is complete. */
       enum_con_type = NULL;
-      /* For an enum in a class template the enumerators must be treated as dependent. */
+      /* For an enum in a class template the enumerators must be treated as
+         dependent. */
       is_dependent_enum = tag_sym->corresp_nonreal_or_nested_type != NULL;
     } else {
       /* In C the type of the constants is always "int", regardless of
