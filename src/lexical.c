@@ -586,6 +586,19 @@ static a_lexical_state_stack_entry_ptr
 			/* List of lexical state stack entries that have been
 			   freed and are available for reuse. */
 
+static a_boolean
+		trigraph_diagnostic_issued;
+			/* TRUE if a diagnostic indicating that trigraphs are
+			   disabled has already been issued.  Actually, it
+			   is set to TRUE once trigraph_column has been
+			   set. */
+
+static a_column_number
+		trigraph_column;
+			/* If a trigraph was encountered when trigraphs are
+			   disabled, this is the column in the line of
+			   the trigraph so that a diagnostic can be issued. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean
 		scanning_microsoft_asm;
@@ -5911,7 +5924,7 @@ for the GNU C multiline string extension.
       do {
         /* Check for question marks.  Presence of 2 in a row suggests there
            may be a trigraph in the line. */
-        if (local_ch == '?' && trigraphs_allowed) {
+        if (local_ch == '?') {
           /* One "?", check previous character to see if it is also a "?". */
           if (local_loc_in_line != curr_source_line &&
               *(local_loc_in_line-1) == '?') {
@@ -6063,6 +6076,12 @@ simple_return:
                                          (currently_in_pp_if_skip ? 'S' : 'N');
     }  /* if */
   }  /* if */
+  if (trigraph_column != 0) {
+    /* This line contained the first ignored trigraph.  Issue a warning. */
+    warning_at_line_pos(ec_trigraph_ignored,
+                        curr_source_line + trigraph_column - 1);
+    trigraph_column = 0;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 1) {
     /* Display the line just read. */
@@ -6183,7 +6202,7 @@ line_loop:
       curr_column++;
       /* Check for trigraphs.  A trigraph is two "?"s followed by another
          character. */
-      if (ch == '?' && trigraphs_allowed) {
+      if (ch == '?') {
         /* One "?", check previous character to see if it is also a "?".
            Note the use of curr_column rather than the start of buffer, since
            a "?" at the end of the previous line should not be counted
@@ -6209,6 +6228,7 @@ entry_for_possible_trigraph:
 #endif /* QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
                                                 ) {
+            int	orig_ch = ch;
             /* Get the next character, the one following the two "?"s. */
             next_ch = getc_curr_input_stream();
             /* Check for the possible third characters of trigraphs.  If one
@@ -6228,7 +6248,18 @@ entry_for_possible_trigraph:
               case '-':  ch = '~'; break;
               default:   char_is_trapped = TRUE;
             }  /* switch */
-            if (!char_is_trapped) {
+            if (!char_is_trapped && !trigraphs_allowed) {
+              /* Restore the original value of "ch" as we are actually
+                 recognizing the trigraph. */
+              ch = orig_ch;
+              char_is_trapped = TRUE;
+              if (!trigraph_diagnostic_issued) {
+                /* Note that we want trigraph_column to reflect the position
+                   of the initial "?". */
+                trigraph_column = loc_in_line - curr_source_line;
+                trigraph_diagnostic_issued = TRUE;
+              }  /* if */
+            } else if (!char_is_trapped) {
               /* Trigraph detected.  Add a modification entry indicating
                  the position of the trigraph, remove the first "?" from the
                  buffer, then go on to store the remapped character. */
@@ -17313,6 +17344,8 @@ Initialize variables that are specific to a given translation unit.
                                              (a_hash_table_size)1024,
                                              hash_include_file_history,
                                              compare_include_file_history);
+  trigraph_diagnostic_issued = FALSE;
+  trigraph_column = 0;
   curr_stop_token_stack_entry = NULL;
   curr_lexical_state_stack_entry = NULL;
   push_lexical_state_stack();

@@ -1325,7 +1325,7 @@ the global flag trigraphs_allowed, the value of which may also be modified
 using command line options.
 */
 #ifndef DEFAULT_TRIGRAPHS_ALLOWED
-#define DEFAULT_TRIGRAPHS_ALLOWED FALSE
+#define DEFAULT_TRIGRAPHS_ALLOWED TRUE
 #endif /* ifndef DEFAULT_TRIGRAPHS_ALLOWED */
 
 /*

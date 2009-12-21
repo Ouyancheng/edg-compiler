@@ -1,12 +1,5 @@
 Version 4.2
 
-12/18/09 [EDGcpfe/10331]
-Trigraphs are now disabled by default, "trigraphs disabled" warning eliminated
-
-Trigraphs are now disabled by default.  In addition, the "support for
-trigraphs disabled" warning has been eliminated as it often was issued
-on code where the code did not intend to make use of trigraphs.
-
 12/18/09 [EDGcpfe/10333]
 Abort when lowering partially initialized aggregate containing vector types
 
