@@ -380,8 +380,9 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if NEAR_AND_FAR_ALLOWED
     "__near", "__far",
 #endif /* NEAR_AND_FAR_ALLOWED */
+   "__attribute__",
 #if GNU_EXTENSIONS_ALLOWED
-   "__attribute__", "__builtin_varargs_start", "__builtin_types_compatible_p",
+   "__builtin_varargs_start", "__builtin_types_compatible_p",
    "__real", "__imag",
 #endif /* GNU_EXTENSIONS_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
@@ -798,8 +799,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_near */
    (an_opname_kind)onk_none,          /* tok_far */
 #endif /* NEAR_AND_FAR_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_attribute */
+#if GNU_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_va_start_single_operand */
    (an_opname_kind)onk_none,          /* tok_builtin_types_compatible */
    (an_opname_kind)onk_none,          /* tok_gnu_real */
