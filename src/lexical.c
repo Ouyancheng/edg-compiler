@@ -16707,8 +16707,10 @@ and < end_tsn are included in the string.
         }  /* if */
         /* This semicolon was inserted, and so should be suppressed if the body
            is output above. */
-        add_orig_token = !add_body_string ||
-                         !ctp->variant.extracted_template.semicolon_inserted;
+        add_orig_token = ctp->token !=
+                               (a_small_token_kind)tok_removed_template_body &&
+                         (!add_body_string ||
+                          !ctp->variant.extracted_template.semicolon_inserted);
         if (add_orig_token) {
           add_token_to_string(ctp);
         }  /* if */

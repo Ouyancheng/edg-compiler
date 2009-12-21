@@ -3690,9 +3690,6 @@ Microsoft attributes preceding the class specifier (if any).
          corresponding prototype class. */
       set_nested_template_class_symbol_info(tag_sym, type_kind);
     }  /* if */
-    /* If the current token marks a removed template body, skip past that
-       special token. */
-    if (curr_token == tok_removed_template_body) (void)get_token();
     srk_flags = SRK_DECLARATION;
     if (is_class_definition) srk_flags |= SRK_DEFINITION;
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
@@ -3910,7 +3907,9 @@ Microsoft attributes preceding the class specifier (if any).
     attach_tag_attributes(tag_attributes, class_type, is_class_definition,
                           curr_token == tok_semicolon, ignore_gnu_attributes);
   }  /* if */
-  check_assertion(curr_token != tok_removed_template_body);
+  /* If the current token marks a removed template body, skip past that
+     special token. */
+  if (curr_token == tok_removed_template_body) (void)get_token();
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_class_definition && prefix_decl_modifiers != NULL &&
