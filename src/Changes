@@ -1,5 +1,18 @@
 Version 4.2
 
+12/21/09 [EDGcpfe/6570]
+Internal error on invalid multibyte character in string on Windows
+
+An internal error could occur (in conv_string_literal) on a wide character
+string literal containing a multibyte character that was invalid in the
+current native multibyte locale.  The internal error was caused by a
+Windows bug that caused _mblen_l to return a different length than
+_mbtowc_l.  Now fixed.  This test case demonstrates the problem when run
+with a native multibyte locale of 932 (Japanese).
+
+  extern wchar_t const x[] = L"Á hola !";
+
+
 12/18/09 [EDGcpfe/10333]
 Abort when lowering partially initialized aggregate containing vector types
 
