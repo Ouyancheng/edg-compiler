@@ -965,10 +965,10 @@ the size of character.
        the results match. */
     numch_from_mbc_len = lex_mbc_length_simple(*temp_ptr);
     numch = lex_mbc_to_wide_char(*temp_ptr, &wc, &err);
-    if (numch != numch_from_mbc_len || numch < 0) {
-      /* If numch is negative (because an error occurred) or if the value does
-         not match the value returned by lex_mbc_lenght_simple, set the
-         error flag and treat it as a single character. */
+    if (numch != numch_from_mbc_len) {
+      /* If the value does not match the value returned by
+         lex_mbc_length_simple, set the error flag and treat it as a single
+         character. */
       numch = 1;
       err = TRUE;
     }  /* if */

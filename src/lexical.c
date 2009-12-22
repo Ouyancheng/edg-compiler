@@ -8287,9 +8287,6 @@ was.  The caller is responsible for issuing error messages.
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
         int numch = lex_mbc_length_simple(curr_char_loc);
-        /* If numch is negative (because an error occurred), treat it as
-           a single character. */
-        if (numch < 0) numch = 1; 
         /* Increment curr_char_loc by numch and create any logical
            character index entries. */
         incr_curr_char_loc_for_multibyte_char(numch);
