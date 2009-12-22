@@ -2723,10 +2723,10 @@ Display the indicated routine.
   if (ptr->never_throws) {
     disp_boolean("never_throws", TRUE);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_in_class_specialization) {
     disp_boolean("is_in_class_specialization", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->declared_only_as_friend) {
     disp_boolean("declared_only_as_friend", TRUE);
   }  /* if */

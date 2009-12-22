@@ -1,5 +1,18 @@
 Version 4.2
 
+12/22/09 [EDGcpfe/10200]
+Sun compatibility: in-class specializations
+
+The Sun compiler allows in-class specializations of member class and function
+templates.  We previously supported such specializations in Microsoft mode.
+We now also allow them in Sun mode.
+
+  struct A {
+    template<typename T> struct B { };
+    template<> struct B<int> { };
+  };
+
+
 12/21/09 [EDGcpfe/6570]
 Internal error on invalid multibyte character in string on Windows
 

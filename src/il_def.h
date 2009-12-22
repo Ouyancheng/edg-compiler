@@ -6534,7 +6534,7 @@ typedef struct a_type {
 		is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance
 			   and the specialization was declared within the
-			   enclosing class using the Microsoft in-class
+			   enclosing class using the Microsoft/Sun in-class
 			   specialization syntax.  Also true for classes
 			   nested within an in-class specialization */
       a_bit_field
@@ -10374,13 +10374,13 @@ typedef struct a_routine {
 			   "nothrow"; this is an assertion by the programmer
 			   that the routine will not throw an exception (the
 			   front end does not check that assertion). */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field
 		is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance
 			   and the specialization was declared within the
-			   enclosing class using the Microsoft in-class
+			   enclosing class using the Microsoft/Sun in-class
 			   specialization syntax. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	declared_only_as_friend:1;
 			/* TRUE if this routine has only been declared as a
 			   friend.  In that case, Microsoft compilers will

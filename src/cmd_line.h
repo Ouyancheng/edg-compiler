@@ -718,6 +718,11 @@ EXTERN a_boolean
                         /* TRUE if compilation timing statistics should be
 			   displayed. */
 
+EXTERN a_boolean
+		allow_in_class_specializations;
+			/* TRUE if Microsoft and Sun in-class specializations
+			   should be allowed. */
+
 typedef enum /*a_template_instantiation_mode*/ {
   /* Defines the methods of handling template instantiation.  Used to
      determine which template functions and member functions of

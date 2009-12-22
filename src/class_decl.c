@@ -1763,14 +1763,10 @@ also used for Microsoft in-class member function template specializations.
      tests the defined flag to detect duplicate definitions. */
   rp->defined = TRUE;
   ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (rp->is_in_class_specialization) {
     /* The fixup was for an in-class specialization, not for a friend
        declaration: Nothing needs to be done. */
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* No not insert code here. */
-  {
+  } else {
     rp->defined_in_friend_decl = TRUE;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -9019,8 +9015,8 @@ implicitly declared member functions.
   if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
-       Set it up to look like that.  Microsoft in-class specializations that
-       appear in class templates are prototype instantiations, but their
+       Set it up to look like that.  Microsoft/Sun in-class specializations
+       that appear in class templates are prototype instantiations, but their
        members should not be considered templates. */
     if (class_type->variant.class_struct_union.is_in_class_specialization) {
       rtn->is_prototype_instantiation = TRUE;
@@ -16223,7 +16219,7 @@ classes.
          template arguments that include the dummy types and constants of
          template parameters rather than real types and constants).  The
          in_class_specialization test detects classes nested within a
-         Microsoft in-class specialization.   Note that for nested classes
+         Microsoft/Sun in-class specialization.   Note that for nested classes
          the flag is set later. */
       class_state.is_nonreal_instantiation = TRUE;
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
@@ -16253,7 +16249,7 @@ classes.
       /* A definition of a nonreal class that is not a template instantiation.
          This should only occur when defining a specialization of a class
          in a class scope. */
-      if (microsoft_mode &&
+      if (allow_in_class_specializations &&
           class_type->variant.class_struct_union.is_specialized) {
         class_state.is_nonreal_instantiation = TRUE;
       } else {

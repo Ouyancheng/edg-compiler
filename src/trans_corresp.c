@@ -1589,7 +1589,7 @@ function or member function template is considered "generated", but a member
 of a class template is not.  (The point is that "generated" routines do not
 always appear in the same order on the routines list of a class scope.  Hence
 explicit member template specializations are also considered to be "generated"
-except for the Microsoft extension of an in-class specialization.)
+except for the Microsoft/Sun extension of an in-class specialization.)
 */
 {
   while (routine != NULL && (
@@ -1606,9 +1606,7 @@ except for the Microsoft extension of an in-class specialization.)
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
           (routine->is_template_function &&
-#if MICROSOFT_EXTENSIONS_ALLOWED
            !routine->is_in_class_specialization &&
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            routine->template_arg_list != NULL))) {
     routine = routine->next;
   }  /* while */
@@ -4438,9 +4436,10 @@ considered "instantiated" when their bodies have been scanned.
     a_routine_ptr  canon = (a_routine_ptr)canonical_il_entry_of(routine);
     if (canon->is_specialized && !routine->is_specialized) {
       /* The canonical entry is specialized, but we're instantiating a matching
-         generic version.  (Note that Microsoft in-class specializations can be
-         "instantiated" as the result of the enclosing class template being
-          instantiated; this should not result in a correspondence error.) */
+         generic version.  (Note that Microsoft/Sun in-class specializations
+         can be "instantiated" as the result of the enclosing class template
+         being instantiated; this should not result in a correspondence
+         error.) */
       f_report_bad_trans_unit_corresp((char*)canon,
                                       &routine->source_corresp.decl_position);
     }  /* if */

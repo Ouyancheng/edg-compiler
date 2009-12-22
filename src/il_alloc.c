@@ -2221,8 +2221,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->specialized_with_old_syntax = FALSE;
   rp->is_prototype_instantiation  = FALSE;
   rp->never_throws                = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   rp->is_in_class_specialization  = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   rp->declared_only_as_friend     = FALSE;
   rp->explicit_extern_inline      = FALSE;
   rp->direct_linkage_specifier_on_nondef_decl = FALSE;

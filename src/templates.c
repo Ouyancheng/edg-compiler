@@ -8995,14 +8995,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     /* If this is an in-class specialization and the enclosing class is
        a prototype instantiation, treat this as a prototype instantiation
        too. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (in_class_specialization) {
       rp->is_in_class_specialization = TRUE;
       if (is_prototype_instantiation_context()) {
         ps_options |= PS_PROTOTYPE_INSTANTIATION;
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     (void)push_template_instantiation_scope(tcp->decl_info,
 				            (a_type_ptr)NULL,
 				            (a_routine_ptr)NULL,
@@ -16883,7 +16881,8 @@ that follows.
     if (is_error_locator(locator)) {
       /* Ignore it. */
       sym = NULL;
-    } else if ((decl_state->in_prototype_instantiation && !microsoft_mode) ||
+    } else if ((decl_state->in_prototype_instantiation &&
+                !allow_in_class_specializations) ||
                decl_state->decl_scope_err) {
       /* A misplaced specialization. */
       sym = NULL;
@@ -16953,8 +16952,8 @@ that follows.
         a_boolean	err = FALSE;
         if (!sym_is_class_or_namespace_member(sym)) {
           /* A global scope symbol.  This is allowed only if this is
-             a Microsoft in-class specialization. */
-          err = !microsoft_mode || !decl_state->is_member_decl;
+             a Microsoft or Sun in-class specialization. */
+          err = !allow_in_class_specializations || !decl_state->is_member_decl;
         } else if (!namespace_is_enclosed_by_curr_scope(sym)) {
           /* A class or namespace member being specialized outside of its
              namespace. */
@@ -17664,8 +17663,8 @@ keyword.
         ssep->kind == (a_scope_kind)sck_namespace_extension)) {
       /* A valid template specialization scope. */
     } else if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-               microsoft_mode) {
-      /* Microsoft permits specializations to appear in class scopes. */
+               allow_in_class_specializations) {
+      /* Microsoft and Sun permit specializations to appear in class scopes. */
     } else {
       if (!decl_state.decl_scope_err) {
         pos_error(ec_explicit_specialization_not_in_namespace_scope,

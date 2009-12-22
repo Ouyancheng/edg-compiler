@@ -1880,6 +1880,8 @@ by a command line option.
        accepted for all values of microsoft_version. */
     extended_friends_enabled = TRUE;
     extern_template_allowed = TRUE;
+    /* In-class specializations are supported. */
+    allow_in_class_specializations = TRUE;
     /* Qualifying with an enum type is enabled in Microsoft C++ mode, but if
        microsoft_version < 1400, an error is issued if the enumeration is not
        a class member. */
@@ -3114,6 +3116,8 @@ checked again here.)
      compiler with respect to making template parameters visible in
      specializations. */
   use_microsoft_specialization_scope = TRUE;
+  /* In-class specializations are supported. */
+  allow_in_class_specializations = TRUE;
   allow_default_arg_on_template_member_definition = TRUE;
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     type_traits_helpers_enabled = FALSE;
@@ -8750,6 +8754,7 @@ variables declared in cmd_line.h.
                               DEFAULT_NO_ACCESS_CHECK_ON_FRIEND_DECLARATOR_IDS;
   special_subscript_cost = DEFAULT_SPECIAL_SUBSCRIPT_COST;
   long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
+  allow_in_class_specializations = FALSE;
   defs_from_cmd_line = NULL;
   allow_dollar_in_id_chars = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS;
   display_compilation_time = FALSE;
