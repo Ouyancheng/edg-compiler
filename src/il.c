@@ -13219,10 +13219,10 @@ must be std::nullptr_t) and, if the operands are constant, with the
 specified values, can be used together in an expression.  This is called
 from check_template_nullptr_operation to determine whether an expression is
 permitted in a template argument expression.  It is similar to
-check_compatibility_of_nullptr_operands; the principle difference is that
+check_compatibility_of_nullptr_operands; the principal difference is that
 the latter does not accept pointer and pointer-to-member types, which must
 be handled separately by the caller, while this function handles pointer
-and pointer-to-member types, as well as dependent types, directly.
+and pointer-to-member types directly.
 */
 {
   a_boolean  compatible_types;
@@ -13232,13 +13232,11 @@ and pointer-to-member types, as well as dependent types, directly.
     compatible_types = (is_nullptr_type(type_2) ||
                         is_pointer_type(type_2) ||
                         is_ptr_to_member_type(type_2) ||
-                        is_template_dependent_type(type_2) ||
                         (con_2 != NULL &&
                          is_null_pointer_constant(con_2)));
   } else {
     compatible_types = (is_pointer_type(type_1) ||
                         is_ptr_to_member_type(type_1) ||
-                        is_template_dependent_type(type_1) ||
                         (con_1 != NULL &&
                          is_null_pointer_constant(con_1)));
   }  /* if */
@@ -13270,12 +13268,9 @@ std::nullptr_t, set *copy_error to TRUE.  (No checking is needed or done if
   if (!*copy_error) {
     switch (op) {
       case eok_address_of:
-      case eok_reference_to:
       case eok_cast:
-      case eok_ref_cast:
-      case eok_bool_cast:
-      case eok_dot_vacuous_destructor_call:
       case eok_parens:
+      case eok_not:
       case eok_land:
       case eok_lor:
       case eok_comma:
@@ -13403,9 +13398,9 @@ options is a set of name lookup options.
                                                  &constant_1,
                                                  &alloc_con_1);
         if (!*copy_error) {
-          new_op1_type = new_operand_1 != NULL ? new_operand_1->type :
-                         alloc_con_1 != NULL ? alloc_con_1->type :
-                         constant_1.type;
+          new_op1_type = type_of_copied_template_expr(new_operand_1,
+                                                      &constant_1,
+                                                      alloc_con_1);
         }  /* if */
         if (operand_2 != NULL) {
           new_operand_2 = copy_template_param_expr(operand_2,
@@ -13418,9 +13413,9 @@ options is a set of name lookup options.
                                                    &constant_2,
                                                    &alloc_con_2);
           if (!*copy_error) {
-            new_op2_type = new_operand_2 != NULL ? new_operand_2->type :
-                           alloc_con_2 != NULL ? alloc_con_2->type :
-                           constant_2.type;
+            new_op2_type = type_of_copied_template_expr(new_operand_2,
+                                                        &constant_2,
+                                                        alloc_con_2);
           }  /* if */
           operand_3 = operand_2->next;
           if (operand_3 != NULL) {
@@ -13434,9 +13429,9 @@ options is a set of name lookup options.
                                                      &constant_3,
                                                      &alloc_con_3);
             if (!*copy_error) {
-              new_op3_type = new_operand_3 != NULL ? new_operand_3->type :
-                             alloc_con_3 != NULL ? alloc_con_3->type :
-                             constant_3.type;
+              new_op3_type = type_of_copied_template_expr(new_operand_3,
+                                                          &constant_3,
+                                                          alloc_con_3);
             }  /* if */
           }  /* if */
         }  /* if */
