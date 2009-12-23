@@ -956,26 +956,8 @@ the size of character.
     a_boolean numch_from_mbc_len;
 #endif /* EDG_WIN32 */
     a_boolean err;
-
-#if EDG_WIN32
-    /* Convert a multibyte character sequence to a wide character.  The
-       routine used by lex_mbc_to_wide_char does not work properly in some
-       cases on Windows.  It returns a value different from the value
-       returned by lex_mbc_length_simple.  Call both routines and make sure
-       the results match. */
-    numch_from_mbc_len = lex_mbc_length_simple(*temp_ptr);
-    numch = lex_mbc_to_wide_char(*temp_ptr, &wc, &err);
-    if (numch != numch_from_mbc_len) {
-      /* If the value does not match the value returned by
-         lex_mbc_length_simple, set the error flag and treat it as a single
-         character. */
-      numch = 1;
-      err = TRUE;
-    }  /* if */
-#else /* !EDG_WIN32 */
     /* Convert a multibyte character sequence to a wide character. */
     numch = lex_mbc_to_wide_char(*temp_ptr, &wc, &err);
-#endif /* EDG_WIN32 */
     if (err) {
       /* Invalid multibyte character sequence. */
       conv_line_loc_to_source_pos(*temp_ptr, &error_position);

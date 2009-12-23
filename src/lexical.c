@@ -8286,7 +8286,18 @@ was.  The caller is responsible for issuing error messages.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
+#if !EDG_WIN32
         int numch = lex_mbc_length_simple(curr_char_loc);
+#else /* EDG_WIN32 */
+        /* Windows has a bug that can cause the length returned by
+           lex_mbc_length_simple to differ from what is returned by
+           lex_mbc_to_wide_char.  The length computed here must match the
+           value computed by conv_string_literal, so on Windows we use
+           lex_mbc_to_wide_char here. */
+        unsigned long wc;
+        int           numch = lex_mbc_to_wide_char(curr_char_loc,
+                                                   &wc, (a_boolean*)NULL);
+#endif /* !EDG_WIN32 */
         /* Increment curr_char_loc by numch and create any logical
            character index entries. */
         incr_curr_char_loc_for_multibyte_char(numch);
