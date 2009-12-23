@@ -6787,18 +6787,21 @@ to char *.
   a_type_ptr dest_type = expr->type;
 
   if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-    /* Look for a source type of "const char *". */
+    /* Look for a source type of "const char *" or "const wchar_t *". */
     a_type_ptr source_type_pointed_to = type_pointed_to(source_type);
     if (get_type_qualifiers(source_type_pointed_to) == TQ_CONST) {
       source_type_pointed_to = skip_typerefs(source_type_pointed_to);
       if (source_type_pointed_to->kind == (a_type_kind)tk_integer &&
-          source_type_pointed_to->variant.integer.int_kind ==
-                                                    (an_integer_kind)ik_char) {
-        /* Look for a destination type of "char *". */
-        a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
+          (source_type_pointed_to->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_char ||
+           source_type_pointed_to->variant.integer.wchar_t_type)) {
+        /* Look for a destination type of "char *" or "wchar_t *". */
+        a_type_ptr dest_type_pointed_to =
+                                     skip_typedefs(type_pointed_to(dest_type));
         if (dest_type_pointed_to->kind == (a_type_kind)tk_integer &&
-            dest_type_pointed_to->variant.integer.int_kind ==
-                                                    (an_integer_kind)ik_char) {
+            (dest_type_pointed_to->variant.integer.int_kind ==
+                                                    (an_integer_kind)ik_char ||
+             dest_type_pointed_to->variant.integer.wchar_t_type)) {
           is_const_str_cast = TRUE;
         }  /* if */
       }  /* if */
