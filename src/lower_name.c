@@ -6473,7 +6473,8 @@ mangled without parameter encoding.
        But constructors for unnamed classes that got a name for linkage
        purposes should get mangled names. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor &&
-        has_name(parent_class_of(routine))) {
+        unmangled_name_of((a_source_correspondence *)parent_class_of(routine))
+                                                                     == NULL) {
       mangling_needed = TRUE;
     }  /* if */
   } else if (routine == il_header.main_routine) {
