@@ -1447,6 +1447,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_parityll:
 #endif /* LONG_LONG_ALLOWED */
       case bfk_strlen:
+      case bfk_abs:
         result = TRUE;
         break;
       default:
@@ -1772,6 +1773,33 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
                   break;
                 }  /* if */
               }  /* for */
+            }  /* if */
+          }
+          break;
+        case bfk_abs:
+          /* abs of a constant integer can be folded in C mode. */
+          { a_constant_ptr con;
+            if (C_mode() && args != NULL && args2 == NULL &&
+                is_constant_node(args) &&
+                (con = args->variant.constant)->kind ==
+                                            (a_constant_repr_kind)ck_integer &&
+                is_integral_type(con->type) &&
+                is_integral_type(call->type)) {
+              a_boolean err = FALSE;
+              copy_constant(con, &result);
+              /* Probably no type difference between the parameter type and
+                 the result type, but change it just in case. */
+              result.type = call->type;
+              if (sign_of_integer_constant(con) < 0) {
+                /* Negate a negative value. */
+                negate_integer_value(&result.variant.integer_value, &err);
+                if (!err &&
+                    !in_range_for_integer_kind(&result, &result,
+                       skip_typerefs(result.type)->variant.integer.int_kind)) {
+                  err = TRUE;
+                }  /* if */
+              }  /* if */
+              if (!err) folded = TRUE;
             }  /* if */
           }
           break;

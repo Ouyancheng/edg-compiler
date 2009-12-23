@@ -6455,24 +6455,29 @@ use of).
       rp->aliased_routine = NULL;
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
-               strcmp(rp->source_corresp.name, "strlen") == 0 &&
                rp->aliased_routine == NULL) {
-      /* For now, we only recognize "::strlen". */
-      char              *name = "__builtin_strlen";
-      a_symbol_locator  loc;
-      a_symbol_ptr      bsym;
-      bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
-      for (; bsym != NULL; bsym = bsym->next) {
-        if (is_simple_function_symbol(bsym) &&
-            !sym_is_class_or_namespace_member(bsym)) {
-          a_routine_ptr  brp = bsym->variant.routine.ptr;
-          if (types_are_redecl_compatible(rp->type, brp->type)) {
-            rp->aliased_routine = brp;
-            rp->implicit_alias = TRUE;
-            break;
+      char *name = NULL;
+      if (strcmp(rp->source_corresp.name, "strlen") == 0) {
+        name = "__builtin_strlen";
+      } else if (strcmp(rp->source_corresp.name, "abs") == 0) {
+        name = "__builtin_abs";
+      }  /* if */
+      if (name != NULL) {
+        a_symbol_locator  loc;
+        a_symbol_ptr      bsym;
+        bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+        for (; bsym != NULL; bsym = bsym->next) {
+          if (is_simple_function_symbol(bsym) &&
+              !sym_is_class_or_namespace_member(bsym)) {
+            a_routine_ptr  brp = bsym->variant.routine.ptr;
+            if (types_are_redecl_compatible(rp->type, brp->type)) {
+              rp->aliased_routine = brp;
+              rp->implicit_alias = TRUE;
+              break;
+            }  /* if */
           }  /* if */
-        }  /* if */
-      }  /* for */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_implicit_routine_alias */

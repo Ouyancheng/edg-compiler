@@ -1,5 +1,16 @@
 Version 4.2
 
+12/23/09 [EDGcpfe/10328]
+GNU C compatibility: abs in constant-expressions
+
+In GNU C mode, calls of __builtin_abs with a constant integer argument are
+now folded to the result value.  Declarations of "abs" that match the
+standard C library requirement are now also considered to be aliases to
+__builtin_abs, so an expression like "abs(-2)" will now be folded to 2 in a
+constant expression in GNU C mode.  See also the very similar change
+for strlen in EDGcpfe/10179.
+
+
 12/22/09 [EDGcpfe/10200]
 Sun compatibility: in-class specializations
 
