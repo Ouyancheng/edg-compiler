@@ -72,7 +72,7 @@ in C++ mode.
 12/17/09 [EDGcpfe/10176]
 Instantiation of nested class that is part of another declaration
 
-Formerly, the if a nested class of a class template was part of some other
+Formerly, if a nested class of a class template was part of some other
 declaration (e.g., in the typedef of "type" in the example below), the front
 end would instantiate the nested class as part of the instantiation of the
 enclosing class.  Such nested classes are now only instantiated if needed
