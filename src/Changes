@@ -13,24 +13,6 @@ depending on the version being emulated.  For example:
     #if defined(X    // Now an error with microsoft_version > 1300
 
 
-12/23/09 [EDGcpfe/10147]
-Assertion failure in set_primary_ctor_or_dtor_kind
-
-IA-64 ABI mangling of a constructor that is contained within an unnamed local
-class can cause an assertion failure (in set_primary_ctor_or_dtor_kind in
-lower_init.c).  This failure only occurs in configurations where
-PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE.  This regression was introduced
-in version 4.0 and is now fixed.  For example:
-
-  void f() {
-    struct {
-      struct A {
-        A() {}
-      } a;
-    } x;
-  }
-
-
 12/23/09 [EDGcpfe/7420]
 C++-generating back end: deprecated string literal conversion
 
