@@ -2271,10 +2271,12 @@ beyond the operator has not yet been fetched.
                                        &locator_for_curr_id);
           if (get_token() != tok_rparen) {
             /* Error -- Expected a right parenthesis. */
-            if (microsoft_mode && curr_token == tok_newline) {
-              /* The Microsoft compiler gives no error on the missing
-                 right parenthesis at end of line, and Microsoft headers
-                 unfortunately use this. */
+            if (microsoft_mode && microsoft_version <= 1300 &&
+                curr_token == tok_newline) {
+              /* Versions of the Microsoft compiler before 7.1 give no
+                 error on the missing right parenthesis at end of line, and
+                 the corresponding Microsoft headers unfortunately use
+                 this. */
               remark(ec_exp_rparen);
             } else {
               error(ec_exp_rparen);

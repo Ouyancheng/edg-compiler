@@ -1,5 +1,18 @@
 Version 4.2
 
+12/24/09 [EDGcpfe/7276]
+Microsoft compatibility: missing right parenthesis in "defined" operator
+
+As noted in the 5/9/97 entry, early versions of the Microsoft preprocessor
+accepted uses of the "defined" operator in which the closing right
+parenthesis is omitted, and the front end emulated this behavior.
+Beginning with version 7.1, however, the Microsoft preprocessor correctly
+diagnoses this error, and the front end has been changed to follow suit,
+depending on the version being emulated.  For example:
+
+    #if defined(X    // Now an error with microsoft_version > 1300
+
+
 12/23/09 [EDGcpfe/10147]
 Assertion failure in set_primary_ctor_or_dtor_kind
 
