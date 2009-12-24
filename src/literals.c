@@ -952,9 +952,6 @@ the size of character.
   } else {
     unsigned  long wc;
     int       numch;
-#if EDG_WIN32
-    a_boolean numch_from_mbc_len;
-#endif /* EDG_WIN32 */
     a_boolean err;
     /* Convert a multibyte character sequence to a wide character. */
     numch = lex_mbc_to_wide_char(*temp_ptr, &wc, &err);
