@@ -2868,11 +2868,6 @@ unqualified_part:
 #define gen_type_name(type)                                           \
   gen_name(&(type)->source_corresp, iek_type, GN_NO_OPTIONS,          \
            (a_boolean *)NULL)
-#define gen_possibly_dependent_type_name(type)                        \
-  gen_name(&(type)->source_corresp, iek_type,                         \
-           could_be_dependent_class_type(type) ?                      \
-                                     GN_DEPENDENT : GN_NO_OPTIONS,    \
-           (a_boolean *)NULL)
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
@@ -4202,8 +4197,16 @@ Generate a reference to the indicated type, which is a tag or a typedef.
 A reference is not the definition.
 */
 {
-  a_type_ptr	orig_type = type;
+  a_type_ptr             orig_type = type;
+  a_gen_name_options_set options = GN_NO_OPTIONS;
 
+  if (is_template_param_or_nonreal_class_type(type) ||
+      (type->source_corresp.is_class_member &&
+       is_template_param_or_nonreal_class_type(parent_class_of(type)))) {
+    /* This type depends on a template parameter and thus must be preceded
+       by the "typename" keyword. */
+    options = GN_DEPENDENT;
+  }  /* if */
   type = orig_type_if_nonreal_prototype_type(type);
   if (type->replace_by_generated_typedef) {
     /* Replace the reference to this type by a reference to a
@@ -4218,7 +4221,8 @@ A reference is not the definition.
     } else if (typeref_is_decltype_or_typeof(type)) {
       gen_decltype_or_typeof(type);
     } else {
-      gen_possibly_dependent_type_name(orig_type);
+      gen_name(&orig_type->source_corresp, iek_type, options,
+               (a_boolean *)NULL);
     }  /* if */
   } else {
     /* A class, struct, union, or enum. */
@@ -4266,7 +4270,8 @@ A reference is not the definition.
       /* Use just the type name. */
       /* Note that for a dependent name that's qualified this will also
          put out an elaborated type specifier. */
-      gen_possibly_dependent_type_name(orig_type);
+      gen_name(&orig_type->source_corresp, iek_type, options,
+               (a_boolean *)NULL);
     } else {
       /* Use an elaborated type specifier, e.g., "class X". */
       gen_tag_reference(type, (a_gen_name_options_set)GN_NO_OPTIONS,

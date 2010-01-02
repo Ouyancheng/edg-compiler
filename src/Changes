@@ -1,5 +1,24 @@
 Version 4.2
 
+1/1/10   [EDGcpfe/10117]
+C++-generating back end: "typename" keyword for non-class dependent types
+
+The C++ Standard requires that a dependent type be prefixed with the
+"typename" keyword.  When the C++-generating back end generated a template
+definition from the prototype instantiation and a dependent type was not
+a class, however, it failed to add the necessary "typename" prefix.  This
+is now fixed.  For example:
+
+  template<typename T> struct X {
+    typedef int S;
+    S f();
+  };
+  template<typename T> typename X<T>::S X<T>::f() {
+                    // ^^^^^^^^ formerly omitted, now correctly put out
+    return 0;
+  }
+
+
 12/24/09 [EDGcpfe/7276]
 Microsoft compatibility: missing right parenthesis in "defined" operator
 
