@@ -2432,8 +2432,16 @@ invocations.
     slmp->orig_char         = ' ';
     /* Save a pointer to this entry so that it can be found easily. */
 #if CHECKING
-    if (line_start_source_line_modif != NULL) {
-      /* There should only be one of these. */
+    if (line_start_source_line_modif != NULL && !at_end_of_source_file) {
+      /* There should only be one of these unless we are at the end of a
+         source file.  (Advancing to a new source line generally sets this
+         variable to NULL, but at the end of a source file, that action is
+         deferred until the source file stack is popped.  The scan for the
+         parenthesis after the name of a function-style macro does not pop
+         the source file stack, however, so if the last line of a file both
+         ends in the name of a function-style macro and began with a
+         re-inserted macro name from the preceding line, the line start
+         modification should simply be replaced -- it is not an error.) */
       internal_error(
           "add_source_line_modif: more than one line_start_source_line_modif");
     }  /* if */
@@ -2540,8 +2548,10 @@ source_line_modif_list.  The entry is not freed.
     line_start_source_line_modif = NULL;
   } else if (slmp->line_loc == NULL) {
     /* An entry that contains saved macro argument text from a previous
-       source line. */
-    check_assertion_str(slmp->contains_saved_macro_argument_text,
+       source line or was originally added as line_start_source_line_modif
+       (identified by orig_char == ' ', which cannot otherwise occur). */
+    check_assertion_str(slmp->contains_saved_macro_argument_text ||
+                        slmp->orig_char == ' ',
                         "rem_source_line_modif: line_loc NULL");
   } else {
     /* Restore the original character (thus removing the attention marker

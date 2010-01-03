@@ -1,5 +1,19 @@
 Version 4.2
 
+1/2/10   [EDGcpfe/8811]
+Abort with name of function-style macro as last token of a file
+
+If the last token of a file (source or header) is the name of a
+function-style macro, and the last token before the start of that line is
+also the name of a function-style macro not followed by '(', the front end
+aborted with the message, "internal error: add_source_line_modif: more than
+one line_start_source_line_modif."  This is now fixed.  For example:
+
+  #define M()
+  M
+  M
+
+
 1/1/10   [EDGcpfe/10117]
 C++-generating back end: "typename" keyword for non-class dependent types
 
