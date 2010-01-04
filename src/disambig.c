@@ -977,9 +977,11 @@ part of a declarator is found, may_be_decl is set to FALSE.
       } else if (abstract_declarator_allowed(flags) &&
                  !pointer_operator_seen) {
         if (is_type_specifier() || curr_token == tok_identifier) {
-          /* Construct like A(int());". */
+          /* Construct like A(int());"  Note that second_token will be
+             tok_error if the first token is not tok_lparen. */
           a_token_kind	token_2;
-          if (next_two_tokens(tok_lparen, &token_2) && token_2 == tok_rparen) {
+          (void)next_two_tokens(tok_lparen, &token_2);
+          if (token_2 == tok_rparen) {
             treat_as_expr = TRUE;
           }  /* if */
         }  /* if */

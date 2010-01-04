@@ -12164,9 +12164,11 @@ This routine is called only in C++ mode.
       }  /* if */
     } else if (opname == (an_opname_kind)onk_new ||
                opname == (an_opname_kind)onk_delete) {
-      /* See if this is really new[] or delete[].  If so, adjust the opname. */
-      if (next_two_tokens(tok_lbracket, &second_token) &&
-          second_token == tok_rbracket) {
+      /* See if this is really new[] or delete[].  If so, adjust the opname.
+         Note that second_token will be tok_error if the first token is not
+         tok_lbracket. */
+      (void)next_two_tokens(tok_lbracket, &second_token);
+      if (second_token == tok_rbracket) {
         if (!array_new_and_delete_enabled) {
           /* Issue an error if support for array new/delete is not enabled,
              but continue parsing as though it were. */

@@ -1,5 +1,15 @@
 Version 4.2
 
+1/4/10   [EDGcpfe/10347]
+Confusing use of next_two_tokens
+
+The front end contained a few uses of next_two_tokens (such as the example
+below) in which the return value was treated as a boolean value while it
+is actually a token kind.  This code worked properly but could be confusing
+to both users and analysis tools.  Now fixed.
+
+  if (next_two_tokens(tok_lparen, &token_2) && token_2 == tok_rparen) { ... }
+
 1/2/10   [EDGcpfe/8811]
 Abort with name of function-style macro as last token of a file
 
