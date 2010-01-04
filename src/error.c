@@ -80,11 +80,15 @@ static a_boolean
 				   being instantiated) is required after
 				   an error message is issued. */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 static a_source_file_ptr
 		diag_primary_source_file;
 				/* Pointer to the primary source file
 				   associated with the diagnostic currently
 				   being processed. */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 				   
 static a_text_buffer_ptr
 		write_diagnostic_buffer;

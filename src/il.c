@@ -89,12 +89,16 @@ static unsigned long
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 /*
 Number of namespace type placeholders on the file scope types list that have
 been marked as invalid.  This is a per-translation-unit variable.
 */
 static unsigned long
 		num_invalid_placeholders_in_file_scope;
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Data structure used to save information about the last source sequence
@@ -125,10 +129,14 @@ typedef struct a_source_sequence_cache_entry {
 
 static a_source_sequence_cache_entry seq_cache;
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 static a_seq_number_lookup_entry_ptr
 		curr_seq_number_lookup_entry;
 			/* Pointer to the sequence number lookup entry for
 			   the source file segment currently being read. */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_boolean
 		okay_to_use_seq_number_lookup_table;
@@ -302,13 +310,15 @@ Buffer into which names are written for db_name_str
 static a_text_buffer_ptr
 		db_name_str_buffer;
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 /*
 Buffer used to generate output by db_qualifier_str.
 */
 static a_text_buffer_ptr
-
 		db_qualifiers_str_buffer;
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static
 void put_str_into_text_buffer(char                                  *str,
@@ -333,7 +343,6 @@ is TRUE, include type information for function parameters.
 */
 {
   an_il_to_str_output_control_block octl;
-  char                              *trans_unit_name;
 
   /* Set up for use of form_name. */
   clear_il_to_str_output_control_block(&octl);
@@ -348,6 +357,7 @@ is TRUE, include type information for function parameters.
   if (in_front_end) {
     /* Generate a translation unit name if this entity's symbol is
        not from the primary translation unit. */
+    char  *trans_unit_name;
     trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
     if (trans_unit_name != NULL) {
       add_char_to_text_buffer(db_name_str_buffer, '[');

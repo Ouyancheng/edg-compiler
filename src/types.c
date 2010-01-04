@@ -823,6 +823,7 @@ Return TRUE if the given type is a union type.
 }  /* is_union_type */
 
 #if GNU_EXTENSIONS_ALLOWED
+#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean is_transparent_union_type(a_type_ptr  tp)
 /*
@@ -833,7 +834,6 @@ Return TRUE if the given type is a GNU C transparent union.
   return is_union(tp) && tp->variant.class_struct_union.is_transparent;
 }  /*is_transparent_union_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean transparent_union_has_field_type(a_type_ptr  union_type,
                                                   a_type_ptr  field_type)
@@ -3303,7 +3303,6 @@ checking instead of equivalence checking).
   return equiv;
 }  /* equiv_class_types */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean equiv_pointer_modifiers(a_pointer_modifier_set  pms1,
@@ -3322,6 +3321,7 @@ __ptr64 modifier.  On non-64-bit platforms, "equivalent" means "identical".
 }  /* equiv_pointer_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean routine_linkages_are_compatible(a_name_linkage_kind  nlk1,
                                           a_name_linkage_kind  nlk2,
@@ -8719,13 +8719,6 @@ its parameters?).
   a_template_arg_ptr             tap;
   a_boolean                      status;
   a_routine_type_supplement_ptr  rtsp;
-#if STANDALONE_UTILITY_PROGRAM
-  /* The global variable "nonstandard_qualified_deduction" doesn't exist
-     in standalone programs.  This should only affect calls to this routine
-     from is_or_contains_template_param, which is not used in standalone
-     utility programs. */
-  a_boolean			nonstandard_qualifier_deduction = FALSE;
-#endif /* STANDALONE_UTILITY_PROGRAM */
 
   if (type_ptr == NULL) {
     /* If a NULL pointer was passed in, simply return FALSE. */
@@ -9287,7 +9280,7 @@ containing such a reference to the type.
   find_all_dependent_types = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
-     in some modes a nonstandard deduction rule applies. */
+       in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   return (traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
@@ -9312,7 +9305,7 @@ by tparam_template.
   specific_template_template_param = tparam_template;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
-     in some modes a nonstandard deduction rule applies. */
+       in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   return (traverse_type_tree(type_ptr,
@@ -9341,7 +9334,7 @@ in the type tree represented by tp.
   find_all_dependent_types = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
-     in some modes a nonstandard deduction rule applies. */
+       in some modes a nonstandard deduction rule applies. */
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   return (traverse_type_tree(tp, ttt_contains_template_param_constant,
