@@ -241,9 +241,9 @@ extern char *format_type_string(struct a_type *type,
 extern void error_early_init(void);
 extern void error_one_time_init(void);
 extern void error_init(void);
+extern void error_trans_unit_init(void);
 #if !STANDALONE_UTILITY_PROGRAM
 extern void clear_file_index_list(void);
-extern void error_trans_unit_init(void);
 #if MAKE_FRONT_END_CALLABLE
 extern void error_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
@@ -543,6 +543,8 @@ FILE *open_source_file_with_error_handling(
 				an_open_file_result	*open_result,
 				a_unicode_source_kind	*unicode_source_kind);
 
+extern char *error_text(an_error_code error_code);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
                                     an_error_code      error_code,
@@ -573,8 +575,6 @@ extern void diag_pragma(struct a_pending_pragma *ppp);
 extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,
                                               an_error_code      error_code);
-
-extern char *error_text(an_error_code error_code);
 
 /* Macro that determines whether to report a violation of the Embedded C++
    subset. */

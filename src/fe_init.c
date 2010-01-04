@@ -33,6 +33,7 @@ in .h files.
 
 #include "basic_hdrs.h"
 #include "fe_common.h"
+#include "fe_init.h"
 
 #if STANDALONE_UTILITY_PROGRAM
 

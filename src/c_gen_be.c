@@ -9248,7 +9248,7 @@ Generate C from the intermediate language.
 
 
 #if STANDALONE_C_GEN_BE
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 /*
 Simple "back end" that generates C.  This version is for use as a
 separate program which gets an IL file from the front end.  This program
