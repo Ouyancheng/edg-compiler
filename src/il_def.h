@@ -934,15 +934,6 @@ typedef struct a_src_seq_secondary_decl {
 			   in the source correspondence entry for the declared
 			   entity.  I.e., the entries here are copies of those
 			   recorded in "entity" for this declaration.) */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  an_ELF_visibility_kind
-		ELF_visibility;
-			/* The ELF visibility indicated by a GNU visibility
-			   attribute (only applies to entries representing
-			   namespace-extension definitions; for the primary
-			   namespace definition, the default visibility is
-			   recorded in the a_namespace entry). */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   a_bit_field	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
@@ -2051,15 +2042,6 @@ typedef struct a_namespace {
 			   be an alias) for which this entry is an alias;
 			   should never be NULL. */
   } variant;
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
-  an_ELF_visibility_kind
-		ELF_visibility;
-			/* The ELF visibility indicated by a GNU visibility
-			   attribute (only applies to entries representing the
-			   primary namespace declarations; the visibility for
-			   a namespace-extension definition is recorded in a
-			   source sequence secondary declaration entry). */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_namespace;
 
 

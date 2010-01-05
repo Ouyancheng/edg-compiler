@@ -321,6 +321,7 @@ typedef struct an_attr_appl_descr {
 			     "r"  : routines
 			       "m"  : class member
 			       "i"  : inline
+			       "p"  : pure virtual
 			       "v"  : virtual
                                "x"  : external linkage
 			     "v"  : variables
@@ -493,6 +494,39 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_last, "!!ERROR", NO_APPL_FN }
 };
 
+
+#if CHECKING
+
+static DOES_NOT_RETURN abort_for_misconfigured_attribute(
+                                                an_attribute_ptr  ap,
+                                                char              *filename,
+                                                int               line_number,
+                                                char              *msg)
+/*
+Abort with a message indicating the given file name, line number, and message.
+Also indicate the name of the affected attribute.  This function is called
+through the macro check_attr_config.
+*/
+{
+  char  attr_name[MAX_ATTRIBUTE_NAME_LENGTH+20];
+
+  /* Create a parenthesized note, mentioning the attribute name, to be
+     appended to the message. */
+  (void)sprintf(attr_name, "(for attribute %s)", ap->name);
+  assertion_failed(filename, line_number, msg, attr_name); 
+}  /* abort_for_misconfigured_attribute */
+
+
+/* Macro to test an assertion regarding the attribute configuration tables. */
+#define check_attr_config(test, ap, msg)                                     \
+  ((/*lint --e(774)*/(test)) ? (void)0 :                                     \
+    abort_for_misconfigured_attribute((ap), __FILE__, __LINE__, (char*)msg))
+
+#else /* !CHECKING */
+
+#define check_attr_config(test, ap, msg)  /* Nothing */
+
+#endif /*CHECKING */
 
 /*
 Pointer to a hash table indexing known_attr_table by attribute name.
@@ -688,12 +722,18 @@ there is an applicable one; otherwise, return NULL.
     }  /* for */
 search_done:
     if (ep != NULL) {
+      /* An attribute description matching the given attribute and current
+         mode was found.  Update the "kind" and "transforms_type_specifier"
+         fields in the attribute accordingly. */
       an_attr_appl_descr  *aadp;
       result = ep->descr;
       ap->kind = (a_byte_attribute_kind)result->attr_kind;
       aadp = &known_attr_appl_table[(int)ap->kind];
-      check_assertion((a_byte_attribute_kind)aadp->kind == ap->kind);
       ap->transforms_type_specifier = (aadp->target_constraints[0] == 'T');
+      /* Check that the attribute application table contains the correct
+         entry at the expected index. */
+      check_attr_config((a_byte_attribute_kind)aadp->kind == ap->kind, ap,
+                        "known_attr_appl_table misconfigured");
     }  /* if */
   }  /* if */
   return result;
@@ -807,18 +847,27 @@ to ak_unrecognized, and return NULL.
 {
   an_attribute_arg_ptr  aap = NULL;
 
-  if (curr_token == tok_string_literal &&
-      is_ordinary_string_constant(&const_for_curr_token)) {
-    aap = alloc_attribute_arg();
-    aap->kind = (an_attribute_arg_kind)aak_constant;
-    aap->position = pos_curr_token;
+  if (curr_token == tok_string_literal) {
+    if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
+      /* A malformed string literal: An error has already been issued. */
+      expect_error();
+    } else if (is_ordinary_string_constant(&const_for_curr_token)) {
+      aap = alloc_attribute_arg();
+      aap->kind = (an_attribute_arg_kind)aak_constant;
+      aap->position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    aap->end_position = end_pos_curr_token;
+      aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    aap->variant.constant = alloc_shareable_constant(&const_for_curr_token);
+      aap->variant.constant = alloc_shareable_constant(&const_for_curr_token);
+    } else {
+      /* A wide string literal: Issue an error. */
+      pos_error(ec_wide_string_not_allowed, &pos_curr_token);
+    }  /* if */
     (void)get_token();
   } else {
     syntax_error(ec_exp_string_literal);
+  }  /* if */
+  if (aap == NULL) {
     make_attr_unrecognized(ap);
   }  /* if */
   return aap;
@@ -856,7 +905,7 @@ static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
                                                          an_attribute_ptr  ap)
 /*
 Scan tokens until (but not including) a non-matched right parenthesis, bracket,
-or brace.  Return these tokens as a list of aak_token attribute argument
+or brace.  Return these tokens as a list of aak_raw_token attribute argument
 entries.  (This is called for attributes whose "signature string" ends in "*)".
 That includes unrecognized attributes.)
 */
@@ -864,11 +913,14 @@ That includes unrecognized attributes.)
   unsigned long         n_paren = 0, n_bracket = 0, n_brace = 0;
   an_attribute_arg_ptr  aap = NULL, *p_aap = &aap;
 
+  /* Record tokens while keeping track of the number of parentheses, brackets,
+     and braces.  Stop when encountering a right parenthesis, bracket, or
+     brace not matching a recorded token. */
   for (;;) {
     switch (curr_token) {
       case tok_newline:
-        check_assertion(in_preprocessing_directive);
-        /*FALLTHROUGH*/
+        unexpected_condition();
+        /*NOTREACHED*/
       case tok_end_of_source:
         expect_error();
         goto done;
@@ -904,6 +956,8 @@ That includes unrecognized attributes.)
         }  /* if */
       default:
 default_case:
+        /* Create an aak_raw_token entry for the current token and move on
+           to the next token. */
         *p_aap = alloc_attribute_arg();
         (*p_aap)->kind = (an_attribute_arg_kind)aak_raw_token;
         (*p_aap)->position = pos_curr_token;
@@ -964,20 +1018,29 @@ ak_unrecognized.
           }  /* if */
           break;
         case 'n':
+          /* Scan an identifier token and record it as an attribute
+             argument */
           *p_aap = scan_attr_identifier_arg(ap);
           break;
         case 's':
+          /* Scan a string literal as an attribute argument. */
           if (*sig == 'n') {
+            /* Scan a narrow string literal. */
             *p_aap = scan_attr_string_arg(ap);
             ++sig;
           } else {
+            /* Wide string literals are currently not supported. */
             unexpected_condition();
           }  /* if */
           break;
         case 't':
+          /* Scan a type-id and record it as an attribute argument. */
           *p_aap = scan_attr_type_arg(ap);
           break;
         case '*':
+          /* Scan the remaining tokens (including commas) up until an unmatched
+             parenthesis, bracket, or brace, and record each one as an
+             attribute argument. */
           *p_aap = scan_attr_remaining_arg_tokens(ap);
           break;
         default:
@@ -1000,8 +1063,11 @@ ak_unrecognized.
         ++sig;
         if (curr_token == tok_rparen) break;
       }  /* if */
-      check_assertion(*sig == ',');
+      check_attr_config(*sig == ',', ap,
+                        "invalid attribute signature configuration");
       ++sig;
+    } else {
+      break;
     }  /* if */
   } while (loop_token(tok_comma));
 }  /* scan_attr_arg_list */
@@ -1030,7 +1096,8 @@ ak_unrecognized.
     }  /* if */
     /* Skip a leading '?' indicating that the argument list was optional. */
     if (*sig == '?') ++sig;
-    check_assertion(*sig == '(');
+    check_attr_config(*sig == '(', ap,
+                      "invalid attribute signature configuration");
     ++sig;
     if (next_token() == tok_rparen) {
       /* An empty attribute argument "()". */
@@ -1038,6 +1105,7 @@ ak_unrecognized.
     } else {
       /* Skip over the left parenthesis. */
       (void)get_token();
+      /* Scan the non-empty argument list. */
       scan_attr_arg_list(ap, sig);
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -1047,7 +1115,8 @@ ak_unrecognized.
     syntax_error(ec_exp_lparen);
     make_attr_unrecognized(ap);
   } else {
-    check_assertion(*sig == '\0' || *sig == '?');
+    check_attr_config(*sig == '\0' || *sig == '?', ap,
+                      "invalid attribute signature configuration");
   }  /* if */
   remove_stop_token(tok_rparen);
 }  /* scan_attribute_args */
@@ -1104,10 +1173,8 @@ of the attribute to be that of the current token (in configurations that
 track end positions).
 */
 {
-  check_assertion(curr_token == tok_identifier ||
-                  is_keyword_token(curr_token));
-  /* Using the symbol header identifier ensures that the same string is used
-     every time this particular attribute name is encountered. */
+  check_assertion(is_valid_attribute_identifier(curr_token));
+  /* Record the attribute name as an IL string. */
   ap->name = il_string_for_curr_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ap->end_position = end_pos_curr_token;
@@ -1195,9 +1262,10 @@ static an_attribute_ptr scan_attributes_list(an_attribute_location  loc,
                                              a_token_kind           end_token)
 /*
 Scan a comma-separated list of attributes of the given family.  end_token is
-the token kind that terminates the list (that final token is not considered
-part of the list and is therefore not consumed).  loc describes the syntactic
-location in which the attributes appear.
+the token kind that terminates the list (that final token, which should be in
+the stop tokens set, is not considered part of the list and is therefore not
+consumed).  loc describes the syntactic location in which the attributes
+appear.
 */
 {
   an_attribute_ptr   attributes = NULL, *p_attribute = &attributes, ap;
@@ -1413,16 +1481,17 @@ If attributes are ahead in the token stream, skip over them.
 */
 {
   for (;;) {
-    if (curr_token == tok_lbracket && next_token() == tok_lbracket) {
+    if (curr_token == tok_lbracket && std_attributes_enabled &&
+        next_token() == tok_lbracket) {
       /* Skip over standard attributes. */
       flush_until_matching_token();
-      (void)get_token();
+      if (curr_token == tok_rbracket) (void)get_token();
     } else if (curr_token == tok_attribute && gnu_attributes_enabled) {
       /* Skip over GNU attributes. */
       (void)get_token();
       if (curr_token == tok_lparen) {
         flush_until_matching_token();
-        (void)get_token();
+        if (curr_token == tok_rparen) (void)get_token();
       }  /* if */
     } else {
       break;
@@ -1453,17 +1522,18 @@ constr encodes a simple target constraint for a type.  Check that the
 attribute ap applied to the given type matches those constraints.
 */
 {
-  check_assertion(constr[0] == 'T' || constr[0] == 't' || constr[0] == 'c' ||
-                  constr[0] == 'e');
+  check_attr_config(constr[0] == 'T' || constr[0] == 't' || constr[0] == 'c' ||
+                    constr[0] == 'e',
+                    ap, "invalid attribute constraint configuration");
   if (constr[1] == ':') {
+    /* Type property switches follow.  E.g., "t:-f" indicates the type cannot
+       be a function type. */
     an_error_code  err = ec_no_error;
     constr += 2;
-    while (err == ec_no_error) {
-      if (*constr == '!') {
-        ++constr;
-      }  /* if */
+    for(;;) {
       if (*constr == '\0' || *constr == '|') break;
-      check_assertion(constr[0] == '-' || constr[0] == '+');
+      check_attr_config(constr[0] == '-' || constr[0] == '+',
+                        ap, "invalid attribute constraint configuration");
       if (constr[1] == 'f') {
         /* Check for function types. */
         if (is_function_type(type)) {
@@ -1477,9 +1547,15 @@ attribute ap applied to the given type matches those constraints.
         }  /* if */
         constr += 2;
       } else {
-        unexpected_condition();
+        unexpected_condition_str2(
+           "invalid property code for constraint configuration of attribute",
+           ap->name);
       }  /* if */
-    }  /* while */
+      if (err != ec_no_error) break;
+      if (*constr == '!') {
+        ++constr;
+      }  /* if */
+    }  /* for */
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
@@ -1501,14 +1577,14 @@ attribute ap applied to the given field matches those constraints.
 {
   check_assertion(constr[0] == 'd');
   if (constr[1] == ':') {
+    /* Field property switches follow.  E.g., "d:-b" indicates the field cannot
+       be a bit field. */
     an_error_code  err = ec_no_error;
     constr += 2;
-    while (err == ec_no_error) {
-      if (*constr == '!') {
-        ++constr;
-      }  /* if */
+    for (;;) {
       if (*constr == '\0' || *constr == '|') break;
-      check_assertion(constr[0] == '-' || constr[0] == '+');
+      check_attr_config(constr[0] == '-' || constr[0] == '+',
+                        ap, "invalid attribute constraint configuration");
       if (constr[1] == 'b') {
         /* Check for bit-fields. */
         if (field->is_bit_field) {
@@ -1522,9 +1598,15 @@ attribute ap applied to the given field matches those constraints.
         }  /* if */
         constr += 2;
       } else {
-        unexpected_condition();
+        unexpected_condition_str2(
+           "invalid property code for constraint configuration of attribute",
+           ap->name);
       }  /* if */
-    }  /* while */
+      if (err != ec_no_error) break;
+      if (*constr == '!') {
+        ++constr;
+      }  /* if */
+    }  /* for */
     if (err) {
       /* Treat the attribute as unrecognized for error recovery purposes. */
       make_attr_unrecognized(ap);
@@ -1550,14 +1632,14 @@ attribute ap applied to the given routine matches those constraints.
 {
   check_assertion(constr[0] == 'r');
   if (constr[1] == ':') {
+    /* Routine property switches follow.  E.g., "r:-m" indicates the routine
+       cannot be a class member. */
     an_error_code  err = ec_no_error;
     constr += 2;
-    while (err == ec_no_error) {
-      if (*constr == '!') {
-        ++constr;
-      }  /* if */
+    for (;;) {
       if (*constr == '\0' || *constr == '|') break;
-      check_assertion(constr[0] == '-' || constr[0] == '+');
+      check_attr_config(constr[0] == '-' || constr[0] == '+',
+                        ap, "invalid attribute constraint configuration");
       if (constr[1] == 'm') {
         /* Check for class member functions */
         if (routine->source_corresp.is_class_member) {
@@ -1620,9 +1702,15 @@ attribute ap applied to the given routine matches those constraints.
         }  /* if */
         constr += 2;
       } else {
-        unexpected_condition();
+        unexpected_condition_str2(
+           "invalid property code for constraint configuration of attribute",
+           ap->name);
       }  /* if */
-    }  /* while */
+      if (err != ec_no_error) break;
+      if (*constr == '!') {
+        ++constr;
+      }  /* if */
+    }  /* for */
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
@@ -1644,14 +1732,14 @@ attribute ap applied to the given variable matches those constraints.
 {
   check_assertion(constr[0] == 'v');
   if (constr[1] == ':') {
+    /* Variable property switches follow.  E.g., "v:-a" indicates the variable
+       cannot be automatic. */
     an_error_code  err = ec_no_error;
     constr += 2;
-    while (err == ec_no_error) {
-      if (*constr == '!') {
-        ++constr;
-      }  /* if */
+    for (;;) {
       if (*constr == '\0' || *constr == '|') break;
-      check_assertion(constr[0] == '-' || constr[0] == '+');
+      check_attr_config(constr[0] == '-' || constr[0] == '+',
+                        ap, "invalid attribute constraint configuration");
       if (constr[1] == 'a') {
         /* Check for automatic storage duration. */
         if (!has_static_storage_duration(variable->storage_class)) {
@@ -1704,9 +1792,15 @@ attribute ap applied to the given variable matches those constraints.
         }  /* if */
         constr += 2;
       } else {
-        unexpected_condition();
+        unexpected_condition_str2(
+           "invalid property code for constraint configuration of attribute",
+           ap->name);
       }  /* if */
-    }  /* while */
+      if (err != ec_no_error) break;
+      if (*constr == '!') {
+        ++constr;
+      }  /* if */
+    }  /* for */
     if (err != ec_no_error) {
       /* Issue the diagnostic. */
       an_error_severity  sev = *constr == '!' ? es_error : es_warning;
@@ -1864,7 +1958,9 @@ appropriate and set ap->kind to ak_unrecognized).
         }  /* if */
         break;
       default:
-        unexpected_condition();
+        unexpected_condition_str2(
+           "invalid entity code for constraint configuration of attribute",
+           ap->name);
     }  /* switch */
     if (match_found) break;
     /* Skip to the next constraint (if any). */
@@ -1874,7 +1970,7 @@ appropriate and set ap->kind to ak_unrecognized).
     ++constr;
   }  /* for */
   if (!match_found) {
-    /* Issue a diagnostic is no match was found. */
+    /* Issue a diagnostic if no match was found. */
     an_error_severity  sev = es_error;
     if (ap->family == (a_byte_attribute_family)af_gnu &&
         entity_kind == iek_type) {
@@ -2051,15 +2147,14 @@ an_attribute_ptr copy_of_attributes_with_substitution(
 /*
 Return a copy of the given list of attributes (which may be NULL) with the
 given template parameters substituted by (respectively) the given template
-arguments.  options is a bit set describing options for substition.  If
+arguments.  options is a bit set describing options for substitution.  If
 p_error is non-NULL, *p_error is set to TRUE if the substitution results in an
 invalid entity.  If p_error is NULL, a substitution error is diagnosed as an
 error.
 */
 {
   an_attribute_ptr  result = NULL, *p_attr = &result, ap;
-  a_boolean         err = FALSE, *p_err = (p_error == NULL) ? &err : p_error;
-  a_boolean         substitution_error_reported = FALSE;
+  a_boolean         err = FALSE, substitution_error_reported = FALSE;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
     *p_attr = alloc_attribute();
@@ -2069,10 +2164,11 @@ error.
       do {
         *p_aap = alloc_attribute_arg();
         *p_aap = aap;
-        /* Substitution template parameters in the attribute arguments. */
+        /* Substitute template parameters in the attribute arguments. */
         switch (aap->kind) {
-          case aak_token:
           case aak_empty:
+          case aak_raw_token:
+          case aak_token:
             /* Nothing to do. */
             break;
           case aak_constant:
@@ -2082,7 +2178,7 @@ error.
                  copy_template_param_con_with_substitution(
                                        aap->variant.constant, t_args, t_params,
                                        (a_type_ptr)NULL, &aap->position,
-                                       options, p_err);
+                                       options, &err);
 
             } else {
               (*p_aap)->variant.constant =
@@ -2092,12 +2188,15 @@ error.
           case aak_type:
             (*p_aap)->variant.type =
                copy_type_with_substitution(aap->variant.type, t_args, t_params,
-                                           &aap->position, options, p_err);
+                                           &aap->position, options, &err);
             break;
           default:
             unexpected_condition();
         }  /* switch */
-        if (*p_err) {
+        if (err) {
+          /* A substitution error.  Issue a diagnostic for the first error if
+             p_error is NULL (i.e., the caller cannot be notified directly of
+             the error). */
           if (p_error == NULL && !substitution_error_reported) {
             pos_error(ec_bad_attribute_template_substitution, &aap->position);
             substitution_error_reported = TRUE;
@@ -2110,6 +2209,7 @@ error.
     }  /* if */
     p_attr = &(*p_attr)->next;
   }  /* for */
+  if (err && p_error != NULL) *p_error = TRUE;
   return result;
 }  /* copy_of_attributes_with_substitution */
 
@@ -2151,8 +2251,8 @@ Currently, this is just the concatenation of copies of those lists.
 an_attribute_ptr get_param_variable_attr_copies(a_param_type_ptr  ptp)
 /*
 Return a list containing copies of the attributes from ptp->attributes that
-really apply to the associated variable.  The copied attributes have their
-syntactic location recorded as al_implicit.
+really apply to the associated parameter variable.  The copied attributes have
+their syntactic location recorded as al_implicit.
 */
 {
   an_attribute_ptr  result = NULL, *p_attr = &result, ap;
@@ -2187,7 +2287,9 @@ aap is an aak_constant argument for the given attribute.  Return TRUE if the
 associated constant is a ck_integer whose value is in the range determined
 by min_val and max_val (inclusive).  If the constant is a ck_integer, set *val
 to the associated value (as produced by value_of_integer_constant).  Issue an
-error on out-of-range cases.
+error on out-of-range cases.  (The attribute argument can also be a ck_error
+or ck_template_param constant.  In such cases, this function has no effect
+other than returning FALSE.)
 */
 {
   a_boolean       known_good_value = FALSE;
@@ -2214,9 +2316,10 @@ static a_type_ptr get_func_type_for_attr(an_attribute_ptr  ap,
                                          an_il_entry_kind  entity_kind)
 /*
 The given attribute is being applied to *entity (of the given kind).
-Several attributes (like "const" or "format") apply to a function type, a
+Several GNU attributes (like "const" or "format") apply to a function type, a
 pointer-to-function type or to a routine, variable or field with such a type.
-In all such cases, the underlying routine type must be modified.  If
+(However, GCC does not currently accept such attributes for pointer-to-member
+types.)  In all such cases, the underlying routine type must be modified.  If
 applicable, return that routine type for *entity after ensuring that it is
 modifiable (which in the case of a type may mean that *entity is modified).
 Otherwise, return NULL and issue a diagnostic if appropriate.
@@ -2263,7 +2366,7 @@ Otherwise, return NULL and issue a diagnostic if appropriate.
 
 
 #if !USER_CONTROL_OF_STRUCT_PACKING
-/*ARGSUSED*/  /* entity and entity_kind are unused in some configurations. */
+/*ARGSUSED*/  /* The parameters are unused in some configurations. */
 #endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 static char* apply_align_attr(an_attribute_ptr  ap,
                               char              *entity,
@@ -2273,14 +2376,16 @@ Apply the given "align" (or "aligned") attribute to the given entity and
 return that entity.
 */
 {
+#if USER_CONTROL_OF_STRUCT_PACKING
   a_boolean  std_attr = ap->family == (a_byte_attribute_family)af_std;
   char       *constr;
 
   if (std_attr) {
     constr = "v:-r!|d:-b!";
   } else if (ap->family == (a_byte_attribute_family)af_gnu) {
+    /* GCC allows types and bit fields to have a user-specified alignment. */
     if (gnu_version >= 40300) {
-      /* Newer versions of GCC allow the alignment of functions. */
+      /* Newer versions of GCC also allow the alignment of functions. */
       constr = "c|e|t|v:-r!|d|r";
     } else {
       constr = "c|e|t|v:-r!|d";
@@ -2289,7 +2394,6 @@ return that entity.
     unexpected_condition();
   }  /* if */
   if (check_target_entity_match(constr, ap, entity, entity_kind)) {
-#if USER_CONTROL_OF_STRUCT_PACKING
     an_attribute_arg_ptr  aap = ap->arguments;
     a_targ_alignment      alignment = 0;
     a_boolean             apply_value = TRUE;
@@ -2356,12 +2460,12 @@ return that entity.
     } else {
       unexpected_condition();
     }  /* if */
-#else /* !USER_CONTROL_OF_STRUCT_PACKING */
-    /* The "align" attribute is not recognized. */
-    unexpected_condition();
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
   return entity;
+#else /* !USER_CONTROL_OF_STRUCT_PACKING */
+  /* The "align" attribute is not recognized. */
+  unexpected_condition();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* apply_align_attr */
 
 
@@ -2392,11 +2496,15 @@ entity.
                [[noreturn]] void f();  // [[noreturn]] from g1() is not
              }                         // indicated in rp->type.
            Instead we may have to use the underlying sk_extern_routine symbol.
-           member functions).
         */
         a_type_ptr  prev_type;
-        if (rp->source_corresp.is_class_member ||
+        if ((rp->storage_class != (a_storage_class)sc_extern &&
+             rp->storage_class != (a_storage_class)sc_unspecified) ||
+            rp->source_corresp.is_class_member ||
             rp->type->variant.routine.extra_info->does_not_return) {
+          /* Cases with no associated sk_extern_routine symbol.  Fortunately,
+             these don't run into problems with block-extern declarations
+             either. */
           prev_type = rp->type;
         } else {
           a_symbol_locator  loc, eloc;
@@ -2618,7 +2726,7 @@ return the routine or variable.  This function may also be called for the
       }  /* if */
       rp->implicit_alias = FALSE;
       /* A separate copy of the string value is needed because the string
-         may become an asm_name, which is traversed as iek_other_text; not
+         may become an asm_name, which is traversed as iek_other_text, not
          iek_string_text. */
       add_alias_fixup(symbol_for(rp), (char*)NULL,
                       copy_string_to_region(file_scope_region_number,
@@ -2635,7 +2743,7 @@ return the routine or variable.  This function may also be called for the
       make_attr_unrecognized(ap);
     } else {
       /* A separate copy of the string value is needed because the string
-         may become an asm_name, which is traversed as iek_other_text; not
+         may become an asm_name, which is traversed as iek_other_text, not
          iek_string_text. */
       add_alias_fixup(symbol_for(vp), (char*)NULL,
                       copy_string_to_region(file_scope_region_number,
@@ -2654,7 +2762,14 @@ static char* apply_alloc_size_attr(an_attribute_ptr  ap,
                                    an_il_entry_kind  entity_kind)
 /*
 Apply the GNU "alloc_size" attribute to the given entity if applicable, and
-return that entity.
+return that entity.  
+The alloc_size attribute applies to functions that return a pointer to
+allocated memory.  It takes one or two integer arguments that specify
+parameters that determine the size of the returned memory.  Back ends
+can use this information to optimize the behavior of __builtin_object_size.
+For example:
+  void* myalloc(unsigned n_items, unsigned item_size)
+                                              __attribute((alloc_size(1, 2)));
 */
 {
   a_type_ptr  func_type;
@@ -2690,7 +2805,7 @@ return that entity.
       /* The attribute arguments are valid. */
     } else {
       make_attr_unrecognized(ap);
-    }
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_alloc_size_attr */
@@ -2809,6 +2924,8 @@ Apply the GNU "const" attribute to the given entity and return that entity.
 
   if (func_type != NULL) {
     func_type->variant.routine.extra_info->is_const = TRUE;
+  } else {
+    report_bad_attribute_target(es_warning, ap);
   }  /* if */
   return entity;
 }  /* apply_const_attr */
@@ -2856,15 +2973,21 @@ it and return the entity.
 
   check_assertion(entity_kind == iek_routine &&
                   (aap == NULL || aap->next == NULL));
+  if (!is_error_type(rp->type) &&
+      routine_type_is_nonstatic_member_function(rp->type)) {
+    pos_st_warning(ec_attribute_ignored_on_nonstatic_member_function,
+                   &ap->position, ap->name);
+  } else {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  /* Retrieve the priority value.  In error cases, the value will be zero and
-     ap->kind will be set to ak_unrecognized. */
-  rp->ctor_priority = get_priority(ap);
+    /* Retrieve the priority value.  In error cases, the value will be zero and
+       ap->kind will be set to ak_unrecognized. */
+    rp->ctor_priority = get_priority(ap);
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  if (!is_unrecognized_attr(ap)) {
-    rp->is_initialization_routine = TRUE;
-    mark_referenced(symbol_for(rp), &ap->position);
+    if (!is_unrecognized_attr(ap)) {
+      rp->is_initialization_routine = TRUE;
+    }  /* if */
   }  /* if */
+  mark_referenced(symbol_for(rp), &ap->position);
   return entity;
 }  /* apply_constructor_attr */
 
@@ -2917,14 +3040,17 @@ it and return the entity.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     if (!is_unrecognized_attr(ap)) {
       rp->is_finalization_routine = TRUE;
-      mark_referenced(symbol_for(rp), &ap->position);
     }  /* if */
   }  /* if */
+  mark_referenced(symbol_for(rp), &ap->position);
   return entity;
 }  /* apply_destructor_attr */
 
 
 static struct {
+  /* Data structure for table entries mapping the argument to a GNU "format"
+     attribute to the equivalent EDG pragma.  This is used by the function
+     apply_format_attr below. */
   char		*name;
 			/* Format name. */
   a_pragma_kind
@@ -2946,6 +3072,14 @@ static char* apply_format_attr(an_attribute_ptr  ap,
                                an_il_entry_kind  entity_kind)
 /*
 Apply the GNU "format" attribute to the given entity and return that entity.
+This attribute specifies that a function operates with a format string similar
+to that of the standard functions printf, scanf, or strftime.  An example of
+the "format" attribute is
+	int myprintf(void*, char const*, ...)
+                                         __attribute((format(printf, 2, 3)));
+The attribute argument "2" indicates which parameter is the format string, and
+the attribute argument "3" indicates which function argument is the first one
+described by the format string.
 */
 {
   a_type_ptr     func_type = get_func_type_for_attr(ap, &entity, entity_kind);
@@ -3015,8 +3149,8 @@ Apply the GNU "format" attribute to the given entity and return that entity.
       for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
         ++count;
         if (count == val[FMT_ARG]) {
-          if(!(is_pointer_type(ptp->type) &&
-               is_character_type(type_pointed_to(ptp->type)))) {
+          if (!(is_pointer_type(ptp->type) &&
+                is_character_type(type_pointed_to(ptp->type)))) {
             pos_error(ec_fmt_arg_is_not_string,
                       &ap->arguments->next->position);
             make_attr_unrecognized(ap);
@@ -3463,8 +3597,8 @@ parameter has a nonpointer type).
          parameter exists. */
       pos_error(ec_nonnull_parameter_number_too_large, diag_pos);
     } else {
-      /* All pointer parameters should be marked as non-NULL, but the were no
-         such parameters. */
+      /* All pointer parameters should be marked as non-NULL, but there were
+         no such parameters. */
       pos_warning(ec_no_pointer_parameters, diag_pos);
     }  /* if */
   }  /* if */
@@ -3599,15 +3733,21 @@ attribute to it and return the entity.
 */
 {
   a_constant_ptr  arg;
+  char            *str;
 
   check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
   arg = ap->arguments->variant.constant;
   check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+  /* Make a separate copy of the string value because it will be traversed as
+     iek_other_text whereas the original pointed to by the ck_string will be
+     traversed as iek_string_text. */
+  str = copy_string_to_region(file_scope_region_number,
+                              arg->variant.string.value);
   if (entity_kind == iek_routine) {
-    ((a_routine_ptr)entity)->section = arg->variant.string.value;
+    ((a_routine_ptr)entity)->section = str;
   } else if (entity_kind == iek_variable) {
-    ((a_variable_ptr)entity)->section = arg->variant.string.value;
+    ((a_variable_ptr)entity)->section = str;
   } else {
     unexpected_condition();
   }  /* if */
@@ -3666,7 +3806,7 @@ attribute to it and return the entity.
        which it appears, it is only valid in a namespace scope (including the
        file scope). */
     if (is_file_or_namespace_scope(ssep)) {
-      /* Add the current namespace to the list of namespace that contain a
+      /* Add the current namespace to the list of namespaces that contain a
          strong using of the named namespace. */
       a_namespace_list_entry_ptr         nlep = alloc_namespace_list_entry();
       a_namespace_symbol_supplement_ptr  nssp;
@@ -3726,6 +3866,8 @@ transparent.  If not, issue a diagnostic and return FALSE.
       }  /* if */
     }  /* for */
   }  /* if */
+  /* If an error occurred, f will point to the first field that did not meet
+     the requirements. */
   return f == NULL;
 }  /* check_transparent_union */
 
@@ -3836,14 +3978,14 @@ Apply the given "used" attribute to the given entity (and return that entity).
 {
   if (entity_kind == iek_routine) {
     ((a_routine*)entity)->has_gnu_used_attribute = TRUE;
-#if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
-    mark_as_needed(entity, entity_kind);
-#endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
   } else if (entity_kind == iek_variable) {
     ((a_variable*)entity)->has_gnu_used_attribute = TRUE;
   } else {
     unexpected_condition();
   }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  mark_as_needed(entity, entity_kind);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   return entity;
 }  /* apply_used_attr */
 
@@ -4053,13 +4195,13 @@ stack is empty.
   if (ELF_visibility_stack != NULL) {
     an_ELF_visibility_stack_entry_ptr  entry = ELF_visibility_stack;
     if (namespace_attribute && !entry->namespace_attribute) {
-      warning(ec_ELF_visibility_pop_mismatch);
+      pos_warning(ec_ELF_visibility_pop_mismatch, &pos_curr_token);
     }  /* if */
     ELF_visibility_stack = entry->next;
     entry->next = avail_ELF_visibility_stack_entries;
     avail_ELF_visibility_stack_entries = entry;
   } else {
-    warning(ec_ELF_visibility_stack_empty);
+    pos_warning(ec_ELF_visibility_stack_empty, &pos_curr_token);
   }  /* if */
 }  /* pop_ELF_visibility */
 
@@ -4117,25 +4259,6 @@ definition.
 
   sp->ELF_visibility = visibility;
   push_ELF_visibility(visibility, /*namespace_attribute=*/TRUE);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (source_sequence_entries_disallowed) {
-    /* Possible in secondary translation units or when code for source
-       sequence lists and for IL lowering is configured in simultaneously. */
-  } else {
-    a_source_sequence_entry_ptr   ssep;
-    check_assertion(sp->kind == (a_scope_kind)sck_namespace ||
-                    sp->kind == (a_scope_kind)sck_namespace_extension);
-    ssep = scope_stack[sp->previous_scope].end_of_source_sequence_list;
-    check_assertion(ssep != NULL);
-    if ((an_il_entry_kind)ssep->entity.kind == iek_src_seq_secondary_decl) {
-      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->ELF_visibility =
-                                                                   visibility;
-    } else {
-      check_assertion((an_il_entry_kind)ssep->entity.kind == iek_namespace);
-      sp->assoc_namespace->ELF_visibility = visibility;
-    }  /* if */
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* apply_ELF_visibility_to_current_namespace */
 
 
@@ -4201,6 +4324,10 @@ entity.
       default:
         unexpected_condition();
     }  /* switch */
+    if (evk == (an_ELF_visibility_kind)evk_unspecified) {
+      /* An invalid visibility kind was specified. */
+      pos_warning(ec_unrecognized_visibility, &ap->arguments->position);
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_visibility_attr */
@@ -4270,9 +4397,11 @@ error type.
     pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
     err = TRUE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else if (is_template_param_type(elem_type)) {
+    pos_error(ec_vector_size_with_dependent_element_type, &ap->position);
+    err = TRUE;
   } else if (!is_integral_or_enum_type(elem_type) &&
-             !is_floating_type(elem_type) &&
-             !is_template_param_type(elem_type)) {
+             !is_floating_type(elem_type)) {
     pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,
               &ap->position);
     err = TRUE;
@@ -4300,9 +4429,6 @@ error type.
                                        skip_typerefs(elem_type)->size) != 0) {
       pos_error(ec_vector_size_must_be_multiple_of_element_size,
                 &ap->position);
-      err = TRUE;
-    } else if (is_template_dependent_type(elem_type)) {
-      pos_error(ec_vector_size_with_dependent_element_type, &ap->position);
       err = TRUE;
     }  /* if */
   }  /* if */
