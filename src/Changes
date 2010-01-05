@@ -1,5 +1,13 @@
 Version 4.2
 
+1/5/10   [EDGcpfe/10346]
+Ensure that MODULE_ID_NEEDED is TRUE whenever NEED_NAME_MANGLING is TRUE
+
+In some configurations, it was possible for NEED_NAME_MANGLING to be TRUE and
+MODULE_ID_NEEDED to be FALSE.  This could lead to compilation errors when
+compiling lower_name.c.  This has now been fixed.
+
+
 1/4/10   [EDGcpfe/10347]
 Confusing use of next_two_tokens
 
