@@ -1839,15 +1839,11 @@ Display the indicated type entry.
       }  /* if */
 #if NEAR_AND_FAR_ALLOWED
       if (ptr->variant.typeref.explicit_memory_attribute_made_implicit) {
-        disp_boolean("explicit_memory_attribute_made_implicit",
-                     (a_boolean)ptr->variant.typeref.
-                                      explicit_memory_attribute_made_implicit);
+        disp_boolean("explicit_memory_attribute_made_implicit", TRUE);
       }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
       if (ptr->variant.typeref.has_variably_modified_type) {
-        disp_boolean("has_variably_modified_type",
-                     (a_boolean)ptr->variant.typeref.
-                                                   has_variably_modified_type);
+        disp_boolean("has_variably_modified_type", TRUE);
       }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.typeref.surrounding_name_linkage_state !=
@@ -1858,22 +1854,18 @@ Display the indicated type entry.
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.typeref.is_decltype) {
-        disp_boolean("is_decltype",
-                     (a_boolean)ptr->variant.typeref.is_decltype);
+        disp_boolean("is_decltype", TRUE);
       }  /* if */
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
-        disp_boolean(
-             "decltype_expr_not_parenthesized",
-             (a_boolean)ptr->variant.typeref.decltype_expr_not_parenthesized);
+        disp_boolean("decltype_expr_not_parenthesized", TRUE);
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (ptr->variant.typeref.is_typeof) {
-        disp_boolean("is_typeof", (a_boolean)ptr->variant.typeref.is_typeof);
+        disp_boolean("is_typeof", TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       if (ptr->variant.typeref.for_type_attributes) {
-        disp_boolean("for_type_attributes",
-                     (a_boolean)ptr->variant.typeref.for_type_attributes);
+        disp_boolean("for_type_attributes", TRUE);
       }  /* if */
       break;
     case tk_ptr_to_member:
@@ -4300,12 +4292,10 @@ Display the indicated attribute entry.
   disp_name("syntactic_location");
   (void)printf("%s\n", loc_name);
   if (ap->on_primary_declaration) {
-    disp_boolean("on_primary_declaration",
-                 (a_boolean)ap->on_primary_declaration);
+    disp_boolean("on_primary_declaration", TRUE);
   }  /* if */
   if (ap->transforms_type_specifier) {
-    disp_boolean("transforms_type_specifier",
-                 (a_boolean)ap->transforms_type_specifier);
+    disp_boolean("transforms_type_specifier", TRUE);
   }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {

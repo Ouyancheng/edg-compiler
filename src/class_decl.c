@@ -8578,7 +8578,7 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
 /*ARGSUSED*/
 #endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 static void copy_gnu_class_properties_to_routine(a_type_ptr     class_type,
-                                             a_routine_ptr  routine)
+                                                 a_routine_ptr  routine)
 /*
 routine is a member function of class_type.  Copy any properties of class_type
 (specified by GNU attributes) that should be propagated to its member

@@ -1910,7 +1910,7 @@ ec_attribute_ignored_on_nonstatic_member_function;;"attribute %sq does not apply
 ec_attr_disallows_automatic_storage;;"attribute %sq does not apply to automatic variables"
 ec_attr_requires_automatic_storage;;"attribute %sq requires an automatic variable"
 ec_attr_disallows_external_linkage;;"attribute %sq does not apply to a variable or function with external linkage"
-ec_attr_requires_local_variable;;"attribute %sq requires an local variable"
+ec_attr_requires_local_variable;;"attribute %sq requires a local variable"
 ec_attributes_ignored;;"attributes ignored here"
 ec_unattached_attribute;;"attribute does not apply to any entity"
 ec_bad_attribute_template_substitution;;"bad attribute argument substitution"

@@ -55,8 +55,8 @@ extern a_boolean check_transparent_union(a_type_ptr        tp,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
-Return TRUE if the given attribute is unrecognized or a empty attribute.  Such
-attributes cannot be "applied" to any entities.
+Return TRUE if the given attribute is unrecognized or an empty attribute.
+Such attributes cannot be "applied" to any entities.
 */
 #define is_unapplicable_attr(ap)                                             \
   ((ap)->kind == (a_byte_attribute_kind)ak_unrecognized ||                   \
@@ -114,6 +114,12 @@ extern void attach_type_attributes(a_type_ptr        *p_type,
 
 extern an_attribute_ptr *f_last_attribute_link(an_attribute_ptr  *attributes);
 
+/*
+A macro to access the last link of an attributes list.  The argument ap must
+be a pointer to an attribute pointer.  If ap is non-NULL and *ap points to a
+list of one or more attributes, return the address of the last "next" pointer
+of that list.  Otherwise, return ap itself.
+*/
 #define last_attribute_link(ap)                                              \
   (/*lint --e(506)*/ ((ap) == NULL || *(ap) == NULL) ?                       \
                                          (ap) : f_last_attribute_link(ap))

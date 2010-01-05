@@ -39,7 +39,7 @@ Scan attributes that appear after a declarator component other than the
 declarator-id.  *p_type is the type formed by the particular declarator
 component being parsed.  (Because of the way types are built up through
 declarators, **p_type may not be fully formed yet.  For example, the type
-pointed to by a pointer type may still by NULL.)
+pointed to by a pointer type may still be NULL.)
 GCC allows attributes after array and function declarators only for non-nested
 declarators.  Such attributes are placed on the state->id_attributes list
 (i.e., they are treated as appertaining to the declared entity, rather than to

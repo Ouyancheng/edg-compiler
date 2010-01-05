@@ -5860,13 +5860,6 @@ declaration following this one is such a continuation.
                                    &octl);
     } else {
       /* Normal typedef. */
-#if GNU_VECTOR_TYPES_ALLOWED
-      /* Versions 4.1 and later of the GNU compilers issue an error for
-         large vector sizes if the vector_size attribute appears before the
-         typedef name but the corresponding alignment attribute appears
-         after the typedef name. */
-      octl.defer_vector_attribute = TRUE;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       gen_general_declaration_using_type(under_type,
                                          &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
@@ -6160,6 +6153,10 @@ this one is such a continuation.
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = sec_decl->specialized_with_new_syntax;
+    /* Only the "secondary declaration" path picks up attributes here, because
+       they must be passed to the call to gen_tag_reference below.  For
+       definitions, gen_enum_definition and gen_class_definition retrieve
+       the attributes from the type entry. */
     attributes = sec_decl->attributes;
   } else {
     if (ss_entry_kind(curr_source_sequence_entry) == iek_template) {
@@ -10155,7 +10152,7 @@ Generate code for a namespace definition or namespace alias declaration.
 {
   a_src_seq_secondary_decl_ptr sec_decl;
   a_namespace_ptr              nsp;
-  an_attribute_ptr             attributes = NULL;
+  an_attribute_ptr             attributes;
 
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {

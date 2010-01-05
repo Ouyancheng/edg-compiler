@@ -4206,8 +4206,7 @@ it.  The entry is allocated in the current memory region.
 
 an_attribute_ptr alloc_attribute(void)
 /*
-Allocate an attribute in file scope memory and return a pointer to it.  The
-argument is allocated in the current memory region.
+Allocate an attribute in file scope memory and return a pointer to it.
 */
 {
   an_attribute_ptr  ap;
@@ -4238,7 +4237,6 @@ argument is allocated in the current memory region.
 an_attribute_arg_ptr alloc_attribute_arg(void)
 /*
 Allocate an attribute argument in file scope memory and return a pointer to it.
-The argument is allocated in the current memory region.
 */
 {
   an_attribute_arg_ptr  aap;
@@ -4261,7 +4259,6 @@ The argument is allocated in the current memory region.
 an_attribute_group_ptr alloc_attribute_group(void)
 /*
 Allocate an attribute group in file scope memory and return a pointer to it.
-The group entry is allocated in the current memory region.
 */
 {
   an_attribute_group_ptr  agp;

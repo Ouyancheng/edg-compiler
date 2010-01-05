@@ -12615,7 +12615,6 @@ friend_template_checks_done:
                           decl_state->is_partial_specialization);
     
   }  /* if */
-/* XXX: primary attributes and attaching secondary to secondary SSEs? */
   if (tssp->attributes == NULL || is_definition) {
     tssp->attributes = attributes;
   }  /* if */

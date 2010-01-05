@@ -1453,14 +1453,14 @@ typedef enum an_attribute_location_tag {
 			       int* __attribute((weak)) f() { return 0; }
 			   In this example, the attribute couldn't appear as
 			   a postfix attribute (because GCC doesn't allow
-			   postfix attributes on function definitions.  In
+			   postfix attributes on function definitions).  In
 			   cases with multiple declarators, a prefix attribute
 			   would not be appropriate either. */
   al_trailing_return,	/* The attribute is the first element of a trailing
 			   return type. */
-  al_post_initializer,	/* The attributes following a parenthesized initializer
+  al_post_initializer,	/* The attribute follows a parenthesized initializer
 			   (allowed in some GNU C++ modes only). */
-  al_namespace,		/* The attributes appear on a namespace definition. */
+  al_namespace,		/* The attribute appears on a namespace definition. */
   al_label,		/* The attribute follows a label name in a label
 			   declaration. */
   al_explicit,		/* This value is never recorded in attribute entries,
@@ -1559,9 +1559,6 @@ Currently "attributes" include the following general annotation constructs:
 In many cases, such annotations also affect an IL entry directly (e.g., the
 "alignment" field of a type or variable in case of an alignment attribute),
 but in other cases this data structure is the only record of the construct.
-Attributes can also be used to annotate properties that are so infrequent that
-a dedicated IL field cannot be justified (in such cases there isn't
-necessarily a matching source construct for that attribute).
 */
 typedef struct an_attribute {
   an_attribute_ptr
