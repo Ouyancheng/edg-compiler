@@ -920,7 +920,7 @@ That includes unrecognized attributes.)
     switch (curr_token) {
       case tok_newline:
         unexpected_condition();
-        /*NOTREACHED*/
+        break;
       case tok_end_of_source:
         expect_error();
         goto done;
