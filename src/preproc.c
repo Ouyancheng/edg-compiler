@@ -69,6 +69,177 @@ static a_text_buffer_ptr
 		header_name_buffer;
 			/* Text buffer used by copy_header_name. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_hash_table_ptr
+		include_alias_hash_table;
+			/* A hash table used to search for include alias
+			   entries.  NULL if no such aliases exist. */
+
+#if DEBUG
+static unsigned long
+		num_include_aliases_allocated;
+			/* Count of include aliases allocated, for space used
+			   purposes. */
+#endif /* DEBUG */
+
+/*
+Entry used by the include_alias_hash_table to record information about
+include_alias pragmas that have been encountered.  This is used for the
+implementation of the Microsoft include_alias pragma.
+*/
+typedef struct an_include_alias *an_include_alias_ptr;
+typedef struct an_include_alias {
+  char		*long_file_name;
+			/* The file name that is to be aliased to another
+			   name.  This contains the raw characters of the
+			   header name token. */
+  sizeof_t	long_file_name_length;
+			/* The length of long_File_name, not including the
+			   null terminator. */
+  char		*short_file_name;
+			/* The file name to be used in place of
+			   long_file_name.  This contains the file name
+			   after conversions such as possible conversion to
+			   UTF-8. */
+} an_include_alias;
+
+
+static void clear_include_alias(an_include_alias_ptr iap)
+/*
+Initialize the fields of an include alias entry.
+*/
+{
+  iap->long_file_name = NULL;
+  iap->long_file_name_length = 0;
+  iap->short_file_name = NULL;
+}  /* clear_include_alias */
+
+
+static an_include_alias_ptr alloc_include_alias(void)
+/*
+Allocate a new include alias entry, initialize its fields, and return a
+pointer to it.
+*/
+{
+  an_include_alias_ptr	iap;
+
+  iap = alloc_fe_of_type(an_include_alias);
+#if DEBUG
+  num_include_aliases_allocated++;
+#endif /* DEBUG */
+  clear_include_alias(iap);
+  return iap;
+}  /* alloc_include_alias */
+
+
+static a_hash_value hash_include_alias(a_void_ptr	key)
+/*
+Produce a hash value for an include alias entry.  The key is
+an_include_alias_ptr.
+*/
+{
+  a_hash_value		value = 0;
+  an_include_alias_ptr	iap;
+
+  iap = (an_include_alias_ptr)key;
+  value = hash_source_string((a_void_ptr)iap->long_file_name);
+  return value;
+}  /* hash_include_alias */
+
+
+static a_boolean compare_include_alias(a_void_ptr	entry,
+				       a_void_ptr	key)
+/*
+Compare an entry in the include alias hash table with an entry to be
+found.  "entry" and "key" are of type an_include_alias_ptr.  Return TRUE
+if the key matches the entry.  Return TRUE if the entries match.
+*/
+{
+  an_include_alias_ptr	entry_iap;
+  an_include_alias_ptr	key_iap;
+  a_boolean		result;
+
+  entry_iap = (an_include_alias_ptr)entry;
+  key_iap = (an_include_alias_ptr)key;
+  result = entry_iap->long_file_name_length ==
+                                              key_iap->long_file_name_length &&
+           strcmp(entry_iap->long_file_name, key_iap->long_file_name) == 0;
+  return result;
+}  /* compare_include_alias */
+
+
+static an_include_alias_ptr find_or_create_include_alias(
+						char		*long_name,
+						char		*short_name,
+						a_boolean	create)
+/*
+Look for long_name in the include alias hash table.  If it is not found
+and create is TRUE, add an entry.  A pointer to the entry is returned, or
+NULL if no entry was found or created.
+*/
+{
+  an_include_alias	ia;
+  an_include_alias_ptr	*iap_in_table;
+  an_include_alias_ptr	iap = NULL;
+
+  /* Create an include alias entry that describes the entry to be found.
+     This is the key used for the hash table lookup. */
+  clear_include_alias(&ia);
+  ia.long_file_name = long_name;
+  ia.long_file_name_length = strlen(long_name);
+  iap_in_table = (an_include_alias_ptr*)hash_find(
+						include_alias_hash_table,
+						(a_void_ptr)&ia, create);
+  if (iap_in_table != NULL) iap = *iap_in_table;
+  if (create) {
+    /* Create the entry to be referenced by the hash table.  If a previous
+       entry was found, the short file name that it refers to will be replaced
+       with the new one. */
+    if (iap == NULL) {
+      iap = alloc_include_alias();
+      *iap_in_table = iap;
+      /* Copy the key entry created above into the new entry. */
+      *iap = ia;
+    }  /* if */
+    iap->short_file_name = short_name;
+  }  /* if */
+  return iap;
+}  /* find_or_create_include_alias */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static char *check_for_include_alias(void)
+/*
+Check whether the current header name token refers to a file name for
+which an include_alias pragma has been seen.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_include_alias_ptr	iap;
+  char			*result = NULL;
+  a_text_buffer_ptr	buf = header_name_buffer;
+
+  /* The hash table will only exist if an include alias has been seen. */
+  if (include_alias_hash_table != NULL) {
+    /* Extract the raw characters of the header name from the token. */
+    reset_text_buffer(buf);
+    add_to_text_buffer(buf, start_of_curr_token, len_of_curr_token);
+    add_char_to_text_buffer(buf, '\0');
+    iap = find_or_create_include_alias(buf->buffer, (char*)NULL,
+                                       /*create=*/FALSE);
+    if (iap != NULL) result = iap->short_file_name;
+    if (db_flag_is_set("include_alias")) {
+      fprintf(f_debug, "Looking for alias for %s, found %s\n", buf->buffer,
+              result == NULL ? "NULL" : result);
+    }  /* if */
+  }  /* if */
+  return result;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  return NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* check_for_include_alias */
+
 
 /* Advance declaration needed because of mutual recursion: */
 static void skip_to_endif(a_boolean stop_skip_on_else_or_elif);
@@ -1109,12 +1280,17 @@ pass_stdarg_references_to_generated_code.
     /* A header name was scanned. */
     a_boolean	is_cstdarg = FALSE;
     is_system_include = *start_of_curr_token == '<';
-    /* Allocate space for and copy the name. */
-    /* Escapes are not processed.  That's an implementation choice; you
-       can change this if you'd rather have it the other way.  (But note
-       that Microsoft compatibility requires ignoring the escapes, because
-       "\" can be used in file names.) */
-    name_start_pos = copy_header_name(/*process_escapes=*/FALSE);
+    /* Check for a include alias where an alternate version of the file name
+       should be used. */
+    name_start_pos = check_for_include_alias();
+    if (name_start_pos == NULL) {
+      /* There was no alias.  Get a copy of the name in IL memory.
+         Escapes are not processed.  That's an implementation choice; you
+         can change this if you'd rather have it the other way.  (But note
+         that Microsoft compatibility requires ignoring the escapes, because
+         "\" can be used in file names.) */
+      name_start_pos = copy_header_name(/*process_escapes=*/FALSE);
+    }  /* if */
     /* Move past the header name. */
     (void)get_token();
     /* Ignore trailing junk on the line.  Do this before pushing the new file,
@@ -1794,6 +1970,144 @@ real compilation, they should just be ignored.
   }  /* while */
 }  /* hdrstop_or_no_pch_pragma */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static char *get_raw_header_name(a_boolean	issue_error)
+/*
+Use get_header_name to scan a header name, and return a copy the raw
+characters of the header name.  If the next token is not a header name,
+optionally issue a diagnostic and return NULL.  The returned value
+includes the delimiters of the4 header name.
+*/
+{
+  a_text_buffer_ptr	buf = header_name_buffer;
+  char			*result = NULL;
+
+  /* Scan the header name. */
+  if (get_header_name()) {
+    /* Get the raw version of the header name that was just scanned. */
+    reset_text_buffer(buf);
+    add_to_text_buffer(buf, start_of_curr_token, len_of_curr_token);
+    add_char_to_text_buffer(buf, '\0');
+    /* Allocate memory for the name.  Note that the buffer size includes the
+       null terminator. */
+    result = alloc_primary_file_scope_il(buf->size);
+    (void)strcpy(result, buf->buffer);
+  } else {
+    if (issue_error) {
+      pos_warning(ec_exp_file_name, &pos_curr_token);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_raw_header_name */
+
+
+static void create_include_alias_entry(char	*long_name,
+				       char	*short_name)
+/*
+Create an entry in the include alias table to map uses of long_name to
+short_name.
+*/
+{
+  if (include_alias_hash_table == NULL) {
+    /* Allocate a hash table for include aliases when the first one is
+       encountered. */
+    include_alias_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
+					        (a_hash_table_size)128,
+					        hash_include_alias,
+					        compare_include_alias);
+  }  /* if */
+#if DEBUG
+  if (db_flag_is_set("include_alias")) {
+    fprintf(f_debug, "Creating include alias for %s to %s\n", long_name,
+            short_name);
+  }  /* if */
+#endif /* DEBUG */
+  /* Create an entry for long_name and short_name.  If an entry already
+     exists for long_name, it will be updated to refer to the (possibly new)
+     short_name. */
+  (void)find_or_create_include_alias(long_name, short_name, /*create=*/TRUE);
+}  /* create_include_alias_entry */
+
+
+/*ARGSUSED*/ /* <-- ppp is not used. */
+void microsoft_include_alias_pragma(a_pending_pragma_ptr ppp)
+/*
+Process a Microsoft include alias pragma.  The form of the pragma is:
+
+  #pragma include_alias("long_filename", "short_filename")
+  #pragma include_alias(<long_filename>, <short_filename>)
+
+After the pragma has been encountered, an include of the long file name
+will instead include the short file name.  The name specified in the include
+directive must match the long file name exactly (including use of '"' vs.
+'<', and the exact characters between the delimiters).
+*/
+{
+  a_boolean	any_errors = FALSE;
+  char		*long_name = NULL;
+  char		*short_name = NULL;
+
+  /* Bypass the "include_alias" token. */
+  (void)get_token();
+  /* Scan the "(". */
+  if (curr_token == tok_lparen) {
+    /* We don't use get_token here because get_header_name requires that
+       the characters of the header name not be processed by get_token. */
+  } else {
+    pos_warning(ec_exp_lparen, &pos_curr_token);
+    any_errors = TRUE;
+  }  /* if */
+  /* Get the long file name. */
+  long_name = get_raw_header_name(!any_errors);
+  if (long_name == NULL) any_errors = TRUE;
+  /* Bypass the header name and look for a comma. */
+  if (get_token() == tok_comma) {
+    /* We don't use get_token here because get_header_name requires that
+       the characters of the header name not be processed by get_token. */
+  } else {
+    if (!any_errors) {
+      pos_warning(ec_exp_comma, &pos_curr_token);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Get the short file name. */
+  if (get_header_name()) {
+    /* Make sure the include delimiter is the same for both file names. */
+    if (*start_of_curr_token != *long_name) {
+      if (!any_errors) {
+        pos_warning(ec_include_kind_mismatch, &pos_curr_token);
+        any_errors = TRUE;
+      }  /* if */
+    } else {
+      /* Escapes are not processed.  That is appropriate since "\" is used
+         in file names on Microsoft systems. */
+      short_name = copy_header_name(/*process_escapes=*/FALSE);
+    }  /* if */
+  } else {
+    if (!any_errors) {
+      pos_warning(ec_exp_file_name, &pos_curr_token);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Bypass the header name and look for a closing parenthesis. */
+  if (get_token() == tok_rparen) {
+    (void)get_token();
+  } else {
+    if (!any_errors) {
+      pos_warning(ec_exp_rparen, &pos_curr_token);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!any_errors) {
+    /* Create an entry in the include alias table. */
+    create_include_alias_entry(long_name, short_name);
+  } else {
+    some_error_in_curr_directive = TRUE;
+  }  /* if */
+}  /* microsoft_include_alias_pragma */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void pass_pragma_to_output(a_pragma_kind_description_ptr pkdp)
 /*
@@ -3400,6 +3714,8 @@ Display and return the amount of space used for preprocessing structures.
                      avail_forScope_stack_entries,
                      num_forScope_stack_entries_allocated,
                      a_forScope_stack_entry);
+  db_space_used("include alias entries", num_include_aliases_allocated,
+                an_include_alias);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_space_used_total();
@@ -3507,8 +3823,10 @@ init_predefined_macros.)
   header_name_buffer = alloc_text_buffer(256);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_forScope_stack_entries = NULL;
+  include_alias_hash_table = NULL;
 #if DEBUG
   num_forScope_stack_entries_allocated = 0;
+  num_include_aliases_allocated = 0;
 #endif /* DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_init */

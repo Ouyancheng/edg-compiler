@@ -12032,6 +12032,7 @@ appropriate user-defined entry.
 }  /* hash_find */
 
 
+
 a_hash_value hash_source_string(a_void_ptr  key)
 /*
 Produce a hash value for the given pointer (it points to a string of source

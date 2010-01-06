@@ -3295,6 +3295,10 @@ in the current IL memory region.
       pp->variant.conform.pop = FALSE;
       pp->variant.conform.identifier = NULL;
       break;
+    case pk_include_alias:
+      pp->variant.include_alias.long_file_name = NULL;
+      pp->variant.include_alias.short_file_name = NULL;
+      break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:

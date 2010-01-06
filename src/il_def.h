@@ -3987,6 +3987,7 @@ enum a_pragma_kind_tag {
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   pk_comment,
   pk_conform,
+  pk_include_alias,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -4089,6 +4090,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 /* pk_comment */		"comment",
 /* pk_conform */		"conform",
+/* pk_include_alias */		"include_alias",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
@@ -4264,6 +4266,18 @@ typedef struct a_pragma {
 			   pragma this points to a null-terminated string
 			   representing that identifier.  NULL otherwise. */
     } conform;
+    /* When kind == pk_include_alias: */
+    struct {
+      char	*long_file_name;
+			/* The file name that is to be aliased to another
+			   name.  This contains the raw characters of the
+			   header name token. */
+      char	*short_file_name;
+			/* The file name to be used in place of
+			   long_file_name.  This contains the file name
+			   after conversions such as possible conversion to
+			   UTF-8. */
+    } include_alias;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } a_pragma;

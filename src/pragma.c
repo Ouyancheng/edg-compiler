@@ -477,6 +477,7 @@ possible.
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
     case pk_comment:
     case pk_conform:
+    case pk_include_alias:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     default:
@@ -2246,6 +2247,14 @@ Initialize the pragma description table.
                  /*il_info_is_complete=*/TRUE,
                  /*read_string_as_header_name=*/FALSE,
                  es_warning);
+    (void)add_preproc_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_include_alias,
+                 microsoft_include_alias_pragma,
+                 /*record_pragma_text=*/FALSE,
+		 /*il_info_is_complete=*/TRUE,
+                 /*automatically_include_in_il=*/TRUE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*read_string_as_header_name=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL

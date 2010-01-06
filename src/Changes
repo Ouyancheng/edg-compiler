@@ -1,5 +1,17 @@
 Version 4.2
 
+1/6/10   [EDGcpfe/9965]
+Microsoft compatibility: include_alias pragma
+
+The Microsoft include_alias pragma is now supported in Microsoft mode.
+See http://msdn.microsoft.com/en-us/library/wbeh5h91.aspx for more information
+about the pragma.
+
+  #pragma include_alias("a_long_file_name.h","short.h")
+  // The include will actually open the file short.h
+  #include "a_long_file_name.h"
+
+
 1/5/10   [EDGcpfe/10346]
 Ensure that MODULE_ID_NEEDED is TRUE whenever NEED_NAME_MANGLING is TRUE
 

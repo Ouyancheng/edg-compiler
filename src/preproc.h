@@ -305,6 +305,8 @@ extern void microsoft_stop_map_region_pragma(a_pending_pragma_ptr  ppp);
 extern void microsoft_comment_pragma(a_pending_pragma_ptr  ppp);
 
 extern void microsoft_conform_pragma(a_pending_pragma_ptr  ppp);
+
+extern void microsoft_include_alias_pragma(a_pending_pragma_ptr ppp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void once_pragma(a_pending_pragma_ptr ppp);
