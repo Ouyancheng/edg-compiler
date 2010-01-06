@@ -1,5 +1,12 @@
 Version 4.2
 
+1/6/10   [EDGcpfe/10354]
+IL display of GNU assigned goto statement entries
+
+The IL display utility failed to display the expression operand of a GNU
+assigned goto (stmk_assigned_goto) statement.  This is now fixed.
+
+
 1/6/10   [EDGcpfe/9965]
 Microsoft compatibility: include_alias pragma
 

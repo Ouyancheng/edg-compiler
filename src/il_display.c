@@ -3943,6 +3943,7 @@ do_label:
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       (void)printf("stmk_assigned_goto\n");
+      disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
