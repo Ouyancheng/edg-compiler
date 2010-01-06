@@ -2924,8 +2924,6 @@ Apply the GNU "const" attribute to the given entity and return that entity.
 
   if (func_type != NULL) {
     func_type->variant.routine.extra_info->is_const = TRUE;
-  } else {
-    report_bad_attribute_target(es_warning, ap);
   }  /* if */
   return entity;
 }  /* apply_const_attr */
