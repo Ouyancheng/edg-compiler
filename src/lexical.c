@@ -5833,8 +5833,11 @@ for the GNU C multiline string extension.
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
     if (!do_pop_on_end_of_file || curr_ise->do_not_advance_past_end_of_file) {
-      /* We're asked not to do the pop, so just return things as they
-         are (at_end_of_source_file is TRUE). */
+      /* We're asked not to do the pop, so just put an end-of-line escape
+         at the beginning of the line to ensure that the previous contents
+         won't be read again. */
+      curr_source_line[0] = LE_ESCAPE;
+      curr_source_line[1] = LE_END_OF_LINE;
       goto simple_return;
     }  /* if */
     /* We are supposed to pop the input stack and attempt again to
