@@ -1,5 +1,13 @@
 Version 4.2
 
+1/7/10   [EDGcpfe/10132]
+_Complex types not demangled properly in IA-64 ABI
+
+_Complex types were not properly demangled when using the IA-64 ABI.  This has
+now been fixed.  For example, _Z1fICdET_S1_ had failed to demangle and now
+produces "T1 f<_Complex double>(T1)".
+
+
 11/13/09 [EDGcpfe/10204]
 Demangle IA-64 ABI builtin type vendor extensions
 

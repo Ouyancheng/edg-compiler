@@ -3679,11 +3679,6 @@ at that level.  cv-qualifiers have been handled by the caller.
     }  /* if */
   } else {
     /* Builtin type. */
-    if (*p == 'C') {
-      /* GNU _Complex type. */
-      write_id_str("_Complex ", dctl);
-      ++p;
-    }  /* if */
     switch (*p++) {
       case 'v':
         s = "void";
@@ -3824,18 +3819,27 @@ to be on top of the type.
       p = demangle_template_args(p, dctl);
       record_substitution = TRUE;
     }  /* if */
-  } else if (kind == 'P' || kind == 'R' || kind == 'O') {
-    /* Pointer, reference, or rvalue reference type, P <type>, R <type>, or
-       O <type>. */
+  } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C') {
+    /* Look for type qualifiers:
+        <type> ::= <CV-qualifiers> <type>
+               ::= P <type> # pointer-to
+               ::= R <type> # reference-to
+               ::= O <type> # rvalue reference-to (C++0x)
+               ::= C <type> # complex pair (C 2000)
+       */
+    a_boolean need_trailing_space = TRUE;
+    if (kind == 'C') {
+      write_id_str("_Complex ", dctl);
+      need_trailing_space = FALSE;
+    }  /* if */
     p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE, dctl);
-    /* Output "*", "&", or "&&" for pointer, reference, or rvalue reference. */
-    if (kind == 'R') {
+                                 need_trailing_space, dctl);
+    if (kind == 'P') {
+      write_id_ch('*', dctl);
+    } else if (kind == 'R') {
       write_id_ch('&', dctl);
     } else if (kind == 'O') {
       write_id_str("&&", dctl);
-    } else {
-      write_id_ch('*', dctl);
     }  /* if */
     /* Output the cv-qualifiers on the pointer, if any. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
@@ -3961,9 +3965,14 @@ to be on top of the type.
                               dctl);
     /* No need to scan the <template-args> list if there is one -- 
        that was done by demangle_type_first_part. */
-  } else if (kind == 'P' || kind == 'R' || kind == 'O') {
-    /* Pointer, reference, or rvalue reference type, P <type>, R <type>, or
-       O <type>. */
+  } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C') {
+    /* Look for type qualifiers:
+        <type> ::= <CV-qualifiers> <type>
+               ::= P <type> # pointer-to
+               ::= R <type> # reference-to
+               ::= O <type> # rvalue reference-to (C++0x)
+               ::= C <type> # complex pair (C 2000)
+       */
     demangle_type_second_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'M') {
