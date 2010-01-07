@@ -5752,8 +5752,15 @@ Add to the mangled name the encoding for the type "type".
 have_whole_mangled_name:;
 #if IA64_ABI
   /* Create a substitution for the unqualified type. */
-  if (!is_integral_type(type) && !is_floating_type(type) && 
-      !is_void_type(type)) {
+  if ((!is_integral_type(type) &&
+       !is_floating_type(type) && 
+       !is_void_type(type))
+#if ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED
+      /* GNU allocates substitutions for complex types, and so do we (after
+         version 4.2). */
+      || type->kind == (a_type_kind)tk_complex
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED */
+                         ) {
     alloc_substitution((char *)type, iek_type, mctl);
   }  /* if */
 add_substitution_for_qualified_type:
