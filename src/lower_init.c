@@ -9951,19 +9951,18 @@ directly.  *con_pos will be set to indicate the simple constant.
         while (const_ptr != NULL) {
           if (const_ptr->kind == (a_constant_repr_kind)ck_aggregate &&
               !const_ptr->explicit_braces_on_aggregate &&
-              const_ptr->variant.aggregate.first_constant != NULL &&
-              const_ptr->variant.aggregate.first_constant->kind ==
-                                         (a_constant_repr_kind)ck_designator) {
-            a_constant_ptr desig_con = 
+              const_ptr->variant.aggregate.first_constant != NULL) {
+            a_constant_ptr first_constant =
                                    const_ptr->variant.aggregate.first_constant;
-            check_assertion(desig_con != NULL && desig_con->next != NULL);
-            if (desig_con->next->next != NULL) {
-              /* Unlink from the aggregate anything past the first constant in
-                 this designator. */
-              desig_con->next->next = NULL;
-              const_ptr->variant.aggregate.last_constant = desig_con->next;
+            if (first_constant->kind == (a_constant_repr_kind)ck_designator) {
+              /* Skip a designator if present. */
+              first_constant = first_constant->next;
             }  /* if */
-            const_ptr = const_ptr->variant.aggregate.first_constant;
+            /* Remove anything after the first constant in the aggregate. */
+            first_constant->next = NULL;
+            const_ptr->variant.aggregate.last_constant = first_constant;
+            /* Look further into the first constant. */
+            const_ptr = first_constant;
           } else if (const_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
             const_ptr = const_ptr->variant.init_repeat.constant;
           } else if (const_ptr->kind == (a_constant_repr_kind)ck_designator) {
