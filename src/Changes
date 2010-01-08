@@ -1,5 +1,16 @@
 Version 4.2
 
+1/8/10   [EDGcpfe/10358]
+Use of preprocessing immediate pragmas in pragma operators
+
+Formerly, preprocessing immediate pragmas could not be used in _Pragma
+operators (including the Microsoft __pragma operator in Microsoft mode).
+Most such pragmas may now be used in pragma operators.  Only the hdrstop
+and no_pch pragmas still require the #pragma syntax to be used.
+
+  _Pragma("once")  // now allowed
+
+
 1/7/10   [EDGcpfe/10132]
 GNU: Mangling of _Complex types in the IA-64 ABI
 
