@@ -1,5 +1,20 @@
 Version 4.2
 
+1/9/10   [EDGcpfe/10357]
+Locale set too late for multibyte operations in command-line processing
+
+When LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED is defined and
+MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE, the front end uses the specified
+locale for multibyte character conversions.  The setting of the locale was
+not done until after the command-line had been processed.  As a result, any
+multibyte operations done while processing the command-line could produce
+incorrect results.  The locale is now set before the command-line is
+processed.
+
+A similar issue existed with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+on Windows.  See the 9/3/09 entry for more information.
+
+
 1/8/10   [EDGcpfe/10358]
 Use of preprocessing immediate pragmas in pragma operators
 

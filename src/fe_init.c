@@ -854,6 +854,23 @@ line processing is done.
      be done before fe_one_time_init is started. */
   trans_unit_early_init();
   types_early_init();
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && \
+    !EDG_MULTIBYTE_CHAR_TEST_MODE && \
+    !(UNICODE_SOURCE_SUPPORTED && \
+      !defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED))
+  /* Set the locale to allow processing of multibyte characters in source.
+     Only change the category of processing related to character handling
+     functions.  This is done unconditionally because multibyte characters
+     might be enabled later using a command-line option and the locale must
+     be set before the command-line is processed. */
+  if (setlocale(LC_CTYPE,
+                LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) == NULL) {
+    str_catastrophe(ec_bad_multibyte_char_locale,
+                    LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
+  }  /* if */
+#endif /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && ... */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 }  /* fe_early_init */
 
 
@@ -867,26 +884,6 @@ after the command-line processing has been done.
   /* Set a current position indicating we are still in initialization. */
   set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
   set_err_pos_to_curr_token();
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && \
-    !EDG_MULTIBYTE_CHAR_TEST_MODE && \
-    !(UNICODE_SOURCE_SUPPORTED && \
-      !defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED))
-#if !UNICODE_SOURCE_SUPPORTED
-  if (multibyte_chars_in_source_enabled)
-#endif /* !UNICODE_SOURCE_SUPPORTED */
-  {
-    /* Set the locale to allow processing of multibyte characters in source.
-       Only change the category of processing related to character handling
-       functions. */
-    if (setlocale(LC_CTYPE,
-                  LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) == NULL) {
-      str_catastrophe(ec_bad_multibyte_char_locale,
-                      LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
-    }  /* if */
-  }  /* if */
-#endif /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && ... */
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   target_one_time_init();
   host_envir_one_time_init();
   class_decl_one_time_init();
