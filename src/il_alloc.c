@@ -3643,6 +3643,7 @@ and return a pointer to it.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   sssdp->is_partial_instantiation    = FALSE;
   sssdp->compiler_generated_forward_decl = FALSE;
+  sssdp->originally_nonautonomous_definition = FALSE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
   sssdp->marked_as_gnu_extension     = FALSE;

@@ -2703,6 +2703,12 @@ might not be able to if the template itself has not yet been defined.
       a_class_symbol_supplement_ptr	prototype_cssp;
       a_class_type_supplement_ptr	ctsp;
       a_decl_sequence_number		saved_decl_seq_counter;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      a_source_sequence_entry_ptr       orig_ssep = NULL;
+      a_source_sequence_entry_ptr       saved_sse_insertion_point = NULL;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     
       prototype_cssp = cssp->corresp_prototype_sym->
                                          variant.class_struct_union.extra_info;
@@ -2733,6 +2739,39 @@ might not be able to if the template itself has not yet been defined.
            generated.  This will be different from the previous value
 	   when a partial specialization is used. */
         cssp->class_template = template_sym;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      } else {
+        /* An instance of a nested class of a class template. */
+        orig_ssep = class_type->source_corresp.source_sequence_entry;
+        if (ss_entry_kind(orig_ssep) == iek_src_seq_secondary_decl) {
+          a_src_seq_secondary_decl_ptr
+                sssdp = ss_entry_ptr(orig_ssep, a_src_seq_secondary_decl_ptr);
+          if (sssdp->originally_nonautonomous_definition) {
+            /* This is the instantiation of a nested class of a template that
+               was originally nonautonomous, but whose partial instantiation
+               had to be marked as autonomous to keep the implied source
+               sequence correct.  For example:
+                 template<class T> struct S { struct N {} *p; };
+                 S<int> s;
+               The source sequence entries (SSEs) for S<int> correspond to a
+               specialization
+                 template<> struct S<int> { struct N; N *p; };
+               and not
+                 template<> struct S<int> { struct N *p; };
+              since N would be ::N instead of S<int>::N with the latter.
+              Now that we perform the full instantiation, its sequence of
+              SSEs should be inserted where the secondary SSE was recorded
+              (the latter will be deleted below).
+            */
+            saved_sse_insertion_point =
+                         scope_stack_top().ss_list_instantiation_insert_point;
+            scope_stack_top().ss_list_instantiation_insert_point = orig_ssep;
+            class_type->source_corresp.source_sequence_entry = NULL;
+          }  /* if */
+        }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       /* Update the type_kind of the instance with the type_kind from the
          template.  Ordinarily, this will have already been done when the
@@ -2867,18 +2906,23 @@ might not be able to if the template itself has not yet been defined.
                                                    pending_class_definitions--;
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      /* A template instantiation is considered to always be "autonomous",
-         even if its instantiation happens to be triggered by a reference
-         in the declaration of another entity. */
-      class_type->autonomous_primary_tag_decl = TRUE;
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (saved_sse_insertion_point != NULL) {
+        /* The original source sequence entry should be removed (it wouldn't
+           be found by check_for_and_remove_redundant_secondary_decl_ss_entry
+           because it now appears after the instantiation. */
+        remove_from_src_seq_list(orig_ssep);
+        scope_stack_top().ss_list_instantiation_insert_point =
+                                                    saved_sse_insertion_point;
+      } else {
+        /* A template instantiation is considered to always be "autonomous",
+           even if its instantiation happens to be triggered by a reference
+           in the declaration of another entity. */
+        class_type->autonomous_primary_tag_decl = TRUE;
+      }  /* if */
       check_for_and_remove_redundant_secondary_decl_ss_entry(class_type);
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -159,9 +159,10 @@ typedef unsigned int an_sssd_flag_set;
 			/* If this bit is set, set first_declaration in the
 			   secondary-decl entry. */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#define SSSD_IS_PARTIAL_INSTANTIATION ((an_sssd_flag_set)0x40)
-			/* If this bit is set, set is_partial_instantiation
-			   in the secondary-decl entry. */
+#define SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION ((an_sssd_flag_set)0x40)
+			/* If this bit is set, set
+			   originally_nonautonomous_definition in the
+			   secondary-decl entry. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
 #define SSSD_MARKED_AS_GNU_EXTENSION ((an_sssd_flag_set)0x80)

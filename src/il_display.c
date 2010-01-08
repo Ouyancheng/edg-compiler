@@ -5460,6 +5460,9 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->compiler_generated_forward_decl) {
     disp_boolean("compiler_generated_forward_decl", TRUE);
   }  /* if */
+  if (sssdp->originally_nonautonomous_definition) {
+    disp_boolean("originally_nonautonomous_definition", TRUE);
+  }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
   if (sssdp->marked_as_gnu_extension) {

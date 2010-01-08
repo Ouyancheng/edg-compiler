@@ -1943,8 +1943,8 @@ in the secondary source sequence entry that need to be set.
         sssdp->first_declaration = TRUE;
       }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (flags & SSSD_IS_PARTIAL_INSTANTIATION) {
-        sssdp->is_partial_instantiation = TRUE;
+      if (flags & SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION) {
+        sssdp->originally_nonautonomous_definition = TRUE;
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED

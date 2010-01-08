@@ -2896,6 +2896,73 @@ issue a warning.
   }  /* if */
 }  /* attach_tag_attributes */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void update_sse_for_first_class_declaration(a_type_ptr  class_type,
+                                                   a_boolean   is_definition,
+                                                   a_boolean   gnu_extension)
+/*
+class_type is being declared for the first time (and defined if is_definition
+is TRUE).  A source sequence entry was already created for it: Update that
+source sequence entry if needed (as well as an associated name reference entry
+if appropriate).  gnu_extension is TRUE if the class was declared with the
+GNU keyword __extension__.
+*/
+{
+  a_name_reference_ptr  name_ref = NULL;
+
+#if RECORD_FORM_OF_NAME_REFERENCE
+  name_ref = qualifiable_name_reference(&locator, &class_type->source_corresp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  if (!is_definition) {
+    /* Set the first_declaration flag in the associated source-sequence
+       secondary declaration entry.  The corresponding field in the class
+       symbol supplement will already have been set for definitions, if
+       appropriate. */
+    an_sssd_flag_set  flags = SSSD_FIRST_DECLARATION;
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (curr_token == tok_removed_template_body) {
+      /* In code like "struct S { struct N {} *p; };" N is a nested non-
+         autonomous class type.  In the similar "struct S { struct N *p; };"
+         it is a namespace-scope class.  When representing template instances
+         in source sequence lists, the former can end up as the latter if
+         no care is taken.  For example:
+           template<class T> struct S { struct N {} *p; };
+           S<int> s;
+         doesn't instantiate S<int>::N and would therefore result in a
+         specialization like:
+           template<> struct S { struct N *p; };
+         To avoid that, we mark the nested class as autonomous, which is
+         equivalent to rewriting the specialization as:
+           template<> struct S { struct N; N *p; };
+         We also record that this was original a non-autonomous definition to
+         ensure that source sequence entries of a later full instance are
+         inserted at the right location. */
+      check_assertion(class_type->source_corresp.is_class_member);
+      flags |= SSSD_AUTONOMOUS_TAG_DECL |
+               SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION;
+    }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_extension) {
+      flags |= SSSD_MARKED_AS_GNU_EXTENSION;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    (void)set_src_seq_secondary_decl_fields((char*)class_type, (a_type*)NULL,
+                                            name_ref, flags);
+#if GNU_EXTENSIONS_ALLOWED
+  } else {
+#if RECORD_FORM_OF_NAME_REFERENCE
+    if (name_ref != NULL) {
+      name_ref->used_in_primary_declarator = TRUE;
+    }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+    class_type->source_corresp.marked_as_gnu_extension = gnu_extension;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* update_sse_for_first_class_declaration */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
     (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS) || \
@@ -3014,9 +3081,6 @@ Microsoft attributes preceding the class specifier (if any).
 #if SUN_EXTENSIONS_ALLOWED
   a_source_position       pos_link_scope;
 #endif /* SUN_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_name_reference_ptr    name_ref = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean               is_ref_within_new_expr = 
                                       (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0;
   a_boolean               no_definition_allowed = 
@@ -3699,35 +3763,8 @@ Microsoft attributes preceding the class specifier (if any).
        the associated stmk_decl statement. */
     record_entity_in_decl_stmt_if_needed(tag_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Set the first_declaration flag in the associated source-sequence
-       secondary declaration entry.  The corresponding field in the class
-       symbol supplement will already have been set for definitions, if
-       appropriate. */
-#if RECORD_FORM_OF_NAME_REFERENCE
-    name_ref = qualifiable_name_reference(&locator,
-                                          &class_type->source_corresp);
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    if (!is_class_definition) {
-      an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
-#if GNU_EXTENSIONS_ALLOWED
-      if (marked_as_gnu_extension) {
-        flags |= SSSD_MARKED_AS_GNU_EXTENSION;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      (void)set_src_seq_secondary_decl_fields(
-                                         (char *)class_type, (a_type_ptr)NULL,
-                                         name_ref, flags);
-#if GNU_EXTENSIONS_ALLOWED
-    } else {
-#if RECORD_FORM_OF_NAME_REFERENCE
-      if (name_ref != NULL) {
-        name_ref->used_in_primary_declarator = TRUE;
-      }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-      class_type->source_corresp.marked_as_gnu_extension =
-                                                      marked_as_gnu_extension;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
+    update_sse_for_first_class_declaration(class_type, is_class_definition,
+                                           marked_as_gnu_extension);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     if (tag_sym->variant.type.ptr->kind == (a_type_kind)tk_template_param) {
@@ -3830,7 +3867,8 @@ Microsoft attributes preceding the class specifier (if any).
            or this is the first visible declaration of a previously
            invisible symbol.  Set the first_declaration flag in the
            associated source-sequence secondary declaration entry. */
-        an_sssd_flag_set              flags = SSSD_FIRST_DECLARATION;
+        an_sssd_flag_set      flags = SSSD_FIRST_DECLARATION;
+        a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
         name_ref = qualifiable_name_reference(&locator,
                                               &class_type->source_corresp);
