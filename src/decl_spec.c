@@ -2898,6 +2898,9 @@ issue a warning.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
+#if !RECORD_FORM_OF_NAME_REFERENCE
+/*ARGSUSED*/ /* locator is not used in some configurations. */
+#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 static void update_sse_for_first_class_declaration(
                                               a_type_ptr        class_type,
                                               a_symbol_locator  *locator,
