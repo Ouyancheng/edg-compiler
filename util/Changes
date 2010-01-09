@@ -1,5 +1,13 @@
 Version 4.2
 
+1/9/10   [EDGcpfe/10044]
+Incorrect demangling of IA-64 ABI template conversion operators
+
+Mangled names of template conversion operators that contained substitutions
+were incorrectly demangled.  This has now been fixed.  For example,
+_ZN1ScvT_I1AIS2_IiEEEEv is now decoded as "S::operator T1<A<A<int>>>()".
+
+
 1/7/10   [EDGcpfe/10132]
 _Complex types not demangled properly in IA-64 ABI
 

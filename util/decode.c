@@ -3132,14 +3132,23 @@ static char *demangle_type_first_part(
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
+                               a_boolean                  parse_template_args,
                                a_decode_control_block_ptr dctl);
 static void demangle_type_second_part(
                                char                       *ptr,
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_decode_control_block_ptr dctl);
-static char *demangle_type(char                       *ptr,
-                           a_decode_control_block_ptr dctl);
+static char *full_demangle_type(char                       *ptr,
+                                a_boolean                  parse_template_args,
+                                a_decode_control_block_ptr dctl);
+/*
+Macro to invoke full_demangle_type in the usual case where parse_template_args
+is TRUE.
+*/
+#define demangle_type(ptr, dctl)  \
+  full_demangle_type(ptr, /*parse_template_args=*/TRUE, dctl)
+
 static char *demangle_template_args(char                       *ptr,
                                     a_decode_control_block_ptr dctl);
 
@@ -3421,6 +3430,7 @@ of constructors and destructors.
               (void)demangle_type_first_part(p, cv_quals,
                                              under_lhs_declarator,
                                              need_trailing_space,
+                                             /*parse_template_args=*/TRUE,
                                              dctl);
             }  /* if */
             if (type_pass_num == 2 || type_pass_num == 0) {
@@ -3639,8 +3649,10 @@ static char *demangle_source_name(
                                  a_decode_control_block_ptr dctl);
 
 
-static char *demangle_type_specifier(char                       *ptr,
-                                     a_decode_control_block_ptr dctl)
+static char *demangle_type_specifier(
+                                char                       *ptr,
+                                a_boolean                  parse_template_args,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the specifier part.  Return a pointer
 to the character position following what was demangled.  The syntax is:
@@ -3653,6 +3665,9 @@ to the character position following what was demangled.  The syntax is:
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
 at that level.  cv-qualifiers have been handled by the caller.
+If parse_template_args is TRUE then any <template-args> in the type should be parsed as part of the type.  parse_template_args is FALSE when parsing the <type>
+of a conversion function operator-name (the <template-args> are demangled
+as part of the template function instead).
 */
 {
   char *p = ptr, *s;
@@ -3664,7 +3679,7 @@ at that level.  cv-qualifiers have been handled by the caller.
       /* A template parameter, possibly a template template parameter. */
       char *tstart = p;
       p = demangle_template_param(p, dctl);
-      if (*p == 'I') {
+      if (*p == 'I' && parse_template_args) {
         /* A <template-args> list. */
         /* Record the template template parameter as a potential
            substitution. */
@@ -3780,6 +3795,7 @@ static char *demangle_type_first_part(
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
+                               a_boolean                  parse_template_args,
                                a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the specifier part and the part of the
@@ -3791,7 +3807,8 @@ parts of the declarator.)  If need_trailing_space is TRUE, put a space
 at the end of the specifiers part (needed if the declarator part is
 not empty, because it contains a name or a derived type).  cv_quals
 indicates any previously-scanned cv-qualifiers that are to be considered
-to be on top of the type.
+to be on top of the type.  If parse_template_args is TRUE then any
+<template-args> in the type should be parsed as part of the type.
 */
 {
   char               *p = ptr, *qualp = p, *unqualp;
@@ -3833,7 +3850,8 @@ to be on top of the type.
       need_trailing_space = FALSE;
     }  /* if */
     p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                 need_trailing_space, dctl);
+                                 need_trailing_space, 
+                                 parse_template_args, dctl);
     if (kind == 'P') {
       write_id_ch('*', dctl);
     } else if (kind == 'R') {
@@ -3852,7 +3870,8 @@ to be on top of the type.
     p = demangle_type(classp, dctl);
     dctl->suppress_id_output--;
     p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE, dctl);
+                                 /*need_trailing_space=*/TRUE, 
+                                 parse_template_args, dctl);
     /* Output Classname::*. */
     dctl->suppress_substitution_recording++;
     (void)demangle_type(classp, dctl);
@@ -3866,7 +3885,8 @@ to be on top of the type.
     p = skip_extern_C_indication(p+1);
     /* Output the return type. */
     p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
-                                 /*need_trailing_space=*/TRUE, dctl);
+                                 /*need_trailing_space=*/TRUE, 
+                                 parse_template_args, dctl);
     /* Skip over the parameter types without outputting anything. */
     /* Substitutions do get recorded on this scan. */
     p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, BFT_NONE,
@@ -3898,7 +3918,8 @@ to be on top of the type.
     p = advance_past_underscore(p, dctl);
     /* Process the element type. */
     p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
-                                 /*need_trailing_space=*/TRUE, dctl);
+                                 /*need_trailing_space=*/TRUE, 
+                                 parse_template_args, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
@@ -3906,7 +3927,7 @@ to be on top of the type.
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
     p = demangle_vector_size_qualifier(p, dctl);
-    p = demangle_type_specifier(p, dctl);
+    p = demangle_type_specifier(p, parse_template_args, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
     if (p == unqualp+1) {
       /* Do not record a substitution for a builtin type.  (Builtin types
@@ -4049,8 +4070,9 @@ to be on top of the type.
 }  /* demangle_type_second_part */
 
 
-static char *demangle_type(char                       *ptr,
-                           a_decode_control_block_ptr dctl)
+static char *full_demangle_type(char                       *ptr,
+                                a_boolean                  parse_template_args,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <type> and output the demangled form.  Return a pointer
 to the character position following what was demangled.  A <type> encodes
@@ -4073,18 +4095,21 @@ a type.  The syntax is:
                ::= A [<dimension expression>] _ <element type>
   <pointer-to-member-type> ::= M <class type> <member type>
 
+If parse_template_args is TRUE then any <template-args> in the type should be
+parsed as part of the type.
 */
 {
   char *p;
 
   /* Generate the specifier part of the type. */
   p = demangle_type_first_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
-                               /*need_trailing_space=*/FALSE, dctl);
+                               /*need_trailing_space=*/FALSE, 
+                               parse_template_args, dctl);
   /* Generate the declarator part of the type. */
   demangle_type_second_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                             dctl);
   return p;
-}  /* demangle_type */
+}  /* full_demangle_type */
 
 
 static char *get_operator_name(char                       *ptr,
@@ -4530,7 +4555,7 @@ caller does not need the value.
     if (*ptr == 'c' && ptr[1] == 'v') {
       /* A conversion function. */
       if (is_no_return_name != NULL) *is_no_return_name = TRUE;
-      ptr = demangle_type(ptr+2, dctl);
+      ptr = full_demangle_type(ptr+2, /*parse_template_args=*/FALSE, dctl);
     } else {
       /* Other operator function (not conversion function). */
       int  num_operands, length;
