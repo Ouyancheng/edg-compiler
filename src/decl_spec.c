@@ -2898,21 +2898,24 @@ issue a warning.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void update_sse_for_first_class_declaration(a_type_ptr  class_type,
-                                                   a_boolean   is_definition,
-                                                   a_boolean   gnu_extension)
+static void update_sse_for_first_class_declaration(
+                                              a_type_ptr        class_type,
+                                              a_symbol_locator  *locator,
+                                              a_boolean         is_definition,
+                                              a_boolean         gnu_extension)
 /*
 class_type is being declared for the first time (and defined if is_definition
-is TRUE).  A source sequence entry was already created for it: Update that
-source sequence entry if needed (as well as an associated name reference entry
-if appropriate).  gnu_extension is TRUE if the class was declared with the
-GNU keyword __extension__.
+is TRUE).  The name used in the source is described by *locator.  A source
+sequence entry was already created for it: Update that source sequence entry
+if needed (as well as an associated name reference entry if appropriate).
+gnu_extension is TRUE if the class was declared with the GNU keyword
+__extension__.
 */
 {
   a_name_reference_ptr  name_ref = NULL;
 
 #if RECORD_FORM_OF_NAME_REFERENCE
-  name_ref = qualifiable_name_reference(&locator, &class_type->source_corresp);
+  name_ref = qualifiable_name_reference(locator, &class_type->source_corresp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (!is_definition) {
     /* Set the first_declaration flag in the associated source-sequence
@@ -3763,7 +3766,8 @@ Microsoft attributes preceding the class specifier (if any).
        the associated stmk_decl statement. */
     record_entity_in_decl_stmt_if_needed(tag_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    update_sse_for_first_class_declaration(class_type, is_class_definition,
+    update_sse_for_first_class_declaration(class_type, &locator,
+                                           is_class_definition,
                                            marked_as_gnu_extension);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
