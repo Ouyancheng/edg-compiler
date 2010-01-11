@@ -5028,12 +5028,6 @@ substitution, the name of the last component in the substitution is used.
     } else if (*ptr == 'T') {
       /* A <template-param>. */
       ptr = demangle_template_param(ptr, dctl);
-    } else if (*ptr == 'M') {
-      /* A <data-member-prefix>.  No indication is needed in the
-         demangled output, the member itself is listed as the previous
-         qualified name. */
-      suppress_qualification = TRUE;
-      ptr++;
     } else {
       /* Not a substitution or template parameter, so an <unqualified-name>. */
       if (*ptr != 'C' && *ptr != 'D') {
@@ -5073,6 +5067,11 @@ substitution, the name of the last component in the substitution is used.
             bad_mangled_name(dctl);
           }  /* if */
         }  /* if */
+      }  /* if */
+      if (*ptr == 'M') {
+        /* A <data-member-prefix>.  No further output is required (the
+           member's <source-name> has been emitted above). */
+        ptr++;
       }  /* if */
     }  /* if */
     if (*ptr == 'I') {

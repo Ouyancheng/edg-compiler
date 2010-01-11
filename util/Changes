@@ -1,5 +1,23 @@
 Version 4.2
 
+1/11/10  [EDGcpfe/10361]
+Incorrect demangling of lambdas in static data member initializers (IA-64 ABI)
+
+The demangled output for IA-64 ABI mangled names involving a lambda in a static
+data member initializer was incorrect, causing substitutions that followed the
+lambda to refer to incorrect entities.  In the example that follows, the
+operator() for the lambda (whose mangled name is _ZNK1SI1AE1xMUlPS0_E_clES3_)
+is now demangled properly ("S<A>::x::[lambda(A *) (instance 1)]::operator ()(A
+*) const").
+
+  struct A {};
+  template <class T> struct S {
+    static T *x;
+  };
+  template <class T> T *S<T>::x = [](T *s){ return s; }(nullptr);
+  template A *S<A>::x;
+
+
 1/9/10   [EDGcpfe/10044]
 Incorrect demangling of IA-64 ABI template conversion operators
 
