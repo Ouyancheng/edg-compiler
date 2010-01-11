@@ -1312,6 +1312,21 @@ EXTERN a_boolean
 			   but still within it -- the stack has not yet been
 			   popped.  curr_source_line still contains the line
 			   most recently read. */
+EXTERN char	*end_of_line_escape_line_loc;
+			/* The location of the LE_END_OF_LINE escape that
+			   ends curr_source_line.  This is set by
+			   skip_white_space and is used only in the rare
+			   case when a line that logically begins with a
+			   line_start_source_line_modif is the last line of
+			   a file.  As noted in the preceding comment for
+			   at_end_of_source_file, the line contents at that
+			   point are still the last line before the EOF was
+			   encountered, so this variable allows the
+			   line_start_source_line_modif to be treated as if
+			   it occurred just before the terminating
+			   LE_END_OF_LINE instead of the beginning of the
+			   line to avoid processing the line's contents
+			   twice. */
 
 EXTERN a_seq_number
 		seq_number_last_read;
@@ -2650,10 +2665,17 @@ the parent of the original slmp).
 /*
 Determine the insert location for a source line modification.  This is
 tricky for an entry that is inserted in front of the first character
-of curr_source_line.
+of curr_source_line, as indicated by line_loc == NULL.  Normally, the
+location in that case will be the first character of curr_source_line.
+However, when this occurs at the end of a file (at_end_of_source_file ==
+TRUE), the previous contents of the line will not yet have been replaced
+but have already been scanned.  In this case, we treat the insertion as
+having appeared just before the terminating LE_END_OF_LINE to avoid
+processing the now-defunct line a second time.
 */
-#define loc_of_insert(slmp)                                           \
-  ((slmp)->line_loc != NULL ? (slmp)->line_loc : curr_source_line)
+#define loc_of_insert(slmp)                                                \
+  ((slmp)->line_loc != NULL ? (slmp)->line_loc :                           \
+   at_end_of_source_file ? end_of_line_escape_line_loc : curr_source_line)
 
 /*
 Set loc_in_line to point to the first character of the current source

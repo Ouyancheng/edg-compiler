@@ -5626,15 +5626,16 @@ position of the current logical source line.
 
 
 /*
-Macro to add newline/end-line to the current contents of the source buffer.
-Needed when an error is detected while building the source line.  Without
-the newline/end-line, the partial line could not be properly displayed with
-the error message.  Fortunately, the errors that there are occur at the end
-of lines, so the "partial" line is really the full line.
+Macro to temporarily add newline/end-line to the current contents of the
+source buffer.  Needed when an error is detected while building the
+source line.  Without the newline/end-line, the partial line could not
+be properly displayed with the error message.  Fortunately, the errors
+that there are occur at the end of lines, so the "partial" line is really
+the full line.
 */
-#define add_line_termination_at(p)               \
-{ *(p)   = LE_ESCAPE; (p)[1] = LE_NEWLINE;       \
-  (p)[2] = LE_ESCAPE; (p)[3] = LE_END_OF_LINE; }
+#define finish_off_source_line_so_it_can_be_displayed_in_error()      \
+{ *loc_in_line   = LE_ESCAPE; loc_in_line[1] = LE_NEWLINE; \
+  loc_in_line[2] = LE_ESCAPE; loc_in_line[3] = LE_END_OF_LINE; }
 
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -5832,10 +5833,8 @@ for the GNU C multiline string extension.
     eof_read_on_curr_input_stream = TRUE;
     at_end_of_source_file = TRUE;
     if (!do_pop_on_end_of_file || curr_ise->do_not_advance_past_end_of_file) {
-      /* We're asked not to do the pop, so just put newline and end-of-line
-         escapes at the beginning of the line to ensure that the previous
-         contents won't be read again. */
-      add_line_termination_at(curr_source_line);
+      /* We're asked not to do the pop, so just return things as they
+         are (at_end_of_source_file is TRUE). */
       goto simple_return;
     }  /* if */
     /* We are supposed to pop the input stack and attempt again to
@@ -6152,7 +6151,7 @@ partial_final_line:
      (or an error in strict mode), add a newline and line-end to the line, and
      return. */
   eof_read_on_curr_input_stream = TRUE;
-  add_line_termination_at(loc_in_line);
+  finish_off_source_line_so_it_can_be_displayed_in_error();
   diagnostic_at_line_pos(strict_ansi_mode ?
                            strict_ansi_error_severity : es_warning,
                          ec_last_line_incomplete, loc_in_line);
@@ -6404,7 +6403,7 @@ entry_for_line_splice:
           /* Some white-space characters occurred between "\" and the newline.
              Fix the line so it will display properly, adjust loc_in_line and
              curr_column appropriately, and issue a warning. */
-          add_line_termination_at(loc_in_line);
+          finish_off_source_line_so_it_can_be_displayed_in_error();
           loc_in_line -= white_space_chars_after_backslash;
           curr_column -= white_space_chars_after_backslash;
           warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
@@ -6421,7 +6420,7 @@ entry_for_line_splice:
         if (ch = getc_curr_input_stream(), !is_eof_char(ch)) goto line_loop;
         eof_read_on_curr_input_stream = TRUE;
         /* Backslash at end of last line in a file -- error. */
-        add_line_termination_at(loc_in_line);
+        finish_off_source_line_so_it_can_be_displayed_in_error();
         diagnostic_at_line_pos((microsoft_mode || gnu_mode) ?
                                                          es_warning : es_error,
                              ec_last_line_backslash, loc_in_line);
@@ -6825,6 +6824,7 @@ white_space_loop:
         }  /* if */
         if (ch == LE_END_OF_LINE) {
           /* End of the source line. */
+          end_of_line_escape_line_loc = curr_char_loc;
           /* We have to read a new logical source line now. 
              read_logical_source_line will pop the input stack if end of
              file is encountered.  On the final end of file, TRUE is returned,
