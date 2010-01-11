@@ -2087,7 +2087,7 @@ Output the given attribute to f_debug.
           break;
         case aak_raw_token:
         case aak_token:
-          (void)fprintf(f_debug, aap->variant.token);
+          (void)fprintf(f_debug, "%s", aap->variant.token);
           break;
         case aak_constant:
           db_constant(aap->variant.constant);
@@ -2101,7 +2101,7 @@ Output the given attribute to f_debug.
       if (aap->next != NULL) {
         /* Another argument follows.  Separate raw tokens by whitespace, and
            other arguments by commas. */
-        (void)fprintf(f_debug,
+        (void)fprintf(f_debug, "%s",
                       aap->kind == (an_attribute_arg_kind)aak_raw_token ?
                                                                    "" : ", ");
       }  /* if */
@@ -2121,7 +2121,7 @@ Output the given attribute to f_debug.
     default:
       unexpected_condition();
   }  /* switch */
-  (void)fprintf(f_debug, str);
+  (void)fprintf(f_debug, "%s", str);
   (void)fprintf(f_debug, " at ");
   db_source_position(&ap->position);
 }  /* db_attribute */
@@ -4653,6 +4653,7 @@ return that entity.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
 
+/*ARGSUSED*/  /* entity_kind are unused (but required by the callback type). */
 static char* apply_edg_e1_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)
@@ -4666,6 +4667,7 @@ effect).
 }  /* apply_edg_e1_attr */
 
 
+/*ARGSUSED*/  /* entity_kind are unused (but required by the callback type). */
 static char* apply_edg_n1_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)
