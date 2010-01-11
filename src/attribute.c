@@ -271,6 +271,11 @@ static an_attr_descr known_attr_table[] = {
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   { "test_1", "(sn?,n)", "c+[EDG]", ak_unrecognized },
+  { "t1", "(*)", "c+[edg]", ak_unrecognized },
+  { "t2", "(*)", "c+[edg]", ak_unrecognized },
+  { "t3", "(*)", "c+[edg]", ak_unrecognized },
+  { "e1", "(*)", "c+[edg]", ak_edg_e1 },
+  { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
   { NULL, NULL, NULL, ak_last }
 };
@@ -416,6 +421,10 @@ static an_attr_application_fn apply_vector_size_attr;
 static an_attr_application_fn apply_tls_model_attr;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+static an_attr_application_fn apply_edg_e1_attr;
+static an_attr_application_fn apply_edg_n1_attr;
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
 /*
 Table of entries describing how to apply a specific attribute kind to an IL
@@ -491,6 +500,10 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_tls_model, "r|v|d|p", apply_tls_model_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+  { ak_edg_e1, "", apply_edg_e1_attr },
+  { ak_edg_n1, "", apply_edg_n1_attr },
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
   { ak_last, "!!ERROR", NO_APPL_FN }
 };
 
@@ -2016,6 +2029,128 @@ this is &scp.attributes.)
   return p_attributes;
 }  /* get_attribute_link */
 
+#if DEBUG
+
+static void db_source_position(a_source_position  *pos)
+/*
+Output the given source position form to f_debug.
+*/
+{
+  if (pos->seq > 0) {
+    char           *file_name, *full_name;
+    a_line_number  line_number;
+    a_boolean      at_end_of_source;
+    conv_seq_to_file_and_line(pos->seq, &file_name, &full_name, &line_number,
+                              &at_end_of_source);
+    if (seq_is_in_include_file(pos->seq)) {
+      (void)fprintf(f_debug, "file %s ", file_name);
+    }  /* if */
+    if (at_end_of_source) {
+      (void)fprintf(f_debug, "end of source");
+    } else {
+      (void)fprintf(f_debug, "line %lu, column %lu",
+                    (unsigned long)line_number, (unsigned long)pos->column);
+    }  /* if */
+  } else {
+    (void)fprintf(f_debug, "null source position (col. = %lu)",
+                  (unsigned long)pos->column);
+  }  /* if */
+}  /* db_source_position */
+
+
+static void db_attribute(an_attribute_ptr  ap)
+/*
+Output the given attribute to f_debug.
+*/
+{
+  char  *str;
+  switch (ap->family) {
+    case af_std:
+      str = "[[%s";
+      break;
+    case af_gnu:
+      str = "__attribute((%s";
+      break;
+    case af_ms_declspec:
+      str = "__declspec(%s";
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  (void)fprintf(f_debug, str, ap->name);
+  if (ap->arguments != NULL) {
+    an_attribute_arg_ptr  aap = ap->arguments;
+    (void)fprintf(f_debug, "(");
+    for (; aap != NULL; aap = aap->next) {
+      switch (aap->kind) {
+        case aak_empty:
+          break;
+        case aak_raw_token:
+        case aak_token:
+          (void)fprintf(f_debug, aap->variant.token);
+          break;
+        case aak_constant:
+          db_constant(aap->variant.constant);
+          break;
+        case aak_type:
+          db_abbreviated_type(aap->variant.type);
+          break;
+        default:
+          (void)fprintf(f_debug, "**BAD ATTR ARG**");
+      }  /* switch */
+      if (aap->next != NULL) {
+        /* Another argument follows.  Separate raw tokens by whitespace, and
+           other arguments by commas. */
+        (void)fprintf(f_debug,
+                      aap->kind == (an_attribute_arg_kind)aak_raw_token ?
+                                                                   "" : ", ");
+      }  /* if */
+    }  /* for */
+    (void)fprintf(f_debug, ")");
+  }  /* if */
+  switch (ap->family) {
+    case af_std:
+      str = "]]";
+      break;
+    case af_gnu:
+      str = "))";
+      break;
+    case af_ms_declspec:
+      str = ")";
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  (void)fprintf(f_debug, str);
+  (void)fprintf(f_debug, " at ");
+  db_source_position(&ap->position);
+}  /* db_attribute */
+
+
+static void db_log_attribute_action(char               *descr,
+                                    an_attribute_ptr   ap,
+                                    char               *entity,
+                                    an_il_entry_kind   entity_kind)
+/*
+If the debug flag "trace_attributes" is set, produce some output on f_debug
+including (a) the string descr, (b) a rendering of the given attribute, and
+(c) a rendering of the given entity.
+*/
+{
+  if (db_flag_is_set("trace_attributes")) {
+    (void)fprintf(f_debug, "ATTR %s ", descr);
+    db_attribute(ap);
+    (void)fprintf(f_debug, "\nfor entity:\n");
+    db_entity_info(entity, entity_kind);
+    (void)fprintf(f_debug, "ATTR END\n");
+  }  /* if */
+}  /* log_attribute_action */
+
+#else /* !DEBUG */
+
+#define db_log_attribute_action(descr, ap, entity, entity_kind)  /*Nothing*/
+
+#endif /* DEBUG */
 
 static char* apply_one_attribute(an_attribute_ptr   ap,
                                  char               *entity,
@@ -2038,6 +2173,7 @@ the attribute to get marked as unrecognized.
       !is_unrecognized_attr(ap)) {
     if (appl_fn != NULL) {
       entity = appl_fn(ap, entity, entity_kind);
+      db_log_attribute_action("apply", ap, entity, entity_kind);
     }  /* if */
   }  /* if */
   return entity;
@@ -2060,6 +2196,7 @@ attributes, call transform_type_with_attributes.)
 
   *last_attribute_link(p_list) = attributes;
   for (ap = attributes; ap != NULL; ap = ap->next) {
+    db_log_attribute_action("attach", ap, entity, entity_kind);
     if (!is_type_transforming_attribute(ap)) {
       new_entity = apply_one_attribute(ap, new_entity, entity_kind);
     }  /* if */
@@ -2116,6 +2253,14 @@ in the type entry.
     /* Attributes should not be recorded directly in type entries that might
        be shared.  Use a typeref to carry the attributes instead. */
     *p_type =  make_typeref_with_attributes(new_type, attributes);
+#if DEBUG
+    if (db_flag_is_set("trace_attributes")) {
+      an_attribute_ptr  ap = attributes;
+      for (; ap != NULL; ap = ap->next) {
+        db_log_attribute_action("attach", ap, (char*)new_type, iek_type);
+      }  /* for */
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* attach_type_attributes */
 
@@ -4506,6 +4651,36 @@ return that entity.
 
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+
+static char* apply_edg_e1_attr(an_attribute_ptr  ap,
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
+/*
+A test attribute that triggers an error in all contexts (it has no other
+effect).
+*/
+{
+  pos_error(ec_unattached_attribute, &ap->position);
+  return entity;
+}  /* apply_edg_e1_attr */
+
+
+static char* apply_edg_n1_attr(an_attribute_ptr  ap,
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
+/*
+A test attribute that triggers an error if it appears outside of namespace
+scope (it has no other effect).
+*/
+{
+  if (!is_file_or_namespace_scope(&scope_stack_top())) {
+    pos_error(ec_unattached_attribute, &ap->position);
+  }  /* if */
+  return entity;
+}  /* apply_edg_n1_attr */
+
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
 The "alias" and "weakref" attributes can refer to entities that are declared

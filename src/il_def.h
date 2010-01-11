@@ -1566,6 +1566,11 @@ typedef enum an_attribute_kind_tag {
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   ak_tls_model,		/* "tls_model" (gnu). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+  ak_edg_e1,		/* "edg::e1" (always triggers an error). */
+  ak_edg_n1,		/* "edg::n1" (must appear in namespace scope). */
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
   ak_last
 } an_attribute_kind;
 
