@@ -3390,6 +3390,9 @@ placeholder name is returned and mctl->lacking_module_id is set to TRUE.
      currently being mangled (as represented by the argument mctl), though
      presumably the caller will then add this name to that buffer as well
      (after saving the fabricated name for later use). */
+  /* Note further that this scheme (of using nested start_mangling calls)
+     couldn't be used in the IA-64 ABI because the substitutions would be
+     affected. */
   start_mangling(&local_mctl);
   if (type_is_lambda_closure(type)) {
     /* Generate a class name for the lambda closure class. */
