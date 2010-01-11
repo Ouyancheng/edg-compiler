@@ -274,6 +274,7 @@ static an_attr_descr known_attr_table[] = {
   { "t1", "(*)", "c+[edg]", ak_unrecognized },
   { "t2", "(*)", "c+[edg]", ak_unrecognized },
   { "t3", "(*)", "c+[edg]", ak_unrecognized },
+  { "t4", "(ct)", "c+[edg]", ak_unrecognized },
   { "e1", "(*)", "c+[edg]", ak_edg_e1 },
   { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
