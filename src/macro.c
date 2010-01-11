@@ -2523,10 +2523,10 @@ Call record_pragma to scan the pragma body and create the pragma entry.
   a_source_position			id_position;
   /* Get the pragma identifier. */
   pkdp = look_up_pragma_id(&id_position);
-    if (pkdp != NULL &&
-        pkdp->binding_kind == pbk_preproc_immediate &&
-        !pkdp->allowed_in_pragma_operator) {
-      /* Certain preprocessing pragmas cannot be used in __pragma operators. */
+  if (pkdp != NULL &&
+      pkdp->binding_kind == pbk_preproc_immediate &&
+      !pkdp->allowed_in_pragma_operator) {
+    /* Certain preprocessing pragmas cannot be used in __pragma operators. */
     pos_error(ec_invalid_microsoft_pragma_operator, &id_position);
     flush_to_closing_paren();
   } else {
