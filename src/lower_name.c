@@ -3645,16 +3645,14 @@ an appropriate name.
   return name;
 }  /* give_unnamed_namespace_a_name */
 
+static void mangle_type_name(a_type_ptr type);
 
-static void give_unnamed_template_param_member_a_name(
-                                                a_type_ptr               type,
-                                                a_mangling_control_block *mctl)
+static void give_unnamed_template_param_member_a_name(a_type_ptr type)
 /*
 Give an unnamed template param member type that refers to an unnamed enum or
 class member the same name as the original type (which has previously or will
-now most likely become named via a call to give_unnamed_class_or_enum_a_name).
-Set its name mangling fields to match that of the original type (which can be
-NULL in the mangling pre-pass).
+now most likely become named).  Set its name mangling fields to match that of
+the original type (which can be NULL in the mangling pre-pass).
 */
 {
   a_type_ptr nested_type;
@@ -3667,12 +3665,10 @@ NULL in the mangling pre-pass).
   if (nested_type != NULL) {
     if (is_immediate_class_type(nested_type) ||
         is_immediate_enum_type(nested_type)) {
-      /* First, give the original type a name if possible, then copy the
-         relevant pieces to the template parameter.  Note that the name
-         returned by give_unnamed_class_or_enum_a_name can differ from the
-         name stored in the source correspondence (if the mangling pre-pass
-         can't assign a name yet). */
-      (void)give_unnamed_class_or_enum_a_name(nested_type, mctl);
+      /* First, give the original type a name if possible (in the mangling
+         pre-pass a name may not be available yet), then copy the
+         relevant pieces to the template parameter. */
+      mangle_type_name(nested_type);
       type->source_corresp.name = nested_type->source_corresp.name;
       type->source_corresp.unmangled_name =
                                     nested_type->source_corresp.unmangled_name;
@@ -5609,7 +5605,7 @@ Add to the mangled name the encoding for the type "type".
           case tptk_member:
             /* Type selected from a template parameter type, e.g., T::x. */
             if (!has_name(type)) {
-              give_unnamed_template_param_member_a_name(type, mctl);
+              give_unnamed_template_param_member_a_name(type);
             }  /* if */
             mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
             break;
@@ -7036,7 +7032,7 @@ is what mangled_type_name generates, plus a prefix.
     } else if (type->kind == (a_type_kind)tk_template_param &&
                type->variant.template_param.kind == 
                                  (a_template_param_constant_kind)tptk_member) {
-      give_unnamed_template_param_member_a_name(type, &mctl);
+      give_unnamed_template_param_member_a_name(type);
     }  /* if */
   }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing

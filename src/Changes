@@ -1,5 +1,21 @@
 Version 4.2
 
+1/12/10  [EDGcpfe/10364]
+Abort in mangled_type_name_full when mangling unnamed template parameter
+
+In configurations where PROTOTYPE_INSTANTIATIONS_IN_IL and MANGLE_ALL_NAMES
+are both TRUE, the mangling of an unnamed class in a template parameter
+could cause an assertion failure (in mangled_type_name_full) when the IA-64
+ABI is used.  This occurs only in certain circumstances, for example when
+the template parameter is a namespace member.  For example:
+
+  namespace N {
+    template <typename T> struct A {
+      struct {} s;
+    };
+  }
+
+
 1/9/10   [EDGcpfe/10357]
 Locale set too late for multibyte operations in command-line processing
 
