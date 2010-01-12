@@ -1028,7 +1028,8 @@ ak_unrecognized.
             *p_aap = scan_attr_integer_constant_arg(ap);
             ++sig;
           } else {
-            unexpected_condition();
+            check_attr_config(FALSE, ap,
+                              "invalid attribute signature configuration");
           }  /* if */
           break;
         case 'n':
@@ -1044,7 +1045,8 @@ ak_unrecognized.
             ++sig;
           } else {
             /* Wide string literals are currently not supported. */
-            unexpected_condition();
+            check_attr_config(FALSE, ap,
+                              "invalid attribute signature configuration");
           }  /* if */
           break;
         case 't':
@@ -1058,7 +1060,8 @@ ak_unrecognized.
           *p_aap = scan_attr_remaining_arg_tokens(ap);
           break;
         default:
-          unexpected_condition();
+          check_attr_config(FALSE, ap,
+                            "invalid attribute signature configuration");
       }  /* switch */
       while (*p_aap != NULL) p_aap = &(*p_aap)->next;
       if (*sig == '+' && curr_token == tok_comma) {
