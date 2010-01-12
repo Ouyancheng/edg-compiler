@@ -5755,8 +5755,8 @@ have_whole_mangled_name:;
        !is_floating_type(type) && 
        !is_void_type(type))
 #if ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED
-      /* GNU allocates substitutions for complex types, and so do we (after
-         version 4.2). */
+      /* The IA-64 ABI mandates substitutions for complex types (versions
+         prior to 4.2 mistakenly omitted these). */
       || type->kind == (a_type_kind)tk_complex
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED */
                          ) {
