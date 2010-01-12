@@ -3665,9 +3665,10 @@ to the character position following what was demangled.  The syntax is:
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
 at that level.  cv-qualifiers have been handled by the caller.
-If parse_template_args is TRUE then any <template-args> in the type should be parsed as part of the type.  parse_template_args is FALSE when parsing the <type>
-of a conversion function operator-name (the <template-args> are demangled
-as part of the template function instead).
+If parse_template_args is TRUE then any <template-args> in the type should be
+parsed as part of the type.  parse_template_args is FALSE when parsing the
+<type> of a conversion function operator-name (the <template-args> are
+demangled as part of the template function instead).
 */
 {
   char *p = ptr, *s;
