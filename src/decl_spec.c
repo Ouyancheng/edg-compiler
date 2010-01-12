@@ -2941,8 +2941,8 @@ __extension__.
          To avoid that, we mark the nested class as autonomous, which is
          equivalent to rewriting the specialization as:
            template<> struct S { struct N; N *p; };
-         We also record that this was original a non-autonomous definition to
-         ensure that source sequence entries of a later full instance are
+         We also record that this was originally a non-autonomous definition
+         to ensure that source sequence entries of a later full instance are
          inserted at the right location. */
       check_assertion(class_type->source_corresp.is_class_member);
       flags |= SSSD_AUTONOMOUS_TAG_DECL |
