@@ -533,7 +533,7 @@ through the macro check_attr_config.
 
 /* Macro to test an assertion regarding the attribute configuration tables. */
 #define check_attr_config(test, ap, msg)                                     \
-  ((/*lint --e(774)*/(test)) ? (void)0 :                                     \
+  ((/*lint --e(774,506)*/(test)) ? (void)0 :                                 \
     abort_for_misconfigured_attribute((ap), __FILE__, __LINE__, (char*)msg))
 
 #else /* !CHECKING */
