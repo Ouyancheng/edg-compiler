@@ -1447,6 +1447,7 @@ is made.
         new_attr_seen = std_attr_seen = TRUE;
       } else if (curr_token == tok_attribute && gnu_attributes_enabled) {
         *p_attributes = scan_gnu_attribute_group((an_attribute_location)loc);
+        new_attr_seen = TRUE;
       }  /* if */
       p_attributes = last_attribute_link(p_attributes);
     } while (new_attr_seen);
