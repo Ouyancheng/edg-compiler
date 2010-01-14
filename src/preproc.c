@@ -95,7 +95,7 @@ typedef struct an_include_alias {
 			   name.  This contains the raw characters of the
 			   header name token. */
   sizeof_t	long_file_name_length;
-			/* The length of long_File_name, not including the
+			/* The length of long_file_name, not including the
 			   null terminator. */
   char		*short_file_name;
 			/* The file name to be used in place of
@@ -139,7 +139,7 @@ Produce a hash value for an include alias entry.  The key is
 an_include_alias_ptr.
 */
 {
-  a_hash_value		value = 0;
+  a_hash_value		value;
   an_include_alias_ptr	iap;
 
   iap = (an_include_alias_ptr)key;
@@ -176,7 +176,9 @@ static an_include_alias_ptr find_or_create_include_alias(
 /*
 Look for long_name in the include alias hash table.  If it is not found
 and create is TRUE, add an entry.  A pointer to the entry is returned, or
-NULL if no entry was found or created.
+NULL if no entry was found or created.  If create is TRUE and an existing
+entry is found, the short file name that entry refers to is updated to
+refer to the new short_name.
 */
 {
   an_include_alias	ia;
@@ -1280,7 +1282,7 @@ pass_stdarg_references_to_generated_code.
     /* A header name was scanned. */
     a_boolean	is_cstdarg = FALSE;
     is_system_include = *start_of_curr_token == '<';
-    /* Check for a include alias where an alternate version of the file name
+    /* Check for an include alias where an alternate version of the file name
        should be used. */
     name_start_pos = check_for_include_alias();
     if (name_start_pos == NULL) {
@@ -1976,8 +1978,8 @@ static char *get_raw_header_name(a_boolean	issue_error)
 /*
 Use get_header_name to scan a header name, and return a copy the raw
 characters of the header name.  If the next token is not a header name,
-optionally issue a diagnostic and return NULL.  The returned value
-includes the delimiters of the4 header name.
+optionally issue a diagnostic (if issue_error is TRUE) and return NULL.
+The returned value includes the delimiters of the header name.
 */
 {
   a_text_buffer_ptr	buf = header_name_buffer;
@@ -2061,8 +2063,8 @@ directive must match the long file name exactly (including use of '"' vs.
   /* Get the long file name. */
   long_name = get_raw_header_name(!any_errors);
   if (long_name == NULL) any_errors = TRUE;
-  /* Bypass the header name and look for a comma. */
-  if (get_token() == tok_comma) {
+  /* Advance past the header name and look for a comma. */
+  if (!any_errors && get_token() == tok_comma) {
     /* We don't use get_token here because get_header_name requires that
        the characters of the header name not be processed by get_token. */
   } else {
@@ -2072,7 +2074,7 @@ directive must match the long file name exactly (including use of '"' vs.
     }  /* if */
   }  /* if */
   /* Get the short file name. */
-  if (get_header_name()) {
+  if (!any_errors && get_header_name()) {
     /* Make sure the include delimiter is the same for both file names. */
     if (*start_of_curr_token != *long_name) {
       if (!any_errors) {
@@ -2090,8 +2092,8 @@ directive must match the long file name exactly (including use of '"' vs.
       any_errors = TRUE;
     }  /* if */
   }  /* if */
-  /* Bypass the header name and look for a closing parenthesis. */
-  if (get_token() == tok_rparen) {
+  /* Advance Past the header name and look for a closing parenthesis. */
+  if (!any_errors && get_token() == tok_rparen) {
     (void)get_token();
   } else {
     if (!any_errors) {

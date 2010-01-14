@@ -1918,7 +1918,7 @@ ec_bad_tls_model_attr_arg;;"the argument of the \"tls_model\" attribute must be 
 ec_inconsistent_tls_model_attr_arg;;"the declaration %p specified a different \"tls_model\" argument"
 ec_attr_disallows_inline;;"attribute %sq does not apply to inline functions"
 ec_attr_requires_inline;;"attribute %sq requires a inline function"
-ec_include_kind_mismatch;;"both file names in an include_alias pragma must use the same include delimiters"
+ec_include_kind_mismatch;;"both file names in an include_alias pragma must use the same delimiter characters"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
