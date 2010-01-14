@@ -4574,6 +4574,12 @@ file.
   comment_undefined_macro_name(
                      DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
 #endif /* defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
+#if defined(DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS)
+  define_numeric_valued_macro(DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS);
+#else /* !defined(DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS) */
+  comment_undefined_macro_name(
+                              DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS);
+#endif /* defined(DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS) */
 #if defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES)
   define_numeric_valued_macro(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES);
 #else /* !defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES) */
@@ -8842,6 +8848,8 @@ variables declared in cmd_line.h.
   allow_nonconst_ref_anachronism = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM;
   building_runtime = FALSE;
   remove_unneeded_entities = DEFAULT_REMOVE_UNNEEDED_ENTITIES;
+  remove_bodies_of_unreferenced_functions =
+                               DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS;
   use_nonstandard_for_init_scope = DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
   microsoft_type_dependent_for_init_scope = FALSE;
   warning_on_for_init_difference = DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE;

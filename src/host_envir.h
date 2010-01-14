@@ -773,7 +773,7 @@ maintained.
 
 /*
 Default setting for global variable remove_unneeded_entities, used to
-initialized okay_to_eliminate_unneeded_il_entries, which in turn controls
+initialize okay_to_eliminate_unneeded_il_entries, which in turn controls
 whether the IL tree is pruned of unneeded entries.  It should only be
 configured to TRUE when MAINTAIN_NEEDED_FLAGS is TRUE.  Usually it will be
 FALSE when the C++-generating back end is used because needed-flag
@@ -795,6 +795,39 @@ processing cannot be done reliably on template bodies.
  #error -- DEFAULT_REMOVE_UNNEEDED_ENTITIES must be FALSE \
            when MAINTAIN_NEEDED_FLAGS is FALSE.
 #endif /* !MAINTAIN_NEEDED_FLAGS && ... */
+
+/*
+Default setting for the global variable remove_bodies_of_unreferenced_functions
+which is used to control whether the bodies of unreferenced functions are
+removed from the IL when possible.  Not all functions whose "referenced" field
+is FALSE are actually unreferenced; virtual functions, dllexported functions,
+and others may need to be present in the IL and are left alone.  In order to
+determine if a function is truly unreferenced, this test can only be done at
+the end of the compilation, and by this time many (possibly unreferenced)
+functions have already been written to the IL.  Many of the functions that have
+not yet been written are inline member functions that have been retained for
+possible inlining.  Setting this flag to TRUE can save compilation time in
+cases where there are a large number of inline member functions in header
+files, many of which are unused.  The setting of this option is independent
+of any needed flag processing.  Function bodies that are eliminated as a
+result of this setting have already been lowered.
+*/
+#ifndef DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS
+#if BACK_END_IS_C_GEN_BE
+#define DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS TRUE
+#else /* !BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+#define DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS FALSE
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS TRUE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* ifndef DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS */
+
+#if DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS && BACK_END_IS_CP_GEN_BE
+ #error -- DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS must be FALSE when \
+	   BACK_END_IS_CP_GEN_BE is TRUE.
+#endif /* DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS && ... */
 
 /*
 Flag that is TRUE if the processing required to generate one instantiation

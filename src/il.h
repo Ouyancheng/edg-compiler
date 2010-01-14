@@ -1932,6 +1932,17 @@ extern void clear_function_body(a_scope_ptr sp);
 
 void detach_from_object_lifetime_tree(an_object_lifetime_ptr olp);
 
+/*
+Macro to determine whether a routine needs a definition in this compilation.
+*/
+#define routine_needs_definition_in_this_compilation(routine)             \
+  ((routine)->storage_class == (a_storage_class)sc_unspecified &&         \
+   (C_mode() ||                                                           \
+    !treat_as_static_inline((routine)) ||                                 \
+    (routine)->need_out_of_line_copy))
+
+extern void eliminate_bodies_of_unreferenced_functions(void);
+
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);
 

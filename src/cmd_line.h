@@ -1140,6 +1140,15 @@ EXTERN a_boolean
 			   new translation unit is started. */
 
 EXTERN a_boolean
+		remove_bodies_of_unreferenced_functions;
+			/* When TRUE the bodies of functions that are
+			   unreferenced are removed from the IL when possible.
+			   Not all functions whose referenced flag is FALSE
+			   can be removed -- see 
+			   eliminate_bodies_of_unreferenced_functions for
+			   details. */
+
+EXTERN a_boolean
 		use_nonstandard_for_init_scope;
 			/* TRUE if the scope of a name declared in a C++
 			   for-init statement extends to the end of the scope
