@@ -19736,7 +19736,7 @@ routine is unneeded).
             /* ...or need a definition because they are a non-member
                   extern inline function... */
             /* Note that extern inline member functions that are unreferenced
-               may be needed in the overall linked program be aren't needed in
+               may be needed in the overall linked program but aren't needed in
                this compilation if they are unreferenced. */
             (routine->source_corresp.is_class_member ||
              !routine_needs_definition_in_this_compilation(routine))) {
