@@ -19738,7 +19738,7 @@ routine is unneeded).
             /* Note that extern inline member functions that are unreferenced
                may be needed in the overall linked program but aren't needed in
                this compilation if they are unreferenced. */
-            (routine->source_corresp.is_class_member ||
+            ((routine->source_corresp.is_class_member && routine->is_inline) ||
              !routine_needs_definition_in_this_compilation(routine))) {
           /* Remove the definition. */
           clear_function_body(sp);
