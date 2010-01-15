@@ -2092,7 +2092,7 @@ directive must match the long file name exactly (including use of '"' vs.
       any_errors = TRUE;
     }  /* if */
   }  /* if */
-  /* Advance Past the header name and look for a closing parenthesis. */
+  /* Advance past the header name and look for a closing parenthesis. */
   if (!any_errors && get_token() == tok_rparen) {
     (void)get_token();
   } else {
