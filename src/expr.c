@@ -14543,6 +14543,20 @@ standard.
         }  /* if */
         operation_type = determine_arithmetic_conversions(operand_1,
                                                           &operand_2);
+        if (is_integral_or_enum_type(operation_type) &&
+            !int_kind_is_signed[(int)operation_type->
+                                                   variant.integer.int_kind]) {
+          /* Issue a remark if a signed operand is converted to an unsigned
+             type, which can produce surprising results with negative
+             values. */
+          a_type_ptr type_1 = skip_typerefs(operand_1->type);
+          a_type_ptr type_2 = skip_typerefs(operand_2.type);
+          if (int_kind_is_signed[(int)type_1->variant.integer.int_kind] ||
+              int_kind_is_signed[(int)type_2->variant.integer.int_kind]) {
+            expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
+                                &operator_position);
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Determine the result type. */
