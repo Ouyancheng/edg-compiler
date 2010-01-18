@@ -10057,7 +10057,8 @@ in the new param types will be NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Duplicate the Microsoft attributes list (if any). */
     if (ptp->ms_attributes != NULL) {
-      new_ptp->ms_attributes = duplicate_ms_attributes(ptp->ms_attributes);
+      new_ptp->ms_attributes = duplicate_ms_attributes(ptp->ms_attributes,
+                                                       (char*)new_ptp);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Note: the name associated with the original param type entry is

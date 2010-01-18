@@ -438,27 +438,31 @@ declaration).  If the current token is a left bracket introducing Microsoft or
 C++0x attributes (i.e., not a lambda), scan over them.
 */
 {
-  if (curr_token == tok_lbracket && !C_mode()) {
+  while (curr_token == tok_lbracket && !C_mode()) {
     a_boolean  attr_next =
                        std_attributes_enabled && next_token() == tok_lbracket;
+    a_boolean  is_std_attribute = attr_next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!attr_next && microsoft_mode && !is_lambda()) {
       attr_next = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (attr_next) {
-      /* This appears to be a left bracket introducing Microsoft or C++0x
-         attributes. */
-      /* Advance past the left bracket. */
-      cache_curr_token(&state->cache);
-      (void)get_token();
-      /* Now scan up to the matching right bracket. */
-      cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
-      /* Advance past the right bracket. */
-      cache_curr_token(&state->cache);
-      get_token_and_coalesce_if_identifier(flags);
-    }  /* if */
-  }  /* if */
+    /* If this is not the start of an attribute, exit the loop. */
+    if (!attr_next) break;
+    /* This appears to be a left bracket introducing Microsoft or C++0x
+       attribute. */
+    /* Advance past the left bracket. */
+    cache_curr_token(&state->cache);
+    (void)get_token();
+    /* Now scan up to the matching right bracket. */
+    cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
+    /* Advance past the right bracket. */
+    cache_curr_token(&state->cache);
+    get_token_and_coalesce_if_identifier(flags);
+    /* Microsoft allows multiple separate attributes, but this is not allowed
+       for standard attributes. */
+    if (is_std_attribute) break;
+  }  /* while */
 }  /* prescan_any_prefix_bracketed_attributes */
 
 

@@ -4506,7 +4506,20 @@ appropriately.
 }  /* gen_ms_attribute */
 
 
-static a_boolean gen_ms_attribute_block(void)
+static void gen_ms_attribute_block(an_ms_attribute_ptr msap)
+/*
+Generate the block of Microsoft attributes pointed to by msap.
+*/
+{
+  a_boolean	first = TRUE;
+
+  for (; msap != NULL; msap = msap->next) {
+    gen_ms_attribute(msap, &first);
+  }  /* for */
+}  /* gen_ms_attribute_block */
+
+
+static a_boolean gen_ms_attribute_block_from_ss_list(void)
 /*
 Generate any Microsoft attributes at the current source sequence entry.
 Return TRUE if any were processed.
@@ -4531,7 +4544,7 @@ Return TRUE if any were processed.
     gen_ms_attribute(msap, &first);
   }  /* for */
   return any_found;
-}  /* gen_ms_attribute_block */
+}  /* gen_ms_attribute_block_from_ss_list */
 
 
 static void gen_ms_parameter_attribute_block(an_ms_attribute_ptr msap)
@@ -4665,6 +4678,9 @@ default arguments should be suppressed (needed for template specializations).
                void foo(void f(void*));  // okay
              Put out a generated name in this case (unless a name was
              recorded). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          gen_ms_attribute_block(param->ms_attributes);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           form_type_first_part_simple(param->type,
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
@@ -4687,6 +4703,9 @@ default arguments should be suppressed (needed for template specializations).
                                            param->declared_type : param->type;
           a_type_qualifier_set  extra_qual = param->declared_type != NULL ?
                                                   TQ_NONE : param->qualifiers;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          gen_ms_attribute_block(param->ms_attributes);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
                                extra_qual, FTO_NO_OPTIONS, &octl);
@@ -13154,7 +13173,7 @@ parameter declarations).
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Output any Microsoft attributes. */
-  if (gen_ms_attribute_block()) {
+  if (gen_ms_attribute_block_from_ss_list()) {
     /* If we processed some attributes, watch out for having no declarations
        following. */
     (void)process_preprocessing_directives();

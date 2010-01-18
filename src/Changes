@@ -1,5 +1,24 @@
 Version 4.2
 
+1/19/10  [EDGcpfe/8363,EDGcpfe/8785,EDGcpfe/8829,EDGcpfe/8977,EDGcpfe/9429
+          EDGcpfe/9810,EDGcpfe/9997,EDGcpfe/10173]
+Microsoft compatibility: Source annotation attributes
+
+Microsoft source annotation attributes are now accepted in Microsoft mode.
+The attributes that have been added are SA_FormatString, SA_InvalidCheck,
+SA_Post, SA_Pre, SA_PostRange, SA_PreRange, SA_PostBound, SA_PreBound,
+SA_Success, and source_annotation_attribute.  In addition, each of the
+attributes without the SA_ prefix is also accepted in C++ mode.  A target
+specifier that precedes an attribute (e.g., the "returnvalue" in the example
+below) is also accepted now.  We do not currently do any validation of the
+target specifiers or the arguments of the source annotation attributes.  The
+Microsoft compiler requires that the SourceAnnotations.h header be included
+for these attributes to be used.  We do not currently require that header
+to be included.
+
+[returnvalue:SA_Post(MustCheck=SA_Yes)] int f([SA_Pre(Null=SA_No)] int *x);
+
+
 1/18/10  [EDGcpfe/8082]
 Remark when comparing signed and unsigned operands
 

@@ -900,6 +900,82 @@ are accepted.
 			     "satype", MSAT_PARAMETER);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "data_type", /*is_unnamed=*/FALSE, (char*)NULL);
+  /* Source Annotation attributes. */
+  /* [FormatString] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "FormatString", MSAT_ANY);
+  }  /* if */
+  /* [SA_FormatString] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_FormatString", MSAT_ANY);
+  /* [InvalidCheck] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "InvalidCheck", MSAT_ANY);
+  }  /* if */
+  /* [SA_InvalidCheck] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_InvalidCheck", MSAT_ANY);
+  /* [Post] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "Post", MSAT_ANY);
+  }  /* if */
+  /* [SA_Post] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_Post", MSAT_ANY);
+  /* [Pre] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "Pre", MSAT_ANY);
+  }  /* if */
+  /* [SA_Pre] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_Pre", MSAT_ANY);
+  /* [PostBound] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "PostBound", MSAT_ANY);
+  }  /* if */
+  /* [SA_PostBound] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_PostBound", MSAT_ANY);
+  /* [PostRange] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "PostRange", MSAT_ANY);
+  }  /* if */
+  /* [SA_PostRange] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_PostRange", MSAT_ANY);
+  /* [PreBound] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "PreBound", MSAT_ANY);
+  }  /* if */
+  /* [SA_PreBound] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_PreBound", MSAT_ANY);
+  /* [SA_PreRange] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_PreRange", MSAT_ANY);
+  /* [PreRange] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "PreRange", MSAT_ANY);
+  }  /* if */
+  /* [Success] */
+  if (!C_mode()) {
+    make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                               "Success", MSAT_ANY);
+  }  /* if */
+  /* [SA_Success] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "SA_Success", MSAT_ANY);
+  /* [source_annotation_attribute] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "source_annotation_attribute", MSAT_ANY);
   /* [size_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "size_is",
@@ -1724,6 +1800,17 @@ declaration.
   /* Save the token sequence number of the first token of this attribute. */
   first_token = curr_token_sequence_number;
   start_position = pos_curr_token;
+  /* Look for a target specifier before the attribute name (for example,
+     "returnvalue:SA_Post").  Microsoft added these when they restructured
+     the attribute support for C++/CLI.  They are also used for source
+     annotation attributes.  These are similar in purpose but have different
+     values than the an_ms_attribute_target values in the front end.
+     At this time, the values are ignored. */
+  if (next_token() == tok_colon) {
+    /* Skip past the target value and the colon. */
+    (void)get_token();
+    (void)get_token();
+  }  /* if */
   /* Look up the attribute identifier.  If the identifier is unknown,
      the "unrecognized" attribute will be returned.  In error cases, such
      as a missing attribute name, a NULL attribute description is returned. */
@@ -2084,11 +2171,13 @@ Return a duplicate of the given list of attribute arguments.
 }  /* duplicate_ms_attribute_args */
 
 
-an_ms_attribute_ptr duplicate_ms_attributes(an_ms_attribute_ptr  orig)
+an_ms_attribute_ptr duplicate_ms_attributes(an_ms_attribute_ptr  orig,
+                                            char                 *new_entity)
 /*
 Return a duplicate of the given list of attributes.  The attribute arguments
 (if any) are also duplicated.  However, other items these attributes and
-arguments point to (like character strings) are shared.
+arguments point to (like character strings) are shared.  Update the copy
+of the attribute to refer to new_entity.
 */
 {
   an_ms_attribute_ptr  result = NULL, *p_msap = &result, prev_msap = NULL;
@@ -2096,6 +2185,7 @@ arguments point to (like character strings) are shared.
   while (orig != NULL) {
     *p_msap = alloc_ms_attribute();
     **p_msap = *orig;
+    (*p_msap)->entity.ptr = new_entity;
     if (prev_msap != NULL) {
       prev_msap->next = *p_msap;
     }  /* if */
