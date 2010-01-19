@@ -14548,13 +14548,16 @@ standard.
                                                   variant.integer.int_kind)]) {
           /* Issue a remark if a signed operand is converted to an unsigned
              type, which can produce surprising results with negative
-             values. */
+             values.  (Note that a sign change for a constant is detected
+             separately, hence the exclusion of constant operands below.) */
           a_type_ptr type_1 = skip_typerefs(operand_1->type);
           a_type_ptr type_2 = skip_typerefs(operand_2.type);
           if ((type_1->kind == (a_type_kind)tk_integer &&
-               int_kind_is_signed[(int)type_1->variant.integer.int_kind]) ||
+               int_kind_is_signed[(int)type_1->variant.integer.int_kind] &&
+               !is_constant_operand(operand_1)) ||
               (type_2->kind == (a_type_kind)tk_integer &&
-               int_kind_is_signed[(int)type_2->variant.integer.int_kind])) {
+               int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
+               !is_constant_operand(&operand_2))) {
             expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
                                 &operator_position);
           }  /* if */

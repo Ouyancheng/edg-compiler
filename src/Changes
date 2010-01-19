@@ -25,7 +25,10 @@ Remark when comparing signed and unsigned operands
 When a signed value is converted to an unsigned type, a small negative
 value becomes a large positive value, which can produce surprising results
 in a comparison operation.  The front end now issues a remark when such
-conversions occur in relational expressions.  For example:
+conversions are applied to non-constant operands in relational expressions
+(there is already a separate warning if a negative constant value is
+converted to an unsigned type, so the remark is not issued for constant
+operands).  For example:
 
   bool f(int i, unsigned u) {
     return i > u;    // Now gives a remark
