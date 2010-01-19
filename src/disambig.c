@@ -441,7 +441,6 @@ C++0x attributes (i.e., not a lambda), scan over them.
   while (curr_token == tok_lbracket && !C_mode()) {
     a_boolean  attr_next =
                        std_attributes_enabled && next_token() == tok_lbracket;
-    a_boolean  is_std_attribute = attr_next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!attr_next && microsoft_mode && !is_lambda()) {
       attr_next = TRUE;
@@ -459,9 +458,6 @@ C++0x attributes (i.e., not a lambda), scan over them.
     /* Advance past the right bracket. */
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
-    /* Microsoft allows multiple separate attributes, but this is not allowed
-       for standard attributes. */
-    if (is_std_attribute) break;
   }  /* while */
 }  /* prescan_any_prefix_bracketed_attributes */
 
