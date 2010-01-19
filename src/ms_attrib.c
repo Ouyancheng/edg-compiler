@@ -1806,7 +1806,7 @@ declaration.
      annotation attributes.  These are similar in purpose but have different
      values than the an_ms_attribute_target values in the front end.
      At this time, the values are ignored. */
-  if (next_token() == tok_colon) {
+  if (curr_token == tok_identifier && next_token() == tok_colon) {
     /* Skip past the target value and the colon. */
     (void)get_token();
     (void)get_token();
