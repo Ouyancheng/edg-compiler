@@ -1877,7 +1877,7 @@ ec_pure_virtual_member_template;;"a member template cannot have a pure specifier
 ec_excess_characters_in_literal_ignored;;"string literal too long -- excess characters ignored"
 ec_cl_nullptr_option_only_in_cplusplus;;"option to control the nullptr keyword can be used only when compiling C++"
 ec_nullptr_conv_to_bool;;"std::nullptr_t converted to bool"
-ec_multiple_std_attr_groups;;"multiple standard attribute groups"
+REMOVED;ec_multiple_std_attr_groups;;"multiple standard attribute groups"
 REMOVED;ec_attribute_takes_no_arguments;;"attribute %sq takes no arguments"
 ec_invalid_empty_attribute_arg_list;;"attribute %sq does not allow an empty argument list"
 ec_attr_twice_in_group;;"attribute appears more than once"

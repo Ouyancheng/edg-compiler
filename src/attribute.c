@@ -1431,20 +1431,15 @@ is made.
     unscanned_attributes = NULL;
     unscanned_attributes_active = FALSE;
   } else {
-    a_boolean  new_attr_seen, std_attr_seen = FALSE;
+    a_boolean  new_attr_seen;
     do {
       new_attr_seen = FALSE;
       if (curr_token == tok_lbracket && std_attributes_enabled &&
           next_token() == tok_lbracket) {
         /* Two brackets are next: Those must be introducing a standard
            attribute construct. */
-        if (std_attr_seen) {
-          /* Unlike GNU attributes, standard attributes in a particular
-             location must all appear in a single group. */
-          pos_error(ec_multiple_std_attr_groups, &pos_curr_token);
-        }  /* if */
         *p_attributes = scan_std_attribute_group((an_attribute_location)loc);
-        new_attr_seen = std_attr_seen = TRUE;
+        new_attr_seen = TRUE;
       } else if (curr_token == tok_attribute && gnu_attributes_enabled) {
         *p_attributes = scan_gnu_attribute_group((an_attribute_location)loc);
         new_attr_seen = TRUE;
