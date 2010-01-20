@@ -1,5 +1,18 @@
 Version 4.2
 
+1/20/10  [EDGcpfe/10198]
+Abort on invalid member template definition with prototype instantiations in IL
+
+An abort could occur (in get_scope_for_list) on an invalid definition of
+a member template (when the enclosing class of the definition is incomplete)
+when PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE.  Now fixed.
+
+  template <typename T> struct O {
+    struct I;
+  };
+  template <typename T> struct O<T>::I::S {};
+
+
 1/19/10  [EDGcpfe/8363,EDGcpfe/8785,EDGcpfe/8829,EDGcpfe/8977,EDGcpfe/9429
           EDGcpfe/9810,EDGcpfe/9997,EDGcpfe/10173]
 Microsoft compatibility: Source annotation attributes

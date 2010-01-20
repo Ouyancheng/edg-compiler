@@ -11286,6 +11286,13 @@ initially used when processing the declaration of a partial specialization.
            to prevent what might be an erroneous local type from being added
            to a non-local list. */
         check_assertion(total_errors != 0);
+      } else if (sym->is_class_member &&
+                 sym_parent_class(sym)->variant.class_struct_union.
+                                             extra_info->assoc_scope == NULL) {
+        /* An error occurred earlier resuling in an invalid parent class
+           (one that is incomplete and not in the process of being defined). */
+        decl_state->decl_scope_err = TRUE;
+        check_assertion(total_errors != 0);
       } else {
         add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
       }  /* if */
@@ -11342,7 +11349,7 @@ initially used when processing the declaration of a partial specialization.
     record_instantiation(prototype_sym, tssp);
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-  if (prototype_instantiations_in_il) {
+  if (prototype_instantiations_in_il && !decl_state->decl_scope_err) {
     /* Make sure we keep the prototype instantiations in the IL even
        though no one will be referring to them. */
     mark_as_needed((char *)prototype_type, (an_il_entry_kind)iek_type);
