@@ -1337,6 +1337,18 @@ typedef int a_ctws_options_set;
 			/* TRUE when creating the substituted routine type
 			   as part of the partial ordering process. */
 
+
+extern an_expr_node_ptr copy_template_param_expr(
+                                 an_expr_node_ptr         expr,
+                                 a_template_arg_ptr       template_arg_list,
+                                 struct a_template_param  *template_param_list,
+                                 a_type_ptr               guide_type,
+                                 a_source_position        *source_pos,
+                                 a_ctws_options_set       options,
+                                 a_boolean                *copy_error,
+                                 a_constant_ptr           constant,
+                                 a_constant_ptr           *alloc_con);
+
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_constant_ptr           con,
                                  a_template_arg_ptr       template_arg_list,

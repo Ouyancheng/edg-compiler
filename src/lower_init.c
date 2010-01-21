@@ -424,7 +424,9 @@ function).
     cast_node(&expr_cast, promoted_type,
               /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
               /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-              /*reinterpret_semantics=*/FALSE, &error_position);
+              /*reinterpret_semantics=*/FALSE,
+              /*within_expr_processing=*/FALSE,
+              &error_position);
     expr_cast->next = expr_next;
     if (expr_cast != expr) {
       /* A cast was added, so swap the cast and the original node so that the

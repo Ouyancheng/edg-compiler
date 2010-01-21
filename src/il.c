@@ -12921,16 +12921,6 @@ static a_constant_ptr copy_template_param_con(
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
                                   a_constant_ptr           constant);
-static an_expr_node_ptr copy_template_param_expr(
-                                  an_expr_node_ptr         expr,
-                                  a_template_arg_ptr       template_arg_list,
-                                  a_template_param_ptr     template_param_list,
-                                  a_type_ptr               guide_type,
-                                  a_source_position        *source_pos,
-                                  a_ctws_options_set       options,
-                                  a_boolean                *copy_error,
-                                  a_constant_ptr           constant,
-                                  a_constant_ptr           *alloc_con);
 
 
 static an_expr_node_ptr alloc_copied_template_param_expr(
@@ -13009,6 +12999,31 @@ when doing template argument substitution.
   }  /* switch */
   return is_foldable;
 }  /* operator_is_foldable */
+
+
+static a_boolean expr_is_rescannable(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is rescannable, meaning that it can
+be run through the expression-scanning routines in a special mode that
+redoes semantic analysis.
+*/
+{
+  a_boolean rescannable = FALSE;
+
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    switch (op) {
+#ifdef FIXME_JSA_TEST_MODE
+      case eok_shiftl:
+      case eok_shiftr:
+        rescannable = TRUE;
+        break;
+#endif /* FIXME_JSA_TEST_MODE */
+      default:;
+    }  /* switch */
+  }  /* if */
+  return rescannable;
+}  /* expr_is_rescannable */
 
 
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
@@ -13316,7 +13331,7 @@ std::nullptr_t, set *copy_error to TRUE.  (No checking is needed or done if
 }  /* check_template_nullptr_operation */
                                     
 
-static an_expr_node_ptr copy_template_param_expr(
+an_expr_node_ptr copy_template_param_expr(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
@@ -13347,6 +13362,7 @@ options is a set of name lookup options.
 {
   an_expr_node_ptr      expr_copy = NULL;
   an_expr_operator_kind op;
+  an_error_code         error_detected;
 #if CHECKING
   a_boolean             non_constant_expr =
                                        (options & CTWS_NON_CONSTANT_EXPR) != 0;
@@ -13377,6 +13393,26 @@ options is a set of name lookup options.
                                                        source_pos,
                                                        options,
                                                        copy_error);
+      } else if (expr_is_rescannable(expr)) {
+        /* Redo the semantic analysis on the expression, after substitution.
+           This makes a copy of the expression, even of parts that are
+           not changed by substitution, so the original expression remains
+           unchanged. */
+        a_rescan_control_block rcblock;
+        clear_rescan_control_block(&rcblock);
+        rcblock.template_arg_list = template_arg_list;
+        rcblock.template_param_list = template_param_list;
+        rcblock.options = options;
+        expr_copy = rescan_expr_with_substitution(expr, &rcblock, constant);
+        if (rcblock.error_detected) {
+          /* There was an error, so deduction fails. */
+          *copy_error = TRUE;
+          break;
+        }  /* if */
+        /* Here, either expr_copy is non-NULL and points to the expression
+           copy, or expr_copy is NULL and *constant has been set to the
+           constant result after substitution.  *alloc_con is always NULL,
+           because no allocated copy of the constant is available. */
       } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  This is a limitation with respect to the standard,
@@ -13535,19 +13571,33 @@ options is a set of name lookup options.
                                  /*evaluated_context=*/TRUE,
                                  &did_not_fold,
                                  &template_constant,
+                                 &error_detected,
                                  source_pos);
                 check_assertion(!did_not_fold);
                 *alloc_con = NULL;
+                if (error_detected != ec_no_error) *copy_error = TRUE;
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_cast) {
+              a_boolean is_implicit_cast =
+                                    expr->variant.operation.compiler_generated;
+              a_boolean is_reinterpret_cast =
+                                   expr->variant.operation.is_reinterpret_cast;
               copy_constant(&constant_1, constant);
-              type_change_constant(constant, operation_type,
-                                   /*is_implicit_cast=*/FALSE,
-                                   /*maintain_expression=*/FALSE,
-                                   &did_not_fold,
-                                   source_pos);
+              type_change_constant_full(constant, operation_type,
+                                        is_implicit_cast,
+                                        /*constant_context=*/TRUE,
+                                        /*evaluated_context=*/TRUE,
+                                        /*fold_constant_addr_exprs=*/TRUE,
+                                        /*check_cast_access=*/FALSE,
+                                        /*check_ambiguity=*/TRUE,
+                                        is_reinterpret_cast,
+                                        /*maintain_expression=*/FALSE,
+                                        &did_not_fold,
+                                        &error_detected,
+                                        source_pos);
               check_assertion(!did_not_fold);
               *alloc_con = NULL;
+              if (error_detected != ec_no_error) *copy_error = TRUE;
             } else if (op == (an_expr_operator_kind)eok_parens) {
               copy_constant(&constant_1, constant);
               *alloc_con = NULL;
@@ -13558,9 +13608,11 @@ options is a set of name lookup options.
                               /*evaluated_context=*/TRUE,
                               &did_not_fold,
                               &template_constant,
+                              &error_detected,
                               source_pos);
               check_assertion(!did_not_fold);
               *alloc_con = NULL;
+              if (error_detected != ec_no_error) *copy_error = TRUE;
             }  /* if */
           }  /* if */
         } else if (op == (an_expr_operator_kind)eok_address_of) {
@@ -13844,6 +13896,7 @@ name lookup options.
   a_type_ptr     new_type;
   a_type_ptr     copied_con_type;
   a_boolean      did_not_fold;
+  an_error_code  error_detected;
   a_template_param_coordinate_ptr
                  coordinates;
 
@@ -13936,13 +13989,21 @@ name lookup options.
           if (other_con != NULL) *constant = *other_con;
           /* Do the cast again with the type and constant after
              substitution. */
-          type_change_constant(constant, new_type,
-                               /*is_implicit_cast=*/FALSE,
-                               /*maintain_expression=*/FALSE,
-                               &did_not_fold,
-                               source_pos);
+          type_change_constant_full(constant, new_type,
+                                    /*is_implicit_cast=*/FALSE,
+                                    /*constant_context=*/TRUE,
+                                    /*evaluated_context=*/TRUE,
+                                    /*fold_constant_addr_exprs=*/TRUE,
+                                    /*check_cast_access=*/FALSE,
+                                    /*check_ambiguity=*/TRUE,
+                                    /*is_reinterpret_cast=*/FALSE,
+                                    /*maintain_expression=*/FALSE,
+                                    &did_not_fold,
+                                    &error_detected,
+                                    source_pos);
           check_assertion(!did_not_fold);
           con_copy = NULL;
+          if (error_detected != ec_no_error) *copy_error = TRUE;
         }  /* if */
         break;
       case tpck_address:

@@ -795,6 +795,7 @@ because of remapped variables.
                              /*evaluated_context=*/FALSE,
                              &did_not_fold,
                              &template_constant,
+                             /*error_detected=*/(an_error_code *)NULL,
                              &code_pos_for_lowering);
           }  /* if */
           break;
@@ -817,6 +818,7 @@ because of remapped variables.
                             /*evaluated_context=*/FALSE,
                             &did_not_fold,
                             &template_constant,
+                            /*error_detected=*/(an_error_code *)NULL,
                             &code_pos_for_lowering);
           }  /* if */
           break;

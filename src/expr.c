@@ -8273,7 +8273,9 @@ and type is the type of the argument to be extracted.
       cast_node(&va_arg_node, type_to_cast_to,
                 /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
-                /*reinterpret_semantics=*/FALSE, &start_position);
+                /*reinterpret_semantics=*/FALSE,
+                /*within_expr_processing=*/TRUE,
+                &start_position);
     }  /* if */
     make_expression_operand(va_arg_node, result);
   }  /* if */
@@ -9749,6 +9751,7 @@ specification allow a variable-sized array as the top type.
                 /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
                 /*is_implicit_cast=*/TRUE,
                 /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE,
+                /*within_expr_processing=*/TRUE,
                 &error_position);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
@@ -14229,15 +14232,21 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 }  /* scan_add_operator */
 
 
-static void scan_shift_operator(an_operand *operand_1,
-                                an_operand *result)
+static void scan_shift_operator(an_operand             *operand_1,
+                                a_rescan_control_block *rcblock,
+                                an_operand             *result)
 /*
-Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
+Scan the "<<" and ">>" operators.  *operand_1 is the left operand.  The
+current token is the operator.  Scan the second operand, combine the two
+operands into an expression, and return an operand for that in *result.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+expression, and return the result in *result (or an error indication in
+*rcblock).  operand_1 is expected to be NULL in that case.
 */
 {
   an_expr_operator_kind op;
-  an_operand            operand_2;
-  a_token_kind          save_token;
+  an_operand            local_operand_1, operand_2;
+  a_token_kind          operator_token;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -14247,20 +14256,37 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
 
   db_enter(4, "scan_shift_operator");
 
-  save_token = curr_token;
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_shiftl) {
+      operator_token = tok_shift_left;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_shiftr);
+      operator_token = tok_shift_right;
+    }  /* if */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    /* Save the position of the operator in case of error. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
 
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -14294,7 +14320,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
          the result is that of the left operand."  This has the effect
          that a "long" shift count will force the shift to be done as long. */
       result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-      op = which_binary_operator(save_token, result_type);
+      op = which_binary_operator(operator_token, result_type);
       change_binary_operand_types(result_type, operand_1, &operand_2, op);
       cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
                    /*is_implicit_cast=*/TRUE);
@@ -14304,7 +14330,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
       promote_operand(operand_1);
       promote_operand(&operand_2);
       result_type = operand_1->type;
-      op = which_binary_operator(save_token, result_type);
+      op = which_binary_operator(operator_token, result_type);
     }  /* if */
     if (curr_expr_is_evaluated() && is_constant_operand(&operand_2) &&
         !is_constant_operand(operand_1) && !is_error_operand(operand_1) &&
@@ -20304,7 +20330,8 @@ bad_start_of_primary:
 	break;
       case tok_shift_left:
       case tok_shift_right:
-	scan_shift_operator(&operand, &local_result);
+        scan_shift_operator(&operand, (a_rescan_control_block *)NULL,
+                            &local_result);
 	break;
       case tok_lt:
       case tok_gt:
@@ -21706,6 +21733,61 @@ This is callable from outside of the expression processing routines.
 #endif /* DEBUG */
   db_exit();
 }  /* conv_nontype_template_arg_to_param_type */
+
+
+an_expr_node_ptr rescan_expr_with_substitution(an_expr_node_ptr       expr,
+                                               a_rescan_control_block *rcblock,
+                                               a_constant             *constant)
+/*
+Redo the semantic analysis on the expression expr as part of doing
+template deduction.  rcblock provides the deduction context, e.g., the
+template argument list being tried.  It also has an error_detected
+flag, which is set to TRUE if any non-access error is detected during
+the rescan.  If there is no error, a copy of the expression, with
+appropriate substitution done, is returned.  If the result is a
+constant, *constant (not in the IL) is set to the constant value, and
+NULL is returned.
+*/
+{
+  an_expr_stack_entry           expr_stack_entry;
+  an_expr_rescan_info_entry_ptr eriep = expr->rescan_info;
+  an_operand                    result;
+
+  /* Rescan information must have been saved on the expression when it was
+     originally scanned. */
+  check_assertion(eriep != NULL);
+  push_expr_stack(eriep->expression_kind, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.template_deduction_context = TRUE;
+  expr_stack_entry.suppress_diagnostics = TRUE;
+  /* The expr field in the control block is used as a way to pass the
+     expression to the scan_xxx_operator routines without having to add
+     an extra parameter on each of those routines. */
+  rcblock->expr = expr;
+  check_assertion(is_operation_node(expr));
+  /* Go to the right routine to rescan the operator. */
+  switch (expr->variant.operation.kind) {
+    case eok_shiftl:
+    case eok_shiftr:
+      scan_shift_operator((an_operand *)NULL, rcblock, &result);
+      break;
+    default:
+      unexpected_condition_str("bad operator in expr rescan");
+  }  /* switch */
+  if (expr_stack->any_non_access_error_detected) {
+    rcblock->error_detected = TRUE;
+  }  /* if */
+  pop_expr_stack();
+  if (is_constant_operand(&result)) {
+    /* The result is a constant, so return it via *constant. */
+    expr = NULL;
+    copy_constant(&result.variant.constant, constant);
+  } else {
+    expr = make_node_from_operand(&result);
+  }  /* if */
+  return expr;
+}  /* rescan_expr_with_substitution */
 
 
 void scan_member_constant_initializer_expression(a_decl_parse_state  *dps,

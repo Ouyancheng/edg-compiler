@@ -5656,25 +5656,56 @@ that can be deduced from a function template call.
 }  /* is_deducible_constant_param */
 
 
+static void deduction_type_change_constant(
+                                         a_constant        *constant,
+                                         a_type_ptr        new_type,
+                                         a_boolean         is_implicit_cast,
+                                         a_boolean         maintain_expression,
+                                         a_boolean         *did_not_fold,
+                                         a_source_position *err_pos)
+/*
+Interface to type_change_constant_full for use in template deduction contexts.
+Provides defaults for several parameters, and ensures that conversion errors
+do not cause a diagnostic to be issued; instead, *did_not_fold is set to TRUE.
+*/
+{
+  an_error_code error_detected;
+
+  type_change_constant_full(constant, new_type,
+                            is_implicit_cast,
+                            /*constant_context=*/TRUE,
+                            /*evaluated_context=*/TRUE,
+                            /*fold_constant_addr_exprs=*/TRUE,
+                            /*check_cast_access=*/FALSE,
+                            /*check_ambiguity=*/TRUE,
+                            /*is_reinterpret_cast=*/FALSE,
+                            maintain_expression,
+                            did_not_fold,
+                            &error_detected,
+                            err_pos);
+  if (error_detected != ec_no_error) *did_not_fold = TRUE;
+}  /* deduction_type_change_constant */
+
+
 static a_boolean convert_constant_for_deduction(a_constant_ptr	orig_cp,
 						a_constant_ptr	new_cp,
 						a_type_ptr	new_type)
 /*
 Convert orig_cp to new_type.  Return TRUE if the conversion could
-be folded or NULL otherwise.  If the conversion could be folded, the
+be folded or FALSE otherwise.  If the conversion could be folded, the
 new constant is constructed in new_cp.  Note that new_cp may be overwritten
 with an intermediate constant even if this routine returns FALSE.
 */
 {
-  a_boolean	did_not_fold;
+  a_boolean did_not_fold;
 
   check_assertion(orig_cp->kind != (a_constant_repr_kind)ck_template_param);
   clear_constant(new_cp, orig_cp->kind);
   copy_constant(orig_cp, new_cp);
-  type_change_constant(new_cp, new_type,
-                       /*is_implicit_cast=*/TRUE,
-                       /*maintain_expression=*/FALSE,
-                       &did_not_fold, &error_position);
+  deduction_type_change_constant(new_cp, new_type,
+                                 /*is_implicit_cast=*/TRUE,
+                                 /*maintain_expression=*/FALSE,
+                                 &did_not_fold, &error_position);
   return !did_not_fold;
 }  /* convert_constant_for_deduction */
 
@@ -5863,10 +5894,10 @@ list of a template function.  Returns TRUE if a match is found.
             a_constant	new_templ_constant;
             a_boolean	did_not_fold;
             copy_constant(tcp, &new_templ_constant);
-            type_change_constant(&new_templ_constant, constant->type,
-                                 /*is_implicit_cast=*/TRUE,
-                                 /*maintain_expression=*/FALSE,
-                                 &did_not_fold, &error_position);
+            deduction_type_change_constant(&new_templ_constant, constant->type,
+                                           /*is_implicit_cast=*/TRUE,
+                                           /*maintain_expression=*/FALSE,
+                                           &did_not_fold, &error_position);
             match = !did_not_fold &&
                     matches_template_constant(constant, &new_templ_constant,
                                               templ_arg_list,
@@ -6901,10 +6932,10 @@ Return TRUE if the conversion was successful.
       a_boolean		did_not_fold;
       clear_constant(&constant, orig_constant->kind);
       copy_constant(orig_constant, &constant);
-      type_change_constant(&constant, type_required,
-                           /*is_implicit_cast=*/TRUE,
-                           /*maintain_expression=*/FALSE,
-                           &did_not_fold, source_pos);
+      deduction_type_change_constant(&constant, type_required,
+                                     /*is_implicit_cast=*/TRUE,
+                                     /*maintain_expression=*/FALSE,
+                                     &did_not_fold, source_pos);
       if (!did_not_fold) {
         /* The conversion was successful.  Allocate a new constant and
            copy the updated constant there. */

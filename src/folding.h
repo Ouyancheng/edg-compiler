@@ -46,6 +46,7 @@ extern void unary_operation(an_expr_operator_kind op,
                             a_boolean             evaluated_context,
                             a_boolean             *did_not_fold,
                             a_boolean             *template_constant,
+                            an_error_code         *error_detected,
                             a_source_position     *err_pos);
 
 extern void binary_operation(an_expr_operator_kind op,
@@ -57,6 +58,7 @@ extern void binary_operation(an_expr_operator_kind op,
                              a_boolean             evaluated_context,
                              a_boolean             *did_not_fold,
                              a_boolean             *template_constant,
+                             an_error_code         *error_detected,
                              a_source_position     *err_pos);
 
 extern void check_shift_count(a_constant    *shift_count_constant,
@@ -81,6 +83,7 @@ void type_change_constant_full(a_constant        *constant,
                                a_boolean         is_reinterpret_cast,
                                a_boolean         maintain_expression,
                                a_boolean         *did_not_fold,
+                               an_error_code     *error_detected,
                                a_source_position *err_pos);
 
 extern void type_change_constant(a_constant        *constant,

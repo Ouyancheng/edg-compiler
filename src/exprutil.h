@@ -491,6 +491,10 @@ typedef struct an_expr_rescan_info_entry {
 		operator_token_sequence_number;
 			/* Token sequence number for the operator, if there
 			   is one.  NO_TOKEN_SEQUENCE_NUMBER otherwise. */
+  an_expression_kind
+		expression_kind;
+			/* Kind of expression we are in, e.g., template
+			   argument. */
 } an_expr_rescan_info_entry;
 
 /*
@@ -646,7 +650,9 @@ typedef struct an_expr_stack_entry {
 			   template reference.  This is TRUE only for the
 			   top level major expression for a template
 			   argument, e.g., it's not TRUE inside a sizeof
-			   inside a template argument. */
+			   inside a template argument.  This flag is mainly
+			   about recognizing ">" as a template closing
+			   bracket. */
   a_byte_boolean
 		is_vla_dimension_expression;
 			/* TRUE if the expression is the dimension of a
@@ -686,6 +692,10 @@ typedef struct an_expr_stack_entry {
 			   (specifically, one with potentially_evaluated
 			   set to FALSE).  Normally, such expressions are
 			   discarded. */
+  a_byte_boolean
+		template_deduction_context;
+			/* TRUE if we're currently redoing semantic analysis
+			   on an expression as part of template deduction. */
   a_byte_boolean
 		suppress_diagnostics;
 			/* TRUE if diagnostics should be suppressed in the
@@ -1458,6 +1468,16 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
 
 extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
 
+extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
+
+extern
+void make_rescan_operands(a_rescan_control_block  *rcblock,
+                          an_operand              *operand_1,
+                          an_operand              *operand_2,
+                          an_operand              *operand_3,
+                          a_source_position       *operator_position,
+                          a_token_sequence_number *operator_tok_seq_number);
+
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -1774,6 +1794,7 @@ extern void cast_node(an_expr_node_ptr  *p_node,
 		      a_boolean         is_implicit_cast,
                       a_boolean         is_reinterpret_cast,
                       a_boolean         reinterpret_semantics,
+                      a_boolean         within_expr_processing,
                       a_source_position *err_pos);
 
 extern a_type_ptr operand_type_after_integral_promotion(an_operand *operand);

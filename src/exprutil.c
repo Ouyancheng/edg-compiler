@@ -795,6 +795,8 @@ as in a decltype.
                                old_entry->is_decltype_or_typeof_arg_expression;
     new_entry->inside_conditional_expression =
                                       old_entry->inside_conditional_expression;
+    new_entry->template_deduction_context |=
+                                         old_entry->template_deduction_context;
     new_entry->suppress_diagnostics |= old_entry->suppress_diagnostics;
     new_entry->template_deduction_declaration_context |=
                              old_entry->template_deduction_declaration_context;
@@ -839,6 +841,7 @@ is pushed regardless of any of the other factors.
   new_entry->favor_constant_result = FALSE;
   new_entry->inside_conditional_expression = FALSE;
   new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
+  new_entry->template_deduction_context = FALSE;
   new_entry->suppress_diagnostics = FALSE;
   new_entry->any_non_access_error_detected = FALSE;
   new_entry->template_deduction_declaration_context =
@@ -978,7 +981,7 @@ major expression.
     /* If we detected an error during template deduction, propagate that
        up if the parent stack entry is tracking such things. */
     if (expr_stack->any_non_access_error_detected &&
-        new_top->suppress_diagnostics) {
+        new_top->template_deduction_context) {
       new_top->any_non_access_error_detected = TRUE;
     }  /* if */
   }  /* if */
@@ -2107,6 +2110,7 @@ set its fields to default values, and return a pointer to it.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   eriep->operator_position = null_source_position;
   eriep->operator_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  eriep->expression_kind = (an_expression_kind)ek_normal;
   return eriep;
 }  /* alloc_expr_rescan_info_entry */
 
@@ -2133,6 +2137,7 @@ entry attached to the expression node so it will be available for the rescan.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   eriep->end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  eriep->expression_kind = expr_stack->expression_kind;
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
 
@@ -2162,6 +2167,137 @@ need to be allocated).
     eriep->operator_token_sequence_number = operator_tok_seq_number;
   }  /* if */
 }  /* record_operator_position_in_rescan_info */
+
+
+static void restore_operand_info_from_expr_rescan_info_entry(
+                                        an_operand                    *operand,
+                                        an_expr_rescan_info_entry_ptr eriep)
+/*
+Inverse of save_operand_info_in_expr_rescan_info_entry: restore in *operand
+any extra rescan information saved previously in *eriep.
+*/
+{
+  operand->position = eriep->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = eriep->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* restore_operand_info_from_expr_rescan_info_entry */
+
+
+void clear_rescan_control_block(a_rescan_control_block *rcblock)
+/*
+Clear a rescan control block to default values.
+*/
+{
+  rcblock->expr = NULL;
+  rcblock->template_arg_list = NULL;
+  rcblock->template_param_list = NULL;
+  rcblock->options = CTWS_NO_OPTIONS;
+  rcblock->error_detected = FALSE;
+}  /* clear_rescan_control_block */
+
+
+static void make_rescan_operand(an_expr_node_ptr       expr,
+                                a_rescan_control_block *rcblock,
+                                an_operand             *operand)
+/*
+As part of redoing semantic analysis on an expression while doing template
+deduction, convert expr (an operand of the expression currently being
+processed) to an_operand form in *operand.  rcblock provides context
+information for the deduction being done, e.g., the template argument list.
+Note that the process here includes making a copy, so the operand
+returned will never use any part of the original expression, and the
+original expression is not modified.
+*/
+{
+  an_expr_node_ptr              expr_copy;
+  a_boolean                     copy_error = FALSE;
+  a_constant                    constant;
+  a_constant_ptr                alloc_con;
+  an_expr_rescan_info_entry_ptr eriep;
+
+  /* Save the rescan information for later use. */
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  if (rcblock->error_detected) {
+    /* For speed, stop substituting if there was a deduction error on
+       a previous operand. */
+    copy_error = TRUE;
+  } else {
+    /* Copy the expression with substitution. */
+    expr_copy = copy_template_param_expr(expr,
+                                         rcblock->template_arg_list,
+                                         rcblock->template_param_list,
+                                         (a_type_ptr)NULL,
+                                         &eriep->position,
+                                         rcblock->options,
+                                         &copy_error,
+                                         &constant,
+                                         &alloc_con);
+  }  /* if */
+  if (copy_error) {
+    rcblock->error_detected = TRUE;
+    make_error_operand(operand);
+  } else {
+    if (expr_copy == NULL) {
+      /* The result is a constant, so return a constant operand. */
+      if (alloc_con != NULL) {
+        make_constant_operand(alloc_con, operand);
+      } else {
+        make_constant_operand(&constant, operand);
+      }  /* if */
+    } else {
+      /* Return an expression operand. */
+      if (expr_copy->is_lvalue) {
+        make_lvalue_expression_operand(expr_copy, operand);
+      } else {
+        make_expression_operand(expr_copy, operand);
+      }  /* if */
+    }  /* if */
+    /* The information in the rescan info was saved for this moment, when
+       we can use it to restore operand information that would not otherwise
+       survive in the IL.  Do that now. */
+    restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+  }  /* if */
+}  /* make_rescan_operand */
+
+
+void make_rescan_operands(a_rescan_control_block  *rcblock,
+                          an_operand              *operand_1,
+                          an_operand              *operand_2,
+                          an_operand              *operand_3,
+                          a_source_position       *operator_position,
+                          a_token_sequence_number *operator_tok_seq_number)
+/*
+As part of redoing semantic analysis on an expression while doing template
+deduction, extract the operands of the expression given by rcblock->expr
+(an operation node) and return them as operand_1, operand_2, and
+operand_3 (unneeded operands are set to NULL).  Also return the
+operator position and operator token sequence number in *operator_position
+and *operator_tok_seq_number.  rcblock also gives context information
+for the template deduction being done, e.g., the template argument
+list being tried.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr, op1, op2, op3;
+  an_expr_rescan_info_entry_ptr eriep;
+
+  check_assertion(expr != NULL && is_operation_node(expr));
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  op1 = expr->variant.operation.operands;
+  make_rescan_operand(op1, rcblock, operand_1);
+  op2 = op1->next;
+  if (op2 != NULL) {
+    make_rescan_operand(op2, rcblock, operand_2);
+    op3 = op2->next;
+    if (op3 != NULL) {
+      make_rescan_operand(op3, rcblock, operand_3);
+    }  /* if */
+  }  /* if */
+  *operator_position = eriep->operator_position;
+  *operator_tok_seq_number = eriep->operator_token_sequence_number;
+}  /* make_rescan_operands */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
@@ -2374,6 +2510,18 @@ modification.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 
+static void record_non_access_error_detected(void)
+/*
+Record that a non-access-checking error has been detected in a context
+in which we're suppressing errors.
+*/
+{
+  check_assertion(expr_stack != NULL &&
+                  expr_stack->suppress_diagnostics);
+  expr_stack->any_non_access_error_detected = TRUE;
+}  /* record_non_access_error_detected */
+
+
 a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
                                            an_error_code     err_code)
 /*
@@ -2392,7 +2540,7 @@ that this routine cannot be called for access errors.)
     if (expr_stack->suppress_diagnostics) {
       should_issue = FALSE;
       if (is_effective_error(err_code, sev)) {
-        expr_stack->any_non_access_error_detected = TRUE;
+        record_non_access_error_detected();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2413,7 +2561,7 @@ Should not be called for access errors.
       should_issue = FALSE;
       /* Because an error cannot be downgraded, there's no issue of checking
          whether this is indeed an error. */
-      expr_stack->any_non_access_error_detected = TRUE;
+      record_non_access_error_detected();
     }  /* if */
   }  /* if */
   return should_issue;
@@ -2494,7 +2642,9 @@ diagnostics, if that changes the control flow.
        complete information. */
     check_access = FALSE;
   } else if (expr_stack != NULL) {
-    if (expr_stack->suppress_diagnostics) {
+    if (expr_stack->template_deduction_context) {
+      /* No access checking in template deduction contexts (access errors
+         don't cause deduction to fail). */
       check_access = FALSE;
     }  /* if */
   }  /* if */
@@ -2520,12 +2670,12 @@ expression routines.
 */
 {
   if (!C_mode()) {
-    /* See if we're suppressing diagnostics, e.g., because we're in a template
-       deduction context. */
-    if (!expr_stack->suppress_diagnostics) {
+    /* See if we're suppressing access checking, e.g., because we're in
+       a template deduction context. */
+    if (expr_access_checking_should_be_done()) {
       check_ambiguity_and_verify_access(locator);
     } else {
-      /* Diagnostics are suppressed, so do only the ambiguity check to
+      /* Access checking is suppressed, so do only the ambiguity check to
          change the locator to an error locator if an error would have
          been issued. */
       if (f_check_for_ambiguity(locator, 
@@ -2547,12 +2697,12 @@ Wrapper for overload_check_ambiguity_and_verify_access for use within the
 expression routines.
 */
 {
-  /* See if we're suppressing diagnostics, e.g., because we're in a template
-     deduction context. */
-  if (!expr_stack->suppress_diagnostics) {
+  /* See if we're suppressing access checking, e.g., because we're in a
+     template deduction context. */
+  if (expr_access_checking_should_be_done()) {
     overload_check_ambiguity_and_verify_access(locator, overloaded_symbol);
   } else  {
-    /* Diagnostics are suppressed, so do only the ambiguity check to
+    /* Access checking is suppressed, so do only the ambiguity check to
        change the locator to an error locator if an error would have
        been issued. */
     if (f_check_for_ambiguity(locator, 
@@ -2679,6 +2829,12 @@ current token will be used as the operand position.
     clear_operand((an_operand_kind)ok_constant, operand);
     copy_constant(constant, &operand->variant.constant);
     operand->type = constant->type;
+    if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+      /* A template-dependent constant should get the template-generic
+         handling.  (This code is needed particularly if the constant has
+         a known type but a template-dependent value.) */
+      operand->is_template_generic = TRUE;
+    }  /* if */
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   set_operand_position_to_pos_curr_token(operand);
@@ -2846,22 +3002,128 @@ symbol is a function, an rvalue otherwise.
 }  /* make_sym_for_member_operand */
 
 
-static void make_template_param_expr_constant_operand(an_expr_node_ptr node,
-                                                      an_operand       *result)
+static void make_template_param_expr_constant_operand(an_operand *operand)
 /*
-Build an operand for a ck_template_param constant for the expression
-"node".  This makes a constant of subkind tpck_expression.  Return the
-operand in *result.
+operand is a template-dependent operand that must eventually have a
+constant value.  Change it to an operand for a ck_template_param constant for
+the underlying expression.  This makes a constant of subkind tpck_expression.
+Return the operand in *result.
 */
 {
-  a_constant con;
+  an_expr_node_ptr node;
+  a_constant       con;
+  an_operand       orig_operand;
 
+  orig_operand = *operand;
+  operand->is_template_generic = TRUE;
+  node = make_node_from_operand(operand);
   /* Build the ck_template_param constant. */
   make_template_param_expr_constant(node, &con);
   /* Make the operand. */
-  make_constant_operand(&con, result);
-  result->is_template_generic = TRUE;
+  make_constant_operand(&con, operand);
+  restore_operand_details(operand, &orig_operand);
 }  /* make_template_param_expr_constant_operand */
+
+
+static void expr_binary_operation(an_expr_operator_kind op,
+                                  a_constant            *constant_1,
+                                  a_constant            *constant_2,
+                                  a_type_ptr            result_type,
+                                  a_constant            *result,
+                                  a_boolean             *did_not_fold,
+                                  a_boolean             *template_constant,
+                                  a_source_position     *err_pos)
+/*
+Interface to binary_operation (which folds a binary operator applied to
+two constant operands) for use within the expression processing routines.
+Provides some of the parameters from information in the expression stack.
+*/
+{
+  an_error_code error_detected = ec_no_error, *p_error_detected = NULL;
+
+  if (expr_stack->suppress_diagnostics) {
+    p_error_detected = &error_detected;
+  }  /* if */
+  binary_operation(op, constant_1, constant_2, result_type, result,
+                   curr_expr_kind_is_const(),
+                   curr_expr_is_evaluated(),
+                   did_not_fold, template_constant, p_error_detected, err_pos);
+  if (error_detected != ec_no_error) {
+    /* Record that an error occurred while diagnostics are suppressed.
+       This can, for example, cause template deduction to fail later. */
+    record_non_access_error_detected();
+  }  /* if */
+}  /* expr_binary_operation */
+
+
+static void expr_unary_operation(an_expr_operator_kind op,
+                                 a_constant            *constant,
+                                 a_type_ptr            result_type,
+                                 a_constant            *result,
+                                 a_boolean             *did_not_fold,
+                                 a_boolean             *template_constant,
+                                 a_source_position     *err_pos)
+/*
+Interface to unary_operation (which folds a unary operator applied to
+one constant operand) for use within the expression processing routines.
+Provides some of the parameters from information in the expression stack.
+*/
+{
+  an_error_code error_detected = ec_no_error, *p_error_detected = NULL;
+
+  if (expr_stack->suppress_diagnostics) {
+    p_error_detected = &error_detected;
+  }  /* if */
+  unary_operation(op, constant, result_type, result,
+                  curr_expr_kind_is_const(),
+                  curr_expr_is_evaluated(),
+                  did_not_fold, template_constant, p_error_detected, err_pos);
+  if (error_detected != ec_no_error) {
+    /* Record that an error occurred while diagnostics are suppressed.
+       This can, for example, cause template deduction to fail later. */
+    record_non_access_error_detected();
+  }  /* if */
+}  /* expr_unary_operation */
+
+
+static void expr_type_change_constant(
+                                 a_constant        *constant,
+                                 a_type_ptr        new_type,
+                                 a_boolean         is_implicit_cast,
+                                 a_boolean         check_cast_access,
+                                 a_boolean         check_ambiguity,
+                                 a_boolean         is_reinterpret_cast,
+                                 a_boolean         maintain_expression,
+                                 a_boolean         *did_not_fold,
+                                 a_source_position *err_pos)
+/*
+Interface to type_change_constant_full (which casts a constant to a new
+type) for use within the expression processing routines.  Provides some of
+the parameters from information in the expression stack.
+*/
+{
+  an_error_code error_detected = ec_no_error, *p_error_detected = NULL;
+
+  if (expr_stack->suppress_diagnostics) {
+    p_error_detected = &error_detected;
+  }  /* if */
+  type_change_constant_full(constant, new_type, is_implicit_cast,
+                            curr_expr_kind_is_const(),
+                            curr_expr_is_evaluated(),
+                            (a_boolean)expr_stack->favor_constant_result,
+                            check_cast_access,
+                            check_ambiguity,
+                            is_reinterpret_cast,
+                            maintain_expression,
+                            did_not_fold,
+                            p_error_detected,
+                            err_pos);
+  if (error_detected != ec_no_error) {
+    /* Record that an error occurred while diagnostics are suppressed.
+       This can, for example, cause template deduction to fail later. */
+    record_non_access_error_detected();
+  }  /* if */
+}  /* expr_type_change_constant */
 
 
 void add_base_class_casts(a_base_class_ptr  bcp,
@@ -2895,6 +3157,7 @@ routine is only used in C++ mode.
 
   /* The code here looks like fold_base_class_cast. */
   check_assertion(is_class_struct_union_type(qualifiers_model));
+  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     if (expr_error_should_be_issued()) {
@@ -2905,7 +3168,6 @@ routine is only used in C++ mode.
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
        necessary casts. */
-    if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
     curr_type = (*p_node)->type;
     pointer_case = is_pointer_type(curr_type);
     if (pointer_case) curr_type = type_pointed_to(curr_type);
@@ -3147,6 +3409,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
   a_base_class_ptr      base_class;
 
   /* The code here looks like fold_pm_derived_class_cast. */
+  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     if (expr_error_should_be_issued()) {
@@ -3163,7 +3426,6 @@ source position to be used for errors.  This routine is only used in C++ mode.
     }  /* if */
     *p_node = error_node();
   } else {
-    if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
@@ -3219,6 +3481,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
      because we can't link a previous expression in a list to this
      new expression). */
   (*p_node)->next = NULL;
+  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (!C_mode() && !reinterpret_semantics &&
       related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
@@ -3294,6 +3557,7 @@ void cast_node(an_expr_node_ptr  *p_node,
                a_boolean         is_implicit_cast,
                a_boolean         is_reinterpret_cast,
                a_boolean         reinterpret_semantics,
+               a_boolean         within_expr_processing,
                a_source_position *err_pos)
 /*
 Change the type of a node.  If the node is a constant, a conversion is done on
@@ -3312,7 +3576,9 @@ expression node.  It's also assumed to be an evaluated expression (for
 purposes of error diagnosis).  The caller must have already determined
 that the conversion is allowed, except for casts to ambiguous or
 inaccessible base classes.  This routine does not handle user-defined
-conversions.
+conversions.  This routine can be called from outside of the expression
+processing routines; within_expr_processing should be passed as FALSE
+to indicate that.
 */
 {
   a_constant       local_constant;
@@ -3320,6 +3586,10 @@ conversions.
   a_boolean        need_cast;
   an_expr_node_ptr node = *p_node;
 
+  if (within_expr_processing &&
+      !expr_access_checking_should_be_done()) {
+    check_cast_access = FALSE;
+  }  /* if */
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
   /* See whether a cast operator should be added. */
@@ -3363,15 +3633,27 @@ conversions.
          nonconstant context, reduce any error to a warning and leave
          the conversion to be done at runtime. */
       copy_constant(node->variant.constant, &local_constant);
-      type_change_constant_full(&local_constant, new_type, is_implicit_cast,
-                                /*constant_context=*/FALSE,
-                                /*evaluated_context=*/TRUE,
-                                /*fold_constant_addr_exprs=*/FALSE,
-                                check_cast_access,
-                                check_ambiguity,
-                                reinterpret_semantics,
-                                /*maintain_expression=*/FALSE,
-                                &did_not_fold, err_pos);
+      if (within_expr_processing) {
+        expr_type_change_constant(&local_constant, new_type, is_implicit_cast,
+                                  check_cast_access,
+                                  check_ambiguity,
+                                  reinterpret_semantics,
+                                  /*maintain_expression=*/FALSE,
+                                  &did_not_fold,
+                                  err_pos);
+      } else {
+        type_change_constant_full(&local_constant, new_type, is_implicit_cast,
+                                  /*constant_context=*/FALSE,
+                                  /*evaluated_context=*/TRUE,
+                                  /*fold_constant_addr_exprs=*/FALSE,
+                                  check_cast_access,
+                                  check_ambiguity,
+                                  reinterpret_semantics,
+                                  /*maintain_expression=*/FALSE,
+                                  &did_not_fold,
+                                  /*error_detected=*/(an_error_code *)NULL,
+                                  err_pos);
+      }  /* if */
     }  /* if */
     if (did_not_fold) {
       /* The operand is not constant.  Put in a cast. */
@@ -3411,8 +3693,7 @@ was an lvalue or rvalue, etc.
   } else {
     /* The argument is something more complicated, e.g., an expression.
        Make an expression and put it under a tpck_expression constant. */
-    an_expr_node_ptr expr = make_node_from_operand(operand);
-    make_template_param_expr_constant_operand(expr, operand);
+    make_template_param_expr_constant_operand(operand);
   }  /* if */
 }  /* prep_generic_nontype_template_argument */
 
@@ -3640,6 +3921,7 @@ user-defined conversions.
   }  /* if */
 #endif /* CHECKING */
 
+  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
   /* Save the operand's source position, etc. */
@@ -3680,6 +3962,7 @@ user-defined conversions.
             cast_node(&con_expr, new_type,
                       check_cast_access, check_ambiguity, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
+                      /*within_expr_processing=*/TRUE,
                       err_pos);
             if (con_expr != orig_con_expr) {
               overwrite_node(orig_con_expr, con_expr);
@@ -3705,6 +3988,7 @@ user-defined conversions.
             cast_node(&node, new_type,
                       check_cast_access, check_ambiguity, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
+                      /*within_expr_processing=*/TRUE,
                       err_pos);
           }  /* if */
         }
@@ -3715,10 +3999,7 @@ user-defined conversions.
            context, reduce any error to a warning and leave the
            conversion to be done at runtime. */
         copy_constant(&operand->variant.constant, &local_constant);
-        type_change_constant_full(&local_constant, new_type, is_implicit_cast,
-                                  curr_expr_kind_is_const(),
-                                  curr_expr_is_evaluated(),
-                                  (a_boolean)expr_stack->favor_constant_result,
+        expr_type_change_constant(&local_constant, new_type, is_implicit_cast,
                                   check_cast_access,
                                   check_ambiguity,
                                   reinterpret_semantics,
@@ -3912,6 +4193,7 @@ used only in C++ mode.
 
   /* Save the original operand position, etc. */
   orig_operand = *operand;
+  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (qualifiers_model == NULL) {
     qualifiers_model = operand->type;
     if (is_pointer_type(qualifiers_model)) {
@@ -7360,13 +7642,12 @@ operator_position indicates the operator position.
         /* Fold the operation on constants to produce a constant result. */
         /* In a nonconstant context, reduce any error to a warning
            and leave the operation to be done at runtime. */
-        binary_operation(op,
-                         &operand_1->variant.constant,
-                         &operand_2->variant.constant,
-                         result_type, &result->variant.constant,
-                         curr_expr_kind_is_const(),
-                         curr_expr_is_evaluated(),
-                         &did_not_fold, &template_constant, operator_position);
+        expr_binary_operation(op,
+                              &operand_1->variant.constant,
+                              &operand_2->variant.constant,
+                              result_type, &result->variant.constant,
+                              &did_not_fold, &template_constant,
+                              operator_position);
       }  /* if */
     }  /* if */
     if (did_not_fold) {
@@ -7385,6 +7666,12 @@ operator_position indicates the operator position.
       } else {
         /* The constant operation was not folded; create an expression
            operand. */
+        if (template_constant) {
+          /* Make sure we save rescan information on both operands even if
+             one is not template-dependent. */
+          operand_1->is_template_generic = TRUE;
+          operand_2->is_template_generic = TRUE;
+        }  /* if */
         build_binary_result_operand_full(operand_1, operand_2, op,
                                          result_type, result_is_lvalue,
                                          result);
@@ -7402,8 +7689,7 @@ operator_position indicates the operator position.
           /* For an expression based on a template parameter, scanned
              during the prototype instantiation, make a ck_template_param
              constant for the result. */
-          make_template_param_expr_constant_operand(
-                                       make_node_from_operand(result), result);
+          make_template_param_expr_constant_operand(result);
         }  /* if */
       }  /* if */
     } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -7869,11 +8155,10 @@ indicates the operator position.
         /* Fold the operation if the operand is constant.  In a nonconstant
            context, reduce any error to a warning and leave the operation
            to be done at runtime. */
-        unary_operation(op, &operand->variant.constant,
-                        result_type, &result_constant,
-                        curr_expr_kind_is_const(),
-                        curr_expr_is_evaluated(),
-                        &did_not_fold, &template_constant, start_position);
+        expr_unary_operation(op, &operand->variant.constant,
+                             result_type, &result_constant,
+                             &did_not_fold, &template_constant,
+                             start_position);
       }  /* if */
     }  /* if */
     if (did_not_fold) {
@@ -7886,6 +8171,11 @@ indicates the operator position.
       } else {
         /* The operation could not be folded to a constant, so build
            an expression node. */
+        if (template_constant) {
+          /* Make sure we save rescan information on the operand even if
+             it's not template-dependent in some sense of the word. */
+          operand->is_template_generic = TRUE;
+        }  /* if */
         build_unary_result_operand(operand, op, result_type, result);
 #if !UNARY_PLUS_IN_IL
         if (op == (an_expr_operator_kind)eok_unary_plus &&
@@ -7900,8 +8190,7 @@ indicates the operator position.
           /* For an expression based on a template parameter, scanned
              during the prototype instantiation, make a ck_template_param
              constant for the result. */
-          make_template_param_expr_constant_operand(
-                                       make_node_from_operand(result), result);
+          make_template_param_expr_constant_operand(result);
         }  /* if */
       }  /* if */
     } else {
@@ -8144,7 +8433,7 @@ is a template-dependent case.  is_gnu_two_operand_form is TRUE if this is
 a GNU two-operand "?" (a synthesized operand_2 is still provided).
 */
 {
-  a_boolean  operand_1_is_const, do_folding = FALSE;
+  a_boolean  operand_1_is_const, do_folding = FALSE, template_constant;
   a_type_ptr operation_type;
   a_boolean  class_rvalue_case = FALSE;
   a_boolean  class_rvalue_cctor_case = FALSE;
@@ -8160,6 +8449,17 @@ a GNU two-operand "?" (a synthesized operand_2 is still provided).
       class_rvalue_case = TRUE;
     }  /* if */
   }  /* if */
+  template_constant = (!C_mode() &&
+                       (is_template_param_constant_operand(operand_1) ||
+                        is_template_param_constant_operand(operand_2) ||
+                        is_template_param_constant_operand(operand_3)) &&
+                       (is_constant_operand(operand_1) &&
+                        is_constant_operand(operand_2) &&
+                        is_constant_operand(operand_3)));
+  /* template_case is TRUE only for cases involving template-dependent types,
+     so it might not be set if an operand is template-dependent but has a
+     known type. */
+  if (template_constant) template_case = TRUE;
   /* If the first operand is a known constant, the operation can be
      folded. */
   operand_1_is_const = is_constant_operand(operand_1) &&
@@ -8268,9 +8568,7 @@ a GNU two-operand "?" (a synthesized operand_2 is still provided).
                                     (a_constant_repr_kind)ck_template_param)) {
     /* A constant expression where the value of the first operand is
        not known at compile time, except a template-dependent
-       value.  Error.  Note that we don't test template_case because
-       it isn't TRUE when an operand is dependent but has a non-dependent
-       type. */
+       value.  Error. */
     error_in_operand(ec_constant_value_not_known, operand_1);
     make_error_operand(result);
   } else {
@@ -8339,20 +8637,11 @@ a GNU two-operand "?" (a synthesized operand_2 is still provided).
                                is_result_for_class_rvalue_question_mark = TRUE;
         }  /* if */
       }  /* if */
-      /* Note that we don't test template_case here because it isn't TRUE
-         when an operand is dependent but has a non-dependent type. */
-      if (!C_mode() &&
-          (is_template_param_constant_operand(operand_1) ||
-           is_template_param_constant_operand(operand_2) ||
-           is_template_param_constant_operand(operand_3)) &&
-          (is_constant_operand(operand_1) &&
-           is_constant_operand(operand_2) &&
-           is_constant_operand(operand_3))) {
+      if (template_constant) {
         /* For an expression based on a template parameter, scanned
            during the prototype instantiation, make a ck_template_param
            constant for the result. */
-        make_template_param_expr_constant_operand(
-                                      make_node_from_operand(result), result);
+        make_template_param_expr_constant_operand(result);
       }  /* if */
       if (result_is_an_lvalue) {
         /* Adjust the operand to make it an lvalue. */
@@ -11704,16 +11993,14 @@ it might produce an error).
               is_constant_node(op1) && is_constant_node(op2)) {
             /* Both operands are now constant so fold to a constant result. */
             a_boolean did_not_fold;
-            binary_operation(op,
-                             op1->variant.constant,
-                             op2->variant.constant,
-                             op1->type,
-                             &result_con,
-                             curr_expr_kind_is_const(),
-                             curr_expr_is_evaluated(),
-                             &did_not_fold,
-                             &template_constant,
-                             err_pos);
+            expr_binary_operation(op,
+                                  op1->variant.constant,
+                                  op2->variant.constant,
+                                  op1->type,
+                                  &result_con,
+                                  &did_not_fold,
+                                  &template_constant,
+                                  err_pos);
             if (template_constant) {
               /* One or both of the operands is template-dependent.  The
                  constant produced will be a ck_template_param pointing to
@@ -11770,17 +12057,13 @@ it might produce an error).
                constant. */
             a_boolean did_not_fold;
             copy_constant(op1->variant.constant, &result_con);
-            type_change_constant_full(
-                                  &result_con, rvalue_node_type,
-                                  /*is_implicit_cast=*/FALSE,
-                                  curr_expr_kind_is_const(),
-                                  curr_expr_is_evaluated(),
-                                  (a_boolean)expr_stack->favor_constant_result,
-                                  /*check_cast_access=*/FALSE,
-                                  /*check_ambiguity=*/FALSE,
-                                  /*is_reinterpret_cast=*/FALSE,
-                                  /*maintain_expression=*/TRUE,
-                                  &did_not_fold, err_pos);
+            expr_type_change_constant(&result_con, rvalue_node_type,
+                                      /*is_implicit_cast=*/FALSE,
+                                      /*check_cast_access=*/FALSE,
+                                      /*check_ambiguity=*/FALSE,
+                                      /*is_reinterpret_cast=*/FALSE,
+                                      /*maintain_expression=*/TRUE,
+                                      &did_not_fold, err_pos);
             check_assertion(!did_not_fold);
             con_expr_value = alloc_shareable_constant(&result_con);
           }  /* if */

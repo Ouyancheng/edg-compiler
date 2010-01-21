@@ -890,7 +890,7 @@ folded, *did_not_fold is returned TRUE.  If there is an error, issue it
 at *err_pos.  result->type need not be set on entry.
 */
 {
-  a_boolean             access_okay, err;
+  a_boolean             err;
   a_type_ptr            orig_type, curr_type, new_type;
   a_derivation_step_ptr dsp;
   a_constant            offset;
@@ -910,7 +910,6 @@ at *err_pos.  result->type need not be set on entry.
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
        necessary casts. */
-    access_okay = TRUE;
     /* No access checking in prototype instantiations. */
     if (in_front_end &&
         scope_stack[depth_scope_stack].in_prototype_instantiation) {
@@ -925,13 +924,12 @@ at *err_pos.  result->type need not be set on entry.
       if (check_cast_access) {
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
           /* The base class is inaccessible. */
-          /* Keep going, and put out the error only the first time. */
-          if (access_okay) {
-            pos_ty_diagnostic(es_discretionary_error,
-                              ec_inaccessible_base_class, err_pos,
-                              base_class->type);
-            access_okay = FALSE;
-          }  /* if */
+          /* Keep going, but don't check access any further to avoid putting
+             out more than one error. */
+          pos_ty_diagnostic(es_discretionary_error,
+                            ec_inaccessible_base_class, err_pos,
+                            base_class->type);
+          check_cast_access = FALSE;
         }  /* if */
       }  /* if */
       /* Adjust the address to reflect the cast to the next level. */
@@ -1599,6 +1597,7 @@ static void issue_folding_diagnostic(an_error_code     err_code,
                                      a_boolean         constant_context,
                                      a_boolean         evaluated_context,
                                      a_boolean         *did_not_fold,
+                                     an_error_code     *error_detected,
                                      a_source_position *err_pos,
                                      a_constant        *result)
 /*
@@ -1606,22 +1605,48 @@ An error or warning has been detected in a folding operation; err_code
 and err_severity indicate what it is.  If not in a constant_context, reduce
 an error to a warning and set *did_not_fold to TRUE.  If not in an
 evaluated_context, throw away the error and set *did_not_fold to TRUE.
-Issue the diagnostic at source position *err_pos.  Set *result to the
-proper result (often, an error constant).  
+If error_detected is non-NULL, the caller would like to know that an
+error was detected but does not want it issued at this level.  Return
+*error_detected set to the code for the error detected, or ec_no_error
+if no error was detected, and suppress any diagnostic.  If a
+diagnostic is issued, do so with source position *err_pos.  Set
+*result to the proper result (often, an error constant).
 */
 {
+  if (error_detected != NULL) *error_detected = ec_no_error;
   if (!evaluated_context) {
     /* Discard a warning or error in a not-evaluated context. */
     err_severity = es_none;
     *did_not_fold = TRUE;
-  } else if (!constant_context && err_severity == es_error) {
-    /* Reduce an error to a warning in a nonconstant context. */
-    err_severity = es_warning;
-    *did_not_fold = TRUE;
+  } else if (!constant_context) {
+    /* Nonconstant context, so an error will not be issued.  It will be
+       downgraded to a warning. */
+    if (err_severity == es_error) {
+      /* Reduce an error to a warning. */
+      err_severity = es_warning;
+      *did_not_fold = TRUE;
+    }  /* if */
+  } else {
+    /* Constant context, so errors can be issued.  Check for a requested
+       increase of severity on a warning. */
+    if (err_severity != es_error &&
+        is_effective_error(err_code, err_severity)) {
+      err_severity = es_error;
+    }  /* if */
   }  /* if */
   if (err_severity == es_error) {
-    pos_error(err_code, err_pos);
+    /* We have an error. */
+    if (error_detected != NULL) {
+      /* The caller wants an error indication rather than a diagnostic. */
+      *error_detected = err_code;
+    } else {
+      pos_error(err_code, err_pos);
+    }  /* if */
     set_error_constant(result);
+    *did_not_fold = FALSE;
+  } else if (error_detected != NULL) {
+    /* At most we have a warning, and we're suppressing diagnostics, so
+       skip the rest of the checks. */
   } else if (err_severity == es_warning) {
     pos_warning(err_code, err_pos);
   }  /* if */
@@ -1639,26 +1664,31 @@ void type_change_constant_full(a_constant        *constant,
                                a_boolean         is_reinterpret_cast,
                                a_boolean         maintain_expression,
                                a_boolean         *did_not_fold,
+                               an_error_code     *error_detected,
                                a_source_position *err_pos)
 /*
-Convert the indicated constant to "new_type".  Issue errors or warnings
-using the position *err_pos.  If is_implicit_cast is TRUE, this is an
-implicit cast; more warnings are given.  If constant_context is FALSE, this
-operation is being evaluated as part of a nonconstant expression, so
-any error is reduced to a warning and *did_not_fold is returned TRUE.
-If evaluated_context is FALSE, this operation is being done in a
-not-evaluated context (e.g., a sizeof or a dead branch of a "?" operator),
-so any error is thrown away and *did_not_fold is returned TRUE.
-*did_not_fold is also returned TRUE in other cases where the folding
-cannot be done.  fold_constant_addr_exprs is TRUE if constant address
-expressions should be folded (e.g., base class casts); if it is FALSE,
+Convert the indicated constant to "new_type".  If is_implicit_cast is
+TRUE, this is an implicit cast; more warnings are given.  If
+constant_context is FALSE, this operation is being evaluated as part
+of a nonconstant expression, so any error is reduced to a warning and
+*did_not_fold is returned TRUE.  If evaluated_context is FALSE, this
+operation is being done in a not-evaluated context (e.g., a sizeof or
+a dead branch of a "?" operator), so any error is thrown away and
+*did_not_fold is returned TRUE.  *did_not_fold is also returned TRUE
+in other cases where the folding cannot be done.
+fold_constant_addr_exprs is TRUE if constant address expressions
+should be folded (e.g., base class casts); if it is FALSE,
 *did_not_fold is set instead for those.  check_cast_access is TRUE if
-access checking should be done on related-class casts.  check_ambiguity
-is TRUE if ambiguity checking should be done on related-class casts.
-If is_reinterpret_cast is TRUE, this cast is a reinterpret_cast;
-related-class casts are treated like casts between unrelated classes.
-If maintain_expression is TRUE, any expression attached to the constant
-is maintained, by adding a cast if necessary.
+access checking should be done on related-class casts.
+check_ambiguity is TRUE if ambiguity checking should be done on
+related-class casts.  If is_reinterpret_cast is TRUE, this cast is a
+reinterpret_cast; related-class casts are treated like casts between
+unrelated classes.  If maintain_expression is TRUE, any backing expression
+attached to the constant is maintained, by adding a cast if necessary.
+If error_detected is non-NULL, set *error_detected to the code for any
+error detected, and do not issue the diagnostic, or set it to
+ec_no_error if there was no error.  *err_pos is used as the position
+for any diagnostics issued.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
@@ -1669,6 +1699,7 @@ is maintained, by adding a cast if necessary.
 
   db_enter(5, "type_change_constant_full");
   *did_not_fold = FALSE;
+  if (error_detected != NULL) *error_detected = ec_no_error;
   err_code = ec_no_error;
   err_severity = es_warning;
   clear_constant(&new_constant, (a_constant_repr_kind)ck_error);
@@ -2044,7 +2075,7 @@ exit:
     /* There was an error or warning. */
     issue_folding_diagnostic(err_code, err_severity, constant_context,
                              evaluated_context, did_not_fold,
-                             err_pos, &new_constant);
+                             error_detected, err_pos, &new_constant);
     if (err_severity == es_error) depends_on_fp_mode = FALSE;
   }  /* if */
   if (depends_on_fp_mode && !constant_context) {
@@ -2097,7 +2128,9 @@ description of the parameters.
                             /*check_cast_access=*/is_implicit_cast,
                             /*check_ambiguity=*/TRUE,
                             /*is_reinterpret_cast=*/FALSE,
-                            maintain_expression, did_not_fold, err_pos);
+                            maintain_expression, did_not_fold,
+                            /*error_detected=*/(an_error_code *)NULL,
+                            err_pos);
 }  /* type_change_constant */
 
 
@@ -2504,6 +2537,7 @@ void unary_operation(an_expr_operator_kind op,
                      a_boolean             evaluated_context,
                      a_boolean             *did_not_fold,
                      a_boolean             *template_constant,
+                     an_error_code         *error_detected,
                      a_source_position     *err_pos)
 /*
 Fold unary operations on constants.  op indicates the operation,
@@ -2517,7 +2551,10 @@ so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE if the operation could not be
 folded for any other reason (*template_constant is returned TRUE if
 the reason is that the constant is a template parameter constant).
-*err_pos is used as the position for any diagnostics issued.
+If error_detected is non-NULL, set *error_detected to the code for any
+error detected, and do not issue the diagnostic, or set it to
+ec_no_error if there was no error.  *err_pos is used as the position
+for any diagnostics issued.
 */
 {
   an_error_code     err_code;
@@ -2528,6 +2565,7 @@ the reason is that the constant is a template parameter constant).
 
   *did_not_fold = FALSE;
   *template_constant = FALSE;
+  if (error_detected != NULL) *error_detected = ec_no_error;
   err_code = ec_no_error;
   err_severity = es_warning;
   if (is_error_constant(constant)) {
@@ -2622,7 +2660,7 @@ the reason is that the constant is a template parameter constant).
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
                                evaluated_context, did_not_fold,
-                               err_pos, result);
+                               error_detected, err_pos, result);
       if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If the source constant was formed using operations that are not allowed
@@ -4784,9 +4822,10 @@ then converting the result back to being THREADS-based if appropriate.
         }  /* if */
         /*FALLTHROUGH*/
       case eok_multiply: 
+        check_assertion(C_mode());  /* Would need error_detected in C++. */
         binary_operation(op, constant_1, constant_2, result_type, result, 
                          constant_context, evaluated_context, did_not_fold,
-                         template_constant, err_pos); 
+                         template_constant, (an_error_code *)NULL, err_pos); 
         if (!*did_not_fold) { 
           /* Convert the folded result back to a multiple of THREADS (unless
              it is zero). */
@@ -4796,10 +4835,11 @@ then converting the result back to being THREADS-based if appropriate.
       case eok_add: 
       case eok_subtract: 
         /* Check for adding or subtracting zero */ 
-        if (is_zero_constant(nonthread_constant)) { 
+        if (is_zero_constant(nonthread_constant)) {
+          check_assertion(C_mode());  /* Would need error_detected in C++. */
           binary_operation(op, constant_1, constant_2, result_type, result, 
                            constant_context, evaluated_context, did_not_fold, 
-                           template_constant, err_pos); 
+                           template_constant, (an_error_code *)NULL, err_pos); 
           if (!*did_not_fold) { 
             set_integer_constant_to_upc_threads(result); 
           }  /* if */ 
@@ -4826,6 +4866,7 @@ void binary_operation(an_expr_operator_kind op,
                       a_boolean             evaluated_context,
 		      a_boolean             *did_not_fold,
                       a_boolean             *template_constant,
+                      an_error_code         *error_detected,
                       a_source_position     *err_pos)
 /*
 Fold a two-operand constant operation.  op indicates the operation,
@@ -4839,8 +4880,10 @@ is FALSE, this operation is being done in a not-evaluated context
 is thrown away and *did_not_fold is returned TRUE. *did_not_fold is
 also returned TRUE if the operation could not be folded for any other
 reason (*template_constant is returned TRUE if the reason is that
-the constant is a template parameter constant).  *err_pos is used
-as the position for any diagnostics issued.
+the constant is a template parameter constant).  If error_detected is
+non-NULL, set *error_detected to the code for any error detected, and
+do not issue the diagnostic, or set it to ec_no_error if there was no
+error.  *err_pos is used as the position for any diagnostics issued.
 */
 {
   an_error_code     err_code;
@@ -4851,6 +4894,7 @@ as the position for any diagnostics issued.
 
   *did_not_fold = FALSE;
   *template_constant = FALSE;
+  if (error_detected != NULL) *error_detected = ec_no_error;
   err_code = ec_no_error;
   err_severity = es_warning;
 
@@ -5242,7 +5286,7 @@ as the position for any diagnostics issued.
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
                                evaluated_context, did_not_fold,
-                               err_pos, result);
+                               error_detected, err_pos, result);
       if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If either constant was formed using operations that are not allowed

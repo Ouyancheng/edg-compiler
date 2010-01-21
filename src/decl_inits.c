@@ -2130,7 +2130,9 @@ IL a_constant entity.
                                 /*check_ambiguity=*/FALSE,
                                 /*is_reinterpret_cast=*/FALSE,
                                 /*maintain_expression=*/TRUE,
-                                &did_not_fold, &pos_curr_token);
+                                &did_not_fold,
+                                /*error_detected=*/(an_error_code *)NULL,
+                                &pos_curr_token);
     }  /* if */
   }  /* if */
   if (dip != NULL) {

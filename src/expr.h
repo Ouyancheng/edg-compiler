@@ -76,6 +76,34 @@ expr.h -- Declarations related to expression parsing.
 typedef int a_local_expr_options_set;
 typedef struct an_operand *an_operand_ptr;
 
+/*
+Entry used to pass information about the context for a rescan to redo
+semantic analysis as part of template deduction.  Many of the fields here
+are parameters to copy_template_param_expr that we want to pass from
+that function into the expression routines and then back again without
+having to list each one on every intervening call.
+*/
+typedef struct a_rescan_control_block {
+  an_expr_node_ptr
+		expr;
+			/* The expression being rescanned.  This is used only
+			   when calling the scan_xxx_operator routines, to
+			   reduce the number of parameters by one. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* The template argument list being tried. */
+  a_template_param_ptr
+		template_param_list;
+			/* The parameter list of the template being tried. */
+  a_ctws_options_set
+		options;
+			/* Options for copy_template_param_expr. */
+  a_byte_boolean
+		error_detected;
+			/* TRUE if an error was detected in the rescan, which
+			   makes the deduction fail. */
+} a_rescan_control_block;
+
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void prescan_initializer_for_auto_type_deduction(
@@ -213,6 +241,11 @@ extern void conv_nontype_template_arg_to_param_type(
                                             an_arg_operand_ptr arg_operand,
                                             a_type_ptr         param_type,
                                             a_constant         *constant);
+
+extern an_expr_node_ptr rescan_expr_with_substitution(
+                                              an_expr_node_ptr       expr,
+                                              a_rescan_control_block *rcblock,
+                                              a_constant             *constant);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void scan_member_constant_initializer_expression(
