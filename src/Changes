@@ -43,7 +43,7 @@ when PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE.  Now fixed.
 
 
 1/19/10  [EDGcpfe/8363,EDGcpfe/8785,EDGcpfe/8829,EDGcpfe/8977,EDGcpfe/9429
-          EDGcpfe/9810,EDGcpfe/9997,EDGcpfe/10173]
+          EDGcpfe/9810,EDGcpfe/9997]
 Microsoft compatibility: Source annotation attributes
 
 Microsoft source annotation attributes are now accepted in Microsoft mode.
