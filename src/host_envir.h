@@ -2175,6 +2175,7 @@ the macro need not be defined at all.
 #define mbc_length_simple(ptr) \
   f_mbc_length((ptr), (a_boolean *)NULL, /*is_native=*/FALSE)
 #endif /* ifdef char_may_begin_multibyte_sequence */
+extern void set_multibyte_locale(void);
 extern int f_mbc_length(char *ptr, a_boolean *err, a_boolean is_native);
 /* Convert multibyte character sequence to wide character. */
 extern int mbc_to_wide_char(char          *mb,
@@ -2342,6 +2343,24 @@ Locale to set when multibyte characters are enabled in source code.
 #define mbc_length_full(ptr, err, is_native) (1)
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
+Flag that is TRUE if the LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
+should always be set, not just when multibyte characters are enabled.
+This flag has no effect if LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
+is not defined.
+*/
+#ifndef ALWAYS_SET_MULTIBYTE_LOCALE
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && \
+    DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
+#define ALWAYS_SET_MULTIBYTE_LOCALE TRUE
+#else /* !(MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED &&
+          DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED) */
+#define ALWAYS_SET_MULTIBYTE_LOCALE FALSE
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED &&
+          DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
+#endif /* ifndef ALWAYS_SET_MULTIBYTE_LOCALE */
+
 
 #if UNICODE_SOURCE_SUPPORTED
 /* Data structure used by getc_source and getc_utf16 to hold characters

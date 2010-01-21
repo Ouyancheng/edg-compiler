@@ -279,6 +279,10 @@ error -- unknown MS-DOS compiler.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
+static a_boolean
+		locale_already_set;
+			/* TRUE if the multibyte locale has been set. */
+
 #if __MICROSOFT_OS__
 
 static char *mbc_memchr(char		*str,
@@ -2083,6 +2087,33 @@ does not know that both strings are at least as long as the indicated length.
   return cmp;
 }  /* smemcmp */
 
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+void set_multibyte_locale(void)
+/*
+If appropriate, set the locale to allow processing of multibyte characters
+in source.  Only change the category of processing related to character
+handling functions.  This is done unconditionally because multibyte characters
+might be enabled later using a command-line option and the locale must
+be set before the command-line is processed.
+*/
+{
+  if (!locale_already_set) {
+#if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && \
+    !EDG_MULTIBYTE_CHAR_TEST_MODE && \
+    !(UNICODE_SOURCE_SUPPORTED && \
+      !defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED))
+    if (setlocale(LC_CTYPE,
+                  LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED) == NULL) {
+      str_catastrophe(ec_bad_multibyte_char_locale,
+                      LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED);
+    }  /* if */
+#endif /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && ... */
+    locale_already_set = TRUE;
+  }  /* if */
+}  /* set_multibyte_locale */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 static a_cpu_time get_cpu_time(void)
 /*
@@ -4635,6 +4666,9 @@ This is done before command line processing.
   template_search_path_tail = NULL;
   avail_directory_name_entries = NULL;
   C_dialect = C_dialect_cplusplus;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  locale_already_set = FALSE;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #if !STANDALONE_UTILITY_PROGRAM
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 #if EDG_WIN32

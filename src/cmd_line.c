@@ -3871,6 +3871,11 @@ file.
 #else /* !defined(ALTERNATE_IL_FILE_FORMAT) */
   comment_undefined_macro_name(ALTERNATE_IL_FILE_FORMAT);
 #endif /* defined(ALTERNATE_IL_FILE_FORMAT) */
+#if defined(ALWAYS_SET_MULTIBYTE_LOCALE)
+  define_numeric_valued_macro(ALWAYS_SET_MULTIBYTE_LOCALE);
+#else /* !defined(ALWAYS_SET_MULTIBYTE_LOCALE) */
+  comment_undefined_macro_name(ALWAYS_SET_MULTIBYTE_LOCALE);
+#endif /* defined(ALWAYS_SET_MULTIBYTE_LOCALE) */
 #if defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE)
   define_numeric_valued_macro(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE);
 #else /* !defined(ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE) */
@@ -7579,6 +7584,9 @@ enable_microsoft_mode:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       case optk_multibyte_chars:
         multibyte_chars_in_source_enabled = opt_value;
+        /* If multibyte characters have been enabled, make sure the multibyte
+           locale has been set. */
+        if (opt_value) set_multibyte_locale();
         break;
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       case optk_embedded_cplusplus:
