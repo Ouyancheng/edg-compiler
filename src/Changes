@@ -1,5 +1,34 @@
 Version 4.2
 
+1/20/10  [EDGcpfe/10374]
+Abort when mangling unnamed namespace types
+
+The mangling of certain entities relies on the creation of a unique "module id"
+for each translation unit (to avoid collisions with similarly named entities in
+other translation units).  When possible, a variable or routine with an
+external definition is used as a portion of the module id, creating (along with
+the name of the file) a unique and repeatable string.  When such a variable or
+routine definition is not available, a module id that is unique but may not be
+repeatable from one compilation to the next is generated and used.  A change
+has been made to allow such non-repeatable module ids to be used in the
+mangling of all entities except those that require a repeatable module id
+(i.e., exported templates).
+
+The following example illustrates a regression introduced in 4.1 that had
+caused an assertion failure in lower_name.c (module_id_for_source_corresp):
+
+  struct B {
+    virtual void f();
+  };
+  template<typename T> struct D : B {};
+  namespace {
+    struct S {};
+  }
+  struct A : D<S> {
+    void f() {}
+  };
+
+
 1/20/10  [EDGcpfe/10198]
 Abort on invalid member template definition with prototype instantiations in IL
 

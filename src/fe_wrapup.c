@@ -126,9 +126,14 @@ are instantiated.
      hasn't been generated already.  If this is the first time make_module_id
      has been called for this translation unit, an inferior module id
      will be generated (i.e., no suitable variable or routine definition
-     was found).  This may also trigger the lowering of functions that have
-     been waiting for the definition of a module id. */
+     was found). */
   (void)make_module_id((char *)NULL);
+#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
+  /* There may be functions whose lowering has previously been delayed
+     because a suitable module id had not yet been created until now.  If so,
+     lower those functions now. */
+  lower_functions_waiting_for_module_id();
+#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
 #endif /* MODULE_ID_NEEDED */
 
   if (!C_mode() && !is_primary_translation_unit && !do_preprocessing_only) {

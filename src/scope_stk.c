@@ -6572,7 +6572,6 @@ whose lowering was delayed due to lack of a module id.  Process the functions
 in the same order in which they were originally encountered.
 */
 {
-  check_assertion(innermost_function_scope == NULL);
   for (; waiting_for_module_id_list_head != NULL;
          waiting_for_module_id_list_head =
                                        waiting_for_module_id_list_head->next) {
@@ -6747,6 +6746,15 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
   a_boolean   delay_lowering = FALSE;
 
   check_assertion(!in_secondary_trans_unit(routine));
+#if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
+  if (waiting_for_module_id_list_head != NULL &&
+      get_module_id() != NULL) {
+    /* There may be functions whose lowering has previously been delayed
+       because a suitable module id had not yet been created until now.  If so,
+       lower those functions now. */
+    lower_functions_waiting_for_module_id();
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
   if (secondary_translation_unit_seen()) {
     /* Don't lower template instantiations in the primary translation unit
        if there are exported templates, because we want to eliminate
@@ -6792,7 +6800,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        may need access to it during lowering.  Prototype instantiations
        aren't currently lowered, so there's no need to delay. */
     /* Queue functions waiting for a module id on a separate list (which
-       will be drained as soon as a module id becomes available). */
+       will be drained soon after a module id becomes available). */
     a_delayed_lowering_list_entry *entry =
                                alloc_fe_of_type(a_delayed_lowering_list_entry);
 #if DEBUG
