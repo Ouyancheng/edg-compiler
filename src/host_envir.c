@@ -2093,9 +2093,8 @@ void set_multibyte_locale(void)
 /*
 If appropriate, set the locale to allow processing of multibyte characters
 in source.  Only change the category of processing related to character
-handling functions.  This is done unconditionally because multibyte characters
-might be enabled later using a command-line option and the locale must
-be set before the command-line is processed.
+handling functions.  The locale is only set the first time this function
+is called.
 */
 {
   if (!locale_already_set) {

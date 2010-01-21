@@ -11,9 +11,9 @@ multibyte operations done while processing the command-line could produce
 incorrect results.  The locale is now set before the command-line is
 processed if the new macro ALWAYS_SET_MULTIBYTE_LOCALE is TRUE.  The
 value of DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED is used as the default
-value of ALWAYS_SET_MULTIBYTE_LOCALE is TRUE.  When ALWAYS_SET_MULTIBYTE_LOCALE
-is FALSE, the locale is set when the --multibyte_chars option is encountered
-on the command-line.
+value of ALWAYS_SET_MULTIBYTE_LOCALE.  When ALWAYS_SET_MULTIBYTE_LOCALE
+is FALSE, the locale is now set when the --multibyte_chars option is
+encountered on the command-line.
 
 A similar issue existed with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 on Windows.  See the 9/3/09 entry for more information.
