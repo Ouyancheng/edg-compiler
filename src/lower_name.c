@@ -3555,6 +3555,7 @@ mangled name will eventually be discarded.
   return name;
 }  /* give_unnamed_class_or_enum_a_name */
 
+#if DO_IL_LOWERING
 
 static a_boolean forced_creation_of_non_repeatable_module_id = FALSE;
                         /* When TRUE, indicates that mangling was forced to
@@ -3564,6 +3565,7 @@ static a_boolean forced_creation_of_non_repeatable_module_id = FALSE;
                            uniqueness is paramount), but may not be well
                            suited for externalized names. */
 
+#endif /* DO_IL_LOWERING */
 
 static char *module_id_for_source_corresp(a_source_correspondence  *scp,
                                           a_mangling_control_block *mctl)
@@ -3599,7 +3601,9 @@ with multiply defined symbols.
          module id is used for mangling of externalized names, an assertion
          will be triggered. */
       module_id = make_module_id(NULL);
+#if DO_IL_LOWERING
       forced_creation_of_non_repeatable_module_id = TRUE;
+#endif /* DO_IL_LOWERING */
       check_assertion(module_id != NULL);
     }  /* if */
   }  /* if */
