@@ -19831,9 +19831,7 @@ bodies have already been written and their memory regions freed.
                 }  /* if */
               }  /* if */
             }  /* if */
-          }  /* if */
-          if (routine->storage_class == (a_storage_class)sc_static ||
-              treat_as_static_inline(routine)) {
+          } else if (routine->storage_class == (a_storage_class)sc_static) {
             /* Unreferenced routines with static linkage are okay to remove. */
             remove = TRUE;
           }  /* if */
