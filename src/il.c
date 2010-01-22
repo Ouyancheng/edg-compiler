@@ -19745,6 +19745,111 @@ eliminated, if appropriate.
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+void eliminate_bodies_of_unreferenced_functions(void)
+/*
+Go through all the memory regions looking for those that can easily be
+determined to be unreferenced; eliminate the body of all such functions.  This
+routine must be called only after all references in the translation unit have
+been determined (i.e., late in the compilation process and specifically after
+function lowering has been done but before file scope lowering, if lowering is
+applicable).  Not all functions whose "referenced" field is FALSE are actually
+unreferenced; virtual functions, dllexported functions, and others may need to
+be present in the IL and are left alone here.  Leaving a routine in the IL is
+the safe thing to do.  Even though a routine is unreferenced, internal data
+structures may still point to it (e.g., pragmas, friends, etc.) so only the
+body is removed (the routine itself will be removed as an unneeded IL entry if
+a needed walk is performed and the routine is unneeded).  Generally speaking,
+only inline function bodies remain in memory at this point; non-inline function
+bodies have already been written and their memory regions freed.
+*/
+{
+  a_memory_region_number  n;
+  a_scope_ptr             sp;
+
+  db_enter(3, "eliminate_bodies_of_unreferenced_functions");
+#if BACK_END_IS_CP_GEN_BE
+  unexpected_condition();
+#endif /* BACK_END_IS_CP_GEN_BE */
+  /* Loop through the memory regions.  Skip the front end and file scope
+     memory regions. */
+  for (n = FILE_SCOPE_REGION_NUMBER + 1;
+       n <= highest_used_region_number;
+       ++n) {
+    if (mem_region_table[n] == NULL) {
+      /* This memory has already been freed. */
+    } else {
+      sp = il_header.region_scope_entry[n];
+      /* Skip memory regions that aren't in the current translation unit,
+         and file scope memory regions for secondary translation units. */
+      if (sp->kind != (a_scope_kind)sck_file &&
+          ((curr_translation_unit == translation_units) ?
+             !in_secondary_trans_unit(sp) :
+             (trans_unit_for_scope[sp->number] == curr_translation_unit))) {
+        a_routine_ptr routine = sp->variant.routine.ptr;
+        check_assertion(sp->kind == (a_scope_kind)sck_function);
+        /* Look for unreferenced routines that satisfy certain criteria
+           and remove their function bodies. */
+        if (routine->source_corresp.referenced) {
+          /* Can't remove the routine's body if it's referenced. */
+        } else if (routine->is_virtual) {
+          /* Virtual functions could be referenced through the vtable. */
+        } else if (routine->source_corresp.trans_unit_corresp != NULL) {
+          /* Routines needed in another translation unit are kept. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (routine->decl_modifiers & DM_DLLEXPORT) {
+          /* dllexported functions always require their definition. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else {
+          /* The routine is an initial candidate for removal.  Look at its
+             linkage to determine its fate. */
+          a_boolean     remove = FALSE;
+          if (routine->storage_class == (a_storage_class)sc_unspecified) {
+            if (treat_as_extern_inline(routine)) {
+              if (C_mode()) {
+                /* Unreferenced extern inline function bodies cannot be
+                   removed in C (except for the "inline definition" case
+                   handled below). */
+                if (std_c99_inlining && routine->suppress_inline_body) {
+                  /* A C99 "inline definition" can be removed if
+                     unreferenced. */
+                  remove = TRUE;
+                }  /* if */
+              } else {
+#if INSTANTIATE_EXTERN_INLINE
+                if (!routine->suppress_inline_body) {
+                  /* C++ extern inline functions whose bodies must not be
+                     suppressed need to be passed to a back end and cannot
+                     be removed. */
+                  check_assertion(remove == FALSE);
+                } else
+#endif /* INSTANTIATE_EXTERN_INLINE */
+                /* Do not insert code here. */
+                {
+                  /* Unreferenced extern inline function bodies can be removed
+                     in C++. */
+                  remove = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (routine->storage_class == (a_storage_class)sc_static ||
+              treat_as_static_inline(routine)) {
+            /* Unreferenced routines with static linkage are okay to remove. */
+            remove = TRUE;
+          }  /* if */
+          if (remove) {
+            /* Remove the definition. */
+            check_assertion(!routine->need_out_of_line_copy);
+            clear_function_body(sp);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* eliminate_bodies_of_unreferenced_functions */
+
+
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip);
 
 

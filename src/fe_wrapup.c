@@ -340,6 +340,11 @@ it needs to be executed after all templates have been instantiated.
        types in secondary translation units are removed. */
     do_based_type_fixup();
   }  /* if */
+  if (remove_bodies_of_unreferenced_functions) {
+    /* Eliminate bodies of unreferenced functions so we spend time less time
+       processing them. */
+    eliminate_bodies_of_unreferenced_functions();
+  }  /* if */
 #if MANGLE_ALL_NAMES
   if (name_mangling_needed()) {
     /* Do name mangling for all entities.  This has to be done before
@@ -723,10 +728,10 @@ Complete the file scope of each of the translation units.
          n++) {
       if (mem_region_table[n] != NULL &&
           il_header.region_scope_entry[n]->kind == (a_scope_kind)sck_file) {
-          free_memory_region(n);
+        free_memory_region(n);
       }  /* if */
     }  /* for */
-  }
+  }  /* if */
 }  /* wrap_up_file_scopes */
 
 

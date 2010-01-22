@@ -1944,6 +1944,8 @@ extern void clear_function_body(a_scope_ptr sp);
 
 void detach_from_object_lifetime_tree(an_object_lifetime_ptr olp);
 
+extern void eliminate_bodies_of_unreferenced_functions(void);
+
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);
 
