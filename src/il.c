@@ -13011,16 +13011,16 @@ redoes semantic analysis.
   a_boolean rescannable = FALSE;
 
   if (is_operation_node(expr)) {
+#ifdef FIXME_JSA_TEST_MODE
     an_expr_operator_kind op = expr->variant.operation.kind;
     switch (op) {
-#ifdef FIXME_JSA_TEST_MODE
       case eok_shiftl:
       case eok_shiftr:
         rescannable = TRUE;
         break;
-#endif /* FIXME_JSA_TEST_MODE */
       default:;
     }  /* switch */
+#endif /* FIXME_JSA_TEST_MODE */
   }  /* if */
   return rescannable;
 }  /* expr_is_rescannable */
