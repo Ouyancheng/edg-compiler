@@ -8856,8 +8856,10 @@ variables declared in cmd_line.h.
   allow_nonconst_ref_anachronism = DEFAULT_ALLOW_NONCONST_REF_ANACHRONISM;
   building_runtime = FALSE;
   remove_unneeded_entities = DEFAULT_REMOVE_UNNEEDED_ENTITIES;
+#if !BACK_END_IS_CP_GEN_BE
   remove_bodies_of_unreferenced_functions =
                                DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS;
+#endif /* !BACK_END_IS_CP_GEN_BE */
   use_nonstandard_for_init_scope = DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE;
   microsoft_type_dependent_for_init_scope = FALSE;
   warning_on_for_init_difference = DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE;

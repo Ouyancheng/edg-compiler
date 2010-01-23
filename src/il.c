@@ -19744,6 +19744,7 @@ eliminated, if appropriate.
 }  /* eliminate_unneeded_il_entries */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if !BACK_END_IS_CP_GEN_BE
 
 void eliminate_bodies_of_unreferenced_functions(void)
 /*
@@ -19767,9 +19768,6 @@ bodies have already been written and their memory regions freed.
   a_scope_ptr             sp;
 
   db_enter(3, "eliminate_bodies_of_unreferenced_functions");
-#if BACK_END_IS_CP_GEN_BE
-  unexpected_condition();
-#endif /* BACK_END_IS_CP_GEN_BE */
   /* Loop through the memory regions.  Skip the front end and file scope
      memory regions. */
   for (n = FILE_SCOPE_REGION_NUMBER + 1;
@@ -19802,7 +19800,7 @@ bodies have already been written and their memory regions freed.
         } else {
           /* The routine is an initial candidate for removal.  Look at its
              linkage to determine its fate. */
-          a_boolean     remove = FALSE;
+          a_boolean     remove_function_body = FALSE;
           if (routine->storage_class == (a_storage_class)sc_unspecified) {
             if (treat_as_extern_inline(routine)) {
               if (C_mode()) {
@@ -19812,7 +19810,7 @@ bodies have already been written and their memory regions freed.
                 if (std_c99_inlining && routine->suppress_inline_body) {
                   /* A C99 "inline definition" can be removed if
                      unreferenced. */
-                  remove = TRUE;
+                  remove_function_body = TRUE;
                 }  /* if */
               } else {
 #if INSTANTIATE_EXTERN_INLINE
@@ -19820,22 +19818,22 @@ bodies have already been written and their memory regions freed.
                   /* C++ extern inline functions whose bodies must not be
                      suppressed need to be passed to a back end and cannot
                      be removed. */
-                  check_assertion(remove == FALSE);
+                  check_assertion(remove_function_body == FALSE);
                 } else
 #endif /* INSTANTIATE_EXTERN_INLINE */
                 /* Do not insert code here. */
                 {
                   /* Unreferenced extern inline function bodies can be removed
                      in C++. */
-                  remove = TRUE;
+                  remove_function_body = TRUE;
                 }  /* if */
               }  /* if */
             }  /* if */
           } else if (routine->storage_class == (a_storage_class)sc_static) {
             /* Unreferenced routines with static linkage are okay to remove. */
-            remove = TRUE;
+            remove_function_body = TRUE;
           }  /* if */
-          if (remove) {
+          if (remove_function_body) {
             /* Remove the definition. */
             check_assertion(!routine->need_out_of_line_copy);
             clear_function_body(sp);
@@ -19847,6 +19845,7 @@ bodies have already been written and their memory regions freed.
   db_exit();
 }  /* eliminate_bodies_of_unreferenced_functions */
 
+#endif /* !BACK_END_IS_CP_GEN_BE */
 
 static void remove_dynamic_initialization(a_dynamic_init_ptr dip);
 

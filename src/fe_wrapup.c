@@ -340,11 +340,13 @@ it needs to be executed after all templates have been instantiated.
        types in secondary translation units are removed. */
     do_based_type_fixup();
   }  /* if */
+#if !BACK_END_IS_CP_GEN_BE
   if (remove_bodies_of_unreferenced_functions) {
     /* Eliminate bodies of unreferenced functions so we spend time less time
        processing them. */
     eliminate_bodies_of_unreferenced_functions();
   }  /* if */
+#endif /* !BACK_END_IS_CP_GEN_BE */
 #if MANGLE_ALL_NAMES
   if (name_mangling_needed()) {
     /* Do name mangling for all entities.  This has to be done before
