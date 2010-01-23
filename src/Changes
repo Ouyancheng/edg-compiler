@@ -1,5 +1,20 @@
 Version 4.2
 
+1/23/10  [EDGcpfe/10380]
+Abort on invalid specialization of enclosing class
+
+An abort could occur (in default_argument_fixup_for_class) if an attempt was
+made to specialize a class within its own scope (this situation could
+inadvertently arise from a missing closing brace on the original class
+definition).  Now fixed.
+
+  template <class T> class Foo {
+    template <> class Foo<char>  {
+      public: Foo(int* i = 0);
+    };
+  };
+
+
 1/22/10  [EDGcpfe/10342]
 Removal of function bodies of unreferenced functions
 

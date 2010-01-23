@@ -3451,6 +3451,7 @@ Microsoft attributes preceding the class specifier (if any).
                              &tag_position, tag_sym);
                 tag_sym = NULL;
                 set_to_named_error_locator(locator);
+                is_template_specialization = FALSE;
                 err = TRUE;
               }  /* if */
               if (!class_type->variant.class_struct_union.is_specialized &&
