@@ -8039,15 +8039,7 @@ definition of a member function of a class template.
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {
-    a_symbol_header_ptr  hdr = locator->symbol_header;
-    if (hdr->identifier != NULL &&
-        (strcmp(hdr->identifier, "main") == 0)) {
-      /* A function template named "main" is not allowed.  (This prohibition
-         is not explicit in the ARM, but it makes sense, since a function
-         named "main" cannot be called (ARM 3.4). */
-      pos_error(ec_function_template_named_main, &locator->source_position);
-      set_to_error_locator(*locator);
-    } else if (is_single_param_operator_new_or_delete(locator, type_ptr)) {
+    if (is_single_param_operator_new_or_delete(locator, type_ptr)) {
       /* Overloading should not be allowed on the single-argument version of
          operator new(size_t) or operator delete(void *).  Though it is not
          expressly prohibited, it can be inferred from the fact that new and
@@ -8518,6 +8510,15 @@ definition of a member function of a class template.
         }  /* if */
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (!redeclaration) {
+    if (sym->header->identifier != NULL &&
+        !sym->is_class_member &&
+        sym_parent_namespace_or_null(sym) == NULL &&
+        (strcmp(sym->header->identifier, "main") == 0)) {
+      /* A global scope function template named "main" is not allowed. */
+      pos_error(ec_function_template_named_main, &locator->source_position);
+    }  /* if */
   }  /* if */
   /* If this symbol might not be found because it is invisible, add it
      to the friend list for the class. */
