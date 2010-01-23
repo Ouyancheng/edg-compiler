@@ -2383,12 +2383,16 @@ with \.  Return the macro argument created.
 }  /* copy_pragma_string */
 
 
-static void scan_pragma_string(a_macro_arg_ptr		map,
-			       a_source_position	*start_of_dir_position)
+static void scan_pragma_string(
+			a_macro_arg_ptr			map,
+			a_source_position		*start_of_dir_position,
+			a_pragma_kind_description_ptr	*pragma_descr)
 /*
 The replacement text for "map" points to the string of a _Pragma operator.
 Scan the contents of that string as tokens.  start_of_dir_position
-is the source position of the _Pragma token.
+is the source position of the _Pragma token.  Information about the
+pragma that was found is returned in pragma_descr.  If an error occurred,
+pragma_descr can be NULL.
 */
 {
   a_source_line_modif_ptr	slmp;
@@ -2423,6 +2427,7 @@ is the source position of the _Pragma token.
     a_source_position			id_position;
     /* Get the pragma identifier. */
     pkdp = look_up_pragma_id(&id_position);
+    *pragma_descr = pkdp;
     if (pkdp != NULL &&
         pkdp->binding_kind == pbk_preproc_immediate &&
         !pkdp->allowed_in_pragma_operator) {
@@ -2441,7 +2446,9 @@ is the source position of the _Pragma token.
 }  /* scan_pragma_string */
 
 
-static void scan_pragma_operator(a_boolean *got_proper_closing_token)
+static void scan_pragma_operator(
+		a_boolean			*got_proper_closing_token,
+		a_pragma_kind_description_ptr	*pragma_descr)
 /*
 Process a C99-style _Pragma operator.  The current token is the _Pragma
 identifier token.  The form of a _Pragma invocation is:
@@ -2453,6 +2460,8 @@ by pragma arguments.
 
 If the pragma operator is badly formed and we don't successfully find its
 end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
+Information about the pragma that was found is returned in pragma_descr.
+If an error occurred, pragma_descr can be NULL.
 */
 {
   a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
@@ -2467,6 +2476,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   start_of_dir_position = pos_curr_token;
   /* Bypass the _Pragma token. */
   (void)get_token();
+  *pragma_descr = NULL;
   if (curr_token != tok_lparen) {
     error(ec_exp_lparen);
     err = TRUE;
@@ -2481,7 +2491,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
     /* Scan the tokens from the pragma string.  Don't expand macros inside the
        string. */
     expand_macros = FALSE;
-    scan_pragma_string(map, &start_of_dir_position);
+    scan_pragma_string(map, &start_of_dir_position, pragma_descr);
     free_macro_arg(&map);
   }  /* if */
   /* Restore the previous state for expanding macros so that the closing
@@ -2514,16 +2524,20 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
 
 
 static void process_microsoft_pragma_operator(
-			       a_source_position	*start_of_dir_position)
+			a_source_position		*start_of_dir_position,
+			a_pragma_kind_description_ptr	*pragma_descr)
 /*
 The current token is the pragma identifier of a Microsoft __pragma operator.
 Call record_pragma to scan the pragma body and create the pragma entry.
+Information about the pragma that was found is returned in pragma_descr.
+If an error occurred, pragma_descr can be NULL.
 */
 {
   a_pragma_kind_description_ptr	pkdp = NULL;
   a_source_position			id_position;
   /* Get the pragma identifier. */
   pkdp = look_up_pragma_id(&id_position);
+  *pragma_descr = pkdp;
   if (pkdp != NULL &&
       pkdp->binding_kind == pbk_preproc_immediate &&
       !pkdp->allowed_in_pragma_operator) {
@@ -2538,7 +2552,8 @@ Call record_pragma to scan the pragma body and create the pragma entry.
 
 
 static void scan_microsoft_pragma_operator(
-				a_boolean *got_proper_closing_token)
+		a_boolean			*got_proper_closing_token,
+		a_pragma_kind_description_ptr	*pragma_descr)
 /*
 Process a Microsoft __pragma operator.  The current token is the
 __pragma identifier token.  The form of a __pragma invocation is:
@@ -2550,6 +2565,8 @@ followed by pragma arguments.
 
 If the pragma operator is badly formed and we don't successfully find its
 end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
+Information about the pragma that was found is returned in pragma_descr.
+If an error occurred, pragma_descr can be NULL.
 */
 {
   a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
@@ -2560,6 +2577,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   /* The inside of the _pragma directive should be processed as pp-tokens. */
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
+  *pragma_descr = NULL;
   /* Record the position of the start of the pragma. */
   start_of_dir_position = pos_curr_token;
   /* Bypass the __pragma token. */
@@ -2568,7 +2586,7 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
     error(ec_exp_lparen);
   } else {
     /* Scan the tokens of the pragma and create the pragma entry. */
-    process_microsoft_pragma_operator(&start_of_dir_position);
+    process_microsoft_pragma_operator(&start_of_dir_position, pragma_descr);
     /* Check for the closing parenthesis. */
     if (curr_token == tok_rparen) {
       found_end_of_operator = TRUE;
@@ -3922,20 +3940,36 @@ end_scan_for_macro_modifs:;
                _Pragma("pragma-name pragma-operands(opt)")
            Call a routine to translate the string into a pending pragma
            entry. */
-        is_macro_call = FALSE;
-        delete_source_from_loc = NULL;
-        scan_pragma_operator(&got_proper_closing_token); 
-        rescan_loc = curr_char_loc;
+        if (macro_depth > 1) {
+          /* Don't recognize the pragma operator scanning nested macro
+             invocations. */
+          ctoken = tok_identifier;
+          *rescan = FALSE;
+        } else {
+          a_pragma_kind_description_ptr	pkdp;
+          is_macro_call = FALSE;
+          delete_source_from_loc = NULL;
+          scan_pragma_operator(&got_proper_closing_token, &pkdp); 
+          rescan_loc = curr_char_loc;
+        }  /* if */
         goto return_point;
       } else if (macro_symbol == microsoft_pragma_macro_symbol) {
         /* The Microsoft __pragma operator.  This is invoked as
                __pragma(pragma-name pragma-operands(opt))
            Call a routine to translate the string into a pending pragma
            entry. */
-        is_macro_call = FALSE;
-        delete_source_from_loc = NULL;
-        scan_microsoft_pragma_operator(&got_proper_closing_token);
-        rescan_loc = curr_char_loc;
+        if (macro_depth > 1) {
+          /* Don't recognize the pragma operator scanning nested macro
+             invocations. */
+          ctoken = tok_identifier;
+          *rescan = FALSE;
+        } else {
+          a_pragma_kind_description_ptr	pkdp;
+          is_macro_call = FALSE;
+          delete_source_from_loc = NULL;
+          scan_microsoft_pragma_operator(&got_proper_closing_token, &pkdp);
+          rescan_loc = curr_char_loc;
+        }  /* if */
         goto return_point;
       } else if (macro_symbol == counter_macro_symbol) {
         /* The Microsoft/GNU __COUNTER__ macro.  This returns a different

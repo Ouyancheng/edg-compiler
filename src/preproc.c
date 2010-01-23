@@ -2156,11 +2156,19 @@ Record the pragma whose kind is specified by pkdp (which may be NULL).
 start_of_dir_position is the position of the first character of the
 pragma directive.  id_position is the position of the pragma identifier.
 is_microsoft_pragma_operator is TRUE when the pragma being scanned is
-a Microsoft __pragma operator.
+a Microsoft __pragma operator.  When the front end is doing preprocessing
+only, only preprocessing immediate pragmas are actually processed.
 */
 {
   a_boolean processed = FALSE;
-  if (pkdp != NULL) {
+  a_boolean suppress_diagnostic = FALSE;
+
+  if (do_preprocessing_only &&
+      (pkdp == NULL || pkdp->binding_kind != pbk_preproc_immediate)) {
+    /* Pragmas other than preprocessing immediate pragmas are ignored
+       when doing preprocessing only. */
+    suppress_diagnostic = TRUE;
+  } else if (pkdp != NULL) {
     /* Scan the pragma directive, recording it as either a token cache
        or as a character string. */
     enter_pending_pragma(pkdp, start_of_dir_position, id_position,
@@ -2170,7 +2178,7 @@ a Microsoft __pragma operator.
   if (!processed) {
     /* Unrecognized pragma, just ignore (this is required by the
        standard). */
-    pos_warning(ec_unrecognized_pragma, id_position);
+    if (!suppress_diagnostic) pos_warning(ec_unrecognized_pragma, id_position);
     if (is_microsoft_pragma_operator) {
       flush_to_closing_paren();
     } else {
