@@ -19829,8 +19829,11 @@ bodies have already been written and their memory regions freed.
                 }  /* if */
               }  /* if */
             }  /* if */
-          } else if (routine->storage_class == (a_storage_class)sc_static) {
-            /* Unreferenced routines with static linkage are okay to remove. */
+          }  /* if */
+          if (routine->storage_class == (a_storage_class)sc_static ||
+              (treat_as_static_inline(routine) && !C_mode())) {
+            /* Unreferenced routines with static linkage (or those that are
+               treated as static inline in C++ mode) are okay to remove. */
             remove_function_body = TRUE;
           }  /* if */
           if (remove_function_body) {
