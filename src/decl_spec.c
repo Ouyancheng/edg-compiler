@@ -6919,27 +6919,40 @@ FALSE otherwise.
 
 static void preapply_declspec_attributes(a_decl_parse_state  *dps)
 /*
-If the current declaration (described by *dps) includes __declspec(dllimport)
-or __declspec(dllexport) attributes, perform some early check and adjustments:
+Check for the presence of certain __declspec attributes (which at this point
+haven't yet been applied to the entity that will presumably be declared), and
+adjust *dps accordingly.
+Set dps->is_property_field if a __declspec(property(...)) attribute was seen
+and the current scope is a class scope (issue a diagnostic and disable the
+"property" attribute if the current scope is not a class scope).
+If the __declspec(dllimport) or __declspec(dllexport) were seen, perform some
+early check and adjustments:
   - Check that both are not present simultaneously.
   - Set dps->decl_modifiers accordingly.
   - If __declspec(dllimport) is present without any storage class specifier,
     set the storage class to sc_extern.
 (Note: The general attributes application mechanism doesn't actually record
 the DLL flags.  That is done elsewhere using dps->decl_modifiers.flags.)
-Also, set dps->is_property_field if the current declaration includes a
-__declspec(property(...)) attribute.
 */
 {
+  an_attribute_ptr  ap = find_attribute(ak_property, dps->prefix_attributes);
+
+  
+  if (ap != NULL) {
+    if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
+      pos_st_error(ec_attr_must_appear_in_class_definition, &ap->position,
+                   ap->name);
+      make_attr_unrecognized(ap);
+    } else {
+      dps->is_property_field = TRUE;
+    }  /* if */
+  }  /* if */
   add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
                                 dps->prefix_attributes);
   if (dps->storage_class == (a_storage_class)sc_unspecified &&
       !dps->in_class_scope &&
       (dps->decl_modifiers.flags & DM_DLLIMPORT) != 0) {
     dps->storage_class = (a_storage_class)sc_extern;
-  }  /* if */
-  if (find_attribute(ak_property, dps->prefix_attributes) != NULL) {
-    dps->is_property_field = TRUE;
   }  /* if */
 }  /* preapply_declspec_attributes */
 

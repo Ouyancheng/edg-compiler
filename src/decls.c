@@ -231,17 +231,25 @@ entity.  Issue diagnostics as appropriate.
 */
 {
   if (attributes != NULL) {
-    an_attribute_ptr   ap = attributes, err_ap = ap;
+    an_attribute_ptr   ap = attributes, err_ap = NULL;
     an_error_severity  sev = es_warning;
     /* Look for a standard attribute: It would elicit an error (whereas GNU
        attributes only trigger a warning). */
     for (; ap != NULL; ap = ap->next) {
       if (ap->family == (a_byte_attribute_family)af_std) {
+        sev = es_error;
         err_ap = ap;
         break;
+      } else if (is_unrecognized_attr(ap)) {
+        /* Do not issue a diagnostic for an unrecognized GNU or Microsoft
+           attribute. */
+      } else {
+        err_ap = ap;
       }  /* if */
     }  /* for */
-    pos_diagnostic(sev, ec_unattached_attribute, &err_ap->position);
+    if (err_ap != NULL) {
+      pos_diagnostic(sev, ec_unattached_attribute, &err_ap->position);
+    }  /* if */
   }  /* if */
 }  /* diagnose_unattached_attributes */
 
@@ -3765,12 +3773,14 @@ position. */
         old_dll_flags = new_dll_flags = 0;
       }  /* if */
     } else if (new_dll_flags != 0) {
-      if (var->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_internal ||
-          var->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_none) {
-        /* Entities that don't have external linkage cannot be declared with
-           a DLL interface. */
+      /* Entities that don't have external linkage cannot be declared with a
+         DLL interface. */
+      if (var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_none) {
+        /* An error should already have been issued for local variables. */
+        check_assertion(total_errors != 0);
+        goto done;
+      } else if (var->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_internal) {
         pos_error(ec_dll_interface_requires_external_linkage, diag_pos);
         goto done;
       }  /* if */
@@ -11218,6 +11228,7 @@ Return a pointer to the variable that is declared.
   sym = enter_symbol((a_symbol_kind)sk_variable, &locator, decl_scope_level,
                      /*suppress_redecl_error=*/FALSE);
   state.sym = sym;
+  state.is_definition = TRUE;
   /* Allocate the variable and bind the symbol to it. */
   vp = make_variable(state.type, state.storage_class, decl_scope_level);
   sym->variant.variable.ptr = vp;
@@ -11225,6 +11236,7 @@ Return a pointer to the variable that is declared.
   if (state.auto_type_specifier_seen) {
     vp->declared_with_auto_type_specifier = TRUE;
   }  /* if */
+  attach_decl_attributes(&state, /*primary_decl=*/TRUE);
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(&state);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
