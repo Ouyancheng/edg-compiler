@@ -13961,13 +13961,22 @@ the normal lookup symbol.
       equiv_symbols = TRUE;
     } else if (is_type_symbol(normal_fund_sym) &&
                is_type_symbol(class_fund_sym)) {
-      /* For type symbols, the symbols are equivalent if the underlying
-         types are the same. */
-      a_type_ptr	class_type;
-      a_type_ptr	normal_type;
-      normal_type = type_symbol_type(normal_fund_sym);
-      class_type = type_symbol_type(class_fund_sym);
-      equiv_symbols = identical_types(class_type, normal_type);
+      if (gpp_mode && gnu_version >= 30300) {
+        /* g++ (versions 3.3 and newer) prefers the class symbol over the
+           normal lookup symbol.  The symbols are not really equivalent, but
+           we use that flag to indicate that this case should be diagnosed
+           below. */
+        equiv_symbols = TRUE;
+        use_normal_if_equiv = FALSE;
+      } else {
+        /* For type symbols, the symbols are equivalent if the underlying
+           types are the same. */
+        a_type_ptr	class_type;
+        a_type_ptr	normal_type;
+        normal_type = type_symbol_type(normal_fund_sym);
+        class_type = type_symbol_type(class_fund_sym);
+        equiv_symbols = identical_types(class_type, normal_type);
+      }  /* if */
     }  /* if */
     if (equiv_symbols) {
       /* The symbols are equivalent.  Use the normal symbol unless otherwise

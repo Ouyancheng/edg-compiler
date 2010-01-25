@@ -1,5 +1,27 @@
 Version 4.2
 
+1/25/10  [EDGcpfe/10369]
+GNU C++ compatibility: lookup of name following "." or "->"
+
+In an expression such as "a.X::y", the standard requires that X be looked up
+in both the class of the left operand of the "." or "->" operator and in the
+context of the expression, and that if it is found in both places the types
+must match.  g++ (versions 3.3 and newer) always use the type from the
+class of the left operand.  Formerly, we gave a warning and used the type from
+the context of the expression.   In g++ mode with gnu_version >= 30300
+we now use the class of the left operand.
+
+  struct B { int y; };
+  struct A : public B {
+    typedef B X;
+  ;
+  typedef char X;
+  int main() {
+    A a;
+    return a.X::y;
+  }
+
+
 1/25/10  [EDGcpfe/10382]
 Microsoft __declspec attributes
 
