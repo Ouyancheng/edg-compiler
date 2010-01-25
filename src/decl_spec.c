@@ -26,8 +26,6 @@ decl_spec.c -- Scanning of declaration specifiers.
 
 /* Additional header files. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-/* For check_pack_alignment_value. */
-#include "layout.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "folding.h"
