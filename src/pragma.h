@@ -235,10 +235,10 @@ typedef struct a_pragma_kind_description {
 			   otherwise are not permitted to be passed in the
 			   IL. */
   a_bit_field	allowed_in_pragma_operator:1;
-			/* TRUE for preprocessing immediate pragmas that can
+			/* TRUE for pbk_preproc_immediate pragmas that can
 			   be used in _Pragma (or Microsoft __pragma)
 			   operators.  FALSE if only the #pragma form is
-			   allowed. */
+			   allowed, and for other pragma binding kinds. */
   a_bit_field	read_string_as_header_name:1;
 			/* TRUE if strings in the pragma text should be
 			   read as header names rather than as ordinary

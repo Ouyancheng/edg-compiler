@@ -2390,9 +2390,9 @@ static void scan_pragma_string(
 /*
 The replacement text for "map" points to the string of a _Pragma operator.
 Scan the contents of that string as tokens.  start_of_dir_position
-is the source position of the _Pragma token.  Information about the
-pragma that was found is returned in pragma_descr.  If an error occurred,
-pragma_descr can be NULL.
+is the source position of the _Pragma token.  Information about the pragma
+that was found is returned in *pragma_descr.  Note that the value returned
+through *pragma_descr can be NULL.
 */
 {
   a_source_line_modif_ptr	slmp;
@@ -2460,8 +2460,8 @@ by pragma arguments.
 
 If the pragma operator is badly formed and we don't successfully find its
 end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
-Information about the pragma that was found is returned in pragma_descr.
-If an error occurred, pragma_descr can be NULL.
+Information about the pragma that was found is returned in *pragma_descr.
+Note that the value returned through *pragma_descr can be NULL.
 */
 {
   a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
@@ -2529,8 +2529,8 @@ static void process_microsoft_pragma_operator(
 /*
 The current token is the pragma identifier of a Microsoft __pragma operator.
 Call record_pragma to scan the pragma body and create the pragma entry.
-Information about the pragma that was found is returned in pragma_descr.
-If an error occurred, pragma_descr can be NULL.
+Information about the pragma that was found is returned in *pragma_descr.
+Note that the value returned through *pragma_descr can be NULL.
 */
 {
   a_pragma_kind_description_ptr	pkdp = NULL;
@@ -2565,8 +2565,8 @@ followed by pragma arguments.
 
 If the pragma operator is badly formed and we don't successfully find its
 end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
-Information about the pragma that was found is returned in pragma_descr.
-If an error occurred, pragma_descr can be NULL.
+Information about the pragma that was found is returned in *pragma_descr.
+Note that the value returned through *pragma_descr can be NULL.
 */
 {
   a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
@@ -3941,7 +3941,7 @@ end_scan_for_macro_modifs:;
            Call a routine to translate the string into a pending pragma
            entry. */
         if (macro_depth > 1) {
-          /* Don't recognize the pragma operator scanning nested macro
+          /* Don't recognize the pragma operator when scanning nested macro
              invocations. */
           ctoken = tok_identifier;
           *rescan = FALSE;
@@ -3959,7 +3959,7 @@ end_scan_for_macro_modifs:;
            Call a routine to translate the string into a pending pragma
            entry. */
         if (macro_depth > 1) {
-          /* Don't recognize the pragma operator scanning nested macro
+          /* Don't recognize the pragma operator when scanning nested macro
              invocations. */
           ctoken = tok_identifier;
           *rescan = FALSE;
