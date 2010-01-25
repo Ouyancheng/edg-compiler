@@ -192,9 +192,7 @@ static an_attr_descr known_attr_table[] = {
   { "carries_dependency", "", "1c+", ak_carries_dependency },
   { "final", "", "1c+", ak_final },
   { "noreturn", "", "1c+", ak_noreturn },
-  { "noreturn", "", "gx", ak_noreturn },
   { "nothrow", "", "1c+", ak_nothrow },
-  { "nothrow", "", "gx", ak_nothrow },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -240,6 +238,8 @@ static an_attr_descr known_attr_table[] = {
   { "nocommon", "", "gc", ak_nocommon },
   { "noinline", "", "gx", ak_noinline },
   { "nonnull", "?(?ci+)", "gx", ak_nonnull },
+  { "noreturn", "", "gx", ak_noreturn },
+  { "nothrow", "", "gx", ak_nothrow },
 #if USER_CONTROL_OF_STRUCT_PACKING
   { "packed", "", "gx", ak_packed },
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
