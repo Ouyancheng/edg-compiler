@@ -578,8 +578,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
-  { ak_dllexport, "c|r|v|t", apply_dllimport_dllexport_attr },
-  { ak_dllimport, "c|r|v|t", apply_dllimport_dllexport_attr },
+  { ak_dllexport, "c|r|v:-a!|t", apply_dllimport_dllexport_attr },
+  { ak_dllimport, "c|r|v:-a!|t", apply_dllimport_dllexport_attr },
   { ak_implementation_key, "", apply_implementation_key_attr },
   { ak_intrin_type, "c", apply_intrin_type_attr },
   { ak_noalias, "c|e|r", apply_noalias_attr },
