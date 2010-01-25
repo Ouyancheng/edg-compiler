@@ -2000,6 +2000,9 @@ extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
 #define find_attribute(kind, attributes)                                     \
   (f_find_attribute((a_byte_attribute_kind)(kind), (attributes)))
 
+#define routine_does_not_return(rp)                                          \
+  (skip_typerefs(rp->type)->variant.routine.extra_info->does_not_return)
+
 /*
 Type used as a hash value of a constant entry.
 */

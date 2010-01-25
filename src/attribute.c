@@ -185,22 +185,27 @@ separate entries).
 See also the complementary table known_attr_appl_table below.
 */
 static an_attr_descr known_attr_table[] = {
+  /* Standard attributes. */
 #if USER_CONTROL_OF_STRUCT_PACKING
   { "align", "(ct)", "c+", ak_align },
-  { "aligned", "?(ci)", "gx", ak_align },
-  { "aligned", "?(ci)", "s+", ak_align },
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  { "carries_dependency", "", "1c+", ak_carries_dependency },
+  { "final", "", "1c+", ak_final },
   { "noreturn", "", "1c+", ak_noreturn },
   { "noreturn", "", "gx", ak_noreturn },
-  { "final", "", "1c+", ak_final },
-  { "carries_dependency", "", "1c+", ak_carries_dependency },
   { "nothrow", "", "1c+", ak_nothrow },
   { "nothrow", "", "gx", ak_nothrow },
 
+#if GNU_EXTENSIONS_ALLOWED
+  /* GNU Attributes. */
   { "alias", "(sn)", "gx", ak_alias },
+  { "aligned", "?(ci)", "gx", ak_align },
   { "alloc_size", "(ci?,ci)", "gx(40200-)", ak_alloc_size },
   { "always_inline", "", "gx", ak_always_inline },
   { "artificial", "", "gx(40000-)", ak_artificial },
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  { "cdecl", "", "gx", ak_cdecl },
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { "cleanup", "(n)", "gc", ak_cleanup },
   { "cold", "", "gx(40300-)", ak_cold },
   { "const", "", "gx", ak_const },
@@ -209,14 +214,12 @@ static an_attr_descr known_attr_table[] = {
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "constructor", "", "gx", ak_constructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  { "constructor", "", "s+", ak_constructor },
   { "deprecated", "", "gx(30100-)", ak_deprecated },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "destructor", "?(ci)", "gx", ak_destructor },
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "destructor", "", "gx", ak_destructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  { "destructor", "", "s+", ak_destructor },
   { "error", "(sn)", "gx(40000-)", ak_error },
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
   { "flatten", "", "gx(40000-)", ak_flatten },
@@ -224,52 +227,88 @@ static an_attr_descr known_attr_table[] = {
   { "format_arg", "(ci)", "gx", ak_format_arg },
   { "gnu_inline", "", "gx", ak_gnu_inline },
   { "hot", "", "gx(40300-)", ak_hot },
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  { "init_priority", "(ci)", "g+", ak_init_priority },
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "malloc", "", "gx", ak_malloc },
   { "mode", "(n)", "gx", ak_mode },
   { "no_instrument_function", "", "gx", ak_no_instrument_function },
   { "no_check_memory_usage", "", "gx", ak_no_check_memory_usage },
+#if GNU_NAKED_ATTRIBUTE_ALLOWED
+  { "naked", "", "gx", ak_naked },
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
   { "nocommon", "", "gc", ak_nocommon },
   { "noinline", "", "gx", ak_noinline },
   { "nonnull", "?(?ci+)", "gx", ak_nonnull },
 #if USER_CONTROL_OF_STRUCT_PACKING
   { "packed", "", "gx", ak_packed },
-  { "packed", "", "s+", ak_packed },
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   { "pure", "", "gx", ak_pure },
   { "section", "(sn)", "gx", ak_section },
   { "sentinel", "?(ci)", "gx", ak_sentinel },
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  { "stdcall", "", "gx", ak_stdcall },
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { "strong", "", "gx", ak_strong },
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  { "tls_model", "(sn)", "gx(30300-)", ak_tls_model },
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { "transparent_union", "", "gc", ak_transparent_union },
   { "unused", "", "gx", ak_unused },
   { "used", "", "gx", ak_used },
+#if GNU_VECTOR_TYPES_ALLOWED
+  { "vector_size", "(ci)", "gx", ak_vector_size },
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  { "visibility", "(sn)", "gx", ak_visibility },
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   { "volatile", "", "gx", ak_noreturn },
   { "warn_unused_result", "", "gx", ak_warn_unused_result },
   { "warning", "(sn)", "gx(40000-)", ak_warning },
   { "weak", "", "gx", ak_weak },
-  { "weak", "", "s+", ak_weak },
   { "weakref", "?(sn)", "gx(40100-)", ak_weakref },
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-  { "naked", "", "gx", ak_naked },
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
-  { "cdecl", "", "gx", ak_cdecl },
-  { "stdcall", "", "gx", ak_stdcall },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Microsoft __declspec attributes. */
+  { "align", "(ci)", "mx", ak_align },
+  { "allocate", "(sn)", "mx", ak_section },
+  { "deprecated", "?(sn)", "mx", ak_deprecated },
+  { "dllexport", "", "mx", ak_dllexport },
+  { "dllimport", "", "mx", ak_dllimport },
+  { "implementation_key", "(ci)", "mx", ak_implementation_key },
+  { "intrin_type", "", "mx", ak_intrin_type },
+  { "naked", "", "mx", ak_naked },
+  { "noalias", "", "mx(1400-)", ak_noalias },
+  { "noinline", "", "mx", ak_noinline },
+  { "noreturn", "", "mx", ak_noreturn },
+  { "nothrow", "", "m+", ak_nothrow },
+  { "novtable", "", "m+", ak_novtable },
+  { "property", "(*)", "m+", ak_property },
+  { "restrict", "", "mx(1400-)", ak_restrict },
+  { "selectany", "", "mx", ak_selectany },
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  { "thread", "", "mx", ak_thread },
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+  { "uuid", "(sn)", "m+", ak_uuid },
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if SUN_EXTENSIONS_ALLOWED && GNU_EXTENSIONS_ALLOWED
+  /* Sun-mode GNU-style attributes. */
+  { "aligned", "?(ci)", "s+", ak_align },
+  { "constructor", "", "s+", ak_constructor },
+  { "destructor", "", "s+", ak_destructor },
+#if USER_CONTROL_OF_STRUCT_PACKING
+  { "packed", "", "s+", ak_packed },
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  { "visibility", "(sn)", "gx", ak_visibility },
   { "visibility", "(sn)", "s+", ak_visibility },
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  { "init_priority", "(ci)", "g+", ak_init_priority },
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-  { "vector_size", "(ci)", "gx", ak_vector_size },
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  { "tls_model", "(sn)", "gx(30300-)", ak_tls_model },
-#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+  { "weak", "", "s+", ak_weak },
+#endif /* SUN_EXTENSIONS_ALLOWED && GNU_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
+  /* Attributes used for testing by EDG. */
   { "test_1", "(sn?,n)", "c+[EDG]", ak_unrecognized },
   { "t1", "(*)", "c+[edg]", ak_unrecognized },
   { "t2", "(*)", "c+[edg]", ak_unrecognized },
@@ -367,62 +406,91 @@ typedef struct an_attr_appl_descr {
 #define NO_APPL_FN ((an_attr_application_fn*)NULL)
 
 /* Forward declarations for attribute application functions. */
+
+/* Application functions for standard attributes. */
 static an_attr_application_fn apply_align_attr;
-static an_attr_application_fn apply_noreturn_attr;
-static an_attr_application_fn apply_final_attr;
 static an_attr_application_fn apply_carries_dependency_attr;
+static an_attr_application_fn apply_final_attr;
+static an_attr_application_fn apply_noreturn_attr;
 static an_attr_application_fn apply_nothrow_attr;
+
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+/* Application functions for nonstandard attributes available in both GNU and
+   Microsoft configurations. */
+static an_attr_application_fn apply_deprecated_attr;
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+static an_attr_application_fn apply_naked_attr;
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+static an_attr_application_fn apply_noinline_attr;
+static an_attr_application_fn apply_section_attr;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if GNU_EXTENSIONS_ALLOWED
+/* Application functions for GNU-only attributes. */
 static an_attr_application_fn apply_alias_attr;
 static an_attr_application_fn apply_alloc_size_attr;
 static an_attr_application_fn apply_always_inline_attr;
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+static an_attr_application_fn apply_cdecl_attr;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 static an_attr_application_fn apply_cleanup_attr;
 static an_attr_application_fn apply_const_attr;
 static an_attr_application_fn apply_constructor_attr;
-static an_attr_application_fn apply_deprecated_attr;
 static an_attr_application_fn apply_destructor_attr;
 static an_attr_application_fn apply_format_attr;
 static an_attr_application_fn apply_format_arg_attr;
 static an_attr_application_fn apply_gnu_inline_attr;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+static an_attr_application_fn apply_init_priority_attr;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 static an_attr_application_fn apply_malloc_attr;
 static an_attr_application_fn apply_mode_attr;
 static an_attr_application_fn apply_no_instrument_function_attr;
 static an_attr_application_fn apply_no_check_memory_usage_attr;
 static an_attr_application_fn apply_nocommon_attr;
-static an_attr_application_fn apply_noinline_attr;
 static an_attr_application_fn apply_nonnull_attr;
 static an_attr_application_fn apply_packed_attr;
 static an_attr_application_fn apply_pure_attr;
-static an_attr_application_fn apply_section_attr;
 static an_attr_application_fn apply_sentinel_attr;
-static an_attr_application_fn apply_strong_attr;
-static an_attr_application_fn apply_transparent_union_attr;
-static an_attr_application_fn apply_unused_attr;
-static an_attr_application_fn apply_used_attr;
-static an_attr_application_fn apply_warn_unused_result_attr;
-static an_attr_application_fn apply_weak_attr;
-static an_attr_application_fn apply_weakref_attr;
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-static an_attr_application_fn apply_naked_attr;
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
 #if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
-static an_attr_application_fn apply_cdecl_attr;
 static an_attr_application_fn apply_stdcall_attr;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-static an_attr_application_fn apply_visibility_attr;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-static an_attr_application_fn apply_init_priority_attr;
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-static an_attr_application_fn apply_vector_size_attr;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+static an_attr_application_fn apply_strong_attr;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 static an_attr_application_fn apply_tls_model_attr;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+static an_attr_application_fn apply_transparent_union_attr;
+static an_attr_application_fn apply_unused_attr;
+static an_attr_application_fn apply_used_attr;
+#if GNU_VECTOR_TYPES_ALLOWED
+static an_attr_application_fn apply_vector_size_attr;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+static an_attr_application_fn apply_visibility_attr;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+static an_attr_application_fn apply_warn_unused_result_attr;
+static an_attr_application_fn apply_weak_attr;
+static an_attr_application_fn apply_weakref_attr;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* Application functions for Microsoft-__declspec-only attributes. */
+static an_attr_application_fn apply_dllimport_dllexport_attr;
+static an_attr_application_fn apply_implementation_key_attr;
+static an_attr_application_fn apply_intrin_type_attr;
+static an_attr_application_fn apply_noalias_attr;
+static an_attr_application_fn apply_novtable_attr;
+static an_attr_application_fn apply_property_attr;
+static an_attr_application_fn apply_restrict_attr;
+static an_attr_application_fn apply_selectany_attr;
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+static an_attr_application_fn apply_thread_attr;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+static an_attr_application_fn apply_uuid_attr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if INCLUDE_EDG_TEST_ATTRIBUTES
+/* Application functions used for testing by EDG. */
 static an_attr_application_fn apply_edg_e1_attr;
 static an_attr_application_fn apply_edg_n1_attr;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -438,21 +506,35 @@ See also the complementary table known_attr_table above.
 static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_unrecognized, "", NO_APPL_FN },
   { ak_empty_attr, "", NO_APPL_FN },
+  /* Standard attributes. */
   { ak_align, "", apply_align_attr },
-  { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
-  { ak_final, "r:+v!|c", apply_final_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
+  { ak_final, "r:+v!|c", apply_final_attr },
+  { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  /* Nonstandard attributes available in both GNU and Microsoft
+     configurations. */
+  { ak_deprecated, "t|c|e|r|v|d", apply_deprecated_attr },
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  { ak_naked, "r", apply_naked_attr },
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  { ak_noinline, "t|p|r|v|d", apply_noinline_attr },
+  { ak_section, "r|v:-a!", apply_section_attr },
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
+  /* GNU-only attributes. */
   { ak_alias, "r|v:-l!", apply_alias_attr },
   { ak_alloc_size, "", apply_alloc_size_attr },
   { ak_always_inline, "r", apply_always_inline_attr },
   { ak_artificial, "r:+i", NO_APPL_FN },
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  { ak_cdecl, "t|r|v|d|p", apply_cdecl_attr },
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { ak_cleanup, "v|p", apply_cleanup_attr },
   { ak_cold, "r", NO_APPL_FN },
   { ak_const, "t|r|v|d", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
-  { ak_deprecated, "t|c|e|r|v|d", apply_deprecated_attr },
   { ak_destructor, "r", apply_destructor_attr },
   { ak_error, "r", NO_APPL_FN },
   { ak_externally_visible, "r:+x|v:+x", NO_APPL_FN },
@@ -461,45 +543,55 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_format_arg, "r", apply_format_arg_attr },
   { ak_gnu_inline, "r", apply_gnu_inline_attr },
   { ak_hot, "r", NO_APPL_FN },
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  { ak_init_priority, "v:-l", apply_init_priority_attr },
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { ak_malloc, "r", apply_malloc_attr },
   { ak_mode, "T", apply_mode_attr },
   { ak_no_instrument_function, "r", apply_no_instrument_function_attr },
   { ak_no_check_memory_usage, "r", apply_no_check_memory_usage_attr },
   { ak_nocommon, "r|v:-a", apply_nocommon_attr },
-  { ak_noinline, "r", apply_noinline_attr },
   { ak_nonnull, "t|r|v|d", apply_nonnull_attr },
   { ak_packed, "c|e|v|d", apply_packed_attr },
   { ak_pure, "r|v", apply_pure_attr },
-  { ak_section, "r|v:-a!", apply_section_attr },
   { ak_sentinel, "t|r|v|d", apply_sentinel_attr },
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  { ak_stdcall, "t|r|v|d|p", apply_stdcall_attr },
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { ak_strong, "u", apply_strong_attr },
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  { ak_tls_model, "r|v|d|p", apply_tls_model_attr },
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { ak_transparent_union, "c|p|t", apply_transparent_union_attr },
   { ak_unused, "c|e|t|r|v|p|l|n|u", apply_unused_attr },
   { ak_used, "r|v:-a", apply_used_attr },
+#if GNU_VECTOR_TYPES_ALLOWED
+  { ak_vector_size, "T", apply_vector_size_attr },
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  { ak_visibility, "r|v|c|n", apply_visibility_attr },
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   { ak_warn_unused_result, "t|r|v|d", apply_warn_unused_result_attr },
   { ak_warning, "r", NO_APPL_FN },
   { ak_weak, "r:+x!|v:+x!", apply_weak_attr },
   { ak_weakref, "r|v", apply_weakref_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-  { ak_naked, "r", apply_naked_attr },
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
-  { ak_cdecl, "t|r|v|d|p", apply_cdecl_attr },
-  { ak_stdcall, "t|r|v|d|p", apply_stdcall_attr },
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  { ak_visibility, "r|v|c|n", apply_visibility_attr },
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  { ak_init_priority, "v:-l", apply_init_priority_attr },
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-  { ak_vector_size, "T", apply_vector_size_attr },
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Microsoft-only attributes. */
+  { ak_dllexport, "c|r|v|t", apply_dllimport_dllexport_attr },
+  { ak_dllimport, "c|r|v|t", apply_dllimport_dllexport_attr },
+  { ak_implementation_key, "", apply_implementation_key_attr },
+  { ak_intrin_type, "c", apply_intrin_type_attr },
+  { ak_noalias, "c|e|r", apply_noalias_attr },
+  { ak_novtable, "c|e", apply_novtable_attr },
+  { ak_property, "d|t", apply_property_attr },
+  { ak_restrict, "c|e|r", apply_restrict_attr },
+  { ak_selectany, "c|e|v:+x!", apply_selectany_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  { ak_tls_model, "r|v|d|p", apply_tls_model_attr },
+  { ak_thread, "v", apply_thread_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+  { ak_uuid, "c|e|r|v|t", apply_uuid_attr },
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   { ak_edg_e1, "", apply_edg_e1_attr },
@@ -665,6 +757,27 @@ the current mode matches the modes encoded in that string.
 }  /* cond_matches_gnu_attr_mode */
 
 
+static a_boolean cond_matches_ms_declspec_mode(char  *cond)
+/*
+cond is the "cond" field of an attribute description entry.  Return TRUE if
+the current mode matches the modes encoded in that string.
+*/
+{
+  a_boolean  match = FALSE;
+
+  if (cond[0] == 'm' && microsoft_mode) {
+    match = cond[1] == 'x' ||
+            (cond[1] == 'c' && C_mode()) ||
+            (cond[1] == '+' && !C_mode());
+    if (match && cond[2] == '(') {
+      /* A range specification follows. */
+      match = in_attr_cond_range(microsoft_version, cond+2);
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* cond_matches_ms_declspec_mode */
+
+
 static int attr_family_seen[(int)ak_last];
 			/* An array used to efficiently detect duplicated
 			   attributes. */
@@ -729,6 +842,9 @@ there is an applicable one; otherwise, return NULL.
           break;
         case af_gnu:
           if (cond_matches_gnu_attr_mode(cond)) goto search_done;
+          break;
+        case af_ms_declspec:
+          if (cond_matches_ms_declspec_mode(cond)) goto search_done;
           break;
         default:
           unexpected_condition();
@@ -904,6 +1020,7 @@ ak_unrecognized, and return NULL.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    aap->token_kind = (a_small_token_kind)curr_token;
     aap->variant.token = il_string_for_curr_token();
     (void)get_token();
   } else {
@@ -921,7 +1038,9 @@ static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
 Scan tokens until (but not including) a non-matched right parenthesis, bracket,
 or brace.  Return these tokens as a list of aak_raw_token attribute argument
 entries.  (This is called for attributes whose "signature string" ends in "*)".
-That includes unrecognized attributes.)
+That includes unrecognized attributes.)  The sequence of raw token entries is
+terminated by an aak_empty argument that holds the position of the subsequent
+token (the non-matched parenthesis, bracket, or brace).
 */
 {
   unsigned long         n_paren = 0, n_bracket = 0, n_brace = 0;
@@ -978,6 +1097,7 @@ default_case:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         (*p_aap)->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (*p_aap)->token_kind = (a_small_token_kind)curr_token;
         (*p_aap)->variant.token = il_string_for_curr_token();
         p_aap = &(*p_aap)->next;
         (void)get_token();
@@ -985,6 +1105,12 @@ default_case:
     }  /* switch */
   }  /* for */
 done:
+  /* Append an aak_empty argument to the sequence of raw tokens.  This is
+     primarily useful for diagnostic purposes, by providing a record of the
+     position of the subsequent token. */
+  *p_aap = alloc_attribute_arg();
+  (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;
+  (*p_aap)->position = pos_curr_token;
   return aap;
 }  /* scan_attr_remaining_arg_tokens */
 
@@ -1263,11 +1389,18 @@ the attribute is declared with.
         pos_diagnostic(err ? es_error : es_remark, ec_attr_twice_in_group,
                        &ap->position);
       }  /* if */
-    } else if (!record_unrecognized_attributes) {
+    } else if (!record_unrecognized_attributes ||
+               ap->family == (a_byte_attribute_family)af_ms_declspec) {
       /* If we are not recording unrecognized attributes, drop unrecognized
-         attributes with a warning. */
-      pos_st_warning(ec_unrecognized_attribute, &ap->position, ap->name);
-      ap = NULL;
+         attributes with a warning. Always issue a discretionary error for
+         unrecognized Microsoft __declspec attributes. */
+      an_error_severity  sev = es_warning;
+      if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+        sev = es_discretionary_error;
+      }  /* if */
+      pos_st_diagnostic(sev, ec_unrecognized_attribute, &ap->position,
+                        ap->name);
+      if (!record_unrecognized_attributes) ap = NULL;
     }  /* if */
   }  /* if */
   return ap;
@@ -1287,7 +1420,7 @@ appear.
 {
   an_attribute_ptr   attributes = NULL, *p_attribute = &attributes, ap;
 
-  do {
+  for (;;) {
     if (curr_token == end_token || curr_token == tok_comma) {
       /* An empty attribute: Create a placeholder attribute entry for it. */
       *p_attribute = make_attribute(af);
@@ -1299,14 +1432,27 @@ appear.
       *p_attribute = scan_attribute(af);
     }  /* if */
     p_attribute = last_attribute_link(p_attribute);
-    if (curr_token != tok_comma && curr_token != end_token) {
-      /* If an error occurs, skip tokens until we reach the start of the next
-         attribute, or the end of the attribute list. */
-      add_stop_token(tok_comma);
-      syntax_error(ec_exp_comma);
-      remove_stop_token(tok_comma);
+    if (curr_token == end_token) {
+      break;
+    } else if (curr_token == tok_identifier && af == af_ms_declspec) {
+      /* A comma is optional when separating __declspec attributes.  I.e.,
+         __declspec(naked noalias) and __declspec(naked, noalias) are
+         equivalent. */
+    } else {
+      if (curr_token != tok_comma) {
+        /* Skip tokens until we reach the start of the next attribute, or the
+           end of the attribute list. */
+        add_stop_token(tok_comma);
+        syntax_error(ec_exp_comma);
+        remove_stop_token(tok_comma);
+      }  /* if */
+      if (curr_token == tok_comma) {
+        (void)get_token();
+      } else {
+        break;
+      }  /* if */
     }  /* if */
-  } while (loop_token(tok_comma));
+  }  /* for */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     ap->syntactic_location = (a_byte_attribute_location)loc;
     /* Clear the attr_family_seen array. */
@@ -1399,6 +1545,34 @@ syntactic location in which the group appears.
 }  /* scan_gnu_attribute_group */
 
 
+static an_attribute_ptr scan_ms_declspec_group(an_attribute_location  loc)
+/*
+Scan a Microsoft attribute group of the form
+    __declspec (  <attribute-list>  )
+<attribute-list> is a possibly empty list of attributes.  Unlike standard and
+GNU attributes, a comma separating attributes is optional.  The attribute list
+can also contain "empty attributes" (e.g., __declspec((,,,)) ).  loc is the
+syntactic location in which the group appears.
+*/
+{
+  an_attribute_ptr   attributes = NULL;
+  a_source_position  group_pos;
+
+  check_assertion(curr_token == tok_declspec);
+  group_pos = pos_curr_token;
+  /* Skip over "__declspec". */
+  (void)get_token();
+  /* There should now be a left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_stop_token(tok_rparen);
+  attributes = scan_attributes_list(loc, af_ms_declspec, tok_rparen);
+  make_attribute_group(attributes, &group_pos);
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  remove_stop_token(tok_rparen);
+  return attributes;
+}  /* scan_ms_declspec_group */
+
+
 static an_attribute_ptr
 		unscanned_attributes;
 			/* A pointer to previously scanned attributes that
@@ -1443,6 +1617,14 @@ is made.
       } else if (curr_token == tok_attribute && gnu_attributes_enabled) {
         *p_attributes = scan_gnu_attribute_group((an_attribute_location)loc);
         new_attr_seen = TRUE;
+      } else if (curr_token == tok_declspec &&
+                 ms_declspec_attributes_enabled) {
+        /* Microsoft __declspec attributes are allowed only in a few syntactic
+           contexts. */
+        if (loc == al_prefix || loc == al_specifier || loc == al_tag_name) {
+          *p_attributes = scan_ms_declspec_group((an_attribute_location)loc);
+          new_attr_seen = TRUE;
+        }  /* if */
       }  /* if */
       p_attributes = last_attribute_link(p_attributes);
     } while (new_attr_seen);
@@ -1506,6 +1688,13 @@ If attributes are ahead in the token stream, skip over them.
         flush_until_matching_token();
         if (curr_token == tok_rparen) (void)get_token();
       }  /* if */
+    } else if (curr_token == tok_declspec && ms_declspec_attributes_enabled) {
+      /* Skip over Microsoft __declspec attributes. */
+      (void)get_token();
+      if (curr_token == tok_lparen) {
+        flush_until_matching_token();
+        if (curr_token == tok_rparen) (void)get_token();
+      }  /* if */
     } else {
       break;
     }  /* if */
@@ -1525,6 +1714,18 @@ turned into an ak_unrecognized attribute.
                     ap->name);
   make_attr_unrecognized(ap);
 }  /* report_bad_attribute_target */
+
+
+static void report_bad_attribute_arg(an_attribute_arg_ptr  aap,
+                                     an_attribute_ptr      ap)
+/*
+The given argument of the given attribute is invalid.  Issue an error and turn
+the given attribute into an ak_unrecognized attribute.
+*/
+{
+  pos_st_error(ec_invalid_argument_to_attribute, &aap->position, ap->name);
+  make_attr_unrecognized(ap);
+}  /* report_bad_attribute_arg */
 
 
 static void check_simple_type_constraints(char              *constr,
@@ -1985,8 +2186,13 @@ appropriate and set ap->kind to ak_unrecognized).
   if (!match_found) {
     /* Issue a diagnostic if no match was found. */
     an_error_severity  sev = es_error;
-    if (ap->family == (a_byte_attribute_family)af_gnu &&
-        entity_kind == iek_type) {
+    if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
+        ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+      /* Microsoft compilers ignore unrecognized attributes on tag names.
+         We issue a warning. */
+      sev = es_warning;
+    } else if (ap->family == (a_byte_attribute_family)af_gnu &&
+               entity_kind == iek_type) {
       /* GCC only issues a warning on recognized attributes incorrectly
          applied to types. */
       sev = es_warning;
@@ -2405,9 +2611,11 @@ their syntactic location recorded as al_implicit.
   for (ap = ptp->attributes; ap != NULL; ap = ap->next) {
     a_boolean  do_copy;
     switch (ap->kind) {
+#if GNU_EXTENSIONS_ALLOWED
       case ak_unused:
         do_copy = TRUE;
         break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         do_copy = FALSE;
     }  /* switch */
@@ -2446,8 +2654,7 @@ other than returning FALSE.)
     check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
     *val = value_of_integer_constant(con, &ovflo);
     if (ovflo || *val < min_val || *val > max_val) {
-      pos_st_error(ec_invalid_argument_to_attribute, &aap->position, ap->name);
-      make_attr_unrecognized(ap);
+      report_bad_attribute_arg(aap, ap);
     } else {
       known_good_value = TRUE;
     }  /* if */
@@ -2522,10 +2729,9 @@ return that entity.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
-  a_boolean  std_attr = ap->family == (a_byte_attribute_family)af_std;
-  char       *constr;
+  char  *constr;
 
-  if (std_attr) {
+  if (ap->family == (a_byte_attribute_family)af_std) {
     constr = "v:-r!|d:-b!";
   } else if (ap->family == (a_byte_attribute_family)af_gnu) {
     /* GCC allows types and bit fields to have a user-specified alignment. */
@@ -2536,7 +2742,8 @@ return that entity.
       constr = "c|e|t|v:-r!|d";
     }  /* if */
   } else {
-    unexpected_condition();
+    check_assertion(ap->family == (a_byte_attribute_family)af_ms_declspec);
+    constr = "c|e|t|v|d|r";
   }  /* if */
   if (check_target_entity_match(constr, ap, entity, entity_kind)) {
     an_attribute_arg_ptr  aap = ap->arguments;
@@ -2548,6 +2755,7 @@ return that entity.
       check_assertion(ap->family == (a_byte_attribute_family)af_gnu);
       alignment = targ_maximum_intrinsic_alignment;
     } else if (aap->kind == (an_attribute_arg_kind)aak_type) {
+      check_assertion(ap->family == (a_byte_attribute_family)af_std);
       alignment = alignment_of_type(aap->variant.type);
     } else if (aap->kind == (an_attribute_arg_kind)aak_constant) {
       a_host_large_integer  value = 0;
@@ -2566,14 +2774,14 @@ return that entity.
       /* Nothing more to do. */
     } else if (entity_kind == iek_field) {
       a_field_ptr  fp = (a_field_ptr)entity;
-      if (std_attr) {
+      if (ap->family == (a_byte_attribute_family)af_std) {
         if (alignment > fp->alignment) fp->alignment = alignment;
       } else {
         /* Apply the specified alignment.  This may be an increase or a
-           decrease compared to the natural alignment of the type, but
-           a lower #pragma pack setting will take precedence. */
+           decrease compared to the natural alignment of the type, but a lower
+           #pragma pack setting will take precedence in non-Microsoft modes. */
         a_targ_alignment  eff_alignment = alignment;
-        if (current_pack_pragma_value() != 0 &&
+        if (!microsoft_mode && current_pack_pragma_value() != 0 &&
             alignment > current_pack_pragma_value()) {
           eff_alignment = current_pack_pragma_value();
         }  /* if */
@@ -2594,8 +2802,24 @@ return that entity.
          integral type, is performed the value indicated here will be honored.
          Note that this attribute applies to a typedef itself; not to its
          underlying type. */
-      tp->alignment = alignment;
-      tp->alignment_set_explicitly = TRUE;
+      if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+        if (type_is_typedef(tp) &&
+            alignment < alignment_of_type(tp->variant.typeref.type)) {
+          pos_warning(ec_declspec_align_reduction_ignored, &ap->position);
+          make_attr_unrecognized(ap);
+        } else if (is_immediate_enum_type(tp)) {
+          /* Microsoft compiler ignore the attribute in
+               enum __declspec(align(16)) E {};
+          */
+          pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+          make_attr_unrecognized(ap);
+        } else {
+          set_declspec_align(tp, alignment, &ap->position);
+        }  /* if */
+      } else {
+        tp->alignment = alignment;
+        tp->alignment_set_explicitly = TRUE;
+      }  /* if */
     } else if (entity_kind == iek_routine) {
       a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
       if (func_type != NULL) {
@@ -2612,101 +2836,6 @@ return that entity.
   unexpected_condition();
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* apply_align_attr */
-
-
-static char* apply_noreturn_attr(an_attribute_ptr  ap,
-                                 char              *entity,
-                                 an_il_entry_kind  entity_kind)
-/*
-Apply the given "noreturn" attribute to the given entity and return that
-entity.
-*/
-{
-  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
-
-  if (ap->family == (a_byte_attribute_family)af_std) {
-    /* The standard attribute has more constraints than the corresponding GNU
-       attribute: It can appear on a routine only, and it must appear on the
-       first declaration of that routine. */
-    if (entity_kind == iek_routine) {
-      a_routine_ptr       rp = (a_routine_ptr)entity;
-      a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-      if (dps != NULL && !dps->first_decl) {
-        /* A redeclaration: The attribute should have appeared on the first
-           declaration.  (It is tempting to use rp->type to test whether the
-           [[noreturn]] attribute appeared previously.  However, that doesn't
-           work with block-extern declarations in some cases.  For example:
-             void g1() {  [[noreturn]] void f(); }
-             void g2() {
-               [[noreturn]] void f();  // [[noreturn]] from g1() is not
-             }                         // indicated in rp->type.
-           Instead we may have to use the underlying sk_extern_routine symbol.
-        */
-        a_type_ptr  prev_type;
-        if ((rp->storage_class != (a_storage_class)sc_extern &&
-             rp->storage_class != (a_storage_class)sc_unspecified) ||
-            rp->source_corresp.is_class_member ||
-            rp->type->variant.routine.extra_info->does_not_return) {
-          /* Cases with no associated sk_extern_routine symbol.  Fortunately,
-             these don't run into problems with block-extern declarations
-             either. */
-          prev_type = rp->type;
-        } else {
-          a_symbol_locator  loc, eloc;
-          a_symbol_ptr      esym;
-          make_locator_for_symbol(symbol_for(rp), &loc);
-          esym = find_external_symbol(&loc, rp->source_corresp.name_linkage,
-                                      rp->type, &eloc);
-          check_assertion(esym != NULL &&
-                          esym->kind == (a_symbol_kind)sk_extern_routine);
-          prev_type = esym->variant.extern_symbol_descr->type;
-        }  /* if */
-        if (!prev_type->variant.routine.extra_info->does_not_return) {
-          pos_st_error(ec_attr_must_also_appear_in_first_declaration,
-                       &ap->position, ap->name);
-          make_attr_unrecognized(ap);
-        }  /* if */
-      }  /* if */
-    } else {
-      report_bad_attribute_target(es_error, ap);
-    }  /* if */
-  }  /* if */
-  /* If applicable, update the routine type entry. */
-  if (func_type != NULL && !is_unrecognized_attr(ap)) {
-    func_type->variant.routine.extra_info->does_not_return = TRUE;
-  }  /* if */
-  return entity;
-}  /* apply_noreturn_attr */
-
-
-static char* apply_final_attr(an_attribute_ptr  ap,
-                              char              *entity,
-                              an_il_entry_kind  entity_kind)
-/*
-The given entity must be a member function or a class.  Apply the "final"
-attribute to it and return the entity.
-*/
-{
-  if (entity_kind == iek_routine) {
-    a_routine_ptr  rp = (a_routine_ptr)entity;
-    a_type_ptr     parent_class = parent_class_of(rp);
-    if (!is_incomplete_type(parent_class)) {
-      /* Since the class is complete, the attribute is being applied to an
-         out-of-class member definition, which is invalid. */
-      pos_st_error(ec_attr_must_appear_in_class_definition,
-                   &ap->position, ap->name);
-    } else {
-      rp->sealed = TRUE;
-    }  /* if */
-  } else if (entity_kind == iek_type) {
-    a_type_ptr  tp = (a_type_ptr)entity;
-    check_assertion(is_immediate_class_type(tp));
-    tp->variant.class_struct_union.final = TRUE;
-  } else {
-    unexpected_condition();
-  }  /* if */
-  return entity;
-}  /* apply_final_attr */
 
 
 static void check_carries_dependency_for_params(a_decl_parse_state_ptr  dps)
@@ -2787,6 +2916,106 @@ The given entity must be a parameter or a routine.  Apply the
 }  /* apply_carries_dependency_attr */
 
 
+static char* apply_final_attr(an_attribute_ptr  ap,
+                              char              *entity,
+                              an_il_entry_kind  entity_kind)
+/*
+The given entity must be a member function or a class.  Apply the "final"
+attribute to it and return the entity.
+*/
+{
+  if (entity_kind == iek_routine) {
+    a_routine_ptr  rp = (a_routine_ptr)entity;
+    a_type_ptr     parent_class = parent_class_of(rp);
+    if (!is_incomplete_type(parent_class)) {
+      /* Since the class is complete, the attribute is being applied to an
+         out-of-class member definition, which is invalid. */
+      pos_st_error(ec_attr_must_appear_in_class_definition,
+                   &ap->position, ap->name);
+    } else {
+      rp->sealed = TRUE;
+    }  /* if */
+  } else if (entity_kind == iek_type) {
+    a_type_ptr  tp = (a_type_ptr)entity;
+    check_assertion(is_immediate_class_type(tp));
+    tp->variant.class_struct_union.final = TRUE;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return entity;
+}  /* apply_final_attr */
+
+
+static char* apply_noreturn_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the given "noreturn" attribute to the given entity and return that
+entity.
+*/
+{
+  if (entity_kind != iek_routine &&
+      ap->family != (a_byte_attribute_family)af_gnu) {
+    /* The standard attribute form and the Microsoft __declspec form apply only
+       to routines.  (Early Microsoft compiler simply ignore the attribute when
+       it is applied to a non-routine.) */
+    an_error_severity  sev;
+    sev = (microsoft_mode && microsoft_version < 1400) ? es_warning : es_error;
+    report_bad_attribute_target(sev, ap);
+  } else if (ap->family == (a_byte_attribute_family)af_std) {
+    /* The standard attribute has more constraints than the corresponding GNU
+       attribute: It can appear on a routine only, and it must appear on the
+       first declaration of that routine. */
+    a_routine_ptr       rp = (a_routine_ptr)entity;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    if (dps != NULL && !dps->first_decl) {
+      /* A redeclaration: The attribute should have appeared on the first
+         declaration.  (It is tempting to use rp->type to test whether the
+         [[noreturn]] attribute appeared previously.  However, that doesn't
+         work with block-extern declarations in some cases.  For example:
+           void g1() {  [[noreturn]] void f(); }
+           void g2() {
+             [[noreturn]] void f();  // [[noreturn]] from g1() is not
+           }                         // indicated in rp->type.
+         Instead we may have to use the underlying sk_extern_routine symbol.
+      */
+      a_type_ptr  prev_type;
+      if ((rp->storage_class != (a_storage_class)sc_extern &&
+           rp->storage_class != (a_storage_class)sc_unspecified) ||
+          rp->source_corresp.is_class_member ||
+          rp->type->variant.routine.extra_info->does_not_return) {
+        /* Cases with no associated sk_extern_routine symbol.  Fortunately,
+           these don't run into problems with block-extern declarations
+           either. */
+        prev_type = rp->type;
+      } else {
+        a_symbol_locator  loc, eloc;
+        a_symbol_ptr      esym;
+        make_locator_for_symbol(symbol_for(rp), &loc);
+        esym = find_external_symbol(&loc, rp->source_corresp.name_linkage,
+                                    rp->type, &eloc);
+        check_assertion(esym != NULL &&
+                        esym->kind == (a_symbol_kind)sk_extern_routine);
+        prev_type = esym->variant.extern_symbol_descr->type;
+      }  /* if */
+      if (!prev_type->variant.routine.extra_info->does_not_return) {
+        pos_st_error(ec_attr_must_also_appear_in_first_declaration,
+                     &ap->position, ap->name);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* If applicable, update the routine type entry. */
+  if (!is_unrecognized_attr(ap)) {
+    a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+    if (func_type != NULL) {
+      func_type->variant.routine.extra_info->does_not_return = TRUE;
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_noreturn_attr */
+
+
 static char* apply_nothrow_attr(an_attribute_ptr  ap,
                                 char              *entity,
                                 an_il_entry_kind  entity_kind)
@@ -2824,6 +3053,163 @@ done:
   return entity;
 }  /* apply_nothrow_attr */
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
+static char* apply_deprecated_attr(an_attribute_ptr  ap,
+                                   char              *entity,
+                                   an_il_entry_kind  entity_kind)
+/*
+The given entity must be a variable, routine, type, or field.  Apply the
+"deprecated" attribute to it, and return the entity.
+*/
+{
+  check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
+                  entity_kind == iek_field || entity_kind == iek_type);
+  if (entity_kind == iek_type) {
+    /* Only user-defined types can be deprecated. */
+    a_type_ptr  tp = (a_type_ptr)entity;
+    check_assertion(is_tag_type(tp) || type_is_typedef(tp));
+    if (microsoft_mode &&
+        ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+      /* Microsoft compilers ignore the attribute on enum types and on
+         unnamed classes. */
+      if (is_immediate_enum_type(tp)) {
+        pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (tp->variant.class_struct_union.originally_unnamed) {
+        pos_st_warning(ec_attribute_ignored_on_unnamed_type,
+                       &ap->position, ap->name);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!is_unrecognized_attr(ap)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ap->arguments != NULL) {
+      an_attribute_arg_ptr  aap = ap->arguments;
+      a_constant_ptr        cp;
+      check_assertion(aap->next == NULL &&
+                      aap->kind == (an_attribute_arg_kind)aak_constant);
+      cp = aap->variant.constant;
+      check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
+      check_assertion(
+               cp->variant.string.value[cp->variant.string.length-1] == '\0');
+      if (!microsoft_mode || microsoft_version < 1400) {
+        /* Only Microsoft compilers of recent vintage allow an optional string
+           argument. */
+        report_bad_attribute_arg(aap, ap);
+      } else {
+        char  *prev_str =
+                     deprecation_string_for((a_source_correspondence*)entity);
+        if (prev_str != NULL &&
+            strcmp(prev_str, cp->variant.string.value) != 0) {
+          /* Note that if multiple deprecated attributes were recorded,
+             deprecation_string_for will return the first. */
+          pos_remark(ec_decl_modifiers_incompatible_with_previous_decl,
+                     &aap->position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    ((a_source_correspondence*)entity)->is_deprecated = TRUE;
+  }  /* if */
+  return entity;
+}  /* apply_deprecated_attr */
+ 
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
+static char* apply_naked_attr(an_attribute_ptr  ap,
+                              char              *entity,
+                              an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "naked" attribute to the given entity and return that entity.
+*/
+{
+  check_assertion(entity_kind == iek_routine);
+  ((a_routine*)entity)->is_naked = TRUE;
+  return entity;
+}  /* apply_naked_attr */
+
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
+static char* apply_noinline_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+The given entity must be a routine.  Apply the GNU "noinline" attribute to it
+and return the entity.
+*/
+{
+  if (entity_kind == iek_routine) {
+    a_routine_ptr  rp = (a_routine_ptr)entity;
+    rp->never_inline = TRUE;
+    if (rp->is_inline && ap->family == (a_byte_attribute_family)af_gnu) {
+      pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
+      set_inline_flag(rp, FALSE);
+    }  /* if */
+  } else {
+    an_error_severity  sev;
+    sev = (microsoft_mode && microsoft_version < 1400) ? es_warning : es_error;
+    report_bad_attribute_target(sev, ap);
+  }  /* if */
+  return entity;
+}  /* apply_noinline_attr */
+
+
+static char* apply_section_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+The given entity must be a function or variable.  Apply the GNU "section"
+or Microsoft "allocate" attribute to it and return the entity.
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_constant_ptr        arg;
+  char                  *str;
+
+  check_assertion(entity_kind == iek_routine || entity_kind == iek_variable);
+  check_assertion(aap != NULL && aap->next == NULL &&
+                  aap->kind == (an_attribute_arg_kind)aak_constant);
+  arg = aap->variant.constant;
+  check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+  str = arg->variant.string.value;
+  if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+    /* Microsoft compilers disallow different section names on different
+       declarations.  (GNU compilers retain the last section name.)  Also,
+       unlike GNU compilers, Microsoft only allows a section name to appear
+       on a variable declaration; not a routine declaration. */
+    if (entity_kind == iek_routine) {
+      report_bad_attribute_target(es_error, ap);
+    } else {
+      char  *prev_str = ((a_variable_ptr)entity)->section;
+      if (prev_str != NULL && strcmp(prev_str, str) != 0) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_decl_modifiers_incompatible_with_previous_decl,
+                       &ap->position);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!is_unrecognized_attr(ap)) {
+    /* Make a separate copy of the string value because it will be traversed as
+       iek_other_text whereas the original pointed to by the ck_string will be
+       traversed as iek_string_text. */
+    str = copy_string_to_region(file_scope_region_number, str);
+    if (entity_kind == iek_variable) {
+      ((a_variable_ptr)entity)->section = str;
+#if GNU_EXTENSIONS_ALLOWED
+    } else {
+      ((a_routine_ptr)entity)->section = str;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_section_attr */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void add_alias_fixup(a_symbol_ptr        alias,
@@ -2973,6 +3359,30 @@ to it and return the entity.
   return entity;
 }  /* apply_always_inline_attr */
 
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+
+static char* apply_cdecl_attr(an_attribute_ptr  ap,
+                              char              *entity,
+                              an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "cdecl" attribute to the given entity and return that entity.
+*/
+{
+  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+
+  if (func_type != NULL) {
+    a_routine_type_supplement_ptr  rtsp =
+                                        func_type->variant.routine.extra_info;
+    if (rtsp->calling_convention == (a_calling_convention)cc_default) {
+      /* The GNU C compiler appears to ignore the cdecl attribute if
+         another calling convention is already specified. */
+      rtsp->calling_convention = (a_calling_convention)cc_cdecl;
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_cdecl_attr */
+
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 
 static char* apply_cleanup_attr(an_attribute_ptr  ap,
                                 char              *entity,
@@ -3134,29 +3544,6 @@ it and return the entity.
   return entity;
 }  /* apply_constructor_attr */
 
-
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_deprecated_attr(an_attribute_ptr  ap,
-                                   char              *entity,
-                                   an_il_entry_kind  entity_kind)
-/*
-The given entity must be a variable, routine, type, or field.  Apply the
-"deprecated" attribute to it, and return the entity.
-*/
-{
-#if CHECKING
-  check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
-                  entity_kind == iek_field || entity_kind == iek_type);
-  if (entity_kind == iek_type) {
-    /* Only user-defined types can be deprecated. */
-    a_type_ptr  tp = (a_type_ptr)entity;
-    check_assertion(is_tag_type(tp) || type_is_typedef(tp));
-  }  /* if */
-#endif /* CHECKING */
-  ((a_source_correspondence*)entity)->is_deprecated = TRUE;
-  return entity;
-}  /* apply_deprecated_attr */
- 
 
 static char* apply_destructor_attr(an_attribute_ptr  ap,
                                    char              *entity,
@@ -3343,8 +3730,7 @@ it and return the entity.
     a_host_large_integer  arg_num =
                      value_of_integer_constant(aap->variant.constant, &ovflo);
     if (ovflo || arg_num < 0 || arg_num > INT_MAX) { /*lint !e685*/
-      pos_st_error(ec_invalid_argument_to_attribute, &aap->position, ap->name);
-      make_attr_unrecognized(ap);
+      report_bad_attribute_arg(aap, ap);
     } else {
       a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
       a_routine_type_supplement_ptr
@@ -3414,6 +3800,39 @@ it and return the entity.
   return entity;
 }  /* apply_gnu_inline_attr */
 
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+
+static char* apply_init_priority_attr(an_attribute_ptr  ap,
+                                      char              *entity,
+                                      an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "init_priority" attribute to the given entity (which must be a
+variable) and return entity.
+*/
+{
+  a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_variable_ptr        vp = (a_variable_ptr)entity;
+  a_type_ptr            tp;
+
+  check_assertion(entity_kind == iek_variable &&
+                  (aap == NULL || aap->next == NULL));
+  tp = skip_typerefs(vp->type);
+  /* Only accept the init_priority attributes on class type variables and on
+     arrays of class type objects, and only on entities that are initialized
+     at program start-up time. */
+  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+  if (is_class_struct_union_type(tp) && dps->is_definition &&
+      (is_file_or_namespace_scope(&scope_stack_top()) ||
+       vp->source_corresp.is_class_member)) {
+    vp->init_priority = get_priority(ap);
+  } else {
+    pos_error(ec_bad_variable_for_init_priority, &ap->position);
+  }  /* if */
+  return entity;
+}  /* apply_init_priority_attr */
+
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_malloc_attr(an_attribute_ptr  ap,
@@ -3607,8 +4026,7 @@ doesn't apply to the given type, issue an error and return an error type.
   if (i == (int)tmk_last) {
     /* If the mode was not valid, issue an error message and return an error
        type. */
-    pos_st_error(ec_invalid_argument_to_attribute, &aap->position, ap->name);
-    make_attr_unrecognized(ap);
+    report_bad_attribute_arg(aap, ap);
     type = error_type();
   } else {
     type = get_type_with_mode(type, (a_type_mode_kind)i, &ap->position);
@@ -3682,26 +4100,6 @@ returned.
   }  /* if */
   return entity;
 }  /* apply_nocommon_attr */
-
-
-static char* apply_noinline_attr(an_attribute_ptr  ap,
-                                 char              *entity,
-                                 an_il_entry_kind  entity_kind)
-/*
-The given entity must be a routine.  Apply the GNU "noinline" attribute to it
-and return the entity.
-*/
-{
-  a_routine_ptr  rp = (a_routine_ptr)entity;
-
-  check_assertion(entity_kind == iek_routine);
-  rp->never_inline = TRUE;
-  if (rp->is_inline) {
-    pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
-  }  /* if */
-  set_inline_flag(rp, FALSE);
-  return entity;
-}  /* apply_noinline_attr */
 
 
 static void record_nonnull_attr(a_type_ptr         rtp,
@@ -3867,37 +4265,6 @@ warning.  Return the given entity.
 }  /* apply_pure_attr */
 
 
-static char* apply_section_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
-/*
-The given entity must be a function or variable.  Apply the GNU "section"
-attribute to it and return the entity.
-*/
-{
-  a_constant_ptr  arg;
-  char            *str;
-
-  check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
-                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
-  arg = ap->arguments->variant.constant;
-  check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
-  /* Make a separate copy of the string value because it will be traversed as
-     iek_other_text whereas the original pointed to by the ck_string will be
-     traversed as iek_string_text. */
-  str = copy_string_to_region(file_scope_region_number,
-                              arg->variant.string.value);
-  if (entity_kind == iek_routine) {
-    ((a_routine_ptr)entity)->section = str;
-  } else if (entity_kind == iek_variable) {
-    ((a_variable_ptr)entity)->section = str;
-  } else {
-    unexpected_condition();
-  }  /* if */
-  return entity;
-}  /* apply_section_attr */
-
-
 static char* apply_sentinel_attr(an_attribute_ptr  ap,
                                  char              *entity,
                                  an_il_entry_kind  entity_kind)
@@ -3931,6 +4298,26 @@ Apply the GNU "sentinel" attribute to the given entity and return that entity.
   return entity;
 }  /* apply_sentinel_attr */
 
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+
+static char* apply_stdcall_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "stdcall" attribute to the given entity and return that entity.
+*/
+{
+  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+
+  if (func_type != NULL) {
+    a_routine_type_supplement_ptr  rtsp =
+                                        func_type->variant.routine.extra_info;
+    rtsp->calling_convention = (a_calling_convention)cc_stdcall;
+  }  /* if */
+  return entity;
+}  /* apply_stdcall_attr */
+
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 
 static char* apply_strong_attr(an_attribute_ptr  ap,
                                char              *entity,
@@ -3970,6 +4357,65 @@ attribute to it and return the entity.
   return entity;
 }  /* apply_strong_attr */
 
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+
+static char* apply_tls_model_attr(an_attribute_ptr  ap,
+                                  char              *entity,
+                                  an_il_entry_kind  entity_kind)
+/*
+Check the validity of the GNU "tls_model" attribute for the given entity and
+return that entity.
+*/
+{
+  char *valid_model_names[] = { "global-dynamic", "local-dynamic",
+                                "initial-exec", "local-exec", NULL };
+
+  check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
+                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
+  if (entity_kind != iek_variable) {
+    report_bad_attribute_target(es_warning, ap);
+  } else {
+    /* A variable: Check that it has thread-local storage. */
+    a_variable_ptr      vp = (a_variable_ptr)entity;
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    if (!(vp->decl_modifiers & DM_THREAD) != 0 &&
+        !(dps != NULL && (dps->decl_modifiers.flags & DM_THREAD) != 0)) {
+      report_bad_attribute_target(es_warning, ap);
+    } else {
+      /* Check that the model name (the attribute argument) is valid. */
+      a_constant_ptr    arg = ap->arguments->variant.constant;
+      char              **pvmn = valid_model_names;
+      check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+      for (; *pvmn != NULL; ++pvmn) {
+        if (strcmp(arg->variant.string.value, *pvmn) == 0) break;
+      }  /* for */
+      if (*pvmn == NULL) {
+        pos_error(ec_bad_tls_model_attr_arg, &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (dps != NULL && !dps->first_decl) {
+        an_attribute_ptr  prev_ap;
+        a_constant_ptr    prev_arg;
+        prev_ap = find_attribute(ak_tls_model, vp->source_corresp.attributes);
+        if (prev_ap != NULL) {
+          check_assertion(prev_ap->arguments != NULL &&
+                          prev_ap->arguments->kind ==
+                                         (an_attribute_arg_kind)aak_constant);
+          prev_arg = prev_ap->arguments->variant.constant;
+          check_assertion(prev_arg->kind == (a_constant_repr_kind)ck_string);
+          if (strcmp(arg->variant.string.value,
+                     prev_arg->variant.string.value)) {
+            pos2_diagnostic(es_error, ec_inconsistent_tls_model_attr_arg,
+                            &ap->arguments->position, &prev_ap->position);
+            make_attr_unrecognized(ap);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_tls_model_attr */
+
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
 a_boolean check_transparent_union(a_type_ptr        tp,
                                   a_source_position *pos)
@@ -4132,134 +4578,88 @@ Apply the given "used" attribute to the given entity (and return that entity).
   return entity;
 }  /* apply_used_attr */
 
+#if GNU_VECTOR_TYPES_ALLOWED
 
-static char* apply_warn_unused_result_attr(an_attribute_ptr  ap,
-                                           char              *entity,
-                                           an_il_entry_kind  entity_kind)
+static char* apply_vector_size_attr(an_attribute_ptr  ap,
+                                    char              *entity,
+                                    an_il_entry_kind  entity_kind)
 /*
-Apply the GNU "warn_unused_result" attribute to the given entity and return
-that entity.
+The given entity must be a type (entity_kind is iek_type).  Apply the GNU
+"vector_size" attribute to it and return the resulting vector type.  If the
+attribute doesn't apply to the given type, issue an error and return an
+error type.
 */
 {
-  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+  a_type_ptr            elem_type = (a_type_ptr)entity, result;
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_constant_ptr        size_con;
+  a_boolean             ovflo = FALSE, err = FALSE;
+  a_host_large_integer  size = 0;
 
-  if (func_type != NULL) {
-    if (is_void_type(func_type->variant.routine.return_type)) {
-      pos_warning(ec_warn_unused_result_with_void_return, &ap->position);
-      make_attr_unrecognized(ap);
-    } else {
-      func_type->variant.routine.extra_info->result_should_be_used = TRUE;
+  /* Simple table-based constraint checking ensures that we can make a number
+     of assumptions here. */
+  check_assertion(entity_kind == iek_type &&
+                  aap != NULL && aap->next == NULL &&
+                  aap->kind == (an_attribute_arg_kind)aak_constant);
+  /* Validate the element type. */
+  if (is_error_type(elem_type)) {
+    err = TRUE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (is_nonreal_floating_type(elem_type)) {
+    pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
+    err = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else if (is_template_param_type(elem_type)) {
+    pos_error(ec_vector_size_with_dependent_element_type, &ap->position);
+    err = TRUE;
+  } else if (!is_integral_or_enum_type(elem_type) &&
+             !is_floating_type(elem_type)) {
+    pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,
+              &ap->position);
+    err = TRUE;
+  } else {
+    check_assertion(!is_incomplete_type(elem_type));
+  }  /* if */
+  /* Validate the vector size. */
+  size_con = aap->variant.constant;
+  if (size_con->kind == (a_constant_repr_kind)ck_template_param) {
+    /* We currently do not accept dependent vector sizes.  (GCC ignores the
+       attribute with a warning, but that seems overly surprising.) */
+    pos_error(ec_dependent_vector_size, &ap->position);
+    err = TRUE;
+  } else {
+    check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
+    size = value_of_integer_constant(size_con, &ovflo);
+    if (ovflo) {
+      pos_error(ec_vector_size_too_large, &ap->position);
+      err = TRUE;
+    } else if (size <= 0 || (size & (size-1)) != 0) {
+      pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
+      err = TRUE;
+    } else if (!err &&
+               ((a_host_large_unsigned)size %
+                                       skip_typerefs(elem_type)->size) != 0) {
+      pos_error(ec_vector_size_must_be_multiple_of_element_size,
+                &ap->position);
+      err = TRUE;
     }  /* if */
   }  /* if */
-  return entity;
-}  /* apply_warn_unused_result_attr */
-
-
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_weak_attr(an_attribute_ptr  ap,
-                             char              *entity,
-                             an_il_entry_kind  entity_kind)
-/*
-Apply the GNU "weak" attribute to the given entity and return that entity.
-*/
-{
-  if (entity_kind == iek_variable) {
-    ((a_variable*)entity)->is_weak = TRUE;
-  } else if (entity_kind == iek_routine) {
-    ((a_routine*)entity)->is_weak = TRUE;
+  if (err) {
+    /* Make sure the attribute is marked as "unrecognized" so further stages
+       of processing don't treat it as a valid vector_size attribute. */
+    make_attr_unrecognized(ap);
+    result = error_type();
   } else {
-    unexpected_condition();
+    result = alloc_type((a_type_kind)tk_vector);
+    result->source_corresp.decl_position = ap->position;
+    result->size = size;
+    result->variant.vector.element_type = elem_type;
+    result->variant.vector.size_constant = size_con;
   }  /* if */
-  return entity;
-}  /* apply_weak_attr */
+  return (char*)result;
+}  /* apply_vector_size_attr */
 
-
-static char* apply_weakref_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
-/*
-Apply the GNU "weakref" attribute to the given entity and return that entity.
-*/
-{
-  /* We already checked the target constraint "r|v".  Now check whether the
-     entity is external (but apply the attribute even if that constraint
-     fails since it results in better error recovery). */
-  (void)check_target_entity_match(gnu_version < 40200 ? (char*)"r:+x!|v:+x!"
-                                                      : (char*)"r:-x!|v:-x!",
-                                  ap, entity, entity_kind);
-  if (entity_kind == iek_routine) {
-    ((a_routine_ptr)entity)->is_weak = TRUE;
-    ((a_routine_ptr)entity)->is_weakref = TRUE;
-  } else if (entity_kind == iek_variable) {
-    ((a_variable_ptr)entity)->is_weak = TRUE;
-    ((a_variable_ptr)entity)->is_weakref = TRUE;
-  } else {
-    unexpected_condition();
-  }  /* if */
-  if (ap->arguments != NULL) {
-    entity = apply_alias_attr(ap, entity, entity_kind);
-  }  /* if */
-  return entity;
-}  /* apply_weakref_attr */
-
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_naked_attr(an_attribute_ptr  ap,
-                              char              *entity,
-                              an_il_entry_kind  entity_kind)
-/*
-Apply the GNU "naked" attribute to the given entity and return that entity.
-*/
-{
-  check_assertion(entity_kind == iek_routine);
-  ((a_routine*)entity)->is_naked = TRUE;
-  return entity;
-}  /* apply_naked_attr */
-
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
-
-static char* apply_cdecl_attr(an_attribute_ptr  ap,
-                              char              *entity,
-                              an_il_entry_kind  entity_kind)
-/*
-Apply the GNU "cdecl" attribute to the given entity and return that entity.
-*/
-{
-  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
-
-  if (func_type != NULL) {
-    a_routine_type_supplement_ptr  rtsp =
-                                        func_type->variant.routine.extra_info;
-    if (rtsp->calling_convention == (a_calling_convention)cc_default) {
-      /* The GNU C compiler appears to ignore the cdecl attribute if
-         another calling convention is already specified. */
-      rtsp->calling_convention = (a_calling_convention)cc_cdecl;
-    }  /* if */
-  }  /* if */
-  return entity;
-}  /* apply_cdecl_attr */
-
-
-static char* apply_stdcall_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
-/*
-Apply the GNU "stdcall" attribute to the given entity and return that entity.
-*/
-{
-  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
-
-  if (func_type != NULL) {
-    a_routine_type_supplement_ptr  rtsp =
-                                        func_type->variant.routine.extra_info;
-    rtsp->calling_convention = (a_calling_convention)cc_stdcall;
-  }  /* if */
-  return entity;
-}  /* apply_stdcall_attr */
-
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 /*
@@ -4476,181 +4876,397 @@ entity.
 }  /* apply_visibility_attr */
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
-static char* apply_init_priority_attr(an_attribute_ptr  ap,
-                                      char              *entity,
-                                      an_il_entry_kind  entity_kind)
+static char* apply_warn_unused_result_attr(an_attribute_ptr  ap,
+                                           char              *entity,
+                                           an_il_entry_kind  entity_kind)
 /*
-Apply the GNU "init_priority" attribute to the given entity (which must be a
-variable) and return entity.
+Apply the GNU "warn_unused_result" attribute to the given entity and return
+that entity.
 */
 {
-  a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
-  an_attribute_arg_ptr  aap = ap->arguments;
-  a_variable_ptr        vp = (a_variable_ptr)entity;
-  a_type_ptr            tp;
+  a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  check_assertion(entity_kind == iek_variable &&
-                  (aap == NULL || aap->next == NULL));
-  tp = skip_typerefs(vp->type);
-  /* Only accept the init_priority attributes on class type variables and on
-     arrays of class type objects, and only on entities that are initialized
-     at program start-up time. */
-  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-  if (is_class_struct_union_type(tp) && dps->is_definition &&
-      (is_file_or_namespace_scope(&scope_stack_top()) ||
-       vp->source_corresp.is_class_member)) {
-    vp->init_priority = get_priority(ap);
-  } else {
-    pos_error(ec_bad_variable_for_init_priority, &ap->position);
+  if (func_type != NULL) {
+    if (is_void_type(func_type->variant.routine.return_type)) {
+      pos_warning(ec_warn_unused_result_with_void_return, &ap->position);
+      make_attr_unrecognized(ap);
+    } else {
+      func_type->variant.routine.extra_info->result_should_be_used = TRUE;
+    }  /* if */
   }  /* if */
   return entity;
-}  /* apply_init_priority_attr */
+}  /* apply_warn_unused_result_attr */
 
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
 
-static char* apply_vector_size_attr(an_attribute_ptr  ap,
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
+static char* apply_weak_attr(an_attribute_ptr  ap,
+                             char              *entity,
+                             an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "weak" attribute to the given entity and return that entity.
+*/
+{
+  if (entity_kind == iek_variable) {
+    ((a_variable*)entity)->is_weak = TRUE;
+  } else if (entity_kind == iek_routine) {
+    ((a_routine*)entity)->is_weak = TRUE;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return entity;
+}  /* apply_weak_attr */
+
+
+static char* apply_weakref_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+Apply the GNU "weakref" attribute to the given entity and return that entity.
+*/
+{
+  /* We already checked the target constraint "r|v".  Now check whether the
+     entity is external (but apply the attribute even if that constraint
+     fails since it results in better error recovery). */
+  (void)check_target_entity_match(gnu_version < 40200 ? (char*)"r:+x!|v:+x!"
+                                                      : (char*)"r:-x!|v:-x!",
+                                  ap, entity, entity_kind);
+  if (entity_kind == iek_routine) {
+    ((a_routine_ptr)entity)->is_weak = TRUE;
+    ((a_routine_ptr)entity)->is_weakref = TRUE;
+  } else if (entity_kind == iek_variable) {
+    ((a_variable_ptr)entity)->is_weak = TRUE;
+    ((a_variable_ptr)entity)->is_weakref = TRUE;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (ap->arguments != NULL) {
+    entity = apply_alias_attr(ap, entity, entity_kind);
+  }  /* if */
+  return entity;
+}  /* apply_weakref_attr */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static char* apply_dllimport_dllexport_attr(an_attribute_ptr  ap,
+                                            char              *entity,
+                                            an_il_entry_kind  entity_kind)
+/*
+The dllimport and dllexport attributes are not really "applied" here, because
+in some template cases some local information is not conveniently accessible
+at this point.  However, some simple constraints can most easily be checked
+and diagnosed here.
+The given entity is returned.
+*/
+{
+  if (entity_kind == iek_type) {
+    if (ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+      /* When applied to tag types, dllimport/dllexport is accepted on C++
+         class types only. */
+      if (C_mode() && is_immediate_class_type((a_type_ptr)entity)) {
+        pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
+                       &ap->position, ap->name);
+        make_attr_unrecognized(ap);
+      } else if (is_immediate_enum_type((a_type_ptr)entity)) {
+        pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    } else {
+      /* E.g., "typedef __declspec(dllimport) int X;". */
+      report_bad_attribute_target(es_warning, ap);
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_dllimport_dllexport_attr */
+
+
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
+static char* apply_implementation_key_attr(an_attribute_ptr  ap,
+                                           char              *entity,
+                                           an_il_entry_kind  entity_kind)
+/*
+Check the Microsoft __declspec(implementation_key) attribute (it isn't really
+"applied" to the given entity).  Return the given entity.
+*/
+{
+  if (!in_microsoft_implementation_key_mapping_region) {
+    pos_error(ec_implementation_key_outside_mapping_region, &ap->position);
+    make_attr_unrecognized(ap);
+  }  /* if */
+  return entity;
+}  /* apply_implementation_key_attr */
+
+
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
+static char* apply_intrin_type_attr(an_attribute_ptr  ap,
                                     char              *entity,
                                     an_il_entry_kind  entity_kind)
 /*
-The given entity must be a type (entity_kind is iek_type).  Apply the GNU
-"vector_size" attribute to it and return the resulting vector type.  If the
-attribute doesn't apply to the given type, issue an error and return an
-error type.
+Apply the Microsoft __declspec(intrin_type) attribute to the given entity (and
+return that entity).
 */
 {
-  a_type_ptr            elem_type = (a_type_ptr)entity, result;
-  an_attribute_arg_ptr  aap = ap->arguments;
-  a_constant_ptr        size_con;
-  a_boolean             ovflo = FALSE, err = FALSE;
-  a_host_large_integer  size = 0;
+  check_assertion(entity_kind == iek_type);
+  ((a_type_ptr)entity)->is_microsoft_intrinsic = TRUE;
+  return entity;
+}  /* apply_intrin_type_attr */
 
-  /* Simple table-based constraint checking ensures that we can make a number
-     of assumptions here. */
-  check_assertion(entity_kind == iek_type &&
-                  aap != NULL && aap->next == NULL &&
-                  aap->kind == (an_attribute_arg_kind)aak_constant);
-  /* Validate the element type. */
-  if (is_error_type(elem_type)) {
-    err = TRUE;
-#if C99_IL_EXTENSIONS_SUPPORTED
-  } else if (is_nonreal_floating_type(elem_type)) {
-    pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
-    err = TRUE;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  } else if (is_template_param_type(elem_type)) {
-    pos_error(ec_vector_size_with_dependent_element_type, &ap->position);
-    err = TRUE;
-  } else if (!is_integral_or_enum_type(elem_type) &&
-             !is_floating_type(elem_type)) {
-    pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,
-              &ap->position);
-    err = TRUE;
+
+static char* apply_noalias_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(noalias) attribute to the given entity (and
+return that entity).
+*/
+{
+  if (entity_kind == iek_routine) {
+    ((a_routine*)entity)->decl_modifiers |= DM_NOALIAS;
   } else {
-    check_assertion(!is_incomplete_type(elem_type));
+    report_bad_attribute_target(es_warning, ap);
   }  /* if */
-  /* Validate the vector size. */
-  size_con = aap->variant.constant;
-  if (size_con->kind == (a_constant_repr_kind)ck_template_param) {
-    /* We currently do not accept dependent vector sizes.  (GCC ignores the
-       attribute with a warning, but that seems overly surprising.) */
-    pos_error(ec_dependent_vector_size, &ap->position);
-    err = TRUE;
+  return entity;
+}  /* apply_noalias_attr */
+
+
+static char* apply_novtable_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(novtable) attribute to the given entity (and
+return that entity).
+*/
+{
+  a_type_ptr  tp = (a_type_ptr)entity;
+
+  check_assertion(entity_kind == iek_type);
+  if (is_immediate_class_type(tp)) {
+    class_type_supp(tp)->decl_modifiers |= DM_NOVTABLE;
   } else {
-    check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
-    size = value_of_integer_constant(size_con, &ovflo);
-    if (ovflo) {
-      pos_error(ec_vector_size_too_large, &ap->position);
-      err = TRUE;
-    } else if (size <= 0 || (size & (size-1)) != 0) {
-      pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
-      err = TRUE;
-    } else if (!err &&
-               ((a_host_large_unsigned)size %
-                                       skip_typerefs(elem_type)->size) != 0) {
-      pos_error(ec_vector_size_must_be_multiple_of_element_size,
-                &ap->position);
-      err = TRUE;
+    report_bad_attribute_target(es_warning, ap);
+  }  /* if */
+  return entity;
+}  /* apply_novtable_attr */
+
+
+static char* apply_property_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(property) attribute to the given entity (and
+return that entity).  Since the attribute arguments were recorded as a
+sequence of "raw tokens", this involves some simple parsing of that token
+stream.
+*/
+{
+  if (entity_kind == iek_field) {
+    an_attribute_arg_ptr  aap = ap->arguments;
+    a_field_ptr           fp = (a_field*)entity;
+    an_error_code         errcode = ec_bad_declspec_property;
+    check_assertion(aap != NULL);
+    /* The raw token sequence should correspond to one of the following forms:
+       "get = <id>", "put = <id>", "get = <id> , put = <id>", or
+       "put = <id> , get = <id>". */
+    for (;;) {
+      a_boolean  is_get = FALSE, is_put = FALSE;
+      /* Check for "get" or "put". */
+      if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
+        break;
+      } else if (strcmp(aap->variant.token, "get") == 0) {
+        if (fp->get_property_name != NULL) {
+          errcode = ec_dupl_get_or_put;
+          break;
+        }  /* if */
+        is_get = TRUE;
+      } else if (strcmp(aap->variant.token, "put") == 0) {
+        if (fp->put_property_name != NULL) {
+          errcode = ec_dupl_get_or_put;
+          break;
+        }  /* if */
+        is_put = TRUE;
+      } else {
+        break;
+      }  /* if */
+      aap = aap->next;
+      /* Skip the "=" that should follow. */
+      check_assertion(aap != NULL);
+      if (aap->kind != (an_attribute_arg_kind)aak_raw_token ||
+          aap->token_kind != (a_small_token_kind)tok_assign) {
+        errcode = ec_exp_assign;
+        break;
+      }  /* if */
+      aap = aap->next;
+      /* An identifier should be next: Record it in the field entry. */
+      check_assertion(aap != NULL);
+      if (aap->token_kind != (a_small_token_kind)tok_identifier) {
+        errcode = ec_exp_identifier;
+        break;
+      } else if (is_get) {
+        fp->get_property_name = aap->variant.token;
+      } else if (is_put) {
+        fp->put_property_name = aap->variant.token;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      aap = aap->next;
+      /* Check for a comma. */
+      if (aap->kind == (an_attribute_arg_kind)aak_empty) {
+        /* We found the end of the construct without error. */
+        aap = aap->next;
+        check_assertion(aap == NULL);
+        break;
+      } else {
+        check_assertion(aap->kind == (an_attribute_arg_kind)aak_raw_token);
+        if (aap->token_kind == (a_small_token_kind)tok_comma) {
+          /* A comma: Continue the loop. */
+          aap = aap->next;
+        } else {
+          errcode = ec_exp_rparen;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (aap != NULL) {
+      pos_error(errcode, &aap->position);
+      if (fp->get_property_name == NULL && fp->put_property_name == NULL) {
+        a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+        /* The field isn't a property field after all, but the field type was
+           checked assuming this would be a property field.  Avoid error
+           recovery issues by proceding with an error type. */
+        dps->type = fp->type = error_type();
+        dps->is_property_field = FALSE;
+        make_attr_unrecognized(ap);
+      }  /* if */
+    } else if (fp->is_bit_field) {
+      pos_diagnostic(es_discretionary_error, ec_declspec_property_not_allowed,
+                     &ap->position);
     }  /* if */
-  }  /* if */
-  if (err) {
-    /* Make sure the attribute is marked as "unrecognized" so further stages
-       of processing don't treat it as a valid vector_size attribute. */
-    make_attr_unrecognized(ap);
-    result = error_type();
   } else {
-    result = alloc_type((a_type_kind)tk_vector);
-    result->source_corresp.decl_position = ap->position;
-    result->size = size;
-    result->variant.vector.element_type = elem_type;
-    result->variant.vector.size_constant = size_con;
+    report_bad_attribute_target(es_warning, ap);
   }  /* if */
-  return (char*)result;
-}  /* apply_vector_size_attr */
+  return entity;
+}  /* apply_property_attr */
 
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 
-static char* apply_tls_model_attr(an_attribute_ptr  ap,
+static char* apply_restrict_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(restrict) attribute to the given entity (and
+return that entity).
+*/
+{
+  if (entity_kind == iek_routine) {
+    a_routine_ptr  rp = (a_routine*)entity;
+    if (is_pointer_type(return_type_of(rp->type))) {
+      rp->decl_modifiers |= DM_RESTRICT;
+    } else {
+      pos_error(ec_bad_declspec_restrict_return, &ap->position);
+    }  /* if */
+  } else {
+    report_bad_attribute_target(es_warning, ap);
+  }  /* if */
+  return entity;
+}  /* apply_restrict_attr */
+
+
+static char* apply_selectany_attr(an_attribute_ptr  ap,
                                   char              *entity,
                                   an_il_entry_kind  entity_kind)
 /*
-Check the validity of the GNU "tls_model" attribute for the given entity and
-return that entity.
+Apply the Microsoft __declspec(selectany) attribute to the given entity (and
+return that entity).
 */
 {
-  char *valid_model_names[] = { "global-dynamic", "local-dynamic",
-                                "initial-exec", "local-exec", NULL };
+  if (entity_kind == iek_variable) {
+    if (scope_stack[decl_scope_level].kind ==
+                                       (a_scope_kind)sck_class_struct_union) {
+      /* The declaration of a static data member.  The selectany specifier can
+         appear on an out-of-class static data member definition, but not on
+         an in-class declaration (even if the in-class declaration has an
+         initializer). */
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_decl_modifiers_invalid_for_this_decl, &ap->position,
+                        ap->name);
+    } else {
+      ((a_variable*)entity)->decl_modifiers |= DM_SELECTANY;
+    }  /* if */
+  } else {
+    report_bad_attribute_target(es_warning, ap);
+  }  /* if */
+  return entity;
+}  /* apply_selectany_attr */
+
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+
+static char* apply_thread_attr(an_attribute_ptr  ap,
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(thread) attribute to the given entity (and
+return that entity).
+*/
+{
+  if (entity_kind == iek_variable) {
+    /* The "thread" specifier can only be applied to variables with a static
+       lifetime. */
+    a_variable_ptr  vp = (a_variable*)entity;
+    if (has_static_storage_duration(vp->storage_class)) {
+      vp->decl_modifiers |= DM_THREAD;
+    } else {
+      pos_error(ec_cannot_use_thread_local_storage, &ap->position);
+    }  /* if */
+  } else {
+    report_bad_attribute_target(es_warning, ap);
+  }  /* if */
+  return entity;
+}  /* apply_thread_attr */
+
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
+static char* apply_uuid_attr(an_attribute_ptr  ap,
+                             char              *entity,
+                             an_il_entry_kind  entity_kind)
+/*
+Apply the Microsoft __declspec(uuid) attribute to the given entity (and return
+that entity).
+*/
+{
+  a_constant_ptr  arg;
+  char            *str;
 
   check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
-  if (entity_kind != iek_variable) {
-    report_bad_attribute_target(es_warning, ap);
-  } else {
-    /* A variable: Check that it has thread-local storage. */
-    a_variable_ptr      vp = (a_variable_ptr)entity;
-    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-    if (!(vp->decl_modifiers & DM_THREAD) != 0 &&
-        !(dps != NULL && (dps->decl_modifiers.flags & DM_THREAD) != 0)) {
-      report_bad_attribute_target(es_warning, ap);
-    } else {
-      /* Check that the model name (the attribute argument) is valid. */
-      a_constant_ptr    arg = ap->arguments->variant.constant;
-      char              **pvmn = valid_model_names;
-      check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
-      for (; *pvmn != NULL; ++pvmn) {
-        if (strcmp(arg->variant.string.value, *pvmn) == 0) break;
-      }  /* for */
-      if (*pvmn == NULL) {
-        pos_error(ec_bad_tls_model_attr_arg, &ap->position);
-        make_attr_unrecognized(ap);
-      } else if (dps != NULL && !dps->first_decl) {
-        an_attribute_ptr  prev_ap;
-        a_constant_ptr    prev_arg;
-        prev_ap = find_attribute(ak_tls_model, vp->source_corresp.attributes);
-        if (prev_ap != NULL) {
-          check_assertion(prev_ap->arguments != NULL &&
-                          prev_ap->arguments->kind ==
-                                         (an_attribute_arg_kind)aak_constant);
-          prev_arg = prev_ap->arguments->variant.constant;
-          check_assertion(prev_arg->kind == (a_constant_repr_kind)ck_string);
-          if (strcmp(arg->variant.string.value,
-                     prev_arg->variant.string.value)) {
-            pos2_diagnostic(es_error, ec_inconsistent_tls_model_attr_arg,
-                            &ap->arguments->position, &prev_ap->position);
-            make_attr_unrecognized(ap);
-          }  /* if */
-        }  /* if */
+  arg = ap->arguments->variant.constant;
+  check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+  if (!convert_GUID_string_literal(arg, &str)) {
+    pos_error(ec_bad_uuid_string, &ap->arguments->position);
+  } else if (entity_kind == iek_type) {
+    a_type_ptr  tp = (a_type_ptr)entity;
+    char        *prev_str = uuid_string_of_type(tp);
+    if (prev_str != NULL && strcmp(prev_str, str) != 0) {
+      pos_diagnostic(es_discretionary_error,
+                     ec_decl_modifiers_incompatible_with_previous_decl,
+                     &ap->position);
+    } else if (is_immediate_class_type(tp)) {
+      class_type_supp(tp)->uuid_string = str;
+    } else if (is_immediate_enum_type(tp)) {
+      if (C_mode()) {
+        report_bad_attribute_target(es_discretionary_error, ap);
+      } else {
+        tp->variant.integer.uuid_string = str;
       }  /* if */
+    } else {
+      report_bad_attribute_target(es_warning, ap);
     }  /* if */
+  } else {
+    report_bad_attribute_target(es_warning, ap);
   }  /* if */
   return entity;
-}  /* apply_tls_model_attr */
+}  /* apply_uuid_attr */
 
-#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
 
 /*ARGSUSED*/  /* entity_kind are unused (but required by the callback type). */

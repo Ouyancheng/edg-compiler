@@ -7859,44 +7859,41 @@ as the error position.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void merge_decl_modifiers(a_type_ptr              class_type,
-                                 a_member_decl_info_ptr  decl_info,
-                                 a_boolean               is_definition)
+void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
+                                       a_decl_parse_state  *dps)
 /*
 class_type is the type of the current class, in which the decl_modifiers
 field may have been set to indicate modifiers for the class as a whole, and
-a field in *decl_info represents the modifiers declared for the current member.
-Check for compatibility and update *decl_info based on the two.  is_definition
-is TRUE when this is called for a member function definition.
+a field in *dps represents the modifiers declared for the current member.
+Check for compatibility regarding the DM_DLLIMPORT/DM_DLLEXPORT flags and
+update *dps based on the two.
 */
 {
   a_decl_modifier  decl_modifiers, class_decl_modifiers;
 
-  class_decl_modifiers =
-          class_type->variant.class_struct_union.extra_info->decl_modifiers;
+  class_decl_modifiers = class_type_supp(class_type)->decl_modifiers;
   /* Only dllimport and dllexport are applied to members, so strip off any
      others that may have been declared for the class as a whole (e.g.,
      novtable). */
   class_decl_modifiers &= DM_DLLFLAGS;
   if (class_decl_modifiers != DM_NONE) {
-    decl_modifiers = decl_info->decl_state.decl_modifiers.flags;
+    decl_modifiers = dps->decl_modifiers.flags;
     if (decl_modifiers & DM_DLLFLAGS) {
       /* If there are dll modifiers on the class, they cannot appear on the
          member declaration, too. */
       pos_diagnostic(es_discretionary_error,
-                     ec_class_and_member_have_dll_interface,
-                     &decl_info->decl_state.start_pos);
+                     ec_class_and_member_have_dll_interface, &dps->start_pos);
       decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
     }  /* if */
-    if (is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
+    if (dps->is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
       /* Put no dll attribute on an inline member function. */
     } else {
       /* Merge the sets of flags. */
       decl_modifiers |= class_decl_modifiers;
     }  /* if */
-    decl_info->decl_state.decl_modifiers.flags = decl_modifiers;
+    dps->decl_modifiers.flags = decl_modifiers;
   }  /* if */
-}  /* merge_decl_modifiers */
+}  /* merge_dll_flags_from_parent_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -8769,19 +8766,6 @@ implicitly declared member functions.
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (!is_error_locator(*locator)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* If decl-modifiers were declared for the class and/or for the
-       member, check for consistency and use the union of the two. */
-    if (microsoft_mode) {
-      merge_decl_modifiers(class_type, decl_info,
-                           (a_boolean)func_info->is_definition);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    update_routine_decl_modifiers(rtn, &decl_state->decl_modifiers,
-                                  &locator->source_position,
-                                  /*is_redecl=*/FALSE,
-                                  (a_boolean)func_info->is_definition,
-                                  (a_boolean)func_info->is_inline);
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       /* If this function explicitly overrides a virtual function in a base
          class, record that fact. */
@@ -8839,13 +8823,6 @@ implicitly declared member functions.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!compiler_generated) {
     a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-    if (!rtn->source_corresp.is_deprecated) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_deprecated_type(member_type,
-      &locator->source_position);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     declarator_ssep = func_info->declarator_ssep;
@@ -9219,6 +9196,31 @@ implicitly declared member functions.
 #endif /* BACK_END_IS_CP_GEN_BE */
     attach_decl_attributes(decl_state,
                            /*is_primary_decl=*/func_info->is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* If decl-modifiers were declared for the class and/or for the member,
+       check for consistency and use the union of the two. */
+    if (microsoft_mode) {
+      if (decl_state->prefix_attributes != NULL) {
+        add_flags_from_dll_attributes(&decl_state->decl_modifiers.flags,
+                                      decl_state->prefix_attributes);
+      }  /* if */
+      merge_dll_flags_from_parent_class(class_type, decl_state);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    update_routine_decl_modifiers(rtn, &decl_state->decl_modifiers,
+                                  &locator->source_position,
+                                  /*is_redecl=*/FALSE,
+                                  (a_boolean)func_info->is_definition,
+                                  (a_boolean)func_info->is_inline);
+    if (!compiler_generated) {
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      if (!rtn->source_corresp.is_deprecated) {
+        /* Check if a deprecated type was involved in this declaration. */
+        warn_about_use_of_deprecated_type(member_type,
+                                          &locator->source_position);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
@@ -9299,9 +9301,9 @@ classes, and to decl_member_function, which handles in-class member function
 declarations.)
 */
 {
-  a_decl_parse_state                *decl_state = &decl_info->decl_state;
+  a_decl_parse_state                *dps = &decl_info->decl_state;
   a_type_ptr                        class_type = class_state->class_type;
-  a_type_ptr                        member_type = decl_state->type;
+  a_type_ptr                        member_type = dps->type;
   a_template_symbol_supplement_ptr  tssp;
   a_routine_ptr                     rtn;
   a_symbol_ptr                      sym = NULL;
@@ -9311,7 +9313,7 @@ declarations.)
   a_scope_depth                     effective_decl_level;
 
   db_enter(3, "decl_member_function_template");
-  decl_state->is_definition = func_info->is_definition;
+  dps->is_definition = func_info->is_definition;
   if (!is_error_locator(*locator)) {
     if (is_single_param_operator_new_or_delete(locator, member_type)) {
       /* Overloading should not be allowed on the single-argument version
@@ -9401,8 +9403,8 @@ declarations.)
     sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
                                   locator, is_ctor, sym, &overload_sym);
   }  /* if */
-  decl_state->sym = sym;
-  decl_state->first_decl = TRUE;
+  dps->sym = sym;
+  dps->first_decl = TRUE;
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      prototype_instantiations_in_il && !sym->is_error
                                      ? effective_decl_level : NO_SCOPE_DEPTH);
@@ -9452,7 +9454,7 @@ declarations.)
     /* User-defined conversion function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
   }  /* if */
-  check_defaulted_or_deleted_function(decl_state, func_info, &pos_curr_token);
+  check_defaulted_or_deleted_function(dps, func_info, &pos_curr_token);
   if (overload_sym != NULL) {
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */
@@ -9501,13 +9503,20 @@ declarations.)
         cssp->constructor = overload_sym;
       }  /* if */
     }  /* if */
-    update_routine_decl_modifiers(rtn, &decl_info->decl_state.decl_modifiers,
+    attach_decl_attributes(dps, (a_boolean)func_info->is_definition);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      if (dps->prefix_attributes != NULL) {
+        add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
+                                      dps->prefix_attributes);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    update_routine_decl_modifiers(rtn, &dps->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
-    attach_decl_attributes(&decl_info->decl_state,
-                           (a_boolean)func_info->is_definition);
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (rtn->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
@@ -9519,7 +9528,7 @@ declarations.)
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  decl_info->decl_state.sym = sym;
+  dps->sym = sym;
   db_exit();
 }  /* decl_member_function_template */
 
@@ -9761,6 +9770,7 @@ specific information about the member declaration, respectively.
   a_source_position     *start_pos = &decl_state->start_pos;
 
   db_enter(3, "decl_static_data_member");
+  decl_state->first_decl = TRUE;
   if (is_void_type(member_type)) {
     error(ec_incomplete_type_not_allowed);
     member_type = error_type();
@@ -9969,14 +9979,7 @@ specific information about the member declaration, respectively.
       }  /* if */
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* If decl-modifiers were declared for the class and/or for the member,
-     check for consistency and use the union of the two. */
-  merge_decl_modifiers(class_type, decl_info, /*is_definition=*/FALSE);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  update_variable_decl_modifiers(var, &decl_state->decl_modifiers,
-                                 &locator->source_position,
-                                 /*is_redecl=*/FALSE, /*is_definition=*/FALSE);
+  update_variable_decl_modifiers(decl_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Disallow data members in interface types. */
@@ -11298,7 +11301,6 @@ declarations.
     /* The member type is incomplete.  This is not necessarily an error:
        an array of unknown size is sometimes allowed as the last member. */
     a_boolean   incomplete_okay = FALSE;
-
     /* The last member may be an incomplete array in C99 mode, as an
        extension otherwise in C mode, and in Microsoft and GNU C++ modes as 
        long as the class has no virtual base classes. */
@@ -11342,9 +11344,7 @@ declarations.
             incomplete_okay = TRUE;
             class_state->last_field_is_incomplete_array = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode &&
-                (decl_state->decl_modifiers.get_property_name != NULL ||
-                 decl_state->decl_modifiers.put_property_name != NULL)) {
+            if (decl_state->is_property_field) {
               /* This is a property field: no need to guard against
                  additionally appended fields. */
               class_state->last_field_is_incomplete_array = FALSE;
@@ -11370,9 +11370,7 @@ declarations.
       /* In Microsoft and early g++ modes, a field type can be incomplete in a
          prototype instantiation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode &&
-               (decl_state->decl_modifiers.get_property_name != NULL ||
-                decl_state->decl_modifiers.put_property_name != NULL)) {
+    } else if (decl_state->is_property_field) {
       /* A property field doesn't need to have a complete type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -11496,28 +11494,6 @@ the position indicated by the given locator.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  flags = decl_info->decl_state.decl_modifiers.flags;
-
-  flags &= (DM_DLLFLAGS | DM_NAKED | DM_SELECTANY |
-            DM_NOTHROW | DM_NOVTABLE | DM_NORETURN | DM_NOINLINE);
-  if (decl_info->decl_state.decl_modifiers.allocate_segname != NULL) {
-    /* Only allowed for variables with static storage duration. */
-    pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
-  }  /* if */
-  if (flags != 0) {
-    an_error_severity  severity;
-    an_error_code      err_code;
-    if ((flags & ~(a_decl_modifier)(DM_NORETURN | DM_NOINLINE)) == 0) {
-      /* Microsoft compilers silently ignore the noreturn and noinline
-         __declspec specifiers.  We issue a warning. */
-      severity = es_warning;
-      err_code = ec_decl_modifiers_ignored;
-    } else {
-      severity = es_error;
-      err_code = ec_declspec_invalid;
-    }  /* if */
-    pos_diagnostic(severity, err_code, &locator->source_position);
-  }  /* if */
   if (microsoft_mode && !C_mode() && is_class_struct_union_type(member_type)) {
     /* Microsoft compilers warn when fields of certain non-DLL class types are
        used as members of classes with a DLL interface.  Specifically, a
@@ -11682,22 +11658,11 @@ be entered.
                  member_sym);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state->decl_modifiers.get_property_name != NULL ||
-      decl_state->decl_modifiers.put_property_name != NULL) {
+  if (decl_state->is_property_field) {
     /* The field for a property doesn't really exist, so pragmas cannot be
        bound to it. */
     cannot_bind_to_curr_construct();
   }  /* if */
-  if (decl_state->decl_modifiers.is_deprecated) {
-    update_deprecation_info(&field->source_corresp,
-                            &decl_state->decl_modifiers,
-                            &locator->source_position);
-  }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-  if (decl_state->decl_modifiers.alignment != 0) {
-    field->alignment = decl_state->decl_modifiers.alignment;
-  }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
@@ -11717,6 +11682,8 @@ be entered.
   update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   attach_field_attributes(decl_state, field);
+  /* An error during attribute application may modify the field type. */
+  member_type = field->type;
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Check if a deprecated type was involved in this declaration.
@@ -11771,30 +11738,14 @@ be entered.
       cssp->any_template_dependent_fields = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      if (decl_state->decl_modifiers.get_property_name != NULL ||
-          decl_state->decl_modifiers.put_property_name != NULL) {
-        /* This declaration includes __declspec(property(...)).  This is
-           valid only on nonstatic data members that are not bit fields. */
-        if (field->is_bit_field) {
-          pos_diagnostic(es_discretionary_error,
-                         ec_declspec_property_not_allowed,
-                         &locator->source_position);
-        } else {
-          field->get_property_name =
-                                 decl_state->decl_modifiers.get_property_name;
-          field->put_property_name =
-                                 decl_state->decl_modifiers.put_property_name;
-        }  /* if */
+    if (microsoft_mode && !decl_state->is_property_field) {
+      /* Disallow real data members in interface types (property fields are
+         fine). */
+      if (class_type->variant.class_struct_union.is_interface) {
+        pos_error(ec_interface_cannot_have_data_member,
+                  &locator->source_position);
       } else {
-        /* Disallow real data members in interface types (property fields are
-           fine). */
-        if (class_type->variant.class_struct_union.is_interface) {
-          pos_error(ec_interface_cannot_have_data_member,
-                    &locator->source_position);
-        } else {
-          class_state->potentially_interface_like = FALSE;
-        }  /* if */
+        class_state->potentially_interface_like = FALSE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14950,14 +14901,6 @@ passed via template_decl.
           di_flags |= DI_IS_TEMPLATE_DECLARATION;
         }  /* if */
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* While scanning the declarator it will be useful to know whether we're
-         dealing with the declaration of a Microsoft property field. */
-      if (decl_state->decl_modifiers.get_property_name != NULL ||
-          decl_state->decl_modifiers.put_property_name != NULL) {
-        di_flags |= DI_IS_MICROSOFT_PROPERTY;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Microsoft compilers allow redundant qualifiers when declaring
          members.  In g++ mode, allow additional qualifiers when rescanning
          a member template declaration to generate a partial instantiation.
@@ -15479,14 +15422,6 @@ next_declaration:;
   run_end_of_parse_actions(decl_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    if (any_decl_other_than_nonstatic_data_member &&
-        (decl_state->decl_modifiers.get_property_name != NULL ||
-         decl_state->decl_modifiers.put_property_name != NULL)) {
-        /* __declspec(property(...)) is allowed only on nonstatic data
-           members. */
-      pos_diagnostic(es_discretionary_error, ec_declspec_property_not_allowed,
-                     &decl_start_pos);
-    }  /* if */
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();

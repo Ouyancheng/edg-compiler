@@ -2259,9 +2259,8 @@ Print a set of Microsoft declaration modifiers.
   /* __declspec(nothrow), represented by DM_NOTHROW, is a C++-only attribute
      and is therefore not put out in C code.  Likewise for
      __declspec(novtable) and DM_NOVTABLE. */
-  if (decl_modifiers &
-      (DM_DLLFLAGS | DM_THREAD | DM_NAKED | DM_SELECTANY | DM_NORETURN |
-       DM_NOINLINE | DM_NOALIAS | DM_RESTRICT)) {
+  if (decl_modifiers & (DM_DLLFLAGS | DM_THREAD | DM_SELECTANY | DM_NOALIAS |
+                        DM_RESTRICT)) {
     write_tok_str("__declspec( ");
     if (decl_modifiers & DM_DLLIMPORT) {
       write_tok_str("dllimport ");
@@ -2272,17 +2271,8 @@ Print a set of Microsoft declaration modifiers.
     if (decl_modifiers & DM_THREAD) {
       write_tok_str("thread ");
     }  /* if */
-    if (decl_modifiers & DM_NAKED) {
-      write_tok_str("naked ");
-    }  /* if */
     if (decl_modifiers & DM_SELECTANY) {
       write_tok_str("selectany ");
-    }  /* if */
-    if (decl_modifiers & DM_NORETURN) {
-      write_tok_str("noreturn ");
-    }  /* if */
-    if (decl_modifiers & DM_NOINLINE) {
-      write_tok_str("noinline ");
     }  /* if */
     if (decl_modifiers & DM_NOALIAS) {
       write_tok_str("noalias ");
@@ -6708,7 +6698,7 @@ parameters.
           decl_modifiers &= ~DM_SELECTANY;
         }  /* if */
         dump_microsoft_decl_modifiers(decl_modifiers);
-        dump_microsoft_allocate_declspec(variable->allocate_segname);
+        dump_microsoft_allocate_declspec(variable->section);
         dump_microsoft_align_declspec(variable->alignment);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8534,13 +8524,16 @@ if this routine has a body (dump nothing if it has no body).
     if (microsoft_dialect_is_generated_code_target) {
       /* Microsoft-specific keywords. */
       a_decl_modifier decl_modifiers = rout->decl_modifiers;
-      /* __declspec(naked) applies only to definitions. */
-      if (!is_definition) decl_modifiers &= ~DM_NAKED;
       if (is_definition && rout->is_inline && msvc_is_generated_code_target) {
         /* If the routine was "inline", force the keyword "__inline". */
         decl_modifiers |= DM_MICROSOFT_INLINE;
       }  /* if */
       dump_microsoft_decl_modifiers(decl_modifiers);
+      if (rout->never_inline) write_tok_str("__declspec(noinline) ");
+      if (rout->is_naked && is_definition) write_tok_str("__declspec(naked) ");
+      if (routine_does_not_return(rout)) {
+        write_tok_str("__declspec(noreturn) ");
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (gcc_is_generated_code_target && rout->is_inline) {

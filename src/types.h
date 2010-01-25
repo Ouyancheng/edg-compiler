@@ -1032,11 +1032,11 @@ a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern char *uuid_string_of_type(a_type_ptr  type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void set_declspec_align(a_type_ptr         type,
                                a_targ_alignment   alignment,
                                a_source_position  *pos);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED
 extern a_upc_block_size f_get_upc_block_size(a_type_ptr  tp,

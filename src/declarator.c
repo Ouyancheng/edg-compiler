@@ -50,6 +50,7 @@ standard-attribute syntax).
   a_type_ptr                      type = *p_type;
   enum an_attribute_location_tag  syn_loc;
   an_attribute_ptr                attributes;
+  a_boolean                       error_issued = FALSE;
 
   /* Determine the syntactic location from the type. */
   switch (skip_typerefs_not_typedefs(type)->kind) {
@@ -88,7 +89,6 @@ standard-attribute syntax).
          dps->id_declarator list, and change their syntactic location to
          al_postfix or al_id_equivalent. */
       an_attribute_ptr  ap, *p_from = &attributes, *p_to;
-      a_boolean         error_issued = FALSE;
       p_to = last_attribute_link(&dps->id_attributes);
       do {
         ap = *p_from;
@@ -112,7 +112,7 @@ standard-attribute syntax).
                                       (a_byte_attribute_location)al_postfix) {
             /* A non-GNU attribute after a nested declarator is not valid. */
             if (!error_issued) {
-              pos_error(ec_invalid_std_attribute_location, &ap->position);
+              pos_error(ec_invalid_attribute_location, &ap->position);
               error_issued = TRUE;
             }  /* if */
             make_attr_unrecognized(ap);
@@ -123,19 +123,20 @@ standard-attribute syntax).
     }  /*if */
   }  /* if */
   if (attributes != NULL) {
-    if (syn_loc == al_specifier) {
-      /* Declarator attributes (in a nested declarator) treated as specifier
-         attributes.  Only GNU attributes are allowed in this case. */
-      an_attribute_ptr  ap = attributes;
-      a_boolean         error_issued = FALSE;
-      for (; ap != NULL; ap = ap->next) {
-        if (ap->family != (a_byte_attribute_family)af_gnu) {
-          if (!error_issued) {
-            pos_error(ec_invalid_std_attribute_location, &ap->position);
-            error_issued = TRUE;
-          }  /* if */
-          make_attr_unrecognized(ap);
+    /* Microsoft __declspec attributes cannot appear in declarators: Disable
+       any that were scanned (and issue an error in that case).  Similarly
+       handle standard attributes that appear as the first construct in a
+       nested declarator. */
+    an_attribute_ptr  ap = attributes;
+    for (; ap != NULL; ap = ap->next) {
+      if (ap->family == (a_byte_attribute_family)af_ms_declspec ||
+          (ap->family == (a_byte_attribute_family)af_std &&
+           syn_loc == al_specifier)) {
+        if (!error_issued) {
+          pos_error(ec_invalid_attribute_location, &ap->position);
+          error_issued = TRUE;
         }  /* if */
+        make_attr_unrecognized(ap);
       }  /* if */
     }  /* if */
     /* Apply the remaining attributes to the type. */
@@ -614,19 +615,15 @@ void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                               a_type_ptr          *derived_type,
                               a_type_ptr          *bottom_derived_type,
                               a_decl_parse_state  *dps,
-                              a_boolean           parameter_type,
-                              a_boolean           microsoft_property)
+                              a_boolean           parameter_type)
 /*
 Add the type entry pointed to by new_type_ptr to the list of derived-type
 entries pointed to by *derived_type (and whose end is pointed to by
-*bottom_derived_type).  Aside from the purely mechanical issues of
-linking the entries, this routine also checks to see if the resulting
-type is legal.  If the type is for a parameter declaration, parameter_type
-is TRUE (in Sun and GNU C++ modes this relaxes the array of abstract class
-check).  When microsoft_property is TRUE, some of these checks are omitted
-(because Microsoft compilers do little checking on the types of property
-fields).  *dps describes the specifiers and declarator that formed the new
-type.
+*bottom_derived_type).  Aside from the purely mechanical issues of linking the
+entries, this routine also checks to see if the resulting type is legal.  If
+the type is for a parameter declaration, parameter_type is TRUE (in Sun and
+GNU C++ modes this relaxes the array of abstract class check).  *dps describes
+the specifiers and declarator that formed the new type.
 */
 {
   a_type_ptr              temp_type, prev_temp_type, tp;
@@ -804,7 +801,7 @@ type.
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
             err = TRUE;
-          } else if (!microsoft_property) {
+          } else if (!dps->is_property_field) {
             error(ec_bad_array_element_type);
             err = TRUE;
           }  /* if */
@@ -939,7 +936,7 @@ type.
       /* Note that the size of a pointer pointing to an incomplete type
          can be determined, so do that even if the new type is incomplete. */
       if (tkind != (a_type_kind)tk_routine /* For speed. */ &&
-          !microsoft_property &&
+          !dps->is_property_field &&
           (tkind == (a_type_kind)tk_pointer ||
            tkind == (a_type_kind)tk_ptr_to_member ||
            array_of_incomp_class_or_enum ||
@@ -2603,8 +2600,7 @@ the left parenthesis introducing the declarator-like construct.
          for non-lambda declarators).  So we do this manually here. */
       a_type_ptr  bottom_derived_type = func_type;
       add_to_derived_type_list(dps->type, &func_type, &bottom_derived_type,
-                               dps, /*parameter_type=*/FALSE,
-                               /*microsoft_property=*/FALSE);
+                               dps, /*parameter_type=*/FALSE);
       check_assertion(is_function_type(func_type));
     }  /* if */
   } else if (!is_error_type(func_type)) {
@@ -4969,19 +4965,15 @@ The syntax is:
       }  /* if */
     }  /* if */
     /* This parenthesis begins a nested declarator. */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && curr_token == tok_attribute) {
-      /* Attributes may appear as the first construct of a parenthesized
-         declarator.  They are treated as if they appeared before the
-         parentheses. */
-      scan_declarator_attributes(state, &state->type);
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Attributes may appear as the first construct of a parenthesized
+       declarator.  If valid (GNU attributes only), they are treated as if
+       they appeared before the parentheses. */
+    scan_declarator_attributes(state, &state->type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
         /* Constructs such as
-             int __cdecl (*fp)();
+             int (__cdecl *fp)();
            are not permitted. */
         pos_error(ec_calling_convention_may_not_precede_nested_declarator,
                   &declarator_pos);
@@ -5473,8 +5465,7 @@ function_lparen:
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */
     add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,
-                             state, (input_flags & DI_IS_PARAMETER_DECL) != 0,
-                             (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
+                             state, (input_flags & DI_IS_PARAMETER_DECL) != 0);
     consume_any_stray_microsoft_rparen();
     if (allow_one_more_array_dimension) {
       break;
@@ -5625,8 +5616,7 @@ function_lparen:
          the full type.  Note that this involves error checking. */
       add_to_derived_type_list(complete_type,
                                &derived_type, &bottom_derived_type, state,
-                               (input_flags & DI_IS_PARAMETER_DECL) != 0,
-                               (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
+                               (input_flags & DI_IS_PARAMETER_DECL) != 0);
     }  /* if */
     complete_type = derived_type;
   } else {

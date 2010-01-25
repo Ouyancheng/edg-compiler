@@ -1008,6 +1008,11 @@ EXTERN a_boolean
 			/* TRUE if GNU attribute syntax is accepted (e.g.,
 			   __attribute((noreturn))). */
 
+EXTERN a_boolean
+		ms_declspec_attributes_enabled;
+			/* TRUE if Microsoft __declspec attribute syntax is
+			   accepted (e.g., __declspec((dllexport))). */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention

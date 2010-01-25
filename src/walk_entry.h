@@ -515,13 +515,6 @@ Process the source correspondence field pointed to by ptr.
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define walk_decl_position_supplement(ptr) /* Nothing */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#undef walk_deprecation_string
-#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
-#define walk_deprecation_string(ptr)                                        \
-  walk_string_ptr((ptr).deprecation_string, iek_other_text, 0)
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL) */
-#define walk_deprecation_string(ptr) /* Nothing */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
 
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
@@ -534,7 +527,6 @@ Process the source correspondence field pointed to by ptr.
   walk_per_instantiation_needed_flags(ptr); \
   walk_decl_position_supplement(ptr); \
   walk_name_reference_list(ptr); \
-  walk_deprecation_string(ptr); \
   walk_list((ptr).attributes, an_attribute_ptr, iek_attribute); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
@@ -1133,9 +1125,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        walk_string_ptr(ptr->allocate_segname, iek_other_text, 0);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MINIMAL_INLINING
         conditionally_clear_fe_pointer(ptr->remapping_for_inlining);
 #endif /* MINIMAL_INLINING */
@@ -3065,6 +3054,9 @@ after_entry_from_class:
       { an_attribute_arg_ptr  ptr = (an_attribute_arg_ptr)entry_ptr;
         remap_next_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
         switch (ptr->kind) {
+          case aak_empty:
+            /* Nothing to do. */
+            break;
           case aak_token:
           case aak_raw_token:
             walk_string_ptr(ptr->variant.token, iek_id_name, 0);

@@ -132,6 +132,7 @@ reflected in start_secondary_declarator.
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;
   ps->first_decl_of_predeclared_entity = FALSE;
+  ps->is_property_field = FALSE;
   ps->prefix_attributes = NULL;
   ps->id_attributes = NULL;
   ps->specifier_attributes = NULL;
@@ -3664,127 +3665,68 @@ done:;
 /* ARGSUSED */ /* is_redecl and is_definition are only used in Microsoft
                   mode. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void update_routine_decl_modifiers(a_routine_ptr               routine,
-                                   a_decl_modifiers_block_ptr  new_modifiers,
-                                   a_source_position           *position,
-                                   a_boolean                   is_redecl,
-                                   a_boolean                   is_definition,
-                                   a_boolean                   is_inline)
+void update_routine_decl_modifiers(
+                             a_routine_ptr               routine,
+                             a_decl_modifiers_block_ptr  new_modifiers,
+                             a_source_position           *position,
+                             a_boolean                   is_redecl,
+                             a_boolean                   is_definition,
+                             a_boolean                   is_inline)
 /*
-Update the decl_modifiers field of the routine entry to reflect the
-modifiers specified in new_modifiers.  If this is a redeclaration or
-definition of a previously defined routine, make sure that the new
-modifiers are consistent with the previous declaration specified
-by routine.  position is used as the error position for any
-diagnostics.
+Update the decl_modifiers field of the routine entry to reflect the modifiers
+specified in new_modifiers.  (Some modifiers -- notably, most __declspec
+attributes -- were already applied through the general attribute application
+mechanism.) If this is a redeclaration or definition of a previously defined
+routine, make sure that the new modifiers are consistent with the previous
+declaration specified by routine.  position is used as the error position for
+any diagnostics.
 */
 {
-  a_boolean        invalid_modifier;
-  int              bit_number;
-  a_decl_modifier  flags = new_modifiers->flags, modifier_value;
+  a_decl_modifier  flags = new_modifiers->flags;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Handle dllexport and dllimport separately. */
   update_dll_info_for_routine(routine, flags, is_inline, is_redecl,
                               is_definition, position);
-  flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+  /* Set the Microsoft-specific inlining flags. */
+  routine->decl_modifiers |= (flags & (DM_MICROSOFT_INLINE | DM_FORCEINLINE));
+  flags &= ~(a_decl_modifier)(DM_DLLFLAGS |
+                              DM_MICROSOFT_INLINE | DM_FORCEINLINE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Loop through the bits in the new_modifiers bit vector and process the
-     modifiers associated with the bits that are set. */
-  if (flags != DM_NONE) {
-    for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
-      modifier_value = (1 << bit_number);
-      if ((flags & modifier_value) != 0) {
-        /* This bit is set -- or, if this is a non-inline function definition,
-           pretend the dllexport bit is set. */
-        invalid_modifier = FALSE;
-        switch (bit_number) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          case dmt_naked:
-            if (!is_definition) {
-              invalid_modifier = TRUE;
-            }  /* if */
-            break;
-          case dmt_microsoft_inline:
-          case dmt_forceinline:
-          case dmt_nothrow:
-          case dmt_noreturn:
-          case dmt_noinline:
-          case dmt_noalias:
-            break;
-          case dmt_restrict:
-            { a_type_ptr  return_type = skip_typerefs(routine->type)
-                                                ->variant.routine.return_type;
-              /* __declspec(restrict) can only be applied to functions
-                 returning a pointer type (even a reference is not valid). */
-              if (!is_pointer_type(return_type)) {
-                pos_error(ec_bad_declspec_restrict_return, position);
-                flags &= (~modifier_value);
-              }  /*if */
-            }
-            break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-          case dmt_thread:
-            /* The "thread" specifier can only be applied to variables with
-               a static lifetime. */
-            pos_error(ec_cannot_use_thread_local_storage, position);
-            flags &= (~modifier_value);
-            break;
-#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
-          case dmt_global_link_scope:
-          case dmt_symbolic_link_scope:
-          case dmt_hidden_link_scope:
-            /* If any of the Sun link scope specifiers were seen, handle them
-               all at the same time. */
-            if (routine->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_internal||
-                routine->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_none) {
-              pos_error(ec_link_scope_requires_external_linkage, position);
-            } else if ((flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
-              /* A redeclaration cannot relax the link scope of a routine. */
-              if (is_redecl &&
-                  (flags & DM_ANY_SUN_LINK_SCOPE) <
+  /* If any of the Sun link scope specifiers were seen, handle them now. */
+  if (flags & DM_ANY_SUN_LINK_SCOPE) {
+    if (routine->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_internal ||
+        routine->source_corresp.name_linkage ==
+                                              (a_name_linkage_kind)nlk_none) {
+      pos_error(ec_link_scope_requires_external_linkage, position);
+    } else if ((flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+      /* A redeclaration cannot relax the link scope of a routine. */
+      if (is_redecl &&
+          (flags & DM_ANY_SUN_LINK_SCOPE) <
                           (routine->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
-                pos_error(ec_link_scope_relaxation, position);
-              } else {
-                /* An explicit instantiation may include a link scope different
-                   from that recorded in the template.  Therefore, we clear
-                   any existing link scope recorded in the entry. */
-                routine->decl_modifiers &=
-                                      (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
-                routine->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
-              }  /* if */
-            }  /* if */
-            flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
-            break;
-#endif /* SUN_EXTENSIONS_ALLOWED */
-          default:
-            invalid_modifier = TRUE;
-            break;
-        }  /* switch */
-        if (invalid_modifier) {
-          pos_st_diagnostic(es_discretionary_error,
-                            ec_decl_modifiers_invalid_for_this_decl,
-                            position, decl_modifier_names[bit_number]);
-          flags &= (~modifier_value);
-        }  /* if */
+        pos_error(ec_link_scope_relaxation, position);
+      } else {
+        /* An explicit instantiation may include a link scope different from
+           that recorded in the template.  Therefore, we clear any existing
+           link scope recorded in the entry. */
+        routine->decl_modifiers &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
+        routine->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
       }  /* if */
-    }  /* for */
-    /* Update the routine entry with any valid modifiers that were found. */
-    routine->decl_modifiers |= flags;
+    }  /* if */
+    flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (new_modifiers->allocate_segname != NULL) {
-    /* Only allowed for variables with static storage duration. */
-    pos_error(ec_declspec_allocate_not_allowed, position);
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  if (flags & DM_THREAD) {
+    /* The "thread" specifier can only be applied to variables with a static
+       lifetime. */
+    pos_error(ec_cannot_use_thread_local_storage, position);
+    flags &= (a_decl_modifier)~DM_THREAD;
   }  /* if */
-  if (new_modifiers->is_deprecated) {
-    update_deprecation_info(&routine->source_corresp, new_modifiers, position);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+  check_assertion(flags == 0);
 }  /* update_routine_decl_modifiers */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3913,148 +3855,91 @@ done:;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* is_redecl is only used in Microsoft mode. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void update_variable_decl_modifiers(a_variable_ptr              variable,
-                                    a_decl_modifiers_block_ptr  new_modifiers,
-                                    a_source_position           *position,
-                                    a_boolean                   is_redecl,
-                                    a_boolean                   is_definition)
+void update_variable_decl_modifiers(a_decl_parse_state  *dps)
 /*
-Update the decl_modifiers field of the variable entry to reflect the
-modifiers specified in new_modifiers.  If this is a redeclaration or a
-definition of a previously declared variable, make sure that the new
-modifiers are consistent with the previous declaration specified
-by variable.  position is used as the error position for any diagnostics.
-is_redecl is TRUE if this is a redeclaration.  If the current declaration
-is a definition, is_definition is set to TRUE.  
+*dps describes a variable declaration.  Update the variable's IL entry to
+reflect modifiers that appeared in the declaration.  If this is a redeclaration
+or a definition of a previously declared variable, make sure that the new
+modifiers are consistent with previous declarations.  (Some modifiers --
+notably, most __declspec attributes -- are applied through the general
+attribute application mechanism.)
 */
 {
-  a_boolean        any_invalid_redecl = FALSE;
-  a_boolean        invalid_modifier;
-  int		   bit_number;
-  a_decl_modifier  flags = new_modifiers->flags, modifier_value;
+  a_variable_ptr   variable;
+  a_decl_modifier  flags;
 
+  if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+    variable = dps->sym->variant.variable.ptr;
+  } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+    variable = dps->sym->variant.static_data_member.variable;
+  } else {
+    unexpected_condition();
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Handle dllexport and dllimport separately. */
-  update_dll_info_for_variable(variable, flags, is_redecl, is_definition,
-                               position);
-  flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+  if (dps->in_class_scope) {
+    merge_dll_flags_from_parent_class(parent_class_of(variable), dps);
+  }  /* if */
+  flags = dps->decl_modifiers.flags;
+  update_dll_info_for_variable(variable, flags, !dps->first_decl,
+                               dps->is_definition, &dps->declarator_pos);
+  if (flags & DM_MICROSOFT_INLINE) {
+    pos_st_diagnostic(es_discretionary_error,
+                      ec_decl_modifiers_invalid_for_this_decl,
+                      &dps->declarator_pos,
+                      decl_modifier_names[(int)dmt_microsoft_inline]);
+  }  /* if */
+  if (flags & DM_FORCEINLINE) {
+    pos_st_diagnostic(es_discretionary_error,
+                      ec_decl_modifiers_invalid_for_this_decl,
+                      &dps->declarator_pos,
+                      decl_modifier_names[(int)dmt_forceinline]);
+  }  /* if */
+  flags &= ~(a_decl_modifier)(DM_DLLFLAGS |
+                              DM_MICROSOFT_INLINE | DM_FORCEINLINE);
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+  flags = dps->decl_modifiers.flags;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Loop through the bits of the new_modifiers bit vector and process
-     the modifiers associated with the bits that are set. */
-  if (flags != DM_NONE) {
-    for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
-      modifier_value = (1 << bit_number);
-      if ((flags & modifier_value) != 0) {
-        /* This bit is set. */
-        invalid_modifier = FALSE;
-        switch (bit_number) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          case dmt_selectany:
-            /* The effect of "selectany" depends on the initializer (if any).
-               More checks will therefore be needed after any initializers
-               have been scanned. */
-            if (scope_stack[decl_scope_level].kind ==
-                                       (a_scope_kind)sck_class_struct_union) {
-              /* Presumably the declaration of a static data member.  The
-                 selectany specifier can appear on an out-of-class static
-                 data member definition, but not on an in-class declaration
-                 (even if the in-class declaration has an initializer). */
-              invalid_modifier = TRUE;
-              flags &= (~modifier_value);
-            }  /* if */
-            break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-          case dmt_thread:
-            if (!has_static_storage_duration(variable->storage_class)) {
-              /* The "thread" specifier can only be applied to variables with
-                 a static lifetime. */
-              pos_error(ec_cannot_use_thread_local_storage, position);
-              flags &= (~modifier_value);
-            }  /* if */
-            break;
-#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || MICROSOFT_EXTENSIONS_... */
 #if SUN_EXTENSIONS_ALLOWED
-          case dmt_global_link_scope:
-          case dmt_symbolic_link_scope:
-          case dmt_hidden_link_scope:
-            /* If any of the Sun link scope specifiers were seen, handle them
-               all at the same time. */
-            if (variable->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_internal ||
-                variable->source_corresp.name_linkage ==
-                                         (a_name_linkage_kind)nlk_none) {
-              pos_error(ec_link_scope_requires_external_linkage, position);
-            } else if ((flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
-              /* A redeclaration cannot relax the link scope of a variable. */
-              if ((flags & DM_ANY_SUN_LINK_SCOPE) <
+  /* If any of the Sun link scope specifiers were seen, handle them now. */
+  if (flags & DM_ANY_SUN_LINK_SCOPE) {
+    if (variable->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_internal ||
+        variable->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_none) {
+      pos_error(ec_link_scope_requires_external_linkage,
+                &dps->declarator_pos);
+    } else if ((flags & DM_ANY_SUN_LINK_SCOPE) != 0) {
+      /* A redeclaration cannot relax the link scope of a variable. */
+      if ((flags & DM_ANY_SUN_LINK_SCOPE) <
                          (variable->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
-                pos_error(ec_link_scope_relaxation, position);
-              } else {
-                variable->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
-              }  /* if */
-            }  /* if */
-            flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
-            break;
-#endif /* SUN_EXTENSIONS_ALLOWED */
-          default:
-            invalid_modifier = TRUE;
-            break;
-        }  /* switch */
-        /* If this modifier is invalid, reset the bit in the new modifiers. */
-        if (invalid_modifier) {
-          flags &= (~modifier_value);
-        }  /* if */
-        if (invalid_modifier) {
-          pos_st_diagnostic(es_discretionary_error,
-                            ec_decl_modifiers_invalid_for_this_decl,
-                            position, decl_modifier_names[bit_number]);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* Update the variable entry with any valid modifiers that were found. */
-    variable->decl_modifiers |= flags;
-  }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (new_modifiers->allocate_segname != NULL) {
-    /* __declspec(allocate(...)) has been specified. */
-    if (!has_static_storage_duration(variable->storage_class)) {
-      /* Only allowed for variables with static storage duration. */
-      pos_error(ec_declspec_allocate_not_allowed, position);
-    } else if (variable->allocate_segname != NULL) {
-      if (strcmp(variable->allocate_segname,
-                 new_modifiers->allocate_segname) == 0) {
-        /* Redeclaration of same segment name. */
+        pos_error(ec_link_scope_relaxation, &dps->declarator_pos);
       } else {
-        /* Error. */
-        any_invalid_redecl = TRUE;
+        variable->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
       }  /* if */
-    } else {
-      /* Copy the declared data segment name to the variable. */
-      variable->allocate_segname = new_modifiers->allocate_segname;
     }  /* if */
+    flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
   }  /* if */
-  if (new_modifiers->is_deprecated) {
-    update_deprecation_info(&variable->source_corresp, new_modifiers,
-                            position);
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  if (flags & DM_THREAD) {
+    if (!has_static_storage_duration(variable->storage_class)) {
+      /* The "thread" specifier can only be applied to variables with a static
+         lifetime. */
+      pos_error(ec_cannot_use_thread_local_storage, &dps->declarator_pos);
+    }  /* if */
+    variable->decl_modifiers |= DM_THREAD;
+    flags &= (a_decl_modifier)~DM_THREAD;
   }  /* if */
-  if (new_modifiers->alignment != 0) {
-    variable->alignment = new_modifiers->alignment;
-  }  /* if */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+  check_assertion(flags == 0);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if ((variable->decl_modifiers & DM_DLLFLAGS) &&
       (variable->decl_modifiers & DM_THREAD)) {
-    pos_error(ec_dll_thread_conflict, position);
+    pos_error(ec_dll_thread_conflict, &dps->declarator_pos);
     variable->decl_modifiers &= ~(a_decl_modifier)DM_THREAD;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (any_invalid_redecl) {
-    pos_diagnostic(es_discretionary_error,
-                   ec_decl_modifiers_incompatible_with_previous_decl,
-                   position);
-  }  /* if */
 }  /* update_variable_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -5883,9 +5768,7 @@ for use in generating cross-reference output describing this declaration.
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
   /* Copy the decl-modifiers into the variable entry. */
-  update_variable_decl_modifiers(variable_ptr, &dps->decl_modifiers,
-                                 &locator->source_position, redeclaration,
-                                 is_variable_def);
+  update_variable_decl_modifiers(dps);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!variable_ptr->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
@@ -6558,6 +6441,7 @@ for use in generating cross-reference output describing this declaration.
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || ... */
+  a_source_position        prev_pos, saved_pos;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -6807,6 +6691,7 @@ for use in generating cross-reference output describing this declaration.
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
       dps->prev_type = routine_ptr->type;
+      prev_pos = sym->decl_position;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
       if (routine_has_been_defined(routine_ptr)
@@ -7635,26 +7520,6 @@ skip_overloading:;
      declaration, and report inconsistencies, if appropriate. */
   set_name_linkage(&idlb, sym, source_corresp_ptr, *ext_sym,
                    &locator->source_position);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && locator->is_qualified_name) {
-    /* Microsoft compilers ignore dllexport/dllimport on qualified
-       (re)declarations.  Issue a warning if dllexport or dllimport was
-       specified, and it conflicts with the earlier declaration(s). */
-    if ((decl_modifiers->flags & DM_DLLFLAGS) != 0 &&
-        (decl_modifiers->flags & DM_DLLFLAGS) !=
-                                (routine_ptr->decl_modifiers & DM_DLLFLAGS)) {
-      pos_warning(ec_dll_interface_ignored_on_qualified_declaration,
-                  &locator->source_position);
-    }  /* if */
-    /* Set the DLL flags to what is already recorded for this routine. */
-    decl_modifiers->flags &= ~(a_decl_modifier)DM_DLLFLAGS;
-    decl_modifiers->flags |= (routine_ptr->decl_modifiers & DM_DLLFLAGS);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
-                                &locator->source_position, redeclaration,
-                                is_function_def,
-                                (a_boolean)func_info->is_inline);
   if (notify_correspondence_processing) {
     /* This had to be delayed until the name linkage was set. */
     establish_block_extern_function_correspondence(routine_ptr);
@@ -7713,6 +7578,35 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   attach_decl_attributes(dps, is_function_def);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    if (locator->is_qualified_name) {
+      /* Microsoft compilers ignore dllexport/dllimport on qualified
+         (re)declarations.  Issue a warning if dllexport or dllimport was
+         specified, and it conflicts with the earlier declaration(s). */
+      if ((decl_modifiers->flags & DM_DLLFLAGS) != 0 &&
+          (decl_modifiers->flags & DM_DLLFLAGS) !=
+                                (routine_ptr->decl_modifiers & DM_DLLFLAGS)) {
+        pos_warning(ec_dll_interface_ignored_on_qualified_declaration,
+                    &locator->source_position);
+      }  /* if */
+      /* Set the DLL flags to what is already recorded for this routine. */
+      decl_modifiers->flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+      decl_modifiers->flags |= (routine_ptr->decl_modifiers & DM_DLLFLAGS);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (redeclaration) {
+    /* Temporarily restore the former declaration position in the routine's
+       symbol to make diagnostics come out right. */
+    saved_pos = sym->decl_position;
+    sym->decl_position = prev_pos;
+  }  /* if */
+  update_routine_decl_modifiers(routine_ptr, decl_modifiers,
+                                &locator->source_position, redeclaration,
+                                is_function_def,
+                                (a_boolean)func_info->is_inline);
+  if (redeclaration) sym->decl_position = saved_pos;
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Record the assembly name. */
@@ -8927,27 +8821,18 @@ Issue a diagnostic if the modifier is invalid.
   a_decl_modifier    flags = state->decl_modifiers.flags;
   a_source_position  *pos = &state->start_pos;
   
-#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (flags & DM_THREAD) {
     pos_error(ec_cannot_use_thread_local_storage, pos);
     flags &= ~(a_decl_modifier)DM_THREAD;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if SUN_EXTENSIONS_ALLOWED
   if (flags & DM_ANY_SUN_LINK_SCOPE) {
     pos_diagnostic(es_discretionary_error, ec_invalid_link_scope, pos);
     flags &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && flags != 0) {
-    an_error_severity  sev = es_warning;
-    if (flags & (DM_NOALIAS | DM_RESTRICT)) {
-      sev = es_discretionary_error;
-    }  /* if */
-    pos_diagnostic(sev, ec_declspec_missing_declarator, pos);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* diagnose_decl_modifiers_on_type_declaration */
 
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -9430,38 +9315,16 @@ symbol entry, and return a pointer to it in state->sym.
   /* Return the type name symbol to the caller. */
   state->sym = sym;
   attach_decl_attributes(state, /*primary_decl=*/TRUE);
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && !is_redecl && !is_error_type(type_ptr)) {
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if ((gnu_mode || microsoft_mode) && !is_redecl && !is_error_type(type_ptr)) {
     if (!tp->source_corresp.is_deprecated) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !is_error_type(type_ptr)) {
-    if (is_redecl) {
-      /* __declspec(deprecated) is ignored on redeclarations. */
-    } else if (state->decl_modifiers.is_deprecated) {
-      update_deprecation_info(&tp->source_corresp, &state->decl_modifiers,
-                              &locator->source_position);
-    } else {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
-    }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-    if (state->decl_modifiers.alignment != 0) {
-      if (state->decl_modifiers.alignment < type_ptr->alignment) {
-        /* Microsoft compilers ignore __declspec(align(...)) constructs that
-           attempt to reduce the alignment of the underlying type. */
-        pos_warning(ec_declspec_align_reduction_ignored,
-                    &locator->source_position);
-      } else {
-        set_declspec_align(tp, state->decl_modifiers.alignment,
-                           &locator->source_position);
-      }  /* if */
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (state->ms_attributes != NULL) {
       apply_microsoft_attributes(&state->ms_attributes, (char*)tp, iek_type,
                                  MSAT_TYPEDEF);
@@ -10177,7 +10040,7 @@ is_parenthesized comes in FALSE.
                        &decl_pos_block);
       add_to_derived_type_list(
                      new_type_ptr, &derived_type, &bottom_derived_type, state,
-                     /*parameter_type=*/FALSE, /*microsoft_property=*/FALSE);
+                     /*parameter_type=*/FALSE);
       if (rparen_in_new_declarator) {
         /* A form like "new (int)[n]" is accepted in some GNU C++ modes: Only
            one array declarator level is permitted after the right
@@ -10195,7 +10058,7 @@ is_parenthesized comes in FALSE.
              Note that this involves error checking. */
           add_to_derived_type_list(
                      new_type_ptr, &derived_type, &bottom_derived_type, state,
-                     /*parameter_type=*/FALSE, /*microsoft_property=*/FALSE);
+                     /*parameter_type=*/FALSE);
         }  /* while */
       }  /* if */
       if (derived_type != NULL) {
@@ -10204,7 +10067,7 @@ is_parenthesized comes in FALSE.
             /* Combine derived_type and complete_type. */
             add_to_derived_type_list(
                      complete_type, &derived_type, &bottom_derived_type, state,
-                     /*parameter_type=*/FALSE, /*microsoft_property=*/FALSE);
+                     /*parameter_type=*/FALSE);
           }  /* if */
         }  /* if */
         complete_type = derived_type;
@@ -10599,7 +10462,7 @@ is present when a "=" is not there.
 #endif /* C_ANACHRONISMS_ALLOWED */
 
 
-a_boolean scan_name_linkage_string(a_name_linkage_kind *kind)
+static a_boolean scan_name_linkage_string(a_name_linkage_kind  *kind)
 /*
 Scan the string portion of a linkage specification (extern "C", extern "C++",
 etc.).  The current token is the string.  Look it up in the set of strings
@@ -11308,6 +11171,7 @@ Return a pointer to the variable that is declared.
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
   init_decl_parse_state(&state);
+  state.is_definition = TRUE;
   state.auto_type_allowed = auto_type_specifier_enabled;
   clear_decl_pos_block(&decl_pos_block);
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
@@ -11362,9 +11226,7 @@ Return a pointer to the variable that is declared.
     vp->declared_with_auto_type_specifier = TRUE;
   }  /* if */
   /* Copy the decl-modifiers into the variable entry. */
-  update_variable_decl_modifiers(
-                          vp, &state.decl_modifiers, &locator.source_position,
-                          /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
+  update_variable_decl_modifiers(&state);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sym->variant.variable.ptr->declared_type = state.type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -13029,67 +12891,43 @@ issue an error.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
 
-static void check_variable_decl_modifiers(a_variable_ptr          var_ptr,
-                                          a_symbol_locator        *locator,
-                                          a_decl_modifiers_block  *modifiers)
+static void check_variable_decl_modifiers(a_variable_ptr      var_ptr,
+                                          a_decl_parse_state  *dps)
 /*
-Check that the given variable is compatible with the given declaration
-modifiers.  *locator is used to determine the position at which the
-variable was declared with these modifiers.
+Check that the given variable's initialization (if any) is compatible with the
+declaration modifiers recorded in *dps.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  if (modifiers->flags & DM_THREAD) {
+  if (var_ptr->decl_modifiers & DM_THREAD) {
     if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
         !var_ptr->source_corresp.is_local_to_function) {
-      pos_error(ec_bad_init_for_thread_local, &locator->source_position);
+      pos_error(ec_bad_init_for_thread_local, &dps->declarator_pos);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && (modifiers->flags & DM_SELECTANY)) {
-    /* Checking the "selectany" decl-modifier was deferred until
-       after the initializer (if any) was scanned. */
-    if (!(var_ptr->storage_class == (a_storage_class)sc_unspecified ||
-          var_ptr->storage_class == (a_storage_class)sc_extern)) {
-      /* The "selectany" specifier requires external linkage. */
-      pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
-                   &locator->source_position,
-                   decl_modifier_names[(int)dmt_selectany]);
-    } else if (var_ptr->init_kind == (an_init_kind)initk_dynamic ||
-               (var_ptr->init_kind == (an_init_kind)initk_none &&
-                has_static_storage_duration(var_ptr->storage_class))) {
-      /* The "selectany" decl-modifier cannot appear with a dynamic
-         initialization in Microsoft versions prior to 1300.  The same
-         thing applies for variables with no initializer. */
-      if (microsoft_version < 1300) {
-        pos_st_diagnostic(es_discretionary_error,
-                          ec_decl_modifiers_invalid_for_this_decl,
-                          &locator->source_position,
-                          decl_modifier_names[(int)dmt_selectany]);
-      }  /* if */
+  if (microsoft_mode && microsoft_version < 1300 &&
+      (var_ptr->decl_modifiers & DM_SELECTANY)) {
+    /* In Microsoft versions prior to 1300, the "selectany" decl-modifier
+       cannot appear with dynamic initialization nor with no initialization. */
+    an_attribute_ptr  ap = find_attribute(ak_selectany,
+                                          dps->prefix_attributes);
+    if (ap == NULL) {
+      ap = find_attribute(ak_selectany, dps->specifier_attributes);
+    }  /* if */
+    if (ap != NULL &&
+        (var_ptr->init_kind == (an_init_kind)initk_dynamic ||
+         var_ptr->init_kind == (an_init_kind)initk_none)) {
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_decl_modifiers_invalid_for_this_decl,
+                        &dps->declarator_pos, ap->name);
     }  /* if */        
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* check_variable_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-/* If the given declaration state includes a record of __declspec(dllimport),
-   make the associated storage class sc_extern (if no storage class was
-   explicitly specified). */
-#define update_dll_import_storage_class(state)                               \
-  if ((state->decl_modifiers.flags & DM_DLLIMPORT) &&                        \
-      state->storage_class == (a_storage_class)sc_unspecified) {             \
-    state->storage_class = (a_storage_class)sc_extern;                       \
-  }  /* if */
-
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-
-#define update_dll_import_storage_class(state)  /* Nothing. */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef enum an_end_of_decl_action {
   /* An enumeration type to represent the final steps in parsing a declaration.
@@ -13416,7 +13254,7 @@ proceed after the call.
         locator->specific_symbol->is_class_member) {
       /* This is the definition of a static member function.  No storage
          class specifier (not even "static") is permitted. */
-      if (state->storage_class != (a_storage_class)sc_unspecified) {
+      if (state->declared_storage_class != (a_storage_class)sc_unspecified) {
         an_error_severity  severity = es_error;
         if (!extern_inline_allowed && inline_specified &&
             state->storage_class == (a_storage_class)sc_static) {
@@ -13583,7 +13421,6 @@ proceed after the call.
        pragmas inside the empty parameter list). */
     record_param_id_list_declarations(func_info);
   }  /* if */
-  update_dll_import_storage_class(state);
   /* A function with block scope (i.e., within an sck_function or sck_block
      scope) can only have an explicit storage class of extern (3.5.1). */
   if ((scope_stack[decl_scope_level].kind == (a_scope_kind)sck_function ||
@@ -13774,7 +13611,6 @@ if one is present.
               &decl_pos_block->storage_class_pos);
     state->storage_class = (a_storage_class)sc_unspecified;
   }  /* if */
-  update_dll_import_storage_class(state);
   if (!is_static_data_member &&
       state->storage_class == (a_storage_class)sc_unspecified) {
     /* For ordinary variables and parameters (but not for static data members
@@ -13833,9 +13669,7 @@ if one is present.
     is_variable_def = TRUE;
 #if DECL_MODIFIERS_IN_USE
     /* Copy the decl-modifiers into the variable entry. */
-    update_variable_decl_modifiers(
-                 var_ptr, &state->decl_modifiers, &locator->source_position,
-                 /*is_redecl=*/TRUE, /*is_definition=*/TRUE);
+    update_variable_decl_modifiers(state);
 #endif /* DECL_MODIFIERS_IN_USE */
   } else {
     /* An ordinary variable declaration. */
@@ -14092,7 +13926,7 @@ if one is present.
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
   if (var_ptr != NULL) {
-    check_variable_decl_modifiers(var_ptr, locator, &state->decl_modifiers);
+    check_variable_decl_modifiers(var_ptr, state);
   }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14234,6 +14068,19 @@ indicates how processing should proceed after the call.
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
          followed by a string literal (e.g., "C++" or "C"). */
+      if (state->prefix_attributes != NULL) {
+        /* Attributes can normally not precede a linkage specification, but
+           Microsoft compilers appear to just ignore them instead of issuing
+           an error. */
+        if (microsoft_mode) {
+          pos_warning(ec_attributes_ignored,
+                      &state->prefix_attributes->group->position);
+        } else {
+          pos_error(ec_invalid_attribute_location,
+                    &state->prefix_attributes->group->position);
+        }  /* if */
+        state->prefix_attributes = NULL;
+      }  /* if */
       linkage_specification(state->function_definition_allowed,
                             state->is_old_style_param_decl,
                             state->is_top_level_declaration, param_id_list);
@@ -14752,7 +14599,7 @@ linkage specification, but is otherwise NULL, even when it is part of a block
 of declarations governed by a linkage specification (i.e., it is non-NULL for
 `extern "C" void f()' and NULL for `extern "C" { void f() }'); when it is
 non-NULL, it indicates the source range of the linkage specifier.
-marked_as_gnu_extension indicates that the called already scanned the GNU
+marked_as_gnu_extension indicates that the caller already scanned the GNU
 keyword __extension__.
 
 Broadly speaking, three kinds of declarations are handled here:
@@ -14971,7 +14818,6 @@ Broadly speaking, three kinds of declarations are handled here:
         invalidate_type(&state);
       }  /* if */
     }  /* if */
-    state.storage_class = state.declared_storage_class;
     if (state.need_lbrace_remove_stop_token) {
       remove_stop_token(tok_lbrace);
       state.need_lbrace_remove_stop_token = FALSE;

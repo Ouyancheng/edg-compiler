@@ -1998,9 +1998,6 @@ Clear the fields of the given variable to default values.
   vp->embedded_source_sequence_entries = FALSE;
   vp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  vp->allocate_segname            = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
   vp->instantiation_needed_bit_number = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -2239,9 +2236,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
   rp->allocates_memory            = FALSE;
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   rp->is_naked                    = FALSE;
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   rp->no_instrument_function      = FALSE;
   rp->no_check_memory_usage       = FALSE;
   rp->never_inline                = FALSE;
@@ -4253,6 +4250,7 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  aap->token_kind = (a_small_token_kind)tok_last;
   aap->variant.token = NULL;
 #if DEBUG
   ++num_attribute_args_allocated;
@@ -4623,9 +4621,6 @@ in il_alloc_init.)
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
-  def_source_corresp.deprecation_string = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
   def_source_corresp.attributes = NULL;
 
 #if CHECKING && defined(offsetof)

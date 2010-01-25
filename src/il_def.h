@@ -689,6 +689,404 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* NEED_IL_DISPLAY || DEBUG */
 
 /*
+Token kinds.
+If this enumeration is changed, be sure to change token_names (below) and
+opname_kind_for_token (lexical.h).  "Complex tokens" should be listed before
+the tok_last_complex_token constant.  In this context, a "complex token" is
+token that either (a) is not visible in the source (like an end-of-source
+token), or (b) has a large number of distinct forms (like identifiers,
+numbers, etc.).
+*/
+typedef enum /*a_token_kind*/ {
+  /* Complex tokens: */
+  tok_error                 /* Error token. */,
+  tok_identifier,
+  tok_float_constant,
+  tok_fixed_point_constant,
+  tok_int_constant,
+  tok_char_constant,
+  tok_string_literal,
+  tok_end_of_source,
+  tok_newline,
+  tok_header_name,
+  tok_pp_number,
+  tok_digit_sequence,
+  tok_cpp_quote,
+  tok_ptr_to_member 	    /* C++ only */,
+  tok_removed_default_arg   /* Placeholder for a removed default argument. */,
+  tok_removed_template_body /* Placeholder for a removed template body. */,
+  tok_unimplemented         /* Token used to indicate keywords that are not
+                               yet implemented. */,
+  tok_last_complex_token = tok_unimplemented,
+  /* Operators (standard, 3.1.5; sizeof appears with keywords): */
+  tok_lbracket              /* [ */,
+  tok_rbracket              /* ] */,
+  tok_lparen                /* ( */,
+  tok_rparen                /* ) */,
+  tok_period                /* . */,
+  tok_arrow                 /* -> */,
+  tok_plus_plus             /* ++ */,
+  tok_minus_minus           /* -- */,
+  tok_ampersand             /* & */,
+  tok_star                  /* * */,
+  tok_plus                  /* + */,
+  tok_minus                 /* - */,
+  tok_compl                 /* ~ */,
+  tok_not                   /* ! */,
+  tok_divide                /* / */,
+  tok_remainder             /* % */,
+  tok_shift_left            /* << */,
+  tok_shift_right           /* >> */,
+  tok_lt                    /* < */,
+  tok_gt                    /* > */,
+  tok_le                    /* <= */,
+  tok_ge                    /* >= */,
+  tok_eq                    /* == */,
+  tok_ne                    /* != */,
+  tok_excl_or               /* ^ */,
+  tok_or                    /* | */,
+  tok_and_and               /* && */,
+  tok_or_or                 /* || */,
+  tok_quest_mark            /* ? */,
+  tok_colon                 /* : */,
+  tok_assign                /* = */,
+  tok_times_assign          /* *= */,
+  tok_divide_assign         /* /= */,
+  tok_remainder_assign      /* %= */,
+  tok_plus_assign           /* += */,
+  tok_minus_assign          /* -= */,
+  tok_shift_left_assign     /* <<= */,
+  tok_shift_right_assign    /* >>= */,
+  tok_and_assign            /* &= */,
+  tok_excl_or_assign        /* ^= */,
+  tok_or_assign             /* |= */,
+  tok_comma                 /* , */,
+  tok_sharp                 /* # */,
+  tok_paste                 /* ## */,
+  /* The min and max operators are only recognized in GNU C++ mode. */
+  tok_gnu_min               /* <? */,
+  tok_gnu_max               /* >? */,
+  /* Punctuators (standard, 3.1.6) that are not also operators: */
+  tok_lbrace                /* { */,
+  tok_rbrace                /* } */,
+  tok_semicolon             /* ; */,
+  tok_ellipsis              /* ... */,
+  /* Keywords (standard, 3.1.1): */
+  tok_auto,
+  tok_break,
+  tok_case,
+  tok_char,
+  tok_const,
+  tok_continue,
+  tok_default,
+  tok_do,
+  tok_double,
+  tok_else,
+  tok_enum,
+  tok_extern,
+  tok_float,
+  tok_for,
+  tok_goto,
+  tok_if,
+  tok_int,
+  tok_long,
+  tok_register,
+  tok_return,
+  tok_short,
+  tok_signed,
+  tok_sizeof,
+  tok_static,
+  tok_struct,
+  tok_switch,
+  tok_typedef,
+  tok_union,
+  tok_unsigned,
+  tok_void,
+  tok_volatile,
+  tok_while,
+  /* Specific to C99 mode. */
+  tok_generic,
+  tok_genericfx,
+  /* Extensions (__ALIGNOF__ is similar to sizeof; __INTADDR__ is used
+     to scan an integer address expression for offsetof): */
+  tok_alignof,
+  tok_intaddr,
+  /* Used when <stdarg.h> is treated as a builtin. */
+  tok_va_start, tok_va_arg, tok_va_end, tok_va_copy,
+  tok_builtin_offsetof,
+  tok_restrict,
+  tok_gnu_restrict,
+  /* C99 types: _Bool, _Complex and _Imaginary. */
+  tok_c99_bool,
+  tok_c99_complex,
+  tok_c99_imaginary,
+  /* Token for __I__, for the C99 imaginary number "i" (i*i == -1). */
+  tok_imaginary_unit,
+  /* Token for __NAN__, for a Not-a-Number constant (C99 and other modes). */
+  tok_nan,
+  /* Token for __INFINITY__, for an Infinity constant (C99 and other modes). */
+  tok_infinity,
+  /* Tokens for fixed-point type support ("_Fract", "_Accum", and "_Sat"). */
+  tok_fract,
+  tok_accum,
+  tok_sat,
+  tok_declspec,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  tok_abstract,
+  tok_override,
+  tok_sealed,
+  tok_cdecl,
+  tok_fastcall,
+  tok_stdcall,
+  tok_thiscall,
+  tok_microsoft_inline,
+  tok_forceinline,
+  tok_unaligned,
+  tok_microsoft_try,
+  tok_finally,
+  tok_leave,
+  tok_except,
+  tok_int8,
+  tok_int16,
+  tok_int32,
+  tok_int64,
+  tok_based,
+  tok_uuidof,
+  tok_assume,
+  tok_charize,
+  tok_if_exists,
+  tok_if_not_exists,
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+  tok_end_of_if_exists,		/* Generated token used by front end. */
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+  tok_super,
+  tok_noop,
+  tok_interface,
+  tok_microsoft_ptr32,
+  tok_microsoft_ptr64,
+  tok_microsoft_sptr,
+  tok_microsoft_uptr,
+  tok_microsoft_w64,
+  tok_microsoft_lprefix,
+  tok_microsoft_identifier,
+  tok_uuid,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tok_microsoft_asm,
+  /* Special constants for various versions of the name of the current
+     function, e.g., __func__ from C99, __FUNCTION__ from GNU and Microsoft. */
+  tok_func_name,		/* __func__ */
+  tok_function_name,		/* __FUNCTION__ */
+  tok_pretty_function_name,	/* __PRETTY_FUNCTION__ */
+  tok_decorated_function_name,	/* Microsoft __FUNCDNAME__ */
+#if NEAR_AND_FAR_ALLOWED
+  tok_near,
+  tok_far,
+#endif /* NEAR_AND_FAR_ALLOWED */
+  tok_attribute,
+#if GNU_EXTENSIONS_ALLOWED
+  tok_va_start_single_operand,
+  tok_builtin_types_compatible,
+  tok_gnu_real,
+  tok_gnu_imag,
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* C++ tokens not in C (ARM, 2.4): */
+  tok_colon_colon       /* :: */,
+  tok_period_star       /* .* */,
+  tok_arrow_star        /* ->* */,
+  tok_asm,
+  tok_catch,
+  tok_class,
+  tok_delete,
+  tok_friend,
+  tok_inline,
+  tok_new,
+  tok_operator,
+  tok_private,
+  tok_protected,
+  tok_public,
+  tok_template,
+  tok_this,
+  tok_throw,
+  tok_try,
+  tok_virtual,
+  /* C++ tokens not in the ARM: */
+  tok_wchar_t,
+  tok_const_cast,
+  tok_dynamic_cast,
+  tok_explicit,
+  tok_export,
+  tok_mutable,
+  tok_namespace,
+  tok_reinterpret_cast,
+  tok_static_cast,
+  tok_typeid,
+  tok_using,
+  tok_bool,
+  tok_false,
+  tok_true,
+  tok_typename,
+  tok_static_assert,
+  tok_decltype,
+  /* Recognized in GNU C and C++ modes only. */
+  tok_typeof,
+  tok_extension,
+  tok_null,
+  /* Recognized in cfront compatibility mode only. */
+  tok_overload,
+#if SUN_EXTENSIONS_ALLOWED
+  /* Recognized in Sun C++ mode only. */
+  tok_global_link_scope,
+  tok_symbolic_link_scope,
+  tok_hidden_link_scope,
+#endif /* SUN_EXTENSIONS_ALLOWED */
+  tok_thread,
+#if UPC_EXTENSIONS_ALLOWED
+  /* Recognized in UPC mode only. */
+  tok_upc_strict,
+  tok_upc_relaxed,
+  tok_upc_shared,
+  tok_upc_forall,
+  tok_upc_barrier,
+  tok_upc_notify,
+  tok_upc_wait,
+  tok_upc_fence,
+  tok_upc_threads,
+  tok_upc_mythread,
+  tok_upc_blocksizeof,
+  tok_upc_localsizeof,
+  tok_upc_elemsizeof,
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  tok_has_assign,
+  tok_has_copy,
+  tok_has_nothrow_assign,
+  tok_has_nothrow_constructor,
+  tok_has_nothrow_copy,
+  tok_has_trivial_assign,
+  tok_has_trivial_constructor,
+  tok_has_trivial_copy,
+  tok_has_trivial_destructor,
+  tok_has_user_destructor,
+  tok_has_virtual_destructor,
+  tok_is_abstract,
+  tok_is_base_of,
+  tok_is_class,
+  tok_is_convertible_to,
+  tok_is_empty,
+  tok_is_enum,
+  tok_is_pod,
+  tok_is_polymorphic,
+  tok_is_union,
+  tok_nullptr,
+  /* Place-holder for last position in enumeration. */
+  tok_last
+} a_token_kind;
+
+/*
+Define the type to be used as a more compact representation of a_token_kind.
+*/
+#ifndef TYPE_FOR_A_SMALL_TOKEN_KIND
+#define TYPE_FOR_A_SMALL_TOKEN_KIND unsigned short
+#endif /* ifndef TYPE_FOR_A_SMALL_TOKEN_KIND */
+
+typedef TYPE_FOR_A_SMALL_TOKEN_KIND a_small_token_kind;
+
+/*
+Table of names corresponding to token kinds.
+*/
+EXTERN char	*token_names[(int)tok_last+1]
+#if VAR_INITIALIZERS
+= {"error", "identifier", "float constant", "fixed-point constant",
+   "int constant", "char constant", "string literal", "end of source",
+   "newline", "header name", "pp number", "digit sequence", "cpp quote",
+   "ptr to member", "removed default arg", "removed template body",
+   "unimplemented",
+   "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
+   "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
+   "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
+   "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "<?", ">?",
+   "{", "}", ";", "...", "auto", "break", "case", "char", "const",
+   "continue", "default", "do", "double", "else", "enum", "extern",
+   "float", "for", "goto", "if", "int", "long", "register",
+   "return", "short", "signed", "sizeof", "static", "struct",
+   "switch", "typedef", "union", "unsigned", "void", "volatile",
+   "while", "__generic", "__genericfx", "__ALIGNOF__", "__INTADDR__",
+   "va_start", "va_arg", "va_end", "va_copy",
+   "__builtin_offsetof",
+   "restrict", "__restrict",
+   "_Bool", "_Complex", "_Imaginary", "__I__", "__NAN__", "__INFINITY__",
+   "_Fract", "_Accum", "_Sat", "__declspec", 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "abstract", "override", "sealed",
+   "__cdecl", "__fastcall", "__stdcall", "__thiscall",
+   "__inline", "__forceinline",
+   "__unaligned", "__try", "__finally", "__leave", "__except",
+   "__int8", "__int16", "__int32", "__int64", "__based",
+   "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists",
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+   "end of __if_exists",
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+   "__super",
+   "__noop", "__interface",
+   "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
+   "__LPREFIX", "__identifier", "uuid",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   "__asm",
+   "__func__",
+   "__FUNCTION__",
+   "__PRETTY_FUNCTION__",
+   "__FUNCDNAME__",
+#if NEAR_AND_FAR_ALLOWED
+    "__near", "__far",
+#endif /* NEAR_AND_FAR_ALLOWED */
+   "__attribute__",
+#if GNU_EXTENSIONS_ALLOWED
+   "__builtin_varargs_start", "__builtin_types_compatible_p",
+   "__real", "__imag",
+#endif /* GNU_EXTENSIONS_ALLOWED */
+   "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
+   "inline", "new", "operator", "private", "protected", "public",
+   "template", "this", "throw", "try", "virtual", "wchar_t",
+   "const_cast", "dynamic_cast", "explicit", "export", "mutable", "namespace",
+   "reinterpret_cast", "static_cast", "typeid", "using",
+   "bool", "false", "true", "typename", "static_assert", "decltype",
+   "__typeof__", "__extension__", "__null",
+   "overload",
+#if SUN_EXTENSIONS_ALLOWED
+   "__global", "__symbolic", "__hidden",
+#endif /* SUN_EXTENSIONS_ALLOWED */
+   "__thread",
+#if UPC_EXTENSIONS_ALLOWED
+   "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
+   "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
+   "upc_localsizeof", "upc_elemsizeof",
+#endif /* UPC_EXTENSIONS_ALLOWED */
+   "__has_assign",
+   "__has_copy",
+   "__has_nothrow_assign",
+   "__has_nothrow_constructor",
+   "__has_nothrow_copy",
+   "__has_trivial_assign",
+   "__has_trivial_constructor",
+   "__has_trivial_copy",
+   "__has_trivial_destructor",
+   "__has_user_destructor",
+   "__has_virtual_destructor",
+   "__is_abstract",
+   "__is_base_of",
+   "__is_class",
+   "__is_convertible_to",
+   "__is_empty",
+   "__is_enum",
+   "__is_pod",
+   "__is_polymorphic",
+   "__is_union",
+   "nullptr",
+   "last" /* used to check that initialization is right. */
+  }
+#endif /* VAR_INITIALIZERS */
+;
+
+/*
 A range of source text, starting at one source position and ending at another.
 */
 typedef struct a_source_range {
@@ -1365,11 +1763,14 @@ enum an_attribute_arg_kind_tag {
 			   list is represented by a single aak_empty entry.
 			   (E.g., __attribute(( nonnull() )) has an aak_empty
 			   argument, but __attribute((nonnull)) has no
-			   attribute arguments at all.) */
+			   attribute arguments at all.)  An aak_empty entry
+			   is also appended after a sequence of aak_raw_token
+			   entries. */
   aak_raw_token,	/* Raw tokens are used for unrecognized attributes in
 			   particular, and can include commas.  E.g., (z, =)
 			   could be represented with three raw tokens: "z",
-			   "," and "=". */
+			   "," and "=".  A sequence of raw tokens is terminated
+			   by an aak_empty entry. */
   aak_token,		/* A single token argument.  E.g., (z, =) could be
 			   represented with two tokens: "z" and "=". */
   aak_constant,		/* A constant argument. */
@@ -1399,6 +1800,10 @@ typedef struct an_attribute_arg {
 		end_position;
 			/* The position of the end of the argument. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_small_token_kind
+		token_kind;
+			/* For aak_token or aak_raw_token entries, the token
+			   kind that was scanned.  Otherwise, tok_last. */
   union {
     /* When kind == aak_empty: no variant fields. */
     /* When kind == aak_token or aak_raw_token: */
@@ -1500,22 +1905,40 @@ typedef enum an_attribute_kind_tag {
 			   groups (like [[]] in C++0x), but in GNU modes, a
 			   group can contain multiple empty attributes (e.g.,
 			   __attribute((,,,)) ). */
-  ak_align,		/* "align" (std) or "aligned" (gnu). */
-  ak_noreturn,		/* "noreturn" (std, gnu) or "volatile" (gnu). */
-  ak_final,		/* "final" (std). */
+
+  /* Standard attributes (some of which also have GNU and/or Microsoft
+     variants). */
+  ak_align,		/* "align" (std, ms) or "aligned" (gnu). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */
-  ak_nothrow,		/* "nothrow" (std, gnu). */
+  ak_final,		/* "final" (std). */
+  ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
+  ak_nothrow,		/* "nothrow" (std, gnu, ms). */
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  /* Nonstandard attributes available in both GNU and Microsoft
+     configurations. */
+  ak_deprecated,	/* "deprecated" (gnu, ms). */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  ak_naked,		/* "naked" (gnu, ms). */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  ak_noinline,		/* "noinline" (gnu, ms). */
+  ak_section,		/* "section" (gnu) or "allocate" (ms). */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if GNU_EXTENSIONS_ALLOWED
+  /* GNU-only attributes. */
   ak_alias,		/* "alias" (gnu). */
   ak_alloc_size,        /* "alloc_size" (gnu). */
   ak_always_inline,	/* "always_inline" (gnu). */
   ak_artificial,        /* "artificial" (gnu). */
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  ak_cdecl,		/* "cdecl" (gnu). */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   ak_cleanup,		/* "cleanup" (gnu). */
   ak_cold,		/* "cold" (gnu). */
   ak_const,		/* "const" (gnu). */
   ak_constructor,	/* "constructor" (gnu). */
-  ak_deprecated,	/* "deprecated" (gnu). */
   ak_destructor,	/* "destructor" (gnu). */
   ak_error,		/* "error" (gnu). */
   ak_externally_visible,
@@ -1525,6 +1948,9 @@ typedef enum an_attribute_kind_tag {
   ak_format_arg,	/* "format_arg" (gnu). */
   ak_gnu_inline,	/* "gnu_inline" (gnu). */
   ak_hot,		/* "hot" (gnu). */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  ak_init_priority,	/* "init_priority" (gnu). */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   ak_malloc,		/* "malloc" (gnu). */
   ak_mode,		/* "mode" (gnu). */
   ak_no_instrument_function,
@@ -1532,42 +1958,53 @@ typedef enum an_attribute_kind_tag {
   ak_no_check_memory_usage,
 			/* "no_check_memory_usage" (gnu). */
   ak_nocommon,		/* "nocommon" (gnu). */
-  ak_noinline,		/* "noinline" (gnu). */
   ak_nonnull,		/* "nonnull" (gnu). */
   ak_packed,		/* "packed" (gnu). */
   ak_pure,		/* "pure" (gnu). */
-  ak_section,		/* "section" (gnu). */
   ak_sentinel,		/* "sentinel" (gnu). */
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+  ak_stdcall,		/* "stdcall" (gnu). */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   ak_strong,		/* "strong" (gnu). */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  ak_tls_model,		/* "tls_model" (gnu). */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   ak_transparent_union,	/* "transparent_union" (gnu). */
   ak_unused,		/* "unused" (gnu). */
   ak_used,		/* "used" (gnu). */
+#if GNU_VECTOR_TYPES_ALLOWED
+  ak_vector_size,	/* "vector_size" (gnu). */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  ak_visibility,	/* "visibility" (gnu). */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   ak_warn_unused_result,
 			/* "warn_unused_result" (gnu). */
   ak_warning,		/* "warning" (gnu). */
   ak_weak,		/* "weak" (gnu). */
   ak_weakref,		/* "weakref" (gnu). */
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-  ak_naked,		/* "naked" (gnu). */
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
-  ak_cdecl,		/* "cdecl" (gnu). */
-  ak_stdcall,		/* "stdcall" (gnu). */
-#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  ak_visibility,	/* "visibility" (gnu). */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  ak_init_priority,	/* "init_priority" (gnu). */
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#if GNU_VECTOR_TYPES_ALLOWED
-  ak_vector_size,	/* "vector_size" (gnu). */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Microsoft-__declspec-only attributes. */
+  ak_dllexport,		/* "dllexport" (ms). */
+  ak_dllimport,		/* "dllimport" (ms). */
+  ak_implementation_key,
+			/* "implementation_key" (ms). */
+  ak_intrin_type,	/* "intrin_type" (ms). */
+  ak_noalias,		/* "noalias" (ms). */
+  ak_novtable,		/* "novtable" (ms). */
+  ak_property,		/* "property" (ms). */
+  ak_restrict,		/* "restrict" (ms). */
+  ak_selectany,		/* "selectany" (ms). */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  ak_tls_model,		/* "tls_model" (gnu). */
+  ak_thread,		/* "thread" (ms). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+  ak_uuid,		/* "uuid" (ms). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
+  /* Attributes used for testing by EDG. */
   ak_edg_e1,		/* "edg::e1" (always triggers an error). */
   ak_edg_n1,		/* "edg::n1" (must appear in namespace scope). */
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -1938,16 +2375,6 @@ typedef struct a_source_correspondence {
 			   needed in the instantiation assigned number N.
 			   Bits are numbered from 1.  NULL if not needed. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
-  char		*deprecation_string;
-			/* The string argument that was provided with a
-			   __declspec(deprecated(...)) construct or NULL if no
-			   such argument appeared.  Can be recorded either in
-			   the IL or in the symbol entry.  (It's typically only
-			   useful in the IL when combined with a C++-generating
-			   back end.)  In the front end, use the macro
-			   "deprecation_string_for" to access this field. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
   an_attribute_ptr
 		attributes;
 			/* The set of attributes applicable to this entity. */
@@ -4416,14 +4843,10 @@ enum a_decl_modifier_tag {
   dmt_thread,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  dmt_naked,
   dmt_microsoft_inline,
   dmt_forceinline,
   dmt_selectany,
-  dmt_nothrow,
   dmt_novtable,
-  dmt_noreturn,
-  dmt_noinline,
   dmt_noalias,
   dmt_restrict,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4454,14 +4877,10 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_thread */		"thread",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* dmt_naked */		"naked",
   /* dmt_microsoft_inline */	"__inline",
   /* dmt_forceinline */		"__forceinline",
   /* dmt_selectany */		"selectany",
-  /* dmt_nothrow */		"nothrow",
   /* dmt_novtable */		"novtable",
-  /* dmt_noreturn */		"noreturn",
-  /* dmt_noinline */		"noinline",
   /* dmt_noalias */		"noalias",
   /* dmt_restrict */		"restrict",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4498,9 +4917,6 @@ about variables and routines.
 			   __declspec(thread) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define DM_NAKED	((a_decl_modifier)(1 << (int)dmt_naked))
-			/* TRUE if the declaration includes the
-			   Microsoft __declspec(naked) specifier. */
 #define DM_MICROSOFT_INLINE						\
 			((a_decl_modifier)(1 << (int)dmt_microsoft_inline))
 			/* TRUE if the declaration includes the
@@ -4511,18 +4927,9 @@ about variables and routines.
 #define DM_SELECTANY	((a_decl_modifier)(1 << (int)dmt_selectany))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(selectany) specifier. */
-#define DM_NOTHROW	((a_decl_modifier)(1 << (int)dmt_nothrow))
-			/* TRUE if the declaration includes the Microsoft
-			   __declspec(nothrow) specifier. */
 #define DM_NOVTABLE	((a_decl_modifier)(1 << (int)dmt_novtable))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(novtable) specifier. */
-#define DM_NORETURN	((a_decl_modifier)(1 << (int)dmt_noreturn))
-			/* TRUE if the declaration includes the Microsoft
-			   __declspec(noreturn) specifier. */
-#define DM_NOINLINE	((a_decl_modifier)(1 << (int)dmt_noinline))
-			/* TRUE if the declaration includes the Microsoft
-			   __declspec(noinline) specifier. */
 #define DM_NOALIAS	((a_decl_modifier)(1 << (int)dmt_noalias))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noalias) specifier. */
@@ -7399,10 +7806,14 @@ typedef struct a_variable {
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   char		*section;
-			/* If non-NULL, the section in which this
-			   variable should be placed. */
+			/* If non-NULL, the GNU "section" or Microsoft "segment
+			   name" in which this variable should be placed
+			   (specified by __attribute((section(...))) and
+			   __declspec(allocate(...)), respectively). */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   a_variable_ptr
 		aliased_variable;
 			/* If non-NULL, the variable for which this variable
@@ -7438,11 +7849,6 @@ typedef struct a_variable {
 			   in the template may involve a template
 			   parameter.) */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  char		*allocate_segname;
-			/* When __declspec(allocate(segname)) is specified for
-			   a variable, pointer to a null-terminated segname. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
   unsigned long	instantiation_needed_bit_number;
 			/* When a separate "needed" flag is maintained for
@@ -10398,6 +10804,20 @@ typedef struct a_routine {
 			   and the specialization was declared within the
 			   enclosing class using the Microsoft/Sun in-class
 			   specialization syntax. */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	never_inline:1;
+			/* TRUE for routines declared with the "noinline"
+			   attribute; this indicates that a code generator
+			   should never attempt to inline calls to this
+			   routine. */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_naked:1;
+			/* TRUE if this routine was declared with the "naked"
+			   attribute (indicating that a code generator should
+			   not generate a prologue or epilogue for this
+			   routine). */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	declared_only_as_friend:1;
 			/* TRUE if this routine has only been declared as a
@@ -10451,24 +10871,12 @@ typedef struct a_routine {
 			   malloc attribute.  Such a routine should
 			   return a pointer to newly allocated
 			   storage. */
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
-  a_bit_field	is_naked:1;
-			/* TRUE if this routine was declared with the "naked"
-			   attribute (indicating that a code generator should
-			   not generate a prologue or epilogue for this
-			   routine). */
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
   a_bit_field	no_instrument_function:1;
 			/* TRUE if a code generator should not instrument the
 			   routine for execution profiling. */
   a_bit_field	no_check_memory_usage:1;
 			/* TRUE if a code generator should not instrument the
 			   routine for checking memory access. */
-  a_bit_field	never_inline:1;
-			/* TRUE for routines declared with the GNU attribute
-			   "noinline"; this indicates that a code generator
-			   should never attempt to inline calls to this
-			   routine. */
   a_bit_field	always_inline:1;
 			/* TRUE for routines declared with the GNU attribute
 			   "always_inline"; this indicates that a code

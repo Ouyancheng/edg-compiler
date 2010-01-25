@@ -1099,12 +1099,25 @@ not being eliminated.
                                              routine->inline_instance_required;
   }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
+  if (rtsp->does_not_return && !corresp_rtsp->does_not_return) {
+    /* corresp_routine must be marked as "noreturn", but beware of routines
+       declared with a typedef type. */
+    ensure_underlying_function_type_is_modifiable(&corresp_routine->type,
+                                                  &corresp_rout_type);
+    corresp_rtsp = corresp_rout_type->variant.routine.extra_info;
+    corresp_rtsp->does_not_return = TRUE;
+  }  /* if */
+  if (routine->never_throws) corresp_routine->never_throws = TRUE;
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (routine->never_inline) corresp_routine->never_inline = TRUE;
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (routine->is_naked) corresp_routine->is_naked = TRUE;
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED
-  /* Merge the __declspec(...) attributes that should be retained if they
-     appeared on any of the declarations. */
-  corresp_routine->decl_modifiers |=
-     (routine->decl_modifiers & (DM_FORCEINLINE | DM_NAKED | DM_NOINLINE |
-                                 DM_NORETURN | DM_NOTHROW));
+  /* Merge the __forceinline specifier (it should be retained if it appeared
+     on any of the declarations. */
+  corresp_routine->decl_modifiers |= routine->decl_modifiers & DM_FORCEINLINE;
 #endif /* DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that suppress_inline_body is meaningful only when the routine
      has a body, and the interesting value -- the one that sticks --

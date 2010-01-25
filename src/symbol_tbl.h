@@ -1430,22 +1430,6 @@ typedef struct a_decl_modifiers_block {
   char		*uuid_string;
 			/* Pointer to a string representing the argument of
 			   a "uuid" decl-modifier (in Microsoft mode). */
-  char		*get_property_name,
-		*put_property_name;
-			/* When __declspec(property(get=gname,put=pname))
-			   (a Microsoft extension in C++ mode) is specified
-			   for a field, these fields point to the get and put
-			   routine names, null-terminated.  NULL otherwise. */
-  char		*allocate_segname;
-			/* Pointer to a string representing the argument of an
-			   "allocate" decl-modifier (in Microsoft mode). */
-  char		*deprecation_string;
-			/* Pointer to a string representing the argument of a
-			   "deprecated" decl-modifier (in Microsoft mode). */
-  a_targ_alignment
-		alignment;
-			/* Alignment specified using __declspec(align(x)).
-			   Zero if there was no such specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_decl_modifiers_block;
 
@@ -2487,16 +2471,6 @@ typedef struct a_symbol {
 			   was declared to be a namespace member (C++ only),
 			   parent.namespace_ptr points to the namespace;
 			   otherwise it is NULL. */
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
-  char		*deprecation_string;
-			/* The string argument that was provided with a
-			   __declspec(deprecated(...)) construct or NULL if no
-			   such argument appeared.  Can be recorded either in
-			   the IL or in the symbol entry.  (It's typically only
-			   useful in the IL when combined with a C++-generating
-			   back end.)  In the front end, use the macro
-			   "deprecation_string_for" to access this field. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
   a_symbol_ptr	corresp_nonreal_or_nested_type;
 			/* For types that are nested within prototype
 			   instantiation types, this points to a nonreal
@@ -4071,20 +4045,7 @@ Return the symbol associated with an IL entry.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-/*
-Return the deprecation string associated with the given source correspondence
-entry.  The string may be stored in the entry itself, of it may be associated
-with the symbol for the entry.  (Many back ends have no use for the deprecation
-string, and storing it in the IL increases the size of all entries with a
-source correspondence.)
-*/
-#if DEPRECATION_STRING_IN_IL
-#define deprecation_string_for(scp)                                         \
-  ((scp)->deprecation_string)
-#else /* !DEPRECATION_STRING_IN_IL */
-#define deprecation_string_for(scp)                                         \
-  (((a_symbol_ptr)((scp)->assoc_info))->deprecation_string)
-#endif /* DEPRECATION_STRING_IN_IL */
+extern char *deprecation_string_for(a_source_correspondence_ptr  scp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*

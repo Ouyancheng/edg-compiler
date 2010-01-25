@@ -1,5 +1,18 @@
 Version 4.2
 
+1/25/10  [EDGcpfe/10382]
+Microsoft __declspec attributes
+
+Microsoft __declspec attributes are now handled through the general attributes
+framework (see entry of 12/3/09).  This has caused the wording of some
+diagnostics to change (and in some cases, the severity of diagnostics has been
+adjusted to match that of Microsoft compilers). 
+
+IL CHANGE: Several Microsoft-specific "modifier flags" (e.g., DM_NOTHROW) that
+had a bit field counterpart (e.g., never_throws) for equivalent GNU attributes
+have been removed and the corresponding bit field is now used instead.
+
+
 1/23/10  [EDGcpfe/10363]
 Function template named "main" should only be diagnosed in the global scope
 

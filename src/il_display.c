@@ -719,12 +719,6 @@ Display the indicated source correspondence entry.
     }  /* for */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-#if MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL
-  if (scp->deprecation_string != NULL) {
-    disp_string_ptr("deprecation_string", scp->deprecation_string,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && DEPRECATION_STRING_IN_IL */
   disp_ptr("  attributes", (char *)scp->attributes, iek_attribute);
 }  /* disp_source_corresp */
 
@@ -1968,9 +1962,6 @@ Display the indicated decl modifiers.
     if (dm & DM_THREAD) {
       disp_boolean("thread", TRUE);
     }  /* if */
-    if (dm & DM_NAKED) {
-      disp_boolean("naked", TRUE);
-    }  /* if */
     if (dm & DM_MICROSOFT_INLINE) {
       disp_boolean("microsoft_inline", TRUE);
     }  /* if */
@@ -1980,17 +1971,8 @@ Display the indicated decl modifiers.
     if (dm & DM_SELECTANY) {
       disp_boolean("selectany", TRUE);
     }  /* if */
-    if (dm & DM_NOTHROW) {
-      disp_boolean("nothrow", TRUE);
-    }  /* if */
     if (dm & DM_NOVTABLE) {
       disp_boolean("novtable", TRUE);
-    }  /* if */
-    if (dm & DM_NORETURN) {
-      disp_boolean("noreturn", TRUE);
-    }  /* if */
-    if (dm & DM_NOINLINE) {
-      disp_boolean("noinline", TRUE);
     }  /* if */
     if (dm & DM_NOALIAS) {
       disp_boolean("noalias", TRUE);
@@ -2352,12 +2334,6 @@ Display the indicated variable.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->allocate_segname != NULL) {
-    disp_string_ptr("allocate_segname", ptr->allocate_segname,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (ptr->instantiation_needed_bit_number != 0) {
     disp_unsigned_long("instantiation_needed_bit_number",
@@ -2759,11 +2735,11 @@ Display the indicated routine.
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);
   }  /* if */
-#if GNU_NAKED_ATTRIBUTE_ALLOWED
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->is_naked) {
     disp_boolean("is_naked", TRUE);
   }  /* if */
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->no_instrument_function) {
     disp_boolean("no_instrument_function", TRUE);
   }  /* if */
@@ -4338,6 +4314,10 @@ Display the indicated attribute argument entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &aap->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (aap->token_kind != (a_small_token_kind)tok_last) {
+    disp_name("token_kind");
+    (void)printf("%s\n", token_names[aap->token_kind]);
+  }  /* if */
   switch (aap->kind) {
     case aak_empty:
       /* No variant field. */

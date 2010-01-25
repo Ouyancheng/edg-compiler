@@ -461,6 +461,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is the first declaration of a variable
 			   or function that was predeclared by the front
 			   end. */
+  a_bit_field	is_property_field:1;
+			/* TRUE if this is a field declaration with the
+			   Microsoft __declspec(property(...)) specifier. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned
@@ -726,8 +729,6 @@ extern void decl_default_function(a_symbol_ptr symbol_ptr);
 extern a_label_ptr scan_label(a_boolean  is_definition,
                               a_boolean  is_declaration);
 
-extern a_boolean scan_name_linkage_string(a_name_linkage_kind *kind);
-
 extern void check_main_function(a_func_info_block_ptr  func_info,
                                 a_type_ptr             type,
                                 a_storage_class        *declared_storage_class,
@@ -885,15 +886,11 @@ void update_routine_decl_modifiers(a_routine_ptr               routine,
                                    a_boolean                   is_inline);
 
 extern
-void update_variable_decl_modifiers(a_variable_ptr              variable,
-                                    a_decl_modifiers_block_ptr  new_modifiers,
-                                    a_source_position           *position,
-                                    a_boolean                   is_redecl,
-                                    a_boolean                   is_definition);
+void update_variable_decl_modifiers(a_decl_parse_state  *dps);
 #else /* !DECL_MODIFIERS_IN_USE */
 /* Define these as macros that expand to nothing. */
 #define update_routine_decl_modifiers(a,b,c,d,e,f) /* nothing */
-#define update_variable_decl_modifiers(a,b,c,d,e) /* nothing */
+#define update_variable_decl_modifiers(a) /* nothing */
 #endif /* !DECL_MODIFIERS_IN_USE */
 
 extern void check_default_args_for_param_type(a_param_type_ptr  ptp,

@@ -1303,6 +1303,7 @@ member declaration (allowed in some Microsoft modes only).
   a_boolean            microsoft_out_of_class_redecl = microsoft_mode &&
                                                   locator->is_class_member &&
                                                   curr_token == tok_semicolon;
+  a_source_position    orig_pos, saved_pos;
 
   db_enter(3, "define_member_function");
   class_type = sym_parent_class(locator->specific_symbol);
@@ -1465,6 +1466,7 @@ member declaration (allowed in some Microsoft modes only).
   } else {
     rp = sym->variant.routine.ptr;
     /* A member function symbol with a compatible type was found. */
+    orig_pos = sym->decl_position;
     *old_type = routine_symbol_type(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
@@ -1571,11 +1573,6 @@ member declaration (allowed in some Microsoft modes only).
       sym->variant.routine.ptr->specialized_with_old_syntax = TRUE;
       sym->variant.routine.instance_ptr->instantiation_required = FALSE;
     }  /* if */
-    update_routine_decl_modifiers(rp, &dps->decl_modifiers,
-                                  &locator->source_position,
-                                  /*is_redecl=*/TRUE,
-                                  !microsoft_out_of_class_redecl,
-                                  (a_boolean)func_info->is_inline);
     /* Mark the routine to indicate that, though really belonging to the
        scope of its parent class, it is defined elsewhere. */
     if (!microsoft_out_of_class_redecl) rp->defined_outside_of_parent = TRUE;
@@ -1669,7 +1666,20 @@ member declaration (allowed in some Microsoft modes only).
 #if GNU_EXTENSIONS_ALLOWED
   report_gnu_postfix_attributes_on_function_definition(dps);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  attach_decl_attributes(dps, func_info->is_definition);
+  if (!is_error_locator(*locator)) {
+    /* Apply attributes. */
+    attach_decl_attributes(dps, func_info->is_definition);
+    /* Temporarily restore the position of the original declaration in the
+       associated symbol so that diagnostics come out right. */
+    saved_pos = sym->decl_position;
+    sym->decl_position = orig_pos;
+    update_routine_decl_modifiers(rp, &dps->decl_modifiers,
+                                  &locator->source_position,
+                                  /*is_redecl=*/TRUE,
+                                  !microsoft_out_of_class_redecl,
+                                  (a_boolean)func_info->is_inline);
+    sym->decl_position = saved_pos;
+  }  /* if */
   if (any_deferred_access_checks()) {
     /* Now that we know which function has been declared, recheck any
        access errors that occurred while scanning the declaration. */

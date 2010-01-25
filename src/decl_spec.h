@@ -51,11 +51,10 @@ typedef struct an_extended_decl_info_block {
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 extern void scan_extended_decl_modifiers(
-                            a_boolean                    is_class_decl,
-                            a_boolean                    is_enum_decl,
-                            a_boolean                    is_member_decl,
-                            an_extended_decl_info_block  *extended_decl_info,
-                            a_boolean                    *err);
+                             an_extended_decl_info_block  *extended_decl_info,
+                             an_attribute_ptr             *p_attr,
+                             an_attribute_location        syn_loc,
+                             a_boolean                    is_enum_decl);
 
 extern void scan_and_discard_extended_decl_modifiers(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -74,10 +73,6 @@ extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_boolean          adjust_template_base,
                                       a_source_position  *err_pos);
 
-extern void update_deprecation_info(a_source_correspondence_ptr  scp,
-                                    a_decl_modifiers_block_ptr   modifiers,
-                                    a_source_position           *err_pos);
-
 extern void record_uuid_for_class(a_type_ptr         class_type,
                                   char               *uuid_string,
                                   a_source_position  *err_pos);
@@ -87,17 +82,22 @@ extern void record_uuid_for_class(a_type_ptr         class_type,
 extern void update_extended_decl_info_for_class(
                             a_type_ptr                   class_type,
                             an_extended_decl_info_block  *extended_decl_info,
-                            a_boolean                    class_definition,
                             a_boolean                    explicit_inst,
                             a_source_position            *err_pos);
 #endif /* DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean convert_GUID_string_literal(a_constant_ptr  strcon,
+                                             char            **pstr);
+
 extern char *scan_GUID_string(void);
 
 extern void check_inheritance_kind(a_type_ptr           class_type,
                                    an_inheritance_kind  inheritance_kind,
                                    a_source_position    *err_pos);
+
+extern void add_flags_from_dll_attributes(a_decl_modifier   *p_flags,
+                                          an_attribute_ptr  ap);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void typename_specifier(a_type_ptr            *type_ptr,

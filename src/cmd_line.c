@@ -1956,6 +1956,7 @@ by a command line option.
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
+  ms_declspec_attributes_enabled = TRUE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4777,11 +4778,6 @@ file.
 #else /* !defined(DEMO_VERSION_ID) */
   comment_undefined_macro_name(DEMO_VERSION_ID);
 #endif /* defined(DEMO_VERSION_ID) */
-#if defined(DEPRECATION_STRING_IN_IL)
-  define_numeric_valued_macro(DEPRECATION_STRING_IN_IL);
-#else /* !defined(DEPRECATION_STRING_IN_IL) */
-  comment_undefined_macro_name(DEPRECATION_STRING_IN_IL);
-#endif /* defined(DEPRECATION_STRING_IN_IL) */
 #if defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE)
   define_numeric_valued_macro(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE);
 #else /* !defined(DESIGNATED_INITIALIZER_ENABLING_POSSIBLE) */
@@ -8818,6 +8814,7 @@ variables declared in cmd_line.h.
   trailing_return_types_enabled = FALSE;
   std_attributes_enabled = FALSE;
   gnu_attributes_enabled = FALSE;
+  ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;
   deleted_functions_enabled = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

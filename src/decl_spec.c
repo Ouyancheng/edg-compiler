@@ -65,6 +65,64 @@ there is no error.
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+a_boolean convert_GUID_string_literal(a_constant_ptr  strcon,
+                                      char            **pstr)
+/*
+strcon represents a string literal.  Return TRUE if its content are of the
+form
+ hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+(where "h" is any hex digit and the hyphens are required), optionally enclosed
+in braces.  If TRUE is returned, set *pstr to point to a null-terminated,
+nomalized (i.e., lower case) copy of the sequence of digits and hyphens;
+otherwise, set *pstr to NULL.
+*/
+{
+  a_boolean      result = TRUE;
+  char           *str = strcon->variant.string.value;
+  a_targ_size_t  length;
+
+  *pstr = NULL;
+  /* Get the string length not including the trailing null character. */
+  check_assertion(strcon->variant.string.length > 0);
+  length = strcon->variant.string.length-1;
+  /* A valid GUID string is 36 or 38 characters (depending on the presence of
+     braces).  Check this first to avoid bound error with pointer and length
+     adjustments below. */
+  if (length < 36) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  /* Check and adjust for surrounding braces. */
+  if (*str == '{') {
+    /* Check for matching closing brace. */
+    if (str[length-1] != '}') {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    str++;
+    length -= 2;
+  }  /* if */
+  /* Check the digits and hyphens. */
+  if (!is_valid_GUID_string(str, length)) {
+    result = FALSE;
+  } else {
+    /* Copy the string, lower-casing hex letters so that strcmp can be used to
+       compare strings. */
+    char  *src = str, *dst = alloc_primary_file_scope_il((sizeof_t)length+1);
+    int   count = (int)length;
+    *pstr = dst;
+    for (; count != 0; count--) {
+      char ch = *src++;
+      if (isalpha((unsigned char)ch)) ch = tolower(ch);
+      *dst++ = ch;
+    }  /* for */
+    *dst = '\0';
+  }  /* if */
+done:
+  return result;
+}  /* convert_GUID_string_literal */
+
+
 char *scan_GUID_string(void)
 /*
 Scan the string literal token or unquoted UUID token that contains a GUID
@@ -83,8 +141,7 @@ Any alphabetic characters in the string are converted to lower case in the
 string that is returned.
 */
 {
-  char		*result = NULL;
-  a_boolean	err = FALSE;
+  char  *result = NULL;
 
   if (curr_token != tok_string_literal && curr_token != tok_uuid) {
     /* Error. */
@@ -94,35 +151,7 @@ string that is returned.
        have been issued already. */
     check_assertion(total_errors != 0);
   } else {
-    char		*str = const_for_curr_token.variant.string.value;
-    /* Get the string length not including the trailing null character. */
-    a_targ_size_t	length = const_for_curr_token.variant.string.length-1;
-    if (*str == '{') {
-      /* Has surrounding braces. */
-      /* Check for matching closing brace. */
-      if (str[length-1] != '}') {
-        error(ec_bad_uuid_string);
-        err = TRUE;
-      }  /* if */
-      str++;
-      length -= 2;
-    }  /* if */
-    /* Do error checking on the string. */
-    if (is_valid_GUID_string(str, length)) {
-      result = alloc_primary_file_scope_il((sizeof_t)length+1);
-      /* Copy the string, lower-casing hex letters so that
-         strcmp can be used to compare strings. */
-      { char		*src = str;
-        char		*dst = result;
-        a_targ_size_t	count = length;
-        for (; count != 0; count--) {
-          char ch = *src++;
-          if (isalpha((unsigned char)ch)) ch = tolower(ch);
-          *dst++ = ch;
-        }  /* for */
-        *dst = '\0';
-      }
-    } else if (!err) {
+    if (!convert_GUID_string_literal(&const_for_curr_token, &result)) {
       error(ec_bad_uuid_string);
     }  /* if */
     /* Bypass the string literal token. */
@@ -130,162 +159,6 @@ string that is returned.
   }  /* if */
   return result;
 }  /* scan_GUID_string */
-
-#if USER_CONTROL_OF_STRUCT_PACKING
-
-static void scan_declspec_align(a_decl_modifiers_block_ptr  decl_modifiers)
-/*
-Scan the Microsoft C/C++ mode extension
-
-  __declspec(align(<integer-literal>))
-
-The current token is the "align" modifier token.  Add the information on
-alignment specification to *decl_modifiers.
-*/
-{
-  /* Skip the "align" specifier. */
-  (void)get_token();
-  if (curr_token != tok_lparen) {
-    error(ec_exp_lparen);
-  } else {
-    /* Skip the left parenthesis. */
-    (void)get_token();
-    add_stop_token(tok_rparen);
-    if (curr_token == tok_int_constant) {
-      a_boolean   ovflo = FALSE;
-      a_host_large_integer  alignment =
-                     value_of_integer_constant(&const_for_curr_token, &ovflo);
-      if (ovflo ||
-          !check_pack_alignment_value(alignment, &decl_modifiers->alignment)) {
-        error(ec_bad_alignment_specifier);
-      }  /* if */
-      (void)get_token();
-    } else {
-      syntax_error(ec_exp_int_literal);
-    }  /* if */
-    /* Check for closing parenthesis. */
-    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
-  }  /* if */
-}  /* scan_declspec_align */
-
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-
-static void scan_declspec_implementation_key(void)
-/*
-Scan the Microsoft C++ mode extension
-
-  __declspec(implementation_key(<integer-literal>))
-
-The current token is the "implementation_key" modifier token.  This construct
-is currently ignored, except that an error is diagnosed if it does not appear
-inside a region delimited by #pragma start_map_region/#pragma stop_map_region.
-*/
-{
-  if (!in_microsoft_implementation_key_mapping_region) {
-    error(ec_implementation_key_outside_mapping_region);
-  }  /* if */
-  /* Skip the "implementation_key" specifier. */
-  (void)get_token();
-  if (curr_token != tok_lparen) {
-    error(ec_exp_lparen);
-  } else {
-    /* Skip the left parenthesis. */
-    (void)get_token();
-    add_stop_token(tok_rparen);
-    if (curr_token == tok_int_constant) {
-      /* We currently simply ignore the "implementation key". */
-      (void)get_token();
-    } else {
-      syntax_error(ec_exp_int_literal);
-    }  /* if */
-    /* Check for closing parenthesis. */
-    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
-  }  /* if */
-}  /* scan_declspec_implementation_key */
-
-
-static void scan_declspec_property(a_decl_modifiers_block_ptr  decl_modifiers)
-/*
-Scan the Microsoft C++ mode extension
-
-  __declspec(property(get=gname,put=pname))
-
-The current token is the "property" keyword.  Add the information on
-the property specification to *decl_modifiers.  Return with the closing
-parenthesis of the property list as the current token.
-*/
-{
-  if (next_token() != tok_lparen) {
-    /* Parenthesized list is missing. */
-    error(ec_bad_declspec_property);
-  } else {
-    /* Advance past "property" and the left parenthesis. */
-    (void)get_token();
-    (void)get_token();
-    add_stop_token(tok_rparen);
-    do {
-      a_boolean         is_get = FALSE, is_put = FALSE;
-      a_source_position getput_position;
-      char              *name;
-
-      if (curr_token == tok_identifier) {
-        char *getput = locator_for_curr_id.symbol_header->identifier;
-        if (strcmp(getput, "get") == 0) {
-          is_get = TRUE;
-        } else if (strcmp(getput, "put") == 0) {
-          is_put = TRUE;
-        }  /* if */
-      }  /* if */
-      if (!is_get && !is_put) {
-        /* Expected "get" or "put". */
-        syntax_error(ec_bad_declspec_property);
-        break;
-      }  /* if */
-      getput_position = pos_curr_token;
-      /* Advance past "get" or "put". */
-      (void)get_token();
-      /* Check for "=". */
-      if (curr_token != tok_assign) {
-        syntax_error(ec_exp_assign);
-        break;
-      }  /* if */
-      (void)get_token();
-      if (curr_token != tok_identifier) {
-        /* Expected a name following "get=" or "put=". */
-        syntax_error(ec_bad_declspec_property);
-        break;
-      }  /* if */
-      /* Allocate a copy of the name specified. */
-      { a_symbol_header_ptr hdr = locator_for_curr_id.symbol_header;
-        name = alloc_il(hdr->identifier_length+1);
-        (void)strcpy(name, hdr->identifier);
-      }
-      if (is_get) {
-        if (decl_modifiers->get_property_name != NULL) {
-          /* "get" specified more than once. */
-          pos_error(ec_dupl_get_or_put, &getput_position);
-        } else {
-          decl_modifiers->get_property_name = name;
-        }  /* if */
-      } else {
-        if (decl_modifiers->put_property_name != NULL) {
-          /* "put" specified more than once. */
-          pos_error(ec_dupl_get_or_put, &getput_position);
-        } else {
-          decl_modifiers->put_property_name = name;
-        }  /* if */
-      }  /* if */
-      /* Advance past the routine name. */
-      (void)get_token();
-      /* Loop if a comma is next. */
-    } while (loop_token(tok_comma));
-    /* Check for closing parenthesis. */
-    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
-  }  /* if */
-}  /* scan_declspec_property */
 
 
 static a_boolean scan_inheritance_kind(an_inheritance_kind  *inheritance_kind,
@@ -331,310 +204,6 @@ inheritance kind is returned in *pos.  Return TRUE if the scan is successful.
   }  /* if */
   return found;
 }  /* scan_inheritance_kind */
-
-
-static char* scan_declspec_string_argument(an_error_code  err_code)
-/*
-The current token is the name of a Microsoft declspec attribute (e.g.,
-"allocate") and a parenthesized string literal is expected next.  Scan
-the parenthesized literal and return a pointer to a copy of it allocated
-in IL memory.  NULL may be returned for certain syntax errors.
-*/
-{
-  char  *result = NULL;
-
-  /* Advance past the attribute name (e.g., "allocate"). */
-  (void)get_token();
-  if (required_token(tok_lparen, ec_exp_lparen)) {
-    if (curr_token != tok_string_literal) {
-      /* Error. */
-      syntax_error(err_code);
-    } else {
-      char           *str = const_for_curr_token.variant.string.value;
-      a_targ_size_t  len = const_for_curr_token.variant.string.length;
-      /* Copy the token string into IL memory and save the address.  (Note:
-         len includes the terminal null character). */
-      result = alloc_il((sizeof_t)len);
-      (void)memcpy(result, str, size_t_arg(len));
-      check_assertion(result[len-1] == '\0');
-      /* Advance past the string literal. */
-      (void)get_token();
-    }  /* if */
-    /* Advance past the right paren. */
-    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-  }  /* if */
-  return result;
-}  /* scan_declspec_string_argument */
-
-
-static void scan_declspec_attributes(
-                                a_decl_modifiers_block_ptr  decl_modifiers,
-                                a_boolean                   is_class_decl,
-                                a_boolean                   is_enum_decl,
-                                a_boolean                   is_member_decl,
-                                a_boolean                   *err)
-/*
-Scan the Microsoft __declspec specifier, which has the form
-
-	__declspec ( extended-decl-modifier-seq   )
-	                                       opt
-	extended-decl-modifier-seq:
-		extended-decl_modifier
-		                      opt
-		extended-decl-modifier-seq extended-decl-modifier
-
-	extended-decl_modifier:
-                align( unsigned-integer-literal )
-                allocate ( data-segment-name )
-                deprecated
-                dllexport
-                dllimport
-                implementation_key ( unsigned-integer-literal )
-                intrin_type
-                naked
-                noalias
-                noinline
-                noreturn
-                nothrow
-                novtable
-                property ( get = xxx, put = yyy )
-                restrict
-                selectany
-                thread
-                uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
-
-Return the modifiers that were found by updating the decl_modifiers block.
-Issue a warning for an unrecognized modifier.  If an error occurs (e.g., a
-syntax error), set err to TRUE.  err is unchanged if there are no errors.
-is_class_decl is TRUE if the modifiers apply to a class declaration (e.g.,
-"class __declspec(dllexport) A ...") rather than to a declarator.  Similarly,
-is_enum_decl is set to TRUE for the corresponding syntactic location in an
-enum declaration.  is_member_decl is TRUE if the modifiers are being scanned
-as part of the declaration of a class member.
-*/
-{
-  check_assertion(curr_token == tok_declspec);
-  /* Bypass the __declspec token. */
-  (void)get_token();
-  if (required_token(tok_lparen, ec_exp_lparen)) {
-    add_stop_token(tok_rparen);
-    while (curr_token == tok_identifier) {
-      char *modifier;
-      modifier = locator_for_curr_id.symbol_header->identifier;
-      if (strcmp(modifier, "deprecated") == 0) {
-        decl_modifiers->is_deprecated = TRUE;
-        if (microsoft_version >= 1400 && next_token() == tok_lparen) {
-          decl_modifiers->deprecation_string =
-                         scan_declspec_string_argument(ec_exp_string_literal);
-        }  /* if */
-      } else if (strcmp(modifier, "dllexport") == 0) {
-        if (is_class_decl && C_mode()) {
-          /* "dllexport" is ignored on a struct declaration in C. */
-          pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
-                         &pos_curr_token, modifier);
-        } else if (decl_modifiers->flags & DM_DLLIMPORT) {
-          /* The dllimport and dllexport attributes are mutually exclusive. */
-          warning(ec_bad_combination_of_dll_attributes);
-        } else {
-          decl_modifiers->flags |= DM_DLLEXPORT;
-        }  /* if */
-      } else if (strcmp(modifier, "dllimport") == 0) {
-        if (is_class_decl && C_mode()) {
-          /* "dllimport" is ignored on a struct declaration in C. */
-          pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
-                         &pos_curr_token, modifier);
-        } else if (decl_modifiers->flags & DM_DLLEXPORT) {
-          /* The dllimport and dllexport attributes are mutually
-             exclusive. */
-          warning(ec_bad_combination_of_dll_attributes);
-        } else {
-          decl_modifiers->flags |= DM_DLLIMPORT;
-        }  /* if */
-      } else if (strcmp(modifier, "thread") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "thread" is not allowed on a class/enum declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_THREAD;
-        }  /* if */
-      } else if (strcmp(modifier, "naked") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "naked" is not allowed on a class/enum declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_NAKED;
-        }  /* if */
-      } else if (strcmp(modifier, "selectany") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "selectany" is not allowed on a class/enum declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_SELECTANY;
-        }  /* if */
-      } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "nothrow" is not allowed on a class/enum declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_NOTHROW;
-        }  /* if */
-      } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
-        if (!is_class_decl) {
-          /* "novtable" is allowed only on a C++ class declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_NOVTABLE;
-        }  /* if */
-      } else if (strcmp(modifier, "noreturn") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "noreturn" is not allowed on a class/enum declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_NORETURN;
-        }  /* if */
-      } else if (strcmp(modifier, "noinline") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "noinline" is not allowed on a class declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_NOINLINE;
-        }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-      } else if (strcmp(modifier, "align") == 0) {
-        scan_declspec_align(decl_modifiers);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      } else if (strcmp(modifier, "implementation_key") == 0) {
-        /* The "implementation_key" specifier is currently ignored (except
-           for being diagnosed in some cases). */
-        scan_declspec_implementation_key();
-      } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
-        if (!is_class_decl && !is_enum_decl) {
-          /* "uuid" is allowed only on a C++ class/enum declaration. */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-          if (next_token() == tok_lparen) {
-            /* Advance past "uuid" to the left paren. */
-            (void)get_token();
-            /* Flush all tokens till the matching right paren is
-               found. */
-            flush_until_matching_token();
-          }  /* if */
-        } else {
-          /* Advance past "uuid". */
-          (void)get_token();
-          if (required_token(tok_lparen, ec_exp_lparen)) {
-            decl_modifiers->uuid_string = scan_GUID_string();
-            /* A NULL pointer is returned to indicate an error. */
-            if (decl_modifiers->uuid_string == NULL) *err = TRUE;
-            (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-          } else {
-            break;
-          }  /* if */
-        }  /* if */
-      } else if (!C_mode() && strcmp(modifier, "property") == 0) {
-        if (is_class_decl || is_enum_decl || !is_member_decl) {
-          /* "property" is not allowed on a class/enum declaration, and
-             not on a non-member declaration. */
-          pos_diagnostic(es_discretionary_error,
-                         ec_declspec_property_not_allowed,
-                         &pos_curr_token);
-          if (next_token() == tok_lparen) {
-            /* Advance past "property" to the left paren. */
-            (void)get_token();
-            /* Flush all tokens till the matching right paren is
-               found. */
-            flush_until_matching_token();
-          }  /* if */
-        } else {
-          /* __declspec(property(get=..., put=...)) */
-          scan_declspec_property(decl_modifiers);
-        }  /* if */
-      } else if (strcmp(modifier, "allocate") == 0) {
-        if (is_class_decl) {
-          /* "allocate" is not allowed on a class declaration. */
-          pos_error(ec_declspec_allocate_not_allowed, &pos_curr_token);
-          *err = TRUE;
-          if (next_token() == tok_lparen) {
-            /* Advance past "allocate" to the left paren. */
-            (void)get_token();
-            /* Flush all tokens till the matching right paren is
-               found. */
-            flush_until_matching_token();
-          }  /* if */
-        } else {
-          /* The syntax is
-               allocate ( string-literal )
-             where string-literal specifies the name of a data segment
-             in which a data item will be allocated. */
-          decl_modifiers->allocate_segname =
-                       scan_declspec_string_argument(ec_bad_allocate_segname);
-          if (decl_modifiers->allocate_segname == NULL) *err = TRUE;
-          /* No further checking is done to assure that we have a valid data
-             segment name (though such a check could be added if the
-             appropriate #pragma support were also added). */
-        }  /* if */
-      } else if (strcmp(modifier, "intrin_type") == 0) {
-        if (!is_class_decl) {
-          /* "intrin_type" only makes sense on a class declaration
-             (but Microsoft compilers appear to accept it anywhere). */
-          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
-                         &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->is_microsoft_intrinsic = TRUE;
-        }  /* if */
-      } else if (microsoft_version >= 1400 &&
-                 strcmp(modifier, "noalias") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "noalias" is not allowed on a class/enum declaration. */
-          pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
-                       &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_NOALIAS;
-        }  /* if */
-      } else if (microsoft_version >= 1400 &&
-                 strcmp(modifier, "restrict") == 0) {
-        if (is_class_decl || is_enum_decl) {
-          /* "restrict" is not allowed on a class/enum declaration. */
-          pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
-                       &pos_curr_token, modifier);
-        } else {
-          decl_modifiers->flags |= DM_RESTRICT;
-        }  /* if */
-      } else {
-        /* Issue a warning on an unrecognized __declspec attribute. */
-        pos_st_warning(ec_bad_declspec_modifier, &error_position,
-                       modifier);
-        /* An unrecognized construct could be of two forms:
-             __declspec(xxx)        // Like "dllimport" or "nothrow"
-             __declspec(xxx(yyy))   // Like "allocate" or "uuid"
-           If the next token is a left paren, skip to the matching
-           right paren. */
-        if (next_token() == tok_lparen) {
-          /* Advance to the left paren. */
-          (void)get_token();
-          /* Flush all tokens till the matching right paren is found. */
-          flush_until_matching_token();
-        }  /* if */
-      }  /* if */
-      (void)get_token();
-      if (curr_token == tok_comma) {
-        /* Microsoft compilers accept an optional comma after __declspec
-           attributes (even after the last attribute). */
-        (void)get_token();
-      }  /* if */
-    }  /* while */
-    remove_stop_token(tok_rparen);
-    /* Check for the closing right paren. */
-    (void)required_token(tok_rparen, ec_exp_rparen);
-  }  /* if */
-}  /* scan_declspec_attributes */
 
 
 static a_boolean any_multiple_inheritance(a_type_ptr  class_type)
@@ -725,6 +294,32 @@ given position.
 #if DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+void add_flags_from_dll_attributes(a_decl_modifier   *p_flags,
+                                   an_attribute_ptr  ap)
+/*
+Set the DM_DLLIMPORT or DM_DLLEXPORT flag if the corresponding attribute is
+present in the list pointed to by ap, except if doing so would cause both
+flags to be set (in that case, issue a warning).
+*/
+{
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->kind == (a_byte_attribute_kind)ak_dllimport) {
+      if (*p_flags & DM_DLLEXPORT) {
+        pos_warning(ec_bad_combination_of_dll_attributes, &ap->position);
+      } else {
+        *p_flags |= DM_DLLIMPORT;
+      }  /* if */
+    } else if (ap->kind == (a_byte_attribute_kind)ak_dllexport) {
+      if (*p_flags & DM_DLLIMPORT) {
+        pos_warning(ec_bad_combination_of_dll_attributes, &ap->position);
+      } else {
+        *p_flags |= DM_DLLEXPORT;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* flags_from_dll_attributes */
+
 
 void update_dll_info_for_class(a_type_ptr         class_type,
                                a_decl_modifier    flags,
@@ -913,30 +508,6 @@ template class, its DLL interface may need to be adjusted implicitly.
 }  /* update_dll_info_for_class */
 
 
-void update_deprecation_info(a_source_correspondence_ptr  scp,
-                             a_decl_modifiers_block_ptr   modifiers,
-                             a_source_position_ptr        err_pos)
-/*
-Update the IL entry (and possibly the symbol) associated with scp with
-any "deprecated" attributes recorded in *modifiers.  Redeclaration
-incompatibilities are diagnosed at the given position.
-*/
-{
-  if (modifiers->is_deprecated) {
-    char  *str = modifiers->deprecation_string;
-    scp->is_deprecated = TRUE;
-    if (str != NULL) {
-      if (deprecation_string_for(scp) != NULL &&
-          strcmp(deprecation_string_for(scp), str) != 0) {
-        pos_remark(ec_decl_modifiers_incompatible_with_previous_decl, err_pos);
-      } else {
-        deprecation_string_for(scp) = str;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* update_deprecation_info */
-
-
 void record_uuid_for_class(a_type_ptr         class_type,
                            char               *uuid_string,
                            a_source_position  *err_pos)
@@ -964,22 +535,18 @@ issue an error at the given source position.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* err_pos and class_definition are not used in all 
-                configurations. */
+/*ARGSUSED*/ /* err_pos is not used in all configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_extended_decl_info_for_class(
                             a_type_ptr                  class_type,
                             an_extended_decl_info_block *extended_decl_info,
-                            a_boolean                   class_definition,
                             a_boolean                   explicit_inst,
                             a_source_position           *err_pos)
 /*
 Update the specified class type with information based on a previous scan of
-extended declaration modifiers, as specified by *extended_decl_info.
-class_definition is TRUE if the modifiers appeared on a class definition (as
-opposed to just a declaration).  If explicit_inst is TRUE, this routine is
-called for the explicit instantiation of class_type.  err_pos is a pointer
-to a source position used for diagnostics.
+extended declaration modifiers, as specified by *extended_decl_info.  If
+explicit_inst is TRUE, this routine is called for the explicit instantiation
+of class_type.  err_pos is a pointer to a source position used for diagnostics.
 */
 {
   if (!C_mode()) {
@@ -1064,51 +631,32 @@ to a source position used for diagnostics.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (extended_decl_info->decl_modifiers.is_deprecated) {
-    update_deprecation_info(&class_type->source_corresp,
-                            &extended_decl_info->decl_modifiers, err_pos);
-  }  /* if */
-  if (class_definition) {
-    if (extended_decl_info->decl_modifiers.is_microsoft_intrinsic) {
-      class_type->is_microsoft_intrinsic = TRUE;
-    }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-    if (extended_decl_info->decl_modifiers.alignment != 0) {
-      set_declspec_align(class_type,
-                         extended_decl_info->decl_modifiers.alignment,
-                         err_pos);
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_extended_decl_info_for_class */
 
 #endif /* DECL_MODIFIERS_IN_USE || NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* is_member_decl and err are used only if
-                MICROSOFT_EXTENSIONS_ALLOWED is set. */
+/*ARGSUSED*/ /* p_attr and syn_loc are not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_extended_decl_modifiers(
-                             a_boolean                    is_class_decl,
-                             a_boolean                    is_enum_decl,
-                             a_boolean                    is_member_decl,
                              an_extended_decl_info_block  *extended_decl_info,
-                             a_boolean                    *err)
+                             an_attribute_ptr             *p_attr,
+                             an_attribute_location        syn_loc,
+                             a_boolean                    is_enum_decl)
 /*
-Scan extended declaration modifiers (e.g., Microsoft extensions) and
-record them in the specified extended-decl-info block.  is_class_decl is
-TRUE if the current declaration is of a class; is_enum_decl is TRUE if it's
-of an enumeration type.  is_member_decl is TRUE if it's a declaration of a
-class member.  *err is returned TRUE for certain kinds of errors.
+Scan extended declaration modifiers (e.g., Microsoft extensions) and record
+them in the specified extended-decl-info block or, in the case of Microsoft
+__declspec attributes, append them to list pointed to by *p_attr.  syn_loc
+describes the syntactic context of the modifiers.  is_enum_decl is TRUE if
+this routine is called while parsing an enum specifier (syn_loc will be
+al_tag_name in that case).
 */
 {
   for (;;) {
 #if NEAR_AND_FAR_ALLOWED
     if (is_near_or_far()) {
-      if (is_enum_decl || (is_class_decl && !C_mode())) {
+      if (syn_loc == al_tag_name && (is_enum_decl || !C_mode())) {
         /* Memory attribute like "near". */
         scan_near_or_far(&extended_decl_info->qualifiers);
         continue;
@@ -1118,12 +666,10 @@ class member.  *err is returned TRUE for certain kinds of errors.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_declspec) {
       /* __declspec(...) */
-      scan_declspec_attributes(&extended_decl_info->decl_modifiers,
-                               is_class_decl, is_enum_decl, is_member_decl,
-                               err);
+      *last_attribute_link(p_attr) = scan_attributes(syn_loc);
       continue;
     }  /* if */
-    if (((is_class_decl && !C_mode()) || is_enum_decl) &&
+    if (syn_loc == al_tag_name && (is_enum_decl || !C_mode()) &&
         curr_token == tok_identifier) {
       /* This is a class or enum declaration, so if the next token is an
          identifier it is probably the class/enum name.  But it might also be
@@ -1131,6 +677,10 @@ class member.  *err is returned TRUE for certain kinds of errors.
       if (!C_mode() &&
           scan_inheritance_kind(&extended_decl_info->inheritance_kind,
                                 &extended_decl_info->inheritance_kind_pos)) {
+        if (is_enum_decl) {
+          pos_warning(ec_inheritance_kind_ignored_on_enum,
+                      &extended_decl_info->inheritance_kind_pos);
+        }  /* if */
         continue;
       }  /* if */
     }  /* if */
@@ -1147,15 +697,9 @@ in which they appear to have no effect.  This routine scans the modifiers
 and issues a warning indicating that they are being ignored.
 */
 {
-  a_boolean                    local_err;
-  an_extended_decl_info_block  extended_decl_info;
-
-  /* Issue a warning that it's being ignored. */
-  warning(ec_decl_modifiers_ignored);
-  clear_extended_decl_info_block(extended_decl_info);
-  scan_extended_decl_modifiers(/*is_class_decl=*/FALSE, /*is_enum_decl=*/FALSE,
-                               /* is_member_decl=*/FALSE, &extended_decl_info,
-                               &local_err);
+  /* Issue a warning that the modifiers are being ignored. */
+  pos_warning(ec_decl_modifiers_ignored, &pos_curr_token);
+  skip_over_attributes();
 }  /* scan_and_discard_extended_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -2701,6 +2245,79 @@ if the type should not be treated as an interface.
   }  /* if */
 }  /* check_interface_redeclaration */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+
+static void move_declspec_align_attr(an_attribute_ptr  *p_prefix_attributes, 
+                                     an_attribute_ptr  *p_tag_attributes)
+/*
+Move "__declspec(align(...))" attributes on the *p_prefix_attributes to the
+head of the list pointed to by *p_tag_attributes (the moved attributes are
+reclassified as al_tag_name).
+*/
+{
+  an_attribute_ptr  moved = NULL, *p_end_moved = &moved;
+
+  /* Collect the "__declspec(align(...))" attributes. */
+  while (*p_prefix_attributes != NULL) {
+    an_attribute_ptr  ap = *p_prefix_attributes;
+    if (ap->kind == (a_byte_attribute_kind)ak_align &&
+        ap->family == (a_byte_attribute_family)af_ms_declspec) {
+      ap->syntactic_location = (a_byte_attribute_location)al_tag_name;
+      *p_end_moved = ap;
+      p_end_moved = &ap->next;
+      *p_prefix_attributes = ap->next;
+    } else {
+      p_prefix_attributes = &ap->next;
+    }  /* if */
+  }  /* while */
+  /* Prepend the collected attributes to the *p_tag_attributes list. */
+  *p_end_moved = *p_tag_attributes;
+  *p_tag_attributes = moved;
+}  /* move_declspec_align_attr */
+
+
+static void preapply_microsoft_class_align_attribute(
+                                     a_decl_parse_state  *dps,
+                                     an_attribute_ptr    *tag_attributes,
+                                     a_boolean            is_class_definition)
+/*
+The Microsoft __declspec(align(...)) attribute applied to a class type behaves
+differently from other __declspec attributes.  If necessary, adjust the
+*tag_attributes, dps->prefix_attributes, and dps->specifier_attributes lists
+to achieve the same effect as Microsoft compilers.  A diagnostic may be issued
+in some cases.
+*/
+{
+  if (is_class_definition) {
+    /* Microsoft compilers treat
+         __declspec(align(N)) struct __declspec(...) X { ... };
+       as
+         struct __declspec(align(N), ...) X { ... };
+       (and this is specific to the "align" attributes).  Emulate this behavior
+       by moving "__declspec(align(...))" attributes on dps->prefix_attributes
+       and dps->specifier_attributes to the head of the list pointed to by
+       tag_attributes (the moved attributes are reclassified as al_tag_name).
+    */
+    if (dps->prefix_attributes != NULL) {
+      move_declspec_align_attr(&dps->prefix_attributes, tag_attributes);
+    }
+    if (dps->specifier_attributes != NULL) {
+      move_declspec_align_attr(&dps->specifier_attributes, tag_attributes);
+    }
+  } else {
+    an_attribute_ptr  ap = *tag_attributes;
+    for (; ap != NULL; ap = ap->next) {
+      if (ap->kind == (a_byte_attribute_kind)ak_align &&
+          ap->family == (a_byte_attribute_family)af_ms_declspec) {
+        pos_st_warning(ec_attribute_ignored_on_nondefinition, &ap->position,
+                       ap->name);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* preapply_microsoft_class_align_attribute */
+
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
@@ -2855,7 +2472,7 @@ issue a warning.
            class/enum definition follows. */
         if (!is_definition && !is_forward_decl) {
           if (!std_error_emitted) {
-            pos_error(ec_invalid_std_attribute_location, &ap->position);
+            pos_error(ec_invalid_attribute_location, &ap->position);
             std_error_emitted = TRUE;
           }  /* if */
           make_attr_unrecognized(ap);
@@ -2971,80 +2588,32 @@ __extension__.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
-    (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS) || \
-    !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-             /* marked_as_gnu_extension is not used if GNU C extensions
-                are not allowed or if source sequence lists are not being
-                generated. */
-             /* prefix_decl_modifiers is not used if Microsoft extensions
-                are not allowed. */
+    (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS)
+/*ARGSUSED*/ /* decl_pos_block and marked_as_gnu_extension are not used in
+                some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || ... */
-static a_boolean class_specifier(
-                        a_decl_flag_set             dsi_flags,
-                        a_boolean                   vacuous_decl_allowed,
-                        a_boolean                   is_friend_decl,
-                        a_boolean                   is_typedef,
-                        a_boolean                   marked_as_gnu_extension,
-                        a_decl_modifiers_block_ptr  prefix_decl_modifiers,
-                        an_ms_attribute_ptr         *p_ms_attributes,
-                        a_type_ptr                  *type_ptr,
-                        a_boolean                   *declares_something,
-                        a_boolean                   *defines_something,
-                        a_decl_pos_block            *decl_pos_block)
+static a_boolean class_specifier(a_decl_parse_state  *dps,
+                                 a_decl_flag_set     dsi_flags,
+                                 a_boolean           vacuous_decl_allowed,
+                                 a_boolean           is_friend_decl,
+                                 a_boolean           marked_as_gnu_extension,
+                                 a_type_ptr          *type_ptr,
+                                 a_boolean           *declares_something,
+                                 a_boolean           *defines_something,
+                                 a_decl_pos_block    *decl_pos_block)
 /*
-Scan a class-specifier (3.5.2.1), which declares a struct or
-union type.  The syntax is
-
-9
-        class-specifier:
-                class-head { member-list    }
-                                        opt
-
-        class-head:
-                class-key identifier    base-spec
-                                    opt          opt
-                class-key class-name base-spec
-                                              opt
-
-        class-key
-                class
-                struct
-                union
-
-9.2
-        member-list
-                member-declaration member-list
-                                              opt
-                access-specifier : member-list
-
-        member-declaration:
-                decl-specifiers    member-declarator-list    ;
-                               opt                       opt
-                function-definition ;
-                                     opt
-                qualified-name ;
-
-        member-declarator-list:
-                member-declarator
-                member-declarator-list , member-declarator
-
-        member-declarator
-                declarator pure-specifier
-                                         opt
-                identifier    : constant-expression
-                          opt
-
-        pure-specifier
-                = 0
-
-The type is returned in *type_ptr. *declares_something is set to indicate
-whether or not this specifier declares something, and *defines_something
-to indicate whether the class/struct/union is actually defined.
-dsi_flags is the set of input flags passed to decl_specifiers.  is_typedef is
-TRUE if the class specifier is being typedefed.  p_ms_attributes describes
-Microsoft attributes preceding the class specifier (if any).
+Scan a class-specifier, which declares a class type (class/struct/union).  This
+function also handles Microsoft __interface declarations (treated as a special
+kind of struct).
+*dps tracks information about the current declaration.  dsi_flags is the set
+of input flags passed to decl_specifiers.  vacuous_decl_allowed is TRUE if the
+class specifier can be immediately followed by a semicolon and not include a
+definition.  is_friend_decl is TRUE if the "friend" keyword appeared before the
+class specifier.  marked_as_gnu_extension is TRUE if the GNU __extension__
+keyword is present.  The type is returned in *type_ptr. *declares_something is
+set to indicate whether or not this specifier declares something, and
+*defines_something to indicate whether the class/struct/union is actually
+defined.  Detailed position information is recorded in *decl_pos_block.
 */
 {
   a_symbol_kind           tag_kind;
@@ -3140,14 +2709,11 @@ Microsoft attributes preceding the class specifier (if any).
     tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
-      a_boolean  local_err;
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_class_definition and applied to each member
          declaration, where appropriate. */
-      scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
-                                   /*is_enum_decl=*/FALSE,
-                                   /*is_member_decl=*/FALSE,
-                                   &extended_decl_info, &local_err);
+      scan_extended_decl_modifiers(&extended_decl_info, &tag_attributes,
+                                   al_tag_name, /*is_enum_decl=*/FALSE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -3927,6 +3493,14 @@ Microsoft attributes preceding the class specifier (if any).
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
   /* Now that we have a type, we can apply any attributes attached to it. */
+#if USER_CONTROL_OF_STRUCT_PACKING
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    preapply_microsoft_class_align_attribute(dps, &tag_attributes,
+                                             is_class_definition);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (tag_attributes != NULL) {
     a_boolean  ignore_gnu_attributes = FALSE;
     if (gnu_mode) {
@@ -3952,27 +3526,21 @@ Microsoft attributes preceding the class specifier (if any).
     }  /* if */
     attach_tag_attributes(tag_attributes, class_type, is_class_definition,
                           curr_token == tok_semicolon, ignore_gnu_attributes);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* The call to attach_tag_attributes does not directly apply DLL
+       attributes.  Instead, the call to update_extended_decl_info_for_class
+       does that below.  Set the required flags in extended_decl_info. */
+    add_flags_from_dll_attributes(&extended_decl_info.decl_modifiers.flags,
+                                  tag_attributes);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* If the current token marks a removed template body, skip past that
      special token. */
   if (curr_token == tok_removed_template_body) (void)get_token();
-#if USER_CONTROL_OF_STRUCT_PACKING
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_class_definition && prefix_decl_modifiers != NULL &&
-      prefix_decl_modifiers->alignment != 0) {
-    /* Make sure that any __declspec(align(...)) specifier preceding the
-       class-key is applied prior to such specifiers appearing after the
-       keyword. */
-    set_declspec_align(class_type, prefix_decl_modifiers->alignment,
-                       &locator.source_position);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if ((microsoft_mode or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
-                                        is_class_definition,
                                         is_explicit_instantiation,
                                         &locator.source_position);
   }  /* if */
@@ -3988,7 +3556,7 @@ Microsoft attributes preceding the class specifier (if any).
   if (is_sealed) {
     class_type->variant.class_struct_union.sealed = TRUE;
   }  /* if */
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL && !is_local_class) {
+  if (dps->ms_attributes != NULL && !is_local_class) {
     if (!is_class_definition && curr_token != tok_semicolon) {
       /* This is a non-autonomous declaration of the class: The attributes
          do not apply to the class type, but to the entity associated with
@@ -3999,7 +3567,7 @@ Microsoft attributes preceding the class specifier (if any).
                       (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
                       (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
                                                               MSAT_UNION;
-      apply_microsoft_attributes(p_ms_attributes, (char*)class_type,
+      apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
                                  (an_il_entry_kind)iek_type, attr_target);
     }  /* if */
   }  /* if */
@@ -4050,7 +3618,8 @@ Microsoft attributes preceding the class specifier (if any).
        the intended construct; in that case a diagnostic has been or will be
        issued elsewhere. */
     if (depth_template_declaration_scope == NO_SCOPE_DEPTH &&
-        !(microsoft_bugs && is_typedef)) {
+        !(microsoft_bugs &&
+          dps->declared_storage_class == (a_storage_class)sc_typedef)) {
       /* In Microsoft bugs mode, the typedef is processed before member
          function bodies etc. are rescanned.  This makes e.g. the following
          legal:
@@ -4196,38 +3765,6 @@ static an_integer_kind
 			   mode the integer kind corresponding to the
 			   largest integer type supported. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void check_enum_uuid_string(
-                             a_type_ptr                   enum_type,
-                             an_extended_decl_info_block  *extended_decl_info,
-                             a_source_position            *tag_position)
-/*
-We're defining an enumeration type in Microsoft mode.  If a UUID string was
-specified, record it and check that it is consistent with any previous
-declarations.
-*/
-{
-  if (!C_mode() && microsoft_mode &&
-      extended_decl_info->decl_modifiers.uuid_string != NULL) {
-    char  *prev_uuid_string = uuid_string_of_type(enum_type);
-    if (prev_uuid_string != NULL) {
-      /* Issue an error if __declspec(uuid(...)) strings are present and
-         they aren't identical. */
-      if (strcmp(prev_uuid_string,
-                 extended_decl_info->decl_modifiers.uuid_string) != 0) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_decl_modifiers_incompatible_with_previous_decl,
-                       tag_position);
-      }  /* if */
-    } else {
-      enum_type->variant.integer.uuid_string =
-                                extended_decl_info->decl_modifiers.uuid_string;
-    }  /* if */
-  }  /* if */
-}  /* check_enum_uuid_string */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE)
 /*ARGSUSED*/  /* enum_type is not used in all configurations. */
@@ -4412,53 +3949,6 @@ base specifier.
   }  /* if */
 }  /* set_enum_representation */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void check_extended_decl_info_for_enum(
-                                         an_extended_decl_info_block  *info,
-                                         a_source_position            *pos)
-/*
-*info describes any Microsoft extended modifiers that were scanned (at the
-given position) as part of an enum specifier.  Issue an error or warning for
-any such modifiers that are invalid or ignored.
-*/
-{
-  an_error_severity       sev = es_none;
-  a_decl_modifiers_block  *mods = &info->decl_modifiers;
-
-  /* An inheritance kind on an enum specifier is an error in C mode, but
-     ignored in C++ mode (with a warning). */
-  if (info->inheritance_kind != (an_inheritance_kind)ihk_none) {
-    if (C_mode()) {
-      pos_error(ec_inheritance_kind_not_allowed_in_C,
-                &info->inheritance_kind_pos);
-    } else {
-      pos_warning(ec_inheritance_kind_ignored_on_enum,
-                  &info->inheritance_kind_pos);
-    }  /* if */
-  }  /* if */
-  if (mods->get_property_name != NULL || mods->put_property_name != NULL) {
-    /* These modifiers are errors on enum specifiers in both C and C++. */
-    sev = es_discretionary_error;
-  } else if (C_mode() && mods->uuid_string != NULL) {
-    /* __declspec(uuid(...)) is an error on C-mode enum types. */
-    sev = es_discretionary_error;
-  } else if (mods->is_microsoft_intrinsic ||
-             mods->allocate_segname != NULL ||
-             mods->alignment != 0 ||
-             mods->flags != DM_NONE ||
-             info->qualifiers != TQ_NONE) {
-    /* Most modifiers are just ignored on enum specifiers: Issue a warning. */
-    sev = es_warning;
-  }  /* if */
-  if (sev == es_warning) {
-    pos_warning(ec_extended_modifier_ignored_on_enum, pos);
-  } else if (sev != es_none) {
-    pos_diagnostic(sev, ec_extended_modifier_not_allowed_on_enum, pos);
-  }  /* if */
-}  /* check_extended_decl_info_for_enum */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_enum_value_for_fixed_underlying_type(
                                              a_constant_ptr   constant,
@@ -4608,15 +4098,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   if (microsoft_mode) {
     /* Scan Microsoft-specific modifiers.  Most are invalid or ignored, but
        __declspec(uuid(...)) will be recorded in C++ mode. */
-    a_boolean          local_err;
     a_source_position  diag_pos;
     diag_pos = pos_curr_token;
     clear_extended_decl_info_block(extended_decl_info);
-    scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                 /*is_enum_decl=*/TRUE,
-                                 /*is_member_decl=*/FALSE,
-                                 &extended_decl_info, &local_err);
-    check_extended_decl_info_for_enum(&extended_decl_info, &diag_pos);
+    scan_extended_decl_modifiers(&extended_decl_info, &tag_attributes,
+                                 al_tag_name, /*is_enum_decl=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
@@ -4899,11 +4385,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && !C_mode()) {
-    check_enum_uuid_string(enum_type, &extended_decl_info, &tag_position);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (explicit_enum_base_enabled && is_definition) {
     explicit_base_kind = scan_explicit_enum_base_type(enum_type,
                                                       &pos_explicit_base);
@@ -6549,22 +6030,15 @@ typedef long a_decl_specifiers_set;
 			/* "inline" has been scanned (C++ only). */
 #define DS_MUTABLE  (a_decl_specifiers_set)(0x80)
 			/* "mutable" has been scanned (C++ only). */
-#define DS_LINKAGE_SPEC (a_decl_specifiers_set)(0x100)
-			/* A linkage specification (e.g., extern "C", has
-			   been scanned.  This can occur only in Microsoft
-			   C++ mode. */
-#define DS_DECLSPEC (a_decl_specifiers_set)(0x200)
-			/* "__declspec(...)" has been scanned (Microsoft mode
-			   only). */
-#define DS_MICROSOFT_INLINE (a_decl_specifiers_set)(0x400)
+#define DS_MICROSOFT_INLINE (a_decl_specifiers_set)(0x100)
 			/* "__inline" has been scanned (Microsoft mode
 			   only). */
-#define DS_FORCEINLINE (a_decl_specifiers_set)(0x800)
+#define DS_FORCEINLINE (a_decl_specifiers_set)(0x200)
 			/* "__forceinline" has been scanned (Microsoft mode
 			   only). */
-#define DS_OVERLOAD (a_decl_specifiers_set)(0x1000)
+#define DS_OVERLOAD (a_decl_specifiers_set)(0x400)
 			/* "overload" has been scanned (a C++ anachronism). */
-#define DS_VOID (a_decl_specifiers_set)(0x2000)
+#define DS_VOID (a_decl_specifiers_set)(0x800)
 			/* "void" was scanned as the very first specifier. */
 
 
@@ -6818,42 +6292,28 @@ passed to the call to decl_specifiers.
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void microsoft_specific_decl_specifiers(
+static void scan_microsoft_inline_specifiers(
                                 a_decl_flag_set         input_flags,
                                 a_decl_flag_set         *output_flags,
                                 a_decl_specifiers_set   *decl_specifiers_seen,
                                 a_decl_modifiers_block  *decl_modifiers,
-                                a_boolean               *no_remaining_token,
                                 a_boolean               *err)
 /*
-Scan certain Microsoft-specific specifiers (__declspec(...), __inline, and
-__forceinline) and update *output_flags, *decl_specifiers_seen, and
-*decl_modifiers accordingly.  Set *no_remaining_token when the __declspec
-specifier has been parsed since that process consumes the right parenthesis
-and hence the caller should not skip an additional token.  Set *err in case
-of an error.
+Scan certain Microsoft-specific specifiers (__inline, and __forceinline) and
+update *output_flags, *decl_specifiers_seen, and *decl_modifiers accordingly.
+Set *err in case of an error.
 */
 {
   an_extended_decl_info_block
                      extended_decl_info;
   a_source_position  specifier_start_pos;
-  a_boolean          is_declspec = FALSE;
   a_boolean          is_parameter = ((input_flags & DSI_IS_PARAMETER) != 0);
-  a_boolean          is_member_decl =
-                           ((input_flags & DSI_IS_MEMBER_DECLARATION) != 0);
 
   specifier_start_pos = pos_curr_token;
   clear_extended_decl_info_block(extended_decl_info);
   /* A Microsoft storage class modifier.  If this is a __declspec,
      scan the list of declaration modifiers. */
   switch (curr_token) {
-    case tok_declspec:
-      scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                                   /*is_enum_decl=*/FALSE, is_member_decl,
-                                   &extended_decl_info, err);
-      *decl_specifiers_seen |= DS_DECLSPEC;
-      is_declspec = TRUE;
-      break;
     case tok_microsoft_inline:
 	      extended_decl_info.decl_modifiers.flags = DM_MICROSOFT_INLINE;
       *decl_specifiers_seen |= DS_MICROSOFT_INLINE;
@@ -6869,13 +6329,10 @@ of an error.
   }  /* switch */
   if (!(input_flags & DSI_STORAGE_CLASS_SPECIFIER_ALLOWED) &&
       !(input_flags & (DSI_IS_EXPLICIT_INSTANTIATION |
-                       DSI_IS_SPECIALIZATION)) &&
-      !(is_declspec && is_member_decl)) {
-    /* When DSI_STORAGE_CLASS_SPECIFIER_ALLOWED, a diagnostic is often emitted.
-       Exceptions are explicit instantiations and explicit specializations, as
-       well as __declspec specifiers on class members (e.g., to specify their
-       alignment).  The Microsoft compiler allows (and ignores) __declspec in
-       many other places. */
+                       DSI_IS_SPECIALIZATION))) {
+    /* When storage class specifiers are not allowed, a diagnostic is often
+       emitted.  Exceptions are explicit instantiations and explicit
+       specializations. */
     pos_diagnostic((an_error_severity)(microsoft_bugs ? es_warning
                                                       : es_error),
                    ec_storage_class_not_allowed, &specifier_start_pos);
@@ -6889,50 +6346,12 @@ of an error.
     a_decl_modifiers_block_ptr  new_modifiers =
                                            &extended_decl_info.decl_modifiers;
     decl_modifiers->flags |= new_modifiers->flags;
-    if (new_modifiers->is_deprecated) {
-      decl_modifiers->is_deprecated = TRUE;
-      if (new_modifiers->deprecation_string != NULL) {
-        decl_modifiers->deprecation_string = new_modifiers->deprecation_string;
-      }  /* if */
-    }  /* if */
-    if (new_modifiers->is_microsoft_intrinsic) {
-      decl_modifiers->is_microsoft_intrinsic = TRUE;
-    }  /* if */
-    if (new_modifiers->alignment != 0) {
-      decl_modifiers->alignment = new_modifiers->alignment;
-    }  /* if */
-    /* Check __declspec(property(...)) specifications. */
-    if (new_modifiers->get_property_name != NULL) {
-      if (decl_modifiers->get_property_name != NULL) {
-        /* "get" specified more than once. */
-        pos_error(ec_dupl_get_or_put, &specifier_start_pos);
-      } else {
-        decl_modifiers->get_property_name = new_modifiers->get_property_name;
-      }  /* if */
-    }  /* if */
-    if (new_modifiers->put_property_name != NULL) {
-      if (decl_modifiers->put_property_name != NULL) {
-        /* "put" specified more than once. */
-        pos_error(ec_dupl_get_or_put, &specifier_start_pos);
-      } else {
-        decl_modifiers->put_property_name = new_modifiers->put_property_name;
-      }  /* if */
-    }  /* if */
-    if (new_modifiers->allocate_segname != NULL) {
-      if (decl_modifiers->allocate_segname != NULL) {
-        pos_error(ec_dupl_allocate_segname, &specifier_start_pos);
-      } else {
-        decl_modifiers->allocate_segname = new_modifiers->allocate_segname;
-      }  /* if */
-    }  /* if */
     if (is_parameter) {
       /* For parameters, warn if a storage class modifier is used. */
       pos_warning(ec_bad_param_storage_class, &specifier_start_pos);
     }  /* if */
   }  /* if */
-  /* Closing rparen of "__declspec(...)" has already been taken. */
-  *no_remaining_token = is_declspec;
-}  /* microsoft_specific_decl_specifiers */
+}  /* scan_microsoft_inline_specifiers */
 
 
 static void scan_and_append_microsoft_attributes(
@@ -7041,8 +6460,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
     if (is_member_decl &&
         !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
                                    DS_EXPLICIT | DS_INLINE |
-                                   DS_DECLSPEC | DS_MICROSOFT_INLINE |
-                                   DS_FORCEINLINE)) &&
+                                   DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
         (storage_class == (a_storage_class)sc_unspecified ||
          storage_class == (a_storage_class)sc_static)) {
       a_type_ptr  class_type = enclosing_class_type(input_flags);
@@ -7499,6 +6917,35 @@ FALSE otherwise.
   }  /* if */
 }  /* scan_specifier_attributes */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void preapply_declspec_attributes(a_decl_parse_state  *dps)
+/*
+If the current declaration (described by *dps) includes __declspec(dllimport)
+or __declspec(dllexport) attributes, perform some early check and adjustments:
+  - Check that both are not present simultaneously.
+  - Set dps->decl_modifiers accordingly.
+  - If __declspec(dllimport) is present without any storage class specifier,
+    set the storage class to sc_extern.
+(Note: The general attributes application mechanism doesn't actually record
+the DLL flags.  That is done elsewhere using dps->decl_modifiers.flags.)
+Also, set dps->is_property_field if the current declaration includes a
+__declspec(property(...)) attribute.
+*/
+{
+  add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
+                                dps->prefix_attributes);
+  if (dps->storage_class == (a_storage_class)sc_unspecified &&
+      !dps->in_class_scope &&
+      (dps->decl_modifiers.flags & DM_DLLIMPORT) != 0) {
+    dps->storage_class = (a_storage_class)sc_extern;
+  }  /* if */
+  if (find_attribute(ak_property, dps->prefix_attributes) != NULL) {
+    dps->is_property_field = TRUE;
+  }  /* if */
+}  /* preapply_declspec_attributes */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void attach_specifier_attributes(a_decl_parse_state  *dps)
 /*
@@ -7515,11 +6962,14 @@ a whole or to the specifiers type.  E.g.:
 is equivalent to
   __attribute((noreturn)) int __attribute((vector_size(16))) g();
 (the vector_size attribute applies to the specifiers type and the noreturn
-attribute applies to the declaration as a whole).  This routine therefore
-moves any GNU entries on the dps->specifier_attributes list that don't apply
-to types to the dps->prefix_attributes list, and any GNU entries on the
-dps->prefix_attributes that do apply to types to the dps->specifier_attributes
-list.
+attribute applies to the declaration as a whole).
+Similarly, Microsoft compilers make no distinction between prefix __declspec
+attributes and specifier attributes (unlike GNU attributes, there are no
+type-modifying __declspec attributes).
+This routine therefore moves any entries on the dps->specifier_attributes list
+that don't apply to types to the dps->prefix_attributes list.  Conversely, any
+entries on the dps->prefix_attributes that do transform types are moved to the
+dps->specifier_attributes list.
 */
 {
   if (dps->prefix_attributes != NULL || dps->specifier_attributes != NULL) {
@@ -7573,6 +7023,12 @@ list.
     if (dps->specifier_attributes != NULL) {
       attach_type_attributes(&dps->specifiers_type, dps->specifier_attributes);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && dps->prefix_attributes != NULL) {
+      /* Perform some early checking for dllimport/dllexport attributes. */
+      preapply_declspec_attributes(dps);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* attach_specifier_attributes */
 
@@ -7718,39 +7174,13 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         goto storage_class_specifier;
       case tok_extern:
         if (!C_mode() && next_token() == tok_string_literal) {
-          /* This is a C++ linkage specification, which is usually recognized
-             and ignored in this context -- except for the error that's put
-             out. */
-          if (microsoft_mode && (decl_specifiers_seen == DS_DECLSPEC) &&
-              !(input_flags & DSI_IS_LINKAGE_SPEC_DECL) &&
-              (is_member_decl ||
-               depth_scope_stack == depth_innermost_namespace_scope)) {
-            /* In Microsoft C++ compatibility mode, accept __declspec(...)
-               before a linkage specification.  No other decl-modifiers are
-               allowed to precede a linkage specification. */
-            a_name_linkage_kind  kind;
-            /* The Microsoft compiler appears simply to ignore the
-               decl-modifiers that precede the linkage specifier:
-                 __declspec(dllexport) extern "C" void f();
-                 extern "C" void f();      // MSVC++ issues no error
-               Therefore, we throw away any decl-modifiers that were
-               accumulated to this point. */
-            clear_decl_modifiers_block(&state->decl_modifiers);
-            warning(ec_decl_modifiers_ignored);
-            /* Advance to the string token. */
+          /* This is a C++ linkage specification, which is an error in this
+             context. */
+          error(ec_linkage_specifier_not_allowed);
+          err = TRUE;
+          /* Consume "extern".  We don't bother validating the string since an
+             error has already been issued. */
             (void)get_token();
-            if (scan_name_linkage_string(&kind)) { 
-              push_name_linkage(kind);
-              *output_flags |= DSO_LINKAGE_SPEC_DECL;
-            }  /* if */
-            decl_specifiers_seen |= DS_LINKAGE_SPEC;
-          } else {
-            error(ec_linkage_specifier_not_allowed);
-            err = TRUE;
-            /* Consume "extern".  We don't bother validating the string
-               since an error has already been issued. */
-            (void)get_token();
-          }  /* if */
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
@@ -7810,28 +7240,10 @@ storage_class_specifier:
       case tok_microsoft_inline:
       case tok_forceinline:
         auto_type_allowed = FALSE;
-        /*FALLTHROUGH*/
-      case tok_declspec:
-        /* A Microsoft specific storage class.  Note that Microsoft
-           allows these in some nonstandard places such as on
-           linkage declarations (e.g., extern "C" declarations). */
-        { a_boolean  no_remaining_token;
-          if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
-            /* These specifiers are ignored by the caller when scanning
-               secondary specifiers; e.g., "int i, __declspec(thread) j;" */
-            warning(ec_secondary_specifier_ignored);
-          }  /* if */
-          microsoft_specific_decl_specifiers(input_flags, output_flags,
-                                             &decl_specifiers_seen,
-                                             &state->decl_modifiers,
-                                             &no_remaining_token, &err);
-          if ((*output_flags & DSO_INLINE) == 0) {
-            /* Only a __declspec was scanned, and that may precede a vacuous
-               declaration. */
-            specifier_allows_vacuous_decl = TRUE;
-          }  /* if */
-          if (no_remaining_token) goto no_get_token;
-        }
+        /* Microsoft-specific specifiers: __inline and __forceinline. */
+        scan_microsoft_inline_specifiers(input_flags, output_flags,
+                                         &decl_specifiers_seen,
+                                         &state->decl_modifiers, &err);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_lbracket:
@@ -7856,7 +7268,16 @@ storage_class_specifier:
         /*FALLTHROUGH*/
       case tok_attribute:
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        { a_boolean         std_attr_seen;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_declspec:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (input_flags & DSI_MICROSOFT_SECONDARY_SPECIFIERS) {
+          /* These specifiers are ignored by the caller when scanning
+             secondary specifiers; e.g., "int i, __declspec(thread) j;" */
+          pos_warning(ec_secondary_specifier_ignored, &pos_curr_token);
+          skip_over_attributes();
+        } else {
+          a_boolean         std_attr_seen;
           scan_specifier_attributes(input_flags, state, &std_attr_seen);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           if (decl_pos_block != NULL) {
@@ -8489,13 +7910,11 @@ process_class_specifier:
               goto exit_loop;
             } else {
               if (!class_specifier(
-                          input_flags,
-                          vacuous_decl_allowed,
+                          state, input_flags, vacuous_decl_allowed,
                           (decl_specifiers_seen & DS_FRIEND) != 0,
-                          *storage_class == (a_storage_class)sc_typedef,
-                          marked_as_gnu_extension, &state->decl_modifiers,
-                          &state->ms_attributes, type_ptr, &declares_something,
-                          &defines_something, decl_pos_block)) {
+                          marked_as_gnu_extension, type_ptr,
+                          &declares_something, &defines_something,
+                          decl_pos_block)) {
                 err = TRUE;
               }  /* if */
               basic_type = bt_struct_union;
@@ -8509,13 +7928,9 @@ process_class_specifier:
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
             (void)class_specifier(
-                          input_flags,
-                          /*vacuous_decl_allowed=*/FALSE,
-                          /*is_friend_decl=*/FALSE,
-                          /*is_typedef=*/FALSE,
-                          marked_as_gnu_extension, &state->decl_modifiers,
-                          (an_ms_attribute_ptr*)NULL, &dummy_type, &dummy_flag,
-                          &dummy_flag, decl_pos_block);
+                       state, input_flags, /*vacuous_decl_allowed=*/FALSE,
+                       /*is_friend_decl=*/FALSE, marked_as_gnu_extension,
+                       &dummy_type, &dummy_flag, &dummy_flag, decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
@@ -8759,7 +8174,7 @@ process_class_specifier:
 	       (gpp_mode && locator_for_curr_id.is_template_id &&
 		gpp_type_name_matches_class_name(curr_token_type_symbol))) && 
 	      (!(decl_specifiers_seen &
-                 ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
+                 ~(DS_FRIEND | DS_INLINE | 
                    DS_MICROSOFT_INLINE | DS_FORCEINLINE))) &&
               /* g++ allows X::X to be used in most places as a type name.
                  A left parenthesis seems to be used to detect the constructor
@@ -8940,7 +8355,7 @@ process_class_specifier:
           break;
         }  /* if */
         if (!(decl_specifiers_seen &
-              ~(DS_FRIEND | DS_INLINE | DS_DECLSPEC |
+              ~(DS_FRIEND | DS_INLINE |
                 DS_MICROSOFT_INLINE | DS_FORCEINLINE))) {
           /* A function declaration without declaration specifiers is
              permitted. */
@@ -9334,7 +8749,9 @@ exit_loop:
      pointer types). */
   state->type = state->declared_type = state->specifiers_type;
   if ((*output_flags & DSO_NO_DECL_SPECIFIERS) &&
-      !state->is_linkage_spec_decl) {
+      !state->is_linkage_spec_decl &&
+      state->prefix_attributes == NULL &&
+      state->specifier_attributes == NULL) {
     /* Note that for the purposes of diagnostic, something like
        ``extern "C" f();'' is treated as having a decl-specifier (hence the
        test for !state->is_linkage_spec_decl). */

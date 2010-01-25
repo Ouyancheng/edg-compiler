@@ -3149,7 +3149,7 @@ al_id_equivalent attributes.
       write_tok_str("__attribute((");
       break;
     case af_ms_declspec:
-      write_tok_str("__declspec");
+      write_tok_str("__declspec(");
       break;
     default:
       unexpected_condition();
@@ -3844,8 +3844,6 @@ done:;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void gen_microsoft_decl_modifiers(a_decl_modifier decl_modifiers);
-
 static void gen_microsoft_inheritance_kind(an_inheritance_kind kind)
 /*
 Put out a Microsoft inheritance kind, e.g., __single_inheritance.
@@ -3869,80 +3867,11 @@ Put out a Microsoft inheritance kind, e.g., __single_inheritance.
 }  /* gen_microsoft_inheritance_kind */
 
 
-static void gen_microsoft_uuid_declspec(char *uuid_string)
+static void gen_microsoft_class_decl_modifiers(a_type_ptr type)
 /*
-Put out the Microsoft __declspec(uuid(...)) declaration modifier.
-uuid_string is the GUID string, or NULL if the modifier does not apply.
-*/
-{
-  if (uuid_string != NULL) {
-    write_tok_str("__declspec(uuid(");
-    write_ch('"');
-    write_str(uuid_string);
-    write_ch('"');
-    write_tok_str(")) ");
-  }  /* if */
-}  /* gen_microsoft_uuid_declspec */
-
-
-static void gen_microsoft_allocate_declspec(char *allocate_segname)
-/*
-Put out the Microsoft __declspec(allocate(...)) declaration modifier.
-allocate_segname is the segment name, or NULL if the modifier does not apply.
-*/
-{
-  if (allocate_segname != NULL) {
-    write_tok_str("__declspec(allocate(");
-    write_ch('"');
-    write_str(allocate_segname);
-    write_ch('"');
-    write_tok_str(")) ");
-  }  /* if */
-}  /* gen_microsoft_allocate_declspec */
-
-
-static void gen_microsoft_deprecated_spec(a_source_correspondence_ptr  scp)
-/*
-If the "is_deprecated" flag is set in the given source correspondence,
-put out a "__declspec(deprecated)" specifier.
-*/
-{
-  if (microsoft_dialect_is_generated_code_target && scp->is_deprecated) {
-#if DEPRECATION_STRING_IN_IL
-    if (deprecation_string_for(scp) != NULL) {
-      write_tok_str("__declspec(deprecated(");
-      ensure_enough_room_on_line(strlen(deprecation_string_for(scp)) + 2);
-      m_write_ch('"');
-      m_write_str(deprecation_string_for(scp));
-      m_write_ch_no_pending_check('"');
-      write_tok_str(")) ");
-    } else
-#endif /* DEPRECATION_STRING_IN_IL */
-    {
-      write_tok_str("__declspec(deprecated) ");
-    }  /* if */
-  }  /* if */
-}  /* gen_microsoft_deprecated_spec */
-
-
-static void gen_microsoft_align_declspec(a_targ_alignment alignment)
-/*
-Put out the Microsoft __declspec(align(...)) declaration modifier if the
-given alignment value is nonzero.
-*/
-{
-  if (microsoft_dialect_is_generated_code_target && alignment != 0) {
-    write_tok_str("__declspec(align(");
-    write_unsigned_num(alignment);
-    write_tok_str(")) ");
-  }  /* if */
-}  /* gen_microsoft_align_declspec */
-
-
-static void gen_microsoft_class_decl_modifiers(a_type_ptr type,
-                                               a_boolean  is_definition)
-/*
-Put out declaration modifiers that apply to a class as a whole.
+Put out declaration modifiers that apply to a class as a whole, but exclude
+__declspec attributes (since the latter are rendered using the general
+gen_attributes function).
 These follow the tag kind, e.g., "struct __single_inheritance xxx".
 */
 {
@@ -3953,23 +3882,10 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
        least one declaration of the current class. */
     gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
   }  /* if */
-  gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
-  gen_microsoft_uuid_declspec(ctsp->uuid_string);
 #if NEAR_AND_FAR_ALLOWED
   form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
                       /*need_trailing_space=*/TRUE, &octl);
 #endif /* NEAR_AND_FAR_ALLOWED */
-  gen_microsoft_deprecated_spec(&type->source_corresp);
-  if (is_definition) {
-#if USER_CONTROL_OF_STRUCT_PACKING
-    if (type->alignment_set_explicitly) {
-      gen_microsoft_align_declspec(type->alignment);
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (type->is_microsoft_intrinsic) {
-      write_tok_str("__declspec(intrin_type) ");
-    }  /* if */
-  }  /* if */
 }  /* gen_microsoft_class_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4057,11 +3973,8 @@ al_tag_name attributes (if any).
       if (il_header.source_language == sl_Cplusplus) {
         if (type->kind != (a_type_kind)tk_enum) {
           /* On the first declaration put out declaration modifiers that apply
-             to the class as a whole. */
-          gen_microsoft_class_decl_modifiers(type, /*is_definition=*/FALSE);
-        } else {
-           /* For enums we may have to issue a uuid string. */
-           gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
+             to the class as a whole (except for __declspec attributes). */
+          gen_microsoft_class_decl_modifiers(type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5040,14 +4953,6 @@ is the one associated with the definition of the enum.
   }  /* if */
   gen_attributes(type->source_corresp.attributes, al_tag_name,
                  /*primary_only=*/TRUE);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_dialect_is_generated_code_target &&
-      type->variant.integer.uuid_string != NULL) {
-    /* enum types may carry uuid specifications. */
-    write_space();
-    gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Put out the name if the enum is named. */
   if (has_name(type) && !type->variant.integer.originally_unnamed) {
     write_space();
@@ -5428,29 +5333,6 @@ declaration following this one is such a continuation.
     write_tok_str("__extension__ ");
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_dialect_is_generated_code_target) {
-    if (field->get_property_name != NULL ||
-        field->put_property_name != NULL) {
-      /* This field is declared with __declspec(property(...)). */
-      write_tok_str("__declspec(property(");
-      if (field->get_property_name != NULL) {
-        write_tok_str("get=");
-        write_tok_str(field->get_property_name);
-        if (field->put_property_name != NULL) write_tok_ch(',');
-      }  /* if */
-      if (field->put_property_name != NULL) {
-        write_tok_str("put=");
-        write_tok_str(field->put_property_name);
-      }  /* if */
-      write_tok_str(")) ");
-    }  /* if */
-    gen_microsoft_deprecated_spec(&field->source_corresp);
-#if USER_CONTROL_OF_STRUCT_PACKING
-    gen_microsoft_align_declspec(field->alignment);
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (field->is_mutable) write_tok_str("mutable ");
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
@@ -5480,62 +5362,6 @@ declaration following this one is such a continuation.
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_field_decl */
 
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void gen_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
-/*
-Print a set of Microsoft declaration modifiers.
-*/
-{
-  if (decl_modifiers &
-      (DM_DLLFLAGS | DM_THREAD | DM_NAKED | DM_SELECTANY | DM_NORETURN |
-       DM_NOTHROW | DM_NOVTABLE | DM_NOINLINE | DM_NOALIAS | DM_RESTRICT)) {
-    write_tok_str("__declspec( ");
-    if (decl_modifiers & DM_DLLIMPORT) {
-      write_tok_str("dllimport ");
-    }  /* if */
-    if (decl_modifiers & DM_DLLEXPORT) {
-      write_tok_str("dllexport ");
-    }  /* if */
-    if (decl_modifiers & DM_THREAD) {
-      write_tok_str("thread ");
-    }  /* if */
-    if (decl_modifiers & DM_NAKED) {
-      write_tok_str("naked ");
-    }  /* if */
-    if (decl_modifiers & DM_SELECTANY) {
-      write_tok_str("selectany ");
-    }  /* if */
-    if (decl_modifiers & DM_NORETURN) {
-      write_tok_str("noreturn ");
-    }  /* if */
-    if (decl_modifiers & DM_NOTHROW) {
-      write_tok_str("nothrow ");
-    }  /* if */
-    if (decl_modifiers & DM_NOVTABLE) {
-      write_tok_str("novtable ");
-    }  /* if */
-    if (decl_modifiers & DM_NOINLINE) {
-      write_tok_str("noinline ");
-    }  /* if */
-    if (decl_modifiers & DM_NOALIAS) {
-      write_tok_str("noalias ");
-    }  /* if */
-    if (decl_modifiers & DM_RESTRICT) {
-      write_tok_str("restrict ");
-    }  /* if */
-    write_tok_str(") ");
-  }  /* if */
-  if (decl_modifiers & DM_MICROSOFT_INLINE) {
-    write_tok_str("__inline ");
-  }  /* if */
-  if (decl_modifiers & DM_FORCEINLINE) {
-    write_tok_str("__forceinline ");
-  }  /* if */
-}  /* gen_microsoft_decl_modifiers */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_base_class_list(a_class_type_supplement_ptr  ctsp)
 /*
@@ -5691,9 +5517,9 @@ is the one associated with the definition of the class.
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_dialect_is_generated_code_target) {
-    /* Put out modifiers that apply to the class as a whole, e.g.,
-       "class __declspec(dllimport) A {...}". */
-    gen_microsoft_class_decl_modifiers(type, /*is_definition=*/TRUE);
+    /* Put out modifiers that apply to the class as a whole (except for
+       __declspec attributes).  E.g., "class __single_inheritance A {...}". */
+    gen_microsoft_class_decl_modifiers(type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -5853,12 +5679,6 @@ declaration following this one is such a continuation.
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (!suppress_specifiers) write_tok_str("typedef ");
-#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_dialect_is_generated_code_target &&
-        type->alignment_set_explicitly) {
-      gen_microsoft_align_declspec(type->alignment);
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_function_type(under_type) &&
         (class_type = f_skip_typerefs(under_type)->variant.routine.extra_info->
                                                          this_class) != NULL) {
@@ -10352,50 +10172,18 @@ static void gen_routine_specifiers_and_declaration(
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void suppress_microsoft_decl_modifiers_put_out_on_class(
-                                       a_decl_modifier         *decl_modifiers,
-                                       a_source_correspondence *scp)
-/*
-If scp is the source correspondence entry for a class member, and
-some Microsoft decl modifiers were put out on the class, remove those
-qualifiers from the set *decl_modifiers so they will not be put out
-again on a member declaration.
-*/
-{
-  if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
-    a_type_ptr class_type = scp_parent_class(scp);
-    a_class_type_supplement_ptr
-               ctsp = class_type_supp(class_type);
-    *decl_modifiers &= ~ctsp->decl_modifiers;
-    /* As a special case, suppress "__declspec(dllexport)" if the class is
-       marked as dllimport.  This case arises when a member of a dllimport
-       class is defined, which forces it to be dllexport (even though that
-       is a conflict with the class, it's only a warning).  The Microsoft
-       compiler treats conflicting explicit specifications as an error,
-       however, so the member specification must be suppressed. */
-    if (ctsp->decl_modifiers & DM_DLLIMPORT) {
-      *decl_modifiers &= ~DM_DLLEXPORT;
-    }  /* if */
-  }  /* if */
-}  /* suppress_microsoft_decl_modifiers_put_out_on_class */
-
-
-static void gen_microsoft_routine_decl_modifiers(a_routine_ptr  rout,
-                                                 a_boolean      is_definition)
+static void gen_microsoft_routine_decl_modifiers(a_routine_ptr  rout)
 /*
 Generate Microsoft-specific declaration specifiers that modify a declaration
-for the given routine (e.g., __declspec(...)).  If the declaration is a
-definition, is_definition is TRUE.
+for the given routine (only render non-__declspec modifiers).
 */
 {
-  a_decl_modifier decl_modifiers = rout->decl_modifiers;
-
-  /* __declspec(naked) applies only to definitions. */
-  if (!is_definition) decl_modifiers &= ~DM_NAKED;
-  suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
-                                                     &rout->source_corresp);
-  gen_microsoft_decl_modifiers(decl_modifiers);
-  gen_microsoft_deprecated_spec(&rout->source_corresp);
+  if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
+    write_tok_str("__inline ");
+  }  /* if */
+  if (rout->decl_modifiers & DM_FORCEINLINE) {
+    write_tok_str("__forceinline ");
+  }  /* if */
 }  /* gen_microsoft_routine_decl_modifiers */
 
 
@@ -10422,7 +10210,7 @@ is generated.
 }  /* gen_microsoft_function_modifiers */
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define gen_microsoft_routine_decl_modifiers(rout, is_definition) /* Nothing */
+#define gen_microsoft_routine_decl_modifiers(rout) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_instantiation_directive(void)
@@ -10470,7 +10258,7 @@ Generate code for an instantiation directive.
       case iek_routine:
         { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
           a_boolean     context_pop_needed;
-          gen_microsoft_routine_decl_modifiers(rout, /*is_definition=*/FALSE);
+          gen_microsoft_routine_decl_modifiers(rout);
           gen_sun_link_scope_specifiers(rout->decl_modifiers);
           gen_routine_specifiers_and_declaration(
                                          rout, rout->type,
@@ -11993,34 +11781,13 @@ declaration following this one is such a continuation.
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
    gen_sun_link_scope_specifiers(var->decl_modifiers);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_dialect_is_generated_code_target) {
-      a_decl_modifier decl_modifiers = var->decl_modifiers;
-      /* __declspec(selectany) applies only to definitions. */
-      if (!is_definition) decl_modifiers &= ~DM_SELECTANY;
-      if (var->source_corresp.is_class_member &&
-          is_const_qualified_type(var->type) &&
-          !curr_name_context_is_a_class()) {
-        /* MSVC++ does not accept __declspec(dllexport) on the (out-of-class)
-           definition of a const-qualified static data member -- the modifier
-           on the declaration inside the class will suffice. */
-        decl_modifiers &= ~DM_DLLEXPORT;
-      }  /* if */
-      suppress_microsoft_decl_modifiers_put_out_on_class(&decl_modifiers,
-                                                         &var->source_corresp);
-      gen_microsoft_decl_modifiers(decl_modifiers);
-      gen_microsoft_allocate_declspec(var->allocate_segname);
-      gen_microsoft_deprecated_spec(&var->source_corresp);
-      gen_microsoft_align_declspec(var->alignment);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE && \
     (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
     if (!microsoft_dialect_is_generated_code_target &&
         (var->decl_modifiers & DM_THREAD)) {
       /* Non-Microsoft dialects usually include a "__thread" keyword to
          indicate thread-local storage.  (The Microsoft syntax will have
-         been emitted by the call to gen_microsoft_decl_modifiers.) */
+         been emitted by the call to gen_attributes.) */
       write_tok_str("__thread ");
     }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
@@ -12993,7 +12760,7 @@ handle_as_definition:
     if (rout->is_explicit_constructor && decl_within_class) {
       write_tok_str("explicit ");
     }  /* if */
-    gen_microsoft_routine_decl_modifiers(rout, is_definition);
+    gen_microsoft_routine_decl_modifiers(rout);
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and

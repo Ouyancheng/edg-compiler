@@ -10186,6 +10186,7 @@ not a class or enum type, return NULL.
   return result;
 }  /* uuid_string_of_type */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
 
 void set_declspec_align(a_type_ptr         type,
@@ -10205,7 +10206,6 @@ set explicitly, issue a warning for the given position.
 }  /* set_declspec_align */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean in_definition_of_class(a_type_ptr  tp)
 /*

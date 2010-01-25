@@ -2853,16 +2853,6 @@ might not be able to if the template itself has not yet been defined.
         /* Various properties of the instance can be copied from the
            prototype instantiation. */
         a_type_ptr proto_type = type_symbol_type(cssp->corresp_prototype_sym);
-#if USER_CONTROL_OF_STRUCT_PACKING
-        /* Check whether an explicit alignment was specified using
-           __declspec(align(...)) and if so record that in the IL.
-           We use the prototype instantiation to determine whether
-           the alignment was set explicitly. */
-        if (proto_type->alignment_set_explicitly) {
-          set_declspec_align(class_type, proto_type->alignment,
-                             &class_type->source_corresp.decl_position);
-        }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
         class_type->variant.class_struct_union.abstract = 
                               proto_type->variant.class_struct_union.abstract;
 #if BACK_END_IS_CP_GEN_BE
@@ -5183,7 +5173,6 @@ prototype instantiation is considered as a potential match.
         extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
 #endif /* NEAR_AND_FAR_ALLOWED */
         update_extended_decl_info_for_class(class_type, &extended_decl_info,
-                                            /*class_definition=*/FALSE,
                                             /*explicit_inst=*/FALSE, &pos);
       }  /* if */
     }  /* if */
@@ -9216,15 +9205,13 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       attach_attributes(inst_attr, (char*)rp, iek_routine);
     }  /* if */
 #if DECL_MODIFIERS_IN_USE
-    {
-    a_decl_modifiers_block  decl_modifiers;
-
-    clear_decl_modifiers_block(&decl_modifiers);
-    decl_modifiers.flags = templ_rout->decl_modifiers;
-    update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
-                                  /*is_redecl=*/FALSE,
-                                  (a_boolean)templ_rout->defined,
-                                  (a_boolean)rp->is_inline);
+    { a_decl_modifiers_block  decl_modifiers;
+      clear_decl_modifiers_block(&decl_modifiers);
+      decl_modifiers.flags = templ_rout->decl_modifiers;
+      update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
+                                    /*is_redecl=*/FALSE,
+                                    (a_boolean)templ_rout->defined,
+                                    (a_boolean)rp->is_inline);
     }
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
@@ -10759,6 +10746,13 @@ definition (as opposed to a mere declaration).
   a_type_ptr	prototype_type;
   a_symbol_ptr	prototype_sym;
 
+  /* The general attribute application mechanism doesn't set the DLL flags
+     (because some information required to check those attributes is not
+     available through that mechanism in some cases).  Create flags from
+     the attributes here to apply the attributes via the call to
+     update_extended_decl_info_for_class below. */
+  add_flags_from_dll_attributes(&extended_decl_info->decl_modifiers.flags,
+                                tssp->attributes);
   /* DLL interface specifiers are ignored on class templates in earlier
      Microsoft compilers. */
   if (microsoft_version < 1300 &&
@@ -10773,7 +10767,6 @@ definition (as opposed to a mere declaration).
        the subordinate template has no prototype instantiation. */
     prototype_type = type_symbol_type(prototype_sym);
     update_extended_decl_info_for_class(prototype_type, extended_decl_info,
-                                        class_definition,
                                         /*explicit_inst=*/FALSE, err_pos);
     if (is_abstract) {
       prototype_type->variant.class_struct_union.abstract = TRUE;
@@ -10793,7 +10786,6 @@ definition (as opposed to a mere declaration).
     if (is_real_class_symbol(instance_sym) &&
         !tp->variant.class_struct_union.is_specialized) {
       update_extended_decl_info_for_class(tp, extended_decl_info,
-                                          /*class_definition=*/FALSE,
                                           /*explicit_inst=*/FALSE, err_pos);
     }  /* if */
   }  /* for */
@@ -12109,19 +12101,17 @@ declaration of a partial specialization declared outside of its class.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass "class", "struct", "union", or "__interface". */
   (void)get_token();
+  attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Scan any Microsoft extended decl modifiers that may be present
-       such as __single_inheritance. */
-    a_boolean	err = FALSE;
+       such as __single_inheritance.  (This may include additional Microsoft
+       __declspec attributes.) */
     clear_extended_decl_info_block(extended_decl_info);
-    scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
-                                 /*is_enum_decl=*/FALSE,
-                                 decl_state->is_member_decl,
-                                 &extended_decl_info, &err);
+    scan_extended_decl_modifiers(&extended_decl_info, &attributes,
+                                 al_tag_name, /*is_enum_decl=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  attributes = scan_attributes(al_tag_name);
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                        GID_USE_PROTOTYPE_NOT_NONREAL |
@@ -17295,10 +17285,7 @@ that follows.
           a_source_position  saved_sym_pos;
           saved_sym_pos = sym->decl_position;
           sym->decl_position = prev_sym_pos;
-          update_variable_decl_modifiers(vp, &dps->decl_modifiers,
-                                         &locator.source_position,
-                                         already_specialized,
-                                         dps->is_definition);
+          update_variable_decl_modifiers(dps);
           sym->decl_position = saved_sym_pos;
         }
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -17431,8 +17418,7 @@ that follows.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         }  /* if */
 #if DECL_MODIFIERS_IN_USE
-        {
-          /* update_routine_decl_modifiers expects the position recorded in
+        { /* update_routine_decl_modifiers expects the position recorded in
              the symbol not to be updated yet (to reference previous
              declarations in diagnostics).  Since record_symbol_declaration
              may already have updated the position, we must temporarily

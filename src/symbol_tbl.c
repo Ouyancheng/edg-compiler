@@ -10938,14 +10938,38 @@ declaration modifiers.
   decl_modifiers->is_deprecated = FALSE;
   decl_modifiers->is_microsoft_intrinsic = FALSE;
   decl_modifiers->uuid_string = NULL;
-  decl_modifiers->get_property_name = NULL;
-  decl_modifiers->put_property_name = NULL;
-  decl_modifiers->allocate_segname = NULL;
-  decl_modifiers->deprecation_string = NULL;
-  decl_modifiers->alignment = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_decl_modifiers_block */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+char *deprecation_string_for(a_source_correspondence_ptr  scp)
+/*
+Return the string recorded for the "deprecated" attribute (if any) applied to
+the entity associated with scp.
+*/
+{
+  char  *result = NULL;
+
+  if (scp->is_deprecated) {
+    an_attribute_ptr  ap = scp->attributes;
+    for (; ap != NULL; ap = ap->next) {
+      if (ap->kind == (a_byte_attribute_kind)ak_deprecated &&
+          ap->arguments != NULL) {
+        a_constant_ptr  cp;
+        check_assertion(ap->arguments->kind ==
+                                         (an_attribute_arg_kind)aak_constant);
+        cp  = ap->arguments->variant.constant;
+        check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
+        result = cp->variant.string.value;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* deprecation_string_for */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void add_to_dependent_type_fixup_list(a_type_ptr                   type_ptr,
                                       a_dependent_type_fixup_kind  fixup_kind,
@@ -12291,9 +12315,6 @@ are handled in symbol_tbl_init.)
   /* Clear both fields for union-as-struct testing. */
   cleared_symbol.parent.class_type                 = NULL;
   cleared_symbol.parent.namespace_ptr              = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
-  cleared_symbol.deprecation_string                = NULL;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */
   cleared_symbol.corresp_nonreal_or_nested_type    = NULL;
   cleared_symbol.referenced                        = FALSE;
   cleared_symbol.defined                           = FALSE;

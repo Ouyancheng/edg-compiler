@@ -187,10 +187,7 @@ abstract or real declarator.
 #define DI_IS_TEMPLATE_PARAM_DECL ((a_decl_flag_set)0x20000)
 			/* If this bit is set the declaration is that of a
 			   template parameter. */
-#define DI_IS_MICROSOFT_PROPERTY ((a_decl_flag_set)0x40000)
-			/* If this bit is set the declaration is that of a
-			   property field (Microsoft mode only). */
-#define DI_VARIABLY_MODIFIED_DECL_ALLOWED ((a_decl_flag_set)0x80000)
+#define DI_VARIABLY_MODIFIED_DECL_ALLOWED ((a_decl_flag_set)0x40000)
 			/* If this bit is set and DI_VLA_ALLOWED is not, then
 			   nonconstant bounds are only allowed if the final
 			   type is not that of a VLA.  E.g., "(a[3])[n]" would
@@ -327,8 +324,7 @@ extern void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                                      a_type_ptr          *derived_type,
                                      a_type_ptr          *bottom_derived_type,
                                      a_decl_parse_state  *dps,
-                                     a_boolean           parameter_type,
-                                     a_boolean           microsoft_property);
+                                     a_boolean           parameter_type);
 
 extern void report_bad_return_type_qualifier(a_type_ptr          type,
                                              a_decl_parse_state  *dps,

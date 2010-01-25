@@ -2449,12 +2449,7 @@ array variants) and marked as compiler-generated.
   return result;
 }  /* is_generated_new_or_delete_operator */
 
-#if DECL_MODIFIERS_IN_USE
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* The parameters are only used to check Microsoft-specific
-                declaration modifiers. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean incompatible_routine_decl_modifiers(a_routine_ptr  rp1,
                                                      a_routine_ptr  rp2)
 /*
@@ -2464,12 +2459,7 @@ declaration modifiers.
 {
   a_boolean        result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLFLAGS |
-                                               DM_FORCEINLINE |
-                                               DM_NAKED |
-                                               DM_NOINLINE |
-                                               DM_NORETURN |
-                                               DM_NOTHROW);
+  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLFLAGS | DM_FORCEINLINE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2479,48 +2469,42 @@ declaration modifiers.
   result = ((rp1->decl_modifiers & ~dm_mask) !=
                                             (rp2->decl_modifiers & ~dm_mask));
   if (!result &&
-      (rp1->decl_modifiers & DM_NAKED) != (rp2->decl_modifiers & DM_NAKED)) {
-    /* __declspec(naked) need not be specified on every declaration, but if
-       it appears on one, it must also appear on the definition. */
-    if (((rp1->decl_modifiers & DM_NAKED) && rp2->defined) ||
-        ((rp2->decl_modifiers & DM_NAKED) && rp1->defined)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!result &&
-      (rp1->decl_modifiers & DM_NOTHROW) !=
-                                         (rp2->decl_modifiers & DM_NOTHROW)) {
-    /* __declspec(nothrow) need not be specified on every declaration, but if
-       it appears on one, it must also appear on the definition. */
-    if (((rp1->decl_modifiers & DM_NOTHROW) && rp2->defined) ||
-        ((rp2->decl_modifiers & DM_NOTHROW) && rp1->defined)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!result &&
-      (rp1->decl_modifiers & DM_NORETURN) !=
-                                        (rp2->decl_modifiers & DM_NORETURN)) {
-    /* __declspec(noreturn) need not be specified on every declaration, but if
-       it appears on one, it must also appear on the definition. */
-    if (((rp1->decl_modifiers & DM_NORETURN) && rp2->defined) ||
-        ((rp2->decl_modifiers & DM_NORETURN) && rp1->defined)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!result &&
-      (((rp1->decl_modifiers & DM_FORCEINLINE) &&
-                                       (rp2->decl_modifiers & DM_NOINLINE)) ||
-       ((rp1->decl_modifiers & DM_NOINLINE) &&
-                                   (rp2->decl_modifiers & DM_FORCEINLINE)))) {
+      (((rp1->decl_modifiers & DM_FORCEINLINE) && rp2->never_inline) ||
+       (rp1->never_inline && (rp2->decl_modifiers & DM_FORCEINLINE)))) {
     /* A routine shouldn't be declared both with __forceinline and with
        __declspec(noinline). */
     result = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (!result && rp1->is_naked != rp2->is_naked) {
+    /* Attribute "naked" need not be specified on every declaration, but if it
+       appears on one, it must also appear on the definition. */
+    if ((rp1->is_naked && rp2->defined) || (rp2->is_naked && rp1->defined)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  if (!result && rp1->never_throws != rp2->never_throws) {
+    /* The nothrow attribute need not be specified on every declaration, but
+       if it appears on one, it must also appear on the definition. */
+    if ((rp1->never_throws && rp2->defined) ||
+        (rp2->never_throws && rp1->defined)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!result &&
+      routine_does_not_return(rp1) != routine_does_not_return(rp2)) {
+    /* The noreturn attribute need not be specified on every declaration, but
+       if it appears on one, it must also appear on the definition. */
+    if ((routine_does_not_return(rp1) && rp2->defined) ||
+        (routine_does_not_return(rp2) && rp1->defined)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
   return result;
 }  /* incompatible_routine_decl_modifiers */
 
-#endif /* DECL_MODIFIERS_IN_USE */
 
 static void verify_corresp_for_entities_list(
                               an_il_entity_list_entry_ptr  ep1,

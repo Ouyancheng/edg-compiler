@@ -38,6 +38,11 @@ extern a_boolean conflicts_with_previous_function_decl(
                                                 a_symbol_ptr       sym,
                                                 a_source_position  *pos);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
+                                              a_decl_parse_state  *dps);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);
