@@ -397,6 +397,8 @@ array-to-pointer decay).
   if (type_ptr->kind == (a_type_kind)tk_typeref) {
     /* Leave the declared type the same as the routine type. */
     declared_type = type_ptr;
+  } else if (func_info->declared_type != NULL) {
+    declared_type = func_info->declared_type;
   } else {
     /* Make a copy of the type.  Note that default arg expressions, if any,
        will be copied later. */
@@ -418,7 +420,8 @@ array-to-pointer decay).
           fixup_needed = TRUE;
           break;
         }  /* if */
-        check_assertion((param_id->next == NULL) == (ptp->next == NULL));
+        check_assertion_str((param_id->next == NULL) == (ptp->next == NULL),
+                            "form_declared_type: inconsistent param lists");
       }  /* for */
       if (fixup_needed) {
         /* It's necessary to create a new type. */
@@ -426,10 +429,14 @@ array-to-pointer decay).
         param_id = func_info->param_id_list;
         for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
           a_type_ptr  tp = param_id->declared_type;
-
           check_assertion(tp != NULL);
           if (is_error_type(ptp->type) || is_error_type(tp)) {
-            /* Do nothing. */
+            /* Something went wrong with a parameter declaration.  In cases
+               with severe syntax errors, param_id_list and param_type_list
+               may be inconsistent.  To avoid error recovery issues, proceed
+               with the effective routine type. */
+            declared_type = type_ptr;
+            break;
           } else {
             if (!C_mode() && is_or_contains_template_param(tp)) {
               if (is_function_type(tp) && !is_function_type(ptp->type)) {

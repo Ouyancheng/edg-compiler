@@ -1,5 +1,15 @@
 Version 4.2
 
+<<<<<<< Changes
+1/25/10  [EDGcpfe/10381]
+Abort in update_routine_declared_type with severe syntax errors
+
+In some unusual cases involving function templates with severe syntax errors,
+the front end aborted with an internal error in update_routine_declared_type
+(declarator.c).  This is now fixed.
+
+
+=======
 1/26/10  [EDGcpfe/10372]
 New utility routine to return the number of elements in a vector type
 
@@ -13,6 +23,7 @@ routine).  The new routine is available only in configurations where
 GNU_VECTOR_TYPES_ALLOWED is TRUE.
 
 
+>>>>>>> 1.8492
 1/25/10  [EDGcpfe/10369]
 GNU C++ compatibility: lookup of name following "." or "->"
 
