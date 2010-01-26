@@ -9715,8 +9715,7 @@ position of the first member of the aggregate constant aggr_con.
       aggr_pos->member_type = f_skip_typerefs(aggr_type->
                                                   variant.vector.element_type);
       check_assertion(aggr_pos->member_type->size != 0);
-      aggr_pos->number_of_elements = aggr_type->size /
-                                                   aggr_pos->member_type->size;
+      aggr_pos->number_of_elements = num_vector_elements(aggr_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     }  /* if */
   } else {

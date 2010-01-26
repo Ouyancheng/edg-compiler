@@ -1034,6 +1034,24 @@ arrays, give the total number of elements.
   return num_elements;
 }  /* num_array_elements */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+
+a_targ_size_t num_vector_elements(a_type_ptr vector_type)
+/*
+Return the number of elements in a vector type.
+*/
+{
+  a_targ_size_t num_elements;
+
+  vector_type = skip_typerefs(vector_type);
+  check_assertion(vector_type->kind == (a_type_kind)tk_vector &&
+                  vector_type->variant.vector.element_type->size != 0);
+  num_elements = vector_type->size /
+                                vector_type->variant.vector.element_type->size;
+  return num_elements;
+}  /* num_vector_elements */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_type_ptr find_bottom_of_type(a_type_ptr type)
 /*

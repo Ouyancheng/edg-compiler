@@ -121,6 +121,9 @@ extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
 extern a_type_ptr skip_array_types(a_type_ptr tp);
 extern a_targ_size_t num_array_elements(a_type_ptr array_type);
+#if GNU_VECTOR_TYPES_ALLOWED
+extern a_targ_size_t num_vector_elements(a_type_ptr vector_type);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 extern a_type_ptr find_bottom_of_type(a_type_ptr type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);

@@ -1,5 +1,18 @@
 Version 4.2
 
+1/26/10  [EDGcpfe/10372]
+New utility routine to return the number of elements in a vector type
+
+A new routine num_vector_elements has been added that returns the number of
+elements in a vector type.  The number of elements in a vector is determined by
+dividing the size of the vector type by the size of the vector element.  In
+many cases, vector types and array types are treated similarly, but there was
+no direct way to determine the element count (arrays have the
+array.variant.number_of_elements field as well as the num_array_elements
+routine).  The new routine is available only in configurations where
+GNU_VECTOR_TYPES_ALLOWED is TRUE.
+
+
 1/25/10  [EDGcpfe/10369]
 GNU C++ compatibility: lookup of name following "." or "->"
 
