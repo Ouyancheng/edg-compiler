@@ -27,7 +27,7 @@ we now use the class of the left operand.
   struct B { int y; };
   struct A : public B {
     typedef B X;
-  ;
+  };
   typedef char X;
   int main() {
     A a;
