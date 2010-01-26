@@ -1,5 +1,14 @@
 Version 4.2
 
+1/26/10  [EDGcpfe/10390]
+Default value of TYPE_FOR_AN_FP_VALUE_PART was incorrect for 64-bit systems
+
+The default value for TYPE_FOR_AN_FP_VALUE_PART ("unsigned long") caused
+an incorrect configuration when used on 64-bit systems.  The default value has
+been changed to "uint32_t" which will produce a 32-bit unsigned type on both
+32-bit and 64-bit systems.
+
+
 1/26/10  [EDGcpfe/10388]
 Use of standard typedefs for selected integer types
 

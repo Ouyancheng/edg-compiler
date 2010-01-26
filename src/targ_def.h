@@ -1937,7 +1937,7 @@ type.  The macro TYPE_FOR_AN_FP_VALUE_PART can be used to specify the
 type to be used.
 */
 #ifndef TYPE_FOR_AN_FP_VALUE_PART
-#define TYPE_FOR_AN_FP_VALUE_PART unsigned long
+#define TYPE_FOR_AN_FP_VALUE_PART uint32_t
 #endif /* ifndef TYPE_FOR_AN_FP_VALUE_PART */
 
 typedef	TYPE_FOR_AN_FP_VALUE_PART an_fp_value_part;
