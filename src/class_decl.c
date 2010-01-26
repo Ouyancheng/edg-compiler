@@ -14619,9 +14619,6 @@ passed via template_decl.
   a_member_decl_info   decl_info;
   a_decl_parse_state   *decl_state = &decl_info.decl_state;
   a_boolean            is_member_template_rescan;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_qualifier_set saved_qualifiers;
   a_source_position    saved_qualifiers_pos;
 
@@ -14785,9 +14782,6 @@ passed via template_decl.
       goto next_declaration;
     }  /* if */
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  any_decl_other_than_nonstatic_data_member = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Save some state that must be restored for each declarator. */
   saved_qualifiers = decl_state->qualifiers;
   saved_qualifiers_pos = decl_state->qualifiers_pos;
@@ -15379,9 +15373,6 @@ passed via template_decl.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!is_nonstatic_data_member) {
-      any_decl_other_than_nonstatic_data_member = TRUE;
-    }  /* if */
     if (decl_state->ms_attributes != NULL) {
       dispose_of_unapplied_attributes(&decl_state->ms_attributes,
                                       ec_ms_attr_not_allowed);

@@ -4096,8 +4096,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   if (microsoft_mode) {
     /* Scan Microsoft-specific modifiers.  Most are invalid or ignored, but
        __declspec(uuid(...)) will be recorded in C++ mode. */
-    a_source_position  diag_pos;
-    diag_pos = pos_curr_token;
     clear_extended_decl_info_block(extended_decl_info);
     scan_extended_decl_modifiers(&extended_decl_info, &tag_attributes,
                                  al_tag_name, /*is_enum_decl=*/TRUE);
