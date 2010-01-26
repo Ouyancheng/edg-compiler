@@ -345,8 +345,12 @@ typedef struct an_attr_appl_descr {
 			   more entity kind descriptions separated by "|".
 			   Each entity kind description is a single character
 			   describing the broad kind of entity (e.g., "r" for
-			   "routine"), optionally followed by ":" and one or
-			   more "property switches" of the form "+x" or "-x"
+			   "routine"), optionally prefixed by "W" or followed
+			   by ":" and one or more "property switches".  The
+			   "W" prefix indicates that the entity kind is not a
+			   match, but that only a warning should be issued if
+			   an attribute is applied to such an entity. The
+			   property switches are of the form "+x" or "-x"
 			   where "x" is a character representing a property.
 			   The "+x" form indicates that the property is
 			   required whereas the "-x" for indicates that it is
@@ -379,6 +383,8 @@ typedef struct an_attr_appl_descr {
 			     "d"  : fields
 			       "b"  : bit field
                              "u"  : using-declarations/using-directives
+			       (no property switches)
+			     "n"  : namespaces
 			       (no property switches)
                              "l"  : labels
 			       (no property switches)
@@ -531,7 +537,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
   { ak_cdecl, "t|r|v|d|p", apply_cdecl_attr },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
-  { ak_cleanup, "v|p", apply_cleanup_attr },
+  { ak_cleanup, "v|Wp", apply_cleanup_attr },
   { ak_cold, "r", NO_APPL_FN },
   { ak_const, "t|r|v|d", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
@@ -550,17 +556,17 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_mode, "T", apply_mode_attr },
   { ak_no_instrument_function, "r", apply_no_instrument_function_attr },
   { ak_no_check_memory_usage, "r", apply_no_check_memory_usage_attr },
-  { ak_nocommon, "r|v:-a", apply_nocommon_attr },
+  { ak_nocommon, "v:-a|Wr", apply_nocommon_attr },
   { ak_nonnull, "t|r|v|d", apply_nonnull_attr },
-  { ak_packed, "c|e|v|d", apply_packed_attr },
-  { ak_pure, "r|v", apply_pure_attr },
+  { ak_packed, "c|e|d|Wv", apply_packed_attr },
+  { ak_pure, "r|Wv", apply_pure_attr },
   { ak_sentinel, "t|r|v|d", apply_sentinel_attr },
 #if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
   { ak_stdcall, "t|r|v|d|p", apply_stdcall_attr },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { ak_strong, "u", apply_strong_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  { ak_tls_model, "r|v|d|p", apply_tls_model_attr },
+  { ak_tls_model, "v|Wr|Wd|Wp", apply_tls_model_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { ak_transparent_union, "c|p|t", apply_transparent_union_attr },
   { ak_unused, "c|e|t|r|v|p|l|n|u", apply_unused_attr },
@@ -578,19 +584,19 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Microsoft-only attributes. */
-  { ak_dllexport, "c|r|v:-a!|t", apply_dllimport_dllexport_attr },
-  { ak_dllimport, "c|r|v:-a!|t", apply_dllimport_dllexport_attr },
+  { ak_dllexport, "c|e|r|v:-a!|Wt|Wp", apply_dllimport_dllexport_attr },
+  { ak_dllimport, "c|e|r|v:-a!|Wt|Wp", apply_dllimport_dllexport_attr },
   { ak_implementation_key, "", apply_implementation_key_attr },
-  { ak_intrin_type, "c", apply_intrin_type_attr },
-  { ak_noalias, "c|e|r", apply_noalias_attr },
-  { ak_novtable, "c|e", apply_novtable_attr },
-  { ak_property, "d|t", apply_property_attr },
-  { ak_restrict, "c|e|r", apply_restrict_attr },
-  { ak_selectany, "c|e|v:+x!", apply_selectany_attr },
+  { ak_intrin_type, "c|Wp", apply_intrin_type_attr },
+  { ak_noalias, "r|Wp", apply_noalias_attr },
+  { ak_novtable, "c|Wp", apply_novtable_attr },
+  { ak_property, "d|Wr|Wv|Wt|Wp", apply_property_attr },
+  { ak_restrict, "r|Wp", apply_restrict_attr },
+  { ak_selectany, "v:+x!|Wr|Wt|Wp|Wd", apply_selectany_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-  { ak_thread, "v", apply_thread_attr },
+  { ak_thread, "v|Wt|Wp", apply_thread_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-  { ak_uuid, "c|e|r|v|t", apply_uuid_attr },
+  { ak_uuid, "c|e|Wr|Wv|Wt|Wp|Wd", apply_uuid_attr },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
@@ -2093,7 +2099,7 @@ properties required by constr are met (if not, issue a diagnostic as
 appropriate and set ap->kind to ak_unrecognized).
 */
 {
-  a_boolean  match_found = FALSE;
+  a_boolean  match_found = FALSE, weak_mismatch;
 
   if (constr[0] == '\0') {
     /* No (simple) target entity constraint. */
@@ -2101,6 +2107,17 @@ appropriate and set ap->kind to ak_unrecognized).
     goto done;
   }  /* if */
   for (;;) {
+    if (constr[0] == 'W') {
+      /* An entity kind description prefixed by a W means that the indicated
+         entity kind is not a match, but that a warning (rather than an error)
+         should be issued if the attribute is specified on the indicated
+         entity kind. */
+      weak_mismatch = TRUE;
+      ++constr;
+      check_assertion(constr[1] != ':');
+    } else {
+      weak_mismatch = FALSE;
+    }  /* if */
     switch (constr[0]) {
       case 'T':
       case 't':
@@ -2121,53 +2138,68 @@ appropriate and set ap->kind to ak_unrecognized).
                tag names. */
             break;
           }  /* if */
-          check_simple_type_constraints(constr, ap, tp);
+          if (!weak_mismatch) check_simple_type_constraints(constr, ap, tp);
           match_found = TRUE;
         }  /* if */
         break;
       case 'd':
         if (entity_kind == iek_field) {
-          check_simple_field_constraints(constr, ap, (a_field_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_field_constraints(constr, ap, (a_field_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
       case 'l':
         if (entity_kind == iek_label) {
-          check_simple_label_constraints(constr, ap, (a_label_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_label_constraints(constr, ap, (a_label_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
       case 'n':
         if (entity_kind == iek_namespace) {
-          check_simple_namespace_constraints(constr, ap,
-                                             (a_namespace_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_namespace_constraints(constr, ap,
+                                               (a_namespace_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
       case 'p':
         if (entity_kind == iek_param_type) {
-          check_simple_parameter_constraints(constr, ap,
-                                             (a_param_type_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_parameter_constraints(constr, ap,
+                                               (a_param_type_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
       case 'r':
         if (entity_kind == iek_routine) {
-          check_simple_routine_constraints(constr, ap, (a_routine_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_routine_constraints(constr, ap,
+                                             (a_routine_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
       case 'u':
         if (entity_kind == iek_using_decl) {
-          check_simple_using_decl_constraints(constr, ap,
-                                              (a_using_decl_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_using_decl_constraints(constr, ap,
+                                                (a_using_decl_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
       case 'v':
         if (entity_kind == iek_variable) {
-          check_simple_variable_constraints(constr, ap,
-                                            (a_variable_ptr)entity);
+          if (!weak_mismatch) {
+            check_simple_variable_constraints(constr, ap,
+                                              (a_variable_ptr)entity);
+          }  /* if */
           match_found = TRUE;
         }  /* if */
         break;
@@ -2183,12 +2215,15 @@ appropriate and set ap->kind to ak_unrecognized).
     /* Pass over the "|". */
     ++constr;
   }  /* for */
-  if (!match_found) {
+  if (!match_found || weak_mismatch) {
     /* Issue a diagnostic if no match was found. */
     an_error_severity  sev = es_error;
-    if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
-        ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
-      /* Microsoft compilers ignore unrecognized attributes on tag names.
+    if (match_found && weak_mismatch) {
+      sev = es_warning;
+    } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
+               ap->syntactic_location ==
+                                     (a_byte_attribute_location)al_tag_name) {
+      /* Microsoft compilers ignore recognized attributes on tag names.
          We issue a warning. */
       sev = es_warning;
     } else if (ap->family == (a_byte_attribute_family)af_gnu &&
@@ -3392,77 +3427,72 @@ The given entity must be a variable or parameter.  Apply the GNU "cleanup"
 attribute to it and return the entity.
 */
 {
-  if (entity_kind != iek_variable) {
-    check_assertion(entity_kind == iek_param_type);
-    report_bad_attribute_target(es_warning, ap);
+  a_variable_ptr        vp = (a_variable_ptr)entity;
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_symbol_ptr          sym;
+  a_symbol_locator      loc;
+  /* The table-based configuration ensures that we can make a number of
+     assumptions here. */
+  check_assertion(C_mode() && aap != NULL && aap->next == NULL &&
+                  aap->kind == (an_attribute_arg_kind)aak_token);
+  /* First look up and validate the cleanup routine. */
+  clear_locator(&loc, &aap->position);
+  (void)find_symbol(aap->variant.token, (sizeof_t)strlen(aap->variant.token),
+                    &loc);
+  sym = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+  if (sym == NULL || sym->kind != (a_symbol_kind)sk_routine) {
+    pos_warning(ec_invalid_cleanup_routine, &aap->position);
+    make_attr_unrecognized(ap);
   } else {
-    a_variable_ptr        vp = (a_variable_ptr)entity;
-    an_attribute_arg_ptr  aap = ap->arguments;
-    a_symbol_ptr          sym;
-    a_symbol_locator      loc;
-    /* The table-based configuration ensures that we can make a number of
-       assumptions here. */
-    check_assertion(C_mode() && aap != NULL && aap->next == NULL &&
-                    aap->kind == (an_attribute_arg_kind)aak_token);
-    /* First look up and validate the cleanup routine. */
-    clear_locator(&loc, &aap->position);
-    (void)find_symbol(aap->variant.token, (sizeof_t)strlen(aap->variant.token),
-                      &loc);
-    sym = normal_id_lookup(&loc, IDL_NO_OPTIONS);
-    if (sym == NULL || sym->kind != (a_symbol_kind)sk_routine) {
-      pos_warning(ec_invalid_cleanup_routine, &aap->position);
+    a_type_ptr  rtp = skip_typerefs(sym->variant.routine.ptr->type);
+    a_routine_type_supplement_ptr
+                rtsp = rtp->variant.routine.extra_info;
+    if (!rtsp->prototyped) {
+      /* No check possible: Assume the function is acceptable. */
+    } else if (rtsp->param_type_list == NULL ||
+               rtsp->param_type_list->next != NULL) {
+      pos_error(ec_bad_type_for_cleanup_routine, &aap->position);
       make_attr_unrecognized(ap);
     } else {
-      a_type_ptr  rtp = skip_typerefs(sym->variant.routine.ptr->type);
-      a_routine_type_supplement_ptr
-                  rtsp = rtp->variant.routine.extra_info;
-      if (!rtsp->prototyped) {
-        /* No check possible: Assume the function is acceptable. */
-      } else if (rtsp->param_type_list == NULL ||
-                 rtsp->param_type_list->next != NULL) {
-        pos_error(ec_bad_type_for_cleanup_routine, &aap->position);
-        make_attr_unrecognized(ap);
-      } else {
-        /* Check that the cleanup routine can be called with an argument that
-           is the address of the given variable. */
-        a_std_conv_descr  std_conv;
-        clear_std_conv_descr(&std_conv);
-        if (impl_conversion_possible(make_pointer_type(vp->type),
-                                     /*source_is_constant=*/FALSE,
-                                     /*source_is_string_literal=*/FALSE,
-                                     (a_constant*)NULL,
-                                     rtsp->param_type_list->type,
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                     /*suppress_extensions=*/TRUE,
-                                     ec_nonstandard_conversion_for_cleanup,
-                                     &std_conv)) {
-          if (std_conv.warning_suggested != ec_no_error) {
-            pos_warning(std_conv.warning_suggested, &ap->position);
-          }  /* if */
-        } else {
-          pos_error(ec_bad_type_for_cleanup_routine, &ap->position);
-          make_attr_unrecognized(ap);
+      /* Check that the cleanup routine can be called with an argument that
+         is the address of the given variable. */
+      a_std_conv_descr  std_conv;
+      clear_std_conv_descr(&std_conv);
+      if (impl_conversion_possible(make_pointer_type(vp->type),
+                                   /*source_is_constant=*/FALSE,
+                                   /*source_is_string_literal=*/FALSE,
+                                   (a_constant*)NULL,
+                                   rtsp->param_type_list->type,
+                                   /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                   /*suppress_extensions=*/TRUE,
+                                   ec_nonstandard_conversion_for_cleanup,
+                                   &std_conv)) {
+        if (std_conv.warning_suggested != ec_no_error) {
+          pos_warning(std_conv.warning_suggested, &ap->position);
         }  /* if */
+      } else {
+        pos_error(ec_bad_type_for_cleanup_routine, &ap->position);
+        make_attr_unrecognized(ap);
       }  /* if */
     }  /* if */
-    /* Next validate the variable. */
-    if (vp->storage_class != (a_storage_class)sc_auto) {
-      pos_warning(ec_attribute_cleanup_requires_automatic_storage,
-                  &ap->position);
-      make_attr_unrecognized(ap);
-    } else if (vp->is_parameter) {
-      pos_warning(ec_attribute_cleanup_for_parameter, &ap->position);
-      make_attr_unrecognized(ap);
-    }  /* if */
-    /* If all went well, record the cleanup routine. */
-    if (!is_unrecognized_attr(ap)) {
-      mark_referenced(sym, &ap->position);
-      vp->cleanup_routine = sym->variant.routine.ptr;
-      mark_routine_referenced(vp->cleanup_routine);
-      vp->cleanup_routine->called = TRUE;
-      symbol_for(vp)->referenced = TRUE;
-      symbol_for(vp)->variant.variable.used = TRUE;
-    }  /* if */
+  }  /* if */
+  /* Next validate the variable. */
+  if (vp->storage_class != (a_storage_class)sc_auto) {
+    pos_warning(ec_attribute_cleanup_requires_automatic_storage,
+                &ap->position);
+    make_attr_unrecognized(ap);
+  } else if (vp->is_parameter) {
+    pos_warning(ec_attribute_cleanup_for_parameter, &ap->position);
+    make_attr_unrecognized(ap);
+  }  /* if */
+  /* If all went well, record the cleanup routine. */
+  if (!is_unrecognized_attr(ap)) {
+    mark_referenced(sym, &ap->position);
+    vp->cleanup_routine = sym->variant.routine.ptr;
+    mark_routine_referenced(vp->cleanup_routine);
+    vp->cleanup_routine->called = TRUE;
+    symbol_for(vp)->referenced = TRUE;
+    symbol_for(vp)->variant.variable.used = TRUE;
   }  /* if */
   return entity;
 }  /* apply_cleanup_attr */
@@ -4093,11 +4123,8 @@ no effect and a warning is issued.  In either case, the given entity is
 returned.
 */
 {
-  if (entity_kind != iek_variable) {
-    report_bad_attribute_target(es_warning, ap);
-  } else {
-    ((a_variable_ptr)entity)->is_not_common = TRUE;
-  }  /* if */
+  check_assertion(entity_kind == iek_variable);
+  ((a_variable_ptr)entity)->is_not_common = TRUE;
   return entity;
 }  /* apply_nocommon_attr */
 
@@ -4235,9 +4262,6 @@ entity.
     } else {
       unexpected_condition();
     }  /* if */
-  } else if (entity_kind == iek_variable) {
-    /* "packed" doesn't apply to variables. */
-    report_bad_attribute_target(es_warning, ap);
   } else {
     unexpected_condition();
   }  /* if */
@@ -4256,11 +4280,8 @@ the GNU "pure" attribute to it.  Otherwise, ignore the attribute with a
 warning.  Return the given entity.
 */
 {
-  if (entity_kind != iek_routine) {
-    report_bad_attribute_target(es_warning, ap);
-  } else {
-    ((a_routine_ptr)entity)->is_pure = TRUE;
-  }  /* if */
+  check_assertion(entity_kind == iek_routine);
+  ((a_routine_ptr)entity)->is_pure = TRUE;
   return entity;
 }  /* apply_pure_attr */
 
@@ -4367,47 +4388,45 @@ Check the validity of the GNU "tls_model" attribute for the given entity and
 return that entity.
 */
 {
-  char *valid_model_names[] = { "global-dynamic", "local-dynamic",
-                                "initial-exec", "local-exec", NULL };
+  a_variable_ptr      vp = (a_variable_ptr)entity;
+  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+  char                *valid_model_names[] =
+                                       { "global-dynamic", "local-dynamic",
+                                         "initial-exec", "local-exec", NULL };
 
+  check_assertion(entity_kind = iek_variable);
   check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
-  if (entity_kind != iek_variable) {
+  /* Check that the variable has thread-local storage. */
+  if (!(vp->decl_modifiers & DM_THREAD) != 0 &&
+      !(dps != NULL && (dps->decl_modifiers.flags & DM_THREAD) != 0)) {
     report_bad_attribute_target(es_warning, ap);
   } else {
-    /* A variable: Check that it has thread-local storage. */
-    a_variable_ptr      vp = (a_variable_ptr)entity;
-    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-    if (!(vp->decl_modifiers & DM_THREAD) != 0 &&
-        !(dps != NULL && (dps->decl_modifiers.flags & DM_THREAD) != 0)) {
-      report_bad_attribute_target(es_warning, ap);
-    } else {
-      /* Check that the model name (the attribute argument) is valid. */
-      a_constant_ptr    arg = ap->arguments->variant.constant;
-      char              **pvmn = valid_model_names;
-      check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
-      for (; *pvmn != NULL; ++pvmn) {
-        if (strcmp(arg->variant.string.value, *pvmn) == 0) break;
-      }  /* for */
-      if (*pvmn == NULL) {
-        pos_error(ec_bad_tls_model_attr_arg, &ap->position);
-        make_attr_unrecognized(ap);
-      } else if (dps != NULL && !dps->first_decl) {
-        an_attribute_ptr  prev_ap;
-        a_constant_ptr    prev_arg;
-        prev_ap = find_attribute(ak_tls_model, vp->source_corresp.attributes);
-        if (prev_ap != NULL) {
-          check_assertion(prev_ap->arguments != NULL &&
-                          prev_ap->arguments->kind ==
-                                         (an_attribute_arg_kind)aak_constant);
-          prev_arg = prev_ap->arguments->variant.constant;
-          check_assertion(prev_arg->kind == (a_constant_repr_kind)ck_string);
-          if (strcmp(arg->variant.string.value,
-                     prev_arg->variant.string.value)) {
-            pos2_diagnostic(es_error, ec_inconsistent_tls_model_attr_arg,
-                            &ap->arguments->position, &prev_ap->position);
-            make_attr_unrecognized(ap);
-          }  /* if */
+    /* Check that the model name (the attribute argument) is valid. */
+    a_constant_ptr    arg = ap->arguments->variant.constant;
+    char              **pvmn = valid_model_names;
+    check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+    for (; *pvmn != NULL; ++pvmn) {
+      if (strcmp(arg->variant.string.value, *pvmn) == 0) break;
+    }  /* for */
+    if (*pvmn == NULL) {
+      pos_error(ec_bad_tls_model_attr_arg, &ap->position);
+      make_attr_unrecognized(ap);
+    } else if (dps != NULL && !dps->first_decl) {
+      an_attribute_ptr  prev_ap;
+      a_constant_ptr    prev_arg;
+      prev_ap = find_attribute(ak_tls_model, vp->source_corresp.attributes);
+      if (prev_ap != NULL) {
+        check_assertion(prev_ap->arguments != NULL &&
+                        prev_ap->arguments->kind ==
+                                       (an_attribute_arg_kind)aak_constant);
+        prev_arg = prev_ap->arguments->variant.constant;
+        check_assertion(prev_arg->kind == (a_constant_repr_kind)ck_string);
+        if (strcmp(arg->variant.string.value,
+                   prev_arg->variant.string.value)) {
+          pos2_diagnostic(es_error, ec_inconsistent_tls_model_attr_arg,
+                          &ap->arguments->position, &prev_ap->position);
+          make_attr_unrecognized(ap);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4961,20 +4980,17 @@ The given entity is returned.
 */
 {
   if (entity_kind == iek_type) {
-    if (ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
-      /* When applied to tag types, dllimport/dllexport is accepted on C++
-         class types only. */
-      if (C_mode() && is_immediate_class_type((a_type_ptr)entity)) {
-        pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
-                       &ap->position, ap->name);
-        make_attr_unrecognized(ap);
-      } else if (is_immediate_enum_type((a_type_ptr)entity)) {
-        pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
-        make_attr_unrecognized(ap);
-      }  /* if */
-    } else {
-      /* E.g., "typedef __declspec(dllimport) int X;". */
-      report_bad_attribute_target(es_warning, ap);
+    check_assertion(ap->syntactic_location ==
+                                      (a_byte_attribute_location)al_tag_name);
+    /* When applied to tag types, dllimport/dllexport is accepted on C++ class
+       types only. */
+    if (C_mode() && is_immediate_class_type((a_type_ptr)entity)) {
+      pos_st_warning(ec_struct_declspec_ignored_in_C_mode,
+                     &ap->position, ap->name);
+      make_attr_unrecognized(ap);
+    } else if (is_immediate_enum_type((a_type_ptr)entity)) {
+      pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+      make_attr_unrecognized(ap);
     }  /* if */
   }  /* if */
   return entity;
@@ -5021,11 +5037,8 @@ Apply the Microsoft __declspec(noalias) attribute to the given entity (and
 return that entity).
 */
 {
-  if (entity_kind == iek_routine) {
-    ((a_routine*)entity)->decl_modifiers |= DM_NOALIAS;
-  } else {
-    report_bad_attribute_target(es_warning, ap);
-  }  /* if */
+  check_assertion(entity_kind == iek_routine);
+  ((a_routine*)entity)->decl_modifiers |= DM_NOALIAS;
   return entity;
 }  /* apply_noalias_attr */
 
@@ -5040,12 +5053,8 @@ return that entity).
 {
   a_type_ptr  tp = (a_type_ptr)entity;
 
-  check_assertion(entity_kind == iek_type);
-  if (is_immediate_class_type(tp)) {
-    class_type_supp(tp)->decl_modifiers |= DM_NOVTABLE;
-  } else {
-    report_bad_attribute_target(es_warning, ap);
-  }  /* if */
+  check_assertion(entity_kind == iek_type && is_immediate_class_type(tp));
+  class_type_supp(tp)->decl_modifiers |= DM_NOVTABLE;
   return entity;
 }  /* apply_novtable_attr */
 
@@ -5157,15 +5166,12 @@ Apply the Microsoft __declspec(restrict) attribute to the given entity (and
 return that entity).
 */
 {
-  if (entity_kind == iek_routine) {
-    a_routine_ptr  rp = (a_routine*)entity;
-    if (is_pointer_type(return_type_of(rp->type))) {
-      rp->decl_modifiers |= DM_RESTRICT;
-    } else {
-      pos_error(ec_bad_declspec_restrict_return, &ap->position);
-    }  /* if */
+  a_routine_ptr  rp = (a_routine*)entity;
+
+  if (is_pointer_type(return_type_of(rp->type))) {
+    rp->decl_modifiers |= DM_RESTRICT;
   } else {
-    report_bad_attribute_target(es_warning, ap);
+    pos_error(ec_bad_declspec_restrict_return, &ap->position);
   }  /* if */
   return entity;
 }  /* apply_restrict_attr */
@@ -5179,21 +5185,17 @@ Apply the Microsoft __declspec(selectany) attribute to the given entity (and
 return that entity).
 */
 {
-  if (entity_kind == iek_variable) {
-    if (scope_stack[decl_scope_level].kind ==
+  if (scope_stack[decl_scope_level].kind ==
                                        (a_scope_kind)sck_class_struct_union) {
-      /* The declaration of a static data member.  The selectany specifier can
-         appear on an out-of-class static data member definition, but not on
-         an in-class declaration (even if the in-class declaration has an
-         initializer). */
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_decl_modifiers_invalid_for_this_decl, &ap->position,
-                        ap->name);
-    } else {
-      ((a_variable*)entity)->decl_modifiers |= DM_SELECTANY;
-    }  /* if */
+    /* The declaration of a static data member.  The selectany specifier can
+       appear on an out-of-class static data member definition, but not on an
+       in-class declaration (even if the in-class declaration has an
+       initializer). */
+    pos_st_diagnostic(es_discretionary_error,
+                      ec_decl_modifiers_invalid_for_this_decl, &ap->position,
+                      ap->name);
   } else {
-    report_bad_attribute_target(es_warning, ap);
+    ((a_variable*)entity)->decl_modifiers |= DM_SELECTANY;
   }  /* if */
   return entity;
 }  /* apply_selectany_attr */
@@ -5208,17 +5210,14 @@ Apply the Microsoft __declspec(thread) attribute to the given entity (and
 return that entity).
 */
 {
-  if (entity_kind == iek_variable) {
-    /* The "thread" specifier can only be applied to variables with a static
-       lifetime. */
-    a_variable_ptr  vp = (a_variable*)entity;
-    if (has_static_storage_duration(vp->storage_class)) {
-      vp->decl_modifiers |= DM_THREAD;
-    } else {
-      pos_error(ec_cannot_use_thread_local_storage, &ap->position);
-    }  /* if */
+  a_variable_ptr  vp = (a_variable*)entity;
+
+  /* The "thread" specifier can only be applied to variables with a static
+     lifetime. */
+  if (has_static_storage_duration(vp->storage_class)) {
+    vp->decl_modifiers |= DM_THREAD;
   } else {
-    report_bad_attribute_target(es_warning, ap);
+    pos_error(ec_cannot_use_thread_local_storage, &ap->position);
   }  /* if */
   return entity;
 }  /* apply_thread_attr */
@@ -5236,13 +5235,14 @@ that entity).
   a_constant_ptr  arg;
   char            *str;
 
+  check_assertion(entity_kind == iek_type);
   check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
   arg = ap->arguments->variant.constant;
   check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
   if (!convert_GUID_string_literal(arg, &str)) {
     pos_error(ec_bad_uuid_string, &ap->arguments->position);
-  } else if (entity_kind == iek_type) {
+  } else {
     a_type_ptr  tp = (a_type_ptr)entity;
     char        *prev_str = uuid_string_of_type(tp);
     if (prev_str != NULL && strcmp(prev_str, str) != 0) {
@@ -5258,10 +5258,8 @@ that entity).
         tp->variant.integer.uuid_string = str;
       }  /* if */
     } else {
-      report_bad_attribute_target(es_warning, ap);
+      unexpected_condition();
     }  /* if */
-  } else {
-    report_bad_attribute_target(es_warning, ap);
   }  /* if */
   return entity;
 }  /* apply_uuid_attr */

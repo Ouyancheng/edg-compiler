@@ -8614,7 +8614,7 @@ information.
         /* This is a member template declaration outside the class definition,
            so a storage class may not be specified (as in the nontemplate
            case). */
-        if (state->storage_class != (a_storage_class)sc_unspecified) {
+        if (state->declared_storage_class != (a_storage_class)sc_unspecified) {
           pos_error(ec_storage_class_not_allowed, &state->storage_class_pos);
           state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */

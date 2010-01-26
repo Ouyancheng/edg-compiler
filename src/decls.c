@@ -236,11 +236,12 @@ entity.  Issue diagnostics as appropriate.
     /* Look for a standard attribute: It would elicit an error (whereas GNU
        attributes only trigger a warning). */
     for (; ap != NULL; ap = ap->next) {
-      if (ap->family == (a_byte_attribute_family)af_std) {
+      if (ap->family == (a_byte_attribute_family)af_std &&
+          ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
         sev = es_error;
         err_ap = ap;
         break;
-      } else if (is_unrecognized_attr(ap)) {
+      } else if (is_unapplicable_attr(ap)) {
         /* Do not issue a diagnostic for an unrecognized GNU or Microsoft
            attribute. */
       } else {
