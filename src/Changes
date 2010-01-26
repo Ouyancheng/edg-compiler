@@ -23,7 +23,7 @@ int32_t type can be set to use a particular type using the macro
 "#define EDG_INT32_T some_type".
 
 
-1/25/10  [EDGcpfe/10381]
+1/26/10  [EDGcpfe/10381]
 Abort in update_routine_declared_type with severe syntax errors
 
 In some unusual cases involving function templates with severe syntax errors,
