@@ -3555,17 +3555,6 @@ mangled name will eventually be discarded.
   return name;
 }  /* give_unnamed_class_or_enum_a_name */
 
-#if DO_IL_LOWERING
-
-static a_boolean forced_creation_of_non_repeatable_module_id = FALSE;
-                        /* When TRUE, indicates that mangling was forced to
-                           create a "weaker" module id (one that may not
-                           be repeatable from one compilation to another).
-                           Such a module id is fine for most manglings (where
-                           uniqueness is paramount), but may not be well
-                           suited for externalized names. */
-
-#endif /* DO_IL_LOWERING */
 
 static char *module_id_for_source_corresp(a_source_correspondence  *scp,
                                           a_mangling_control_block *mctl)
@@ -3596,14 +3585,9 @@ with multiply defined symbols.
     module_id = *tup->module_id_ptr;
     if (module_id == NULL) {
       /* Although we'd prefer to base the module id on a routine/variable
-         defined in this translation unit (so it is repeatable), we'll have
-         to settle for a weaker module id in this case.  Note that if this
-         module id is used for mangling of externalized names, an assertion
-         will be triggered. */
+         defined in this translation unit (so it is guaranteed to be unique),
+         we'll have to settle for a weaker module id in this case. */
       module_id = make_module_id(NULL);
-#if DO_IL_LOWERING
-      forced_creation_of_non_repeatable_module_id = TRUE;
-#endif /* DO_IL_LOWERING */
       check_assertion(module_id != NULL);
     }  /* if */
   }  /* if */
@@ -6593,12 +6577,6 @@ the indicated source correspondence.
 #else /* IA64_ABI */
   /* No suffix required for IA-64 ABI. */
 #endif /* !IA64_ABI */
-  if (forced_creation_of_non_repeatable_module_id) {
-    /* We've just created an externalized name which required a module id;
-       if that module id is not repeatable, we could have problems with
-       exported templates. */
-    unexpected_condition_str("need a repeatable module id");
-  }  /* if */
 }  /* end_externalized_name */
 
 

@@ -127,7 +127,7 @@ A similar issue existed with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 on Windows.  See the 9/3/09 entry for more information.
 
 
-1/20/10  [EDGcpfe/10374]
+1/20/10  [EDGcpfe/10374,EDGcpfe/10377]
 Abort when mangling unnamed namespace types
 
 The mangling of certain entities relies on the creation of a unique "module id"
@@ -135,11 +135,9 @@ for each translation unit (to avoid collisions with similarly named entities in
 other translation units).  When possible, a variable or routine with an
 external definition is used as a portion of the module id, creating (along with
 the name of the file) a unique and repeatable string.  When such a variable or
-routine definition is not available, a module id that is unique but may not be
-repeatable from one compilation to the next is generated and used.  A change
-has been made to allow such non-repeatable module ids to be used in the
-mangling of all entities except those that require a repeatable module id
-(i.e., exported templates).
+routine definition is not available, a module id that is repeatable but may not
+be unique (in limited cases) is generated and used.  A change has been made to
+allow such non-unique module ids to be used when required by name mangling.
 
 The following example illustrates a regression introduced in 4.1 that had
 caused an assertion failure in lower_name.c (module_id_for_source_corresp):
