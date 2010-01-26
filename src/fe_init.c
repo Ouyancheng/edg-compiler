@@ -821,6 +821,27 @@ have_il_file:;
 }  /* open_il_file */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
+#if CHECKING
+static void check_int_type_config(void)
+/*
+Make sure the specific size integer typedefs are defined correctly.
+*/
+{
+  check_assertion_str2(sizeof(int8_t) == 1, "check_int_type_config:",
+                       "int8_t not defined correctly");
+  check_assertion_str2(sizeof(uint8_t) == 1, "check_int_type_config:",
+                       "uint8_t not defined correctly");
+  check_assertion_str2(sizeof(int16_t) == 2, "check_int_type_config:",
+                       "int16_t not defined correctly");
+  check_assertion_str2(sizeof(uint16_t) == 2, "check_int_type_config:",
+                       "uint16_t not defined correctly");
+  check_assertion_str2(sizeof(int32_t) == 4, "check_int_type_config:",
+                       "int32_t not defined correctly");
+  check_assertion_str2(sizeof(uint32_t) == 4, "check_int_type_config:",
+                       "uint32_t not defined correctly");
+}  /* check_int_type_config */
+#endif /* CHECKING */
+
 
 void fe_early_init(void)
 /*
@@ -833,6 +854,9 @@ line processing is done.
      routine. */
   debug_early_init();
 #endif /* DEBUG */
+#if CHECKING
+  check_int_type_config();
+#endif /* CHECKING */
   mem_manage_early_init();
   /* Do host-specific initialization.  Except for debug and memory management
      initialization, this must be done first in this routine. */

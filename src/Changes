@@ -1,5 +1,28 @@
 Version 4.2
 
+1/26/10  [EDGcpfe/10388]
+Use of standard typedefs for selected integer types
+
+The front end now includes the C99/C++0x header file stdint.h to provide
+typedefs for integral types of specific sizes.  If the stdint.h header
+is not available the front end provides definitions of the necessary
+typedefs.  On Solaris, this is done by using the sys/int_types.h header.
+In other environments this is done by providing our own typedefs.
+The macro USE_STDINT_HEADER specifies whether or not the stdint.h header
+should be included.  If the macro is not set, the basics.h header will
+set it automatically in environments where the header is known to exist.
+The macro USE_INT_TYPES_HEADER specifies whether or not the Solaris
+sys/int_types.h header should be included.  If the macro is not set, the
+basics.h header will set it automatically on Solaris.  The macro
+SUPPRESS_DEFINITION_OF_STDINT_TYPES specifies that the default versions
+of the types should not be provided even when USE_STDINT_HEADER and
+USE_INT_TYPES_HEADER are both FALSE.  The default versions of the typedefs
+that we provide should work on virtually all systems, but the types can
+be customized, if needed, using configuration macros.  For example, the
+int32_t type can be set to use a particular type using the macro
+"#define EDG_INT32_T some_type".
+
+
 1/25/10  [EDGcpfe/10381]
 Abort in update_routine_declared_type with severe syntax errors
 

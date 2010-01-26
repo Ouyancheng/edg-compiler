@@ -232,6 +232,105 @@ certain language features and preprocessing features are available.
 #endif /* ifdef __STDC__ */
 #endif /* ifndef USING_ISO_C */
 
+/*
+Flag that is TRUE if we should include the Solaris sys/int_types.h header to
+define the stdint.h types on Solaris.
+*/
+#ifndef USE_INT_TYPES_HEADER
+#ifdef SOLARIS
+#define USE_INT_TYPES_HEADER TRUE
+#else /* ifndef SOLARIS */
+#define USE_INT_TYPES_HEADER FALSE
+#endif /* ifdef SOLARIS */
+#endif /* ifndef USE_INT_TYPES_HEADER */
+
+/*
+Flag that is TRUE if we should include the C99/C++0x stdint.h header to define
+typedefs for the various integer types.
+*/
+#ifndef USE_STDINT_HEADER
+#if USE_INT_TYPES_HEADER
+/* Don't use stdint.h if int_types.h is to be used. */
+#define USE_STDINT_HEADER FALSE
+#else /* !USE_INT_TYPES_HEADER */
+/* gcc as of at least 3.2 includes stdint.h */
+#ifdef __GNUC__
+#define USE_STDINT_HEADER TRUE
+#else /* ifndef __GNUC__ */
+#ifdef _MSC_VER
+/* The Microsoft compiler as of at least 10.0 includes stdint.h */
+#if _MSC_VER >= 1600
+#define USE_STDINT_HEADER TRUE
+#endif /* _MSC_VER >= 1600 */
+#endif /* ifndef _MSC_VER */
+#endif /* ifndef __GNUC__ */
+#ifndef USE_STDINT_HEADER
+/* If not defined above, assume we can't use the stdint.h header. */
+#define USE_STDINT_HEADER FALSE
+#endif /* ifndef USE_STDINT_HEADER */
+#endif /* USE_INT_TYPES_HEADER */
+#endif /* ifndef USE_STDINT_HEADER */
+
+#if USE_STDINT_HEADER && USE_INT_TYPES_HEADER
+ #error -- USE_STDINT_HEADER and USE_INT_TYPES_HEADER cannot both be TRUE.
+#endif /* USE_STDINT_HEADER && USE_INT_TYPES_HEADER */
+
+/*
+Flag that is TRUE if, when USE_STDINT_HEADER and USE_INT_TYPES_HEADER
+are both FALSE, the EDG-supplied definitions of the stdint.h types should
+still not be used.  This flag can be used if the types normally defined in
+stdint.h are instead defined in some other unexpected place.
+*/
+#ifndef SUPPRESS_DEFINITION_OF_STDINT_TYPES
+#define SUPPRESS_DEFINITION_OF_STDINT_TYPES FALSE
+#endif /* ifndef SUPPRESS_DEFINITION_OF_STDINT_TYPES */
+
+/*
+Include a header to provide typedefs for integer types of specific sizes.  If
+no such header is available, provide typedefs for the selected fixed size
+integral types.
+*/
+#if USE_STDINT_HEADER
+#include <stdint.h>
+#else /* !USE_STDINT_HEADER */
+#if USE_INT_TYPES_HEADER
+#include <sys/int_types.h>
+#else /* !USE_INT_TYPES_HEADER */
+#if !SUPPRESS_DEFINITION_OF_STDINT_TYPES
+#ifndef EDG_INT8_T
+#define EDG_INT8_T signed char
+#endif /* ifndef EDG_INT8_T */
+typedef EDG_INT8_T int8_t;
+
+#ifndef EDG_UINT8_T
+#define EDG_UINT8_T unsigned char
+#endif /* ifndef EDG_UINT8_T */
+typedef EDG_UINT8_T uint8_t;
+
+#ifndef EDG_INT16_T
+#define EDG_INT16_T short
+#endif /* ifndef EDG_INT16_T */
+typedef EDG_INT16_T int16_t;
+
+#ifndef EDG_UINT16_T
+#define EDG_UINT16_T unsigned short
+#endif /* ifndef EDG_UINT16_T */
+typedef EDG_UINT16_T uint16_t;
+
+#ifndef EDG_INT32_T
+#define EDG_INT32_T int
+#endif /* ifndef EDG_INT32_T */
+typedef EDG_INT32_T int32_t;
+
+#ifndef EDG_UINT32_T
+#define EDG_UINT32_T unsigned int
+#endif /* ifndef EDG_UINT32_T */
+typedef EDG_UINT32_T uint32_t;
+
+#endif /* SUPPRESS_DEFINITION_OF_STDINT_TYPES */
+#endif /* !USE_INT_TYPES_HEADER */
+#endif /* !USE_STDINT_HEADER */
+
 /* Define typedefs to be used for "void *" and "const void *".  When
    using an ANSI C compiler these are just typedefs to the appropriate
    types.  When compiling with an old-style C compiler, "char *" is used. */
