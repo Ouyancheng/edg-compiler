@@ -1944,10 +1944,6 @@ extern void clear_function_body(a_scope_ptr sp);
 
 void detach_from_object_lifetime_tree(an_object_lifetime_ptr olp);
 
-#if !BACK_END_IS_CP_GEN_BE
-extern void eliminate_bodies_of_unreferenced_functions(void);
-#endif /* !BACK_END_IS_CP_GEN_BE */
-
 #if MAINTAIN_NEEDED_FLAGS
 extern void eliminate_bodies_of_unneeded_functions(void);
 

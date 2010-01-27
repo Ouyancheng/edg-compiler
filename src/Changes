@@ -131,31 +131,6 @@ definition).  Now fixed.
   };
 
 
-1/22/10  [EDGcpfe/10342]
-Removal of function bodies of unreferenced functions
-
-A new option has been added (controlled at runtime by
-remove_bodies_of_unreferenced_functions whose default value is set by the new
-configuration macro DEFAULT_REMOVE_BODIES_OF_UNREFERENCED_FUNCTIONS) to remove
-the bodies of certain unreferenced functions from the IL.  When enabled,
-functions that are determined to be uncallable (unreferenced and meet other
-criteria such as not virtual, not dllexport, etc.) will have their bodies
-removed from the IL when possible.  (If remove_unneeded_entities is TRUE, a
-subsequent walk of the IL will remove the entire routine if there are no
-pointers to it in the IL.)  Not all unreferenced functions will be detected
-and removed by enabling this option; most functions are lowered (if
-applicable) and written immediately after they are processed -- too soon to
-tell if they are unreferenced, but inline member functions are kept in memory
-(in case they need to be inlined).  Enabling this option can enhance
-performance (by writing less IL to the back end -- especially in cases where
-header files contain many inline member functions that are often unused).  This
-option is independent of needed flag processing (i.e., it can be used even if
-there is no needed flag processing).  The check for unreferenced routines is
-performed after functions have been lowered, but before file scope lowering
-(it must be done late in the compilation).  The default setting is TRUE (except
-when BACK_END_IS_CP_GEN_BE is TRUE).
-
-
 1/21/10  [EDGcpfe/10357]
 Locale set too late for multibyte operations in command-line processing
 
