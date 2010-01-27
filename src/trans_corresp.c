@@ -2449,6 +2449,7 @@ array variants) and marked as compiler-generated.
   return result;
 }  /* is_generated_new_or_delete_operator */
 
+#if DECL_MODIFIERS_IN_USE
 
 static a_boolean incompatible_routine_decl_modifiers(a_routine_ptr  rp1,
                                                      a_routine_ptr  rp2)
@@ -2505,6 +2506,7 @@ declaration modifiers.
   return result;
 }  /* incompatible_routine_decl_modifiers */
 
+#endif /* DECL_MODIFIERS_IN_USE */
 
 static void verify_corresp_for_entities_list(
                               an_il_entity_list_entry_ptr  ep1,
