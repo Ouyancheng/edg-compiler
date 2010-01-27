@@ -9842,6 +9842,7 @@ specific information about the member declaration, respectively.
   }  /* if */
   var->source_corresp.access = class_state->access;
   attach_decl_attributes(decl_state, /*primary_decl=*/FALSE);
+  update_variable_decl_modifiers(decl_state);
   if (curr_token == tok_assign && is_expr_start_token(next_token())) {
     a_constant         constant;
     a_source_position  init_pos;
@@ -9979,7 +9980,6 @@ specific information about the member declaration, respectively.
       }  /* if */
     }  /* if */
   }  /* if */
-  update_variable_decl_modifiers(decl_state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Disallow data members in interface types. */

@@ -10165,6 +10165,13 @@ Also, add the instance to the definitions list for the template.
        instantiation.  It serves as the associated "template". */
     vp->assoc_template =
                      sym->variant.static_data_member.variable->assoc_template;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (vp->decl_modifiers & DM_DLLIMPORT) {
+      /* A static data member declared with __declspec(dllimport) should not
+         be instantiated. */
+      tip->suppress_instantiation = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   db_exit();
 }  /* find_static_data_member_template */

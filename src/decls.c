@@ -13680,10 +13680,8 @@ if one is present.
     /* All static data member declarations that pass through this
        code are definitions. */
     is_variable_def = TRUE;
-#if DECL_MODIFIERS_IN_USE
     /* Copy the decl-modifiers into the variable entry. */
     update_variable_decl_modifiers(state);
-#endif /* DECL_MODIFIERS_IN_USE */
   } else {
     /* An ordinary variable declaration. */
     a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
