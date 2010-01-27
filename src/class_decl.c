@@ -14798,9 +14798,6 @@ passed via template_decl.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean                         is_nonstatic_data_member = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     a_boolean                         is_function = FALSE;
 
     declarator_start_pos = pos_curr_token;
@@ -15358,9 +15355,6 @@ passed via template_decl.
       } else {
         /* Non-static data member (= field). */
         scan_nonstatic_data_member(&locator, class_state, &decl_info);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        is_nonstatic_data_member = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
         /* Issue an error if there appears to be an attempt to initialize a

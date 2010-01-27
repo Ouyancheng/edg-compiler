@@ -133,6 +133,7 @@ extern an_attribute_ptr copy_of_attributes_with_substitution(
                                              a_ctws_options_set    options,
                                              a_boolean             *err);
 
+
 /*
 Return TRUE if the given attribute may produce a new type entry when applied
 to an existing type entry.

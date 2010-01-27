@@ -29,6 +29,9 @@ decl_spec.c -- Scanning of declaration specifiers.
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "folding.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #include "statements.h"
 
 #if NEAR_AND_FAR_ALLOWED
@@ -3501,8 +3504,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (tag_attributes != NULL) {
     a_boolean  ignore_gnu_attributes = FALSE;
-    if (gnu_mode) {
-      /* In GNU mode, attributes appearing between the class/struct/union
+    if (gnu_mode && gnu_version < 40200) {
+      /* In some GNU modes, attributes appearing between the class/struct/union
          keyword and the type name are ignored if the elaborated name specifier
          is not followed by a class type definition and if this is not an
          explicit class template instantiation directive. */
@@ -3531,6 +3534,14 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     add_flags_from_dll_attributes(&extended_decl_info.decl_modifiers.flags,
                                   tag_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MAINTAIN_NEEDED_FLAGS
+    if (is_class_definition) {
+      /* Some attributes are only valid on class definitions.  Therefore, if
+         attributes appear on a class definition, do not let elimination of
+         unneeded entities remove that definition. */
+      set_class_keep_definition_in_il(class_type);
+    }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   /* If the current token marks a removed template body, skip past that
      special token. */
