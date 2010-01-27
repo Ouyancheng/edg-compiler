@@ -590,7 +590,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_intrin_type, "c|Wp", apply_intrin_type_attr },
   { ak_noalias, "r|Wp", apply_noalias_attr },
   { ak_novtable, "c|Wp", apply_novtable_attr },
-  { ak_property, "d|Wr|Wv|Wt|Wp", apply_property_attr },
+  { ak_property, "d|Wt|Wp", apply_property_attr },
   { ak_restrict, "r|Wp", apply_restrict_attr },
   { ak_selectany, "v:+x!|Wr|Wt|Wp|Wd", apply_selectany_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -3419,6 +3419,7 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
 
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_cleanup_attr(an_attribute_ptr  ap,
                                 char              *entity,
                                 an_il_entry_kind  entity_kind)
@@ -4394,7 +4395,7 @@ return that entity.
                                        { "global-dynamic", "local-dynamic",
                                          "initial-exec", "local-exec", NULL };
 
-  check_assertion(entity_kind = iek_variable);
+  check_assertion(entity_kind == iek_variable);
   check_assertion(ap->arguments != NULL && ap->arguments->next == NULL &&
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
   /* Check that the variable has thread-local storage. */
@@ -5029,6 +5030,7 @@ return that entity).
 }  /* apply_intrin_type_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_noalias_attr(an_attribute_ptr  ap,
                                 char              *entity,
                                 an_il_entry_kind  entity_kind)
@@ -5043,6 +5045,7 @@ return that entity).
 }  /* apply_noalias_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_novtable_attr(an_attribute_ptr  ap,
                                  char              *entity,
                                  an_il_entry_kind  entity_kind)
@@ -5158,6 +5161,7 @@ stream.
 }  /* apply_property_attr */
 
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_restrict_attr(an_attribute_ptr  ap,
                                  char              *entity,
                                  an_il_entry_kind  entity_kind)
@@ -5177,6 +5181,7 @@ return that entity).
 }  /* apply_restrict_attr */
 
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_selectany_attr(an_attribute_ptr  ap,
                                   char              *entity,
                                   an_il_entry_kind  entity_kind)
@@ -5202,6 +5207,7 @@ return that entity).
 
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_thread_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)
