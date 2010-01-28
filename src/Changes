@@ -42,7 +42,7 @@ DEFAULT_COMPRESS_MANGLED_NAMES and DEFAULT_MAX_MANGLED_NAME_LENGTH), the
 final name mangling pass has been eliminated thereby increasing performance.
 
 
-1/26/10  [EDGcpfe/10018]
+1/26/10  [EDGcpfe/10018,EDGcpfe/10345]
 Microsoft compatibility: dllimport static data members are not instantiated
 
 In Microsoft mode, the definitions of static data members of class templates
