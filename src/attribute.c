@@ -309,11 +309,12 @@ static an_attr_descr known_attr_table[] = {
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* Attributes used for testing by EDG. */
-  { "test_1", "(sn?,n)", "c+[EDG]", ak_unrecognized },
+  { "testattr1", "?(*)", "c+", ak_unrecognized },
   { "t1", "(*)", "c+[edg]", ak_unrecognized },
   { "t2", "(*)", "c+[edg]", ak_unrecognized },
   { "t3", "(*)", "c+[edg]", ak_unrecognized },
   { "t4", "(ct)", "c+[edg]", ak_unrecognized },
+  { "t5", "(sn?,n)", "c+[edg]", ak_unrecognized },
   { "e1", "(*)", "c+[edg]", ak_edg_e1 },
   { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -1351,7 +1352,7 @@ the attribute is declared with.
     syntax_error(ec_exp_identifier);
   } else {
     an_attr_descr_ptr  adp;
-    char               *sig = "?(*)";
+    char               *sig;
     ap = make_attribute(af);
     record_attribute_name(ap);
     (void)get_token();
