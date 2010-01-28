@@ -3938,9 +3938,21 @@ attribute application mechanism.)
       /* The "thread" specifier can only be applied to variables with a static
          lifetime. */
       pos_error(ec_cannot_use_thread_local_storage, &dps->declarator_pos);
+    } else if (!dps->first_decl && !(variable->decl_modifiers & DM_THREAD)) {
+      /* This variable was previously declared with no thread locality. */
+      pos_sy_error(ec_incompatible_thread_locality, &dps->declarator_pos,
+                   dps->sym);
+    } else {
+      variable->decl_modifiers |= DM_THREAD;
     }  /* if */
-    variable->decl_modifiers |= DM_THREAD;
     flags &= (a_decl_modifier)~DM_THREAD;
+  } else if (!microsoft_mode && !dps->first_decl &&
+             (variable->decl_modifiers & DM_THREAD) != 0) {
+    /* Issue an error when a variable previously declared as thread-local does
+       not repeat the __thread specifier.  (Microsoft compilers do not
+       diagnose the equivalent __declspec(thread) case.) */
+    pos_sy_diagnostic(es_discretionary_error, ec_incompatible_thread_locality,
+                      &dps->declarator_pos, dps->sym);
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   check_assertion(flags == 0);

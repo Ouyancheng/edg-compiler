@@ -5216,14 +5216,19 @@ Apply the Microsoft __declspec(thread) attribute to the given entity (and
 return that entity).
 */
 {
-  a_variable_ptr  vp = (a_variable*)entity;
+  a_variable_ptr      vp = (a_variable*)entity;
+  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
 
+  check_assertion(dps != NULL);
   /* The "thread" specifier can only be applied to variables with a static
      lifetime. */
-  if (has_static_storage_duration(vp->storage_class)) {
-    vp->decl_modifiers |= DM_THREAD;
-  } else {
+  if (!has_static_storage_duration(vp->storage_class)) {
     pos_error(ec_cannot_use_thread_local_storage, &ap->position);
+  } else if (!dps->first_decl && !(vp->decl_modifiers & DM_THREAD)) {
+    /* This variable was previously declared with no thread locality. */
+    pos_sy_error(ec_incompatible_thread_locality, &ap->position, dps->sym);
+  } else {
+    vp->decl_modifiers |= DM_THREAD;
   }  /* if */
   return entity;
 }  /* apply_thread_attr */

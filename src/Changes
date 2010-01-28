@@ -1,5 +1,22 @@
 Version 4.2
 
+1/28/10  [EDGcpfe/10375]
+Thread locality and redeclarations
+
+The front end was previously always silent when two declarations of the same
+variable were encountered with different thread locality specifications (the
+__thread keyword or the Microsoft __declspec(thread) specifier).  Now an error
+is issued if the variable is first declared with no thread locality, and later
+declared as being thread local.  In non-Microsoft modes, a (discretionary)
+error is also issued when a variable first declared as thread local is later
+declared without a thread locality specifier.  For example:
+
+  extern int n;
+  __thread int n;  // Now always an error.
+
+(See also the Changes entries of 9/18/02 and 12/13/04.)
+
+
 1/27/10  [EDGcpfe/10394]
 Better name mangling performance in some configurations
 
