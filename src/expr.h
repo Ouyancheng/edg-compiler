@@ -272,6 +272,12 @@ extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 extern char *scan_uuidof_operand(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_type_ptr decltype_from_substituted_expr_or_constant(
+                                                an_expr_node_ptr  expr_copy,
+                                                a_constant_ptr    con,
+                                                an_expr_node_ptr  expr_orig,
+                                                a_source_position *source_pos);
+
 extern a_type_ptr scan_decltype_operator(a_decl_pos_block  *decl_pos_block);
 
 #if GNU_EXTENSIONS_ALLOWED 

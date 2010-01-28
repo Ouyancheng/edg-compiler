@@ -12816,8 +12816,7 @@ an explicit cast.  *position gives the source position.
     dip->variant.constructor.value_initialization = FALSE;
   }  /* if */
   /* Make an operand for the overall expression. */
-  make_expression_operand(temp_init_node, result);
-  if (result_is_lvalue) set_lvalue_operand_state(result);
+  make_lvalue_or_rvalue_expression_operand(temp_init_node, result);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* make_constructor_dynamic_init */
 
@@ -12847,8 +12846,7 @@ if this node represents an explicit cast.
   conv_lvalue_to_rvalue(operand);
   dip->variant.expression = make_node_from_operand(operand);
   /* Make an operand for the overall expression. */
-  make_expression_operand(temp_init_node, operand);
-  if (result_is_lvalue) set_lvalue_operand_state(operand);
+  make_lvalue_or_rvalue_expression_operand(temp_init_node, operand);
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* temp_init_by_bitwise_copy_from_operand */
 

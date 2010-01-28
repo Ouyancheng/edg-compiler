@@ -1457,6 +1457,10 @@ extern void make_expression_operand(an_expr_node_ptr node,
 extern void make_lvalue_expression_operand(an_expr_node_ptr node,
                                            an_operand       *operand);
 
+extern
+void make_lvalue_or_rvalue_expression_operand(an_expr_node_ptr node,
+                                              an_operand       *operand);
+
 extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
                                              a_boolean    curr_id,
                                              an_operand   *operand);
@@ -1467,6 +1471,10 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         an_operand      *operand);
 
 extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
+
+extern void restore_operand_info_from_expr_rescan_info_entry(
+                                        an_operand                    *operand,
+                                        an_expr_rescan_info_entry_ptr eriep);
 
 extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
 

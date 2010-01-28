@@ -5636,6 +5636,14 @@ Add to the mangled name the encoding for the type "type".
             }  /* if */
             mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
             break;
+          case tptk_unknown:
+            /*FIXME*/
+            /* Really, the typeref loop above should detect decltype types
+               and go mangle the underlying expression instead of mangling this
+               template unknown type. */
+            check_assertion(cpp0x_sfinae_enabled);
+            add_str_to_mangled_name("?", mctl);
+            break;
           default:
             unexpected_condition_str(
                       "mangled_encoding_for_type: bad tk_template_param kind");

@@ -2929,8 +2929,7 @@ if compiler_generated is TRUE.  The operand for the selection is created in
     adjust_nonstandard_anonymous_object_field_references(orig_node,
                                                          field_sym,
                                                          /*std_also=*/FALSE);
-    make_expression_operand(orig_node, result);
-    if (orig_node->is_lvalue) set_lvalue_operand_state(result);
+    make_lvalue_or_rvalue_expression_operand(orig_node, result);
   }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* make_field_selection_operand */
@@ -3644,11 +3643,7 @@ qualified_name_check:
            we have the right "spelling" of the type, with typedef if needed. */
         node->type = new_type;
       }  /* if */
-      if (node->is_lvalue) {
-        make_lvalue_expression_operand(node, operand_1);
-      } else {
-        make_expression_operand(node, operand_1);
-      }  /* if */
+      make_lvalue_or_rvalue_expression_operand(node, operand_1);
       restore_operand_details_incl_ref(operand_1, &orig_operand);
     } else {
       /* Class case. */
@@ -5220,10 +5215,14 @@ output operands.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void scan_indirection_operator(an_operand *result)
+static void scan_indirection_operator(a_rescan_control_block *rcblock,
+                                      an_operand             *result)
 /*
-Scan the "*" (indirection) operator.  The operand must have type pointer.
-See section 3.3.3.2 of the standard.
+Scan the "*" (indirection) operator.  The current token is the operator.
+Scan the operand, build an expression, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).
 */
 {
   an_operand        operand;
@@ -5234,10 +5233,20 @@ See section 3.3.3.2 of the standard.
 
   db_enter(4, "scan_indirection_operator");
 
-  /* Save the current source position. */
-  copy_source_position(pos_curr_token, start_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->expr != NULL &&
+                    is_operation_node(rcblock->expr) &&
+                    rcblock->expr->variant.operation.kind ==
+                                          (an_expr_operator_kind)eok_indirect);
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &start_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
   if (curr_expr_kind_is(ek_pp)) {
     /* Address indirection not allowed in preprocessing expressions. */
     expr_pos_error(ec_bad_pp_operator, &start_position);
@@ -5251,11 +5260,11 @@ See section 3.3.3.2 of the standard.
     expr_pos_error(ec_bad_templ_arg_expr_operator, &start_position);
     err = TRUE;
   }  /* if */
-
-  /* Scan the operand. */
-  (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
-
+  if (rcblock == NULL) {
+    /* Scan the operand. */
+    (void)get_token();
+    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  }  /* if */
   if (err) {
     /* Operator is not allowed in this kind of expression. */
     make_error_operand(result);
@@ -6247,12 +6256,31 @@ Make a placeholder lvalue operand whose type is "type".
 {
   an_expr_node_ptr expr;
   a_constant       zero_con;
+  a_type_ptr       ptr_type = make_pointer_type(type);
+  a_boolean        dependent_case = FALSE;
 
-  make_zero_of_proper_type(make_pointer_type(type), &zero_con);
-  expr = alloc_node_for_constant(&zero_con);
+  if (is_template_dependent_type(type)) {
+    /* Force a template-dependent constant for the dependent type case. */
+    a_constant_ptr con;
+    dependent_case = TRUE;
+    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
+    con = alloc_shareable_constant(&zero_con);
+    make_template_param_cast_constant(con,
+                                      &zero_con,
+                                      ptr_type,
+                                      /*is_explicit=*/FALSE);
+    /* Go by way of an_operand to get rescan information saved. */
+    make_constant_operand(&zero_con, operand);
+    expr = make_node_from_operand(operand);
+  } else {
+    /* Normal non-dependent case. */
+    make_zero_of_proper_type(ptr_type, &zero_con);
+    expr = alloc_node_for_constant(&zero_con);
+  }  /* if */
   expr = add_indirection_to_node(expr);
   make_lvalue_expression_operand(expr, operand);
   operand->is_dummy_lvalue = TRUE;
+  if (dependent_case) operand->is_template_generic = TRUE;
 }  /* make_dummy_lvalue_operand */
 
 
@@ -6827,6 +6855,46 @@ general_case:
   check_assertion(result != NULL);
   return result;
 }  /* decltype_from_operand */
+
+
+a_type_ptr decltype_from_substituted_expr_or_constant(
+                                                 an_expr_node_ptr  expr_copy,
+                                                 a_constant_ptr    con,
+                                                 an_expr_node_ptr  expr_orig,
+                                                 a_source_position *source_pos)
+/*
+Template substitution has just been done on the expression underlying
+a decltype.  The original expression is expr_orig, and the substituted
+expression is expr_copy.  If expr_copy is NULL, the result after substitution
+is a constant, which is pointed to by con.  Return the decltype type,
+which is based on the expression type.  Source_pos is the source position
+of the decltype.
+*/
+{
+  a_type_ptr type;
+  an_operand operand;
+
+  /* Make an operand so we will have whatever extra information was saved
+     with the expression for use in decltype_from_operand. */
+  if (expr_copy != NULL) {
+    make_lvalue_or_rvalue_expression_operand(expr_copy, &operand);
+    if (expr_orig->rescan_info != NULL) {
+      /* Restore extra information (like whether the operand was an
+         id-expression) from the rescan information. */
+      restore_operand_info_from_expr_rescan_info_entry(&operand,
+                                                       expr_orig->rescan_info);
+    } else {
+      operand.position = *source_pos;
+    }  /* if */
+  } else {
+    make_constant_operand(con, &operand);
+    operand.position = *source_pos;
+  }  /* if */
+  type = decltype_from_operand(&operand,
+                             /*leading_paren_seen=*/!operand.is_id_expression); 
+                            /*FIXME*/
+  return type;
+}  /* decltype_from_substituted_expr_or_constant */
 
 
 static a_scope_depth scope_depth_to_allocate_decltype_expr(void)
@@ -13425,11 +13493,7 @@ Also scans GNU statement expressions:
            result. */
         an_operand orig_operand;
         orig_operand = *result;
-        if (expr->is_lvalue) {
-          make_lvalue_expression_operand(expr, result);
-        } else {
-          make_expression_operand(expr, result);
-        }  /* if */
+        make_lvalue_or_rvalue_expression_operand(expr, result);
         restore_operand_details_incl_ref(result, &orig_operand);
         set_operand_position(result, &start_position, &end_position,
                              &start_position);
@@ -19902,7 +19966,8 @@ see expr.h).
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
     case tok_star:
-      scan_indirection_operator(&local_result);
+      scan_indirection_operator((a_rescan_control_block *)NULL,
+                                &local_result);
       break;
 
     case tok_plus:
@@ -21772,6 +21837,9 @@ NULL is returned.
     case eok_shiftr:
       scan_shift_operator((an_operand *)NULL, rcblock, &result);
       break;
+    case eok_indirect:
+      scan_indirection_operator(rcblock, &result);
+      break;
     default:
       unexpected_condition_str("bad operator in expr rescan");
   }  /* switch */
@@ -22229,8 +22297,7 @@ If an error is detected, use err_pos as the error position.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   /* Make an operand for the expression. */
-  make_expression_operand(expr, &operand);
-  if (expr->is_lvalue) set_lvalue_operand_state(&operand);
+  make_lvalue_or_rvalue_expression_operand(expr, &operand);
   operand.position = *err_pos;
   /* Do the conversion. */
   prep_argument_operand(&operand, param,

@@ -1349,6 +1349,14 @@ extern an_expr_node_ptr copy_template_param_expr(
                                  a_constant_ptr           constant,
                                  a_constant_ptr           *alloc_con);
 
+extern a_type_ptr type_of_decltype_expr_with_substitution(
+                                 an_expr_node_ptr         expr,
+                                 a_template_arg_ptr       template_arg_list,
+                                 struct a_template_param  *template_param_list,
+                                 a_source_position        *source_pos,
+                                 a_ctws_options_set       options,
+                                 a_boolean                *copy_error);
+
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_constant_ptr           con,
                                  a_template_arg_ptr       template_arg_list,

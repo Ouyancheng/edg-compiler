@@ -13010,17 +13010,16 @@ redoes semantic analysis.
 {
   a_boolean rescannable = FALSE;
 
-  if (is_operation_node(expr)) {
-#ifdef FIXME_JSA_TEST_MODE
+  if (cpp0x_sfinae_enabled && is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     switch (op) {
       case eok_shiftl:
       case eok_shiftr:
+      case eok_indirect:
         rescannable = TRUE;
         break;
       default:;
     }  /* switch */
-#endif /* FIXME_JSA_TEST_MODE */
   }  /* if */
   return rescannable;
 }  /* expr_is_rescannable */
@@ -13698,6 +13697,50 @@ options is a set of name lookup options.
   }  /* if */
   return expr_copy;
 }  /* copy_template_param_expr */
+
+
+a_type_ptr type_of_decltype_expr_with_substitution(
+                                  an_expr_node_ptr         expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error)
+/*
+expr is the expression that underlies a decltype operator.  Make a copy of
+it, doing template substitution according to template_arg_list,
+template_param_list, and options, with an associated source position of
+source_pos.  Return the decltype type after substitution, or *copy_error
+set to TRUE for an error.
+*/
+{
+  a_type_ptr new_type = NULL;
+
+  if (cpp0x_sfinae_enabled) {
+    a_constant       constant, *alloc_con;
+    an_expr_node_ptr expr_copy;
+    expr_copy = copy_template_param_expr(expr,
+                                         template_arg_list,
+                                         template_param_list,
+                                         /*guide_type=*/(a_type_ptr)NULL,
+                                         source_pos,
+                                         options,
+                                         copy_error,
+                                         &constant,
+                                         &alloc_con);
+    if (!*copy_error) {
+      a_constant_ptr con = (alloc_con != NULL) ? alloc_con : &constant;
+      new_type = decltype_from_substituted_expr_or_constant(expr_copy,
+                                                            con,
+                                                            expr,
+                                                            source_pos);
+    }  /* if */
+  } else {
+    /* Pre-C++0x SFINAE rules apply. */
+    *copy_error = TRUE;
+  }  /* if */
+  return new_type;
+}  /* type_of_decltype_expr_with_substitution */
 
 
 static a_constant_ptr copy_template_param_unknown_entity_con(

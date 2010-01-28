@@ -4121,7 +4121,7 @@ types_are_compatible_ignoring_qualifiers, which do an initial test
 for exact pointer equality.
 */
 {
-  register a_boolean            compat = FALSE;
+  a_boolean                     compat = FALSE;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_boolean                     ignore_type_qualifiers = FALSE;
   a_boolean                     ignore_calling_conventions = FALSE;

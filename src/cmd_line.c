@@ -2236,6 +2236,7 @@ process.
   auto_storage_class_specifier_enabled = TRUE;
   trailing_return_types_enabled = FALSE;
   nullptr_enabled = FALSE;
+  cpp0x_sfinae_enabled = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -2449,6 +2450,9 @@ the next standard).
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
+#ifdef FIXME_JSA_TEST_MODE
+  cpp0x_sfinae_enabled = TRUE;
+#endif /* FIXME_JSA_TEST_MODE */
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -9016,6 +9020,7 @@ variables declared in cmd_line.h.
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
+  cpp0x_sfinae_enabled = FALSE;
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
 }  /* cmd_line_static_var_init */

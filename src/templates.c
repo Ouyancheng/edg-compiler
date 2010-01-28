@@ -7495,6 +7495,7 @@ a pointer over a reference type or creating an array of references.
   a_param_type_ptr		prev_ptp;
   a_class_symbol_supplement_ptr	cssp;
   a_boolean			is_partial_order_check;
+  an_expr_node_ptr		expr;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -7592,11 +7593,16 @@ a pointer over a reference type or creating an array of references.
         break;
       case tk_typeref:
         if (typeref_is_decltype_or_typeof(type) &&
-            is_template_dependent_type(type->variant.typeref.type)) {
-          /* decltype and typeof types can currently not be substituted.
-             This will likely change in the future, when the C++ committee's
-             issue 339 is resolved. */
-          *copy_error = TRUE;
+            (expr = decltype_arg(type)) != NULL) {
+          /* decltype or typeof based on an expression: do substitution on the
+             expression and see what its type is. */
+          new_type = type_of_decltype_expr_with_substitution(
+                                            expr,
+                                            templ_arg_list,
+                                            templ_param_list,
+                                            source_pos,
+                                            options,
+                                            copy_error);
         } else {
           /* Make an identically qualified type of a copy (or reuse) of the
              type that underlies the typeref. */

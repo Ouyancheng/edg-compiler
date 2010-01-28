@@ -7087,9 +7087,16 @@ typedef struct a_type {
                 type;
                         /* Type referenced. */
       an_expr_node_ptr
-		expr;	/* The expression argument for a nonlocal decltype
-			   construct.  For local constructs, the expression
-			   must be retrieved using find_local_expr_node. */
+		expr;	/* The expression argument for a decltype or typeof
+			   construct (is_decltype or is_typeof is TRUE).  When
+			   the expression is local to a function, this field is
+			   NULL and the expression must be retrieved using
+			   find_local_expr_node.  For typeof, this field is
+			   also NULL for the typeof(type) variant; that case
+			   can be distinguished from the typeof(local-expr)
+			   case only by calling find_local_expr_node and
+			   getting a NULL result.  The function decltype_arg
+			   can be used to fetch the expression in all cases. */
 #if DO_IL_LOWERING
       a_type_ptr
 		orig_type;

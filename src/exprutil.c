@@ -2169,7 +2169,7 @@ need to be allocated).
 }  /* record_operator_position_in_rescan_info */
 
 
-static void restore_operand_info_from_expr_rescan_info_entry(
+void restore_operand_info_from_expr_rescan_info_entry(
                                         an_operand                    *operand,
                                         an_expr_rescan_info_entry_ptr eriep)
 /*
@@ -2248,11 +2248,7 @@ original expression is not modified.
       }  /* if */
     } else {
       /* Return an expression operand. */
-      if (expr_copy->is_lvalue) {
-        make_lvalue_expression_operand(expr_copy, operand);
-      } else {
-        make_expression_operand(expr_copy, operand);
-      }  /* if */
+      make_lvalue_or_rvalue_expression_operand(expr_copy, operand);
     }  /* if */
     /* The information in the rescan info was saved for this moment, when
        we can use it to restore operand information that would not otherwise
@@ -2864,8 +2860,7 @@ The position of the current token will be used as the operand position.
        a reference type.  Make an lvalue based on that constant. */
     an_expr_node_ptr expr = alloc_node_for_constant(&constant);
     expr = add_ref_indirection_to_node(expr);
-    make_expression_operand(expr, operand);
-    set_lvalue_operand_state(operand);
+    make_lvalue_expression_operand(expr, operand);
   } else {
     /* Normal (non-reference) case. */
     make_constant_operand(&constant, operand);
@@ -2907,8 +2902,11 @@ void make_expression_operand(an_expr_node_ptr node,
 /*
 Make an expression operand for the expression "node".  The operand is
 made an rvalue; the caller should change that if it's not appropriate
-(or use make_lvalue_expression_operand).  The position of the current
-token will be used as the operand position.
+(or use make_lvalue_expression_operand).  This routine does not
+assume that the is_lvalue flag of the expression is already set
+appropriately, and accepts that the caller might adjust it after
+this call returns.  The position of the current token will be used
+as the operand position.  
 */
 {
   if (is_error_node(node)) {
@@ -2935,6 +2933,21 @@ operand position.
   make_expression_operand(node, operand);
   set_lvalue_operand_state(operand);
 }  /* make_lvalue_expression_operand */
+
+
+void make_lvalue_or_rvalue_expression_operand(an_expr_node_ptr node,
+                                              an_operand       *operand)
+/*
+Make an expression operand for the expression "node".  Make an lvalue or
+an rvalue depending on node->is_lvalue.
+*/
+{
+  if (node->is_lvalue) {
+    make_lvalue_expression_operand(node, operand);
+  } else {
+    make_expression_operand(node, operand);
+  }  /* if */
+}  /* make_lvalue_or_rvalue_expression_operand */
 
 
 void make_indefinite_function_operand(a_symbol_ptr routine_sym,
@@ -4237,11 +4250,7 @@ used only in C++ mode.
                              is_implicit_cast,
                              implicit_in_naming,
                              &node, &orig_operand.position);
-        if (node->is_lvalue) {
-          make_lvalue_expression_operand(node, operand);
-        } else {
-          make_expression_operand(node, operand);
-        }  /* if */
+        make_lvalue_or_rvalue_expression_operand(node, operand);
       }  /* if */
     } else {
       /* The cast was folded to a constant. */
@@ -7031,7 +7040,7 @@ pointer value.
 {
   a_boolean is_null = FALSE;
 
-  if (is_an_lvalue(operand)) {
+  if (is_an_lvalue(operand) && !operand->is_dummy_lvalue) {
     a_constant       con;
     an_expr_node_ptr expr = extract_node_from_operand(operand);
     if (constant_lvalue_address(expr, &con,
@@ -8023,11 +8032,7 @@ e.g., if the source operand is an lvalue.
         default:
           unexpected_condition();
       }  /* switch */
-      if (!expr->is_lvalue) {
-        make_expression_operand(expr, operand);
-      } else {
-        make_lvalue_expression_operand(expr, operand);
-      }  /* if */
+      make_lvalue_or_rvalue_expression_operand(expr, operand);
     }  /* if */
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
@@ -9242,8 +9247,7 @@ reference entry, or is NULL if none is needed.
   }  /* if */
   /* Make an expression for the function. */
   node = function_lvalue_expr(routine);
-  make_expression_operand(node, result);
-  result->state = (an_operand_state)os_function_designator;
+  make_lvalue_expression_operand(node, result);
   /* Remember whether or not the routine is virtual.  Use of a qualified
      name suppresses the virtual-ness of the function (ARM 10.2). */
   result->virtual_function = routine->is_virtual && !is_qualified_name;

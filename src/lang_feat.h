@@ -1973,6 +1973,11 @@ EXTERN a_boolean
 			/* When TRUE, the C++0x keyword "nullptr" is
 			   enabled. */
 
+EXTERN a_boolean
+		cpp0x_sfinae_enabled;
+			/* When TRUE, the C++0x SFINAE rules of N2634 are
+			   enabled. */
+
 /*
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
