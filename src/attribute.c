@@ -570,8 +570,8 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_tls_model, "v|Wr|Wd|Wp", apply_tls_model_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { ak_transparent_union, "c|p|t", apply_transparent_union_attr },
-  { ak_unused, "c|e|t|r|v|p|l|n|u", apply_unused_attr },
-  { ak_used, "r|v:-a", apply_used_attr },
+  { ak_unused, "c|e|t|r|v|p|l|Wn|Wu", apply_unused_attr },
+  { ak_used, "r|v:-a|Wc|We|Wt|Wp|Wd|Wl|Wn", apply_used_attr },
 #if GNU_VECTOR_TYPES_ALLOWED
   { ak_vector_size, "T", apply_vector_size_attr },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -4566,10 +4566,6 @@ entity).
       /* Nothing to do here.  If this is a definition, the attribute applies
          to the associated variable (see attach_param_variable_attributes).
          Otherwise, the attribute has no effect. */
-      break;
-    case iek_using_decl:
-    case iek_namespace:
-      report_bad_attribute_target(es_warning, ap);
       break;
     default:
       unexpected_condition();
