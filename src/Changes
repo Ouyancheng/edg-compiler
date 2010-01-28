@@ -1,5 +1,18 @@
 Version 4.2
 
+1/28/10  [EDGcpfe/9019]
+GNU attribute "visibility" and linkage
+
+The front end now ignores the GNU "visibility" attribute (with a warning) when
+it is applied to a function or variable that doesn't have external linkage.
+For example:
+
+  static int n __attribute((visibility("hidden")));
+    // Previously silently accepted and the IL entry for n was marked as
+    // having "hidden" visibility.  Now the attribute is ignored with a
+    // warning.
+
+
 1/28/10  [EDGcpfe/10375]
 Thread locality and redeclarations
 

@@ -576,7 +576,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_vector_size, "T", apply_vector_size_attr },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  { ak_visibility, "r|v|c|n", apply_visibility_attr },
+  { ak_visibility, "r:+x|v:+x|c|n", apply_visibility_attr },
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   { ak_warn_unused_result, "t|r|v|d", apply_warn_unused_result_attr },
   { ak_warning, "r", NO_APPL_FN },
