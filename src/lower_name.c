@@ -4553,6 +4553,16 @@ any components that need to be individuated.
   return result;
 }  /* routine_contains_an_individuated_entity */
 
+#if !IA64_ABI
+/*
+Macro used to test whether an entity's name has been mangled, but not
+yet finalized (assuming finalization is necessary).
+*/
+#define name_has_been_mangled_but_not_finalized(scp) \
+  ((scp)->name_has_been_mangled &&                   \
+   (!final_name_mangling_needed ||                   \
+    (scp)->final_name_mangling_pending))
+#endif /* !IA64_ABI */
 
 static a_namespace_ptr make_individuated_namespace(
                                                 a_source_correspondence  *scp,
@@ -4707,9 +4717,8 @@ static data member is used as the parent entity for mangling purposes.
         show_partial_spec_args = TRUE;
       }  /* if */
     }  /* if */
-    if (type->source_corresp.name_has_been_mangled &&
-        (!final_name_mangling_needed ||
-         type->source_corresp.final_name_mangling_pending) &&
+    if (name_has_been_mangled_but_not_finalized(&type->source_corresp) &&
+        !type->source_corresp.unnamed_entity_given_fabricated_name &&
         !show_partial_spec_args &&
         !is_template_specialization &&
         !is_specialization &&
@@ -5216,9 +5225,8 @@ such.
                                 &discriminator_scp, mctl);
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
-  if (type->source_corresp.name_has_been_mangled &&
-      (!final_name_mangling_needed ||
-       type->source_corresp.final_name_mangling_pending) &&
+  if (name_has_been_mangled_but_not_finalized(&type->source_corresp) &&
+      !type->source_corresp.unnamed_entity_given_fabricated_name &&
       /* The saved version includes partial specialization arguments on
          parents of the type, so it can be reused only if we want those
          arguments or if there aren't any so it doesn't make a difference. */
