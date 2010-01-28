@@ -4708,8 +4708,8 @@ static data member is used as the parent entity for mangling purposes.
       }  /* if */
     }  /* if */
     if (type->source_corresp.name_has_been_mangled &&
-        (type->source_corresp.final_name_mangling_pending ||
-         !final_name_mangling_needed) &&
+        (!final_name_mangling_needed ||
+         type->source_corresp.final_name_mangling_pending) &&
         !show_partial_spec_args &&
         !is_template_specialization &&
         !is_specialization &&
@@ -5217,8 +5217,8 @@ such.
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
   if (type->source_corresp.name_has_been_mangled &&
-      (type->source_corresp.final_name_mangling_pending ||
-       !final_name_mangling_needed) &&
+      (!final_name_mangling_needed ||
+       type->source_corresp.final_name_mangling_pending) &&
       /* The saved version includes partial specialization arguments on
          parents of the type, so it can be reused only if we want those
          arguments or if there aren't any so it doesn't make a difference. */

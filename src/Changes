@@ -6,7 +6,8 @@ Better name mangling performance in some configurations
 In the final name mangling step, mangled names are examined to see if they
 need to be compressed (Cfront ABI only) and/or truncated to fit within
 the configured maximum mangled name length.  In configurations where
-compression and truncation are disabled (as set by the configuration macros
+compression and truncation are disabled (see variables compress_mangled_names
+and max_mangled_name_length and their corresponding configuration macros
 DEFAULT_COMPRESS_MANGLED_NAMES and DEFAULT_MAX_MANGLED_NAME_LENGTH), the
 final name mangling pass has been eliminated thereby increasing performance.
 
