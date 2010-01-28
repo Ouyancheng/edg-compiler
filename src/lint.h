@@ -237,6 +237,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,num_array_elements)*/
 /*lint -esym(759,num_array_elements)*/
 /*lint -esym(765,num_array_elements)*/
+/*lint -esym(714,num_vector_elements)*/
+/*lint -esym(765,num_vector_elements)*/
 /*lint -esym(759,strip_rvalue_base_class_casts)*/
 /*lint -esym(765,strip_rvalue_base_class_casts)*/
 #endif /* !DO_IL_LOWERING */
