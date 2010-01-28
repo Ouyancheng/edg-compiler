@@ -1853,7 +1853,7 @@ about potential template instantiations.
                               integer_type(ikind),
                               (a_storage_class)sc_unspecified);
   var->source_corresp.name_has_been_mangled = TRUE;
-  var->source_corresp.final_name_mangling_pending = TRUE;
+  var->source_corresp.final_name_mangling_pending = final_name_mangling_needed;
   return var;
 }  /* make_global_var_with_prefixed_name */
 

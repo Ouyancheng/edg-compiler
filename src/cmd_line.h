@@ -1378,6 +1378,12 @@ EXTERN sizeof_t
 		max_mangled_name_length;
 			/* Maximum allowed length for a mangled name.
 			   Zero means no limit. */
+
+EXTERN a_boolean
+		final_name_mangling_needed;
+			/* Indicates whether the final name mangling pass is
+			   needed; it's needed if compression or truncation
+			   are enabled. */
 #endif /* NEED_NAME_MANGLING */
 
 EXTERN char

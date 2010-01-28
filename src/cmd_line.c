@@ -8903,6 +8903,11 @@ variables declared in cmd_line.h.
 #endif /* NEED_NAME_MANGLING && !IA64_ABI */
 #if NEED_NAME_MANGLING
   max_mangled_name_length = DEFAULT_MAX_MANGLED_NAME_LENGTH;
+  final_name_mangling_needed = (max_mangled_name_length != 0
+#if !IA64_ABI
+                                || compress_mangled_names
+#endif /* !IA64_ABI */
+                                                         );
 #endif /* NEED_NAME_MANGLING */
   include_file_suffixes = DEFAULT_INCLUDE_FILE_SUFFIX_LIST;
   curr_command_line_macro_def = NULL;

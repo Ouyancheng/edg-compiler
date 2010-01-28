@@ -2233,7 +2233,9 @@ typedef struct a_source_correspondence {
 			/* TRUE if part of the name mangling has been done,
 			   but the final name mangling, which may or may not
 			   change the name, has not been done yet.  Final name
-			   mangling might do compression or truncation. */
+			   mangling might do compression or truncation.  This
+			   field will always be FALSE in configurations where
+			   final name mangling is not needed. */
   a_bit_field	unnamed_entity_given_fabricated_name:1;
 			/* TRUE if a fabricated name has been assigned to this
 			   otherwise unnamed entity.  During mangling, the 

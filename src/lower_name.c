@@ -744,7 +744,8 @@ above, NULL is also returned in this case).
                          "end_mangling_full: wrong number of leftover spaces");
     }  /* if */
     buffer = mangling_text_buffer->buffer;
-    if (final) {
+    if (final_name_mangling_needed && final) {
+      /* Do final name mangling if needed and requested by the caller. */
 #if !IA64_ABI
       /* Compress the mangled name to make it smaller. */
       buffer = compress_mangled_name((char *)NULL, scp, mctl);
@@ -764,7 +765,7 @@ above, NULL is also returned in this case).
       }  /* if */
       scp->name = mangled_name;
       scp->name_has_been_mangled = TRUE;
-      scp->final_name_mangling_pending = !final;
+      scp->final_name_mangling_pending = final_name_mangling_needed && !final;
     }  /* if */
   }  /* if */
 #if IA64_ABI
@@ -4707,7 +4708,8 @@ static data member is used as the parent entity for mangling purposes.
       }  /* if */
     }  /* if */
     if (type->source_corresp.name_has_been_mangled &&
-        type->source_corresp.final_name_mangling_pending &&
+        (type->source_corresp.final_name_mangling_pending ||
+         !final_name_mangling_needed) &&
         !show_partial_spec_args &&
         !is_template_specialization &&
         !is_specialization &&
@@ -5215,7 +5217,8 @@ such.
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
   if (type->source_corresp.name_has_been_mangled &&
-      type->source_corresp.final_name_mangling_pending &&
+      (type->source_corresp.final_name_mangling_pending ||
+       !final_name_mangling_needed) &&
       /* The saved version includes partial specialization arguments on
          parents of the type, so it can be reused only if we want those
          arguments or if there aren't any so it doesn't make a difference. */
@@ -7422,7 +7425,8 @@ static void final_entity_name_mangling(a_source_correspondence *scp)
 /*
 Do any final name mangling processing required on the entity with
 the indicated source correspondence.  This means checking for
-compression and truncation.
+compression and truncation.  Final name mangling is not needed in all
+configurations.
 */
 {
   if (scp->final_name_mangling_pending) {
@@ -7431,7 +7435,7 @@ compression and truncation.
     sizeof_t                 length = strlen(name)+1;
 
     error_position = scp->decl_position;
-    check_assertion(name != NULL);
+    check_assertion(name != NULL && final_name_mangling_needed);
     /* One reason for calling start_mangling here is to zero
        mangling_text_buffer->size. */
     /* If neither compression nor truncation is done, the name pointer
@@ -7523,15 +7527,19 @@ void do_final_name_mangling(void)
 Do final name mangling for all type, function, and variable names.  This
 must be done separately from and later than normal name mangling because
 the simple form of the name must remain available for use in mangled names
-(e.g., virtual function table variable names).
+(e.g., virtual function table variable names).  Final name mangling is needed
+only in configurations where mangled names need to be compressed or
+truncated; skip it otherwise.
 */
 {
-  /* Process the file scope and all subscopes in the file-scope memory
-     region. */
-  do_scope_final_name_mangling(il_header.primary_scope);
-  /* Process local types. */
-  do_local_name_mangling(do_type_list_final_name_mangling);
-  check_assertion(mangling_buffers_in_use == NULL);
+  if (final_name_mangling_needed) {
+    /* Process the file scope and all subscopes in the file-scope memory
+       region. */
+    do_scope_final_name_mangling(il_header.primary_scope);
+    /* Process local types. */
+    do_local_name_mangling(do_type_list_final_name_mangling);
+    check_assertion(mangling_buffers_in_use == NULL);
+  }  /* if */
 }  /* do_final_name_mangling */
 
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
