@@ -76,6 +76,17 @@ typedef struct a_decode_control_block {
 #else /* IA64_ABI */
   unsigned long	suppress_substitution_recording;
 			/* If > 0, suppress recording of substitutions. */
+  a_boolean	constains_conversion_operator;
+			/* TRUE if the name being demangled contains a
+			   conversion operator (i.e., "cv <type>").  Such
+			   names may require a second pass at demangling
+			   if the first pass ends in failure. */
+  a_boolean	parse_template_args;
+			/* TRUE if template arguments should be parsed
+			   as part of the type following a templated conversion
+			   operator.  The initial attempt at demangling uses
+			   a value of FALSE, but a subsequent attempt will
+			   have this field set to TRUE. */
 #endif /* IA64_ABI */
 } a_decode_control_block;
 
@@ -96,6 +107,8 @@ Clear a decoding control block.
   dctl->end_of_name = NULL;
 #else /* IA64_ABI */
   dctl->suppress_substitution_recording = 0;
+  dctl->constains_conversion_operator = FALSE;
+  dctl->parse_template_args = FALSE;
 #endif /* IA64_ABI */
 }  /* clear_control_block */
 
@@ -4556,7 +4569,22 @@ caller does not need the value.
     if (*ptr == 'c' && ptr[1] == 'v') {
       /* A conversion function. */
       if (is_no_return_name != NULL) *is_no_return_name = TRUE;
-      ptr = full_demangle_type(ptr+2, /*parse_template_args=*/FALSE, dctl);
+      /* A demangling ambiguity exists in the IA-64 ABI when parsing a
+         templated conversion operator.  We can't differentiate between
+         these type productions in this case:
+             <type> ::= <template-param>
+                    ::= <template-template-param> <template-args>
+         For example, when presented with T_I1BIS4_IiEEEEv, should just the T_
+         be parsed (as a <template-param>) or should the entire T_I1BIS4_IiEEEE
+         be parsed (as a <template-template-param> <template-args>)?
+         We can't do a local retry here because the type may parse just
+         fine both ways and we only find out later that there is a problem when
+         a substitution number is too large.  On the initial attempt, prefer
+         the <template-param> case (parse_template_args is FALSE); on a
+         subsequent attempt (if the demangling fails), we'll try the other
+         case. */
+      ptr = full_demangle_type(ptr+2, dctl->parse_template_args, dctl);
+      dctl->constains_conversion_operator = TRUE;
     } else {
       /* Other operator function (not conversion function). */
       int  num_operands, length;
@@ -5613,6 +5641,20 @@ Do not output function parameters if include_func_params is FALSE.
 }  /* demangle_encoding */
 
 
+static void init_demangle_state(char                       *output_buffer,
+                                sizeof_t                   output_buffer_size,
+                                a_decode_control_block_ptr dctl)
+/*
+Utility to set the state of the demangler to its initial values.
+*/
+{
+  clear_control_block(dctl);
+  dctl->output_id = output_buffer;
+  dctl->output_id_size = output_buffer_size;
+  num_substitutions = 0;
+}  /* init_demangle_state */
+
+
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
@@ -5640,22 +5682,34 @@ length returned the second time will be correct).
   a_decode_control_block     control_block;
   a_decode_control_block_ptr dctl = &control_block;
 
-  clear_control_block(dctl);
-  dctl->output_id = output_buffer;
-  dctl->output_id_size = output_buffer_size;
-  num_substitutions = 0;
+  init_demangle_state(output_buffer, output_buffer_size, dctl);
   {
     /* Determine whether host is little-endian or big-endian. */
     int i = 1;
     host_little_endian = (*(char *)&i) == 1;
   }
-  if (start_of_id_is("_Z", id)) {
-    /* A mangled name, beginning with "_Z". */
-    end_ptr = demangle_encoding(id+2, /*include_func_params=*/TRUE, dctl);
-  } else {
-    /* A non-external name, assumed to be a mangled type name. */
-    end_ptr = demangle_type(id, dctl);
-  }  /* if */
+  for (;;) {
+    if (start_of_id_is("_Z", id)) {
+      /* A mangled name, beginning with "_Z". */
+      end_ptr = demangle_encoding(id+2, /*include_func_params=*/TRUE, dctl);
+    } else {
+      /* A non-external name, assumed to be a mangled type name. */
+      end_ptr = demangle_type(id, dctl);
+    }  /* if */
+    if (dctl->err_in_id &&
+        dctl->constains_conversion_operator &&
+        !dctl->parse_template_args) {
+      /* If demangling failed and the mangled name contained a conversion
+         operator (i.e., "cv <type>"), retry the demangling operation, but
+         this time, parse any template args that may appear after a
+         templated conversion operator.  This needed because of a demangling
+         ambiguity that exists for templated conversion operators. */
+      init_demangle_state(output_buffer, output_buffer_size, dctl);
+      dctl->parse_template_args = TRUE;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
   if (dctl->output_overflow_err) {
     dctl->err_in_id = TRUE;
   } else {
