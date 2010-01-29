@@ -201,6 +201,11 @@ static a_vla_fixup_ptr
 			/* List of vla fixup entries freed and available for
 			   reuse. */
 
+static a_template_decl_info_ptr
+		avail_template_decl_infos;
+			/* List of template declaration info entries freed and
+			   available for reuse. */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_saved_macro_state_ptr
@@ -2243,13 +2248,23 @@ fields, and return a pointer to it.
 a_template_decl_info_ptr alloc_template_decl_info(void)
 /*
 Allocate a new template declaration information entry, initialize its
-fields, and return a pointer to it.
+fields, and return a pointer to it.  Reuse a freed entry if possible.
 */
 {
   a_template_decl_info_ptr  tdip;
 
-  /* Allocate a template declaration information entry. */
-  tdip = (a_template_decl_info_ptr)alloc_fe(sizeof(a_template_decl_info));
+  if (avail_template_decl_infos != NULL) {
+    /* Reuse a freed entry.  The enclosing_template_decl field is used as
+       a pointer to the next entry on the available list. */
+    tdip = avail_template_decl_infos;
+    avail_template_decl_infos = tdip->enclosing_template_decl;
+  } else {
+    /* Allocate a template declaration information entry. */
+    tdip = (a_template_decl_info_ptr)alloc_fe(sizeof(a_template_decl_info));
+#if DEBUG
+  num_template_decl_info_allocated++;
+#endif /* DEBUG */
+  }  /* if */
   tdip->parameters = NULL;
   tdip->declaration_scope = NO_SCOPE_NUMBER;
   tdip->enclosing_scope = NULL;
@@ -2258,12 +2273,21 @@ fields, and return a pointer to it.
   tdip->decl_seq = NO_DECL_SEQUENCE_NUMBER;
   tdip->nondependent_calls = NULL;
   tdip->last_entry_added = NULL;
-#if DEBUG
-  num_template_decl_info_allocated++;
-#endif /* DEBUG */
-
   return tdip;
 }  /* alloc_template_decl_info */
+
+
+void free_template_decl_info(a_template_decl_info_ptr tdip)
+/*
+Free the template declaration information entry pointed to by tdip.
+Put the freed entry on the available list to be reused.
+*/
+{
+  /* The enclosing_template_decl field is used as a pointer to the next
+     entry on the available list. */
+  tdip->enclosing_template_decl = avail_template_decl_infos;
+  avail_template_decl_infos = tdip;
+}  /* free_template_decl_info */
 
 
 static a_nondependent_call_info_ptr alloc_nondependent_call_info(void)
@@ -3525,10 +3549,6 @@ severity to be used for the diagnostic when TRUE is returned.
     if (ssep->kind != (a_scope_kind)sck_template_instantiation &&
         ssep->kind != (a_scope_kind)sck_template_declaration) continue;
     tpp = ssep->template_decl_info->parameters;
-    /* There should be a template parameter list present, except when we
-       are in the process of scanning the template parameter list. */
-    check_assertion(tpp != NULL ||
-                    ssep->kind == (a_scope_kind)sck_template_declaration);
     while (tpp != NULL && !result) {
       a_symbol_ptr  param_symbol = tpp->param_symbol;
       if (param_symbol->header == sym->header) {
@@ -12380,6 +12400,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(avail_substituted_type_list_entries),
       pch_saved_var_array_elem(avail_template_cache_segments),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
+      pch_saved_var_array_elem(avail_template_decl_infos),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(avail_vla_fixups),
       pch_saved_var_array_elem(avail_progenitors),
@@ -12569,6 +12590,7 @@ of the front end.
   avail_namespace_list_entries = NULL;
   avail_substituted_type_list_entries = NULL;
   avail_template_cache_segments = NULL;
+  avail_template_decl_infos = NULL;
   avail_vla_fixups = NULL;
   avail_progenitors = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED

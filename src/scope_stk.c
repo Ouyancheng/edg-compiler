@@ -2673,6 +2673,7 @@ the scope being pushed.
     if (kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_template_declaration ||
         kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_instantiation_context ||
         (kind == (a_scope_kind)sck_class_struct_union &&
          class_type_supp(assoc_type)->is_lambda_closure_class)) {
       ssep->slow_lookup_required = TRUE;
@@ -4030,6 +4031,11 @@ scopes.  If push_lex_state is TRUE, a new lexical state stack entry
 is pushed here, and popped when the instantiation scope is popped.
 In some cases involving prototype instantiations, no scope is actually
 pushed.  Return TRUE if a scope is pushed, FALSE otherwise.
+
+When GET_DEFINITION_OF_CLASS_NEEDED is TRUE, this routine is also called
+to reestablish the context for a normal (non-template) class to be defined.
+In such cases, template_sym and instance_sym point to the symbol of the
+class to be defined.
 */
 {
   a_namespace_ptr		parent_nsp;

@@ -1301,6 +1301,11 @@ typedef struct a_func_info_block {
 Structure that contains the information about a template declaration that
 is needed to recreate the context in which tokens from the declaration
 should be rescanned when creating an instantiation.
+
+When GET_DEFINITION_OF_CLASS_NEEDED is TRUE, these entries are also used
+to reestablish the context for a normal (non-template) class to be defined.
+In such cases, the parameters and declaration_scope fields will not be
+set (i.e., they will have their default values).
 */
 typedef struct a_template_decl_info {
   a_template_param_ptr
@@ -1326,7 +1331,10 @@ typedef struct a_template_decl_info {
 			   template declaration information structure (i.e.,
 			   the "template <...>" to the left of the current one
 			   in the declaration).  Contains NULL for the leftmost
-			   "template <...>" clause in a declaration. */
+			   "template <...>" clause in a declaration.  When
+			   an entry is returned to the available list, this
+			   field is used as the pointer to the next entry on
+			   the list. */
   a_name_linkage_kind
 		name_linkage;
 			/* The default name linkage at the point of the
@@ -3328,6 +3336,8 @@ extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 extern an_out_of_class_partial_spec_ptr alloc_out_of_class_partial_spec(void);
 
 extern a_template_decl_info_ptr alloc_template_decl_info(void);
+
+extern void free_template_decl_info(a_template_decl_info_ptr tdip);
 
 extern a_nondependent_call_info_ptr get_nondependent_call_info(
                                 a_token_sequence_number         tsn,

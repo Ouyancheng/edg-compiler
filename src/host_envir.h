@@ -1850,6 +1850,15 @@ which controls whether null (zero) characters are allowed in source lines.
 #endif /* DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE */
 
 /*
+Flag that is TRUE if an interface should be included to allow a routine to
+be called for the potential lazy loading of class definitions. See
+get_definition_of_class for more information.
+*/
+#ifndef GET_DEFINITION_OF_CLASS_NEEDED
+#define GET_DEFINITION_OF_CLASS_NEEDED FALSE
+#endif /* ifndef GET_DEFINITION_OF_CLASS_NEEDED */
+
+/*
 The front end is not intended to be built in UNICODE mode on Windows.
 Doing so results in warnings and can result in incorrect behavior if
 those warnings are not addressed.

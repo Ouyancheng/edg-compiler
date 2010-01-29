@@ -2160,6 +2160,10 @@ extern char *il_string_for_curr_token(void);
 
 extern a_preinclude_file_ptr alloc_preinclude_file(void);
 
+#if GET_DEFINITION_OF_CLASS_NEEDED
+extern void get_definition_of_class(a_type_ptr	class_type);
+#endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+
 #if RECORD_FORM_OF_NAME_REFERENCE
 extern a_name_reference_ptr make_name_reference(
 					a_symbol_locator	*locator,

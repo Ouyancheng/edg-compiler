@@ -513,6 +513,12 @@ static a_source_position
 			/* The source position to be used for tokens inserted
 			   from a string. */
 
+#if GET_DEFINITION_OF_CLASS_NEEDED
+static a_text_buffer_ptr
+		class_def_buffer;
+			/* A buffer used by get_definition_of_class */
+#endif /* GET_DEFINITION_OF_CLASS_NEEDED */
+
 static a_text_buffer_ptr
 		ucn_buffer;
 			/* A text buffer used to hold a temporary copy of
@@ -16873,6 +16879,88 @@ the source form (e.g., digraphs are returned as ordinary tokens).
   return result;
 }  /* il_string_for_curr_token */
 
+#if GET_DEFINITION_OF_CLASS_NEEDED
+
+static void set_template_decl_info_for_class_definition(
+				a_template_decl_info_ptr	tdip,
+				a_type_ptr			class_type)
+/*
+Set the fields of tdip to values suitable to process the definition of
+class_type by get_definition_of_class.
+*/
+{
+  tdip->enclosing_scope = class_type->source_corresp.parent_scope;
+  tdip->name_linkage = class_type->source_corresp.name_linkage;
+}  /* set_template_decl_info_for_class_definition */
+
+
+void get_definition_of_class(a_type_ptr	class_type)
+/*
+This routine is used to allow an incomplete class declaration to be created
+at one point and to allow the class to be defined by scanning tokens at some
+later point.  Unlike such a class definition processed from normal source code,
+this processing can happen at an arbitrary point in time much like a template
+instantiation.  class_type is the class to be defined.
+*/
+{
+  a_symbol_ptr			class_sym;
+  a_template_decl_info_ptr	tdip;
+
+  /* This routine cannot handle local classes. */
+  check_assertion_str2(!class_type->source_corresp.is_local_to_function,
+                       "get_definition_of_class:", "local type not allowed");
+#if DEBUG
+  if (db_flag_is_set("gdoc")) {
+    fprintf(f_debug, "Getting definition of ");
+    db_type_name(class_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  class_sym = symbol_for(class_type);
+  /* The template instantiation scope stack management infrastructure is used
+     to reestablish the context in which the tokens of the class definition
+     should be processed.  A special template declaration information entry
+     is created for purposes of creating the context for the class. */
+  tdip = alloc_template_decl_info();
+  set_template_decl_info_for_class_definition(tdip, class_type);
+  (void)push_template_instantiation_scope(
+                              tdip, class_type, (a_routine_ptr)NULL, class_sym,
+                              class_sym, (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
+  { char			*file_name = "/lin/tmp/classdef.h";
+    FILE			*f_def;
+    char			*line;
+    if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
+    reset_text_buffer(class_def_buffer);
+    f_def = fopen(file_name, "r");
+    check_assertion_str2(f_def != NULL,
+                         "get_definition_of_class: input file missing:",
+                         file_name);
+    while ((line = read_line_from_file(f_def)) != NULL) {
+      add_string_to_text_buffer(class_def_buffer, line);
+    }  /* while */
+    add_char_to_text_buffer(class_def_buffer, '\0');
+    fclose(f_def);
+    insert_string_into_token_stream(class_def_buffer->buffer,
+                                    /*insert_after=*/FALSE);
+    (void)scan_class_definition
+                   (class_type, depth_innermost_namespace_scope,
+                    depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
+                    /*delayed_nested_class_def=*/
+                                    class_type->source_corresp.is_class_member,
+                    /*is_template_instantiation=*/FALSE,
+                    /*is_template_specialization=*/FALSE,
+                    (a_template_ptr)NULL,
+                    (a_decl_pos_block_ptr)NULL);
+    process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/TRUE);
+    get_token();
+  }
+  pop_template_instantiation_scope();
+  free_template_decl_info(tdip);
+}  /* get_definition_of_class */
+
+#endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
 #if DEBUG
 void db_token_cache(a_token_cache *cache,
@@ -17418,6 +17506,9 @@ of the front end.
   avail_lexical_state_stack_entries = NULL;
   avail_pending_pragmas = NULL;
   token_insertion_buffer = NULL;
+#if GET_DEFINITION_OF_CLASS_NEEDED
+  class_def_buffer = NULL;
+#endif /* GET_DEFINITION_OF_CLASS_NEEDED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
   ucn_buffer = NULL;

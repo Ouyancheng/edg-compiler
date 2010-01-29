@@ -2583,6 +2583,12 @@ This routine should be called from macro instantiate_template_class,
 which determines that class_type is an incomplete type.  If it also turns
 out to be a template type, this routine attempts to instantiate it; it
 might not be able to if the template itself has not yet been defined.
+
+Note that this routine is called for all kinds of incomplete classes, not
+just those that are template-based.  Normally, a call for a non-template
+class has no effect.  When GET_DEFINITION_OF_CLASS_NEEDED is TRUE, this
+routine calls get_definition_of_class.  This is a hook to allow the lazy
+loading of classes.
 */
 {
   a_symbol_ptr                      instance_sym;
@@ -2610,13 +2616,26 @@ might not be able to if the template itself has not yet been defined.
   template_sym = template_symbol_for_class_symbol(instance_sym);
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
+#if GET_DEFINITION_OF_CLASS_NEEDED
+    /* Call a routine to potentially find a definition of this class. */
+    if (class_type->variant.class_struct_union.
+                                             extra_info->assoc_scope == NULL) {
+      get_definition_of_class(class_type);
+    }  /* if */
+#endif /* GET_DEFINITION_OF_CLASS_NEEDED */
   } else if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* Don't try to instantiate a template class without real template
        arguments. */
   } else if (class_type->variant.class_struct_union.is_specialized) {
     /* This is an attempt to instantiate an incomplete type that is
-       a specific definition.  This can occur in error cases while scanning
-       the class definition.  Simply ignore the instantiation request. */
+       explicitly specialized.  Simply ignore the instantiation request. */
+#if GET_DEFINITION_OF_CLASS_NEEDED
+    /* Call a routine to potentially find a definition of this class. */
+    if (class_type->variant.class_struct_union.
+                                             extra_info->assoc_scope == NULL) {
+      get_definition_of_class(class_type);
+    }  /* if */
+#endif /* GET_DEFINITION_OF_CLASS_NEEDED */
   } else {
     a_template_cache_ptr	body_cache;
     a_boolean			trans_unit_pushed;

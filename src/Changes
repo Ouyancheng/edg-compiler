@@ -1,5 +1,20 @@
 Version 4.2
 
+1/29/10  [EDGcpfe/10376]
+Interface to permit the lazy loading of class definitions
+
+A mechanism has been added to provide a hook to do the lazy loading of
+class definitions.  This mechanism is not actually used by the front end
+at this point.  The mechanism causes get_definition_of_class to be
+called when an incomplete type is used in a context in which a complete type
+is should be provided if possible.  To use this mechanism a customer would
+need to modify get_definition_of_class to construct a string containing
+the class definition to be used.  This mechanism cannot be used to
+do lazy loading of class templates or local classes.  The mechanism
+is enabled by setting the GET_DEFINITION_OF_CLASS_NEEDED configuration
+macro.
+
+
 1/29/10  [EDGcpfe/10393]
 Save mangled type encodings in Cfront ABI to increase performance
 
