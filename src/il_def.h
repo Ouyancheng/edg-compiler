@@ -2100,12 +2100,15 @@ typedef struct a_source_correspondence {
 			/* Pointer to null-terminated name, or NULL if
 			   there is no corresponding source entity. */
 #if NEED_NAME_MANGLING
-  char		*unmangled_name;
+  char		*unmangled_name_or_mangled_encoding;
 			/* If name_has_been_mangled is TRUE, points to the
 			   original (or fabricated if
 			   unnamed_entity_given_fabricated_name is TRUE) name
 			   before mangling (which might be NULL, if the entity
-			   was unnamed).  Otherwise, NULL. */
+			   was unnamed).  Otherwise (i.e.,
+			   name_has_been_mangled is FALSE), it can point to a
+			   mangled encoding (currently used only for types in
+			   the Cfront ABI) and is NULL otherwise. */
 #endif /* NEED_NAME_MANGLING */
   struct a_trans_unit_corresp
 		*trans_unit_corresp;

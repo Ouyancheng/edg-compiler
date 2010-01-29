@@ -1665,7 +1665,8 @@ name during mangling, returns NULL).
 #if NEED_NAME_MANGLING
 #define unmangled_name_of(scp)                                          \
   ((scp)->unnamed_entity_given_fabricated_name ? (char *)NULL :         \
-     (((scp)->name_has_been_mangled ? (scp)->unmangled_name : (scp)->name)))
+     (((scp)->name_has_been_mangled ?                                   \
+       (scp)->unmangled_name_or_mangled_encoding : (scp)->name)))
 #else /* !NEED_NAME_MANGLING */
 #define unmangled_name_of(scp) ((scp)->name)
 #endif /* NEED_NAME_MANGLING */
@@ -1676,7 +1677,8 @@ mangling) name of an entity.
 */
 #if NEED_NAME_MANGLING
 #define unmangled_or_fabricated_name_of(scp)                            \
-  ((scp)->name_has_been_mangled ? (scp)->unmangled_name : (scp)->name)
+  ((scp)->name_has_been_mangled ?                                       \
+   (scp)->unmangled_name_or_mangled_encoding : (scp)->name)
 #else /* !NEED_NAME_MANGLING */
 #define unmangled_or_fabricated_name_of(scp) (unmangled_name_of((scp))
 #endif /* NEED_NAME_MANGLING */

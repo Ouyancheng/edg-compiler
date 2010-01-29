@@ -4539,7 +4539,7 @@ in il_alloc_init.)
   def_source_corresp.assoc_info = NULL;
   def_source_corresp.name = NULL;
 #if NEED_NAME_MANGLING
-  def_source_corresp.unmangled_name = NULL;
+  def_source_corresp.unmangled_name_or_mangled_encoding = NULL;
 #endif /* NEED_NAME_MANGLING */
   def_source_corresp.trans_unit_corresp = NULL;
   def_source_corresp.parent_scope = NULL;

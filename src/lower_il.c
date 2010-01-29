@@ -3709,7 +3709,7 @@ in the given source correspondence entry.
         *p++ = UCN_ESCAPE_REWRITE_CHAR;
       }  /* while */
     }  /* if */
-    p = source_corresp->unmangled_name;
+    p = source_corresp->unmangled_name_or_mangled_encoding;
     if (p != NULL) {
       while ((p = strchr(p, '\\')) != NULL) {
         *p++ = UCN_ESCAPE_REWRITE_CHAR;

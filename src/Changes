@@ -1,5 +1,20 @@
 Version 4.2
 
+1/29/10  [EDGcpfe/10393]
+Save mangled type encodings in Cfront ABI to increase performance
+
+During the name mangling process for the Cfront ABI, mangled names of types
+are used, when available, as a quick way to obtain a mangled encoding for the
+type.  In many cases, types are not given mangled names, so this shortcut is
+not available.  A change has been made to store a mangled encoding for a
+type in the (newly renamed) unmangled_name_or_mangled_encoding field of its
+a_source_correspondence.  This field can now contain the mangled encoding for
+a type (only in the Cfront ABI); the field is used as a mangled encoding only
+when name_has_been_mangled is FALSE (and continues to point to the unmangled
+name otherwise).  Subsequent requests for a mangled encoding for the type
+use the saved value.
+
+
 1/28/10  [EDGcpfe/9019]
 GNU attribute "visibility" and linkage
 

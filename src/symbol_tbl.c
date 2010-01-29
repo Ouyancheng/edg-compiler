@@ -1342,8 +1342,10 @@ information in sym_header.
   if (sc->name_has_been_mangled) {
     /* If using a PCH file, it's possible that this name has already been
        mangled; if so, no action is necessary. */
-    check_assertion(sym_header->identifier == sc->unmangled_name ||
-                    strcmp(sym_header->identifier, sc->unmangled_name) == 0);
+    check_assertion(sym_header->identifier ==
+                                      sc->unmangled_name_or_mangled_encoding ||
+                    strcmp(sym_header->identifier,
+                           sc->unmangled_name_or_mangled_encoding) == 0);
   } else
 #endif /* NEED_NAME_MANGLING */
   /* Do not insert code here. */

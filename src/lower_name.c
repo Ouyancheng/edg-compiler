@@ -761,7 +761,7 @@ above, NULL is also returned in this case).
          name for a class that was originally unnamed and has been given a
          name. */
       if (!scp->name_has_been_mangled) {
-        scp->unmangled_name = scp->name;
+        scp->unmangled_name_or_mangled_encoding = scp->name;
       }  /* if */
       scp->name = mangled_name;
       scp->name_has_been_mangled = TRUE;
@@ -3682,8 +3682,8 @@ caller.
       mangle_type_name(nested_type);
       if (has_name(nested_type)) {
         type->source_corresp.name = nested_type->source_corresp.name;
-        type->source_corresp.unmangled_name =
-                                    nested_type->source_corresp.unmangled_name;
+        type->source_corresp.unmangled_name_or_mangled_encoding =
+                nested_type->source_corresp.unmangled_name_or_mangled_encoding;
         type->source_corresp.name_has_been_mangled =
                              nested_type->source_corresp.name_has_been_mangled;
         type->source_corresp.unnamed_entity_given_fabricated_name =
@@ -5156,16 +5156,21 @@ point to the source correspondence of an entity to be used as a discriminator.
 
 #if !IA64_ABI
 /*ARGSUSED*/  /* <-- check_for_subst is only used for the IA-64 ABI. */
+              /* <-- ok_to_mangle_type is only used for the Cfront ABI. */
 #endif /* !IA64_ABI */
 static void mangled_type_name_full(a_type_ptr               type,
                                    a_boolean                check_for_subst,
+                                   a_boolean                ok_to_mangle_type,
                                    a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the type "type".
 This routine is used for named types (classes, enums, template parameters
 members, and typedefs; typedefs come up when doing final name mangling for
 nested types) and for unnamed classes and enums.  Nested types are encoded as
-such.
+such.  ok_to_mangle_type is TRUE if it's okay to give the specified type
+a mangled name in the process of adding the encoded type name (Cfront ABI
+only).  Setting ok_to_mangle_type to FALSE is a safe value (TRUE enables a
+potential performance improvement, allowing re-use of a mangled name).
 */
 {
   char                        *name;
@@ -5176,12 +5181,17 @@ such.
   a_boolean                   need_nested_name_close = FALSE;
 #else /* !IA64_ABI */
   a_length_reservation        length_reservation;
+  sizeof_t                    encoding_start = 0, save_num_leftover_spaces;
+  a_boolean                   reusable_form;
 #endif /* IA64_ABI */
 
   /* cv-qualifiers are not allowed here. */
   check_assertion(type->kind != (a_type_kind)tk_typeref ||
                   typeref_is_typedef(type));
 #if IA64_ABI
+  /* Note that we can't use a possibly previously created mangled type
+     name in the IA-64 ABI because of the way substitutions are handled
+     in that ABI. */
   tmpl = NULL;  
   /* Don't do substitutions for typedefs passed from mangle_type_name. */
   if (type->kind != (a_type_kind)tk_typeref) {
@@ -5225,15 +5235,46 @@ such.
                                 &discriminator_scp, mctl);
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
+  /* The mangled name/encoding includes partial specialization arguments on
+     parents of the type, so it can be reused only if we want those
+     arguments or if there aren't any so it doesn't make a difference. */
+  reusable_form = (!mctl->suppress_partial_spec_args ||
+                   !parents_have_partial_spec_args(type));
+  if (!type->source_corresp.name_has_been_mangled && reusable_form) {
+    /* This type doesn't have a mangled name; either it needs a mangled
+       name and somehow hasn't been mangled yet (e.g., during pre-lowering of
+       a class or promotion of an entity), or it doesn't need a mangled
+       name (and will never be given one).  To determine which case we have,
+       try to mangle the type name (if possible) and if it produces a mangled
+       name, see if we can use that (minus the prefix).  If a mangled name
+       isn't produced, continue with the encoding for this type, but mark
+       the location in the mangling buffer and keep this type encoding for
+       possible later use. */
+    if (type->source_corresp.unmangled_name_or_mangled_encoding != NULL) {
+      /* This type doesn't have a mangled name, but it does have a mangled
+         encoding; use it. */
+      add_str_to_mangled_name(
+                type->source_corresp.unmangled_name_or_mangled_encoding, mctl);
+      goto done;
+    }  /* if */
+    if (ok_to_mangle_type) {
+      /* No mangled name or mangled encoding, try to mangle the type name
+         (if it's possible to do so). */
+      mangle_type_name(type);
+    }  /* if */
+    if (!type->source_corresp.name_has_been_mangled) {
+      /* This type doesn't need a mangled name; save some context so we can
+         pull the encoding for this type out of the mangling buffer. */
+      encoding_start = mangling_text_buffer->size;
+      save_num_leftover_spaces = mctl->num_leftover_spaces;
+      check_assertion(encoding_start != 0);
+    }  /* if */
+  }  /* if */
   if (name_has_been_mangled_but_not_finalized(&type->source_corresp) &&
       !type->source_corresp.unnamed_entity_given_fabricated_name &&
-      /* The saved version includes partial specialization arguments on
-         parents of the type, so it can be reused only if we want those
-         arguments or if there aren't any so it doesn't make a difference. */
-      (!mctl->suppress_partial_spec_args ||
-       !parents_have_partial_spec_args(type))) {
+      reusable_form) {
     /* The type name has been mangled already (in mangle_type_name), so
-       reuse the form we already have saved.  Skip the prefix at the
+       reuse the form we already have.  Skip the prefix at the
        beginning of the name. */
     name = type->source_corresp.name;
     check_assertion(name != NULL &&
@@ -5309,16 +5350,40 @@ such.
   }  /* if */
 #if IA64_ABI
   close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
+#else /* !IA64_ABI */
+  if (encoding_start != 0 && !mctl->lacking_module_id) {
+    /* We've just put an encoding for the type into the mangling_text_buffer;
+       pull it out, remove any spaces and save it for future use. */
+    char ch, *src, *dest;
+    sizeof_t len = (mangling_text_buffer->size - encoding_start) - 
+                   (mctl->num_leftover_spaces - save_num_leftover_spaces);
+    type->source_corresp.unmangled_name_or_mangled_encoding =
+                                            alloc_lowered_name_string(len + 1);
+    src = &mangling_text_buffer->buffer[encoding_start];
+    dest = type->source_corresp.unmangled_name_or_mangled_encoding;
+    do {
+      ch = *src++;
+      if (ch != ' ') {
+        *dest++ = ch;
+      } else {
+        len++;
+      }  /* if */
+    } while (--len);
+    *dest = '\0';
+    check_assertion(!type->source_corresp.name_has_been_mangled);
+  }  /* if */
 #endif /* IA64_ABI */
 done:;
 }  /* mangled_type_name_full */
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
-caller has not checked already for a substitution in IA-64 ABI mode.
+caller has not checked already for a substitution in IA-64 ABI mode and
+it's okay to give the type a mangled name.
 */
-#define mangled_type_name(type, mctl) \
-  (mangled_type_name_full((type), /*check_for_subst=*/TRUE, (mctl)))
+#define mangled_type_name(type, mctl)                                        \
+  (mangled_type_name_full(                                                   \
+      (type), /*check_for_subst=*/TRUE, /*ok_to_mangle_type=*/TRUE, (mctl)))
 
 
 static void mangled_class_name_internal(a_type_ptr               type,
@@ -5434,7 +5499,8 @@ Add to the mangled name the encoding for the type "type".
     /* Put out the mangled form of the name, e.g., "2AB" for "AB". */
     /* The possibility of an IA-64 ABI substitution was already checked for
        above. */
-    mangled_type_name_full(named_type, /*check_for_subst=*/FALSE, mctl);
+    mangled_type_name_full(named_type, /*check_for_subst=*/FALSE,
+                           /*ok_to_mangle_type=*/TRUE, mctl);
   } else {
     /* The type is not named, so develop a description string. */
     switch (type->kind) {
@@ -5450,8 +5516,9 @@ Add to the mangled name the encoding for the type "type".
         break;
       case tk_integer:
         if (type->variant.integer.enum_type) {
-          /* Unnamed enum.  mangled_type_name will make up a name. */
-          mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
+          /* Unnamed enum.  mangled_type_name_full will make up a name. */
+          mangled_type_name_full(type, /*check_for_subst=*/FALSE, 
+                                 /*ok_to_mangle_type=*/TRUE, mctl);
           goto have_whole_mangled_name;
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
@@ -5616,8 +5683,9 @@ Add to the mangled name the encoding for the type "type".
       case tk_class:
       case tk_struct:
       case tk_union:
-        /* Unnamed classes.  mangled_type_name will make up a name. */
-        mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
+        /* Unnamed classes.  mangled_type_name_full will make up a name. */
+        mangled_type_name_full(type, /*check_for_subst=*/FALSE, 
+                               /*ok_to_mangle_type=*/TRUE, mctl);
         goto have_whole_mangled_name;
       case tk_template_param:
         /* This comes up when mangling the names for template entities using
@@ -5634,7 +5702,8 @@ Add to the mangled name the encoding for the type "type".
             if (!has_name(type)) {
               give_unnamed_template_param_member_a_name(type, mctl);
             }  /* if */
-            mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
+            mangled_type_name_full(type, /*check_for_subst=*/FALSE, 
+                                   /*ok_to_mangle_type=*/TRUE, mctl);
             break;
           case tptk_unknown:
             /*FIXME*/
@@ -7070,9 +7139,17 @@ is what mangled_type_name generates, plus a prefix.
       give_unnamed_template_param_member_a_name(type, &mctl);
     }  /* if */
   }  /* if */
+  /* Generally speaking, types don't need to be given mangled names (they
+     have specified encodings that are used when creating mangled names for
+     other entities).  In certain cases though, mangled names are necessary
+     to avoid collisions in generated C code.  For example, a class in
+     a namespace can have the same name as a class at file scope and they
+     need to be differentiated in lowered code. */
   /* do_type_name_mangling gets called twice, once from template processing
      and once from lowering itself.  Do nothing for names that have already
-     been mangled on the previous call. */
+     been mangled on the previous call.  Type names can also have been
+     previously mangled (in the Cfront ABI) when they are used as a component
+     of another mangled name. */
   if (!type->source_corresp.name_has_been_mangled &&
       /* Ignore placeholder typerefs. */
       (type->kind != (a_type_kind)tk_typeref || typeref_is_typedef(type)) &&
@@ -7094,7 +7171,8 @@ is what mangled_type_name generates, plus a prefix.
 #else /*!IA64_ABI */
     add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
 #endif /* IA64_ABI */
-    mangled_type_name(type, &mctl);
+    mangled_type_name_full(type, /*check_for_subst=*/TRUE,
+                           /*ok_to_mangle_type=*/FALSE, &mctl);
     /* Note final=FALSE to prevent compression and truncation at this
        time, so that the name can be reused.  final_entity_name_mangling
        will do the compression or truncation if necessary. */
@@ -7767,6 +7845,9 @@ Add to the mangled name the encoding for the name of the class "type"
 for use in a virtual function table name.
 */
 {
+  /* When mangling the type, make sure we don't assign a mangled name to
+     it (some code in define_typeinfo_var temporarily copies a name to a
+     type_info type and then mangles it which can cause problems). */
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
   /* cfront mode. */
   if (entity_needs_parent_qualifier(&type->source_corresp, iek_type)) {
@@ -7774,16 +7855,19 @@ for use in a virtual function table name.
        form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
     a_length_reservation length_reservation;
     reserve_space_for_length(&length_reservation, mctl);
-    mangled_type_name(type, mctl);
+    mangled_type_name_full(type, /*check_for_subst=*/TRUE,
+                           /*ok_to_mangle_type=*/FALSE, mctl);
     fill_in_length(&length_reservation, mctl);
   } else {
     /* Not a nested type name; just put out the type encoding. */
-    mangled_type_name(type, mctl);
+    mangled_type_name_full(type, /*check_for_subst=*/TRUE,
+                           /*ok_to_mangle_type=*/FALSE, mctl);
   }  /* if */
 #else /* ABI_COMPATIBILITY_VERSION < 230 || ... */
   /* In non-cfront mode, or in old ABI versions, just pass through to
-     mangled_type_name. */
-  mangled_type_name(type, mctl);
+     mangled_type_name_full. */
+  mangled_type_name_full(type, /*check_for_subst=*/TRUE,
+                         /*ok_to_mangle_type=*/FALSE, mctl);
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
 }  /* mangled_vtbl_class_name */
 
@@ -7898,7 +7982,8 @@ type-as-subobject of class_type.
   if (has_name(class_type)) {
     start_mangling(&mctl);
     add_str_to_mangled_name("__SO__", &mctl);
-    mangled_type_name(class_type, &mctl);
+    mangled_type_name_full(class_type, /*check_for_subst=*/TRUE,
+                           /*ok_to_mangle_type=*/FALSE, &mctl);
     /* Not "final" because this type will go through the final processing
        later.  We don't want to (e.g.) compress twice. */
     temp_name = end_mangling(/*final=*/FALSE, &mctl);

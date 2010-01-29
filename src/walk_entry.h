@@ -494,7 +494,7 @@ Process the source correspondence field pointed to by ptr.
 #undef walk_unmangled_name
 #if NEED_NAME_MANGLING
 #define walk_unmangled_name(ptr) \
-  walk_string_ptr((ptr).unmangled_name, iek_id_name, 0)
+  walk_string_ptr((ptr).unmangled_name_or_mangled_encoding, iek_id_name, 0)
 #else /* !NEED_NAME_MANGLING */
 #define walk_unmangled_name(ptr) /* Nothing */
 #endif /* NEED_NAME_MANGLING */
