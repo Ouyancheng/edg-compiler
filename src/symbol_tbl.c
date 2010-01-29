@@ -2262,7 +2262,7 @@ fields, and return a pointer to it.  Reuse a freed entry if possible.
     /* Allocate a template declaration information entry. */
     tdip = (a_template_decl_info_ptr)alloc_fe(sizeof(a_template_decl_info));
 #if DEBUG
-  num_template_decl_info_allocated++;
+    num_template_decl_info_allocated++;
 #endif /* DEBUG */
   }  /* if */
   tdip->parameters = NULL;
