@@ -16905,10 +16905,15 @@ instantiation.  class_type is the class to be defined.
 {
   a_symbol_ptr			class_sym;
   a_template_decl_info_ptr	tdip;
+  a_boolean			define_class = FALSE;
 
   /* This routine cannot handle local classes. */
-  check_assertion_str2(!class_type->source_corresp.is_local_to_function,
-                       "get_definition_of_class:", "local type not allowed");
+  if (class_type->source_corresp.is_local_to_function) {
+    define_class = FALSE;
+  }  /* if */
+  /* Add any other code here to decide whether the definition of this class
+     should be loaded. */
+  if (!define_class) goto done;
 #if DEBUG
   if (db_flag_is_set("gdoc")) {
     fprintf(f_debug, "Getting definition of ");
@@ -16927,20 +16932,20 @@ instantiation.  class_type is the class to be defined.
                               tdip, class_type, (a_routine_ptr)NULL, class_sym,
                               class_sym, (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
-  { char			*file_name = "/lin/tmp/classdef.h";
-    FILE			*f_def;
-    char			*line;
-    if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
+  { if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
     reset_text_buffer(class_def_buffer);
-    f_def = fopen(file_name, "r");
-    check_assertion_str2(f_def != NULL,
-                         "get_definition_of_class: input file missing:",
-                         file_name);
-    while ((line = read_line_from_file(f_def)) != NULL) {
-      add_string_to_text_buffer(class_def_buffer, line);
-    }  /* while */
+    /* Add code here to construct in the text buffer the string to be used to
+       define the class.  It may also be desirable to disable macro expansion
+       while the tokens are being scanned.  This shows a simple class
+       definition: 
+         add_string_to_text_buffer(class_def_buffer,
+                                   "{int i; void f(int j=1){} };");
+       Note that the definition starts with what would appear after the
+       class name in a normal class definition (i.e., the base classes or
+       the opening brace of the class) and ends with the closing brace and
+       semicolon. */
+    /* Terminate the buffer. */
     add_char_to_text_buffer(class_def_buffer, '\0');
-    fclose(f_def);
     insert_string_into_token_stream(class_def_buffer->buffer,
                                     /*insert_after=*/FALSE);
     (void)scan_class_definition
@@ -16958,6 +16963,8 @@ instantiation.  class_type is the class to be defined.
   }
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
+done:
+  return;
 }  /* get_definition_of_class */
 
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
