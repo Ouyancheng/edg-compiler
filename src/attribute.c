@@ -401,7 +401,12 @@ typedef struct an_attr_appl_descr {
 			   must be first and it indicates that it applies to a
 			   type by producing a new type entry (instead of
 			   modifying an existing type entry "in place").
-			*/
+			   If an attribute fails to meet the constraints
+			   encoded here, that attribute is reclassified as
+			   ak_unrecognized.  This is true even if the failure 
+			   only triggers a warning (because of a 'W' prefix on
+			   the entity code, or the lack of a '!' suffix on a
+			   property switch). */
   an_attr_application_fn
 		*appl_fn;
 			/* NULL or a pointer to the function to call to apply
