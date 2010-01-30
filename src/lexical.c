@@ -16932,23 +16932,23 @@ instantiation.  class_type is the class to be defined.
                               tdip, class_type, (a_routine_ptr)NULL, class_sym,
                               class_sym, (a_template_arg_ptr)NULL,
                               /*push_lex_state=*/TRUE, PS_NO_OPTIONS);
-  { if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
-    reset_text_buffer(class_def_buffer);
-    /* Add code here to construct in the text buffer the string to be used to
-       define the class.  It may also be desirable to disable macro expansion
-       while the tokens are being scanned.  This shows a simple class
-       definition: 
-         add_string_to_text_buffer(class_def_buffer,
-                                   "{int i; void f(int j=1){} };");
-       Note that the definition starts with what would appear after the
-       class name in a normal class definition (i.e., the base classes or
-       the opening brace of the class) and ends with the closing brace and
-       semicolon. */
-    /* Terminate the buffer. */
-    add_char_to_text_buffer(class_def_buffer, '\0');
-    insert_string_into_token_stream(class_def_buffer->buffer,
-                                    /*insert_after=*/FALSE);
-    (void)scan_class_definition
+  if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
+  reset_text_buffer(class_def_buffer);
+  /* Add code here to construct in the text buffer the string to be used to
+     define the class.  It may also be desirable to disable macro expansion
+     while the tokens are being scanned.  This shows a simple class
+     definition: 
+       add_string_to_text_buffer(class_def_buffer,
+                                 "{int i; void f(int j=1){} };");
+     Note that the definition starts with what would appear after the
+     class name in a normal class definition (i.e., the base classes or
+     the opening brace of the class) and ends with the closing brace and
+     semicolon. */
+  /* Terminate the buffer. */
+  add_char_to_text_buffer(class_def_buffer, '\0');
+  insert_string_into_token_stream(class_def_buffer->buffer,
+                                  /*insert_after=*/FALSE);
+  (void)scan_class_definition
                    (class_type, depth_innermost_namespace_scope,
                     depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/
@@ -16957,10 +16957,9 @@ instantiation.  class_type is the class to be defined.
                     /*is_template_specialization=*/FALSE,
                     (a_template_ptr)NULL,
                     (a_decl_pos_block_ptr)NULL);
-    process_deferred_class_fixups_and_instantiations(
+  process_deferred_class_fixups_and_instantiations(
                                                   /*for_instantiation=*/TRUE);
-    get_token();
-  }
+  get_token();
   pop_template_instantiation_scope();
   free_template_decl_info(tdip);
 done:
