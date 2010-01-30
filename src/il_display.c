@@ -576,8 +576,9 @@ Display the indicated source correspondence entry.
     disp_string_ptr("  name", scp->name, iek_id_name, (sizeof_t)0);
   }  /* if */
 #if NEED_NAME_MANGLING
-  if (scp->unmangled_name != NULL) {
-    disp_string_ptr("  unmangled_name", scp->unmangled_name, iek_id_name,
+  if (scp->unmangled_name_or_mangled_encoding != NULL) {
+    disp_string_ptr("  unmangled_name_or_mangled_encoding",
+                    scp->unmangled_name_or_mangled_encoding, iek_id_name,
                     (sizeof_t)0);
   }  /* if */
 #endif /* NEED_NAME_MANGLING */

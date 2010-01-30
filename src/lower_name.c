@@ -5154,10 +5154,8 @@ point to the source correspondence of an entity to be used as a discriminator.
 
 #endif /* IA64_ABI */
 
-#if !IA64_ABI
 /*ARGSUSED*/  /* <-- check_for_subst is only used for the IA-64 ABI. */
               /* <-- ok_to_mangle_type is only used for the Cfront ABI. */
-#endif /* !IA64_ABI */
 static void mangled_type_name_full(a_type_ptr               type,
                                    a_boolean                check_for_subst,
                                    a_boolean                ok_to_mangle_type,
