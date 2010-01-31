@@ -76,12 +76,12 @@ typedef struct a_decode_control_block {
 #else /* IA64_ABI */
   unsigned long	suppress_substitution_recording;
 			/* If > 0, suppress recording of substitutions. */
-  a_boolean	constains_conversion_operator;
+  a_boolean	contains_conversion_operator;
 			/* TRUE if the name being demangled contains a
 			   conversion operator (i.e., "cv <type>").  Such
 			   names may require a second pass at demangling
 			   if the first pass ends in failure. */
-  a_boolean	parse_template_args;
+  a_boolean	parse_template_args_after_conversion_operator;
 			/* TRUE if template arguments should be parsed
 			   as part of the type following a templated conversion
 			   operator.  The initial attempt at demangling uses
@@ -107,8 +107,8 @@ Clear a decoding control block.
   dctl->end_of_name = NULL;
 #else /* IA64_ABI */
   dctl->suppress_substitution_recording = 0;
-  dctl->constains_conversion_operator = FALSE;
-  dctl->parse_template_args = FALSE;
+  dctl->contains_conversion_operator = FALSE;
+  dctl->parse_template_args_after_conversion_operator = FALSE;
 #endif /* IA64_ABI */
 }  /* clear_control_block */
 
@@ -4580,11 +4580,13 @@ caller does not need the value.
          We can't do a local retry here because the type may parse just
          fine both ways and we only find out later that there is a problem when
          a substitution number is too large.  On the initial attempt, prefer
-         the <template-param> case (parse_template_args is FALSE); on a
+         the <template-param> case (parse_template_args); on a
          subsequent attempt (if the demangling fails), we'll try the other
          case. */
-      ptr = full_demangle_type(ptr+2, dctl->parse_template_args, dctl);
-      dctl->constains_conversion_operator = TRUE;
+      ptr = full_demangle_type(ptr+2,
+                           dctl->parse_template_args_after_conversion_operator,
+                               dctl);
+      dctl->contains_conversion_operator = TRUE;
     } else {
       /* Other operator function (not conversion function). */
       int  num_operands, length;
@@ -5697,15 +5699,15 @@ length returned the second time will be correct).
       end_ptr = demangle_type(id, dctl);
     }  /* if */
     if (dctl->err_in_id &&
-        dctl->constains_conversion_operator &&
-        !dctl->parse_template_args) {
+        dctl->contains_conversion_operator &&
+        !dctl->parse_template_args_after_conversion_operator) {
       /* If demangling failed and the mangled name contained a conversion
          operator (i.e., "cv <type>"), retry the demangling operation, but
          this time, parse any template args that may appear after a
          templated conversion operator.  This needed because of a demangling
          ambiguity that exists for templated conversion operators. */
       init_demangle_state(output_buffer, output_buffer_size, dctl);
-      dctl->parse_template_args = TRUE;
+      dctl->parse_template_args_after_conversion_operator = TRUE;
     } else {
       break;
     }  /* if */
