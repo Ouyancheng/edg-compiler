@@ -475,14 +475,14 @@ of template deduction.
 */
 /* The typedef an_expr_rescan_info_entry_ptr is defined in il_def.h. */
 typedef struct an_expr_rescan_info_entry {
-  a_source_position
-		position;
-			/* Start position. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		end_position;
-			/* End position. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_operand	saved_operand;
+			/* A copy of the operand, which contains the position
+			   information and all the extra flags.  Not used for
+			   the basic type/expression/constant values. */
+  an_expression_kind
+		expression_kind;
+			/* Kind of expression we are in, e.g., template
+			   argument. */
   a_source_position
 		operator_position;
 			/* Position of the expression operator, if there is
@@ -491,10 +491,6 @@ typedef struct an_expr_rescan_info_entry {
 		operator_token_sequence_number;
 			/* Token sequence number for the operator, if there
 			   is one.  NO_TOKEN_SEQUENCE_NUMBER otherwise. */
-  an_expression_kind
-		expression_kind;
-			/* Kind of expression we are in, e.g., template
-			   argument. */
 } an_expr_rescan_info_entry;
 
 /*
@@ -714,7 +710,8 @@ typedef struct an_expr_stack_entry {
 			   where template deduction might be done later.
 			   Extra information is saved that will be needed if
 			   the semantic analysis on the expression is redone
-			   during template deduction. */
+			   during template deduction.  Only set when
+			   cpp0x_sfinae_enabled is TRUE. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

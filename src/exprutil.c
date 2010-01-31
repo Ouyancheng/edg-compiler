@@ -845,6 +845,7 @@ is pushed regardless of any of the other factors.
   new_entry->suppress_diagnostics = FALSE;
   new_entry->any_non_access_error_detected = FALSE;
   new_entry->template_deduction_declaration_context =
+                                               cpp0x_sfinae_enabled &&
                                                is_template_deduction_context();
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
@@ -2104,13 +2105,10 @@ set its fields to default values, and return a pointer to it.
 #if DEBUG
   num_expr_rescan_info_entries_allocated++;
 #endif /* DEBUG */
-  eriep->position = null_source_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  eriep->end_position = null_source_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  clear_operand((an_operand_kind)ok_error, &eriep->saved_operand);
+  eriep->expression_kind = (an_expression_kind)ek_normal;
   eriep->operator_position = null_source_position;
   eriep->operator_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  eriep->expression_kind = (an_expression_kind)ek_normal;
   return eriep;
 }  /* alloc_expr_rescan_info_entry */
 
@@ -2133,10 +2131,7 @@ entry attached to the expression node so it will be available for the rescan.
   /* Note that we do not clear all fields.  In particular, operator_position
      and operator_token_sequence_number will often have been set previously
      by record_operator_position_in_rescan_info. */
-  eriep->position = operand->position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  eriep->end_position = operand->end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  eriep->saved_operand = *operand;
   eriep->expression_kind = expr_stack->expression_kind;
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
@@ -2177,10 +2172,7 @@ Inverse of save_operand_info_in_expr_rescan_info_entry: restore in *operand
 any extra rescan information saved previously in *eriep.
 */
 {
-  operand->position = eriep->position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  operand->end_position = eriep->end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  restore_operand_details(operand, &eriep->saved_operand);
 }  /* restore_operand_info_from_expr_rescan_info_entry */
 
 
@@ -2229,7 +2221,7 @@ original expression is not modified.
                                          rcblock->template_arg_list,
                                          rcblock->template_param_list,
                                          (a_type_ptr)NULL,
-                                         &eriep->position,
+                                         &eriep->saved_operand.position,
                                          rcblock->options,
                                          &copy_error,
                                          &constant,
