@@ -13016,6 +13016,9 @@ redoes semantic analysis.
       case eok_indirect:
       case eok_add:
       case eok_subtract:
+      case eok_multiply:
+      case eok_divide:
+      case eok_remainder:
       case eok_shiftl:
       case eok_shiftr:
         rescannable = TRUE;

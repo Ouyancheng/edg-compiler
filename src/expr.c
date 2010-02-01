@@ -13844,16 +13844,21 @@ symmetrical, e.g., "i + l" does not yield an int.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void scan_mult_operator(an_operand *operand_1,
-                               an_operand *result)
+static void scan_mult_operator(an_operand             *operand_1,
+                               a_rescan_control_block *rcblock,
+                               an_operand             *result)
 /*
-Scan the "*", "/", and "%" operators.  The operands of the "*" and "/"
-operators must be of arithmetic type.  The operands of the "%" operator must
-be of integral type.  See section 3.3.5 of the standard.
+Scan the "*", "/", and "%" operators.  *operand_1 is the left operand.
+The current token is the operator.  Scan the second operand, combine
+the two operands into an expression, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
   a_token_kind          operator_token;
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -13863,15 +13868,31 @@ be of integral type.  See section 3.3.5 of the standard.
 
   db_enter(4, "scan_mult_operator");
 
-  /* Save the current token kind. */
-  operator_token = curr_token;
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_multiply) {
+      operator_token = tok_star;
+    } else if (op == (an_expr_operator_kind)eok_divide) {
+      operator_token = tok_divide;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_remainder);
+      operator_token = tok_remainder;
+    }  /* if */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_MULT_DIV, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
@@ -20410,7 +20431,8 @@ bad_start_of_primary:
       case tok_star:
       case tok_divide:
       case tok_remainder:
-	scan_mult_operator(&operand, &local_result);
+        scan_mult_operator(&operand, (a_rescan_control_block *)NULL,
+                           &local_result);
 	break;
       case tok_plus:
       case tok_minus:
@@ -21864,6 +21886,11 @@ NULL is returned.
     case eok_add:
     case eok_subtract:
       scan_add_operator((an_operand *)NULL, rcblock, &result);
+      break;
+    case eok_multiply:
+    case eok_divide:
+    case eok_remainder:
+      scan_mult_operator((an_operand *)NULL, rcblock, &result);
       break;
     case eok_shiftl:
     case eok_shiftr:
