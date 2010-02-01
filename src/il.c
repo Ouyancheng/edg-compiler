@@ -13014,6 +13014,10 @@ redoes semantic analysis.
     an_expr_operator_kind op = expr->variant.operation.kind;
     switch (op) {
       case eok_indirect:
+      case eok_unary_plus:
+      case eok_negate:
+      case eok_complement:
+      case eok_not:
       case eok_add:
       case eok_subtract:
       case eok_multiply:

@@ -5227,7 +5227,7 @@ error indication in *rcblock).
 */
 {
   an_operand        operand;
-  a_source_position start_position;
+  a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
   a_boolean         err = FALSE, processed = FALSE;
@@ -5242,23 +5242,23 @@ error indication in *rcblock).
                                           (an_expr_operator_kind)eok_indirect);
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
-                         &start_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number);
   } else {
     /* Normal, non-rescan, processing. */
-    start_position = pos_curr_token;
+    operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
   }  /* if */
   if (curr_expr_kind_is(ek_pp)) {
     /* Address indirection not allowed in preprocessing expressions. */
-    expr_pos_error(ec_bad_pp_operator, &start_position);
+    expr_pos_error(ec_bad_pp_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Address indirection not allowed in integral constant expressions. */
-    expr_pos_error(ec_bad_integral_operator, &start_position);
+    expr_pos_error(ec_bad_integral_operator, &operator_position);
     err = TRUE;
   } else if (curr_expr_kind_is(ek_template_arg)) {
     /* Address indirection not allowed in a template argument expression. */
-    expr_pos_error(ec_bad_templ_arg_expr_operator, &start_position);
+    expr_pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
     err = TRUE;
   }  /* if */
   if (rcblock == NULL) {
@@ -5282,7 +5282,7 @@ error indication in *rcblock).
                                      /*try_conversions=*/TRUE,
                                      /*has_predef_meaning=*/FALSE,
                                      &operand, (an_operand *)NULL,
-                                     &start_position,
+                                     &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
                                      result, &processed);
@@ -5332,8 +5332,8 @@ error indication in *rcblock).
     }  /* if */
   }  /* if */
 
-  set_operand_position(result, &start_position, &operand.end_position,
-                       &start_position);
+  set_operand_position(result, &operator_position, &operand.end_position,
+                       &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 
   db_exit();
@@ -5378,18 +5378,20 @@ operand, and *processed is set to TRUE.
 }  /* check_for_bad_template_arg_operation */
 
 
-static void scan_arith_prefix_operator(an_operand *result)
+static void scan_arith_prefix_operator(a_rescan_control_block *rcblock,
+                                       an_operand             *result)
 /*
-Scan the "+", "-", "~", and "!" prefix operators.  The operand of the "!"
-operator must have scalar type.  The operand of "-" and "+" must have
-arithmetic type.  The operand of "~" must have integral type.  See section
-3.3.3.3 of the standard.
+Scan the "+", "-", "~", and "!" prefix operators.  The current token
+is the operator.  Scan the operand, build an expression, and return an
+operand for that in *result.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned expression, and return the result in
+*result (or an error indication in *rcblock).
 */
 {
   a_token_kind          operator_token;
   an_operand            operand;
   an_expr_operator_kind op;
-  a_source_position     start_position;
+  a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
   a_type_ptr            result_type;
@@ -5397,14 +5399,39 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 
   db_enter(4, "scan_arith_prefix_operator");
 
-  operator_token = curr_token;
-  /* Save the current source position. */
-  copy_source_position(pos_curr_token, start_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the operand. */
-  (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->expr != NULL &&
+                    is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    switch (op) {
+      case eok_unary_plus:
+        operator_token = tok_plus;
+        break;
+      case eok_negate:
+        operator_token = tok_minus;
+        break;
+      case eok_complement:
+        operator_token = tok_compl;
+        break;
+      case eok_not:
+        operator_token = tok_not;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the operand. */
+    (void)get_token();
+    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       is_overloadable_type_operand(&operand)) {
@@ -5415,7 +5442,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                                    /*try_conversions=*/TRUE,
                                    /*has_predef_meaning=*/FALSE,
                                    &operand, (an_operand *)NULL,
-                                   &start_position,
+                                   &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
                                    result, &processed);
@@ -5428,7 +5455,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           is_floating_type(operand.type) &&
           is_constant_operand(&operand))) {
       /* Non-integral operations are not allowed in a template argument. */
-      diagnose_bad_template_arg_operation(&start_position);
+      diagnose_bad_template_arg_operation(&operator_position);
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(&operand);
       processed = TRUE;
@@ -5472,7 +5499,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           if (f_skip_typerefs(operand.type)->variant.fixed_point.is_unsigned) {
             /* Warn on negation of an unsigned value. */
             expr_pos_warning(ec_unsigned_fixed_point_negation,
-                             &start_position);
+                             &operator_position);
           }  /* if */
         } else
 #endif /* FIXED_POINT_ALLOWED */
@@ -5525,11 +5552,11 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     }  /* if */
     /* Build the IL for the operation. */
     do_unary_operation(op, &operand, result_type, result,
-                       &start_position);
+                       &operator_position);
   }  /* if */
 
-  set_operand_position(result, &start_position, &operand.end_position,
-                       &start_position);
+  set_operand_position(result, &operator_position, &operand.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_arith_prefix_operator */
 
@@ -20137,7 +20164,8 @@ see expr.h).
     case tok_minus:
     case tok_compl:
     case tok_not:
-      scan_arith_prefix_operator(&local_result);
+      scan_arith_prefix_operator((a_rescan_control_block *) NULL,
+                                 &local_result);
       break;
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -22006,6 +22034,12 @@ NULL is returned.
   switch (expr->variant.operation.kind) {
     case eok_indirect:
       scan_indirection_operator(rcblock, &result);
+      break;
+    case eok_unary_plus:
+    case eok_negate:
+    case eok_complement:
+    case eok_not:
+      scan_arith_prefix_operator(rcblock, &result);
       break;
     case eok_add:
     case eok_subtract:
