@@ -1764,11 +1764,12 @@ the routine so it can be inlined on calls from here on.
        the statement subtree and associated scopes for those if we
        wanted to be able to inline such things. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   } else if (routine->never_inline) {
-    /* An inline function can be marked with __declspec(noinline), in which
-       case no inlining should occur. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* An inline function can be marked with __declspec(noinline).  (The
+       similar __attribute((noinline)) clears the is_inline flag.) */
+    check_assertion(!gnu_mode);
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!rtsp->prototyped && rtsp->param_type_list != NULL) {
     /* Old-style definitions cannot be inlined (C99 inline).  They're
        okay if they have no parameters. */

@@ -4315,7 +4315,7 @@ Display the indicated attribute argument entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &aap->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (aap->token_kind != (a_small_token_kind)tok_last) {
+  if (aap->token_kind != (a_small_token_kind)tok_error) {
     disp_name("token_kind");
     (void)printf("%s\n", token_names[aap->token_kind]);
   }  /* if */

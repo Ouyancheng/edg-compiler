@@ -373,21 +373,21 @@ typedef struct an_attr_appl_descr {
 			       "i"  : inline
 			       "p"  : pure virtual
 			       "v"  : virtual
-                               "x"  : external linkage
+			       "x"  : external linkage
 			     "v"  : variables
 			       "a"  : automatic variables
 			       "l"  : local variables (automatic/static)
 			       "r"  : register variables
-                               "x"  : external linkage
+			       "x"  : external linkage
 			     "p"  : parameters
 			       (no property switches)
 			     "d"  : fields
 			       "b"  : bit field
-                             "u"  : using-declarations/using-directives
+			     "u"  : using-declarations/using-directives
 			       (no property switches)
 			     "n"  : namespaces
 			       (no property switches)
-                             "l"  : labels
+			     "l"  : labels
 			       (no property switches)
 			   A switch is optionally followed by a "!" to indicate
 			   that a failure to meet the requirement should be
@@ -712,21 +712,26 @@ Initialize the attribute name map.
 }  /* init_attr_name_map */
 
 
-static a_boolean in_attr_cond_range(unsigned long  version,
-                                    char           *cond_range)
+#if !CHECKING
+/*ARGSUSED*/  /* ap is not used in some configurations. */
+#endif /* !CHECKING */
+static a_boolean in_attr_cond_range(unsigned long     version,
+                                    char              *cond_range,
+                                    an_attribute_ptr  ap)
 /*
 cond_range is the "version range" portion of the cond string in an attribute
-description entry (an_attr_descr).  Return TRUE if version lies in the
-indicated range.
+description entry (an_attr_descr) for the given attribute.  Return TRUE if
+version lies in the indicated range.
 */
 {
   unsigned long  min_version = 0, max_version = (unsigned long)-1;
   char           *str = cond_range;
 
-  check_assertion(str[0] == '(');
+  check_attr_config(str[0] == '(', ap, "invalid version range configuration");
   str += 1;
   if (str[0] != '-') {
-    check_assertion(str[0] >= '0' && str[0] <= '9');
+    check_attr_config(str[0] >= '0' && str[0] <= '9', ap,
+                      "invalid version range configuration");
     min_version = strtoul(str, &str, 10);
   }  /* if */
   if (str[0] == '-') {
@@ -738,15 +743,17 @@ indicated range.
     /* Not a range, but a single version number. */
     max_version = min_version;
   }  /* if */
-  check_assertion(str[0] == ')');
+  check_attr_config(str[0] == ')', ap, "invalid version range configuration");
   return version >= min_version && version <= max_version;
 }  /* in_attr_cond_range */
 
 
-static a_boolean cond_matches_gnu_attr_mode(char  *cond)
+static a_boolean cond_matches_gnu_attr_mode(char              *cond,
+                                            an_attribute_ptr  ap)
 /*
-cond is the "cond" field of an attribute description entry.  Return TRUE if
-the current mode matches the modes encoded in that string.
+cond is the "cond" field of an attribute description entry for the given GNU
+attribute.  Return TRUE if the current mode matches the modes encoded in that
+string.
 */
 {
   a_boolean  match = FALSE;
@@ -755,24 +762,27 @@ the current mode matches the modes encoded in that string.
     match = sun_mode;
     /* The full string should just be "s+": There is no Sun C mode and no
        sun_version. */
-    check_assertion(cond[1] == '+' && cond[2] == '\0');
+    check_attr_config(cond[1] == '+' && cond[2] == '\0', ap,
+                      "invalid Sun mode attribute configuration");
   } else if (cond[0] == 'g') {
     match = (cond[1] == 'x' && gnu_mode) ||
             (cond[1] == 'c' && gcc_mode) ||
             (cond[1] == '+' && gpp_mode);
     if (match && cond[2] == '(') {
       /* A range specification follows. */
-      match = in_attr_cond_range(gnu_version, cond+2);
+      match = in_attr_cond_range(gnu_version, cond+2, ap);
     }  /* if */
   }  /* if */
   return match;
 }  /* cond_matches_gnu_attr_mode */
 
 
-static a_boolean cond_matches_ms_declspec_mode(char  *cond)
+static a_boolean cond_matches_ms_declspec_mode(char              *cond,
+                                               an_attribute_ptr  ap)
 /*
-cond is the "cond" field of an attribute description entry.  Return TRUE if
-the current mode matches the modes encoded in that string.
+cond is the "cond" field of an attribute description entry for the given
+Microsoft __declspec attribute.  Return TRUE if the current mode matches the
+modes encoded in that string.
 */
 {
   a_boolean  match = FALSE;
@@ -783,7 +793,7 @@ the current mode matches the modes encoded in that string.
             (cond[1] == '+' && !C_mode());
     if (match && cond[2] == '(') {
       /* A range specification follows. */
-      match = in_attr_cond_range(microsoft_version, cond+2);
+      match = in_attr_cond_range(microsoft_version, cond+2, ap);
     }  /* if */
   }  /* if */
   return match;
@@ -853,10 +863,10 @@ there is an applicable one; otherwise, return NULL.
           }  /* if */
           break;
         case af_gnu:
-          if (cond_matches_gnu_attr_mode(cond)) goto search_done;
+          if (cond_matches_gnu_attr_mode(cond, ap)) goto search_done;
           break;
         case af_ms_declspec:
-          if (cond_matches_ms_declspec_mode(cond)) goto search_done;
+          if (cond_matches_ms_declspec_mode(cond, ap)) goto search_done;
           break;
         default:
           unexpected_condition();
@@ -1404,7 +1414,7 @@ the attribute is declared with.
     } else if (!record_unrecognized_attributes ||
                ap->family == (a_byte_attribute_family)af_ms_declspec) {
       /* If we are not recording unrecognized attributes, drop unrecognized
-         attributes with a warning. Always issue a discretionary error for
+         attributes with a warning.  Always issue a discretionary error for
          unrecognized Microsoft __declspec attributes. */
       an_error_severity  sev = es_warning;
       if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
@@ -1684,7 +1694,10 @@ scan_attributes.
 
 void skip_over_attributes(void)
 /*
-If attributes are ahead in the token stream, skip over them.
+If attributes are ahead in the token stream, skip over them.  This is used
+in contexts where attributes have no effect (the caller will issue a warning)
+or during disambiguation lookahead (e.g., while determining the nature of a
+template).
 */
 {
   for (;;) {
@@ -2120,7 +2133,8 @@ appropriate and set ap->kind to ak_unrecognized).
          entity kind. */
       weak_mismatch = TRUE;
       ++constr;
-      check_assertion(constr[1] != ':');
+      check_attr_config(constr[1] != ':',
+                        ap, "invalid attribute constraint configuration");
     } else {
       weak_mismatch = FALSE;
     }  /* if */
@@ -2849,7 +2863,7 @@ return that entity.
           pos_warning(ec_declspec_align_reduction_ignored, &ap->position);
           make_attr_unrecognized(ap);
         } else if (is_immediate_enum_type(tp)) {
-          /* Microsoft compiler ignore the attribute in
+          /* Microsoft compilers ignore the attribute in
                enum __declspec(align(16)) E {};
           */
           pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
@@ -2998,8 +3012,8 @@ entity.
   if (entity_kind != iek_routine &&
       ap->family != (a_byte_attribute_family)af_gnu) {
     /* The standard attribute form and the Microsoft __declspec form apply only
-       to routines.  (Early Microsoft compiler simply ignore the attribute when
-       it is applied to a non-routine.) */
+       to routines.  (Early Microsoft compilers simply ignore the attribute
+       when it is applied to a non-routine.) */
     an_error_severity  sev;
     sev = (microsoft_mode && microsoft_version < 1400) ? es_warning : es_error;
     report_bad_attribute_target(sev, ap);
@@ -3165,7 +3179,8 @@ static char* apply_naked_attr(an_attribute_ptr  ap,
                               char              *entity,
                               an_il_entry_kind  entity_kind)
 /*
-Apply the GNU "naked" attribute to the given entity and return that entity.
+Apply the GNU or Microsoft "naked" attribute to the given entity and return
+that entity.
 */
 {
   check_assertion(entity_kind == iek_routine);
@@ -5078,13 +5093,13 @@ stream.
     an_attribute_arg_ptr  aap = ap->arguments;
     a_field_ptr           fp = (a_field*)entity;
     an_error_code         errcode = ec_bad_declspec_property;
-    check_assertion(aap != NULL);
     /* The raw token sequence should correspond to one of the following forms:
        "get = <id>", "put = <id>", "get = <id> , put = <id>", or
        "put = <id> , get = <id>". */
     for (;;) {
       a_boolean  is_get = FALSE, is_put = FALSE;
       /* Check for "get" or "put". */
+      check_assertion(aap != NULL);
       if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
         break;
       } else if (strcmp(aap->variant.token, "get") == 0) {
@@ -5125,6 +5140,7 @@ stream.
       }  /* if */
       aap = aap->next;
       /* Check for a comma. */
+      check_assertion(aap != NULL);
       if (aap->kind == (an_attribute_arg_kind)aak_empty) {
         /* We found the end of the construct without error. */
         aap = aap->next;
@@ -5147,7 +5163,7 @@ stream.
         a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
         /* The field isn't a property field after all, but the field type was
            checked assuming this would be a property field.  Avoid error
-           recovery issues by proceding with an error type. */
+           recovery issues by proceeding with an error type. */
         dps->type = fp->type = error_type();
         dps->is_property_field = FALSE;
         make_attr_unrecognized(ap);
@@ -5174,6 +5190,7 @@ return that entity).
 {
   a_routine_ptr  rp = (a_routine*)entity;
 
+  check_assertion(entity_kind == iek_routine);
   if (is_pointer_type(return_type_of(rp->type))) {
     rp->decl_modifiers |= DM_RESTRICT;
   } else {
@@ -5192,6 +5209,7 @@ Apply the Microsoft __declspec(selectany) attribute to the given entity (and
 return that entity).
 */
 {
+  check_assertion(entity_kind == iek_variable);
   if (scope_stack[decl_scope_level].kind ==
                                        (a_scope_kind)sck_class_struct_union) {
     /* The declaration of a static data member.  The selectany specifier can
@@ -5221,7 +5239,7 @@ return that entity).
   a_variable_ptr      vp = (a_variable*)entity;
   a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
 
-  check_assertion(dps != NULL);
+  check_assertion(entity_kind == iek_variable && dps != NULL);
   /* The "thread" specifier can only be applied to variables with a static
      lifetime. */
   if (!has_static_storage_duration(vp->storage_class)) {

@@ -4980,7 +4980,7 @@ The syntax is:
     if (microsoft_mode) {
       if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
         /* Constructs such as
-             int (__cdecl *fp)();
+             int __cdecl (*fp)();
            are not permitted. */
         pos_error(ec_calling_convention_may_not_precede_nested_declarator,
                   &declarator_pos);

@@ -69,12 +69,12 @@ there is no error.
 a_boolean convert_GUID_string_literal(a_constant_ptr  strcon,
                                       char            **pstr)
 /*
-strcon represents a string literal.  Return TRUE if its content are of the
+strcon represents a string literal.  Return TRUE if its contents are of the
 form
  hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
 (where "h" is any hex digit and the hyphens are required), optionally enclosed
 in braces.  If TRUE is returned, set *pstr to point to a null-terminated,
-nomalized (i.e., lower case) copy of the sequence of digits and hyphens;
+normalized (i.e., lower case) copy of the sequence of digits and hyphens;
 otherwise, set *pstr to NULL.
 */
 {
@@ -668,6 +668,9 @@ al_tag_name in that case).
     if (curr_token == tok_declspec) {
       /* __declspec(...) */
       *last_attribute_link(p_attr) = scan_attributes(syn_loc);
+      /* Check that the attribute syntax was consumed; i.e., that we didn't
+         pick up "unscanned" attributes. */
+      check_assertion(curr_token != tok_declspec);
       continue;
     }  /* if */
     if (syn_loc == al_tag_name && (is_enum_decl || !C_mode()) &&
@@ -6318,8 +6321,7 @@ Set *err in case of an error.
 
   specifier_start_pos = pos_curr_token;
   clear_extended_decl_info_block(extended_decl_info);
-  /* A Microsoft storage class modifier.  If this is a __declspec,
-     scan the list of declaration modifiers. */
+  /* __inline or __force_inline must be next. */
   switch (curr_token) {
     case tok_microsoft_inline:
 	      extended_decl_info.decl_modifiers.flags = DM_MICROSOFT_INLINE;
@@ -7200,7 +7202,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           err = TRUE;
           /* Consume "extern".  We don't bother validating the string since an
              error has already been issued. */
-            (void)get_token();
+          (void)get_token();
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
@@ -7259,8 +7261,8 @@ storage_class_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_microsoft_inline:
       case tok_forceinline:
-        auto_type_allowed = FALSE;
         /* Microsoft-specific specifiers: __inline and __forceinline. */
+        auto_type_allowed = FALSE;
         scan_microsoft_inline_specifiers(input_flags, output_flags,
                                          &decl_specifiers_seen,
                                          &state->decl_modifiers, &err);

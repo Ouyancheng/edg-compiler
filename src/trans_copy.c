@@ -1116,7 +1116,7 @@ not being eliminated.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED
   /* Merge the __forceinline specifier (it should be retained if it appeared
-     on any of the declarations. */
+     on any of the declarations). */
   corresp_routine->decl_modifiers |= routine->decl_modifiers & DM_FORCEINLINE;
 #endif /* DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED */
   /* Note that suppress_inline_body is meaningful only when the routine
