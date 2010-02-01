@@ -4659,7 +4659,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 3.3.3.1 of the standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   an_operand            operand;
   a_source_position     start_position;
   a_token_sequence_number
@@ -4677,7 +4677,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 
   db_enter(4, "scan_prefix_incr_decr");
 
-  save_token = curr_token;
+  operator_token = curr_token;
   operator_tok_seq_number = curr_token_sequence_number;
   is_increment = (curr_token == tok_plus_plus);
   copy_source_position(pos_curr_token, start_position);
@@ -4713,7 +4713,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
         is_overloadable_type_operand(&operand)) {
       /* Look for C++ operator overloading cases. */
-      check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+      check_for_operator_overloading(opname_kind_for_token[
+                                                          (int)operator_token],
                                      /*unary_operator=*/TRUE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
@@ -5385,7 +5386,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 3.3.3.3 of the standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   an_operand            operand;
   an_expr_operator_kind op;
   a_source_position     start_position;
@@ -5396,7 +5397,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 
   db_enter(4, "scan_arith_prefix_operator");
 
-  save_token = curr_token;
+  operator_token = curr_token;
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
   operator_tok_seq_number = curr_token_sequence_number;
@@ -5408,7 +5409,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   if (C_dialect == C_dialect_cplusplus &&
       is_overloadable_type_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/TRUE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -5423,7 +5424,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     if (is_bad_type_for_template_arg_operand(operand.type) &&
         /* Allow negation of a floating point constant. */
         !(floating_point_template_parameters_allowed &&
-          save_token == tok_minus &&
+          operator_token == tok_minus &&
           is_floating_type(operand.type) &&
           is_constant_operand(&operand))) {
       /* Non-integral operations are not allowed in a template argument. */
@@ -5438,7 +5439,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
     /* Check the type of the operand. */
     do_promotion = TRUE;
-    switch (save_token) {
+    switch (operator_token) {
       case tok_plus:
         op = (an_expr_operator_kind)eok_unary_plus;
         if (C_dialect == C_dialect_cplusplus &&
@@ -6891,8 +6892,8 @@ of the decltype.
     operand.position = *source_pos;
   }  /* if */
   type = decltype_from_operand(&operand,
-                             /*leading_paren_seen=*/!operand.is_id_expression); 
-                            /*FIXME*/
+                             /*leading_paren_seen=*/!operand.is_id_expression);
+                             /*FIXME*/
   return type;
 }  /* decltype_from_substituted_expr_or_constant */
 
@@ -13851,7 +13852,7 @@ operators must be of arithmetic type.  The operands of the "%" operator must
 be of integral type.  See section 3.3.5 of the standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   an_operand            operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -13863,7 +13864,7 @@ be of integral type.  See section 3.3.5 of the standard.
   db_enter(4, "scan_mult_operator");
 
   /* Save the current token kind. */
-  save_token = curr_token;
+  operator_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
   operator_tok_seq_number = curr_token_sequence_number;
@@ -13876,7 +13877,7 @@ be of integral type.  See section 3.3.5 of the standard.
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -13898,7 +13899,7 @@ be of integral type.  See section 3.3.5 of the standard.
     /* The first operand must be of arithmetic or enum type (the remainder
        operator requires integral or enum type). */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    if (save_token == tok_remainder) {
+    if (operator_token == tok_remainder) {
       (void)check_integral_or_enum_operand(operand_1);
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (gnu_mode && is_vector_type(operand_1->type)) {
@@ -13910,7 +13911,7 @@ be of integral type.  See section 3.3.5 of the standard.
     /* The second operand must be of arithmetic or enum type (the remainder
        operator requires integral or enum type). */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    if (save_token == tok_remainder) {
+    if (operator_token == tok_remainder) {
       (void)check_integral_or_enum_operand(&operand_2);
 #if GNU_VECTOR_TYPES_ALLOWED
     } else if (gnu_mode && is_vector_type(operand_2.type)) {
@@ -13923,7 +13924,8 @@ be of integral type.  See section 3.3.5 of the standard.
     /* Check for cases involving imaginary types that do not fall out
        of the normal usual arithmetic conversion rules. */
     if (c99_mode &&
-        determine_imaginary_operation_type(save_token, operand_1, &operand_2,
+        determine_imaginary_operation_type(operator_token,
+                                           operand_1, &operand_2,
                                            &operator_position,
                                            &result_type, &op)) {
     } else
@@ -13933,7 +13935,7 @@ be of integral type.  See section 3.3.5 of the standard.
     /* Check for operations on GNU vector types.  These do not follow the
        the usual arithmetic conversion rules. */
     if (gnu_mode &&
-        determine_vector_operation_type(save_token, operand_1, &operand_2,
+        determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position,
                                         &result_type, &op)) {
     } else
@@ -13942,17 +13944,17 @@ be of integral type.  See section 3.3.5 of the standard.
     {
       adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
       result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-      op = which_binary_operator(save_token, result_type);
+      op = which_binary_operator(operator_token, result_type);
       change_binary_operand_types(result_type, operand_1, &operand_2, op);
     }  /* if */
-    if ((save_token == tok_divide || save_token == tok_remainder) &&
+    if ((operator_token == tok_divide || operator_token == tok_remainder) &&
         curr_expr_is_evaluated() &&
         !is_constant_operand(operand_1) && op_is_zero_constant(&operand_2)) {
       /* Warn on a division or mod by zero.  This is handled in folding.c
          for the constant case, but here if only the second operand is
          constant. */
-      expr_pos_warning((save_token == tok_divide) ? ec_divide_by_zero :
-                                                    ec_mod_by_zero,
+      expr_pos_warning((operator_token == tok_divide) ? ec_divide_by_zero :
+                                                        ec_mod_by_zero,
                        &operand_2.position);
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2,
@@ -13965,15 +13967,22 @@ be of integral type.  See section 3.3.5 of the standard.
 }  /* scan_mult_operator */
 
 
-static void scan_add_operator(an_operand *operand_1,
-                              an_operand *result)
+static void scan_add_operator(an_operand             *operand_1,
+                              a_rescan_control_block *rcblock,
+                              an_operand             *result)
 /*
-Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
+Scan the two-operand "+" and "-" operators.  *operand_1 is the left
+operand.  The current token is the operator.  Scan the second operand,
+combine the two operands into an expression, and return an operand for
+that in *result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
   an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
-  a_token_kind          save_token;
-  an_operand            operand_2;
+  a_token_kind          operator_token;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -13987,21 +13996,35 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
 
   db_enter(4, "scan_add_operator");
 
-  /* Save the current token kind. */
-  save_token = curr_token;
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_add) {
+      operator_token = tok_plus;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_subtract);
+      operator_token = tok_minus;
+    }  /* if */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_PLUS_MINUS, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -14063,7 +14086,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         }  /* if */
         /* The result type is the same as the pointer type in operand 1. */
         result_type = operation_type = operand_1->type;
-      } else if (save_token == tok_minus && is_pointer_type(operand_2.type)) {
+      } else if (operator_token == tok_minus &&
+                 is_pointer_type(operand_2.type)) {
         /* Pointer - pointer. */
 #if GNU_EXTENSIONS_ALLOWED
         a_boolean   same_types = FALSE;
@@ -14178,7 +14202,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                          &operand_2);
         err = TRUE;
       }  /* if */
-    } else if (save_token == tok_plus &&
+    } else if (operator_token == tok_plus &&
                is_pointer_type(operand_2.type) &&
                is_integral_or_enum_type(operand_1->type)) {
       /* Integral/enum + pointer. */
@@ -14216,7 +14240,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         /* Check for cases involving imaginary types that do not fall out
            of the normal usual arithmetic conversion rules. */
         if (c99_mode &&
-            determine_imaginary_operation_type(save_token,
+            determine_imaginary_operation_type(operator_token,
                                                operand_1, &operand_2,
                                                &operator_position,
                                                &result_type, &op)) {
@@ -14228,7 +14252,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         /* Check for operations on GNU vector types.  These do not follow the
            the usual arithmetic conversion rules. */
         if (gnu_mode &&
-            determine_vector_operation_type(save_token, operand_1, &operand_2,
+            determine_vector_operation_type(operator_token,
+                                            operand_1, &operand_2,
                                             &operator_position,
                                             &result_type, &op)) {
           operation_type = NULL;
@@ -14262,7 +14287,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       } else if (operation_type == NULL) {
         /* op is already set. */
       } else {
-        op = which_binary_operator(save_token, operation_type);
+        op = which_binary_operator(operator_token, operation_type);
       }  /* if */
       /* Promote the operands if necessary. */
       /* Note that integral promotions are NOT done on the integer in
@@ -14337,10 +14362,8 @@ expression, and return the result in *result (or an error indication in
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
-    /* Save the position of the operator in case of error. */
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
-
     /* Scan the second operand. */
     (void)get_token();
     scan_expr(&operand_2, PREC_SHIFT, EOPT_NO_OPTIONS);
@@ -14501,7 +14524,7 @@ Scan the "<", ">", "<=", and ">=" operators.  See section 3.3.8 of the
 standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   an_operand            operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -14516,7 +14539,7 @@ standard.
 
   db_enter(4, "scan_rel_operator");
 
-  save_token = curr_token;
+  operator_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
   operator_tok_seq_number = curr_token_sequence_number;
@@ -14529,7 +14552,7 @@ standard.
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -14656,7 +14679,7 @@ standard.
     }  /* if */
     /* Determine the result type. */
     result_type = boolean_result_type();
-    op = which_binary_operator(save_token, operation_type);
+    op = which_binary_operator(operator_token, operation_type);
     /* Convert the operands to a common type. */
     change_binary_operand_types(operation_type, operand_1, &operand_2, op);
     if (funny_unsigned_comparison) {
@@ -14678,8 +14701,8 @@ standard.
           /* Comparison of an unsigned value with zero.  Some cases make
              sense. */
           if (second_is_constant ?
-                              (save_token == tok_ge || save_token == tok_lt) :
-                              (save_token == tok_gt || save_token == tok_le)) {
+                      (operator_token == tok_ge || operator_token == tok_lt) :
+                      (operator_token == tok_gt || operator_token == tok_le)) {
             expr_pos_warning(ec_unsigned_compare_with_zero,
                              &operator_position);
           }  /* if */
@@ -14707,7 +14730,7 @@ static void scan_eq_operator(an_operand *operand_1,
 Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   an_operand            operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -14722,7 +14745,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 
   db_enter(4, "scan_eq_operator");
 
-  save_token = curr_token;
+  operator_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
   operator_tok_seq_number = curr_token_sequence_number;
@@ -14735,7 +14758,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -14821,7 +14844,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
     }  /* if */
 
     result_type = boolean_result_type();
-    op = which_binary_operator(save_token, operation_type);
+    op = which_binary_operator(operator_token, operation_type);
     change_binary_operand_types(operation_type, operand_1, &operand_2, op);
     if (funny_unsigned_comparison) {
       /* Check for pointless comparisons of unsigned integers against
@@ -14858,7 +14881,7 @@ static void scan_gnu_min_max_operator(an_operand *operand_1,
 Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
 */
 {
-  a_token_kind       save_token = curr_token;
+  a_token_kind       operator_token = curr_token;
   a_boolean          processed = FALSE;
   an_operand         operand_2;
   a_source_position  operator_position;
@@ -14877,7 +14900,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
   if (is_overloadable_type_operand(operand_1) ||
       is_overloadable_type_operand(&operand_2)) {
     /* Look for C++ operator overloading cases. */
-    an_opname_kind  onk = (an_opname_kind)(save_token == tok_gnu_min ?
+    an_opname_kind  onk = (an_opname_kind)(operator_token == tok_gnu_min ?
                                                    onk_gnu_min : onk_gnu_max);
     check_for_operator_overloading(onk,
                                    /*unary_operator=*/FALSE,
@@ -14972,7 +14995,7 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
         result_type = determine_arithmetic_conversions(operand_1, &operand_2);
       }  /* if */
     }  /* if */
-    op = which_binary_operator(save_token, result_type);
+    op = which_binary_operator(operator_token, result_type);
     if (!result_is_lvalue) {
       /* Convert the operands to a common type. */
       change_binary_operand_types(result_type, operand_1, &operand_2, op);
@@ -15028,7 +15051,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 3.3.12 of the standard.
 */
 {
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   an_operand            operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -15040,8 +15063,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
 
   db_enter(4, "scan_bit_operator");
 
-  save_token = curr_token;
-  switch (save_token) {
+  operator_token = curr_token;
+  switch (operator_token) {
     case tok_ampersand: prec_level = PREC_AND;     break;
     case tok_excl_or:   prec_level = PREC_EXCL_OR; break;
     case tok_or:        prec_level = PREC_OR;      break;
@@ -15061,7 +15084,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
       (is_overloadable_type_operand(operand_1) ||
        is_overloadable_type_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -15085,7 +15108,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
 #if GNU_VECTOR_TYPES_ALLOWED
     if (gnu_mode &&
-        determine_vector_operation_type(save_token, operand_1, &operand_2,
+        determine_vector_operation_type(operator_token, operand_1, &operand_2,
                                         &operator_position,
                                         &result_type, &op)) {
       /* GCC accepts any vector type for these operators, even floating-point
@@ -15098,7 +15121,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
       (void)check_integral_or_enum_operand(&operand_2);
       adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
       result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-      op = which_binary_operator(save_token, result_type);
+      op = which_binary_operator(operator_token, result_type);
       change_binary_operand_types(result_type, operand_1, &operand_2, op);
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
@@ -15147,7 +15170,7 @@ standard.
   a_boolean             operand_1_is_false = FALSE;
   a_host_large_integer  local_result;
   a_boolean             known_result       = FALSE;
-  a_token_kind          save_token;
+  a_token_kind          operator_token;
   a_type_ptr            result_type;
   a_boolean             processed = FALSE;
   a_boolean             might_be_overloaded = FALSE;
@@ -15160,12 +15183,12 @@ standard.
 
   db_enter(4, "scan_logical_operator");
 
-  save_token = curr_token;
-  if (save_token == tok_and_and) {
+  operator_token = curr_token;
+  if (operator_token == tok_and_and) {
     prec_level = PREC_AND_AND;
   } else {
 #if CHECKING
-    if (save_token != tok_or_or) {
+    if (operator_token != tok_or_or) {
       internal_error("scan_logical_operator: bad operator");
     }  /* if */
 #endif /* CHECKING */
@@ -15179,7 +15202,7 @@ standard.
 
   if (C_dialect == C_dialect_cplusplus &&
       !curr_expr_kind_is_const() &&
-      any_opname_function_symbol(opname_kind_for_token[(int)save_token])) {
+      any_opname_function_symbol(opname_kind_for_token[(int)operator_token])) {
     /* We are in C++ mode, and there is an operator function that overloads
        this operator. */
     might_be_overloaded = TRUE;
@@ -15209,12 +15232,12 @@ standard.
           constant_bool_value_known_at_compile_time(
                                                &operand_1->variant.constant)) {
         operand_1_is_false = op_is_false_constant(operand_1);
-        if (save_token == tok_and_and && operand_1_is_false) {
+        if (operator_token == tok_and_and && operand_1_is_false) {
           /* 0 && something -- this always evaluates to a zero/false value. */
           local_result = 0;
           known_result = TRUE;
           expr2_evaluated = FALSE;
-        } else if (save_token == tok_or_or && !operand_1_is_false) {
+        } else if (operator_token == tok_or_or && !operand_1_is_false) {
           /* non-zero || something -- this always evaluates to a value of
              1/true. */
           local_result = 1;
@@ -15242,7 +15265,7 @@ standard.
     /* Note that we do not test might_be_overloaded here, because we want
        to go to the subroutine to look for conversions from class types
        to built-in types. */
-    check_for_operator_overloading(opname_kind_for_token[(int)save_token],
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
@@ -15294,7 +15317,7 @@ standard.
     if (!reduce) {
       /* Make an expression, or fold to a constant if both operands are
          constant. */
-      op = which_binary_operator(save_token, result_type);
+      op = which_binary_operator(operator_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position);
     } else {
@@ -15310,7 +15333,7 @@ standard.
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         an_operand temp_operand;
         /* Record an expression under the constant. */
-        op = which_binary_operator(save_token, result_type);
+        op = which_binary_operator(operator_token, result_type);
         build_binary_result_operand(operand_1, &operand_2, op,
                                     result_type, &temp_operand);
         result->variant.constant.expr = make_node_from_operand(&temp_operand);
@@ -20391,7 +20414,8 @@ bad_start_of_primary:
 	break;
       case tok_plus:
       case tok_minus:
-	scan_add_operator(&operand, &local_result);
+        scan_add_operator(&operand, (a_rescan_control_block *)NULL,
+                          &local_result);
 	break;
       case tok_shift_left:
       case tok_shift_right:
@@ -21800,9 +21824,10 @@ This is callable from outside of the expression processing routines.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
-an_expr_node_ptr rescan_expr_with_substitution(an_expr_node_ptr       expr,
-                                               a_rescan_control_block *rcblock,
-                                               a_constant             *constant)
+an_expr_node_ptr rescan_expr_with_substitution(
+                                              an_expr_node_ptr       expr,
+                                              a_rescan_control_block *rcblock,
+                                              a_constant             *constant)
 /*
 Redo the semantic analysis on the expression expr as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
@@ -21833,12 +21858,16 @@ NULL is returned.
   check_assertion(is_operation_node(expr));
   /* Go to the right routine to rescan the operator. */
   switch (expr->variant.operation.kind) {
+    case eok_indirect:
+      scan_indirection_operator(rcblock, &result);
+      break;
+    case eok_add:
+    case eok_subtract:
+      scan_add_operator((an_operand *)NULL, rcblock, &result);
+      break;
     case eok_shiftl:
     case eok_shiftr:
       scan_shift_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_indirect:
-      scan_indirection_operator(rcblock, &result);
       break;
     default:
       unexpected_condition_str("bad operator in expr rescan");

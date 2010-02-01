@@ -243,9 +243,9 @@ extern void conv_nontype_template_arg_to_param_type(
                                             a_constant         *constant);
 
 extern an_expr_node_ptr rescan_expr_with_substitution(
-                                              an_expr_node_ptr       expr,
-                                              a_rescan_control_block *rcblock,
-                                              a_constant             *constant);
+                                             an_expr_node_ptr       expr,
+                                             a_rescan_control_block *rcblock,
+                                             a_constant             *constant);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void scan_member_constant_initializer_expression(

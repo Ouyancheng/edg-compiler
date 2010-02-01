@@ -13013,9 +13013,11 @@ redoes semantic analysis.
   if (cpp0x_sfinae_enabled && is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     switch (op) {
+      case eok_indirect:
+      case eok_add:
+      case eok_subtract:
       case eok_shiftl:
       case eok_shiftr:
-      case eok_indirect:
         rescannable = TRUE;
         break;
       default:;
