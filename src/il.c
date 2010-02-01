@@ -13027,6 +13027,13 @@ redoes semantic analysis.
       case eok_ge:
       case eok_eq:
       case eok_ne:
+      case eok_gnu_max:
+      case eok_gnu_min:
+      case eok_and:
+      case eok_or:
+      case eok_xor:
+      case eok_land:
+      case eok_lor:
         rescannable = TRUE;
         break;
       default:;

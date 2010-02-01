@@ -14949,27 +14949,52 @@ that case.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void scan_gnu_min_max_operator(an_operand *operand_1,
-                                      an_operand *result)
+static void scan_gnu_min_max_operator(an_operand             *operand_1,
+                                      a_rescan_control_block *rcblock,
+                                      an_operand             *result)
 /*
 Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
+*operand_1 is the left operand.  The current token is the operator.
+Scan the second operand, combine the two operands into an expression,
+and return an operand for that in *result.  If rcblock is non-NULL,
+redo semantic analysis on a previously-scanned expression, and return
+the result in *result (or an error indication in *rcblock).  operand_1
+is expected to be NULL in that case.
 */
 {
-  a_token_kind       operator_token = curr_token;
+  a_token_kind       operator_token;
   a_boolean          processed = FALSE;
-  an_operand         operand_2;
+  an_operand         local_operand_1, operand_2;
   a_source_position  operator_position;
   a_token_sequence_number
                      operator_tok_seq_number;
+  an_expr_operator_kind
+                     op;
   a_type_ptr         result_type;
 
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_GNU_MIN_MAX, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_gnu_max) {
+      operator_token = tok_gnu_max;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_gnu_min);
+      operator_token = tok_gnu_min;
+    }  /* if */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_GNU_MIN_MAX, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (is_overloadable_type_operand(operand_1) ||
       is_overloadable_type_operand(&operand_2)) {
@@ -14988,7 +15013,6 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
                                    result, &processed);
   }  /* if */
   if (!processed) {
-    an_expr_operator_kind         op;        
     a_transformation_options_set  options = TOPT_NO_OPTIONS;
     a_boolean                     result_is_lvalue = FALSE,
                                   operand_1_is_pointer = FALSE,
@@ -15118,41 +15142,62 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void scan_bit_operator(an_operand *operand_1,
-                              an_operand *result)
+static void scan_bit_operator(an_operand             *operand_1,
+                              a_rescan_control_block *rcblock,
+                              an_operand             *result)
 /*
-Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
-3.3.12 of the standard.
+Scan the "&", "^", and "|" operators.  *operand_1 is the left
+operand.  The current token is the operator.  Scan the second operand,
+combine the two operands into an expression, and return an operand for
+that in *result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
   a_token_kind          operator_token;
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             processed = FALSE;
-  int                   prec_level;
 
   db_enter(4, "scan_bit_operator");
 
-  operator_token = curr_token;
-  switch (operator_token) {
-    case tok_ampersand: prec_level = PREC_AND;     break;
-    case tok_excl_or:   prec_level = PREC_EXCL_OR; break;
-    case tok_or:        prec_level = PREC_OR;      break;
-#if CHECKING
-    default: internal_error("scan_bit_operator: bad operator");
-#endif /* CHECKING */
-  }  /* switch */
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_and) {
+      operator_token = tok_ampersand;
+    } else if (op == (an_expr_operator_kind)eok_or) {
+      operator_token = tok_or;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_xor);
+      operator_token = tok_excl_or;
+    }  /* if */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    int prec_level;
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    switch (operator_token) {
+      case tok_ampersand: prec_level = PREC_AND;     break;
+      case tok_excl_or:   prec_level = PREC_EXCL_OR; break;
+      case tok_or:        prec_level = PREC_OR;      break;
+      default:            unexpected_condition();
+    }  /* switch */
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
@@ -15229,15 +15274,21 @@ is one of the valid interpretations, so it's okay.
 }  /* potential_sequence_point_after_operand */
 
 
-static void scan_logical_operator(an_operand *operand_1,
-                                  an_operand *result)
+static void scan_logical_operator(an_operand             *operand_1,
+                                  a_rescan_control_block *rcblock,
+                                  an_operand             *result)
 /*
-Scan the "&&" and "||" operators.  See sections 3.3.13 and 3.3.14 of the
-standard.
+Scan the "&&" and "||" operators.  *operand_1 is the left operand.
+The current token is the operator.  Scan the second operand, combine
+the two operands into an expression, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
   an_expr_operator_kind op;
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -15248,7 +15299,6 @@ standard.
   a_type_ptr            result_type;
   a_boolean             processed = FALSE;
   a_boolean             might_be_overloaded = FALSE;
-  int                   prec_level;
   a_boolean             operand_1_transformations_done = FALSE;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated;
@@ -15257,20 +15307,27 @@ standard.
 
   db_enter(4, "scan_logical_operator");
 
-  operator_token = curr_token;
-  if (operator_token == tok_and_and) {
-    prec_level = PREC_AND_AND;
-  } else {
-#if CHECKING
-    if (operator_token != tok_or_or) {
-      internal_error("scan_logical_operator: bad operator");
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_land) {
+      operator_token = tok_and_and;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_lor);
+      operator_token = tok_or_or;
     }  /* if */
-#endif /* CHECKING */
-    prec_level = PREC_OR_OR;
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
   }  /* if */
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
@@ -15322,15 +15379,24 @@ standard.
     }  /* if */
   }  /* if */
 
-  /* Scan the second operand. */
-  (void)get_token();
-  expr_stack->evaluated = expr2_evaluated;
-  expr_stack->inside_conditional_expression = TRUE;
-  scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
-  expr_stack->inside_conditional_expression =
+  if (rcblock == NULL) {
+    /* Scan the second operand. */
+    int prec_level;
+    if (operator_token == tok_and_and) {
+      prec_level = PREC_AND_AND;
+    } else {
+      check_assertion(operator_token == tok_or_or);
+      prec_level = PREC_OR_OR;
+    }  /* if */
+    (void)get_token();
+    expr_stack->evaluated = expr2_evaluated;
+    expr_stack->inside_conditional_expression = TRUE;
+    scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
+    expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
-  /* Restore the evaluated flag as it was on entry. */
-  expr_stack->evaluated = saved_evaluated;
+    /* Restore the evaluated flag as it was on entry. */
+    expr_stack->evaluated = saved_evaluated;
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
@@ -20512,17 +20578,20 @@ bad_start_of_primary:
 #if GNU_EXTENSIONS_ALLOWED
       case tok_gnu_min:
       case tok_gnu_max:
-        scan_gnu_min_max_operator(&operand, &local_result);
+        scan_gnu_min_max_operator(&operand, (a_rescan_control_block *)NULL,
+                                  &local_result);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_ampersand:
       case tok_excl_or:
       case tok_or:
-	scan_bit_operator(&operand, &local_result);
+        scan_bit_operator(&operand, (a_rescan_control_block *)NULL,
+                          &local_result);
 	break;
       case tok_and_and:
       case tok_or_or:
-	scan_logical_operator(&operand, &local_result);
+        scan_logical_operator(&operand, (a_rescan_control_block *)NULL,
+                              &local_result);
 	break;
       case tok_quest_mark:
 	scan_conditional_operator(&operand, &local_result);
@@ -21960,6 +22029,19 @@ NULL is returned.
     case eok_eq:
     case eok_ne:
       scan_eq_operator((an_operand *)NULL, rcblock, &result);
+      break;
+   case eok_gnu_max:
+   case eok_gnu_min:
+      scan_gnu_min_max_operator((an_operand *)NULL, rcblock, &result);
+      break;
+    case eok_and:
+    case eok_or:
+    case eok_xor:
+      scan_bit_operator((an_operand *)NULL, rcblock, &result);
+      break;
+    case eok_land:
+    case eok_lor:
+      scan_logical_operator((an_operand *)NULL, rcblock, &result);
       break;
     default:
       unexpected_condition_str("bad operator in expr rescan");
