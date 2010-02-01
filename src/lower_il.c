@@ -3520,7 +3520,8 @@ avoided if not necessary.
     /* Insert within an expression. */
 #if CHECKING
     if (statement->kind != (a_statement_kind)stmk_expr) {
-      internal_error("insert_statement_full: cannot insert non-expr statement");
+      internal_error(
+                    "insert_statement_full: cannot insert non-expr statement");
     }  /* if */
 #endif /* CHECKING */
     /* Note that the expression statement is just discarded. */
