@@ -9305,7 +9305,12 @@ some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
     }  /* if */
   }  /* if */
   pop_expr_stack();
-  if (top_level) restore_expr_stack(saved_expr_stack);
+  if (top_level) {
+    restore_expr_stack(saved_expr_stack);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   db_exit();
 }  /* scan_extended_integral_constant_expression */
 

@@ -1,5 +1,22 @@
 Version 4.2
 
+2/1/10   [EDGcpfe/10384]
+End positions of case labels in Microsoft mode
+
+In Microsoft mode, an incorrect end position was previously recorded for an
+expression node associated with a case label constant (when the macro
+EXTRA_SOURCE_POSITIONS_IN_IL is TRUE).  For example:
+
+  void f(unsigned int i) {
+    switch (i) {
+      case 1:   // Previously the constant recorded for "1" pointed to an
+        break;  // expression with the wrong end position.
+    }
+  }
+
+This is now fixed.
+
+
 1/29/10  [EDGcpfe/10376]
 Interface to permit the lazy loading of class definitions
 
