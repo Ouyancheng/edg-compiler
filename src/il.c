@@ -13021,6 +13021,12 @@ redoes semantic analysis.
       case eok_remainder:
       case eok_shiftl:
       case eok_shiftr:
+      case eok_lt:
+      case eok_gt:
+      case eok_le:
+      case eok_ge:
+      case eok_eq:
+      case eok_ne:
         rescannable = TRUE;
         break;
       default:;

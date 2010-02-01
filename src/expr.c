@@ -14538,15 +14538,21 @@ of an error), return FALSE.
 }  /* get_sign_for_constant_in_unsigned_operation */
 
 
-static void scan_rel_operator(an_operand *operand_1,
-                              an_operand *result)
+static void scan_rel_operator(an_operand             *operand_1,
+                              a_rescan_control_block *rcblock,
+                              an_operand             *result)
 /*
-Scan the "<", ">", "<=", and ">=" operators.  See section 3.3.8 of the
-standard.
+Scan the "<", ">", "<=", and ">=" operators.  *operand_1 is the left
+operand.  The current token is the operator.  Scan the second operand,
+combine the two operands into an expression, and return an operand for
+that in *result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
   a_token_kind          operator_token;
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -14560,14 +14566,39 @@ standard.
 
   db_enter(4, "scan_rel_operator");
 
-  operator_token = curr_token;
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    switch (op) {
+      case eok_lt:
+        operator_token = tok_lt;
+        break;
+      case eok_gt:
+        operator_token = tok_gt;
+        break;
+      case eok_le:
+        operator_token = tok_le;
+        break;
+      case eok_ge:
+        operator_token = tok_ge;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_RELATIONAL, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
@@ -14745,14 +14776,21 @@ standard.
 }  /* scan_rel_operator */
 
 
-static void scan_eq_operator(an_operand *operand_1,
-                             an_operand *result)
+static void scan_eq_operator(an_operand             *operand_1,
+                             a_rescan_control_block *rcblock,
+                             an_operand             *result)
 /*
-Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
+Scan the "==" and "!=" operators.  *operand_1 is the left operand.
+The current token is the operator.  Scan the second operand, combine
+the two operands into an expression, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
   a_token_kind          operator_token;
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -14766,14 +14804,29 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
 
   db_enter(4, "scan_eq_operator");
 
-  operator_token = curr_token;
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
+    op = rcblock->expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_eq) {
+      operator_token = tok_eq;
+    } else {
+      check_assertion(op == (an_expr_operator_kind)eok_ne);
+      operator_token = tok_ne;
+    }  /* if */
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_EQ_NE, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (C_dialect == C_dialect_cplusplus &&
       (is_overloadable_type_operand(operand_1) ||
@@ -20448,11 +20501,13 @@ bad_start_of_primary:
       case tok_gt:
       case tok_le:
       case tok_ge:
-	scan_rel_operator(&operand, &local_result);
+        scan_rel_operator(&operand, (a_rescan_control_block *)NULL,
+                          &local_result);
 	break;
       case tok_eq:
       case tok_ne:
-	scan_eq_operator(&operand, &local_result);
+        scan_eq_operator(&operand, (a_rescan_control_block *)NULL,
+                         &local_result);
 	break;
 #if GNU_EXTENSIONS_ALLOWED
       case tok_gnu_min:
@@ -21895,6 +21950,16 @@ NULL is returned.
     case eok_shiftl:
     case eok_shiftr:
       scan_shift_operator((an_operand *)NULL, rcblock, &result);
+      break;
+    case eok_lt:
+    case eok_gt:
+    case eok_le:
+    case eok_ge:
+      scan_rel_operator((an_operand *)NULL, rcblock, &result);
+      break;
+    case eok_eq:
+    case eok_ne:
+      scan_eq_operator((an_operand *)NULL, rcblock, &result);
       break;
     default:
       unexpected_condition_str("bad operator in expr rescan");
