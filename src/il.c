@@ -13060,6 +13060,7 @@ redoes semantic analysis.
       case eok_xor:
       case eok_land:
       case eok_lor:
+      case eok_comma:
         rescannable = TRUE;
         break;
       default:;

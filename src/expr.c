@@ -5236,6 +5236,7 @@ error indication in *rcblock).
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_star);
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
@@ -17285,15 +17286,21 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
 }  /* scan_throw_operator */
 
 
-static void scan_comma_operator(an_operand *operand_1,
-                                an_operand *result)
+static void scan_comma_operator(an_operand             *operand_1,
+                                a_rescan_control_block *rcblock,
+                                an_operand             *result)
 /*
 Scan the "," operator.  Note that this routine is not called if the
 comma operator is not allowed (local_options flag
-EOPT_DISALLOW_COMMA_OPERATOR).
+EOPT_DISALLOW_COMMA_OPERATOR).  *operand_1 is the left operand.  The
+current token is the operator.  Scan the second operand, combine the two
+operands into an expression, and return an operand for that in *result.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+expression, and return the result in *result (or an error indication in
+*rcblock).  operand_1 is expected to be NULL in that case.
 */
 {
-  an_operand        operand_2;
+  an_operand        local_operand_1, operand_2;
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
@@ -17304,9 +17311,18 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
   db_enter(4, "scan_comma_operator");
 
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_comma);
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
 
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
@@ -17317,9 +17333,11 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     err = TRUE;
   }  /* if */
 
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_COMMA, EOPT_NO_OPTIONS);
+  if (rcblock == NULL) {
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_COMMA, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -20553,7 +20571,8 @@ bad_start_of_primary:
         scan_compound_assignment_operator(&operand, &local_result);
 	break;
       case tok_comma:
-	scan_comma_operator(&operand, &local_result);
+        scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
+                            &local_result);
 	break;
 #if CHECKING
       default:
@@ -22026,6 +22045,9 @@ the scan_xxx_operator routine to call to do the rescan.  Also return
     case eok_lor:
       operator_token = tok_or_or;
       break;
+    case eok_comma:
+      operator_token = tok_comma;
+      break;
     default:
       unexpected_condition_str("bad operator in expr rescan");
   }  /* switch */
@@ -22123,6 +22145,9 @@ NULL is returned.
       case tok_or_or:
         scan_logical_operator((an_operand *)NULL, rcblock, &result);
         break;
+      case tok_comma:
+        scan_comma_operator((an_operand *)NULL, rcblock, &result);
+	break;
       default:
         unexpected_condition();
     }  /* switch */
