@@ -2182,6 +2182,7 @@ Clear a rescan control block to default values.
 */
 {
   rcblock->expr = NULL;
+  rcblock->operator_token = tok_error;
   rcblock->template_arg_list = NULL;
   rcblock->template_param_list = NULL;
   rcblock->options = CTWS_NO_OPTIONS;

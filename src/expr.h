@@ -89,6 +89,11 @@ typedef struct a_rescan_control_block {
 			/* The expression being rescanned.  This is used only
 			   when calling the scan_xxx_operator routines, to
 			   reduce the number of parameters by one. */
+  a_token_kind	operator_token;
+			/* The token kind associated with the operator of the
+			   expression associated with expr, if there is one.
+			   tok_error otherwise.  Also used only when calling
+			   the scan_xxx_operator routines. */
   a_template_arg_ptr
 		template_arg_list;
 			/* The template argument list being tried. */

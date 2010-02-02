@@ -13012,16 +13012,38 @@ redoes semantic analysis.
 
   if (cpp0x_sfinae_enabled && is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
+    /* The list here should match the list in
+       operator_token_for_expr_rescan. */
     switch (op) {
       case eok_indirect:
       case eok_unary_plus:
       case eok_negate:
       case eok_complement:
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+      case eok_xconj:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       case eok_not:
       case eok_add:
+      case eok_padd:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_fjadd:
+      case eok_jfadd:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case eok_subtract:
+      case eok_psubtract:
+      case eok_pdiff:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_fjsubtract:
+      case eok_jfsubtract:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case eok_multiply:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_jmultiply:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case eok_divide:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_jdivide:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case eok_remainder:
       case eok_shiftl:
       case eok_shiftr:

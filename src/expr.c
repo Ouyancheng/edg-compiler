@@ -5236,10 +5236,6 @@ error indication in *rcblock).
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    check_assertion(rcblock->expr != NULL &&
-                    is_operation_node(rcblock->expr) &&
-                    rcblock->expr->variant.operation.kind ==
-                                          (an_expr_operator_kind)eok_indirect);
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
@@ -5401,25 +5397,7 @@ analysis on a previously-scanned expression, and return the result in
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    check_assertion(rcblock->expr != NULL &&
-                    is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    switch (op) {
-      case eok_unary_plus:
-        operator_token = tok_plus;
-        break;
-      case eok_negate:
-        operator_token = tok_minus;
-        break;
-      case eok_complement:
-        operator_token = tok_compl;
-        break;
-      case eok_not:
-        operator_token = tok_not;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
+    operator_token = rcblock->operator_token;
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
@@ -13902,18 +13880,9 @@ that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_multiply) {
-      operator_token = tok_star;
-    } else if (op == (an_expr_operator_kind)eok_divide) {
-      operator_token = tok_divide;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_remainder);
-      operator_token = tok_remainder;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -14051,16 +14020,9 @@ that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_add) {
-      operator_token = tok_plus;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_subtract);
-      operator_token = tok_minus;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -14400,16 +14362,9 @@ expression, and return the result in *result (or an error indication in
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_shiftl) {
-      operator_token = tok_shift_left;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_shiftr);
-      operator_token = tok_shift_right;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -14600,26 +14555,9 @@ that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    switch (op) {
-      case eok_lt:
-        operator_token = tok_lt;
-        break;
-      case eok_gt:
-        operator_token = tok_gt;
-        break;
-      case eok_le:
-        operator_token = tok_le;
-        break;
-      case eok_ge:
-        operator_token = tok_ge;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -14838,16 +14776,9 @@ that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_eq) {
-      operator_token = tok_eq;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_ne);
-      operator_token = tok_ne;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -15006,16 +14937,9 @@ is expected to be NULL in that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_gnu_max) {
-      operator_token = tok_gnu_max;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_gnu_min);
-      operator_token = tok_gnu_min;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -15200,18 +15124,9 @@ that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_and) {
-      operator_token = tok_ampersand;
-    } else if (op == (an_expr_operator_kind)eok_or) {
-      operator_token = tok_or;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_xor);
-      operator_token = tok_excl_or;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -15341,16 +15256,9 @@ that case.
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(rcblock->expr != NULL && is_operation_node(rcblock->expr));
-    op = rcblock->expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_land) {
-      operator_token = tok_and_and;
-    } else {
-      check_assertion(op == (an_expr_operator_kind)eok_lor);
-      operator_token = tok_or_or;
-    }  /* if */
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
   } else {
@@ -22003,6 +21911,128 @@ This is callable from outside of the expression processing routines.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
+static a_token_kind operator_token_for_expr_rescan(an_expr_node_ptr expr,
+                                                   a_boolean        *unary)
+/*
+The given expression is about to be rescanned to redo semantic analysis.
+Determine the operator token for it and return it.  That's used to select
+the scan_xxx_operator routine to call to do the rescan.  Also return
+*unary set to TRUE for unary operators and to FALSE otherwise.
+*/
+{
+  a_token_kind operator_token;
+
+  *unary = FALSE;
+  check_assertion(is_operation_node(expr));
+  /* The list here should match the list in expr_is_rescannable. */
+  switch (expr->variant.operation.kind) {
+    case eok_indirect:
+      operator_token = tok_star;
+      *unary = TRUE;
+      break;
+    case eok_unary_plus:
+      operator_token = tok_plus;
+      *unary = TRUE;
+      break;
+    case eok_negate:
+      operator_token = tok_minus;
+      *unary = TRUE;
+      break;
+    case eok_complement:
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+    case eok_xconj:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+      operator_token = tok_compl;
+      *unary = TRUE;
+      break;
+    case eok_not:
+      operator_token = tok_not;
+      *unary = TRUE;
+      break;
+    case eok_add:
+    case eok_padd:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_fjadd:
+    case eok_jfadd:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      operator_token = tok_plus;
+      break;
+    case eok_subtract:
+    case eok_psubtract:
+    case eok_pdiff:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_fjsubtract:
+    case eok_jfsubtract:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      operator_token = tok_minus;
+      break;
+    case eok_multiply:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_jmultiply:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      operator_token = tok_star;
+      break;
+    case eok_divide:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_jdivide:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      operator_token = tok_divide;
+      break;
+    case eok_remainder:
+      operator_token = tok_remainder;
+      break;
+    case eok_shiftl:
+      operator_token = tok_shift_left;
+      break;
+    case eok_shiftr:
+      operator_token = tok_shift_right;
+      break;
+    case eok_lt:
+      operator_token = tok_lt;
+      break;
+    case eok_gt:
+      operator_token = tok_gt;
+      break;
+    case eok_le:
+      operator_token = tok_le;
+      break;
+    case eok_ge:
+      operator_token = tok_ge;
+      break;
+    case eok_eq:
+      operator_token = tok_eq;
+      break;
+    case eok_ne:
+      operator_token = tok_ne;
+      break;
+   case eok_gnu_max:
+      operator_token = tok_gnu_max;
+      break;
+   case eok_gnu_min:
+      operator_token = tok_gnu_min;
+      break;
+    case eok_and:
+      operator_token = tok_ampersand;
+      break;
+    case eok_or:
+      operator_token = tok_or;
+      break;
+    case eok_xor:
+      operator_token = tok_excl_or;
+      break;
+    case eok_land:
+      operator_token = tok_and_and;
+      break;
+    case eok_lor:
+      operator_token = tok_or_or;
+      break;
+    default:
+      unexpected_condition_str("bad operator in expr rescan");
+  }  /* switch */
+  return operator_token;
+}  /* operator_token_for_expr_rescan */
+
+
 an_expr_node_ptr rescan_expr_with_substitution(
                                               an_expr_node_ptr       expr,
                                               a_rescan_control_block *rcblock,
@@ -22021,6 +22051,8 @@ NULL is returned.
   an_expr_stack_entry           expr_stack_entry;
   an_expr_rescan_info_entry_ptr eriep = expr->rescan_info;
   an_operand                    result;
+  a_token_kind                  operator_token;
+  a_boolean                     unary;
 
   /* Rescan information must have been saved on the expression when it was
      originally scanned. */
@@ -22034,57 +22066,67 @@ NULL is returned.
      expression to the scan_xxx_operator routines without having to add
      an extra parameter on each of those routines. */
   rcblock->expr = expr;
-  check_assertion(is_operation_node(expr));
   /* Go to the right routine to rescan the operator. */
-  switch (expr->variant.operation.kind) {
-    case eok_indirect:
-      scan_indirection_operator(rcblock, &result);
-      break;
-    case eok_unary_plus:
-    case eok_negate:
-    case eok_complement:
-    case eok_not:
-      scan_arith_prefix_operator(rcblock, &result);
-      break;
-    case eok_add:
-    case eok_subtract:
-      scan_add_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_multiply:
-    case eok_divide:
-    case eok_remainder:
-      scan_mult_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_shiftl:
-    case eok_shiftr:
-      scan_shift_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_lt:
-    case eok_gt:
-    case eok_le:
-    case eok_ge:
-      scan_rel_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_eq:
-    case eok_ne:
-      scan_eq_operator((an_operand *)NULL, rcblock, &result);
-      break;
-   case eok_gnu_max:
-   case eok_gnu_min:
-      scan_gnu_min_max_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_and:
-    case eok_or:
-    case eok_xor:
-      scan_bit_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    case eok_land:
-    case eok_lor:
-      scan_logical_operator((an_operand *)NULL, rcblock, &result);
-      break;
-    default:
-      unexpected_condition_str("bad operator in expr rescan");
-  }  /* switch */
+  operator_token = operator_token_for_expr_rescan(expr, &unary);
+  rcblock->operator_token = operator_token;
+  if (unary) {
+    /* Unary operators. */
+    switch (operator_token) {
+      case tok_star:
+        scan_indirection_operator(rcblock, &result);
+        break;
+      case tok_plus:
+      case tok_minus:
+      case tok_compl:
+      case tok_not:
+        scan_arith_prefix_operator(rcblock, &result);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } else {
+    /* Operators other than unary operators, i.e., typically two-operand. */
+    switch (operator_token) {
+      case tok_plus:
+      case tok_minus:
+        scan_add_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_star:
+      case tok_divide:
+      case tok_remainder:
+        scan_mult_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_shift_left:
+      case tok_shift_right:
+        scan_shift_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_lt:
+      case tok_gt:
+      case tok_le:
+      case tok_ge:
+        scan_rel_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_eq:
+      case tok_ne:
+        scan_eq_operator((an_operand *)NULL, rcblock, &result);
+        break;
+     case tok_gnu_max:
+     case tok_gnu_min:
+        scan_gnu_min_max_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_ampersand:
+      case tok_or:
+      case tok_excl_or:
+        scan_bit_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_and_and:
+      case tok_or_or:
+        scan_logical_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
   if (expr_stack->any_non_access_error_detected) {
     rcblock->error_detected = TRUE;
   }  /* if */
