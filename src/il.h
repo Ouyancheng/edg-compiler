@@ -1314,6 +1314,8 @@ extern an_expr_node_ptr node_for_host_large_integer(
 
 extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
 
+extern a_boolean is_cast_operation_node(an_expr_node_ptr expr);
+
 /*
 Flags used to specify options to copy_type_with_substitution.
 */

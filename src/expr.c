@@ -8828,37 +8828,6 @@ the type defines something); FALSE is returned if there is an error.
 }  /* scan_new_style_cast */
 
 
-static a_boolean is_cast_operation_node(an_expr_node_ptr expr)
-/*
-Return TRUE if the specified node is an operation node reflecting some
-kind of cast.
-*/
-{
-  a_boolean is_cast = FALSE;
-  if (is_operation_node(expr)) {
-    switch (expr->variant.operation.kind) {
-      case eok_cast:
-      case eok_lvalue_cast:
-      case eok_ref_cast:
-      case eok_lvalue_adjust:
-      case eok_class_rvalue_adjust:
-      case eok_base_class_cast:
-      case eok_derived_class_cast:
-      case eok_pm_base_class_cast:
-      case eok_pm_derived_class_cast:
-      case eok_dynamic_cast:
-      case eok_ref_dynamic_cast:
-      case eok_bool_cast:
-        is_cast = TRUE;
-        break;
-      default:
-        break;
-    }  /* switch */
-  }  /* if */
-  return is_cast;
-}  /* is_cast_operation_node */
-
-
 static an_expr_node_ptr cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
                                             an_operand       *operand)
 /*
@@ -15633,13 +15602,20 @@ included as well.
 }  /* type_plus_operand_type_qualifiers */
 
 
-static void scan_conditional_operator(an_operand *operand_1,
-                                      an_operand *result)
+static void scan_conditional_operator(an_operand             *operand_1,
+                                      a_rescan_control_block *rcblock,
+                                      an_operand             *result)
 /*
-Scan the "?" operator.  See section 3.3.15 of the standard.
+Scan the "?" operator.  *operand_1 is the first operand.  The current
+token is the "?" operator.  Scan the second operand and third operands,
+combine the three operands into an expression, and return an operand for
+that in *result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   an_operand            operand_3;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -15664,18 +15640,35 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   a_boolean             types_are_the_same = FALSE;
   a_boolean             saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
-  a_boolean             is_gnu_two_operand_form;
+  a_boolean             is_gnu_two_operand_form = FALSE;
   a_boolean             suppress_class_rvalue_temp = FALSE;
 
   db_enter(4, "scan_conditional_operator");
 
-  question_position = pos_curr_token;
-  question_tok_seq_number = curr_token_sequence_number;
-  /* Skip the "?" token. */
-  (void)get_token();
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(rcblock->operator_token == tok_quest_mark);
+    check_assertion(expr != NULL &&
+                    is_operation_node(expr) &&
+                    node_operator_is(expr, eok_question));
+    if (expr->variant.operation.is_gnu_two_operand_question_mark) {
+      is_gnu_two_operand_form = TRUE;
+    }  /* if */
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    make_rescan_operands(rcblock, operand_1, &operand_2, &operand_3,
+                         &question_position, &question_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    question_position = pos_curr_token;
+    question_tok_seq_number = curr_token_sequence_number;
+    /* Skip the "?" token. */
+    (void)get_token();
+    /* Recognize the binary form "x ? : y" accepted in GNU C and C++ mode. */
+    is_gnu_two_operand_form = (gnu_mode && curr_token == tok_colon);
+  }  /* if */
 
-  /* Recognize the binary form "x ? : y" accepted in GNU C and C++ mode. */
-  is_gnu_two_operand_form = (gnu_mode && curr_token == tok_colon);
   if (is_gnu_two_operand_form) {
     /* In the binary form, the second operand is omitted and instead the
        value of the first operand is used.  Make a copy before the
@@ -15718,7 +15711,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
   }  /* if */
 
-  if (!is_gnu_two_operand_form) {
+  if (rcblock == NULL && !is_gnu_two_operand_form) {
     /* Scan the second operand.   Evaluate the expression if the first
        operand is non-constant or a non-zero constant, and if we are currently
        evaluating expressions. */
@@ -15732,33 +15725,41 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     expr_stack->nested_construct_depth--;
   }  /* if */
 
-  /* Save the position of the (expected) colon. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+  if (rcblock != NULL) {
+    /* Doing only semantic analysis, not syntax. */
+    /* We don't have a position for the ":", so the position for "?" will
+       have to do. */
+    operator_position = question_position;
+    operator_tok_seq_number = question_tok_seq_number;
+  } else {
+    /* Save the position of the (expected) colon. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
 
-  if (!required_token(tok_colon, ec_exp_colon)) {
-    /* The colon is missing. */
-    make_error_operand(result);
-    /* Make sure operand_3 has a valid source position. */
-    copy_operand(&operand_2, &operand_3);
-    conv_to_error_operand(&operand_3);
-    goto error_exit;
-  }  /* if */
+    if (!required_token(tok_colon, ec_exp_colon)) {
+      /* The colon is missing. */
+      make_error_operand(result);
+      /* Make sure operand_3 has a valid source position. */
+      copy_operand(&operand_2, &operand_3);
+      conv_to_error_operand(&operand_3);
+      goto error_exit;
+    }  /* if */
 
-  /* Scan the third operand.  Evaluate the expression if the first operand
-     is non-constant or a zero constant, and if we are currently evaluating
-     expressions. */
-  expr_stack->evaluated = expr3_evaluated;
-  expr_stack->inside_conditional_expression = TRUE;
-  /* In C++, the 3rd operand is an assignment-expression (this was changed
-     after the ARM) to allow things like "a ? i=1 : j=2". */
-  scan_expr(&operand_3, (C_dialect != C_dialect_cplusplus ||
-                         any_cfront_mode()) ? PREC_QUEST_MARK :
-                                              PREC_ASSIGNMENT,
-                         EOPT_NO_OPTIONS);
-  expr_stack->inside_conditional_expression =
+    /* Scan the third operand.  Evaluate the expression if the first operand
+       is non-constant or a zero constant, and if we are currently evaluating
+       expressions. */
+    expr_stack->evaluated = expr3_evaluated;
+    expr_stack->inside_conditional_expression = TRUE;
+    /* In C++, the 3rd operand is an assignment-expression (this was changed
+       after the ARM) to allow things like "a ? i=1 : j=2". */
+    scan_expr(&operand_3, (C_dialect != C_dialect_cplusplus ||
+                           any_cfront_mode()) ? PREC_QUEST_MARK :
+                                                PREC_ASSIGNMENT,
+                           EOPT_NO_OPTIONS);
+    expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
-  expr_stack->evaluated = saved_evaluated;
+    expr_stack->evaluated = saved_evaluated;
+  }  /* if */
 
   /* Check the second and third operand types. */
   if (!C_mode()) {
@@ -20553,7 +20554,8 @@ bad_start_of_primary:
                               &local_result);
 	break;
       case tok_quest_mark:
-	scan_conditional_operator(&operand, &local_result);
+        scan_conditional_operator(&operand, (a_rescan_control_block *)NULL,
+                                  &local_result);
 	break;
       case tok_assign:
         scan_simple_assignment_operator(&operand, &local_result);
@@ -22048,6 +22050,9 @@ the scan_xxx_operator routine to call to do the rescan.  Also return
     case eok_comma:
       operator_token = tok_comma;
       break;
+    case eok_question:
+      operator_token = tok_quest_mark;
+      break;
     default:
       unexpected_condition_str("bad operator in expr rescan");
   }  /* switch */
@@ -22148,6 +22153,9 @@ NULL is returned.
       case tok_comma:
         scan_comma_operator((an_operand *)NULL, rcblock, &result);
 	break;
+      case tok_quest_mark:
+        scan_conditional_operator((an_operand *)NULL, rcblock, &result);
+        break;
       default:
         unexpected_condition();
     }  /* switch */

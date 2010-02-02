@@ -13001,6 +13001,52 @@ when doing template argument substitution.
 }  /* operator_is_foldable */
 
 
+a_boolean is_cast_operation_node(an_expr_node_ptr expr)
+/*
+Return TRUE if the specified node is an operation node reflecting some
+kind of cast.
+*/
+{
+  a_boolean is_cast = FALSE;
+  if (is_operation_node(expr)) {
+    switch (expr->variant.operation.kind) {
+      case eok_cast:
+      case eok_lvalue_cast:
+      case eok_ref_cast:
+      case eok_lvalue_adjust:
+      case eok_class_rvalue_adjust:
+      case eok_base_class_cast:
+      case eok_derived_class_cast:
+      case eok_pm_base_class_cast:
+      case eok_pm_derived_class_cast:
+      case eok_dynamic_cast:
+      case eok_ref_dynamic_cast:
+      case eok_bool_cast:
+        is_cast = TRUE;
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  return is_cast;
+}  /* is_cast_operation_node */
+
+
+static an_expr_node_ptr strip_implicit_operations(an_expr_node_ptr expr)
+/*
+Strip compiler-generated operations (e.g., implicit casts) from the top of
+the given expression and return the underlying expression.
+*/
+{
+  while (is_operation_node(expr) &&
+         expr->variant.operation.compiler_generated &&
+         is_cast_operation_node(expr)) {
+    expr = expr->variant.operation.operands;
+  }  /* if */
+  return expr;
+}  /* strip_implicit_operations */
+
+
 static a_boolean expr_is_rescannable(an_expr_node_ptr expr)
 /*
 Return TRUE if the given expression is rescannable, meaning that it can
@@ -13010,7 +13056,8 @@ redoes semantic analysis.
 {
   a_boolean rescannable = FALSE;
 
-  if (cpp0x_sfinae_enabled && is_operation_node(expr)) {
+  expr = strip_implicit_operations(expr);
+  if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     /* The list here should match the list in
        operator_token_for_expr_rescan. */
@@ -13061,6 +13108,7 @@ redoes semantic analysis.
       case eok_land:
       case eok_lor:
       case eok_comma:
+      case eok_question:
         rescannable = TRUE;
         break;
       default:;
@@ -13437,7 +13485,7 @@ options is a set of name lookup options.
                                                        source_pos,
                                                        options,
                                                        copy_error);
-      } else if (expr_is_rescannable(expr)) {
+      } else if (cpp0x_sfinae_enabled && expr_is_rescannable(expr)) {
         /* Redo the semantic analysis on the expression, after substitution.
            This makes a copy of the expression, even of parts that are
            not changed by substitution, so the original expression remains
@@ -13447,6 +13495,7 @@ options is a set of name lookup options.
         rcblock.template_arg_list = template_arg_list;
         rcblock.template_param_list = template_param_list;
         rcblock.options = options;
+        expr = strip_implicit_operations(expr);
         expr_copy = rescan_expr_with_substitution(expr, &rcblock, constant);
         if (rcblock.error_detected) {
           /* There was an error, so deduction fails. */
