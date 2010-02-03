@@ -2205,6 +2205,8 @@ to TRUE.  If the result depends on the floating-point mode,
 #endif /* !TARG_HAS_IEEE_FLOATING_POINT */
   /* Do not insert code here; this is the "else" of an "if". */
   {
+    /* The following divide can produce NaN/Infinities, but should not
+       produce any host errors. */
     tempr = temp1 / temp2;
     store_host_fp_value(tempr, kind, result, err);
 #if TARG_HAS_IEEE_FLOATING_POINT

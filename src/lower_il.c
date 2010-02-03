@@ -5134,6 +5134,7 @@ entry, unless it is already non-zero.
       /* This is the standard virtual function table for the base class,
          which has already been created. */
 #if !IA64_ABI
+      check_assertion(eff_bcp != NULL);
       vtbl_var = eff_bcp->virtual_function_table_var;
 #else /* IA64_ABI */
       vtbl_var = ctsp->virtual_function_table_var;
@@ -16020,8 +16021,11 @@ in the block, or NULL if there are no statements in the block.
     /* Return a pointer to the last statement to the caller.  Advance
        if necessary in case pop_block_statement_context added some
        statements. */
-    while (last_statement != NULL &&
-           last_statement->next != NULL) last_statement = last_statement->next;
+    if (last_statement != NULL) {
+      while (last_statement->next != NULL) {
+        last_statement = last_statement->next;
+      }  /* while */
+    }  /* if */
     *p_last_statement = last_statement;
   }  /* if */
 }  /* lower_block_statement */

@@ -908,6 +908,7 @@ of which type is an instance.  Return NULL otherwise.
       /* For a partial specialization, go to the primary template. */
       template_sym = primary_template_of(template_sym);
       tssp = template_sym->variant.template_info;
+      check_assertion(tssp != NULL);
       class_template = tssp->il_template_entry;
     }  /* if */
   }  /* if */
@@ -4313,6 +4314,7 @@ that fact should be put out.
     if (template_sym != NULL) {
       a_template_symbol_supplement_ptr tssp =
                                            template_sym->variant.template_info;
+      check_assertion(tssp != NULL);
       if (tssp->variant.class_template.template_template_param) {
         /* Yes, this is a template template parameter. */
         is_template_template_param = TRUE;
@@ -6364,6 +6366,7 @@ to the point where the base name appears.
                                sym->variant.routine.instance_ptr->template_sym;
       a_template_symbol_supplement_ptr tssp =
                                   template_supplement_for_symbol(template_sym);
+      check_assertion(tssp != NULL);
 #if !IA64_ABI
       if (tssp->is_specific_definition) {
         /* The template is specialized. */

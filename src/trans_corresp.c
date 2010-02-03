@@ -3134,8 +3134,7 @@ type is in fact valid.
         goto done;
       }  /* if */
     }  /* for */
-    if ((field != NULL && corresp_field == NULL) ||
-        (corresp_field != NULL && field == NULL)) {
+    if (!(field == NULL && corresp_field == NULL)) {
       report_error = TRUE;
       match = FALSE;
       goto done;
@@ -3157,8 +3156,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((templ != NULL && corresp_templ == NULL) ||
-            (corresp_templ != NULL && templ == NULL)) {
+        if (!(templ == NULL && corresp_templ == NULL)) {
           report_error = TRUE;
           match = FALSE;
           goto done;
@@ -3177,8 +3175,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((mem_type != NULL && corresp_mem_type == NULL) ||
-            (corresp_mem_type != NULL && mem_type == NULL)) {
+        if (!(mem_type == NULL && corresp_mem_type == NULL)) {
           report_error = TRUE;
           match = FALSE;
           goto done;
@@ -3197,8 +3194,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((routine != NULL && corresp_routine == NULL) ||
-            (corresp_routine != NULL && routine == NULL)) {
+        if (!(routine == NULL && corresp_routine == NULL)) {
           report_error = TRUE;
           match = FALSE;
           goto done;
@@ -3220,8 +3216,7 @@ type is in fact valid.
                           symbol_for(variable), symbol_for(corresp_variable));
           }  /* if */
         }  /* for */
-        if ((variable != NULL && corresp_variable == NULL) ||
-            (corresp_variable != NULL && variable == NULL)) {
+        if (!(variable == NULL && corresp_variable == NULL)) {
           report_error = TRUE;
           match = FALSE;
           goto done;
@@ -3239,8 +3234,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((constant != NULL && corresp_constant == NULL) ||
-            (corresp_constant != NULL && constant == NULL)) {
+        if (!(constant == NULL && corresp_constant == NULL)) {
           report_error = TRUE;
           match = FALSE;
           goto done;
@@ -3274,8 +3268,7 @@ type is in fact valid.
           /* Set source correspondence: */
           set_trans_unit_corresp(iek_base_class, base, corresp_base);
         }  /* for */
-        if ((base == NULL && corresp_base != NULL) ||
-            (base != NULL && corresp_base == NULL)) {
+        if (!(base == NULL && corresp_base == NULL)) {
           match = FALSE;
           report_error = TRUE;
           goto done;
@@ -3295,8 +3288,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((ud == NULL && corresp_ud != NULL) ||
-            (ud != NULL && corresp_ud == NULL)) {
+        if (!(ud == NULL && corresp_ud == NULL)) {
           match = FALSE;
           report_error = TRUE;
           goto done;
@@ -3319,8 +3311,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((rle == NULL && corresp_rle != NULL) ||
-            (rle != NULL && corresp_rle == NULL)) {
+        if (!(rle == NULL && corresp_rle == NULL)) {
           match = FALSE;
           report_error = TRUE;
           goto done;
@@ -3342,8 +3333,7 @@ type is in fact valid.
             goto done;
           }  /* if */
         }  /* for */
-        if ((cle == NULL && corresp_cle != NULL) ||
-            (cle != NULL && corresp_cle == NULL)) {
+        if (!(cle == NULL && corresp_cle == NULL)) {
           match = FALSE;
           report_error = TRUE;
           goto done;
