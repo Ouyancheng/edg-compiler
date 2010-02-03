@@ -596,20 +596,26 @@ expression node to indicate that.
 }  /* set_pointer_operand_is_second_flag */
 
 
-static void scan_subscript_operator(an_operand *operand_1,
-                                    an_operand *result)
+static void scan_subscript_operator(an_operand             *operand_1,
+                                    a_rescan_control_block *rcblock,
+                                    an_operand             *result)
 /*
-Scan array subscripting.  See section 6.5.2.1 of the C99 standard,
-[expr.sub] of the C++ standard.
+Scan the array subscripting operator, i.e.,
 
-Syntax:
 	pointer-expression [ integral-expression ]
 	integral-expression [ pointer-expression ]
 
+*operand_1 is the left operand.  The current token is the "["
+operator.  Scan the second operand and the "]", combine the two
+operands into an expression, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 This routine is also used when scanning __builtin_offsetof constructs.
 */
 {
-  an_operand         operand_2;
+  an_operand         local_operand_1, operand_2;
   a_type_ptr         result_type;
   a_source_position  operator_position;
   a_token_sequence_number
@@ -623,8 +629,18 @@ This routine is also used when scanning __builtin_offsetof constructs.
 
   db_enter(4, "scan_subscript_operator");
 
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_lbracket);
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Subscripting not allowed in preprocessing expression. */
@@ -640,12 +656,13 @@ This routine is also used when scanning __builtin_offsetof constructs.
     err = TRUE;
   }  /* if */
 
-  /* Get past the opening bracket. */
-  (void)get_token();
-  add_matching_stop_token(tok_rbracket);
-
-  /* Scan the second operand. */
-  scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (rcblock == NULL) {
+    /* Get past the opening bracket. */
+    (void)get_token();
+    add_matching_stop_token(tok_rbracket);
+    /* Scan the second operand. */
+    scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (err) {
     /* Subscripting is not allowed in this kind of expression. */
@@ -751,12 +768,14 @@ This routine is also used when scanning __builtin_offsetof constructs.
     }  /* if */
   }  /* if */
 
+  if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Save the position of the "]". */
-  end_position = end_pos_curr_token;
+    /* Save the position of the "]". */
+    end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rbracket, ec_exp_rbracket);
-  remove_matching_stop_token(tok_rbracket);
+    (void)required_token(tok_rbracket, ec_exp_rbracket);
+    remove_matching_stop_token(tok_rbracket);
+  }  /* if */
 
   set_operand_position(result, &operand_1->position,
                        &end_position, &operator_position);
@@ -6397,7 +6416,8 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
         scan_field_selection_operator(&operand, EOPT_FIELD_FOR_OFFSETOF,
                                       &local_result, (an_operand*)NULL);
       } else {
-        scan_subscript_operator(&operand, &local_result);
+        scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
+                                &local_result);
       }  /* if */
     } while (curr_token == tok_period || curr_token == tok_lbracket);
     if (valid_type && !is_error_operand(&local_result)) {
@@ -20557,29 +20577,30 @@ bad_start_of_primary:
     switch (curr_token) {
       case tok_plus_plus:
       case tok_minus_minus:
-	/* Postfix increment and decrement. */
+        /* Postfix increment and decrement. */
         scan_postfix_incr_decr(&operand, (a_rescan_control_block *)NULL,
                                &local_result);
-	break;
+        break;
       case tok_lbracket:
-	/* Subscript. */
-        scan_subscript_operator(&operand, &local_result);
-	break;
+        /* Subscript. */
+        scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
+                                &local_result);
+        break;
       case tok_lparen:
-	/* Routine call. */
+        /* Routine call. */
         scan_function_call(&operand, &local_bound_function_selector,
                            &local_result);
-	break;
+        break;
       case tok_period:
       case tok_arrow:
-	/* Field selectors. */
-	scan_field_selection_operator(&operand, local_options, &local_result,
+        /* Field selectors. */
+        scan_field_selection_operator(&operand, local_options, &local_result,
                                       &local_bound_function_selector);
-	break;
+        break;
       case tok_period_star:
       case tok_arrow_star:
-	/* C++ pointer-to-member operators (.* and ->*). */
-	scan_ptr_to_member_operator(&operand, &local_result,
+        /* C++ pointer-to-member operators (.* and ->*). */
+        scan_ptr_to_member_operator(&operand, &local_result,
                                     &local_bound_function_selector);
         break;
       case tok_star:
@@ -20587,29 +20608,29 @@ bad_start_of_primary:
       case tok_remainder:
         scan_mult_operator(&operand, (a_rescan_control_block *)NULL,
                            &local_result);
-	break;
+        break;
       case tok_plus:
       case tok_minus:
         scan_add_operator(&operand, (a_rescan_control_block *)NULL,
                           &local_result);
-	break;
+        break;
       case tok_shift_left:
       case tok_shift_right:
         scan_shift_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
-	break;
+        break;
       case tok_lt:
       case tok_gt:
       case tok_le:
       case tok_ge:
         scan_rel_operator(&operand, (a_rescan_control_block *)NULL,
                           &local_result);
-	break;
+        break;
       case tok_eq:
       case tok_ne:
         scan_eq_operator(&operand, (a_rescan_control_block *)NULL,
                          &local_result);
-	break;
+        break;
 #if GNU_EXTENSIONS_ALLOWED
       case tok_gnu_min:
       case tok_gnu_max:
@@ -20622,21 +20643,21 @@ bad_start_of_primary:
       case tok_or:
         scan_bit_operator(&operand, (a_rescan_control_block *)NULL,
                           &local_result);
-	break;
+        break;
       case tok_and_and:
       case tok_or_or:
         scan_logical_operator(&operand, (a_rescan_control_block *)NULL,
                               &local_result);
-	break;
+        break;
       case tok_quest_mark:
         scan_conditional_operator(&operand, (a_rescan_control_block *)NULL,
                                   &local_result);
-	break;
+        break;
       case tok_assign:
         scan_simple_assignment_operator(&operand,
                                         (a_rescan_control_block *)NULL,
                                         &local_result);
-	break;
+        break;
       case tok_times_assign:
       case tok_divide_assign:
       case tok_remainder_assign:
@@ -20650,11 +20671,11 @@ bad_start_of_primary:
         scan_compound_assignment_operator(&operand,
                                           (a_rescan_control_block *)NULL,
                                            &local_result);
-	break;
+        break;
       case tok_comma:
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
-	break;
+        break;
 #if CHECKING
       default:
         internal_error("scan_expr_full: bad operator token in loop");
@@ -22029,6 +22050,9 @@ postfix operators.
   check_assertion(is_operation_node(expr));
   /* The list here should match the list in expr_is_rescannable. */
   switch (expr->variant.operation.kind) {
+    case eok_subscript:
+      operator_token = tok_lbracket;
+      break;
     case eok_post_incr:
       operator_token = tok_plus_plus;
       *unary = TRUE;
@@ -22257,6 +22281,9 @@ NULL is returned.
   } else {
     /* Operators other than unary operators, i.e., typically two-operand. */
     switch (operator_token) {
+      case tok_lbracket:
+        scan_subscript_operator((an_operand *)NULL, rcblock, &result);
+        break;
       case tok_plus:
       case tok_minus:
         scan_add_operator((an_operand *)NULL, rcblock, &result);
