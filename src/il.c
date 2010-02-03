@@ -13062,6 +13062,8 @@ redoes semantic analysis.
     /* The list here should match the list in
        operator_token_for_expr_rescan. */
     switch (op) {
+      case eok_pre_incr:
+      case eok_pre_decr:
       case eok_indirect:
       case eok_unary_plus:
       case eok_negate:

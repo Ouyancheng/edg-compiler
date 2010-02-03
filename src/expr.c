@@ -4653,15 +4653,19 @@ in having type qualifiers.  This routine is called only in C++ mode.
 }  /* change_assignment_result_to_lvalue */
 
 
-static void scan_prefix_incr_decr(an_operand *result)
+static void scan_prefix_incr_decr(a_rescan_control_block *rcblock,
+                                  an_operand             *result)
 /*
-Scan the prefix increment ("++") and decrement ("--") operators.  See section
-3.3.3.1 of the standard.
+Scan the prefix increment ("++") and decrement ("--") operators.
+The current token is the operator.  Scan the operand, build an
+expression, and return an operand for that in *result.  If rcblock is
+non-NULL, redo semantic analysis on a previously-scanned expression,
+and return the result in *result (or an error indication in *rcblock).
 */
 {
   a_token_kind          operator_token;
   an_operand            operand;
-  a_source_position     start_position;
+  a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
   an_expr_operator_kind op;
@@ -4677,20 +4681,31 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 
   db_enter(4, "scan_prefix_incr_decr");
 
-  operator_token = curr_token;
-  operator_tok_seq_number = curr_token_sequence_number;
-  is_increment = (curr_token == tok_plus_plus);
-  copy_source_position(pos_curr_token, start_position);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
+  is_increment = (operator_token == tok_plus_plus);
 
   if (curr_expr_kind_is_const()) {
     /* Prefix ++ and -- are not allowed in constant expressions. */
-    expr_pos_error(ec_bad_constant_operator, &start_position);
+    expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
-  /* Scan the operand. */
-  (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, EOPT_PRESERVE_PROPERTY_REF);
+  if (rcblock == NULL) {
+    /* Scan the operand. */
+    (void)get_token();
+    scan_expr(&operand, PREC_PREFIX, EOPT_PRESERVE_PROPERTY_REF);
+  }  /* if */
 
   if (err) {
     /* Operator not allowed in this kind of expression. */
@@ -4704,7 +4719,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
          C++ extension __declspec(property(...)).  The fetch of the field will
          be made via a call of a "get" function, and the store will be made
          via a call of a "put" function. */
-      prepare_property_ref_incr_decr(is_increment, &start_position,
+      prepare_property_ref_incr_decr(is_increment, &operator_position,
                                      &operand, &operand_clone, &temp_init_expr,
                                      result, &processed);
       operand_clone_unused = TRUE;
@@ -4721,7 +4736,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                      /*has_predef_meaning=*/
                                                     is_enum_type(operand.type),
                                      &operand, (an_operand *)NULL,
-                                     &start_position,
+                                     &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
                                      result, &processed);
@@ -4741,7 +4756,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                            is_function_type(type_pointed_to(operand.type)))) {
             /* GNU C allows void and function pointers to be incremented and
                decremented. */
-            expr_pos_warning(ec_nonobject_pointer_arithmetic, &start_position);
+            expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                             &operator_position);
           } else if (!check_object_pointer_operand(
                                     &operand, ec_expr_not_pointer_to_object)) {
             err = TRUE;
@@ -4759,7 +4775,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                 ec_mixed_enum_type_anachronism,
                                 &operand.position);
           } else {
-            expr_pos_error(ec_enum_type_not_allowed, &start_position);
+            expr_pos_error(ec_enum_type_not_allowed, &operator_position);
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand.type)) {
@@ -4799,7 +4815,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
       } else if (property_ref_case) {
         /* Operand is a reference to a field declared with
            __declspec(property(...)). */
-        process_property_ref_incr_decr(is_increment, &start_position,
+        process_property_ref_incr_decr(is_increment, &operator_position,
                                        &operand, &operand_clone,
                                        temp_init_expr, result);
         operand_clone_unused = FALSE;
@@ -4822,7 +4838,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                  adding or subtracting one is rarely intentional in that
                  domain. */
               expr_pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                               &start_position);
+                               &operator_position);
             }  /* if */
             break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -4844,8 +4860,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     operand_will_not_be_used_because_of_error(&operand_clone);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  set_operand_position(result, &start_position, &operand.end_position,
-                       &start_position);
+  set_operand_position(result, &operator_position, &operand.end_position,
+                       &operator_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
@@ -20106,7 +20122,7 @@ see expr.h).
 
     case tok_plus_plus:
     case tok_minus_minus:
-      scan_prefix_incr_decr(&local_result);
+      scan_prefix_incr_decr((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_ampersand:
@@ -21985,6 +22001,14 @@ the scan_xxx_operator routine to call to do the rescan.  Also return
   check_assertion(is_operation_node(expr));
   /* The list here should match the list in expr_is_rescannable. */
   switch (expr->variant.operation.kind) {
+    case eok_pre_incr:
+      operator_token = tok_plus_plus;
+      *unary = TRUE;
+      break;
+    case eok_pre_decr:
+      operator_token = tok_minus_minus;
+      *unary = TRUE;
+      break;
     case eok_indirect:
       operator_token = tok_star;
       *unary = TRUE;
@@ -22172,6 +22196,10 @@ NULL is returned.
   if (unary) {
     /* Unary operators. */
     switch (operator_token) {
+      case tok_plus_plus:
+      case tok_minus_minus:
+        scan_prefix_incr_decr(rcblock, &result);
+        break;
       case tok_star:
         scan_indirection_operator(rcblock, &result);
         break;
