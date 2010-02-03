@@ -16395,13 +16395,20 @@ accepted as a null pointer constant.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void scan_simple_assignment_operator(an_operand *operand_1,
-                                            an_operand *result)
+static void scan_simple_assignment_operator(an_operand             *operand_1,
+                                            a_rescan_control_block *rcblock,
+                                            an_operand             *result)
 /*
-Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
+Scan the simple assignment operator ("=").  *operand_1 is the left
+operand.  The current token is the operator.  Scan the second operand,
+combine the two operands into an expression, and return an operand for
+that in *result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand_1 is expected to be NULL in
+that case.
 */
 {
-  an_operand        operand_2;
+  an_operand        local_operand_1, operand_2;
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
@@ -16411,9 +16418,18 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 
   db_enter(4, "scan_simple_assignment_operator");
 
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_assign);
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
 
   if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
@@ -16421,10 +16437,11 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     err = TRUE;
   }  /* if */
 
-  /* Scan the second operand. */
-  (void)get_token();
-
-  scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+  if (rcblock == NULL) {
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -16523,15 +16540,22 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 }  /* scan_simple_assignment_operator */
 
 
-static void scan_compound_assignment_operator(an_operand *operand_1,
-                                              an_operand *result)
+static void scan_compound_assignment_operator(
+                                             an_operand             *operand_1,
+                                             a_rescan_control_block *rcblock,
+                                             an_operand             *result)
 /*
 Scan the compound assignment operators (*= /= %= += -= <<= >>= &= ^= |=).
-See section 3.3.16 of the standard.
+*operand_1 is the left operand.  The current token is the operator.
+Scan the second operand, combine the two operands into an expression,
+and return an operand for that in *result.  If rcblock is non-NULL,
+redo semantic analysis on a previously-scanned expression, and return
+the result in *result (or an error indication in *rcblock).  operand_1
+is expected to be NULL in that case.
 */
 {
   a_token_kind          save_token, operator_token;
-  an_operand            operand_2;
+  an_operand            local_operand_1, operand_2;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -16550,12 +16574,20 @@ See section 3.3.16 of the standard.
 
   db_enter(4, "scan_compound_assignment_operator");
 
-  /* Save the operator. */
-  save_token = curr_token;
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
-  operator_token = save_token;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
+  save_token = operator_token;
 
   if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
@@ -16616,9 +16648,11 @@ See section 3.3.16 of the standard.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+  if (rcblock == NULL) {
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -20558,7 +20592,9 @@ bad_start_of_primary:
                                   &local_result);
 	break;
       case tok_assign:
-        scan_simple_assignment_operator(&operand, &local_result);
+        scan_simple_assignment_operator(&operand,
+                                        (a_rescan_control_block *)NULL,
+                                        &local_result);
 	break;
       case tok_times_assign:
       case tok_divide_assign:
@@ -20570,7 +20606,9 @@ bad_start_of_primary:
       case tok_and_assign:
       case tok_excl_or_assign:
       case tok_or_assign:
-        scan_compound_assignment_operator(&operand, &local_result);
+        scan_compound_assignment_operator(&operand,
+                                          (a_rescan_control_block *)NULL,
+                                           &local_result);
 	break;
       case tok_comma:
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
@@ -22053,6 +22091,41 @@ the scan_xxx_operator routine to call to do the rescan.  Also return
     case eok_question:
       operator_token = tok_quest_mark;
       break;
+    case eok_assign:
+      operator_token = tok_assign;
+      break;
+    case eok_add_assign:
+    case eok_padd_assign:
+      operator_token = tok_plus_assign;
+      break;
+    case eok_subtract_assign:
+    case eok_psubtract_assign:
+      operator_token = tok_minus_assign;
+      break;
+    case eok_multiply_assign:
+      operator_token = tok_times_assign;
+      break;
+    case eok_divide_assign:
+      operator_token = tok_divide_assign;
+      break;
+    case eok_remainder_assign:
+      operator_token = tok_remainder_assign;
+      break;
+    case eok_shiftl_assign:
+      operator_token = tok_shift_left_assign;
+      break;
+    case eok_shiftr_assign:
+      operator_token = tok_shift_right_assign;
+      break;
+    case eok_and_assign:
+      operator_token = tok_and_assign;
+      break;
+    case eok_or_assign:
+      operator_token = tok_or_assign;
+      break;
+    case eok_xor_assign:
+      operator_token = tok_excl_or_assign;
+      break;
     default:
       unexpected_condition_str("bad operator in expr rescan");
   }  /* switch */
@@ -22155,6 +22228,22 @@ NULL is returned.
 	break;
       case tok_quest_mark:
         scan_conditional_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_assign:
+        scan_simple_assignment_operator((an_operand *)NULL, rcblock, &result);
+        break;
+      case tok_plus_assign:
+      case tok_minus_assign:
+      case tok_times_assign:
+      case tok_divide_assign:
+      case tok_remainder_assign:
+      case tok_shift_left_assign:
+      case tok_shift_right_assign:
+      case tok_and_assign:
+      case tok_excl_or_assign:
+      case tok_or_assign:
+        scan_compound_assignment_operator((an_operand *)NULL, rcblock,
+                                          &result);
         break;
       default:
         unexpected_condition();

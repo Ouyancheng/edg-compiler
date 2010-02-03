@@ -13109,6 +13109,19 @@ redoes semantic analysis.
       case eok_lor:
       case eok_comma:
       case eok_question:
+      case eok_assign:
+      case eok_add_assign:
+      case eok_padd_assign:
+      case eok_subtract_assign:
+      case eok_psubtract_assign:
+      case eok_multiply_assign:
+      case eok_divide_assign:
+      case eok_remainder_assign:
+      case eok_shiftl_assign:
+      case eok_shiftr_assign:
+      case eok_and_assign:
+      case eok_or_assign:
+      case eok_xor_assign:
         rescannable = TRUE;
         break;
       default:;
