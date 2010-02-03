@@ -11000,6 +11000,13 @@ operator_tok_seq_number gives the token sequence number of the operator.
   an_expr_operator_kind generic_op =
                                operator_for_opname_kind(kind, unary_operator);
 
+  if (kind == (an_opname_kind)onk_plus_plus ||
+      kind == (an_opname_kind)onk_minus_minus) {
+    /* Turn postfix "++" or "--" back into a true unary operation (it has a
+       zero argument added for the purpose of calling an overloaded
+       operator function). */
+    unary_operator = TRUE;
+  }  /* if */
   if (unary_operator) {
     template_unary_operation(generic_op, operand_1, result,
                              operator_position,

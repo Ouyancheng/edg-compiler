@@ -4381,18 +4381,25 @@ temporary.  The overall result is placed in *result.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void scan_postfix_incr_decr(an_operand *operand,
-				   an_operand *result)
+static void scan_postfix_incr_decr(an_operand             *operand,
+                                   a_rescan_control_block *rcblock,
+                                   an_operand             *result)
 /*
-Scan the postfix increment ("++") and decrement ("--") operators.  See section
-3.3.2.4 of the standard.
+Scan the postfix increment ("++") and decrement ("--") operators.
+*operand is the operand.  The current token is the operator.  Make an
+expression for the operation, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand is expected to be NULL in that
+case.
 */
 {
   an_expr_operator_kind op;
+  a_token_kind          operator_token;
   a_boolean             is_increment;
   a_type_ptr            result_type;
   a_boolean             err = FALSE, processed = FALSE;
-  an_operand            zero_operand;
+  an_operand            local_operand, zero_operand;
   an_opname_kind        opname_kind;
   a_source_position     operator_position;
   a_token_sequence_number
@@ -4409,9 +4416,28 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 
   db_enter(4, "scan_postfix_incr_decr");
 
-  operator_position = pos_curr_token;
-  operator_tok_seq_number = curr_token_sequence_number;
-  is_increment = (curr_token == tok_plus_plus);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
+    check_assertion(operand == NULL);
+    operand = &local_operand;
+    make_rescan_operands(rcblock, operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Save the end position of the operator. */
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  is_increment = (operator_token == tok_plus_plus);
   if (curr_expr_kind_is_const()) {
     /* Postfix ++/-- not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
@@ -4441,7 +4467,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
          See ARM 13.4.7.  The second compiler-supplied argument is an
          integer zero. */
       make_integer_constant_operand(&zero_operand, (a_host_large_integer)0L);
-      opname_kind = opname_kind_for_token[(int)curr_token];
+      opname_kind = opname_kind_for_token[(int)operator_token];
       check_for_operator_overloading(opname_kind,
                                      /*unary_operator=*/FALSE,  /* sic! */
                                      /*must_be_member_function=*/FALSE,
@@ -4478,7 +4504,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
               pos_st_diagnostic(sev,
                                 ec_single_arg_postfix_incr_decr_anachronism,
                                 &operator_position,
-                                token_names[(int)curr_token]);
+                                token_names[(int)operator_token]);
             }  /* if */
           }  /* if */
         } else {
@@ -4607,12 +4633,10 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     }  /* if */
   }  /* if */
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Save the end position of the operator. */
-  end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Get past the "++" or "--". */
-  (void)get_token();
+  if (rcblock == NULL) {
+    /* Get past the "++" or "--". */
+    (void)get_token();
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (operand_clone_unused) {
     operand_will_not_be_used_because_of_error(&operand_clone);
@@ -17380,7 +17404,7 @@ expression, and return the result in *result (or an error indication in
 
   if (curr_expr_kind_is_const()) {
     /* Comma operator not allowed in constant expressions. */
-    expr_pos_error(ec_bad_constant_operator, &pos_curr_token);
+    expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
   }  /* if */
 
@@ -20534,7 +20558,8 @@ bad_start_of_primary:
       case tok_plus_plus:
       case tok_minus_minus:
 	/* Postfix increment and decrement. */
-        scan_postfix_incr_decr(&operand, &local_result);
+        scan_postfix_incr_decr(&operand, (a_rescan_control_block *)NULL,
+                               &local_result);
 	break;
       case tok_lbracket:
 	/* Subscript. */
@@ -21987,20 +22012,33 @@ This is callable from outside of the expression processing routines.
 
 
 static a_token_kind operator_token_for_expr_rescan(an_expr_node_ptr expr,
-                                                   a_boolean        *unary)
+                                                   a_boolean        *unary,
+                                                   a_boolean        *postfix)
 /*
 The given expression is about to be rescanned to redo semantic analysis.
 Determine the operator token for it and return it.  That's used to select
 the scan_xxx_operator routine to call to do the rescan.  Also return
-*unary set to TRUE for unary operators and to FALSE otherwise.
+*unary set to TRUE for unary operators, and *postfix set to TRUE for
+postfix operators.
 */
 {
   a_token_kind operator_token;
 
   *unary = FALSE;
+  *postfix = FALSE;
   check_assertion(is_operation_node(expr));
   /* The list here should match the list in expr_is_rescannable. */
   switch (expr->variant.operation.kind) {
+    case eok_post_incr:
+      operator_token = tok_plus_plus;
+      *unary = TRUE;
+      *postfix = TRUE;
+      break;
+    case eok_post_decr:
+      operator_token = tok_minus_minus;
+      *unary = TRUE;
+      *postfix = TRUE;
+      break;
     case eok_pre_incr:
       operator_token = tok_plus_plus;
       *unary = TRUE;
@@ -22176,7 +22214,7 @@ NULL is returned.
   an_expr_rescan_info_entry_ptr eriep = expr->rescan_info;
   an_operand                    result;
   a_token_kind                  operator_token;
-  a_boolean                     unary;
+  a_boolean                     unary, postfix;
 
   /* Rescan information must have been saved on the expression when it was
      originally scanned. */
@@ -22191,14 +22229,18 @@ NULL is returned.
      an extra parameter on each of those routines. */
   rcblock->expr = expr;
   /* Go to the right routine to rescan the operator. */
-  operator_token = operator_token_for_expr_rescan(expr, &unary);
+  operator_token = operator_token_for_expr_rescan(expr, &unary, &postfix);
   rcblock->operator_token = operator_token;
   if (unary) {
     /* Unary operators. */
     switch (operator_token) {
       case tok_plus_plus:
       case tok_minus_minus:
-        scan_prefix_incr_decr(rcblock, &result);
+        if (postfix) {
+          scan_postfix_incr_decr((an_operand *)NULL, rcblock, &result);
+        } else {
+          scan_prefix_incr_decr(rcblock, &result);
+        }  /* if */
         break;
       case tok_star:
         scan_indirection_operator(rcblock, &result);
