@@ -1,5 +1,17 @@
 Version 4.2
 
+2/2/10   [EDGcpfe/10285]
+Performance improvement with heavy use of macros
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is FALSE, all
+source positions of text occurring within a macro expansion reflect the
+position of the outermost macro invocation.  The front end now takes
+advantage of that fact to speed up the process of determining source
+positions for program constructs.  Depending on how heavily the file being
+compiled relies on macros, the performance improvement could range from
+negligible to a few percent.
+
+
 2/1/10   [EDGcpfe/10384]
 End positions of case labels in Microsoft mode
 

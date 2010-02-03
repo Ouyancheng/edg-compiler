@@ -1025,6 +1025,13 @@ escape.
 			   marked as temporarily inert so it will only be
 			   expanded after the expansion of the top-level
 			   macro invocation is complete. */
+#define LE_END_OF_TOP_LEVEL_EXPANSION 9
+			/* Indicates the end of the expansion of a macro
+			   whose invocation occurs on a source line, i.e.,
+			   not in the expansion of another macro.  Used
+			   only when FULLY_RESOLVED_MACRO_POSITIONS is
+			   FALSE as part of an optimization to speed up
+			   calculation of source positions. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1429,6 +1436,20 @@ EXTERN a_source_position
 			   by many scanning routines. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+EXTERN a_source_position
+		pos_of_macro_invocation;
+			/* Global variable that contains the source
+			   position of the outermost macro invocation
+			   within whose expansion the current source
+			   position occurs, if any, and
+			   null_source_position otherwise.  Used to speed
+			   up conversion of line locations to source
+			   positions.  Not used with
+			   FULLY_RESOLVED_MACRO_POSITIONS because original
+			   positions must be calculated for each
+			   position. */
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
 
 /*
 The stop token array: If a syntactic error occurs, flush_tokens

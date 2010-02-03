@@ -2000,6 +2000,13 @@ print the replacement text and expansions of macros.
            act as a macro argument delimiter when rescanned). */
         ch = '\\';
         p += LE_ESCAPE_LEN;
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+      } else if (ch == LE_END_OF_TOP_LEVEL_EXPANSION) {
+        /* Marker indicating the end of the expansion of a macro invoked
+           directly within a source line. */
+        ch = '!';
+        p += LE_ESCAPE_LEN;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
         break;
@@ -2763,6 +2770,11 @@ In such cases, charize is TRUE.
           }  /* if */
         }  /* if */
         p += LE_ESCAPE_LEN-1;
+#if !FULLY_RESOLVED_MACRO_ARGUMENTS
+      /* Note: LE_END_OF_TOP_LEVEL_EXPANSION should never occur in a macro
+         argument, so it is not handled directly and just falls through to
+         the following unexpected condition clause. */
+#endif /* !FULLY_RESOLVED_MACRO_ARGUMENTS */
       } else {
         unexpected_condition_str("stringized_arg: bad lexical escape");
       }  /* if */
@@ -3513,6 +3525,7 @@ associated global variables will also have been set).
 {
   a_macro_def_ptr mdp;
   sizeof_t	  repl_text_len;
+  sizeof_t        space_for_end_of_top_level_expansion_escape;
   a_boolean       repl_text_len_precomputed = FALSE;
   a_token_kind	  ctoken = tok_error;
   a_boolean	  got_proper_closing_token = FALSE;
@@ -3644,6 +3657,20 @@ associated global variables will also have been set).
   /* One we begin rescanning a macro, don't allow a PCH to be generated
      at this point. */
   num_macro_invocations_in_process++;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  /* LE_END_OF_TOP_LEVEL_EXPANSION escapes are not used with fully-resolved
+     macro positions. */
+  space_for_end_of_top_level_expansion_escape = 0;
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+  if (within_curr_source_line(start_of_curr_token)) {
+    /* This is a top-level macro invocation, so the expansion will need an
+       LE_END_OF_TOP_LEVEL_EXPANSION escape. */
+    space_for_end_of_top_level_expansion_escape = LE_ESCAPE_LEN;
+  } else {
+    /* No LE_END_OF_TOP_LEVEL_EXPANSION escape will be added. */
+    space_for_end_of_top_level_expansion_escape = 0;
+  }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   /* Push a new lexical state for tokens scanned as part of the macro
      argument list (if any). */
   push_lexical_state_stack();
@@ -4804,12 +4831,19 @@ end_arg_expansion:;
     fprintf(f_debug, "Expansion length is %u\n", (unsigned int)repl_text_len);
   }  /* if */
 #endif /* DEBUG */
-  /* Make enough room in macro_buffer for the expansion and the following
+  /* Make enough room in macro_buffer for the expansion, an
+     LE_END_OF_TOP_LEVEL_EXPANSION escape, if needed, and the following
      LE_END_OF_INSERTION lexical escape. */
-  ensure_macro_buffer_space(repl_text_len+LE_ESCAPE_LEN);
+  ensure_macro_buffer_space(repl_text_len +
+                            space_for_end_of_top_level_expansion_escape +
+                            LE_ESCAPE_LEN);
   /* Move the text into macro_buffer. */
   rescan_loc = src_loc = next_avail_in_macro_buffer;
   next_avail_in_macro_buffer += repl_text_len;
+  if (space_for_end_of_top_level_expansion_escape != 0) {
+    *next_avail_in_macro_buffer++ = LE_ESCAPE;
+    *next_avail_in_macro_buffer++ = LE_END_OF_TOP_LEVEL_EXPANSION;
+  }  /* if */
   /* Store final LE_END_OF_INSERTION lexical escape. */
   *next_avail_in_macro_buffer++ = LE_ESCAPE;
   *next_avail_in_macro_buffer++ = LE_END_OF_INSERTION;
@@ -5114,7 +5148,8 @@ copy_done:
   slmp = add_source_line_modif(delete_source_from_loc,
                                (sizeof_t)(curr_char_loc -
                                                        delete_source_from_loc),
-                               rescan_loc, rescan_loc+repl_text_len);
+                               rescan_loc, rescan_loc + repl_text_len +
+                               space_for_end_of_top_level_expansion_escape);
   if (ptr_in_range(delete_source_from_loc,
                    macro_buffer + num_compacted_macro_buffer_chars,
                    after_end_of_macro_buffer)) {

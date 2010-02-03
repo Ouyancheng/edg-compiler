@@ -2971,6 +2971,11 @@ is TRUE.
           } else if (ch == LE_COMMA_FROM_ARGUMENT) {
             /* Do not output comma markers. */
             loc_in_line += LE_ESCAPE_LEN;
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+          } else if (ch == LE_END_OF_TOP_LEVEL_EXPANSION) {
+            /* Do not output end-of-top-level-expansion markers. */
+            loc_in_line += LE_ESCAPE_LEN;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
           } else {
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
@@ -3340,8 +3345,13 @@ the calls to this routine.
         if (ch == LE_END_OF_TOKEN ||
             ch == LE_INERT_MACRO ||
             ch == LE_TEMPORARILY_INERT_MACRO ||
-            ch == LE_COMMA_FROM_ARGUMENT) {
-          /* Do not output end-of-token, inert-macro, or comma markers. */
+            ch == LE_COMMA_FROM_ARGUMENT
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+            || ch == LE_END_OF_TOP_LEVEL_EXPANSION
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+            ) {
+          /* Do not output end-of-token, inert-macro, comma, or
+             end-of-top-level-expansion markers. */
           token_start = TRUE;
           loc_in_line += LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
@@ -5526,7 +5536,12 @@ have_position:
   /* Save the position determined in the innermost source line modification
      that covers this location.  That will make succeeding calls of
      this routine faster. */
-  if (orig_slmp != NULL) orig_slmp->source_position = *position_var;
+  if (orig_slmp != NULL) {
+    orig_slmp->source_position = *position_var;
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+    pos_of_macro_invocation = *position_var;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+  }  /* if */
 done:
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (use_orig_position) {
@@ -5558,8 +5573,21 @@ done:
 #define copy_pos_to_orig_pos(position_var) \
   (position_var).orig_seq    = (position_var).seq; \
   (position_var).orig_column = (position_var).column;
+/* Test for whether the current macro position should be used for the
+   current position (always FALSE for FULLY_RESOLVED_MACRO_POSITIONS). */
+#define should_use_pos_of_macro_invocation() FALSE
+/* Macro to copy pos_of_macro_invocation to the specified position
+   variable (not done for FULLY_RESOLVED_MACRO_POSITIONS). */
+#define copy_pos_of_macro_invocation_to(position_var) /* nothing */
 #else /* !FULLY_RESOLVED_MACRO_POSITIONS */
 #define copy_pos_to_orig_pos(position_var) /* nothing */
+/* If a macro expansion is currently being scanned, the position of the
+   outermost macro invocation is in pos_of_macro_invocation, and all
+   positions within the expansion should use that position. */
+#define should_use_pos_of_macro_invocation() \
+  (pos_of_macro_invocation.seq != 0)
+#define copy_pos_of_macro_invocation_to(position_var) \
+  (position_var) = pos_of_macro_invocation;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 #if MACRO_INVOCATION_TREE_IN_IL
@@ -5585,6 +5613,12 @@ expansion), and there is no modification information of any kind,
 curr_source_line is all one line with no trigraphs to perturb the
 column numbers.  The position can be determined directly.  This is the
 most common case.
+
+In configurations where FULLY_RESOLVED_MACRO_POSITIONS is FALSE, positions
+inside macro expansions are mapped to the source position of the outermost
+macro invocation; in such cases, that position (kept in the global variable
+pos_of_macro_invocation) is used directly to avoid the overhead of calling
+conv_line_loc_to_source_pos.
 */
 #define macro_line_loc_to_source_pos(loc_in_line, position_var) \
 { if (no_modifs_to_curr_source_line || \
@@ -5595,6 +5629,8 @@ most common case.
                              1 - logical_column_offset(loc_in_line); \
     copy_pos_to_orig_pos((position_var)); \
     set_macro_context_to_none((position_var)); \
+  } else if (should_use_pos_of_macro_invocation()) { \
+    copy_pos_of_macro_invocation_to((position_var)); \
   } else { \
     conv_line_loc_to_source_pos((loc_in_line), &(position_var)); \
   }  /* if */ \
@@ -5807,6 +5843,10 @@ for the GNU C multiline string extension.
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
      2.1.1.2 of the standard. */
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+  /* Make sure a macro position is not inadvertently used. */
+  pos_of_macro_invocation = null_source_position;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
   /* If we are being asked to extend the current line, go straight to
      the slow loop.  */
   if (extend_current_line) goto entry_for_extend_current_line;
@@ -6899,6 +6939,14 @@ white_space_loop:
         /* Flag the following comma token as being from a macro argument. */
         comma_is_from_argument = TRUE;
         curr_char_loc += LE_ESCAPE_LEN;
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+      } else if (ch == LE_END_OF_TOP_LEVEL_EXPANSION) {
+        /* Clear pos_of_macro_invocation to indicate that source positions
+           must once again be calculated instead of being mapped to the
+           position of the macro name. */
+        pos_of_macro_invocation = null_source_position;
+        curr_char_loc += LE_ESCAPE_LEN;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
       }  /* if */
@@ -8710,13 +8758,18 @@ non-NULL, also append the characters in the comment, through but not including
             ch == LE_INERT_MACRO ||
             ch == LE_TEMPORARILY_INERT_MACRO ||
             ch == LE_NULL ||
-            ch == LE_COMMA_FROM_ARGUMENT) {
+            ch == LE_COMMA_FROM_ARGUMENT
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+            || ch == LE_END_OF_TOP_LEVEL_EXPANSION
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+           ) {
           /* Marker put into text by preprocessing of macros, to force the
              same interpretation of token boundaries as during the macro
              definition.  Or, marker that indicates that a macro name should
              not be expanded, or represents a null (zero) character.  Or,
              marker that indicates that the next comma token came from a
-             macro argument.  Skip over the escape and don't put it out. */
+             macro argument.  Or, marker for the end of a top-level macro
+             invocation.  Skip over the escape and don't put it out. */
           next_char = curr_char + LE_ESCAPE_LEN;
         } else if (ch == LE_END_OF_INSERTION) {
           /* End of the expansion text for a macro.  Find the character
@@ -9992,7 +10045,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
     case LE_ESCAPE:
       /* Lexical escape.  Second character indicates which. */
       ch = curr_char_loc[1];
-      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
+      if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+          || ch == LE_END_OF_TOP_LEVEL_EXPANSION
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
+          ) {
         /* End of line or end of macro insertion.  Let the white-space
            routine figure it out. */
         skip_white_space();
@@ -11138,6 +11195,10 @@ is saved for use when the stack is popped.
   curr_lexical_state_stack_entry = lssep;
   /* Push a new stop token stack entry too. */
   push_stop_token_stack();
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+  /* Make sure a macro position is not inadvertently used. */
+  pos_of_macro_invocation = null_source_position;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* push_lexical_state_stack */
 
 
@@ -11163,6 +11224,10 @@ to alter the consistency check at the end of the routine.
                       "pop_lexical_state_stack: wrong number of pops");
   /* Pop the stop token stack too. */
   pop_stop_token_stack_full(final_pop);
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+  /* Make sure a macro position is not inadvertently used. */
+  pos_of_macro_invocation = null_source_position;
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
 }  /* pop_lexical_state_stack_full */
 
 
@@ -17517,6 +17582,9 @@ of the front end.
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;
+#if !FULLY_RESOLVED_MACRO_POSITIONS
+  pos_of_macro_invocation = null_source_position;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   ucn_buffer = NULL;
   suffix_replacement_buffer = NULL;
   caching_tokens = FALSE;
