@@ -2770,11 +2770,11 @@ In such cases, charize is TRUE.
           }  /* if */
         }  /* if */
         p += LE_ESCAPE_LEN-1;
-#if !FULLY_RESOLVED_MACRO_ARGUMENTS
+#if !FULLY_RESOLVED_MACRO_POSITIONS
       /* Note: LE_END_OF_TOP_LEVEL_EXPANSION should never occur in a macro
          argument, so it is not handled directly and just falls through to
          the following unexpected condition clause. */
-#endif /* !FULLY_RESOLVED_MACRO_ARGUMENTS */
+#endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
       } else {
         unexpected_condition_str("stringized_arg: bad lexical escape");
       }  /* if */
