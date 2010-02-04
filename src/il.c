@@ -13067,6 +13067,7 @@ redoes semantic analysis.
       case eok_post_decr:
       case eok_pre_incr:
       case eok_pre_decr:
+      case eok_address_of:
       case eok_indirect:
       case eok_unary_plus:
       case eok_negate:

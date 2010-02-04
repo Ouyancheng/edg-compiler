@@ -4911,11 +4911,14 @@ and return the result in *result (or an error indication in *rcblock).
 }  /* scan_prefix_incr_decr */
 
 
-static void scan_ampersand_operator(an_operand *result)
+static void scan_ampersand_operator(a_rescan_control_block *rcblock,
+                                    an_operand             *result)
 /*
-Scan the "&" (address of) operator.  See section 6.5.3.2 in the C99 standard
-or [expr.unary.op] in the C++ standard.  The current token on entry is
-the "&".
+Scan the "&" (address of) operator.  The current token is the operator.
+Scan the operand, build an expression, and return an operand for that in
+*result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).
 */
 {
   an_operand        operand;
@@ -4927,12 +4930,22 @@ the "&".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         err = FALSE, processed = FALSE;
   an_expr_node_ptr  expr;
+  a_boolean         is_address_of_ellipsis;
 
   db_enter(4, "scan_ampersand_operator");
 
-  /* Save the source position of the operator. */
-  start_position = operator_position = pos_curr_token;
-  operator_tok_seq_number = curr_token_sequence_number;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_ampersand);
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
+  start_position = operator_position;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Address constants not allowed in preprocessing expressions. */
@@ -4944,14 +4957,25 @@ the "&".
     err = TRUE;
   }  /* if */
 
-  /* Advance past the "&". */
-  (void)get_token();
-  if (address_of_ellipsis_allowed &&
-      curr_token == (a_token_kind)tok_ellipsis) {
+  if (rcblock == NULL) {
+    /* Advance past the "&". */
+    (void)get_token();
+    is_address_of_ellipsis = (address_of_ellipsis_allowed &&
+                              curr_token == (a_token_kind)tok_ellipsis);
+  } else {
+    /* Redoing semantic analysis. */
+    /* Address of ellipsis is not possible, because that construct can be
+       used only within the body of a function, not in its header. */
+    is_address_of_ellipsis = FALSE;
+  }  /* if */
+
+  if (is_address_of_ellipsis) {
     /* Allow the &... extension, used in stdarg.h macros to get the
        address of the ellipsis arguments. */
-    if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
-        !f_skip_typerefs(current_routine_entry()->type)->
+    if (err) {
+      make_error_operand(result);
+    } else if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
+               !f_skip_typerefs(current_routine_entry()->type)->
                                     variant.routine.extra_info->has_ellipsis) {
       /* "&..." used outside a function, or in a function that does not have
          an ellipsis. */
@@ -4976,9 +5000,12 @@ the "&".
     /* Advance past the "...". */
     (void)get_token();
   } else {
-    /* Scan the operand. */
-    scan_expr(&operand, PREC_PREFIX,
-              EOPT_OPERAND_OF_ADDRESS_OF | EOPT_PTR_TO_MEMBER_CONTEXT);
+    /* Normal case, not the &... extension. */
+    if (rcblock == NULL) {
+      /* Scan the operand. */
+      scan_expr(&operand, PREC_PREFIX,
+                EOPT_OPERAND_OF_ADDRESS_OF | EOPT_PTR_TO_MEMBER_CONTEXT);
+    }  /* if */
 
     if (err) {
       /* Operator is not allowed in this kind of expression. */
@@ -5952,7 +5979,7 @@ Syntax:
       operand_was_used = !is_type;
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
-  } else if (SIZEOF_TYPE_IS_UNKNOWN(sizeof_type)) {
+  } else if (!template_case && SIZEOF_TYPE_IS_UNKNOWN(sizeof_type)) {
     /* The size of this type is not known at compile time.  This is
        used with the C++-generating back end when it is difficult or
        impossible to duplicate the layout algorithm of the target
@@ -20170,7 +20197,7 @@ see expr.h).
       break;
 
     case tok_ampersand:
-      scan_ampersand_operator(&local_result);
+      scan_ampersand_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -22047,174 +22074,181 @@ postfix operators.
 
   *unary = FALSE;
   *postfix = FALSE;
-  check_assertion(is_operation_node(expr));
-  /* The list here should match the list in expr_is_rescannable. */
-  switch (expr->variant.operation.kind) {
-    case eok_subscript:
-      operator_token = tok_lbracket;
-      break;
-    case eok_post_incr:
-      operator_token = tok_plus_plus;
-      *unary = TRUE;
-      *postfix = TRUE;
-      break;
-    case eok_post_decr:
-      operator_token = tok_minus_minus;
-      *unary = TRUE;
-      *postfix = TRUE;
-      break;
-    case eok_pre_incr:
-      operator_token = tok_plus_plus;
-      *unary = TRUE;
-      break;
-    case eok_pre_decr:
-      operator_token = tok_minus_minus;
-      *unary = TRUE;
-      break;
-    case eok_indirect:
-      operator_token = tok_star;
-      *unary = TRUE;
-      break;
-    case eok_unary_plus:
-      operator_token = tok_plus;
-      *unary = TRUE;
-      break;
-    case eok_negate:
-      operator_token = tok_minus;
-      *unary = TRUE;
-      break;
-    case eok_complement:
+  if (is_operation_node(expr)) {
+    /* The list here should match the list in expr_is_rescannable. */
+    switch (expr->variant.operation.kind) {
+      case eok_subscript:
+        operator_token = tok_lbracket;
+        break;
+      case eok_post_incr:
+        operator_token = tok_plus_plus;
+        *unary = TRUE;
+        *postfix = TRUE;
+        break;
+      case eok_post_decr:
+        operator_token = tok_minus_minus;
+        *unary = TRUE;
+        *postfix = TRUE;
+        break;
+      case eok_pre_incr:
+        operator_token = tok_plus_plus;
+        *unary = TRUE;
+        break;
+      case eok_pre_decr:
+        operator_token = tok_minus_minus;
+        *unary = TRUE;
+        break;
+      case eok_address_of:
+        operator_token = tok_ampersand;
+        *unary = TRUE;
+        break;
+      case eok_indirect:
+        operator_token = tok_star;
+        *unary = TRUE;
+        break;
+      case eok_unary_plus:
+        operator_token = tok_plus;
+        *unary = TRUE;
+        break;
+      case eok_negate:
+        operator_token = tok_minus;
+        *unary = TRUE;
+        break;
+      case eok_complement:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
-    case eok_xconj:
+      case eok_xconj:
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-      operator_token = tok_compl;
-      *unary = TRUE;
-      break;
-    case eok_not:
-      operator_token = tok_not;
-      *unary = TRUE;
-      break;
-    case eok_add:
-    case eok_padd:
+        operator_token = tok_compl;
+        *unary = TRUE;
+        break;
+      case eok_not:
+        operator_token = tok_not;
+        *unary = TRUE;
+        break;
+      case eok_add:
+      case eok_padd:
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_fjadd:
-    case eok_jfadd:
+      case eok_fjadd:
+      case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      operator_token = tok_plus;
-      break;
-    case eok_subtract:
-    case eok_psubtract:
-    case eok_pdiff:
+        operator_token = tok_plus;
+        break;
+      case eok_subtract:
+      case eok_psubtract:
+      case eok_pdiff:
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_fjsubtract:
-    case eok_jfsubtract:
+      case eok_fjsubtract:
+      case eok_jfsubtract:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      operator_token = tok_minus;
-      break;
-    case eok_multiply:
+        operator_token = tok_minus;
+        break;
+      case eok_multiply:
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_jmultiply:
+      case eok_jmultiply:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      operator_token = tok_star;
-      break;
-    case eok_divide:
+        operator_token = tok_star;
+        break;
+      case eok_divide:
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_jdivide:
+      case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      operator_token = tok_divide;
-      break;
-    case eok_remainder:
-      operator_token = tok_remainder;
-      break;
-    case eok_shiftl:
-      operator_token = tok_shift_left;
-      break;
-    case eok_shiftr:
-      operator_token = tok_shift_right;
-      break;
-    case eok_lt:
-      operator_token = tok_lt;
-      break;
-    case eok_gt:
-      operator_token = tok_gt;
-      break;
-    case eok_le:
-      operator_token = tok_le;
-      break;
-    case eok_ge:
-      operator_token = tok_ge;
-      break;
-    case eok_eq:
-      operator_token = tok_eq;
-      break;
-    case eok_ne:
-      operator_token = tok_ne;
-      break;
-   case eok_gnu_max:
-      operator_token = tok_gnu_max;
-      break;
-   case eok_gnu_min:
-      operator_token = tok_gnu_min;
-      break;
-    case eok_and:
-      operator_token = tok_ampersand;
-      break;
-    case eok_or:
-      operator_token = tok_or;
-      break;
-    case eok_xor:
-      operator_token = tok_excl_or;
-      break;
-    case eok_land:
-      operator_token = tok_and_and;
-      break;
-    case eok_lor:
-      operator_token = tok_or_or;
-      break;
-    case eok_comma:
-      operator_token = tok_comma;
-      break;
-    case eok_question:
-      operator_token = tok_quest_mark;
-      break;
-    case eok_assign:
-      operator_token = tok_assign;
-      break;
-    case eok_add_assign:
-    case eok_padd_assign:
-      operator_token = tok_plus_assign;
-      break;
-    case eok_subtract_assign:
-    case eok_psubtract_assign:
-      operator_token = tok_minus_assign;
-      break;
-    case eok_multiply_assign:
-      operator_token = tok_times_assign;
-      break;
-    case eok_divide_assign:
-      operator_token = tok_divide_assign;
-      break;
-    case eok_remainder_assign:
-      operator_token = tok_remainder_assign;
-      break;
-    case eok_shiftl_assign:
-      operator_token = tok_shift_left_assign;
-      break;
-    case eok_shiftr_assign:
-      operator_token = tok_shift_right_assign;
-      break;
-    case eok_and_assign:
-      operator_token = tok_and_assign;
-      break;
-    case eok_or_assign:
-      operator_token = tok_or_assign;
-      break;
-    case eok_xor_assign:
-      operator_token = tok_excl_or_assign;
-      break;
-    default:
-      unexpected_condition_str("bad operator in expr rescan");
-  }  /* switch */
+        operator_token = tok_divide;
+        break;
+      case eok_remainder:
+        operator_token = tok_remainder;
+        break;
+      case eok_shiftl:
+        operator_token = tok_shift_left;
+        break;
+      case eok_shiftr:
+        operator_token = tok_shift_right;
+        break;
+      case eok_lt:
+        operator_token = tok_lt;
+        break;
+      case eok_gt:
+        operator_token = tok_gt;
+        break;
+      case eok_le:
+        operator_token = tok_le;
+        break;
+      case eok_ge:
+        operator_token = tok_ge;
+        break;
+      case eok_eq:
+        operator_token = tok_eq;
+        break;
+      case eok_ne:
+        operator_token = tok_ne;
+        break;
+     case eok_gnu_max:
+        operator_token = tok_gnu_max;
+        break;
+     case eok_gnu_min:
+        operator_token = tok_gnu_min;
+        break;
+      case eok_and:
+        operator_token = tok_ampersand;
+        break;
+      case eok_or:
+        operator_token = tok_or;
+        break;
+      case eok_xor:
+        operator_token = tok_excl_or;
+        break;
+      case eok_land:
+        operator_token = tok_and_and;
+        break;
+      case eok_lor:
+        operator_token = tok_or_or;
+        break;
+      case eok_comma:
+        operator_token = tok_comma;
+        break;
+      case eok_question:
+        operator_token = tok_quest_mark;
+        break;
+      case eok_assign:
+        operator_token = tok_assign;
+        break;
+      case eok_add_assign:
+      case eok_padd_assign:
+        operator_token = tok_plus_assign;
+        break;
+      case eok_subtract_assign:
+      case eok_psubtract_assign:
+        operator_token = tok_minus_assign;
+        break;
+      case eok_multiply_assign:
+        operator_token = tok_times_assign;
+        break;
+      case eok_divide_assign:
+        operator_token = tok_divide_assign;
+        break;
+      case eok_remainder_assign:
+        operator_token = tok_remainder_assign;
+        break;
+      case eok_shiftl_assign:
+        operator_token = tok_shift_left_assign;
+        break;
+      case eok_shiftr_assign:
+        operator_token = tok_shift_right_assign;
+        break;
+      case eok_and_assign:
+        operator_token = tok_and_assign;
+        break;
+      case eok_or_assign:
+        operator_token = tok_or_assign;
+        break;
+      case eok_xor_assign:
+        operator_token = tok_excl_or_assign;
+        break;
+      default:
+        unexpected_condition_str("bad operator in expr rescan");
+    }  /* switch */
+  } else {
+    unexpected_condition_str("invalid expr kind in expr rescan");
+  }  /* if */
   return operator_token;
 }  /* operator_token_for_expr_rescan */
 
@@ -22265,6 +22299,9 @@ NULL is returned.
         } else {
           scan_prefix_incr_decr(rcblock, &result);
         }  /* if */
+        break;
+      case tok_ampersand:
+        scan_ampersand_operator(rcblock, &result);
         break;
       case tok_star:
         scan_indirection_operator(rcblock, &result);
