@@ -13586,6 +13586,7 @@ instantiations have been generated.
         while (last_destr->next_in_destruction_list != NULL) {
           last_destr = last_destr->next_in_destruction_list;
         }  /* if */
+        check_assertion(residual_destrs != NULL);
         last_destr->next_in_destruction_list = *residual_destrs;
         *residual_destrs = file_scope->lifetime->destructions;
       }  /* if */
