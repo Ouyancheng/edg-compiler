@@ -667,10 +667,9 @@ al_tag_name in that case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_declspec) {
       /* __declspec(...) */
+      /* The should be no "unscanned" attributes at this point. */
+      check_assertion(!unscanned_attributes_pending());
       *last_attribute_link(p_attr) = scan_attributes(syn_loc);
-      /* Check that the attribute syntax was consumed; i.e., that we didn't
-         pick up "unscanned" attributes. */
-      check_assertion(curr_token != tok_declspec);
       continue;
     }  /* if */
     if (syn_loc == al_tag_name && (is_enum_decl || !C_mode()) &&
