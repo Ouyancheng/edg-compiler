@@ -1,5 +1,26 @@
 Version 4.2
 
+2/8/10   [EDGcpfe/10356]
+GNU attribute packed and bit fields
+
+In GNU modes, bit fields are allowed to "straddle" byte boundaries when the
+attribute "packed" is applied to the enclosing class type (see Changes entry of
+10/11/05).  However, GCC compilers from version 4.1.0 through 4.3.x disabled
+this behavior: We now emulate that for values of gnu_abi_version values in the
+range 40100-40399 (in configurations where IA64_ABI is TRUE).  For example:
+
+  struct __attribute__((packed)) S {
+    char c1:6, c2:6, c3:6, c4:6;
+  }  // sizeof(S) is 4 when gnu_abi_version is in the range 40100-40399;
+     // otherwise, sizeof(S) is 3.
+
+Also, in configurations with IA64_ABI set to TRUE "byte straddling" was
+previously disabled (causing sizeof(S) to be 4 in the example above) when
+gnu_abi_version < 30300 and emulate_gnu_abi_bugs is TRUE, but that special
+case has been removed because testing with early GCC versions did not
+reproduce the behavior.
+
+
 2/2/10   [EDGcpfe/10285]
 Performance improvement with heavy use of macros
 
