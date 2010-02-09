@@ -1,5 +1,19 @@
 Version 4.2
 
+2/9/10   [EDGcpfe/10399]
+__thread keyword in template definitions
+
+The __thread keyword (sometimes allowed in GNU and Sun modes) was not
+handled properly by the disambiguation/prescan routines.  This could result
+in spurious errors in the definitions of template class members outside of
+their class.  Now fixed.
+
+  template <class T> class A {
+    static __thread int i;
+  };
+  template <class T> __thread int A<T>::i = 0;
+
+
 2/8/10   [EDGcpfe/10403]
 Abort on invalid specialization of class
 
