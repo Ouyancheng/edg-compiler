@@ -3282,6 +3282,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
           tag_sym->is_invisible = TRUE;
         }  /* if */
       }  /* if */
+      if (locator.is_error) {
+        /* Some error occurred earlier.  Make sure we don't try to treat this
+           as a specialization because the error class that is created does not
+           look like a template class. */
+        is_template_specialization = FALSE;
+        err = TRUE;
+      }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
          though not entered in the symbol table, it is needed to carry

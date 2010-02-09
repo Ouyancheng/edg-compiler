@@ -1,5 +1,23 @@
 Version 4.2
 
+2/8/10   [EDGcpfe/10403]
+Abort on invalid specialization of class
+
+An abort could occur (in default_argument_fixup_for_class) if an attempt was
+made to specialize a class in a class scope and if an incorrect name was
+used for the class.  Now fixed.  In the example below, the closing brace of
+M was omitted (commented-out) causing the specialization of N<char> to look
+like a specialization in the class scope of M.  In addition, the explicit
+specialization of N<char> did not use the correct name of the template.
+
+  namespace N {
+    template <class charT> class M { // }; note commented-out closing brace
+    template<> class N<char>  { // Was supposed to be M<char>
+      N(int* i = 0);
+    };
+  }
+
+
 2/8/10   [EDGcpfe/10356]
 GNU attribute packed and bit fields
 
