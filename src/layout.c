@@ -2567,7 +2567,8 @@ there's no overflow TRUE is returned.
 #if ABI_COMPATIBILITY_VERSION >= 307
            || (class_type->variant.class_struct_union.is_packed &&
 #if IA64_ABI
-               !(gnu_abi_version < 40400 && gnu_abi_version >= 40100) &&
+               !(emulate_gnu_abi_bugs &&
+                 gnu_abi_version < 40400 && gnu_abi_version >= 40100) &&
 #endif /* IA64_ABI */
                field->alignment == 0)
 #endif /* ABI_COMPATIBILITY_VERSION >= 307 */
