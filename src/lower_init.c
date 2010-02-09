@@ -11660,6 +11660,50 @@ initialization code.
 }  /* add_virtual_base_init_code */
 
 
+static a_boolean ctor_init_constructor_has_params(
+                                              a_constructor_init_ptr ctor_init)
+/*
+Returns TRUE if the specified ctor_init invokes a constructor that takes
+at least one parameter.
+*/
+{
+  a_boolean          result = FALSE;
+  a_dynamic_init_ptr dip = ctor_init->initializer;
+
+  check_assertion(ctor_init->kind ==
+                               (a_constructor_init_kind)cik_direct_base_class);
+  if (dip != NULL &&
+      dip->kind == (a_dynamic_init_kind)dik_constructor &&
+      unlowered_param_type_list_for_routine(dip->variant.constructor.ptr) !=
+                                                                        NULL) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* ctor_init_constructor_has_params */
+
+
+static a_boolean constructor_might_change_vtbl_pointer(
+                                              a_type_ptr             class,
+                                              a_constructor_init_ptr ctor_init)
+/*
+Returns TRUE if the constructor invoked through ctor_init shares a virtual
+function table pointer with class.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(is_immediate_class_type(class) &&
+                  class->variant.class_struct_union.extra_info != NULL &&
+                  ctor_init->kind ==
+                               (a_constructor_init_kind)cik_direct_base_class);
+  if (class->variant.class_struct_union.extra_info->
+           virtual_function_info_base_class == ctor_init->variant.base_class) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* constructor_might_change_vtbl_pointer */
+
+
 void add_constructor_wrapper_code(a_scope_ptr        scope,
                                   an_insert_location *insert_location)
 /*
@@ -11685,6 +11729,7 @@ constructor, but may instead be after an assignment to "this".
   a_variable_ptr         vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
   a_variable_ptr         construction_vtbls_var = NULL;
+  a_boolean              primary_vtbl_has_been_set = FALSE;
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
@@ -11924,16 +11969,39 @@ constructor, but may instead be after an assignment to "this".
   /* Generate initialization for each non-virtual base class that appears on
      the ctor_init list. */
   for (; ctor_init != NULL &&
-          ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
+         ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
        ctor_init = ctor_init->next) {
+    if (gnu_mode &&
+        !primary_vtbl_has_been_set &&
+        !class_type->variant.class_struct_union.any_virtual_base_classes &&
+        ctor_init_constructor_has_params(ctor_init)) {
+      /* We're about to call a non-virtual base class constructor that has
+         at least one parameter.  It's possible that this parameter refers
+         to a base class that has not yet been constructed (e.g., typeid or
+         dynamic_cast); set the primary vtable pointer before this call to
+         ensure that it'll work link GNU does at runtime.  Note that this
+         behavior is undefined according to the standard. */
+      insert_primary_vtbl_assignment(class_type, this_param_var,
+                                     construction_vtbls_var, insert_location);
+      primary_vtbl_has_been_set = TRUE;
+    }  /* if */
     lower_ctor_init(ctor_init, this_param_var,
                     /*base_of_complete_object=*/FALSE,
                     construction_vtbls_var, insert_location);
+    if (primary_vtbl_has_been_set &&
+        constructor_might_change_vtbl_pointer(class_type, ctor_init)) {
+      /* If the constructor we just called shares a virtual function table
+         pointer with the current class, it's possible that the constructor has
+         modified the primary vtable pointer. */
+      primary_vtbl_has_been_set = FALSE;
+    }  /* if */
   }  /* for */
-  /* If the current class has any virtual functions, generate code to
-     set the virtual function table pointer in the current class. */
-  insert_primary_vtbl_assignment(class_type, this_param_var,
-                                 construction_vtbls_var, insert_location);
+  if (!primary_vtbl_has_been_set) {
+    /* If the current class has any virtual functions, generate code to
+       set the virtual function table pointer in the current class. */
+    insert_primary_vtbl_assignment(class_type, this_param_var,
+                                   construction_vtbls_var, insert_location);
+  }  /* if */
   /* Set the virtual function table pointer in any base classes for which
      that is required. */
   /* Loop through the base classes of the current class. */
