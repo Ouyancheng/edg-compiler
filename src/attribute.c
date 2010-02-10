@@ -3119,10 +3119,11 @@ entity.
       if ((rp->storage_class != (a_storage_class)sc_extern &&
            rp->storage_class != (a_storage_class)sc_unspecified) ||
           rp->source_corresp.is_class_member ||
+          rp->is_template_function ||
           rp->type->variant.routine.extra_info->does_not_return) {
-        /* Cases with no associated sk_extern_routine symbol.  Fortunately,
-           these don't run into problems with block-extern declarations
-           either. */
+        /* Cases that may not have an associated sk_extern_routine symbol.
+           Fortunately, these don't run into problems with block-extern
+           declarations either. */
         prev_type = rp->type;
       } else {
         a_symbol_locator  loc, eloc;
