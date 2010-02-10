@@ -417,6 +417,14 @@ Macros that return the parent class of a class member.
 #define parent_class_of(ptr)                                                \
   (scp_parent_class(&(ptr)->source_corresp))
 
+/*
+Macro that returns the parent class if the given pointer points to a class
+member, and NULL otherwise.
+*/
+#define parent_class_or_null(ptr)                                           \
+  ((ptr)->source_corresp.is_class_member ? parent_class_of(ptr)             \
+                                         : (a_type_ptr)NULL)
+
 extern a_routine_ptr lambda_body_for_closure(a_type_ptr	type);
 
 extern a_lambda_ptr get_current_lambda(void);

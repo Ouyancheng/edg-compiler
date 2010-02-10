@@ -133,11 +133,12 @@ of that list.  Otherwise, return ap itself.
 extern an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes);
 
 extern an_attribute_ptr copy_of_attributes_with_substitution(
-                                             an_attribute_ptr      attributes,
-                                             a_template_param_ptr  t_params,
-                                             a_template_arg_ptr    t_args,
-                                             a_ctws_options_set    options,
-                                             a_boolean             *err);
+                                           an_attribute_ptr      attributes,
+                                           a_boolean             primary_only,
+                                           a_template_param_ptr  t_params,
+                                           a_template_arg_ptr    t_args,
+                                           a_type_ptr            parent_class,
+                                           a_boolean             *err);
 
 
 /*

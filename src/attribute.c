@@ -2338,6 +2338,10 @@ Output the given attribute to f_debug.
 */
 {
   char  *str;
+  if (ap == NULL) {
+    (void)fprintf(f_debug, "null attribute pointer\n");
+    goto done;
+  }  /* if */
   switch (ap->family) {
     case af_std:
       str = "[[%s";
@@ -2398,6 +2402,7 @@ Output the given attribute to f_debug.
   (void)fprintf(f_debug, "%s", str);
   (void)fprintf(f_debug, " at ");
   db_source_position(&ap->position);
+done:;
 }  /* db_attribute */
 
 
@@ -2557,32 +2562,95 @@ copy that is returned.
 }  /* copy_of_attributes_list */
 
 
-an_attribute_ptr copy_of_attributes_with_substitution(
-                                             an_attribute_ptr      attributes,
-                                             a_template_param_ptr  t_params,
-                                             a_template_arg_ptr    t_args,
-                                             a_ctws_options_set    options,
-                                             a_boolean             *p_error)
+static void substitute_attribute_arg_type(an_attribute_arg_ptr  aap,
+                                          a_template_param_ptr  t_params,
+                                          a_template_arg_ptr    t_args,
+                                          a_type_ptr            parent_class,
+                                          a_boolean             *p_error)
 /*
-Return a copy of the given list of attributes (which may be NULL) with the
-given template parameters substituted by (respectively) the given template
-arguments.  options is a bit set describing options for substitution.  If
-p_error is non-NULL, *p_error is set to TRUE if the substitution results in an
-invalid entity.  If p_error is NULL, a substitution error is diagnosed as an
-error.
+aap is an attribute type argument that will be applied to a nondependent
+entity E, but whose type entry still may depend on template parameters.
+Perform template argument substitutions on this type to obtain an attribute
+type argument that can be applied to E.  t_args is NULL if E is a non-template
+member of a class template instance; otherwise, it corresponds to the template
+arguments for E, and t_params are the corresponding template parameters.  If E
+is a class member, parent_class points to the entry for its parent class
+(which may imply additional substitutions); otherwise, parent_class is NULL.
+*p_error is set to TRUE if a substitution error occurs.
+*/
+{
+  if (parent_class != NULL &&
+      parent_class->variant.class_struct_union.is_template_class) {
+    /* If the parent class is itself a template instance, first recursively
+       substitute any parameters that it is associated with. */
+    a_template_arg_ptr    parent_t_args = NULL;
+    a_template_param_ptr  parent_t_params = NULL;
+    a_type_ptr            grand_parent_class;
+    a_class_symbol_supplement_ptr
+                          cssp = symbol_supplement_for_class(parent_class);
+    if (cssp->class_template != NULL) {
+      a_symbol_ptr  proto_sym = cssp->corresp_prototype_sym;
+      parent_t_args = templ_arg_list_for_class(parent_class);
+      check_assertion(parent_t_args != NULL);
+      parent_t_params = proto_sym->variant.class_struct_union.extra_info
+                                 ->template_info
+                                 ->cache.decl_info
+                                 ->parameters;
+    }  /* if */
+    grand_parent_class = parent_class_or_null(parent_class);
+    substitute_attribute_arg_type(aap, parent_t_params, parent_t_args,
+                                  grand_parent_class, p_error);
+  }  /* if */
+  if (!*p_error && t_args != NULL) {
+    aap->variant.type = copy_type_with_substitution(
+                                    aap->variant.type, t_args, t_params,
+                                    &aap->position, CTWS_NO_OPTIONS, p_error);
+  }  /* if */
+}  /* substitute_attribute_arg_type */
+
+
+an_attribute_ptr copy_of_attributes_with_substitution(
+                                           an_attribute_ptr      attributes,
+                                           a_boolean             primary_only,
+                                           a_template_param_ptr  t_params,
+                                           a_template_arg_ptr    t_args,
+                                           a_type_ptr            parent_class,
+                                           a_boolean             *p_error)
+/*
+Return a copy of the given list of attributes (which may be NULL) with after
+substituting template parameters (if any).  If primary_only is TRUE, only the
+attributes whose on_primary_decl flag is set are copied.  If the entity to
+which the attributes are to be applied is a template specialization, t_args
+represents the template arguments for that specialization and t_params the
+associated template parameters; otherwise, t_args and t_params are NULL.  If
+the entity to which the attributes are to be applied is a class member,
+parent_class is the enclosing class: That parent class may itself be a the
+a specialization, and its parameter substitutions are also applied to the
+attributes.  E.g.:
+  template<typename T> struct S { struct N; };
+  template<typename T> struct [[align(T)]] S<T>::N {};
+  S<double>::N sn;
+The [[align(T)]] attribute is instantiated for S<double>::N with t_params and
+t_args both set to NULL (since S<T>::N is not itself a template), and
+parent_class pointing to the entry for S<double> (which implies the T->double
+substitution).
+If p_error is non-NULL, *p_error is set to TRUE if the substitution results in
+an invalid entity.  If p_error is NULL, a substitution error is diagnosed as
+an error.
 */
 {
   an_attribute_ptr  result = NULL, *p_attr = &result, ap;
   a_boolean         err = FALSE, substitution_error_reported = FALSE;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (primary_only && !ap->on_primary_declaration) continue;
     *p_attr = alloc_attribute();
     **p_attr = *ap;
     if ((*p_attr)->arguments != NULL) {
       an_attribute_arg_ptr  *p_aap = &(*p_attr)->arguments, aap = *p_aap;
       do {
         *p_aap = alloc_attribute_arg();
-        *p_aap = aap;
+        **p_aap = *aap;
         /* Substitute template parameters in the attribute arguments. */
         switch (aap->kind) {
           case aak_empty:
@@ -2597,7 +2665,7 @@ error.
                  copy_template_param_con_with_substitution(
                                        aap->variant.constant, t_args, t_params,
                                        (a_type_ptr)NULL, &aap->position,
-                                       options, &err);
+                                       CTWS_NO_OPTIONS, &err);
 
             } else {
               (*p_aap)->variant.constant =
@@ -2605,9 +2673,9 @@ error.
             }  /* if */
             break;
           case aak_type:
-            (*p_aap)->variant.type =
-               copy_type_with_substitution(aap->variant.type, t_args, t_params,
-                                           &aap->position, options, &err);
+            (*p_aap)->variant.type = aap->variant.type;
+            substitute_attribute_arg_type(*p_aap, t_params, t_args,
+                                          parent_class, &err);
             break;
           default:
             unexpected_condition();
@@ -2800,7 +2868,7 @@ return that entity.
   char  *constr;
 
   if (ap->family == (a_byte_attribute_family)af_std) {
-    constr = "v:-r!|d:-b!";
+    constr = "c|e|v:-r!|d:-b!";
   } else if (ap->family == (a_byte_attribute_family)af_gnu) {
     /* GCC allows types and bit fields to have a user-specified alignment. */
     if (gnu_version >= 40300) {

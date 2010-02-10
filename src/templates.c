@@ -2618,8 +2618,7 @@ loading of classes.
     /* Not a class based on a class template. */
 #if GET_DEFINITION_OF_CLASS_NEEDED
     /* Call a routine to potentially find a definition of this class. */
-    if (class_type->variant.class_struct_union.
-                                             extra_info->assoc_scope == NULL) {
+    if (class_type_supp(class_type)->assoc_scope == NULL) {
       get_definition_of_class(class_type);
     }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
@@ -2631,8 +2630,7 @@ loading of classes.
        explicitly specialized.  Simply ignore the instantiation request. */
 #if GET_DEFINITION_OF_CLASS_NEEDED
     /* Call a routine to potentially find a definition of this class. */
-    if (class_type->variant.class_struct_union.
-                                             extra_info->assoc_scope == NULL) {
+    if (class_type_supp(class_type)->assoc_scope == NULL) {
       get_definition_of_class(class_type);
     }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
@@ -2838,8 +2836,9 @@ loading of classes.
            instantiated class. */
         an_attribute_ptr  ap;
         ap = copy_of_attributes_with_substitution(
-                   tssp->attributes, tssp->cache.decl_info->parameters,
-                   template_arg_list, CTWS_NO_OPTIONS, (a_boolean*)NULL);
+                   tssp->attributes, /*primary_only=*/TRUE,
+                   tssp->cache.decl_info->parameters, template_arg_list,
+                   parent_class_or_null(class_type), (a_boolean*)NULL);
         attach_tag_attributes(ap, class_type, /*is_definition=*/TRUE,
                               /*is_forward_decl=*/FALSE,
                               /*ignore_gnu_attributes=*/FALSE);
@@ -9225,8 +9224,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       an_attribute_ptr  inst_attr;
       inst_attr = copy_of_attributes_with_substitution(
                        templ_rout->source_corresp.attributes,
+                       /*primary_only=*/FALSE,
                        tssp->variant.function.decl_cache.decl_info->parameters,
-                       templ_arg_list, CTWS_NO_OPTIONS, (a_boolean*)NULL);
+                       templ_arg_list, parent_class_or_null(rp),
+                       (a_boolean*)NULL);
       attach_attributes(inst_attr, (char*)rp, iek_routine);
     }  /* if */
 #if DECL_MODIFIERS_IN_USE
