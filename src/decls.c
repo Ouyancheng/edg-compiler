@@ -11194,7 +11194,14 @@ Return a pointer to the variable that is declared.
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
+  if (std_attributes_enabled) {
+    dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  }  /* if */
+  if (gnu_attributes_enabled) {
+    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+  }  /* if */
   init_decl_parse_state(&state);
+  state.prefix_attributes = scan_attributes(al_prefix);
   state.is_definition = TRUE;
   state.auto_type_allowed = auto_type_specifier_enabled;
   clear_decl_pos_block(&decl_pos_block);
