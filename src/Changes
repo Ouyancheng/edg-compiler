@@ -1,5 +1,19 @@
 Version 4.2
 
+2/9/10   [EDGcpfe/10410]
+c_gen_be, GNU: Function attributes missing in parameter declaration
+
+The output of the C-generating back end contains generated declarations of
+functions that are defined in the file, in addition to the definitions of
+those functions.  If one of the parameters of a function is declared to be
+a function pointer with GNU function attributes, those attributes were
+omitted from the parameter declaration in the generated declaration of the
+function.  This is now fixed.  For example, the generated declaration for
+the following function did not contain the __stdcall__ attribute:
+
+  void f(void (*p)() __attribute__((__stdcall__))) { }
+
+
 2/9/10   [EDGcpfe/10405]
 GNU: Lowering of base class constructor initializers in classes with virtual
 function tables

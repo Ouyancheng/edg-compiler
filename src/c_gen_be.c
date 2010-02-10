@@ -1854,6 +1854,18 @@ is non-NULL, in which case that is the function scope.
                                                 name, (a_type_qualifier_set)
                                                              param->qualifiers,
                                                 /*suppress_const=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
+            if (param->type->kind == (a_type_kind)tk_pointer &&
+                type_pointed_to(param->type)->kind ==
+                                                     (a_type_kind)tk_routine) {
+              /* The parameter is a function pointer written using the
+                 function declarator syntax (as opposed to using a
+                 typedef).  Output any routine type attributes associated
+                 with the parameter. */
+              (void)form_type_attributes(param->type,
+                                         /*need_leading_space=*/TRUE, &octl);
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
           }
           param = param->next;
           if (param == NULL) break;
