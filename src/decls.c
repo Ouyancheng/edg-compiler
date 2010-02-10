@@ -336,6 +336,7 @@ prefix_attributes).
     attach_attributes(dps->id_attributes, (char*)ptp, iek_param_type);
     mark_primary_decl_attributes(dps->prefix_attributes);
     attach_attributes(dps->prefix_attributes, (char*)ptp, iek_param_type);
+    dps->type = ptp->type;
     dps->prefix_attributes = dps->id_attributes = NULL;
     detach_parse_state_from_attributes(dps);
   }  /* if */

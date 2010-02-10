@@ -1886,6 +1886,7 @@ if this is the function declarator in a friend function declaration.
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+        a_type_qualifier_set param_qualifiers = TQ_NONE;
         if (gnu_mode) {
           if (curr_token == tok_extension) {
             /* Ignore the GNU C __extension__ annotation. */
@@ -2067,36 +2068,22 @@ if this is the function declarator in a friend function declaration.
           /* There was no declarator. */
           func_info->any_prototype_names_omitted = TRUE;
         }  /* if */
-        /* Add an entry to record the parameter name and other information
-           associated with the parameter declaration.  These go on to the
-           the param-id list. */
-        add_to_param_id_list(&param_locator, param_state.type,
-                             &param_type_pos, param_storage_class, func_info,
-                             param_state.source_sequence_entry,
-                             &last_param_id);
-        last_param_id->declared_type = param_state.declared_type;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        last_param_id->specifiers_range =
-                            local_decl_pos_block.specifiers_range;
-	last_param_id->declarator_range =
-                            local_decl_pos_block.declarator_range;
-	last_param_id->identifier_range =
-                            local_decl_pos_block.identifier_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (remove_qualifiers_from_param_types) {
-          /* Strip off top-level type qualifiers.  They are not part of the
-             type signature of a C++ function -- see 8.3.5 para 3.  However,
+          /* Move top-level type qualifiers to a separate field of *ptp.  They
+             are not part of the type signature of a C++ function.  However,
              because they do belong to the type of the parameter variable,
-             they were not removed before add_to_param_id_list was called. */
+             they will be added back before calling add_to_param_id_list. */
           /* Note: whether to remove top-level qualifiers is sensitive to the
              ABI version because qualifiers are reflected in mangled names. */
           check_assertion(!C_mode());
+          param_qualifiers = get_type_qualifiers(param_state.declared_type);
           param_state.type = make_unqualified_type(param_state.type);
         }  /* if */
         /* Create a param-type entry and add it to the list of param-types
            associated with the routine type. */
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
+        ptp->qualifiers = param_qualifiers;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_state.ms_attributes != NULL) {
           apply_microsoft_attributes(&param_state.ms_attributes, (char*)ptp,
@@ -2123,7 +2110,6 @@ if this is the function declarator in a friend function declaration.
           /* Record the top-level type qualifiers that were declared for this
              parameter and then removed. */
           check_assertion(!C_mode());
-          ptp->qualifiers = get_type_qualifiers(last_param_id->type);
         }  /* if */
         if (last_param_type == NULL) {
           extra_info->param_type_list = ptp;
@@ -2131,6 +2117,32 @@ if this is the function declarator in a friend function declaration.
           last_param_type->next = ptp;
         }  /* if */
         last_param_type = ptp;
+        { /* Add an entry to record the parameter name and other information
+             associated with the parameter declaration.  These go on to the
+             the param-id list. */
+          a_type_ptr  param_id_type = param_state.type;
+          if (param_qualifiers != TQ_NONE) {
+            /* If qualifiers were stripped from the parameter type earlier on,
+               add them back to the param-id type since that will be used for
+               the associated variable if this declarator is for a function
+               definition. */
+            param_id_type = make_qualified_type(param_id_type,
+                                                param_qualifiers);
+          }  /* if */
+          add_to_param_id_list(&param_locator, param_id_type, &param_type_pos,
+                               param_storage_class, func_info,
+                               param_state.source_sequence_entry,
+                               &last_param_id);
+          last_param_id->declared_type = param_state.declared_type;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          last_param_id->specifiers_range =
+                              local_decl_pos_block.specifiers_range;
+          last_param_id->declarator_range =
+                              local_decl_pos_block.declarator_range;
+          last_param_id->identifier_range =
+                              local_decl_pos_block.identifier_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        }
         if (C_mode()) {
           /* Default argument processing not needed in C mode. */
         } else if (curr_token != tok_assign) {

@@ -1,5 +1,22 @@
 Version 4.2
 
+2/10/10  [EDGcpfe/10410]
+Attributes on parameter declarations and their associated variables
+
+Some parameter attributes affect the type of a parameter.  In some cases
+involving such attributes, the type of the associated variable entry (in
+function definitions) was not updated accordingly.  This happened most
+commonly when the parameter type was expressed through a typedef for a
+function or pointer to function type.  For example (in GNU modes):
+
+  typedef void F();
+  void f(F *p __attribute((stdcall))) {}
+    // Previously, the type of the variable p did not reflect the modified
+    // calling convention.
+
+This is now fixed.
+
+
 2/9/10   [EDGcpfe/10410]
 c_gen_be, GNU: Function attributes missing in parameter declaration
 
