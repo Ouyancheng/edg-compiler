@@ -1625,18 +1625,32 @@ for an array initialization in GNU C++ mode).
       check_assertion(result_is_lvalue && source_node->is_lvalue);
     }  /* if */
   } else if (source_desc->capture != NULL) {
-    a_variable_ptr  var = source_desc->capture->variable;
     check_assertion(!source_desc->runtime_throw);
-    /* The implied source is a local variable from a lambda capture. */
-    if (is_reference_type(var->type) ||
-        (var->is_parameter &&
-         var->assoc_param_type != NULL &&
-         var->assoc_param_type->passed_via_copy_constructor)) {
-      /* Variable is a reference or a parameter passed via copy constructor,
-         add an indirection. */
-      set_var_indirect_init_pos_descr(var, &source_ipd);
+    if (source_desc->capture->source_closure_field == NULL) {
+      a_variable_ptr  var = source_desc->capture->variable;
+      /* The implied source is a local variable from a lambda capture. */
+      if (is_reference_type(var->type) ||
+          (var->is_parameter &&
+           var->assoc_param_type != NULL &&
+           var->assoc_param_type->passed_via_copy_constructor)) {
+        /* Variable is a reference or a parameter passed via copy constructor,
+           add an indirection. */
+        set_var_indirect_init_pos_descr(var, &source_ipd);
+      } else {
+        set_var_init_pos_descr(var, &source_ipd);
+      }  /* if */
     } else {
-      set_var_init_pos_descr(var, &source_ipd);
+      /* The source of the implied copy is a variable that has been captured by
+         an intervening enclosing lambda; use the corresponding field of
+         that lambda's closure class to access it. */
+      check_assertion(innermost_function_scope != NULL &&
+        innermost_function_scope->variant.routine.this_param_variable != NULL);
+      set_var_indirect_init_pos_descr(
+                 innermost_function_scope->variant.routine.this_param_variable,
+                 &source_ipd);
+      add_init_pos_modifier(&source_ipm, &source_ipd);
+      source_ipm.curr_field = source_desc->capture->source_closure_field;
+      source_ipm.type = source_desc->capture->source_closure_field->type;
     }  /* if */
     source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
