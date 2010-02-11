@@ -3037,34 +3037,53 @@ Check constraints on the carries_dependency attribute specified on the
 parameters in the given declaration.
 */
 { 
-  if (dps->first_decl) {
+  if (is_error_type(dps->type)) {
+    /* Nothing to check. */
+  } else if (dps->declared_type->kind != (a_type_kind)tk_routine ||
+             dps->storage_class == (a_storage_class)sc_typedef) {
+    /* Presumably the attribute was specified on a parameter that is not for
+       a function declaration: An error. */
+    a_type_ptr        f_type = dps->declared_type;
+    a_param_type_ptr  ptp;
+    /* Look for the function type that has the parameter with the attribute. */
+    while (f_type->kind != (a_type_kind)tk_routine) {
+      f_type = underlying_type_of_derived_type(f_type);
+      check_assertion(f_type != NULL);
+    }  /* while */
+    /* In each parameter, check for the erroneous presence of the
+       [[carries_dependency]] attribute. */
+    for (ptp = function_type_params(f_type); ptp != NULL; ptp = ptp->next) {
+      if (ptp->attributes != NULL) {
+        an_attribute_ptr  ap = find_attribute(ak_carries_dependency,
+                                              ptp->attributes);
+        if (ap != NULL) {
+          report_bad_attribute_target(es_error, ap);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (dps->first_decl) {
     /* Nothing to check. */
   } else {
-    if (dps->type->kind == (a_type_kind)tk_routine) {
-      a_type_ptr        orig_type = dps->prev_type;
-      a_param_type_ptr  ptp, orig_ptp;
-      check_assertion(orig_type != NULL);
-      orig_type = skip_typerefs(orig_type);
-      ptp = function_type_params(dps->declared_type);
-      orig_ptp = function_type_params(orig_type);
-      for (; ptp != NULL; ptp = ptp->next, orig_ptp = orig_ptp->next) {
-        check_assertion(orig_ptp != NULL);
-        if (ptp->attributes != NULL) {
-          an_attribute_ptr  ap = find_attribute(ak_carries_dependency,
-                                                ptp->attributes);
-          if (ap != NULL &&
-              (orig_ptp->attributes == NULL ||
-               find_attribute(ak_carries_dependency,
-                              orig_ptp->attributes) == NULL)) {
-            pos_sy_error(ec_carries_dependency_not_on_first_decl,
-                         &ap->position, dps->sym);
-          }  /* if */
+    a_type_ptr        orig_type = dps->prev_type;
+    a_param_type_ptr  ptp, orig_ptp;
+    check_assertion(orig_type != NULL);
+    orig_type = skip_typerefs(orig_type);
+    ptp = function_type_params(dps->declared_type);
+    orig_ptp = function_type_params(orig_type);
+    for (; ptp != NULL; ptp = ptp->next, orig_ptp = orig_ptp->next) {
+      check_assertion(orig_ptp != NULL);
+      if (ptp->attributes != NULL) {
+        an_attribute_ptr  ap = find_attribute(ak_carries_dependency,
+                                              ptp->attributes);
+        if (ap != NULL &&
+            (orig_ptp->attributes == NULL ||
+             find_attribute(ak_carries_dependency,
+                            orig_ptp->attributes) == NULL)) {
+          pos_sy_error(ec_carries_dependency_not_on_first_decl,
+                       &ap->position, dps->sym);
         }  /* if */
-      }  /* for */
-    } else {
-      check_assertion(dps->type->kind == (a_type_kind)tk_typeref ||
-                      is_error_type(dps->type));
-    }  /* if */
+      }  /* if */
+    }  /* for */
   }  /* if */
 }  /* check_carries_dependency_for_params */
 
