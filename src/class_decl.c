@@ -927,6 +927,23 @@ static a_field_ptr decl_nonstatic_data_member(
                                      a_member_decl_info_ptr  decl_info,
                                      a_scope_depth           decl_scope_depth);
 
+
+static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr   lambda,
+                                                a_variable_ptr vp)
+/*
+If the indicated lambda already has a capture entry for the indicated
+variable, return a pointer it.  Otherwise, return NULL.
+*/
+{
+  a_lambda_capture_ptr  lcp;
+
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    if (lcp->variable == vp) break;
+  }  /* for */
+  return lcp;
+}  /* find_lambda_capture */
+
+
 static a_field_ptr make_field_for_lambda_capture(
                                         a_lambda_ptr           lambda,
                                         a_variable_ptr         vp,
@@ -1017,43 +1034,75 @@ the field.
 }  /* make_field_for_lambda_capture */
 
 
-static a_lambda_capture_ptr add_lambda_capture(
-                                          a_lambda_ptr           lambda,
-                                          a_variable_ptr         vp,
-                                          a_boolean              is_implicit,
-                                          a_boolean              by_reference,
-                                          a_source_position_ptr  pos)
+static a_lambda_capture_ptr r_add_lambda_capture(
+                                       a_lambda_ptr           lambda,
+                                       a_variable_ptr         vp,
+                                       a_scope_depth          depth,
+                                       a_boolean              is_implicit,
+                                       a_boolean              by_reference,
+                                       a_source_position_ptr  pos,
+                                       a_boolean              *no_impl_capture)
 /*
-Create a lambda capture entry for the lambda specified by "lambda" for the
-variable vp.  is_implicit is TRUE if this is an implicit capture.
-by_reference indicates if this is a by-reference or by-value capture.
-Create the lambda capture entry and the associated field of the closure
-class.  Add the lambda capture entry to the list of captures for "lambda"
-and return a pointer to the capture entry.  pos is the source position
-to be used for the capture.
+Helper routine for add_lambda_capture to handle the recursion.  Parameters
+are the same, plus depth is the scope stack depth at which the capture is
+being done.
 */
 {
-  a_lambda_capture_ptr     lcp;
-  a_memory_region_number   region_to_switch_back_to = NULL_region_number;
-  a_scope_stack_entry_ptr  ssep;
+  a_lambda_capture_ptr   lcp;
+  a_memory_region_number region_to_switch_back_to = curr_il_region_number;
+  a_field_ptr            source_field = NULL;
 
-  /* Find the scope stack entry for the scope containing the local
-     variable that is being captured. */
-  /* For implicit captures we are currently in the memory region of the
-     lambda body, but we need to switch to the memory region of the lambda
-     reference. */
-  if (is_implicit) {
-    for (ssep = scope_stack_entry_for(depth_scope_stack);
-         ssep != NULL && ssep->il_scope != vp->source_corresp.parent_scope;
-         ssep = previous_scope_of(ssep)) {}
-    check_assertion(ssep != NULL);
-  } else {
-    ssep = scope_stack_entry_for(depth_scope_stack);
-  }  /* if */
-  region_to_switch_back_to = curr_il_region_number;
-  switch_il_region(ssep->il_memory_region);
+  /* See if there is a lambda around the current one, which must
+     capture the variable so that we can capture it at this level. */
+  { a_lambda_ptr         enclosing_lambda;
+    a_scope_depth        enclosing_depth;
+    a_boolean            enclosing_is_implicit = TRUE;
+    a_boolean            enclosing_by_reference;
+    a_lambda_capture_ptr enclosing_lcp = NULL;
+    enclosing_depth = scope_depth_for_local_variable_capture(vp,
+                                                            depth,
+                                                            &enclosing_lambda);
+    if (enclosing_lambda != NULL) {
+      /* There is an enclosing lambda, so generate a capture at that level
+         first. */
+      if ((enclosing_lcp = find_lambda_capture(enclosing_lambda, vp))
+                                                                     != NULL) {
+        /* There's already a capture for this variable at this level.  That
+           also means the capture is taken care of in all enclosing lambdas,
+           so we can stop the recursion. */
+      } else if (!lambda->has_capture_default) {
+        /* No capture default, so implicit captures are not allowed.
+           The caller will issue an error. */
+        *no_impl_capture = TRUE;
+      } else {
+        /* The implicit capture is by value or by reference depending on the
+           default capture setting of the enclosing lambda. */
+        enclosing_by_reference = lambda->default_is_by_reference;
+        /* Make a recursive call to add the capture at the next level up. */
+        enclosing_lcp = r_add_lambda_capture(enclosing_lambda, vp,
+                                             enclosing_depth,
+                                             enclosing_is_implicit,
+                                             enclosing_by_reference,
+                                             pos, no_impl_capture);
+      }  /* if */
+      if (enclosing_lcp != NULL) {
+        /* The capture at this level copies from the closure field at the
+           next level up. */
+        source_field = enclosing_lcp->closure_field;
+        check_assertion(source_field != NULL);
+      }  /* if */
+    }  /* if */
+  }
+  /* Switch to the memory region of the scope in which the capture will
+     occur.  (For implicit captures, we're currently in the memory region of
+     the point of the reference that necessitated the capture.) */
+  switch_il_region(scope_stack[depth].il_memory_region);
   lcp = alloc_lambda_capture();
+  /* Note that lcp->variable is set even when source_field is non-NULL.
+     That's for the convenience of the front end.  The field will be
+     cleared soon after it's been used to generate the capture copy code. */
   lcp->variable = vp;
+  lcp->source_closure_field = source_field;
   if (is_implicit) {
     /* For implicit captures, create the capture field now.  For explicit
        captures this must wait until the closure class has been pushed. */
@@ -1077,23 +1126,51 @@ to be used for the capture.
   /* Restore the original memory region. */
   switch_back_to_original_region(region_to_switch_back_to);
   return lcp;
-}  /* add_lambda_capture */
+}  /* r_add_lambda_capture */
 
 
-static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr   lambda,
-                                                a_variable_ptr vp)
+static a_lambda_capture_ptr add_lambda_capture(
+                                       a_lambda_ptr           lambda,
+                                       a_variable_ptr         vp,
+                                       a_boolean              is_implicit,
+                                       a_boolean              by_reference,
+                                       a_source_position_ptr  pos,
+                                       a_boolean              *no_impl_capture)
 /*
-If the indicated lambda already has a capture entry for the indicated
-variable, return a pointer it.  Otherwise, return NULL.
+Create a lambda capture entry for the lambda specified by "lambda" for the
+variable vp.  is_implicit is TRUE if this is an implicit capture.
+by_reference indicates if this is a by-reference or by-value capture.
+Create the lambda capture entry and the associated field of the closure
+class.  Add the lambda capture entry to the list of captures for "lambda"
+and return a pointer to the capture entry.  pos is the source position
+to be used for the capture.  If necessary, also record implicit
+capture entries on any lambdas between the current one and the scope
+where the variable appears.  *no_impl_capture will be returned TRUE
+if an implicit capture like that can't be done because the intermediate
+lambda does not allow implicit captures.
 */
 {
-  a_lambda_capture_ptr  lcp;
+  a_lambda_capture_ptr lcp;
+  a_scope_depth        depth;
 
-  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    if (lcp->variable == vp) break;
-  }  /* for */
+  *no_impl_capture = FALSE;
+  /* Find the scope stack entry for the level at which the (innermost) capture
+     will occur. */
+  if (is_implicit) {
+    a_lambda_ptr temp_lambda;
+    depth = scope_depth_for_local_variable_capture(vp,
+                                                   NO_SCOPE_DEPTH,
+                                                   &temp_lambda);
+    check_assertion(temp_lambda != NULL && temp_lambda == lambda);
+  } else {
+    /* For explicit captures (i.e., in the capture list), we're already in the
+       scope of the capture. */
+    depth = depth_scope_stack;
+  }  /* if */
+  lcp = r_add_lambda_capture(lambda, vp, depth, is_implicit, by_reference, pos,
+                             no_impl_capture);
   return lcp;
-}  /* find_lambda_capture */
+}  /* add_lambda_capture */
 
 
 a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr         vp,
@@ -1121,11 +1198,15 @@ issue an error and return NULL.
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
       /* No capture default, so implicit captures are not allowed. */
-      err_code = ec_not_captured_local_var_in_lambda;
+     err_code = ec_not_captured_local_var_in_lambda;
     } else {
       /* The variable is valid.  Add a new capture entry for it. */
+      a_boolean no_impl_capture;
       lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
-                               by_ref, pos);
+                               by_ref, pos, &no_impl_capture);
+      if (no_impl_capture) {
+        err_code = ec_no_implicit_capture_on_enclosing_lambda;
+      }  /* if */
     }  /* if */
     if (err_code != ec_no_error) {
       pos_error(err_code, pos);
@@ -16908,11 +16989,16 @@ caller has already moved past the '[', and this routine leaves the trailing
         } else {
           /* Create the lambda capture entry for this variable. */
           a_lambda_capture_ptr  lcp;
+          a_boolean             no_impl_capture;
           lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
-                                   &capture_pos);
+                                   &capture_pos, &no_impl_capture);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           lcp->end_position = capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          if (no_impl_capture) {
+            pos_error(ec_no_implicit_capture_on_enclosing_lambda,
+                      &capture_pos);
+          }  /* if */
         }  /* if */
       }  /* if */
     } while (loop_token(tok_comma));
@@ -17337,7 +17423,7 @@ For example:
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
 #if NEED_NAME_MANGLING
   /* When multiple closure types appear in the same scope or context, their
-     mangled name are distinguished using a unique number ("discriminator").
+     mangled names are distinguished using a unique number ("discriminator").
      Compute that number now if appropriate (in some contexts, such as
      default arguments, the number will be determined elsewhere).  The notion
      of "discriminator" here is a generalization of the one defined in the

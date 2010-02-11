@@ -1923,6 +1923,7 @@ ec_signed_unsigned_comparison;;"comparison between signed and unsigned operands"
 ec_attribute_ignored_on_unnamed_type;;"attribute %sq ignored on unnamed type"
 ec_attribute_ignored_on_nondefinition;;"attribute %sq ignored because no definition follows"
 ec_incompatible_thread_locality;;"thread locality is incompatible with a previous declaration of %nd"
+ec_no_implicit_capture_on_enclosing_lambda;;"this enclosing-function local variable cannot be referenced in this lambda body because an enclosing lambda does not allow implicit captures"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

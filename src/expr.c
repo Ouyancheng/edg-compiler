@@ -17600,32 +17600,84 @@ Return TRUE if we are currently in the header (not the body) of a lambda.
 }  /* in_lambda_header */
 
 
-static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
+a_scope_depth scope_depth_for_local_variable_capture(
+                                                a_variable_ptr var,
+                                                a_scope_depth  starting_depth,
+                                                a_lambda_ptr   *lambda)
 /*
-Return TRUE if the given variable is a local variable or parameter of the
-function immediately enclosing the current lambda.  This is one of the
-conditions for being able to capture the variable.
+var is a local variable that is being captured in the body of the
+current lambda, either explicitly because of its appearance in the
+capture list, or implicitly because of a reference within a lambda
+that allows implicit captures.  The caller has already checked that
+var is not a local variable inside the current lambda (which would be
+referenced directly and does not need to be captured).  Find the scope
+depth of the scope in which the variable is captured, and return it.
+If the reference is not valid, because the variable is declared in a
+scope from which it can't be captured, return NO_SCOPE_DEPTH.  On an
+initial call, starting_depth should be NO_SCOPE_DEPTH.
+
+With "lambda" non-NULL, this function can be called in a loop to find
+and return each of the lambdas between the current context and the
+scope where the variable appears.  The initial call with
+starting_depth passed as NO_SCOPE_DEPTH will return *lambda pointing
+to the innermost current lambda, and the return value will be the
+depth at which the capture occurs (the scope that immediately
+encloses that lambda).  The depth returned should be passed as
+starting_depth for the next call, which will then find the next
+lambda and capture depth.  The loop terminates when *lambda is
+returned NULL; the returned depth in that case is the scope depth 
+of the variable, or NULL if the variable was not found.
+
+Note that lambdas of which we are in the header are ignored; a
+reference in the header of a lambda is made in the surrounding
+context, and does not provoke a capture of the variable, so that
+lambda is never returned as a capture spot.  Among other things,
+that means that an initial call with starting_depth passed as
+NO_SCOPE_DEPTH could return *lambda NULL if we're currently in
+the header of a lambda.
 */
 {
-  a_boolean     result = FALSE;
-  a_scope_depth sd = depth_scope_stack;
+  a_scope_depth sd = starting_depth;
 
-  if (!in_lambda_header()) {
-    /* Find the scope stack entry for the lambda.  If we're in the header of
-       a lambda, the closure class will not have been pushed yet. */
-    for (; ; sd = scope_stack[sd].previous_scope) {
-      check_assertion(sd > DEPTH_OF_FILE_SCOPE);
-      if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
-        a_type_ptr class_type = scope_stack[sd].assoc_type;
-        /* Keep going if we're in a local class of the lambda. */
-        if (class_type_supp(class_type)->is_lambda_closure_class) break;
+  if (lambda != NULL) *lambda = NULL;
+  if (sd == NO_SCOPE_DEPTH) {
+    /* Initial call.  Start at the current top of stack. */
+    sd = depth_scope_stack;
+    /* Find the innermost lambda, the current one, on the scope stack. */
+    /* If we're inside a lambda header, we're already at the right place,
+       because the closure class will not have been pushed yet. */
+    if (!in_lambda_header()) {
+      /* Go up through scopes looking for the entry for the innermost
+         lambda.  Among other things, this skips function prototype scopes
+         that might be present because of block externs.  (We don't get
+         here if we're inside a lambda header, so those prototype scopes
+         aren't skipped here; they're skipped below.) */
+      for (; ; sd = scope_stack[sd].previous_scope) {
+        check_assertion(sd > DEPTH_OF_FILE_SCOPE);
+        if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+          a_type_ptr class_type = scope_stack[sd].assoc_type;
+          /* Keep going if we're in a local class of the lambda. */
+          if (class_type_supp(class_type)->is_lambda_closure_class) break;
+        }  /* if */
+      }  /* for */
+      if (lambda != NULL) {
+        /* Report the innermost lambda and capture depth to the caller. */
+        check_assertion(sd+1 <= depth_scope_stack &&
+                        scope_stack[sd+1].kind == (a_scope_kind)sck_function &&
+                        scope_stack[sd+1].lambda != NULL);
+        *lambda = scope_stack[sd+1].lambda;
+        /* The next call should pick up at the scope immediately enclosing the
+           lambda. */
+        sd--;
+        goto done;
       }  /* if */
-    }  /* for */
-    sd--;
+      sd--;
+    }  /* if */
+    /* sd is now the scope depth immediately surrounding the innermost
+       lambda. */
   }  /* if */
-  /* If we're inside several nested lambda headers (e.g., in the parameter
-     lists of the lambdas), get out to the surrounding function.
-     Function prototype scopes will separate them. */
+look_for_var:
+  /* Skip any function prototype scopes from lambda headers or block externs. */
   for (;
        scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
        sd--) {}
@@ -17638,10 +17690,53 @@ conditions for being able to capture the variable.
        sd--) {
     if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
       /* The variable is in an appropriate scope and can be captured. */
-      result = TRUE;
-      break;
+      goto done;
     }  /* if */
   }  /* for */
+  /* We didn't find the variable in the immediately enclosing function.
+     If we've bumped into an intermediate lambda, handle that and if
+     appropriate keep looking. */
+  if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+    a_type_ptr class_type = scope_stack[sd].assoc_type;
+    if (class_type_supp(class_type)->is_lambda_closure_class) {
+      /* This is an intermediate lambda. */
+      if (lambda != NULL) {
+        /* Report the intermediate lambda to the caller. */
+        check_assertion(sd+1 <= depth_scope_stack &&
+                        scope_stack[sd+1].kind == (a_scope_kind)sck_function &&
+                        scope_stack[sd+1].lambda != NULL);
+        *lambda = scope_stack[sd+1].lambda;
+        /* The next call should pick up at the scope immediately enclosing the
+           intermediate lambda. */
+        sd--;
+        goto done;
+      } else {
+        /* Keep looking for the variable in the surrounding context. */
+        sd--;
+        goto look_for_var;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* We've failed to find the variable, so this reference is invalid. */
+  sd = NO_SCOPE_DEPTH;
+done:;
+  return sd;
+}  /* scope_depth_for_local_variable_capture */
+
+
+static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
+/*
+Return TRUE if the given variable is a local variable or parameter of the
+function immediately enclosing the current lambda.  This is one of the
+conditions for being able to capture the variable.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (scope_depth_for_local_variable_capture(
+                var, NO_SCOPE_DEPTH, (a_lambda_ptr *)NULL) != NO_SCOPE_DEPTH) {
+    result = TRUE;
+  }  /* if */
   return result;
 }  /* var_declared_in_func_enclosing_curr_lambda */
 
@@ -17707,12 +17802,12 @@ however deeply nested in lambdas within that we might be.
 }  /* expr_is_inside_default_arg_expression */
 
 
-static a_boolean curr_lambda_is_immediately_inside_default_arg_expression(void)
+static a_boolean capture_is_inside_default_arg_expression(a_variable_ptr var)
 /*
-We're inside the header or body of a lambda.  Return TRUE if the lambda is
-immediately inside a default argument expression.  So, for example,
-return FALSE if we're inside a lambda that's inside another lambda that
-is immediately inside a default argument expression.
+var is a variable being captured in a lambda.  Return TRUE if the capture is
+invalid because it involves a lambda immediately inside a default argument
+expression.  (Default argument expressions in block extern declarations
+aren't allowed to capture variables from the surrounding function.)
 */
 {
   a_boolean result = FALSE;
@@ -17720,12 +17815,23 @@ is immediately inside a default argument expression.
   if (in_lambda_header()) {
     result = expr_stack->is_default_arg_expression;
   } else {
-    a_lambda_ptr lambda = get_current_lambda();
-    result = symbol_for(lambda->closure_class)->variant.class_struct_union.
-                  extra_info->lambda_immediately_inside_default_arg_expression;
+    a_lambda_ptr  lambda;
+    a_scope_depth sd = NO_SCOPE_DEPTH;
+    /* Loop through the current lambda and any intermediate lambdas where
+       an implicit capture will occur, checking each to see if it is
+       immediately within a default argument expression. */
+    for (;;) {
+      sd = scope_depth_for_local_variable_capture(var, sd, &lambda);
+      if (lambda == NULL) break;
+      if (symbol_for(lambda->closure_class)->variant.class_struct_union.
+                extra_info->lambda_immediately_inside_default_arg_expression) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
   return result;
-}  /* curr_lambda_is_immediately_inside_default_arg_expression */
+}  /* capture_is_inside_default_arg_expression */
 
 
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
@@ -17757,11 +17863,9 @@ an appropriate error code.
     *diag = ec_auto_variable_in_own_initializer;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
-  } else if (curr_lambda_is_immediately_inside_default_arg_expression()) {
+  } else if (capture_is_inside_default_arg_expression(var)) {
     /* Lambdas inside default argument expressions can't refer to local
-       variables at all.  The test here is testing whether the header level of
-       the current lambda is inside a default argument expression, since that's
-       the level at which the capture occurs. */
+       variables at all. */
     *diag = ec_ref_to_nested_function_var;
   } else {
     okay = TRUE;
@@ -19637,11 +19741,31 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     a_source_position  *capture_pos = &lcp->position;
     /* Watch out for "this", which has no associated symbol. */
     if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
-    make_lvalue_variable_operand(var,
-                                 capture_pos,
-                                 &null_source_position,
-                                 &operand,
-                                 rep);
+    if (lcp->source_closure_field == NULL) {
+      /* Normal case. */
+      make_lvalue_variable_operand(var,
+                                   capture_pos,
+                                   &null_source_position,
+                                   &operand,
+                                   rep);
+    } else {
+      /* The variable is reachable because it has been captured by an
+         intervening enclosing lambda, so the copy is from the corresponding
+         field of that lambda's closure class. */
+      a_field_ptr      source_field = lcp->source_closure_field;
+      an_expr_node_ptr this_expr = this_param_value_expr();
+      an_expr_node_ptr field_sel;
+      if (is_reference_type(source_field->type)) {
+        field_sel = field_rvalue_selection_expr(this_expr, source_field);
+        field_sel = add_ref_indirection_to_node(field_sel);
+      } else {
+        field_sel = field_lvalue_selection_expr(this_expr, source_field);
+      }  /* if */
+      make_lvalue_expression_operand(field_sel, &operand);
+      /* Now that we've gotten what we need from the variable pointer, clear
+         it because it's a memory-region issue. */
+      lcp->variable = NULL;
+    }  /* if */
     /* See whether the copy is of a class type or array of class type. */
     base_dest_type = dest_type;
     if (is_array_type(dest_type)) {

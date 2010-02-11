@@ -3037,6 +3037,7 @@ after_entry_from_class:
       { a_lambda_capture_ptr  ptr = (a_lambda_capture_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_lambda_capture_ptr, iek_lambda_capture);
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->source_closure_field, a_field_ptr, iek_field);
         remap_ptr(ptr->closure_field, a_field_ptr, iek_field);
       }
       break;

@@ -4210,6 +4210,8 @@ Display the indicated lambda capture.
 {
   disp_ptr("next", (char*)ptr->next, iek_lambda_capture);
   disp_ptr("variable", (char*)ptr->variable, iek_variable);
+  disp_ptr("source_closure_field", (char*)ptr->source_closure_field,
+                                   iek_field);
   disp_ptr("closure_field", (char*)ptr->closure_field, iek_field);
   if (ptr->capture_by_reference) {
     disp_boolean("capture_by_reference", TRUE);

@@ -4176,6 +4176,7 @@ in the current memory region.
 
   entry->next = NULL;
   entry->variable = NULL;
+  entry->source_closure_field = NULL;
   entry->closure_field = NULL;
   entry->capture_by_reference = FALSE;
   entry->is_implicit = FALSE;

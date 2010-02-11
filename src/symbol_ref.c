@@ -2108,15 +2108,18 @@ projection symbol.
             for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
               check_assertion(ssep != &scope_stack[0]);
               if (ssep->kind == (a_scope_kind)sck_function) {
-                /* A reference to a local variable from within quasi-nested
+                /* A reference to a local variable from within a quasi-nested
                    function definition should have been reported as an error
                    and recorded as an srk_error reference.  Such a reference
-                   is allowed for certain uses of static variables. */
+                   is allowed for certain uses of static variables, and for
+                   some local variables that might be subject to capture in
+                   a lambda. */
                 check_assertion(ssep->number == sym_ptr->decl_scope ||
                                 vp->storage_class ==
                                                  (a_storage_class)sc_static ||
                                 (scptr != NULL &&
-                                 !scptr->is_local_to_function));
+                                 !scptr->is_local_to_function) ||
+                                ssep->lambda != NULL);
                 /* We are at the outermost scope of the function.  Check for
                    a label. */
                 if (!ssep->lambda || ssep->number == sym_ptr->decl_scope) {
