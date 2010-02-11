@@ -389,6 +389,8 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "l"  : labels
 			       (no property switches)
+			     "0"  : stand-alone attribute (no target entity)
+			       (no property switches)
 			   A switch is optionally followed by a "!" to indicate
 			   that a failure to meet the requirement should be
 			   diagnosed as a hard error (otherwise, it elicits a
@@ -2152,6 +2154,11 @@ appropriate and set ap->kind to ak_unrecognized).
       weak_mismatch = FALSE;
     }  /* if */
     switch (constr[0]) {
+      case '0':
+        if (entity_kind == iek_none) {
+          match_found = TRUE;
+        }  /* if */
+        break;
       case 'T':
       case 't':
       case 'c':
@@ -2419,8 +2426,12 @@ including (a) the string descr, (b) a rendering of the given attribute, and
   if (db_flag_is_set("trace_attributes")) {
     (void)fprintf(f_debug, "ATTR %s ", descr);
     db_attribute(ap);
-    (void)fprintf(f_debug, "\nfor entity:\n");
-    db_entity_info(entity, entity_kind);
+    if (entity != NULL) {
+      (void)fprintf(f_debug, "\nfor entity:\n");
+      db_entity_info(entity, entity_kind);
+    } else {
+      (void)fprintf(f_debug, "\nis stand-alone.\n");
+    }  /* if */
     (void)fprintf(f_debug, "ATTR END\n");
   }  /* if */
 }  /* log_attribute_action */
@@ -2471,9 +2482,12 @@ attributes, call transform_type_with_attributes.)
 */
 {
   char              *new_entity = entity;
-  an_attribute_ptr  *p_list = get_attribute_link(entity, entity_kind), ap;
+  an_attribute_ptr  ap;
 
-  *last_attribute_link(p_list) = attributes;
+  if (entity != NULL) {
+    an_attribute_ptr  *p_list = get_attribute_link(entity, entity_kind);
+    *last_attribute_link(p_list) = attributes;
+  }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     db_log_attribute_action("attach", ap, entity, entity_kind);
     if (!is_type_transforming_attribute(ap)) {

@@ -302,7 +302,10 @@ set to TRUE before they are attached.
   if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
     an_il_entry_kind  entity_kind;
     char              *entity;
-    if (dps->sym->kind == (a_symbol_kind)sk_function_template) {
+    if (dps->sym == NULL) {
+      entity = NULL;
+      entity_kind = iek_none;
+    } else if (dps->sym->kind == (a_symbol_kind)sk_function_template) {
       a_template_symbol_supplement_ptr  tssp = dps->sym->variant.template_info;
       entity = (char*)tssp->variant.function.routine;
       entity_kind = iek_routine;
@@ -14165,6 +14168,7 @@ indicates how processing should proceed after the call.
     } else if (cpp0x_mode && curr_token == tok_semicolon) {
       /* C++0x allows empty declarations. */
       cannot_bind_to_curr_construct();
+      attach_decl_attributes(state, /*primary_decl=*/FALSE);
       end_of_decl_action = eoda_check_semicolon;
     } else if (check_for_overload_anachronism()) {
       /* We check for and discard declarations of the form "overload f;" --
