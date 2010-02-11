@@ -2831,14 +2831,15 @@ loading of classes.
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
                                               PS_NO_OPTIONS);
-      if (tssp->attributes != NULL) {
+      if (tssp_of_prototype->attributes != NULL) {
         /* Some attributes appeared on the definition.  Apply them to the
            instantiated class. */
         an_attribute_ptr  ap;
         ap = copy_of_attributes_with_substitution(
-                   tssp->attributes, /*primary_only=*/TRUE,
-                   tssp->cache.decl_info->parameters, template_arg_list,
-                   parent_class_or_null(class_type), (a_boolean*)NULL);
+                   tssp_of_prototype->attributes, /*primary_only=*/TRUE,
+                   tssp_of_prototype->cache.decl_info->parameters,
+                   template_arg_list, parent_class_or_null(class_type),
+                   (a_boolean*)NULL);
         attach_tag_attributes(ap, class_type, /*is_definition=*/TRUE,
                               /*is_forward_decl=*/FALSE,
                               /*ignore_gnu_attributes=*/FALSE);
