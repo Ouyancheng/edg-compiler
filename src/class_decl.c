@@ -8756,7 +8756,6 @@ implicitly declared member functions.
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
   }  /* if */
   decl_info->decl_state.sym = sym;
-  decl_info->decl_state.first_decl = TRUE;
   /* Create the routine entry for the member function. */
   /* The routine is allocated in the current memory region, as indicated
      by curr_il_region_number -- i.e., in the memory region of the scope in
@@ -14707,6 +14706,7 @@ passed via template_decl.
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
   initialize_member_decl_info(&decl_info, &decl_start_pos);
+  decl_info.decl_state.first_decl = TRUE;
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
   /* Scan prefix attributes. */
