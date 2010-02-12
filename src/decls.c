@@ -9787,12 +9787,8 @@ common cases.
     dsi_flags |= DSI_NO_TAG_DEFINITION;
   }  /* if */
   /* Allow specifier attributes. */
-  if (std_attributes_enabled) {
-    dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
-  }  /* if */
-  if (gnu_attributes_enabled) {
-    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
-  }  /* if */
+  if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   decl_specifiers(dsi_flags, dps, (a_decl_pos_block_ptr)NULL);
   check_assertion(dps->type != NULL);
   if (!(dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
@@ -10244,12 +10240,8 @@ operator function reference.
     input_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                   DSI_NO_REAL_DECLARATOR |
                   DSI_NO_TAG_DEFINITION;
-    if (std_attributes_enabled) {
-      input_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
-    }  /* if */
-    if (gnu_attributes_enabled) {
-      input_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
-    }  /* if */
+    if (std_attributes_enabled) input_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+    if (gnu_attributes_enabled) input_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
     decl_specifiers(input_flags, &state, &decl_pos_block);
     if (state.dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -11205,12 +11197,8 @@ Return a pointer to the variable that is declared.
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_STORAGE_CLASS_SPECIFIER_ALLOWED |
               DSI_IS_CONDITION_DECL;
-  if (std_attributes_enabled) {
-    dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
-  }  /* if */
-  if (gnu_attributes_enabled) {
-    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
-  }  /* if */
+  if (std_attributes_enabled) dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   init_decl_parse_state(&state);
   state.prefix_attributes = scan_attributes(al_prefix);
   state.is_definition = TRUE;
@@ -14291,12 +14279,8 @@ based on the current mode and the given declaration parsing state.
       dsi_flags |= DSI_INLINE_ALLOWED;
     }  /* if */
   }  /* if */
-  if (std_attributes_enabled) {
-    dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
-  }  /* if */
-  if (gnu_attributes_enabled) {
-    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
-  }  /* if */
+  if (std_attributes_enabled) dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   if (gnu_mode) {
     if (state->marked_as_gnu_extension) {
       dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;

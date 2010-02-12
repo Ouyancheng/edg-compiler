@@ -14724,10 +14724,12 @@ passed via template_decl.
       decl_info.is_member_template = TRUE;
     }  /* if */
   }  /* if */
+  /* Allow specifier attributes. */
+  if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                 DSI_GNU_ATTRIBUTES_ALLOWED;
+    dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
     if (curr_token == tok_extension) {
       dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
       decl_state->marked_as_gnu_extension = TRUE;
