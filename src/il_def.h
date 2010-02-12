@@ -14051,13 +14051,13 @@ typedef struct a_lambda_capture {
 			/* Pointer to the variable entry for the local variable
 			   or "this" pointer to be captured. */
   a_field_ptr	source_closure_field;
-			/* If the variable indicated by the "variable" field is
-			   reachable only because it's captured by an
-			   intervening lambda, this gives the field of the
-			   closure class that should be the source of the
-			   current capture.  When this field is non-NULL,
-			   the "variable" field will be NULL (except for a
-			   short period of time within the front end). */
+			/* If the variable being captured is reachable only
+			   because it's captured by an intervening lambda,
+			   this gives the field of the closure class that
+			   should be the source of the current capture.
+			   When this field is non-NULL, the "variable" field
+			   will be NULL (except for a short period of time
+			   within the front end). */
   a_field_ptr	closure_field;
 			/* Pointer to the nonstatic data member of the closure
 			   class that is used to access the captured variable

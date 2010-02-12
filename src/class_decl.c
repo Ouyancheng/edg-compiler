@@ -1198,7 +1198,7 @@ issue an error and return NULL.
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
       /* No capture default, so implicit captures are not allowed. */
-     err_code = ec_not_captured_local_var_in_lambda;
+      err_code = ec_not_captured_local_var_in_lambda;
     } else {
       /* The variable is valid.  Add a new capture entry for it. */
       a_boolean no_impl_capture;
