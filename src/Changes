@@ -1,5 +1,17 @@
 Version 4.2
 
+2/12/10  [EDGcpfe/6708]
+Floating-point literal allowed as template argument with MSVC >= 7.1
+
+The MSVC compiler continues to allow floating-point constants as
+template arguments (as long as they are eventually converted to
+integral) even though floating non-type template parameters were
+disallowed as of MSVC version 7.1.  We now do the same.
+
+ template <long l> struct C {};
+ typedef C<100.0> ctype; // Now allowed with microsoft_version >= 1310
+
+
 2/11/10  [EDGcpfe/10237]
 Local variable capture across several lambdas
 

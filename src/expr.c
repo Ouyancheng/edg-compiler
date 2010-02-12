@@ -20172,9 +20172,11 @@ see expr.h).
             /* Guard against something like "int(3.0/1)". */
             token_ends_expr(next_token(), prec_level, local_options)) {
           float_con_allowed_in_integral_const_expr = TRUE;
-        } else if (gpp_mode && curr_expr_kind_is(ek_template_arg)) {
+        } else if ((gpp_mode || microsoft_mode) &&
+                   curr_expr_kind_is(ek_template_arg)) {
           /* g++ allows float constants in template argument expressions
-             as long as the overall result is integral.  Checked in 3.2-4.3. */
+             as long as the overall result is integral.  Checked in 3.2-4.3.
+             Also allowed by MSVC.  Checked in in 7.1, 8.0, 10.0. */
           float_con_allowed_in_integral_const_expr = TRUE;
         }  /* if */
         if (curr_expr_kind_is(ek_pp)) {
