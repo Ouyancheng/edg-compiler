@@ -9484,7 +9484,6 @@ declarations.)
                                   locator, is_ctor, sym, &overload_sym);
   }  /* if */
   dps->sym = sym;
-  dps->first_decl = TRUE;
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      prototype_instantiations_in_il && !sym->is_error
                                      ? effective_decl_level : NO_SCOPE_DEPTH);
@@ -9850,7 +9849,6 @@ specific information about the member declaration, respectively.
   a_source_position     *start_pos = &decl_state->start_pos;
 
   db_enter(3, "decl_static_data_member");
-  decl_state->first_decl = TRUE;
   if (is_void_type(member_type)) {
     error(ec_incomplete_type_not_allowed);
     member_type = error_type();
@@ -14706,7 +14704,6 @@ passed via template_decl.
   *skip_semicolon_check = FALSE;
   decl_start_pos = pos_curr_token;
   initialize_member_decl_info(&decl_info, &decl_start_pos);
-  decl_info.decl_state.first_decl = TRUE;
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
   /* Scan prefix attributes. */
@@ -15035,6 +15032,10 @@ passed via template_decl.
       scan_gnu_declarator_attributes(decl_state);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
+    /* In-class member declarations are never "redeclarations".  For friend
+       declarations, the setting of the flag depends on the context; if
+       appropriate, it will be set to TRUE later. */
+    decl_info.decl_state.first_decl = !friend_specified;
     remove_stop_token(tok_colon);
     remove_stop_token(tok_try);
     if (!C_mode() && is_function) {
