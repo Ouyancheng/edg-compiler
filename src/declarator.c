@@ -2106,11 +2106,6 @@ if this is the function declarator in a friend function declaration.
         ptp->decl_pos_info = dpsp;
         }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (remove_qualifiers_from_param_types) {
-          /* Record the top-level type qualifiers that were declared for this
-             parameter and then removed. */
-          check_assertion(!C_mode());
-        }  /* if */
         if (last_param_type == NULL) {
           extra_info->param_type_list = ptp;
         } else {
