@@ -7016,7 +7016,7 @@ available, e.g., during overload resolution.
   *this_var = NULL;
   if (innermost_function_scope != NULL) {
     a_routine_ptr curr_rout = current_routine_entry();
-    if (curr_rout->is_lambda_body) {
+    if (curr_rout->is_lambda_body && allow_lambda_this) {
       /* We're inside the body of a lambda.  "this" exists only if it's
          captured from the surrounding context.  The lambda body is the
          operator() function of the lambda closure class, but the "this"
@@ -7025,11 +7025,15 @@ available, e.g., during overload resolution.
          captured values. */
       a_type_ptr    closure_class = parent_class_of(curr_rout);
       a_routine_ptr encl_rout= closure_class->source_corresp.enclosing_routine;
-      if (allow_lambda_this && encl_rout != NULL) {
+      while (encl_rout != NULL && encl_rout->is_lambda_body) {
+        /* We can reach out past intermediate lambdas. */
+        closure_class = parent_class_of(encl_rout);
+        encl_rout = closure_class->source_corresp.enclosing_routine;
+      }  /* if */
+      if (encl_rout != NULL) {
         /* There is a routine that encloses the lambda.  See if it is a
            nonstatic member function. */
-        if (routine_type_is_nonstatic_member_function(encl_rout->type) &&
-            !encl_rout->is_lambda_body) {
+        if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
           /* It is, so it has a "this".  We delay until later checking whether
              the "this" is or can be captured. */
           a_scope_ptr            scope;
