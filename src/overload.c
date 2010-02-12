@@ -7063,7 +7063,8 @@ Return TRUE if there is a currently-visible "this" variable.  If there is,
 also set *this_var to point to the variable entry for it.  The captured
 "this" in a lambda body (which is the "this" from the function enclosing the
 lambda, not the "this" that points to the closure class object) is considered
-visible.  This routine is called only in C++ mode.
+visible.  This routine is called only in C++ mode.  It can be called from
+outside the expression-processing routines.
 */
 {
   a_boolean this_exists;

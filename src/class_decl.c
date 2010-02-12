@@ -16934,22 +16934,13 @@ caller has already moved past the '[', and this routine leaves the trailing
       if (curr_token == tok_this) {
         /* Capture of "this" from an enclosing class.  (This is not the "this"
            of a closure class member.) */
-        a_scope_depth  memfun_depth;
-        memfun_depth =
-              scope_stack[depth_scope_stack].depth_innermost_function_scope;
-        if (memfun_depth == NO_SCOPE_DEPTH ||
-            scope_stack[memfun_depth].il_scope
-                              ->variant.routine.this_param_variable == NULL ||
-            scope_stack[memfun_depth].il_scope
-                              ->variant.routine.ptr->is_lambda_body) {
+        if (!variable_this_exists(&var)) {
           /* We should be in a nonstatic member function. */
           error(ec_this_used_incorrectly);
         } else if (by_ref) {
           /* "&this" is not allowed in a capture list. */
           pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
-        } else {
-          var = scope_stack[memfun_depth].il_scope
-                                        ->variant.routine.this_param_variable;
+          var = NULL;
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_identifier) {
