@@ -1135,6 +1135,10 @@ done:
   *p_aap = alloc_attribute_arg();
   (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;
   (*p_aap)->position = pos_curr_token;
+  /* Check that the token sequence was "balanced". */
+  if (n_paren != 0 || n_bracket != 0 || n_brace != 0) {
+    pos_error(ec_unbalanced_attribute_argument, &aap->position);
+  }  /* if */
   return aap;
 }  /* scan_attr_remaining_arg_tokens */
 
