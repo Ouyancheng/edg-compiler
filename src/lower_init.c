@@ -1625,6 +1625,7 @@ for an array initialization in GNU C++ mode).
       check_assertion(result_is_lvalue && source_node->is_lvalue);
     }  /* if */
   } else if (source_desc->capture != NULL) {
+    a_boolean needs_indirection = FALSE;
     check_assertion(!source_desc->runtime_throw);
     if (source_desc->capture->source_closure_field == NULL) {
       a_variable_ptr  var = source_desc->capture->variable;
@@ -1651,9 +1652,24 @@ for an array initialization in GNU C++ mode).
       add_init_pos_modifier(&source_ipm, &source_ipd);
       source_ipm.curr_field = source_desc->capture->source_closure_field;
       source_ipm.type = source_desc->capture->source_closure_field->type;
+      if (is_reference_type(source_ipm.type)) {
+        /* In the reference case, we need to add an additional indirection
+           on top of the source description, but we don't have an appropriate
+           modifier, so set a flag and add the indirection after converting
+           to an expression. */
+        needs_indirection = TRUE;
+      }  /* if */
     }  /* if */
     source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
+    if (needs_indirection) {
+      /* Add an indirection for the reference case of a variable captured
+         by an intervening enclosing lambda. */
+      source_node = add_indirection_to_node(source_node);
+      if (!result_is_lvalue) {
+        source_node = rvalue_expr_for_lvalue(source_node);
+      }  /* if */
+    }  /* if */
     /* Note that advance_to_next_lambda_capture_if_necessary should be
        called to move from the current lambda capture variable to the next.
        implied_source_of_copy may be called multiple times for the same
