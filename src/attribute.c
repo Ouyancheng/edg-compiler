@@ -1138,6 +1138,7 @@ done:
   /* Check that the token sequence was "balanced". */
   if (n_paren != 0 || n_bracket != 0 || n_brace != 0) {
     pos_error(ec_unbalanced_attribute_argument, &aap->position);
+    make_attr_unrecognized(ap);
   }  /* if */
   return aap;
 }  /* scan_attr_remaining_arg_tokens */
