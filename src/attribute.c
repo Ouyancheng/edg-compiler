@@ -3060,7 +3060,9 @@ return that entity.
 static void check_carries_dependency_for_params(a_decl_parse_state_ptr  dps)
 /*
 Check constraints on the carries_dependency attribute specified on the
-parameters in the given declaration.
+parameters in the given declaration.  (This function is set up as an
+end-of-declaration callback when applying a carries_dependency attribute to
+a parameter.  So we know that the declaration involved a function declarator.)
 */
 { 
   if (is_error_type(dps->type)) {
