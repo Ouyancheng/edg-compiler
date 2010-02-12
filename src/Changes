@@ -19,19 +19,12 @@ The front end now accepts the extension to lambdas described in N2998,
 i.e., that a lambda can reference a local variable of the enclosing
 function even if the lambda is enclosed inside one or more other
 lambdas.  The variable is implicitly captured by each of the
-intervening lambdas.  For example:
+intervening lambdas, if necessary.  For example:
 
   int main() {
-    int a = 1, b = 1, c = 1;
-    auto m1 = [a, &b, &c]() mutable {
-      auto m2 = [a, b, &c]() mutable {
-        a = 4; b = 4; c = 4;
-      };
-      a = 3; b = 3; c = 3;
-      m2();
-    };
-    a = 2; b = 2; c = 2;
-    m1();
+    int i  = 37;
+    int j = [&]()->int{ return [&]()->int{ return i;}();}();
+    if (j != 37) return 1;
   }
 
 
