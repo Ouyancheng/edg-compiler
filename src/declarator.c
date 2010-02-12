@@ -2119,7 +2119,7 @@ if this is the function declarator in a friend function declaration.
         last_param_type = ptp;
         { /* Add an entry to record the parameter name and other information
              associated with the parameter declaration.  These go on to the
-             the param-id list. */
+             param-id list. */
           a_type_ptr  param_id_type = param_state.type;
           if (param_qualifiers != TQ_NONE) {
             /* If qualifiers were stripped from the parameter type earlier on,
