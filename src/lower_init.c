@@ -1657,6 +1657,7 @@ for an array initialization in GNU C++ mode).
            on top of the source description, but we don't have an appropriate
            modifier, so set a flag and add the indirection after converting
            to an expression. */
+        check_assertion(!result_is_lvalue);
         needs_indirection = TRUE;
       }  /* if */
     }  /* if */
