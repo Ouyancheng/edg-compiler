@@ -2560,8 +2560,7 @@ typeref pointing to the attributes on top of T, and return the typeref as
     *p_type =  make_typeref_with_attributes(new_type, attributes);
 #if DEBUG
     if (db_flag_is_set("trace_attributes")) {
-      an_attribute_ptr  ap = attributes;
-      for (; ap != NULL; ap = ap->next) {
+      for (ap = attributes; ap != NULL; ap = ap->next) {
         db_log_attribute_action("attach", ap, (char*)new_type, iek_type);
       }  /* for */
     }  /* if */
