@@ -8898,7 +8898,7 @@ symbol entry, and return a pointer to it in state->sym.
     invalidate_type(state);
     type_ptr = error_type();
   }  /* if */
-  /* Apply type-transforming attributes (like GNU vector_size) early.  (This
+  /* Apply type-transforming GNU attributes (like vector_size) early.  (This
      is needed so e.g. type compatibility can be established.)  However, the
      attributes should be recorded in the typedef rather than the underlying
      type, because GCC accepts
@@ -8907,7 +8907,7 @@ symbol entry, and return a pointer to it in state->sym.
        typedef int __attribute((vector_size(16))) Vec
                                                    __attribute((aligned(16)));
      */
-  transform_type_with_attributes(&type_ptr, state->id_attributes);
+  transform_type_with_gnu_attributes(&type_ptr, state->id_attributes);
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   loc_sym = locator->specific_symbol;
   if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {

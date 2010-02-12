@@ -2482,7 +2482,7 @@ Attach and apply the given list of attributes to the given IL entry, except
 that type-transforming attributes are not applied (but still attached).
 For the non-type-transforming attributes, perform any required checking, and
 update the IL entry's fields if applicable.  (To apply type-transforming
-attributes, call transform_type_with_attributes.)
+attributes, call attach_type_attributes.)
 */
 {
   char              *new_entity = entity;
@@ -2502,22 +2502,24 @@ attributes, call transform_type_with_attributes.)
 }  /* attach_attributes */
 
 
-void transform_type_with_attributes(a_type_ptr        *p_type,
-                                    an_attribute_ptr  attributes)
+void transform_type_with_gnu_attributes(a_type_ptr        *p_type,
+                                        an_attribute_ptr  attributes)
 /*
-Apply any type-transforming attributes in the given list of attributes to
+Apply any type-transforming GNU attributes in the given list of attributes to
 *p_type and set *p_type to the resulting type.  The attribute list is not
-attached to any IL entry.
+attached to any IL entry.  (This is used to handle GNU type-transforming
+attributes on typedefs.)
 */
 {
   an_attribute_ptr  ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (is_type_transforming_attribute(ap)) {
+    if (ap->family == (a_byte_attribute_family)af_gnu &&
+        is_type_transforming_attribute(ap)) {
       *p_type = (a_type_ptr)apply_one_attribute(ap, (char*)*p_type, iek_type);
     }  /* if */
   }  /* for */
-}  /* transform_type_with_attributes */
+}  /* transform_type_with_gnu_attributes */
 
 
 a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
@@ -2540,13 +2542,18 @@ type is tp.  attributes must be non-NULL.
 void attach_type_attributes(a_type_ptr        *p_type,
                             an_attribute_ptr  attributes)
 /*
-Same as transform_type_with_attributes, but also record the given attributes
-in the type entry.
+Apply the given attributes to *p_type, which results in a type T.  Add a
+typeref pointing to the attributes on top of T, and return the typeref as
+*p_type.  If attributes is NULL, do nothing.
 */
 {
   if (attributes != NULL) {
-    a_type_ptr  new_type = *p_type;
-    transform_type_with_attributes(&new_type, attributes);
+    an_attribute_ptr  ap;
+    a_type_ptr        new_type = *p_type;
+    for (ap = attributes; ap != NULL; ap = ap->next) {
+      new_type = (a_type_ptr)
+                           apply_one_attribute(ap, (char*)new_type, iek_type);
+    }  /* for */
     /* Attributes should not be recorded directly in type entries that might
        be shared.  Use a typeref to carry the attributes instead. */
     *p_type =  make_typeref_with_attributes(new_type, attributes);

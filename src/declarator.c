@@ -140,7 +140,7 @@ standard-attribute syntax).
       }  /* if */
     }  /* if */
     /* Apply the remaining attributes to the type. */
-    transform_type_with_attributes(p_type, attributes);
+    attach_type_attributes(p_type, attributes);
   }  /* if */
 }  /* scan_declarator_attributes */
 

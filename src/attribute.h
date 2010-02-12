@@ -109,8 +109,8 @@ extern void attach_attributes(an_attribute_ptr  attributes,
                               char              *entity,
                               an_il_entry_kind  entity_kind);
 
-extern void transform_type_with_attributes(a_type_ptr        *p_type,
-                                           an_attribute_ptr  attributes);
+extern void transform_type_with_gnu_attributes(a_type_ptr        *p_type,
+                                               an_attribute_ptr  attributes);
 
 extern a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
                                                an_attribute_ptr  attributes);
