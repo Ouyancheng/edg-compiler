@@ -9786,9 +9786,11 @@ common cases.
        considered to be the lambda body; not the definition of S. */
     dsi_flags |= DSI_NO_TAG_DEFINITION;
   }  /* if */
-  if (gnu_mode) {
-    /* GNU attributes are allowed, but those that don't actually transform a
-       type will be ignored. */
+  /* Allow specifier attributes. */
+  if (std_attributes_enabled) {
+    dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+  }  /* if */
+  if (gnu_attributes_enabled) {
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
   decl_specifiers(dsi_flags, dps, (a_decl_pos_block_ptr)NULL);
