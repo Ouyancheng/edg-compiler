@@ -6403,6 +6403,7 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_operator_kind op;
   a_type_ptr            naming_class, selection_class;
   a_boolean             need_context_pop = FALSE;
+  a_boolean             lambda_closure_field = FALSE;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
@@ -6435,6 +6436,11 @@ the expression reflects an implicit member access ("this->y"), so the
           object_expr->variant.variable->is_this_parameter) {
         /* This is an implicit member access ("this->y"), so nothing should
            be generated for the object expression and operator. */
+        if (class_type_supp(selection_class)->is_lambda_closure_class) {
+          /* Remember that this is a selection of a member of a lambda's
+             closure class. */
+          lambda_closure_field = TRUE;
+        }  /* if */
       } else {
         /* This situation occurs for access to non-static data members
            in unevaluated contexts, such as "sizeof(X::y)", which appears
@@ -6494,7 +6500,13 @@ the expression reflects an implicit member access ("this->y"), so the
       gen_class_qualifier(naming_class, GN_BOUND_MEMBER, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
-  gen_field_reference(field_expr);
+  if (lambda_closure_field &&
+      !has_name(field_expr->variant.field)) {
+    /* A reference to a captured "this" in a lambda's closure class. */
+    write_tok_str("this");
+  } else {
+    gen_field_reference(field_expr);
+  }  /* if */
   if (need_context_pop) pop_name_context();
 }  /* gen_simple_field_selection */
 
@@ -8159,7 +8171,17 @@ Render the list of lambda captures, including the delimiting brackets.
     if (!lcp->is_implicit) {
       if (comma_needed) write_tok_str(", ");
       if (lcp->capture_by_reference) write_tok_str("&");
-      if (lcp->variable->is_this_parameter) {
+      if (lcp->source_closure_field != NULL) {
+        /* The entity captured is already captured up one level, so the
+           reference is by way of a field of the parent lambda's closure
+           class. */
+        if (has_name(lcp->source_closure_field)) {
+          gen_bare_name(&lcp->source_closure_field->source_corresp,
+                        (an_il_entry_kind)iek_field);
+        } else {
+          write_tok_str("this");
+        }  /* if */
+      } else if (lcp->variable->is_this_parameter) {
         write_tok_str("this");
       } else {
         gen_bare_name(&lcp->variable->source_corresp,
