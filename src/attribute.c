@@ -3086,7 +3086,7 @@ parameters in the given declaration.
           report_bad_attribute_target(es_error, ap);
         }  /* if */
       }  /* if */
-    }  /* if */
+    }  /* for */
   } else if (dps->first_decl) {
     /* Nothing to check. */
   } else {
