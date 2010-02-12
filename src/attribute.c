@@ -2700,7 +2700,7 @@ an_attribute_ptr copy_of_attributes_with_substitution(
                                            a_type_ptr            parent_class,
                                            a_boolean             *p_error)
 /*
-Return a copy of the given list of attributes (which may be NULL) with after
+Return a copy of the given list of attributes (which may be NULL) after
 substituting template parameters (if any).  If primary_only is TRUE, only the
 attributes whose on_primary_decl flag is set are copied.  If the entity to
 which the attributes are to be applied is a template specialization, t_args
