@@ -2543,9 +2543,11 @@ type is tp.  attributes must be non-NULL.
 void attach_type_attributes(a_type_ptr        *p_type,
                             an_attribute_ptr  attributes)
 /*
-Apply the given attributes to *p_type, which results in a type T.  Add a
-typeref pointing to the attributes on top of T, and return the typeref as
-*p_type.  If attributes is NULL, do nothing.
+Apply the given attributes to *p_type, which results in a type T.  Attach the
+attributes to the type entry for T directly if T is a routine type, and via a
+typeref pointing to the attributes on top of T otherwise.  Return the type
+entry to which the attributes are attach through *p_type.  If attributes is
+NULL, do nothing.
 */
 {
   if (attributes != NULL) {
@@ -2555,9 +2557,19 @@ typeref pointing to the attributes on top of T, and return the typeref as
       new_type = (a_type_ptr)
                            apply_one_attribute(ap, (char*)new_type, iek_type);
     }  /* for */
-    /* Attributes should not be recorded directly in type entries that might
-       be shared.  Use a typeref to carry the attributes instead. */
-    *p_type =  make_typeref_with_attributes(new_type, attributes);
+    if (new_type->kind != (a_type_kind)tk_routine) {
+      /* Attributes should not be recorded directly in type entries that might
+         be shared.  Use a typeref to carry the attributes instead. */
+      *p_type =  make_typeref_with_attributes(new_type, attributes);
+    } else {
+      /* A function type not under a typedef will not be reused without its
+         attributes applied.  Attach the attributes directly (besides saving
+         a tk_typeref entry, it also avoid surprises with existing code that
+         has been assuming that tk_typerefs on top of routine types must be
+         typedef/decltype/typeof entries. */
+      new_type->source_corresp.attributes = attributes;
+      *p_type = new_type;
+    }  /* if */
 #if DEBUG
     if (db_flag_is_set("trace_attributes")) {
       for (ap = attributes; ap != NULL; ap = ap->next) {

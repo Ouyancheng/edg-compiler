@@ -8632,7 +8632,8 @@ information.
        setting is checked later if this turns out to be a function template
        definition. */
     if (is_function_type(state->type)) {
-      if (state->type->kind == (a_type_kind)tk_typeref) {
+      if (state->type->kind == (a_type_kind)tk_typeref &&
+          is_possibly_qualified_typedef(state->type)) {
         func_info->function_type_from_typedef = TRUE;
       }  /* if */
       if (parent_class == NULL && locator->is_class_member) {
@@ -17424,7 +17425,8 @@ that follows.
           rp->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
         }  /* if */
-        if (dps->type->kind == (a_type_kind)tk_typeref) {
+        if (dps->type->kind == (a_type_kind)tk_typeref &&
+            is_possibly_qualified_typedef(dps->type)) {
           func_info.function_type_from_typedef = TRUE;
           dps->type = skip_typerefs(dps->type);
         }  /* if */
