@@ -17,16 +17,14 @@ Local variable capture across several lambdas
 
 The front end now accepts the extension to lambdas described in N2998,
 i.e., that a lambda can reference a local variable of the enclosing
-function even if the lambda is enclosed inside one or more enclosing
+function even if the lambda is enclosed inside one or more other
 lambdas.  The variable is implicitly captured by each of the
 intervening lambdas.  For example:
 
-  extern "C" int printf(const char *, ...);
   int main() {
     int a = 1, b = 1, c = 1;
     auto m1 = [a, &b, &c]() mutable {
       auto m2 = [a, b, &c]() mutable {
-        printf("%d %d %d\n", a, b, c);
         a = 4; b = 4; c = 4;
       };
       a = 3; b = 3; c = 3;
@@ -34,7 +32,6 @@ intervening lambdas.  For example:
     };
     a = 2; b = 2; c = 2;
     m1();
-    printf("%d %d %d\n", a, b, c);
   }
 
 
