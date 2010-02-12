@@ -10242,6 +10242,12 @@ operator function reference.
     input_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                   DSI_NO_REAL_DECLARATOR |
                   DSI_NO_TAG_DEFINITION;
+    if (std_attributes_enabled) {
+      input_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+    }  /* if */
+    if (gnu_attributes_enabled) {
+      input_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+    }  /* if */
     decl_specifiers(input_flags, &state, &decl_pos_block);
     if (state.dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
