@@ -1070,14 +1070,14 @@ being done.
         /* There's already a capture for this variable at this level.  That
            also means the capture is taken care of in all enclosing lambdas,
            so we can stop the recursion. */
-      } else if (!lambda->has_capture_default) {
+      } else if (!enclosing_lambda->has_capture_default) {
         /* No capture default, so implicit captures are not allowed.
            The caller will issue an error. */
         *no_impl_capture = TRUE;
       } else {
         /* The implicit capture is by value or by reference depending on the
            default capture setting of the enclosing lambda. */
-        enclosing_by_reference = lambda->default_is_by_reference;
+        enclosing_by_reference = enclosing_lambda->default_is_by_reference;
         /* Make a recursive call to add the capture at the next level up. */
         enclosing_lcp = r_add_lambda_capture(enclosing_lambda, vp,
                                              enclosing_depth,
