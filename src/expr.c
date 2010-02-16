@@ -5515,7 +5515,7 @@ analysis on a previously-scanned expression, and return the result in
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
     if (is_bad_type_for_template_arg_operand(operand.type) &&
         /* Allow negation of a floating point constant. */
-        !(floating_point_template_parameters_allowed &&
+        !((floating_point_template_parameters_allowed || microsoft_mode) &&
           operator_token == tok_minus &&
           is_floating_type(operand.type) &&
           is_constant_operand(&operand))) {
