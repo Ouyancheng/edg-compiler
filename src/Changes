@@ -1,5 +1,17 @@
 Version 4.2
 
+2/16/10  [EDGcpfe/10453]
+GNU C compatibility: _Complex/__complex without type specifier
+
+In GNU C mode (but not in GNU C++ mode), specifying _Complex or __complex
+without a type specifier ("float" or "double") now has the same effect as
+specifying "double".  Previously such situations were diagnosed with an error.
+For example:
+
+  _Complex z = 1.0+2.0i;  // Now accepted in GNU C mode; same as
+                          // "_Complex double z = 1.0+2.0i;"
+
+
 2/12/10  [EDGcpfe/6708]
 Floating-point literal allowed as template argument with MSVC >= 7.1
 

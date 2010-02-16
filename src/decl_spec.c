@@ -8683,9 +8683,19 @@ exit_loop:
 #if C99_IL_EXTENSIONS_SUPPORTED
     if (complex_attr != cxa_none &&
         basic_type != bt_float && basic_type != bt_double) {
+      /* _Complex and _Imaginary usually require "float" or "double".  GNU C
+         mode is an exception: If no type specifier is mentioned, "double" is
+         implied. */
+      a_boolean  bad_complex_combination = TRUE;
       if (basic_type == bt_none) {
-        /* No basic type was specified. */
-        error(ec_missing_floating_point_type);
+        /* No basic type was specified: Okay in GNU C mode, an error
+           otherwise. */
+        if (gcc_mode) {
+          basic_type = bt_double;
+          bad_complex_combination = FALSE;
+        } else {
+          error(ec_missing_floating_point_type);
+        }  /* if */
       } else {
         /* An invalid type was specified as the basic type for an
            "_Imaginary" or "_Complex". */
@@ -8693,7 +8703,9 @@ exit_loop:
                   (char *)((complex_attr == cxa_complex) ? "_Complex"
                                                          : "_Imaginary"));
       }  /* if */
-      bad_combination_of_type_specifiers = TRUE;
+      if (bad_complex_combination) {
+        bad_combination_of_type_specifiers = TRUE;
+      }  /* if */
       *output_flags |= DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
     }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
