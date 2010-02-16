@@ -107,9 +107,11 @@ constructed).  Code has also been added to re-initialize the primary virtual
 function table pointer in cases where the object under construction and the
 base class being constructed share a virtual function table (in which case the
 base class constructor could possibly modify the vtable pointer).  According to
-the C++ standard the example below invokes undefined behavior (and in non-GNU
-emulation mode continues to do so), but now in GNU emulation mode prints the
-type_info name for D:
+the C++ standard, only properties of an lvalue that don't depend on its value
+can be used after the object's storage has been allocated but before its
+lifetime has begun.  The example below therefore invokes undefined behavior
+(and in non-GNU emulation mode continues to do so), but now in GNU emulation
+mode prints the type_info name for D:
 
   #include <typeinfo>
   extern "C" int printf(const char *, ...);
