@@ -2566,8 +2566,8 @@ NULL, do nothing.
          attributes applied.  Attach the attributes directly (besides saving
          a tk_typeref entry, it also avoid surprises with existing code that
          has been assuming that tk_typerefs on top of routine types must be
-         typedef/decltype/typeof entries. */
-      new_type->source_corresp.attributes = attributes;
+         typedef/decltype/typeof entries). */
+      *last_attribute_link(&new_type->source_corresp.attributes) = attributes;
       *p_type = new_type;
     }  /* if */
 #if DEBUG
