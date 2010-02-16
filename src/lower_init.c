@@ -11713,35 +11713,6 @@ at least one parameter.
 }  /* ctor_init_constructor_has_params */
 
 
-static a_boolean constructor_might_change_vtbl_pointer(
-                                              a_type_ptr             class,
-                                              a_constructor_init_ptr ctor_init)
-/*
-Returns TRUE if the constructor invoked through ctor_init shares a virtual
-function table pointer with class.
-*/
-{
-  a_boolean         result = FALSE;
-  a_base_class_ptr  class_bcp, ctor_init_bcp;
-
-  check_assertion(is_immediate_class_type(class) &&
-                  class->variant.class_struct_union.extra_info != NULL &&
-                  ctor_init->kind ==
-                               (a_constructor_init_kind)cik_direct_base_class);
-  class_bcp = class->variant.class_struct_union.extra_info->
-                                              virtual_function_info_base_class;
-  ctor_init_bcp = ctor_init->variant.base_class->type->
-       variant.class_struct_union.extra_info->virtual_function_info_base_class;
-  if ((class_bcp != NULL &&
-       class_bcp == ctor_init->variant.base_class) ||
-      (ctor_init_bcp != NULL &&
-       class_bcp->type == ctor_init_bcp->type)) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* constructor_might_change_vtbl_pointer */
-
-
 void add_constructor_wrapper_code(a_scope_ptr        scope,
                                   an_insert_location *insert_location)
 /*
@@ -12027,7 +11998,8 @@ constructor, but may instead be after an assignment to "this".
                     /*base_of_complete_object=*/FALSE,
                     construction_vtbls_var, insert_location);
     if (primary_vtbl_has_been_set &&
-        constructor_might_change_vtbl_pointer(class_type, ctor_init)) {
+        shares_virtual_function_info(class_type,
+                                     ctor_init->variant.base_class)) {
       /* If the constructor we just called shares a virtual function table
          pointer with the current class, it's possible that the constructor has
          modified the primary vtable pointer. */

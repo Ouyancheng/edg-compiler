@@ -3296,8 +3296,8 @@ object.  Return NULL if bcp->type has no primary base.
 
 #endif /* IA64_ABI */
 
-static a_boolean shares_virtual_function_info(a_type_ptr        class_type,
-                                              a_base_class_ptr  base_class)
+a_boolean shares_virtual_function_info(a_type_ptr        class_type,
+                                       a_base_class_ptr  base_class)
 /*
 base_class points to a base class of class_type.  If class_type shares its
 virtual function info with a base class and that base class is base_class or
