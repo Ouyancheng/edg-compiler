@@ -1854,8 +1854,10 @@ multiple designators are handled by the recursion in get_initializer.
            C modes, but no class type supplement is available in those cases.
            Instead, we can use the context chain to recover the type in which
            the fields were promoted. */
+        an_aggregate_init_context  *assoc_context = context;
         do {
-          type_to_look_in = skip_typerefs(context->prev_context->type);
+          assoc_context = assoc_context->prev_context;
+          type_to_look_in = skip_typerefs(assoc_context->type);
           check_assertion(is_immediate_class_type(type_to_look_in));
         } while (type_to_look_in
                   ->variant.class_struct_union.is_nonstd_anonymous_union_type);

@@ -1,5 +1,24 @@
 Version 4.2
 
+2/16/10  [EDGcpfe/10349]
+Infinite loop on designator into nonstandard anonymous union (GNU C mode)
+
+In GNU C mode, a designated initializer for a member of a nonstandard
+anonymous union (or struct) could previously result in an infinite loop.
+For example:
+
+  struct X {
+    union {
+      struct {
+        int i;
+      };
+    };
+  } x = {{{ .i = m }}};  // Previously caused the front end to "hang" in
+                         // GNU C mode.
+
+This is now fixed.
+
+
 2/16/10  [EDGcpfe/10404]
 GNU compatibility: __builtin_fpclassify
 
