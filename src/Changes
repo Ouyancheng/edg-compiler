@@ -9,7 +9,7 @@ arguments, the last of which is a real floating-point value.  For example:
 
   int g(double x) {
     return __builtin_fpclassify(1, 2, 3, 4, 5, x);
-                 // Now accepted in GNU C++ mode with gnu_version >= 40400.
+                 // Now accepted in GNU modes with gnu_version >= 40400.
   }
 
 GNU's gcc compiler (but not g++) accepts calls to  __builtin_fpclassify in
