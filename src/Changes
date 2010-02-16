@@ -13,7 +13,7 @@ For example:
         int i;
       };
     };
-  } x = {{{ .i = m }}};  // Previously caused the front end to "hang" in
+  } x = {{{ .i = 1 }}};  // Previously caused the front end to "hang" in
                          // GNU C mode.
 
 This is now fixed.
