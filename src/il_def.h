@@ -9317,6 +9317,7 @@ enum a_builtin_function_kind_tag {
   bfk_bswap64,                  /* __builtin_bswap64 */
   bfk_isnan,			/* __builtin_isnan */
   bfk_isinf,			/* __builtin_isinf */
+  bfk_fpclassify,		/* __builtin_fpclassify */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -10574,6 +10575,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_bswap64 */                  "__builtin_bswap64",
   /* bfk_isnan */		     "__builtin_isnan",
   /* bfk_isinf */		     "__builtin_isinf",
+  /* bfk_fpclassify */		     "__builtin_fpclassify",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }

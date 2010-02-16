@@ -1851,6 +1851,9 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_vararg_func0(_isnan, int);
   enter_gnu_builtin_vararg_func0(_isinf, int);
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  if (gnu_version >= 40400) {
+    enter_gnu_builtin_vararg_func5(_fpclassify, int, int, int, int, int, int);
+  }  /* if */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   enter_gnu_sync_functions();

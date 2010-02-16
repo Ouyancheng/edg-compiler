@@ -1448,6 +1448,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_isnan:
       case bfk_isinf:
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      case bfk_fpclassify:
       case bfk_ffs:
       case bfk_ffsl:
       case bfk_clz:
@@ -1753,7 +1754,7 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
 #if TARG_HAS_IEEE_FLOATING_POINT
         case bfk_isnan:
         case bfk_isinf:
-          /* Unlike other functions handled here, __builtin_isnan and
+          /* Unlike some other functions handled here, __builtin_isnan and
              __builtin_isinf are ellipsis functions, and hence ordinary call
              processing will not diagnose invalid arguments.  GCC, however,
              does check that there is exactly one argument of a real floating-
@@ -1771,6 +1772,31 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
           }  /* if */
           break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+        case bfk_fpclassify:
+          /* We currently never fold calls to __builtin_fpclassify, but we do
+             check that the last argument has a floating-point type. */
+          if (args == NULL || args2 == NULL || args2->next == NULL ||
+              args2->next->next == NULL || args2->next->next->next == NULL) {
+            /* The routine type of __builtin_fpclassify is
+                 int (int, int, int, int, int, ...);
+               So if we have less than five arguments, an error should be
+               issued elsewhere. */
+            expect_error();
+          } else if (args2->next->next->next->next == NULL ||
+                     args2->next->next->next->next->next != NULL) {
+            /* Five arguments or more than six: Issue an error. */
+            expr_pos_error(ec_invalid_builtin_fpclassify_args, &op->position);
+          } else {
+            /* Check that the last (sixth) argument has floating-point type. */
+            an_expr_node_ptr  fparg = args2->next->next->next->next;
+            if (!is_real_floating_type(fparg->type) &&
+                !is_template_param_type(fparg->type)) {
+              expr_pos_error(ec_bad_final_builtin_fpclassify_arg,
+                             &op->position);
+              conv_to_error_operand(op);
+            }  /* if */
+          }  /* if */
+          break;
         case bfk_strlen:
           /* strlen of a constant string can be folded in C mode. */
           { a_constant_ptr scon;

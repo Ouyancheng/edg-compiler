@@ -1925,6 +1925,8 @@ ec_attribute_ignored_on_nondefinition;;"attribute %sq ignored because no definit
 ec_incompatible_thread_locality;;"thread locality is incompatible with a previous declaration of %nd"
 ec_no_implicit_capture_on_enclosing_lambda;;"this enclosing-function local variable cannot be referenced in this lambda body because an enclosing lambda does not allow implicit captures"
 ec_unbalanced_attribute_argument;;"this attribute argument contains unmatched parentheses, brackets, or braces"
+ec_invalid_builtin_fpclassify_args;;"a call to __builtin_fpclassify requires five integral arguments followed by one floating-point argument"
+ec_bad_final_builtin_fpclassify_arg;;"the last argument in a call to __builtin_fpclassify must have a real floating-point type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

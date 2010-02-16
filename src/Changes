@@ -1,5 +1,22 @@
 Version 4.2
 
+2/16/10  [EDGcpfe/10404]
+GNU compatibility: __builtin_fpclassify
+
+In GNU modes with gnu_version >= 40400 the front end now predeclares
+__builtin_fpclassify and checks that calls to that function include six
+arguments, the last of which is a real floating-point value.  For example:
+
+  int g(double x) {
+    return __builtin_fpclassify(1, 2, 3, 4, 5, x);
+                 // Now accepted in GNU C++ mode with gnu_version >= 40400.
+  }
+
+GNU's gcc compiler (but not g++) accepts calls to  __builtin_fpclassify in
+constant-expression contexts, but it is currently not practical to emulate
+that feature in the front end.
+
+
 2/16/10  [EDGcpfe/10395]
 Using-declarations and C-linkage functions in GNU C++ mode
 
