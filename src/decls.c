@@ -8845,8 +8845,10 @@ At least one extended declaration modifier appeared on a type declaration.
 Issue a diagnostic if the modifier is invalid.
 */
 {
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || SUN_EXTENSIONS_ALLOWED
   a_decl_modifier    flags = state->decl_modifiers.flags;
   a_source_position  *pos = &state->start_pos;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || SUN_EXTENSIONS_ALLOWED */
   
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (flags & DM_THREAD) {
