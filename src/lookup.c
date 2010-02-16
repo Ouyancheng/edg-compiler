@@ -1175,7 +1175,7 @@ such pointer is found, NULL is returned.
 
 a_boolean symbols_are_lookup_equivalent(a_symbol_ptr	sym1,
                                         a_symbol_ptr	sym2,
-					a_boolean	is_using_dir)
+					a_boolean	merge_gpp_c_routines)
 /*
 Returns TRUE if sym1 is the same as sym2 or if sym1 and sym2 point
 to the same IL entities.  The latter check is used, for example, to
@@ -1184,8 +1184,8 @@ the same underlying extern "C" variable or function.  Two such symbols
 that appear in the same using-directive lookup set are considered to
 represent the same entity, so one of the two symbols is arbitrarily
 selected.  sym1 and sym2 must have been reduced to their fundamental
-symbols by the caller.  is_using_dir is TRUE if the lookup set is
-from a using-directive lookup.
+symbols by the caller.  merge_gpp_c_routines is TRUE if extern "C"
+functions should be treated as equivalent in GNU C++ mode.
 */
 {
   a_boolean	result = FALSE;
@@ -1200,7 +1200,7 @@ from a using-directive lookup.
       a_routine_ptr	rp1 = sym1->variant.routine.ptr;
       a_routine_ptr	rp2 = sym2->variant.routine.ptr;
       result = rp1 == rp2;
-      if (!result && is_using_dir && gpp_mode) {
+      if (!result && merge_gpp_c_routines && gpp_mode) {
         /* In g++ mode a second extern "C" routine is not added to the lookup
            set for using-directives if the set already contains an extern "C"
            routine.  Note that the types don't need to be the same. */

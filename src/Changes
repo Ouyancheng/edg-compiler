@@ -1,5 +1,26 @@
 Version 4.2
 
+2/16/10  [EDGcpfe/10395]
+Using-declarations and C-linkage functions in GNU C++ mode
+
+In GNU C++ mode, the front end previously issued an error on the declaration
+of an extern "C" function that was previously also declared (in the same
+scope) through a using-declaration.  Now such cases are accepted when
+gnu_version >= 30400.  For example:
+
+  namespace N {
+    extern "C" void f();
+  }
+  using N::f;
+  extern "C" void f();  // Previously an error in all GNU C++ modes; now
+                        // accepted when gnu_version >= 30400.
+
+Note that it appears that some (but not all) builds of GNU C++ 3.4.x still
+issue an error on the example above; we are not aware of any GNU C++ 4.x
+version that issues such an error.  (Also, examples like these are valid C++
+and therefore accepted in default and strict C++ modes.)
+
+
 2/16/10  [EDGcpfe/10453]
 GNU C compatibility: _Complex/__complex without type specifier
 

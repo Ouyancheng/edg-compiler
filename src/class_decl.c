@@ -7589,8 +7589,9 @@ using *pos as the error position.
              hidden and/or overridden by decl_sym (err == FALSE), or both
              symbols refer to the same entity (because they are extern "C"
              declarations). */
+          a_boolean  merge_gpp_c_routines = gpp_mode && gnu_version >= 30400;
           if (err && !symbols_are_lookup_equivalent(decl_sym, using_sym,
-                                                    /*is_using_dir=*/FALSE)) {
+                                                    merge_gpp_c_routines)) {
             pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
                           using_sym);
           }  /* if */
