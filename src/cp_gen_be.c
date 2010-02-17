@@ -3137,6 +3137,7 @@ al_id_equivalent attributes.
   /* Depending on the syntactic location, a space is added at the front or
      the end of the group (for aesthetic reasons). */
   if (ap->syntactic_location != (a_byte_attribute_location)al_prefix &&
+      ap->syntactic_location != (a_byte_attribute_location)al_base_specifier &&
       (ap->syntactic_location != (a_byte_attribute_location)al_id_equivalent ||
        !primary_decl)) {
     write_space();
@@ -3182,6 +3183,7 @@ attributes.
   /* Depending on the syntactic location, a space is added at the front or
      the end of the group (for aesthetic reasons). */
   if (ap->syntactic_location == (a_byte_attribute_location)al_prefix ||
+      ap->syntactic_location == (a_byte_attribute_location)al_base_specifier ||
       (ap->syntactic_location == (a_byte_attribute_location)al_id_equivalent &&
        primary_decl)) {
     write_space();
@@ -5411,6 +5413,8 @@ Put out the list of direct base classes of the class associated with ctsp
       } else {
         write_tok_str(", ");
       }  /* if */
+      gen_attributes(bcp->attributes, al_base_specifier,
+                     /*primary_only=*/TRUE);
       if (bcp->is_virtual) {
         write_tok_str("virtual ");
         /* Find the direct derivation for a virtual base class. */

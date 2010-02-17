@@ -2312,6 +2312,9 @@ this is &scp.attributes.)
     case iek_statement:
       p_attributes = &((a_statement*)entity)->attributes;
       break;
+    case iek_base_class:
+      p_attributes = &((a_base_class*)entity)->attributes;
+      break;
     default:
       unexpected_condition();
   }  /* switch */

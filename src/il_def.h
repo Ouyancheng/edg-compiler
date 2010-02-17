@@ -2040,7 +2040,9 @@ typedef struct an_attribute {
 			/* The attribute appeared on the primary declaration of
 			   an entity.  (Some attributes on a definition take
 			   precedence over the same attribute applied to
-			   another declaration of the same entity.) */
+			   another declaration of the same entity.)  For base
+			   class entries, these are the attributes that were
+			   specified on the base class specifier. */
   a_bit_field
 		transforms_type_specifier:1;
 			/* TRUE if this attribute appertains to a type
@@ -5477,6 +5479,9 @@ typedef struct a_base_class {
 			   base has been allocated as part of some other
 			   base. */
 #endif /* !IA64_ABI */
+  an_attribute_ptr
+		attributes;
+			/* Attributes applicable to this base class. */
   a_type_ptr    type;
 			/* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived

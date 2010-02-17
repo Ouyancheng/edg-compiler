@@ -2494,6 +2494,7 @@ do_set_proper_definition_needed_flag:
         remap_ptr_not_needed(ptr->primary_base_class, a_base_class_ptr, 
                              iek_base_class);
 #endif /* IA64_ABI */
+        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
         remap_ptr(ptr->type, a_type_ptr, iek_type);
         remap_ptr(ptr->orig_type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);

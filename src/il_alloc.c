@@ -1107,6 +1107,7 @@ to it.
   bcp->next_preorder                   = NULL;
   bcp->primary_base_class              = NULL;
 #endif /* IA64_ABI */
+  bcp->attributes                      = NULL;
   bcp->type                            = NULL;
   bcp->orig_type                       = NULL;
   bcp->derived_class                   = NULL;

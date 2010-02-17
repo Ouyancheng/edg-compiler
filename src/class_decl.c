@@ -5762,7 +5762,10 @@ or struct definition.  The syntax is
   (void)get_token();
   cssp = symbol_supplement_for_class(type_ptr);
   do {
+    an_attribute_ptr  attributes;
     add_stop_token(tok_comma);
+    attributes = scan_attributes(al_base_specifier);
+    if (attributes != NULL) mark_primary_decl_attributes(attributes);
     /* Set the defaults. */
     if (type_ptr->kind == (a_type_kind)tk_class) {
       access = (an_access_specifier)as_private;
@@ -5957,6 +5960,9 @@ or struct definition.  The syntax is
             bcp->base_specifier_range.start = base_specifier_start_pos;
             bcp->base_specifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+            if (attributes != NULL) {
+              attach_attributes(attributes, (char*)bcp, iek_base_class);
+            }  /* if */
             goto skip_base_class;
           } else {
             /* At least one is non-virtual, so there is an ambiguity.  Mark
@@ -6065,6 +6071,9 @@ or struct definition.  The syntax is
       new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
       new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      if (attributes != NULL) {
+        attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
+      }  /* if */
       /* Add base classes derived from this base class to the current class's
          base class list.  They are marked as indirect. */
       any_base_class_fixup_required = FALSE;

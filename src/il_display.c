@@ -5047,6 +5047,7 @@ Display the indicated base class entry.
   disp_ptr("primary_base_class", (char *)ptr->primary_base_class, 
            iek_base_class);
 #endif /* IA64_ABI */
+  disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
   disp_ptr("type", (char *)ptr->type, iek_type);
   if (ptr->orig_type != ptr->type) {
     disp_ptr("orig_type", (char *)ptr->orig_type, iek_type);
