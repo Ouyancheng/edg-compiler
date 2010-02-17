@@ -78,11 +78,9 @@ extern an_attribute_ptr scan_attributes(an_attribute_location  loc);
 
 extern an_attribute_ptr scan_gnu_attribute_groups(an_attribute_location  loc);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #if CHECKING
 extern a_boolean unscanned_attributes_pending(void);
 #endif /* CHECKING */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void unscan_attributes(an_attribute_ptr  attributes);
 

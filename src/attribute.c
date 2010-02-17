@@ -1681,7 +1681,6 @@ attributes.
   return attributes;
 }  /* scan_gnu_attribute_groups */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #if CHECKING
 
 a_boolean unscanned_attributes_pending(void)
@@ -1693,7 +1692,6 @@ Return unscanned_attributes_active.
 }  /* unscanned_attributes_pending */
 
 #endif /* CHECKING */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void unscan_attributes(an_attribute_ptr  attributes)
 /*

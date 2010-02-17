@@ -1456,6 +1456,7 @@ this is a helper function.
   a_boolean                       qualifier_err = FALSE;
   a_boolean                       is_lambda_decl = (func_info->lambda != NULL);
   an_exception_specification_ptr  esp;
+  an_attribute_ptr                attributes = NULL;
 
   /* Create a pointer to the implicit "this" parameter.  This can be done
      for nonstatic function declarations within a class definition or
@@ -1617,6 +1618,9 @@ this is a helper function.
   {
     rtsp->exception_specification = esp;
   }  /* if */
+  /* Scan any attributes now, but delay attaching them until we know if a
+     trailing return type follows. */
+  attributes = scan_attributes(al_post_func);
   if (curr_token == tok_arrow &&
       (trailing_return_types_enabled || is_lambda_decl)) {
     /* A trailing return type. */
@@ -1667,6 +1671,12 @@ this is a helper function.
     scan_microsoft_function_modifiers(state, func_info);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (attributes != NULL) {
+    /* Make the scanned attributes available to the next call of
+       scan_attributes, which will occur in scan_declarator_attributes. */
+    check_assertion(!unscanned_attributes_pending());
+    unscan_attributes(attributes);
+  }  /* if */
 }  /* cplusplus_function_declarator_trailer */
 
 
