@@ -1773,6 +1773,15 @@ the routine so it can be inlined on calls from here on.
   } else if (!rtsp->prototyped && rtsp->param_type_list != NULL) {
     /* Old-style definitions cannot be inlined (C99 inline).  They're
        okay if they have no parameters. */
+#if !LOWER_VARIABLE_LENGTH_ARRAYS
+  } else if (scope->vla_dimensions != NULL) {
+    /* VLA dimensions would need to be copied from the inlined scope to the
+       inlining scope, but this can lead to memory region problems as well
+       as issues when the function is inlined multiple times, so just disallow
+       inlining in this case.  When lowering VLAs, the VLA dimensions are
+       discarded soon after calling this routine, so there's no need to
+       check for that case. */
+#endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
   } else {
     /* The routine looks like it can be inlined. */
     routine->inlinable = TRUE;

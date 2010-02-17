@@ -1,5 +1,23 @@
 Version 4.2
 
+2/17/10  [EDGcpfe/10459]
+Assertion failure when inlining function with VLAs
+
+In configurations where LOWER_VARIABLE_LENGTH_ARRAYS is FALSE and inlining
+is enabled, an attempt to inline a function that contains a VLA will result
+in an assertion failure ("find_vla_dimension: not found").  Functions
+containing VLAs are no longer considered candidates for inlining (when
+LOWER_VARIABLE_LENGTH_ARRAYS is FALSE); a remark is issued in this case.
+For example (with --vla):
+
+  inline int f(int i) {
+    return sizeof (char[i]);
+  }
+  void g(int x) {
+    f(x);
+  }
+
+
 2/16/10  [EDGcpfe/10349]
 Infinite loop on designator into nonstandard anonymous union (GNU C mode)
 
