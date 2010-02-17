@@ -1,5 +1,23 @@
 Version 4.2
 
+2/17/10  [EDGcpfe/10469]
+Microsoft compatibility: class_rvalue.float_field is considered an lvalue
+
+For some reason, MSVC considers a selection of a floating-point field out
+of a class rvalue to be an lvalue sometimes.  We now emulate that in
+Microsoft bugs mode.
+
+  typedef float T;
+  struct A {
+    A(T);
+    T x;
+  };
+  int main() {
+    T *x;
+    x = &(A(0.0f).x);  // Accepted by MSVC
+  }
+
+
 2/17/10  [EDGcpfe/10405]
 typeid applied to *this in constructor or destructor now known at compile time
 
