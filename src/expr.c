@@ -8089,8 +8089,11 @@ Syntax:
                        &objectless_nonstatic_data_ref_pos);
       }  /* if */
       if (is_expression_operand(&operand)) {
+        /* Passing call_case TRUE here because we want to treat something
+           like "*this" in a constructor as having known type, and not go
+           to the virtual function table. */
         if (operand_complete_object_type(&operand,
-                                         /*call_case=*/FALSE) != NULL &&
+                                         /*call_case=*/TRUE) != NULL &&
             /* Special case for (*(T *)0), which should throw an exception. */
             !op_is_null_address_lvalue(&operand)) {
           /* The complete object type can be determined, so runtime processing

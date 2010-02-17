@@ -1,5 +1,33 @@
 Version 4.2
 
+2/17/10  [EDGcpfe/10405]
+typeid applied to *this in constructor or destructor now known at compile time
+
+The result of applying the typeid operator to "*this" in a constructor
+or destructor is now considered to be known at compile time, instead of
+being a runtime type determination.
+
+  #include <typeinfo>
+  extern "C" int printf(const char *,...);
+  struct C {
+    C(std::type_info const& t) : type(t) {}
+    virtual ~C() {}
+    std::type_info const& type;
+  };
+  struct X : public C {
+    X() : C(typeid(* this)) {}  // Works now; formerly aborted at runtime
+  };
+  int main() {
+    X c;
+    printf("%s\n",c.type.name());
+  }
+
+It is probable that [basic.life]p6 of the C++ standard makes the above
+undefined behavior, but we have at least one example of a real program
+doing this, and g++ seems to treat the type as statically known, so it
+seems like the right thing for us to do as well.
+
+
 2/17/10  [EDGcpfe/10459]
 Assertion failure when inlining function with VLAs
 
