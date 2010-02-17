@@ -1705,6 +1705,7 @@ do_set_proper_definition_needed_flag:
       {
         a_statement_ptr ptr = (a_statement_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_statement_ptr, iek_statement);
+        walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_ptr(ptr->source_sequence_entry,
                   a_source_sequence_entry_ptr,

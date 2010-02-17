@@ -3098,6 +3098,7 @@ to it.  The statement kind is set as indicated.
   clear_stmt_source_position(sp->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sp->next                    = NULL;
+  sp->attributes              = NULL;
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
 #if CENTERLINE_CHECKING

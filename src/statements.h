@@ -309,6 +309,10 @@ typedef struct a_struct_stmt_stack_entry {
 			/* The associated IL statement.  Indirectly,
 			   also gives the pointer to the first dependent
 			   statement of the structured statement. */
+  an_attribute_ptr
+		prefix_attributes;
+			/* A pointer to the attributes scanned (NULL if none)
+			   at the beginning of the current statement. */
   a_constant_ptr
 		switch_max_case_value;
 			/* If non-NULL, points to the constant with the

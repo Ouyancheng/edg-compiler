@@ -12899,6 +12899,9 @@ typedef struct a_statement {
                         /* Next statement in execution sequence in the
                            same statement sequence, or NULL if this is
                            the last statement in the sequence. */
+  an_attribute_ptr
+		attributes;
+			/* Attributes applicable to this statement. */
   a_statement_kind
                 kind;
                         /* The kind of statement. */

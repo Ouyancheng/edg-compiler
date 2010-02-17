@@ -10812,6 +10812,7 @@ one that yields the value) of a statement expression.
     /* Adjust the output position to match the statement position. */
     set_output_position_for_stmt(&statement->position);
   }  /* if */
+  gen_attributes(statement->attributes, al_prefix, /*primary_only=*/FALSE);
   switch (kind) {
     case stmk_empty:
       write_tok_ch(';');
@@ -10914,6 +10915,8 @@ one that yields the value) of a statement expression.
     case stmk_label:
       /* Label statement: generate "name:;".  Note that labels generated for
          "break" and "continue" were thrown away above and do not get here. */
+      gen_attributes(statement->variant.label.ptr->source_corresp.attributes,
+                     al_prefix, /*primary_only=*/FALSE);
       gen_unqualified_name(&statement->variant.label.ptr->source_corresp,
                            iek_label);
       write_tok_ch(':');

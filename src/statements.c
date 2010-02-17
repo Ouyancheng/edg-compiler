@@ -1673,6 +1673,16 @@ should be set to TRUE.
   temp_stmt = sp;
   while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
   sssep->last_dep_statement = temp_stmt;
+  if (sssep->prefix_attributes != NULL &&
+      sp->kind != (a_statement_kind)stmk_label) {
+    /* Attach any attributes.  Label definitions are handled elsewhere (and
+       implicit label definitions should not pick up the attributes of the
+       statements that generate them). */
+    check_assertion(!C_mode() && sp->kind != (a_statement_kind)stmk_label &&
+                    sp->kind != (a_statement_kind)stmk_decl);
+    attach_attributes(sssep->prefix_attributes, (char*)sp, iek_statement);
+    sssep->prefix_attributes = NULL;
+  }  /* if */
   db_exit();
 }  /* add_statement_list */
 
@@ -2611,6 +2621,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->contains_active_switch_case
                                = FALSE;
   sssep->statement             = sp;
+  sssep->prefix_attributes     = NULL;
   sssep->switch_max_case_value = NULL;
   sssep->last_switch_case_entry = NULL;
   sssep->last_switch_case_on_sorted_list = NULL;
@@ -5803,7 +5814,9 @@ it is followed by a colon.)
 {
   a_label_ptr                    label;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
+  an_attribute_ptr               attributes = sssep->prefix_attributes;
 
+  sssep->prefix_attributes = NULL;
   sssep->contains_user_label = TRUE;
   /* Scan the label identifier, and enter it into the symbol table if
      needed. */
@@ -5860,12 +5873,12 @@ it is followed by a colon.)
   (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_attributes_enabled && curr_token == tok_attribute) {
-    an_attribute_ptr  attributes = scan_gnu_attribute_groups(al_label);
-    if (attributes != NULL) {
-      attach_attributes(attributes, (char*)label, iek_label);
-    }  /* if */
+    *last_attribute_link(&attributes) = scan_gnu_attribute_groups(al_label);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (attributes != NULL) {
+    attach_attributes(attributes, (char*)label, iek_label);
+  }  /* if */
 }  /* label_definition */
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -5965,10 +5978,17 @@ this statement was preceded by the GNU keyword __extension__.
 {
   a_boolean        prev_was_label = FALSE;
   a_boolean        get_another_statement;
+  a_struct_stmt_stack_entry_ptr
+                   sssep = &struct_stmt_stack[depth_stmt_stack];
 
   db_enter(3, "statement");
 
 rescan_statement:
+  if (curr_token == tok_lbracket && std_attributes_enabled &&
+      next_token() == tok_lbracket) {
+    /* Scan leading standard attributes. */
+    sssep->prefix_attributes = scan_attributes(al_prefix);
+  }  /* if */
   get_another_statement = FALSE;
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing.
@@ -6165,6 +6185,12 @@ expr_statement:
           /* In cfront mode, a dependent statement is not allowed to be a
              declaration. */
           error(ec_dependent_stmt_is_declaration);
+        }  /* if */
+        if (sssep->prefix_attributes != NULL) {
+          /* Make previously scanned attributes available to declaration
+             processing. */
+          unscan_attributes(sssep->prefix_attributes);
+          sssep->prefix_attributes = NULL;
         }  /* if */
         decl_statement(marked_as_gnu_extension);
       } else if (C_mode() &&
