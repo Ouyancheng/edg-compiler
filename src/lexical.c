@@ -1367,6 +1367,70 @@ The current token must be a ">>": Replace it with two ">" tokens.
 }  /* replace_right_shift_by_two_closing_angle_brackets */
 
 
+static void cache_std_attribute(a_token_cache	*cache,
+				a_boolean	add_tokens_to_cache)
+/*
+Cache past a C++0x standard attribute and, if add_tokens_to_cache is TRUE,
+and the tokens to cache.
+
+A standard attribute has the form:
+
+  [[ ... ]]
+
+The contents of the attribute can contain (...), [...], and {...}, including
+nested versions of each of those.  It is important to avoid caching past
+the end of the attribute in error cases.  In valid programs all of the
+delimiters will be balanced, so for better error recovery, parentheses and
+braces are mostly ignored.  Only zero-level brackets (those not inside
+parentheses of braces) are tracked.
+
+The current token is the first bracket of the start of the attribute.  Upon
+return, the current token is the second bracket of the end of the attribute,
+which has not yet been cached.
+*/
+{
+  int		paren_count = 0;
+  int		bracket_count = 0;
+  int		brace_count = 0;
+  a_token_kind	prev_token = tok_error;
+
+  /* Cache the opening bracket. */
+  if (add_tokens_to_cache) cache_curr_token(cache);
+  /* Get the second bracket token. */
+  (void)get_token();
+  check_assertion(curr_token == tok_lbracket);
+  if (add_tokens_to_cache) cache_curr_token(cache);
+  /* Get the first token of the attribute. */
+  (void)get_token();
+  /* Loop until we find "]]", even if that is within parentheses or braces. */
+  while (!(bracket_count == 0 && prev_token == tok_rbracket &&
+            curr_token == tok_rbracket)) {
+    if (curr_token == tok_end_of_source) break;
+    prev_token = curr_token;
+    /* Count paired tokens. */
+    switch (curr_token) {
+      case tok_lparen:                           paren_count++;   break;
+      case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
+      case tok_lbracket:
+        /* Only zero-level brackets are counted. */
+        if (paren_count == 0 && brace_count == 0) bracket_count++;
+        break;
+      case tok_rbracket:
+        if (paren_count == 0 && brace_count == 0) {
+          if (bracket_count > 0) bracket_count--;
+        }  /* if */
+        break;
+      case tok_lbrace:                           brace_count++;   break;
+      case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+      default:;
+    }  /* switch */
+    /* None of the conditions was satisfied, so keep going. */
+    if (add_tokens_to_cache) cache_curr_token(cache);
+    (void)get_token();
+  }  /* while */
+}  /* cache_std_attribute */
+
+
 /* Forward declarations. */
 static void begin_caching_fetched_tokens(a_boolean	include_curr_token);
 static void end_caching_fetched_tokens(void);
@@ -1442,8 +1506,11 @@ be TRUE if curr_token is tok_lt.
       err = TRUE;
       break;
     }  /* if */
-    /* Count paired tokens within the skip. */
-    if (closing_token == tok_rbrace) { /*lint !e539*/
+    if (curr_token == tok_lbracket && std_attributes_enabled &&
+        next_token() == tok_lbracket) {
+      /* The start of a standard attribute. */
+      cache_std_attribute(cache, !cache_tokens);
+    } else if (closing_token == tok_rbrace) { /*lint !e539*/
       /* When looking for a right brace, don't consider any other
          delimiters.  Braces can't be nested inside parens, brackets,
          etc. */
@@ -1453,6 +1520,7 @@ be TRUE if curr_token is tok_lt.
         default:;
       }  /* switch */
     } else {
+      /* Count paired tokens within the skip. */
       switch (curr_token) {
         case tok_lparen:                           paren_count++;   break;
         case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
@@ -1539,10 +1607,14 @@ a template argument list or is just a less-than sign.
     } else if (curr_token == tok_template) {
       prev_token_was_template = TRUE;
     } else {
-      a_boolean	err;
-      if (curr_token == tok_lparen || curr_token == tok_lbracket ||
-          curr_token == tok_lbrace ||
+      if (curr_token == tok_lbracket && std_attributes_enabled &&
+          next_token() == tok_lbracket) {
+        /* The start of a standard attribute. */
+        cache_std_attribute(cache, caching_tokens);
+      } else if (curr_token == tok_lparen || curr_token == tok_lbracket ||
+                 curr_token == tok_lbrace ||
           (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
+        a_boolean	err;
         err = cache_token_stream_until_matching_token(cache, coalesce_ids);
         if (err) break;
       }  /* if */
