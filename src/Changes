@@ -146,43 +146,6 @@ the following function did not contain the __stdcall__ attribute:
   void f(void (*p)() __attribute__((__stdcall__))) { }
 
 
-2/9/10   [EDGcpfe/10405]
-GNU: Lowering of base class constructor initializers in classes with virtual
-function tables
-
-A change has been made in GNU emulation mode during object construction to
-initialize the primary virtual function table pointer before invoking
-non-virtual base constructors in cases where these constructors have at least
-one parameter (that might require the primary virtual function table pointer to
-be set).  This is necessary in a case like the one below where typeid (which
-requires that the virtual function pointer is valid) is invoked as an argument
-to a non-virtual base class constructor (before the base class has been
-constructed).  Code has also been added to re-initialize the primary virtual
-function table pointer in cases where the object under construction and the
-base class being constructed share a virtual function table (in which case the
-base class constructor could possibly modify the vtable pointer).  According to
-the C++ standard, only properties of an lvalue that don't depend on its value
-can be used after the object's storage has been allocated but before its
-lifetime has begun.  The example below therefore invokes undefined behavior
-(and in non-GNU emulation mode continues to do so), but now in GNU emulation
-mode prints the type_info name for D:
-
-  #include <typeinfo>
-  extern "C" int printf(const char *, ...);
-  struct B {
-    std::type_info const& ti;
-    B(std::type_info const& t) : ti(t) {}
-    virtual void f() {}
-  };
-  struct D : B {
-    D() : B(typeid(*this)) {}
-  };
-  int main() {
-    D d;                          // d.ti not properly initialized
-    printf("%s\n", d.ti.name());
-  }
-
-
 2/9/10   [EDGcpfe/10399]
 __thread keyword in template definitions
 

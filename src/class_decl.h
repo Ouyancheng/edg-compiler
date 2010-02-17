@@ -256,9 +256,6 @@ extern void db_base_class_list(a_type_ptr tp);
 extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
 
-extern a_boolean shares_virtual_function_info(a_type_ptr        class_type,
-                                              a_base_class_ptr  base_class);
-
 #endif /* CLASS_DECL_H */
 
 /******************************************************************************
