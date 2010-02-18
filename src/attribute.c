@@ -2987,8 +2987,25 @@ return that entity.
       check_assertion(ap->family == (a_byte_attribute_family)af_gnu);
       alignment = targ_maximum_intrinsic_alignment;
     } else if (aap->kind == (an_attribute_arg_kind)aak_type) {
+      a_type_ptr  tp = aap->variant.type;
       check_assertion(ap->family == (a_byte_attribute_family)af_std);
-      alignment = alignment_of_type(aap->variant.type);
+      /* For references and/or arrays, use the underlying type. */
+      if (is_reference_type(tp)) {
+        tp = skip_typerefs(tp);
+        tp = type_pointed_to(tp);
+      }  /* if */
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      if (is_function_type(tp)) {
+        pos_error(ec_function_type_not_allowed, &aap->position);
+        apply_value = FALSE;
+        make_attr_unrecognized(ap);
+      } else if (is_incomplete_type(tp)) {
+        pos_error(ec_incomplete_type_not_allowed, &aap->position);
+        apply_value = FALSE;
+        make_attr_unrecognized(ap);
+      } else {
+        alignment = alignment_of_type(aap->variant.type);
+      }  /* if */
     } else if (aap->kind == (an_attribute_arg_kind)aak_constant) {
       a_host_large_integer  value = 0;
       if (get_attr_arg_integer(aap, ap, (a_host_large_integer)0,
@@ -2999,6 +3016,7 @@ return that entity.
         } else if (!check_pack_alignment_value(value, &alignment)) {
           pos_error(ec_bad_attribute_alignment, &aap->position);
           apply_value = FALSE;
+          make_attr_unrecognized(ap);
         }  /* if */
       } else {
         apply_value = FALSE;
@@ -3009,7 +3027,12 @@ return that entity.
     } else if (entity_kind == iek_field) {
       a_field_ptr  fp = (a_field_ptr)entity;
       if (ap->family == (a_byte_attribute_family)af_std) {
-        if (alignment > fp->alignment) fp->alignment = alignment;
+        if (alignment_of_type(fp->type) > alignment) {
+          pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
+          make_attr_unrecognized(ap);
+        } else if (alignment > fp->alignment) {
+          fp->alignment = alignment;
+        }  /* if */
       } else {
         /* Apply the specified alignment.  This may be an increase or a
            decrease compared to the natural alignment of the type, but a lower
@@ -3027,6 +3050,10 @@ return that entity.
         /* GCC retains the "last" applied alignment.  Declarator attributes
            are applied before prefix attributes. */
         vp->alignment = alignment;
+      } else if (ap->family == (a_byte_attribute_family)af_std &&
+                 alignment_of_type(vp->type) > alignment) {
+        pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
+        make_attr_unrecognized(ap);
       } else if (alignment > vp->alignment) {
         vp->alignment = alignment;
       }  /* if */

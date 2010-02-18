@@ -6457,12 +6457,12 @@ typedef struct a_type {
 			   C++-generating back end. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if USER_CONTROL_OF_STRUCT_PACKING
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it
 			   refers to because its alignment has been
 			   explicitly set, via an attribute. */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	variables_are_implicitly_referenced:1;
 			/* TRUE if no warnings about unused variables

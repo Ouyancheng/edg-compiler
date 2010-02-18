@@ -4770,6 +4770,59 @@ size will remain zero; otherwise it will require padding.)
   return result;
 }  /* gnu_zero_sized_class_type */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+
+static void check_explicit_alignment(a_type_ptr          class_type,
+                                     a_targ_alignment    alignment,
+                                     a_layout_block_ptr  lob)
+/*
+The given class_type has the given explicitly specified alignment.  If this is
+a reduction of alignment compared to the "natural" alignment recorded in *lob,
+issue diagnostic if such a reduction is invalid or ignored.
+*/
+{
+  if (class_type->alignment_set_explicitly) {
+    /* GNU allows the alignment to be increased.  If the class has the
+       "packed" attribute its alignment can also be decreased; otherwise,
+       a reduction in alignment is ignored.  Microsoft allows the alignment
+       to be increased or decreased.  The standard attribute does not allow
+       a decrease in alignment. */
+    if (alignment < lob->alignment) {
+      /* Find the attribute that results in the indicated alignment. */
+      an_attribute_ptr  ap = class_type->source_corresp.attributes;
+      for (; ap != NULL; ap = ap->next) {
+        if (ap->kind == (an_attribute_kind)ak_align) {
+          an_attribute_arg_ptr  aap = ap->arguments;
+          if (aap->kind == (an_attribute_arg_kind)aak_constant) {
+            a_boolean  ovflo;
+            if (value_of_integer_constant(aap->variant.constant, &ovflo) ==
+                                                                  alignment) {
+              break;
+            }  /* if */
+          } else {
+            check_assertion(aap->kind == (an_attribute_arg_kind)aak_type);
+            if (alignment_of_type(aap->variant.type) == alignment) break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (gnu_mode || sun_mode) {
+        if (!class_type->variant.class_struct_union.is_packed) {
+          pos_warning(ec_alignment_reduction_ignored,
+                      ap != NULL ? &ap->position
+                                 : &class_type->source_corresp.decl_position);
+          alignment = lob->alignment;
+        }  /* if */
+      } else if (!microsoft_mode && ap != NULL) {
+        /* If ap is NULL, the reduction might be the result of a pragma. */
+        pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
+        alignment = lob->alignment;
+      }  /* if */
+    }  /* if */
+    lob->alignment = alignment;
+  }  /* if */
+}  /* check_explicit_alignment */
+
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 void do_class_layout(a_type_ptr  class_type)
 /*
@@ -4778,14 +4831,12 @@ virtual base classes, its nonstatic data members, and various pointers
 for handling virtual bases and functions.
 */
 {
-  a_layout_block              lob;
+  a_layout_block    lob;
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  a_targ_alignment            alignment;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  a_targ_alignment  alignment;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
-  a_boolean                   is_POD;
+  a_boolean         is_POD;
 #endif /* IA64_ABI */
 
   db_enter(3, "do_class_layout");
@@ -4877,26 +4928,7 @@ for handling virtual bases and functions.
 #endif /* !IA64_ABI */
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_type->alignment_set_explicitly) {
-    /* GNU allows the alignment to be increased.  If the class has the
-       "packed" attribute its alignment can also be decreased; otherwise,
-       a reduction in alignment is ignored.  Microsoft allows the alignment
-       to be increased or decreased. */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && alignment < lob.alignment &&
-        !class_type->variant.class_struct_union.is_packed) {
-      pos_warning(ec_alignment_reduction_ignored,
-                  &class_type->source_corresp.decl_position);
-      alignment = lob.alignment;
-    } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      lob.alignment = alignment;
-    }  /* if */
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  check_explicit_alignment(class_type, alignment, &lob);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   if (C_dialect == C_dialect_cplusplus) {
