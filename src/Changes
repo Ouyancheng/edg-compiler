@@ -126,8 +126,8 @@ GNU C compatibility: _Complex/__complex without type specifier
 
 In GNU C mode (but not in GNU C++ mode), specifying _Complex or __complex
 without a type specifier ("float" or "double") now has the same effect as
-specifying "double".  Previously such situations were diagnosed with an error.
-For example:
+specifying "_Complex double".  Previously such situations were diagnosed with
+an error.  For example:
 
   _Complex z = 1.0+2.0i;  // Now accepted in GNU C mode; same as
                           // "_Complex double z = 1.0+2.0i;"
