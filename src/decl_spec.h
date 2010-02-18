@@ -131,6 +131,9 @@ extern void attach_tag_attributes(an_attribute_ptr  attributes,
                                   a_boolean         is_forward_decl,
                                   a_boolean         ignore_gnu_attributes);
 
+extern void diagnose_std_attribute_on_explicit_instantiation(
+                                                        an_attribute_ptr  ap);
+
 extern void decl_spec_one_time_init(void);
 
 /* Constants defining bits in the input bit vector used in calls to

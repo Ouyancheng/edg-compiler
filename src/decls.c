@@ -14127,6 +14127,12 @@ indicates how processing should proceed after the call.
          final token of the declaration. */
       a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
       a_source_position	           directive_start_pos = pos_curr_token;
+      if (state->prefix_attributes != NULL) {
+        /* Attributes cannot precede the "template" keyword. */
+        pos_error(ec_invalid_attribute_location,
+                  &state->prefix_attributes->group->position);
+        state->prefix_attributes = NULL;
+      }  /* if */
       if (curr_token == tok_extern) {
         /* In some modes "extern template ..." is permitted. */
         (void)get_token();

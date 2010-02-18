@@ -2590,6 +2590,27 @@ __extension__.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+void diagnose_std_attribute_on_explicit_instantiation(an_attribute_ptr  ap)
+/*
+ap points to a list of attributes applied to an explicit template
+instantiation.  If any of these attributes use standard attribute syntax,
+issue an error and reclassify those attributes as ak_unrecognized.
+*/
+{
+  a_boolean  diagnostic_issued = FALSE;
+
+  for (; ap != NULL; ap = ap->next) {
+    if (ap->family == (a_byte_attribute_family)af_std) {
+      if (!diagnostic_issued) {
+        pos_error(ec_attribute_on_explicit_instantiation,
+                  &ap->group->position);
+        diagnostic_issued = TRUE;
+      }  /* if */
+      make_attr_unrecognized(ap);
+    }  /* if */
+  }  /* if */
+}  /* diagnose_std_attribute_on_explicit_instantiation */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
     (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS)
 /*ARGSUSED*/ /* decl_pos_block and marked_as_gnu_extension are not used in
@@ -3533,6 +3554,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
           (!is_explicit_instantiation || is_declarator_start())) {
         ignore_gnu_attributes = TRUE;
       }  /* if */
+    }  /* if */
+    if (std_attributes_enabled && is_explicit_instantiation) {
+      diagnose_std_attribute_on_explicit_instantiation(tag_attributes);
     }  /* if */
     attach_tag_attributes(tag_attributes, class_type, is_class_definition,
                           curr_token == tok_semicolon, ignore_gnu_attributes);

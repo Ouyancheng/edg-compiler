@@ -22367,6 +22367,9 @@ instantiation.
     }  /* if */
     declarator(di_flags, &state, (a_type_ptr)NULL, &locator, &func_info,
                &decl_pos_block);
+    if (state.id_attributes != NULL) {
+      diagnose_std_attribute_on_explicit_instantiation(state.id_attributes);
+    }  /* if */
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
