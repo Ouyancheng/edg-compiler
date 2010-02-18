@@ -1791,8 +1791,12 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
             an_expr_node_ptr  fparg = args2->next->next->next->next;
             if (!is_real_floating_type(fparg->type) &&
                 !is_template_param_type(fparg->type)) {
-              expr_pos_error(ec_bad_final_builtin_fpclassify_arg,
-                             &op->position);
+              if (is_error_type(fparg->type)) {
+                expect_error();
+              } else {
+                expr_pos_error(ec_bad_final_builtin_fpclassify_arg,
+                               &op->position);
+              }  /* if */
               conv_to_error_operand(op);
             }  /* if */
           }  /* if */
