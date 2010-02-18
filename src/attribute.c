@@ -366,8 +366,9 @@ typedef struct an_attr_appl_descr {
 			       "f"  : function types
 			     "c"  : class type (after "class", "struct", or
 			              "union" keyword)
+			       "d"  : class definition
 			     "e"  : enum type (after "enum" or "enum class")
-			       (no property switches)
+			       "d"  : enum definition
 			     "r"  : routines
 			       "m"  : class member
 			       "i"  : inline
@@ -523,7 +524,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   /* Standard attributes. */
   { ak_align, "", apply_align_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
-  { ak_final, "r:+v!|c", apply_final_attr },
+  { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -1801,6 +1802,18 @@ attribute ap applied to the given type matches those constraints.
           }  /* if */
         }  /* if */
         constr += 2;
+      } else if (is_tag_attribute(ap) && constr[1] == 'd') {
+        /* A tag definition is required or disallowed. */
+        if (ap->on_primary_declaration) {
+          if (constr[0] == '-') {
+            err = ec_attr_disallows_definition;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            err = ec_attr_requires_definition;
+          }  /* if */
+        }  /* if */
+        constr += 2;
       } else {
         unexpected_condition_str2(
            "invalid property code for constraint configuration of attribute",
@@ -2715,8 +2728,8 @@ an_attribute_ptr copy_of_attributes_with_substitution(
 /*
 Return a copy of the given list of attributes (which may be NULL) after
 substituting template parameters (if any).  If primary_only is TRUE, only the
-attributes whose on_primary_decl flag is set are copied.  If the entity to
-which the attributes are to be applied is a template specialization, t_args
+attributes whose on_primary_declaration flag is set are copied.  If the entity
+to which the attributes are to be applied is a template specialization, t_args
 represents the template arguments for that specialization and t_params the
 associated template parameters; otherwise, t_args and t_params are NULL.  If
 the entity to which the attributes are to be applied is a class member,
@@ -2797,8 +2810,8 @@ an error.
 
 void mark_primary_decl_attributes(an_attribute_ptr  attributes)
 /*
-Set the on_primary_decl flag to TRUE in each of the attribute entries in the
-given list.
+Set the on_primary_declaration flag to TRUE in each of the attribute entries
+in the given list.
 */
 {
   an_attribute_ptr  ap;

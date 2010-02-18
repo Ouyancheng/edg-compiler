@@ -1929,6 +1929,8 @@ ec_invalid_builtin_fpclassify_args;;"a call to __builtin_fpclassify requires fiv
 ec_bad_final_builtin_fpclassify_arg;;"the last argument in a call to __builtin_fpclassify must have a real floating-point type"
 ec_invalid_alignment_reducing_attr;;"alignment cannot be set to less than the default alignment"
 ec_attribute_on_explicit_instantiation;;"attributes are not allowed on explicit instantiations"
+ec_attr_disallows_definition;;"attribute %sq does not apply to a definition"
+ec_attr_requires_definition;;"attribute %sq requires a definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
