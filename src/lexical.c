@@ -1367,8 +1367,8 @@ The current token must be a ">>": Replace it with two ">" tokens.
 }  /* replace_right_shift_by_two_closing_angle_brackets */
 
 
-static void cache_std_attribute(a_token_cache	*cache,
-				a_boolean	add_tokens_to_cache)
+void cache_std_attribute(a_token_cache	*cache,
+                         a_boolean	add_tokens_to_cache)
 /*
 Cache past a C++0x standard attribute and, if add_tokens_to_cache is TRUE,
 and the tokens to cache.
@@ -1506,8 +1506,7 @@ be TRUE if curr_token is tok_lt.
       err = TRUE;
       break;
     }  /* if */
-    if (curr_token == tok_lbracket && std_attributes_enabled &&
-        next_token() == tok_lbracket) {
+    if (std_attribute_tokens_next()) {
       /* The start of a standard attribute. */
       cache_std_attribute(cache, !cache_tokens);
     } else if (closing_token == tok_rbrace) { /*lint !e539*/
@@ -1607,8 +1606,7 @@ a template argument list or is just a less-than sign.
     } else if (curr_token == tok_template) {
       prev_token_was_template = TRUE;
     } else {
-      if (curr_token == tok_lbracket && std_attributes_enabled &&
-          next_token() == tok_lbracket) {
+      if (std_attribute_tokens_next()) {
         /* The start of a standard attribute. */
         cache_std_attribute(cache, caching_tokens);
       } else if (curr_token == tok_lparen || curr_token == tok_lbracket ||

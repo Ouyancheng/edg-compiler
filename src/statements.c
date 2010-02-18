@@ -5984,8 +5984,7 @@ this statement was preceded by the GNU keyword __extension__.
   db_enter(3, "statement");
 
 rescan_statement:
-  if (curr_token == tok_lbracket && std_attributes_enabled &&
-      next_token() == tok_lbracket) {
+  if (std_attribute_tokens_next()) {
     /* Scan leading standard attributes. */
     sssep->prefix_attributes = scan_attributes(al_prefix);
   }  /* if */

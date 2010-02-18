@@ -562,7 +562,7 @@ of declarations that are permitted.
     /* If this is a standard attribute ([[ ... ]]) or a Microsoft attribute,
        a declaration can follow.  However, if this is a lambda, that is not
        the case. */
-    if (std_attributes_enabled && next_token() == tok_lbracket) {
+    if (std_attribute_tokens_next()) {
       /* A standard attribute. */
       is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

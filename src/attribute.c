@@ -1637,8 +1637,7 @@ is made.
     a_boolean  new_attr_seen;
     do {
       new_attr_seen = FALSE;
-      if (curr_token == tok_lbracket && std_attributes_enabled &&
-          next_token() == tok_lbracket) {
+      if (std_attribute_tokens_next()) {
         /* Two brackets are next: Those must be introducing a standard
            attribute construct. */
         *p_attributes = scan_std_attribute_group((an_attribute_location)loc);
@@ -1719,8 +1718,7 @@ template).
 */
 {
   for (;;) {
-    if (curr_token == tok_lbracket && std_attributes_enabled &&
-        next_token() == tok_lbracket) {
+    if (std_attribute_tokens_next()) {
       /* Skip over standard attributes. */
       flush_until_matching_token();
       if (curr_token == tok_rbracket) (void)get_token();

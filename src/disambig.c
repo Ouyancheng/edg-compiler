@@ -439,8 +439,7 @@ C++0x attributes (i.e., not a lambda), scan over them.
 */
 {
   while (curr_token == tok_lbracket && !C_mode()) {
-    a_boolean  attr_next =
-                       std_attributes_enabled && next_token() == tok_lbracket;
+    a_boolean  attr_next = std_attribute_tokens_next();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!attr_next && microsoft_mode && !is_lambda()) {
       attr_next = TRUE;
@@ -718,7 +717,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         prescan_typeof_operator(state, flags);
         break;
       case tok_lbracket:
-        if (std_attributes_enabled && next_token() == tok_lbracket) {
+        if (std_attribute_tokens_next()) {
           prescan_std_attribute(state, flags);
           next_token_fetched = TRUE;
           break;

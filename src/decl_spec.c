@@ -5077,6 +5077,24 @@ done:
 }  /* typename_specifier */
 
 
+static void cache_std_attribute_group(a_token_cache  *cache)
+/*
+The next tokens in the token stream are to left brackets, which are expected
+to introduce a standard attribute group.  Cache the tokens making up that
+group in the given cache.
+*/
+{
+  cache_std_attribute(cache, /*add_tokens_to_cache=*/TRUE);
+  if (curr_token == tok_rbracket) {
+    /* Advance past the final right bracket. */
+    cache_curr_token(cache);
+    (void)get_token();
+  } else {
+    expect_error();
+  }  /* if */
+}  /* cache_std_attribute_group */
+
+
 a_boolean is_constructor_decl(a_type_ptr    class_type)
 /*
 class_type is a pointer to the class that is currently being defined.  Return
@@ -5174,10 +5192,18 @@ is a that of a constructor.
       }  /* if */
       /* Put the current token in the cache. */
       cache_curr_token(&cache);
+      (void)get_token();
+      /* If standard attributes are next, cache them. */
+      while (std_attribute_tokens_next()) {
+        cache_std_attribute_group(&cache);
+      }  /* while */
       /* Skip right parentheses that may enclose the declarator---e.g.,
          "struct S { (((S)))(); };"---and advance to what may be a left
          parenthesis: */
-      while (get_token() == tok_rparen) { cache_curr_token(&cache); }
+      while (curr_token == tok_rparen) {
+        cache_curr_token(&cache);
+        (void)get_token();
+      }  /* while */
       /* A left parenthesis presumably starts a parameter declaration list: */
       if (curr_token == tok_lparen) {
         /* Cache the left parenthesis. */

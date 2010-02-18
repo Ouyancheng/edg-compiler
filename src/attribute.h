@@ -55,6 +55,13 @@ extern a_boolean check_transparent_union(a_type_ptr        tp,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
+Return TRUE if the upcoming tokens introduce standard attributes.
+*/
+#define std_attribute_tokens_next()                                          \
+  (curr_token == tok_lbracket && std_attributes_enabled &&                   \
+   next_token() == tok_lbracket)
+
+/*
 Return TRUE if the given attribute is unrecognized or an empty attribute.
 Such attributes cannot be "applied" to any entities.
 */
