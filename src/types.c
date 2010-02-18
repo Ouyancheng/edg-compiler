@@ -3561,7 +3561,7 @@ for more information.
           /* Two types obtained with the decltype(<expr>) or typeof(<expr>)
              construct, where the expression has a template-dependent type.
              Compare the expression trees.  (No expression trees are available
-             if the decltype was constructed inside a function whose body is
+             if the decltype was constructed inside a function whose body
              is complete.  Such types are always considered non-identical to
              other types.) */
           an_expr_node_ptr  expr1 = type_1->variant.typeref.expr;

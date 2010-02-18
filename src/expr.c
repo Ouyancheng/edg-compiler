@@ -2816,7 +2816,6 @@ C++ standard.  The current token is the "(" of the call.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
     }  /* if */
     make_expression_operand(call_node, result);
-    result->is_template_generic = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -5676,7 +5675,6 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
 the sizeof result is built and returned there.
 */
 {
-  a_boolean        template_case = FALSE;
   an_expr_node_ptr node =
                         alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
 
@@ -5691,7 +5689,6 @@ the sizeof result is built and returned there.
     if (is_template_dependent_context() &&
         is_template_dependent_type(operand->type)) {
       /* An expression in a prototype instantiation. */
-      template_case = TRUE;
       prep_generic_operand(operand);
     }  /* if */
     expr = make_node_from_operand(operand);
@@ -5706,7 +5703,6 @@ the sizeof result is built and returned there.
   if (result != NULL) {
     /* Build an operand for the result. */
     make_expression_operand(node, result);
-    result->is_template_generic = template_case;
   }  /* if */
   return node;
 }  /* make_runtime_sizeof_expr */
@@ -6086,7 +6082,6 @@ Syntax:
       }  /* if */
     }  /* if */
     make_constant_operand(&constant, result);
-    result->is_template_generic = template_case;
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (multiply_by_threads_needed && !err && !is_error_operand(result)) {
@@ -6135,7 +6130,6 @@ implement <stdarg.h>, a standard feature.
   an_operand          operand;
   a_constant          constant;
   a_boolean           is_parenthesized = FALSE, is_type = FALSE;
-  a_boolean           template_case = FALSE;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -6299,7 +6293,6 @@ implement <stdarg.h>, a standard feature.
   } else if (!C_mode() && is_template_dependent_context() &&
              is_template_dependent_type(alignof_type)) {
     /* For __ALIGNOF__ of a template type, use a ck_template_param. */
-    template_case = TRUE;
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
                                  (a_template_param_constant_kind)tpck_alignof);
@@ -6362,7 +6355,6 @@ implement <stdarg.h>, a standard feature.
                      targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
-  result->is_template_generic = template_case;
   if (operand_was_scanned && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
@@ -6388,12 +6380,10 @@ Make a placeholder lvalue operand whose type is "type".
   an_expr_node_ptr expr;
   a_constant       zero_con;
   a_type_ptr       ptr_type = make_pointer_type(type);
-  a_boolean        dependent_case = FALSE;
 
   if (is_template_dependent_type(type)) {
     /* Force a template-dependent constant for the dependent type case. */
     a_constant_ptr con;
-    dependent_case = TRUE;
     make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
     con = alloc_shareable_constant(&zero_con);
     make_template_param_cast_constant(con,
@@ -6411,7 +6401,6 @@ Make a placeholder lvalue operand whose type is "type".
   expr = add_indirection_to_node(expr);
   make_lvalue_expression_operand(expr, operand);
   operand->is_dummy_lvalue = TRUE;
-  if (dependent_case) operand->is_template_generic = TRUE;
 }  /* make_dummy_lvalue_operand */
 
 
@@ -7948,7 +7937,6 @@ enk_typeid entry should be created.
     typeid_node->is_lvalue = TRUE;
   }  /* if */
   make_lvalue_expression_operand(typeid_node, result);
-  result->is_template_generic = template_case;
   set_used_in_exception_or_rtti_flag(typeid_type);
 }  /* make_typeid_operand */
 
@@ -8843,7 +8831,6 @@ which case it's the token after __uuidof.
     make_lvalue_expression_operand(add_indirection_to_node(
                                          alloc_node_for_constant(&uuidof_con)),
                                    result);
-    result->is_template_generic = template_case;
   }  /* if */
   if (operand_was_scanned) {
     if (!operand_was_used) {
@@ -10456,7 +10443,6 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     /* Make an operand for the result. */
     make_expression_operand(new_node, result);
-    result->is_template_generic = template_case;
   }  /* if */
   /* Free the lists if they have not been freed already. */
   if (arg_operand_list != NULL) {
@@ -10847,7 +10833,6 @@ As an anachronism, allow an expression inside the [ ].
     ndsp->routine = delete_routine;
     /* Make an operand for the result. */
     make_expression_operand(delete_node, result);
-    result->is_template_generic = template_case;
   }  /* if */
 
   set_operand_position(result, &start_position, &operand.end_position,
@@ -13779,7 +13764,6 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                           /*is_lvalue=*/FALSE,
                                           /*is_explicit_cast=*/TRUE);
     make_expression_operand(temp_init_node, result);
-    result->is_template_generic = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -18407,6 +18391,7 @@ invalid uses of typename.
         case sk_constant:
           /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_sym_constant_operand(sym_ptr, result);
+          result->is_qualified_name = locator_for_curr_id.is_qualified_name;
           set_operand_name_reference_from_locator_for_curr_id(result);
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant
@@ -22226,6 +22211,182 @@ This is callable from outside of the expression processing routines.
 }  /* conv_nontype_template_arg_to_param_type */
 
 
+static void make_operand_for_rescanned_identifier(
+                                               an_expr_node_ptr       expr,
+                                               a_rescan_control_block *rcblock,
+                                               an_operand             *result)
+/*
+expr is an expression referencing a constant (enk_constant) that is
+in essence an identifier reference, encountered while redoing semantic
+analysis on an expression as part of template deduction.  Make an
+operand in *result for the identifier after template substitution.
+rcblock provides the deduction context, e.g., the template argument
+list being tried.  It also has an error_detected flag, which is set
+to TRUE if any non-access error is detected during the processing.
+*/
+{
+  an_expr_rescan_info_entry_ptr eriep;
+  a_symbol_ptr                  sym;
+
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  check_assertion(is_constant_node(expr));
+  /* Do substitution and produce a symbol for the substituted result. */
+  sym = symbol_for_template_param_unknown_entity_con_after_substitution(
+                                                expr->variant.constant,
+                                                rcblock->template_arg_list,
+                                                rcblock->template_param_list,
+                                                &eriep->saved_operand.position,
+                                                rcblock->options);
+  if (sym == NULL) {
+    rcblock->error_detected = TRUE;
+    make_error_operand(result);
+    copy_operand_position(&eriep->saved_operand, result);
+  } else {
+    /* Build an operand for the symbol. */
+    switch (sym->kind) {
+      case sk_constant:
+        make_sym_constant_operand(sym, result);
+        break;
+      case sk_static_data_member:
+        make_lvalue_variable_operand(sym->variant.static_data_member.variable,
+                                     &eriep->saved_operand.position,
+                                     end_position_or_null(
+                                           &eriep->saved_operand.end_position),
+                                     result, (a_ref_entry_ptr)NULL);
+        break;
+      case sk_field:
+      case sk_member_function:
+        make_sym_for_member_operand(
+                             sym,
+                             (a_boolean)eriep->saved_operand.is_qualified_name,
+                             (a_ref_entry_ptr)NULL,
+                             result);
+        break;
+      case sk_overloaded_function:
+      case sk_function_template:
+        make_indefinite_function_operand(sym, /*curr_id=*/FALSE, result);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    /* Set the proper source position, and any flags like whether the
+       identifier reference was qualified. */
+    restore_operand_details(result, &eriep->saved_operand);
+    result->is_id_expression = eriep->saved_operand.is_id_expression;
+  }  /* if */
+}  /* make_operand_for_rescanned_identifier */
+
+
+a_boolean expr_is_rescannable(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is rescannable, meaning that it can
+be run through the expression-scanning routines in a special mode that
+redoes semantic analysis.
+*/
+{
+  a_boolean rescannable = FALSE;
+
+  expr = strip_implicit_operations_for_rescan(
+                                        expr,
+                                        (an_expr_rescan_info_entry_ptr *)NULL);
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    /* The list here should match the list in
+       operator_token_for_expr_rescan. */
+    switch (op) {
+      case eok_subscript:
+      case eok_post_incr:
+      case eok_post_decr:
+      case eok_pre_incr:
+      case eok_pre_decr:
+      case eok_address_of:
+      case eok_indirect:
+      case eok_unary_plus:
+      case eok_negate:
+      case eok_complement:
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+      case eok_xconj:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+      case eok_not:
+      case eok_add:
+      case eok_padd:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_fjadd:
+      case eok_jfadd:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case eok_subtract:
+      case eok_psubtract:
+      case eok_pdiff:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_fjsubtract:
+      case eok_jfsubtract:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case eok_multiply:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_jmultiply:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case eok_divide:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case eok_jdivide:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      case eok_remainder:
+      case eok_shiftl:
+      case eok_shiftr:
+      case eok_lt:
+      case eok_gt:
+      case eok_le:
+      case eok_ge:
+      case eok_eq:
+      case eok_ne:
+      case eok_gnu_max:
+      case eok_gnu_min:
+      case eok_and:
+      case eok_or:
+      case eok_xor:
+      case eok_land:
+      case eok_lor:
+      case eok_comma:
+      case eok_question:
+      case eok_assign:
+      case eok_add_assign:
+      case eok_padd_assign:
+      case eok_subtract_assign:
+      case eok_psubtract_assign:
+      case eok_multiply_assign:
+      case eok_divide_assign:
+      case eok_remainder_assign:
+      case eok_shiftl_assign:
+      case eok_shiftr_assign:
+      case eok_and_assign:
+      case eok_or_assign:
+      case eok_xor_assign:
+        rescannable = TRUE;
+        break;
+      default:;
+    }  /* switch */
+  } else if (is_constant_node(expr)) {
+    /* Template-dependent constant values can be rescanned. */
+    a_constant_ptr con = expr->variant.constant;
+    /* The list here should match the list in
+       operator_token_for_expr_rescan. */
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      switch (con->variant.template_param.kind) {
+        case tpck_member:
+        case tpck_address:
+        case tpck_unknown_function:
+        case tpck_template_ref:
+          rescannable = TRUE;
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* if */
+  }  /* if */
+  return rescannable;
+}  /* expr_is_rescannable */
+
+
 static a_token_kind operator_token_for_expr_rescan(an_expr_node_ptr expr,
                                                    a_boolean        *unary,
                                                    a_boolean        *postfix)
@@ -22237,7 +22398,7 @@ the scan_xxx_operator routine to call to do the rescan.  Also return
 postfix operators.
 */
 {
-  a_token_kind operator_token;
+  a_token_kind operator_token = tok_error;
 
   *unary = FALSE;
   *postfix = FALSE;
@@ -22413,11 +22574,176 @@ postfix operators.
       default:
         unexpected_condition_str("bad operator in expr rescan");
     }  /* switch */
+  } else if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    /* The list here should match the list in expr_is_rescannable. */
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      switch (con->variant.template_param.kind) {
+        case tpck_member:
+        case tpck_address:
+        case tpck_unknown_function:
+        case tpck_template_ref:
+          operator_token = tok_identifier;
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* if */
+    check_assertion_str(operator_token != tok_error,
+                        "invalid const in expr rescan");
   } else {
     unexpected_condition_str("invalid expr kind in expr rescan");
   }  /* if */
   return operator_token;
 }  /* operator_token_for_expr_rescan */
+
+
+void rescan_expr_with_substitution_internal(
+                                       an_expr_node_ptr       expr,
+                                       a_rescan_control_block *rcblock,
+                                       a_boolean              force_stack_push,
+                                       an_operand             *result)
+/*
+Redo the semantic analysis on the expression expr as part of doing
+template deduction.  rcblock provides the deduction context, e.g., the
+template argument list being tried.  It also has an error_detected
+flag, which is set to TRUE if any non-access error is detected during
+the rescan.  If there is no error, *result is set to an operand for the
+result after substitution.  If force_stack_push is TRUE, a push on the
+expression stack is always done; otherwise, it is done only if needed.
+This routine is intended for use within the expression-processing
+routines; for an alternative callable from outside, see
+rescan_expr_with_substitution.
+*/
+{
+  an_expr_stack_entry           expr_stack_entry;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_token_kind                  operator_token;
+  a_boolean                     unary, postfix;
+  a_boolean                     stack_pop_needed = FALSE;
+
+  expr = strip_implicit_operations_for_rescan(expr, &eriep);
+  /* Rescan information must have been saved on the expression when it was
+     originally scanned. */
+  check_assertion(eriep != NULL);
+  if (force_stack_push ||
+      eriep->expression_kind != expr_stack->expression_kind) {
+    push_expr_stack(eriep->expression_kind, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    expr_stack_entry.template_deduction_context = TRUE;
+    expr_stack_entry.suppress_diagnostics = TRUE;
+    stack_pop_needed = TRUE;
+  }  /* if */
+  /* The expr field in the control block is used as a way to pass the
+     expression to the scan_xxx_operator routines without having to add
+     an extra parameter on each of those routines. */
+  rcblock->expr = expr;
+  /* Go to the right routine to rescan the operator. */
+  operator_token = operator_token_for_expr_rescan(expr, &unary, &postfix);
+  rcblock->operator_token = operator_token;
+  if (operator_token == tok_identifier) {
+    /* The expression is essentially an identifier reference. */
+    make_operand_for_rescanned_identifier(expr, rcblock, result);
+  } else if (unary) {
+    /* Unary operators. */
+    switch (operator_token) {
+      case tok_plus_plus:
+      case tok_minus_minus:
+        if (postfix) {
+          scan_postfix_incr_decr((an_operand *)NULL, rcblock, result);
+        } else {
+          scan_prefix_incr_decr(rcblock, result);
+        }  /* if */
+        break;
+      case tok_ampersand:
+        scan_ampersand_operator(rcblock, result);
+        break;
+      case tok_star:
+        scan_indirection_operator(rcblock, result);
+        break;
+      case tok_plus:
+      case tok_minus:
+      case tok_compl:
+      case tok_not:
+        scan_arith_prefix_operator(rcblock, result);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } else {
+    /* Operators other than unary operators, i.e., typically two-operand. */
+    switch (operator_token) {
+      case tok_lbracket:
+        scan_subscript_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_plus:
+      case tok_minus:
+        scan_add_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_star:
+      case tok_divide:
+      case tok_remainder:
+        scan_mult_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_shift_left:
+      case tok_shift_right:
+        scan_shift_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_lt:
+      case tok_gt:
+      case tok_le:
+      case tok_ge:
+        scan_rel_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_eq:
+      case tok_ne:
+        scan_eq_operator((an_operand *)NULL, rcblock, result);
+        break;
+     case tok_gnu_max:
+     case tok_gnu_min:
+        scan_gnu_min_max_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_ampersand:
+      case tok_or:
+      case tok_excl_or:
+        scan_bit_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_and_and:
+      case tok_or_or:
+        scan_logical_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_comma:
+        scan_comma_operator((an_operand *)NULL, rcblock, result);
+	break;
+      case tok_quest_mark:
+        scan_conditional_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_assign:
+        scan_simple_assignment_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_plus_assign:
+      case tok_minus_assign:
+      case tok_times_assign:
+      case tok_divide_assign:
+      case tok_remainder_assign:
+      case tok_shift_left_assign:
+      case tok_shift_right_assign:
+      case tok_and_assign:
+      case tok_excl_or_assign:
+      case tok_or_assign:
+        scan_compound_assignment_operator((an_operand *)NULL, rcblock,
+                                          result);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  if (expr_stack->any_non_access_error_detected) {
+    rcblock->error_detected = TRUE;
+  }  /* if */
+  if (stack_pop_needed) pop_expr_stack();
+}  /* rescan_expr_with_substitution_internal */
 
 
 an_expr_node_ptr rescan_expr_with_substitution(
@@ -22432,129 +22758,18 @@ flag, which is set to TRUE if any non-access error is detected during
 the rescan.  If there is no error, a copy of the expression, with
 appropriate substitution done, is returned.  If the result is a
 constant, *constant (not in the IL) is set to the constant value, and
-NULL is returned.
+NULL is returned.  This is intended for calls from outside of the
+expression-processing routines.
 */
 {
-  an_expr_stack_entry           expr_stack_entry;
-  an_expr_rescan_info_entry_ptr eriep = expr->rescan_info;
-  an_operand                    result;
-  a_token_kind                  operator_token;
-  a_boolean                     unary, postfix;
+  an_operand result;
 
-  /* Rescan information must have been saved on the expression when it was
-     originally scanned. */
-  check_assertion(eriep != NULL);
-  push_expr_stack(eriep->expression_kind, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.template_deduction_context = TRUE;
-  expr_stack_entry.suppress_diagnostics = TRUE;
-  /* The expr field in the control block is used as a way to pass the
-     expression to the scan_xxx_operator routines without having to add
-     an extra parameter on each of those routines. */
-  rcblock->expr = expr;
-  /* Go to the right routine to rescan the operator. */
-  operator_token = operator_token_for_expr_rescan(expr, &unary, &postfix);
-  rcblock->operator_token = operator_token;
-  if (unary) {
-    /* Unary operators. */
-    switch (operator_token) {
-      case tok_plus_plus:
-      case tok_minus_minus:
-        if (postfix) {
-          scan_postfix_incr_decr((an_operand *)NULL, rcblock, &result);
-        } else {
-          scan_prefix_incr_decr(rcblock, &result);
-        }  /* if */
-        break;
-      case tok_ampersand:
-        scan_ampersand_operator(rcblock, &result);
-        break;
-      case tok_star:
-        scan_indirection_operator(rcblock, &result);
-        break;
-      case tok_plus:
-      case tok_minus:
-      case tok_compl:
-      case tok_not:
-        scan_arith_prefix_operator(rcblock, &result);
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-  } else {
-    /* Operators other than unary operators, i.e., typically two-operand. */
-    switch (operator_token) {
-      case tok_lbracket:
-        scan_subscript_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_plus:
-      case tok_minus:
-        scan_add_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_star:
-      case tok_divide:
-      case tok_remainder:
-        scan_mult_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_shift_left:
-      case tok_shift_right:
-        scan_shift_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_lt:
-      case tok_gt:
-      case tok_le:
-      case tok_ge:
-        scan_rel_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_eq:
-      case tok_ne:
-        scan_eq_operator((an_operand *)NULL, rcblock, &result);
-        break;
-     case tok_gnu_max:
-     case tok_gnu_min:
-        scan_gnu_min_max_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_ampersand:
-      case tok_or:
-      case tok_excl_or:
-        scan_bit_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_and_and:
-      case tok_or_or:
-        scan_logical_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_comma:
-        scan_comma_operator((an_operand *)NULL, rcblock, &result);
-	break;
-      case tok_quest_mark:
-        scan_conditional_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_assign:
-        scan_simple_assignment_operator((an_operand *)NULL, rcblock, &result);
-        break;
-      case tok_plus_assign:
-      case tok_minus_assign:
-      case tok_times_assign:
-      case tok_divide_assign:
-      case tok_remainder_assign:
-      case tok_shift_left_assign:
-      case tok_shift_right_assign:
-      case tok_and_assign:
-      case tok_excl_or_assign:
-      case tok_or_assign:
-        scan_compound_assignment_operator((an_operand *)NULL, rcblock,
-                                          &result);
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-  }  /* if */
-  if (expr_stack->any_non_access_error_detected) {
-    rcblock->error_detected = TRUE;
-  }  /* if */
-  pop_expr_stack();
-  if (is_constant_operand(&result)) {
+  rescan_expr_with_substitution_internal(expr, rcblock,
+                                         /*force_stack_push=*/TRUE, &result);
+  if (rcblock->error_detected) {
+    set_error_constant(constant);
+    expr = NULL;
+  } else if (is_constant_operand(&result)) {
     /* The result is a constant, so return it via *constant. */
     expr = NULL;
     copy_constant(&result.variant.constant, constant);

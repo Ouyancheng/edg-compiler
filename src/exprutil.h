@@ -359,10 +359,6 @@ typedef struct an_operand {
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
-  a_bit_field	is_template_generic:1;
-			/* TRUE if this operand has some template-dependent
-			   aspect that makes it impossible to know exactly
-			   what its value or operation is. */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
@@ -502,6 +498,17 @@ Copy the source position from an expression operand into an expression node.
    (node)->expr_range.end   = (operand)->end_position;}
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 #define copy_operand_position_to_expr(operand, node) /* Nothing */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+/*
+Copy the source position from one operand into another.
+*/
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define copy_operand_position(source_operand, dest_operand) \
+  {(dest_operand)->position = (source_operand)->position; \
+   (dest_operand)->end_position = (source_operand)->end_position;}
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define copy_operand_position(source_operand, dest_operand) \
+  {(dest_operand)->position = (source_operand)->position;}
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
@@ -1474,6 +1481,10 @@ extern void restore_operand_info_from_expr_rescan_info_entry(
                                         an_expr_rescan_info_entry_ptr eriep);
 
 extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
+
+extern an_expr_node_ptr strip_implicit_operations_for_rescan(
+                                        an_expr_node_ptr        expr,
+                                        an_expr_rescan_info_entry_ptr *periep);
 
 extern
 void make_rescan_operands(a_rescan_control_block  *rcblock,

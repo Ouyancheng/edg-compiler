@@ -1551,7 +1551,6 @@ values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->is_routine_name_followed_by_left_paren = FALSE;
   operand->is_dummy_lvalue = FALSE;
-  operand->is_template_generic = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -1652,9 +1651,6 @@ Display an expression operand for debugging purposes.
       (void)fprintf(f_debug, "<bad operand state>, ");
       break;
   }  /* switch */
-  if (operand->is_template_generic) {
-    (void)fprintf(f_debug, "template generic, ");
-  }  /* if */
   (void)fprintf(f_debug, "type = ");
   if (operand->type == NULL) {
     (void)fprintf(f_debug, "NULL");
@@ -2147,7 +2143,6 @@ rescan info if necessary (the usual case is that the rescan information will
 need to be allocated).
 */
 {
-  check_assertion(operand->is_template_generic);
   if (!is_error_operand(operand) &&
       expr_stack->template_deduction_declaration_context) {
     an_expr_node_ptr              node = expr_node_from_operand(operand);
@@ -2190,6 +2185,40 @@ Clear a rescan control block to default values.
 }  /* clear_rescan_control_block */
 
 
+an_expr_node_ptr strip_implicit_operations_for_rescan(
+                                         an_expr_node_ptr        expr,
+                                         an_expr_rescan_info_entry_ptr *periep)
+/*
+Strip compiler-generated operations (e.g., implicit casts) from the top of
+the given expression and return the underlying expression.  This is used
+as part of rescanning expressions in template deduction to redo semantic
+analysis.  This function strips things that don't have a source
+counterpart and therefore shouldn't be rescanned.  If periep is non-NULL,
+then *periep is set to point to the rescan information on the lowest node
+that has it.
+*/
+{
+  if (periep != NULL) {
+    if (expr->rescan_info != NULL) {
+      *periep = expr->rescan_info;
+    } else {
+      *periep = NULL;
+    }  /* if */
+  }  /* if */
+  while (is_operation_node(expr) &&
+         ((expr->variant.operation.compiler_generated &&
+           is_cast_operation_node(expr)) ||
+          node_operator_is(expr, eok_ref_indirect) ||
+          node_operator_is(expr, eok_lvalue))) {
+    expr = expr->variant.operation.operands;
+    if (periep != NULL && expr->rescan_info != NULL) {
+      *periep = expr->rescan_info;
+    }  /* if */
+  }  /* if */
+  return expr;
+}  /* strip_implicit_operations_for_rescan */
+
+
 static void make_rescan_operand(an_expr_node_ptr       expr,
                                 a_rescan_control_block *rcblock,
                                 an_operand             *operand)
@@ -2204,18 +2233,28 @@ original expression is not modified.
 */
 {
   an_expr_node_ptr              expr_copy;
-  a_boolean                     copy_error = FALSE;
+  a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
   a_constant                    constant;
   a_constant_ptr                alloc_con;
   an_expr_rescan_info_entry_ptr eriep;
 
-  /* Save the rescan information for later use. */
-  eriep = expr->rescan_info;
+  /* Drop implicit operations like conversions, since they don't have a
+     source counterpart. */
+  expr = strip_implicit_operations_for_rescan(expr, &eriep);
   check_assertion(eriep != NULL);
   if (rcblock->error_detected) {
     /* For speed, stop substituting if there was a deduction error on
        a previous operand. */
     copy_error = TRUE;
+  } else if (expr_is_rescannable(expr)) {
+    /* Rescan the expression.  Note that going this route rather than through
+       copy_template_param_expr allows us to keep the rescanned expression
+       in an_operand form rather than having to convert in to an expression
+       and then back again. */
+    rescan_expr_with_substitution_internal(expr, rcblock,
+                                           /*force_stack_push=*/FALSE,
+                                           operand);
+    rescanned_case = TRUE;
   } else {
     /* Copy the expression with substitution. */
     expr_copy = copy_template_param_expr(expr,
@@ -2231,17 +2270,22 @@ original expression is not modified.
   if (copy_error) {
     rcblock->error_detected = TRUE;
     make_error_operand(operand);
+    copy_operand_position(&eriep->saved_operand, operand);
   } else {
-    if (expr_copy == NULL) {
-      /* The result is a constant, so return a constant operand. */
-      if (alloc_con != NULL) {
-        make_constant_operand(alloc_con, operand);
-      } else {
-        make_constant_operand(&constant, operand);
-      }  /* if */
+    if (rescanned_case) {
+      /* The operand was already built above. */
     } else {
-      /* Return an expression operand. */
-      make_lvalue_or_rvalue_expression_operand(expr_copy, operand);
+      if (expr_copy == NULL) {
+        /* The result is a constant, so return a constant operand. */
+        if (alloc_con != NULL) {
+          make_constant_operand(alloc_con, operand);
+        } else {
+          make_constant_operand(&constant, operand);
+        }  /* if */
+      } else {
+        /* Return an expression operand. */
+        make_lvalue_or_rvalue_expression_operand(expr_copy, operand);
+      }  /* if */
     }  /* if */
     /* The information in the rescan info was saved for this moment, when
        we can use it to restore operand information that would not otherwise
@@ -2318,8 +2362,7 @@ that extra work.
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  if (expr_stack->template_deduction_declaration_context &&
-      operand->is_template_generic) {
+  if (expr_stack->template_deduction_declaration_context) {
     /* For an expression that may be rescanned to do semantic analysis
        later for template deduction, save extra information from the
        operand. */
@@ -2458,7 +2501,6 @@ destroyed its source position, etc.  Restore such things from
   if (operand->is_operand_of_address_of) {
     operand->ampersand_position = orig_operand->ampersand_position;
   }  /* if */
-  operand->is_template_generic = orig_operand->is_template_generic;
 }  /* restore_operand_details */
 
 
@@ -2818,12 +2860,6 @@ current token will be used as the operand position.
     clear_operand((an_operand_kind)ok_constant, operand);
     copy_constant(constant, &operand->variant.constant);
     operand->type = constant->type;
-    if (constant->kind == (a_constant_repr_kind)ck_template_param) {
-      /* A template-dependent constant should get the template-generic
-         handling.  (This code is needed particularly if the constant has
-         a known type but a template-dependent value.) */
-      operand->is_template_generic = TRUE;
-    }  /* if */
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   set_operand_position_to_pos_curr_token(operand);
@@ -3021,7 +3057,6 @@ Return the operand in *result.
   an_operand       orig_operand;
 
   orig_operand = *operand;
-  operand->is_template_generic = TRUE;
   node = make_node_from_operand(operand);
   /* Build the ck_template_param constant. */
   make_template_param_expr_constant(node, &con);
@@ -3777,7 +3812,6 @@ is_qualified_name is TRUE if the source form used a qualified name.
     prep_generic_template_argument_list(template_arg_list);
     make_constant_operand(&con, operand);
   }  /* if */
-  operand->is_template_generic = TRUE;
 }  /* make_unknown_dependent_function_operand */
 
 
@@ -6284,14 +6318,15 @@ as an lvalue.
     con = &operand->variant.constant;
     is_nonreal = is_nonreal_member_constant(con, &is_function);
     check_assertion(is_nonreal);
-    expr = alloc_node_for_constant(con);
+    /* Use make_node_from_operand to get operand rescan information saved. */
+    expr = make_node_from_operand(operand);
     check_assertion(!expr->is_lvalue);
     expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
                                      expr->type, expr);
     make_lvalue_expression_operand(expr, operand);
     if (is_function) operand->state = (an_operand_state)os_function_designator;
     restore_operand_details(operand, &orig_operand);
-    operand->is_template_generic = TRUE;
+    operand->is_id_expression = orig_operand.is_id_expression;
   }  /* if */
 }  /* change_template_param_constant_operand_to_lvalue */
 
@@ -7668,12 +7703,6 @@ operator_position indicates the operator position.
       } else {
         /* The constant operation was not folded; create an expression
            operand. */
-        if (template_constant) {
-          /* Make sure we save rescan information on both operands even if
-             one is not template-dependent. */
-          operand_1->is_template_generic = TRUE;
-          operand_2->is_template_generic = TRUE;
-        }  /* if */
         build_binary_result_operand_full(operand_1, operand_2, op,
                                          result_type, result_is_lvalue,
                                          result);
@@ -7757,7 +7786,6 @@ in which case we force the operand to be an rvalue.
   if (force_to_rvalue) {
     do_operand_transformations(operand, TOPT_NO_OPTIONS);
   }  /* if */
-  operand->is_template_generic = TRUE;
 }  /* do_generic_operand_transformations */
 
 
@@ -7834,7 +7862,6 @@ the expression.
   /* We don't know how this operand is used, so set a special kind
      of reference. */
   change_ref_kinds(operand->ref_entries_list, SRK_PROTO_INST_REF);
-  operand->is_template_generic = TRUE;
 }  /* prep_generic_operand_full */
 
 
@@ -8030,7 +8057,6 @@ e.g., if the source operand is an lvalue.
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
   operand->is_id_expression = FALSE;
-  operand->is_template_generic = TRUE;
 }  /* generic_cast_operand */
 
 
@@ -8109,7 +8135,6 @@ it happens in prototype instantiations.  op is the operator to be used.
   }  /* if */
   do_binary_operation(op, operand_1, operand_2, result_type,
                       result, operator_position);
-  result->is_template_generic = TRUE;
   record_operator_position_in_rescan_info(result, operator_position,
                                           operator_tok_seq_number);
 }  /* template_binary_operation */
@@ -8169,11 +8194,6 @@ indicates the operator position.
       } else {
         /* The operation could not be folded to a constant, so build
            an expression node. */
-        if (template_constant) {
-          /* Make sure we save rescan information on the operand even if
-             it's not template-dependent in some sense of the word. */
-          operand->is_template_generic = TRUE;
-        }  /* if */
         build_unary_result_operand(operand, op, result_type, result);
 #if !UNARY_PLUS_IN_IL
         if (op == (an_expr_operator_kind)eok_unary_plus &&
@@ -8289,7 +8309,6 @@ it happens in prototype instantiations.  op is the operator to be used.
     do_unary_operation(op, operand, result_type,
                        result, start_position);
   }  /* if */
-  result->is_template_generic = TRUE;
   result->ruled_out_expr_kinds = operand->ruled_out_expr_kinds;
   if (op == (an_expr_operator_kind)eok_address_of &&
       result->is_operand_of_address_of) {
@@ -8689,7 +8708,6 @@ the position and token sequence number of the "?" operator.
                         /*suppress_class_rvalue_temp=*/TRUE,
                         /*template_case=*/TRUE,
                         is_gnu_two_operand_form, result);
-  result->is_template_generic = TRUE;
   record_operator_position_in_rescan_info(result, question_position,
                                           question_tok_seq_number);
 }  /* template_question_operation */

@@ -1367,6 +1367,15 @@ extern a_type_ptr type_of_decltype_expr_with_substitution(
                                  a_ctws_options_set       options,
                                  a_boolean                *copy_error);
 
+typedef struct a_symbol a_symbol_il_h_dummy_typedef;
+extern struct a_symbol *
+symbol_for_template_param_unknown_entity_con_after_substitution(
+                                 a_constant_ptr           con,
+                                 a_template_arg_ptr       template_arg_list,
+                                 struct a_template_param  *template_param_list,
+                                 a_source_position        *source_pos,
+                                 a_ctws_options_set       options);
+
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_constant_ptr           con,
                                  a_template_arg_ptr       template_arg_list,
@@ -1463,7 +1472,6 @@ extern void adjust_anonymous_union_field_selection(an_expr_node_ptr node,
                                                    a_field_ptr      au_field);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-typedef struct a_symbol a_symbol_il_h_dummy_typedef;
 extern void adjust_nonstandard_anonymous_object_field_references(
                                                   an_expr_node_ptr node,
                                                   struct a_symbol  *field_sym,

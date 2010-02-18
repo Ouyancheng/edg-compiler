@@ -13032,111 +13032,6 @@ kind of cast.
 }  /* is_cast_operation_node */
 
 
-static an_expr_node_ptr strip_implicit_operations(an_expr_node_ptr expr)
-/*
-Strip compiler-generated operations (e.g., implicit casts) from the top of
-the given expression and return the underlying expression.
-*/
-{
-  while (is_operation_node(expr) &&
-         expr->variant.operation.compiler_generated &&
-         is_cast_operation_node(expr)) {
-    expr = expr->variant.operation.operands;
-  }  /* if */
-  return expr;
-}  /* strip_implicit_operations */
-
-
-static a_boolean expr_is_rescannable(an_expr_node_ptr expr)
-/*
-Return TRUE if the given expression is rescannable, meaning that it can
-be run through the expression-scanning routines in a special mode that
-redoes semantic analysis.
-*/
-{
-  a_boolean rescannable = FALSE;
-
-  expr = strip_implicit_operations(expr);
-  if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    /* The list here should match the list in
-       operator_token_for_expr_rescan. */
-    switch (op) {
-      case eok_subscript:
-      case eok_post_incr:
-      case eok_post_decr:
-      case eok_pre_incr:
-      case eok_pre_decr:
-      case eok_address_of:
-      case eok_indirect:
-      case eok_unary_plus:
-      case eok_negate:
-      case eok_complement:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-      case eok_xconj:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-      case eok_not:
-      case eok_add:
-      case eok_padd:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_fjadd:
-      case eok_jfadd:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_subtract:
-      case eok_psubtract:
-      case eok_pdiff:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_fjsubtract:
-      case eok_jfsubtract:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_multiply:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_jmultiply:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_divide:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_jdivide:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_remainder:
-      case eok_shiftl:
-      case eok_shiftr:
-      case eok_lt:
-      case eok_gt:
-      case eok_le:
-      case eok_ge:
-      case eok_eq:
-      case eok_ne:
-      case eok_gnu_max:
-      case eok_gnu_min:
-      case eok_and:
-      case eok_or:
-      case eok_xor:
-      case eok_land:
-      case eok_lor:
-      case eok_comma:
-      case eok_question:
-      case eok_assign:
-      case eok_add_assign:
-      case eok_padd_assign:
-      case eok_subtract_assign:
-      case eok_psubtract_assign:
-      case eok_multiply_assign:
-      case eok_divide_assign:
-      case eok_remainder_assign:
-      case eok_shiftl_assign:
-      case eok_shiftr_assign:
-      case eok_and_assign:
-      case eok_or_assign:
-      case eok_xor_assign:
-        rescannable = TRUE;
-        break;
-      default:;
-    }  /* switch */
-  }  /* if */
-  return rescannable;
-}  /* expr_is_rescannable */
-
-
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
@@ -13267,21 +13162,6 @@ produced.  See copy_template_param_expr for the parameter descriptions.
   }  /* if */
   return expr_copy;
 }  /* copy_template_param_expr_as_rvalue */
-
-
-/* Forward declaration. */
-static a_constant_ptr copy_template_param_unknown_entity_con(
-                                  a_constant_ptr           con,
-                                  a_template_arg_ptr       template_arg_list,
-                                  a_template_param_ptr     template_param_list,
-                                  a_type_ptr               guide_type,
-                                  a_boolean                is_address,
-                                  a_boolean                is_template_ref,
-                                  a_template_arg_ptr       ref_arg_list,
-                                  a_source_position        *source_pos,
-                                  a_ctws_options_set       options,
-                                  a_boolean                *copy_error,
-                                  a_constant_ptr           constant);
 
 
 static an_expr_node_ptr copy_template_param_builtin_operation(
@@ -13480,6 +13360,28 @@ options is a set of name lookup options.
 #endif /* CHECKING */
 
   *alloc_con = NULL;
+  if (cpp0x_sfinae_enabled && expr_is_rescannable(expr)) {
+    /* Redo the semantic analysis on the expression, after substitution.
+       This makes a copy of the expression, even of parts that are
+       not changed by substitution, so the original expression remains
+       unchanged. */
+    a_rescan_control_block rcblock;
+    clear_rescan_control_block(&rcblock);
+    rcblock.template_arg_list = template_arg_list;
+    rcblock.template_param_list = template_param_list;
+    rcblock.options = options;
+    expr_copy = rescan_expr_with_substitution(expr, &rcblock, constant);
+    if (rcblock.error_detected) {
+      /* There was an error, so deduction fails. */
+      *copy_error = TRUE;
+    }  /* if */
+    /* Here, either expr_copy is non-NULL and points to the expression
+       copy, or expr_copy is NULL and *constant has been set to the
+       constant result after substitution, or *copy_error is set.
+       *alloc_con is always NULL, because no allocated copy of the
+       constant is available. */
+    goto end_of_routine;
+  }  /* if */
   switch (expr->kind) {
     case enk_constant:
       /* The expression is just a constant.  Do substitution and return
@@ -13497,34 +13399,14 @@ options is a set of name lookup options.
       op = expr->variant.operation.kind;
       if (op == (an_expr_operator_kind)eok_lvalue) {
         /* Copy the operand of an eok_lvalue node as an lvalue. */
-        expr_copy = copy_template_param_expr_as_lvalue(expr,
+        an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+        expr_copy = copy_template_param_expr_as_lvalue(operand_1,
                                                        template_arg_list,
                                                        template_param_list,
                                                        guide_type,
                                                        source_pos,
                                                        options,
                                                        copy_error);
-      } else if (cpp0x_sfinae_enabled && expr_is_rescannable(expr)) {
-        /* Redo the semantic analysis on the expression, after substitution.
-           This makes a copy of the expression, even of parts that are
-           not changed by substitution, so the original expression remains
-           unchanged. */
-        a_rescan_control_block rcblock;
-        clear_rescan_control_block(&rcblock);
-        rcblock.template_arg_list = template_arg_list;
-        rcblock.template_param_list = template_param_list;
-        rcblock.options = options;
-        expr = strip_implicit_operations(expr);
-        expr_copy = rescan_expr_with_substitution(expr, &rcblock, constant);
-        if (rcblock.error_detected) {
-          /* There was an error, so deduction fails. */
-          *copy_error = TRUE;
-          break;
-        }  /* if */
-        /* Here, either expr_copy is non-NULL and points to the expression
-           copy, or expr_copy is NULL and *constant has been set to the
-           constant result after substitution.  *alloc_con is always NULL,
-           because no allocated copy of the constant is available. */
       } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  This is a limitation with respect to the standard,
@@ -13803,6 +13685,7 @@ options is a set of name lookup options.
       *copy_error = TRUE;
       break;
   }  /* switch */
+end_of_routine:
   if (*copy_error) {
     /* Return an error node on a copy error. */
     expr_copy = error_node();
@@ -13856,6 +13739,85 @@ set to TRUE for an error.
 }  /* type_of_decltype_expr_with_substitution */
 
 
+a_symbol_ptr symbol_for_template_param_unknown_entity_con_after_substitution(
+                                  a_constant_ptr           con,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options)
+/*
+con is a ck_template_param constant for an unknown template-dependent
+entity.  Conceptually replace any occurrences of template parameters
+with the corresponding values from the template argument list
+template_arg_list, and return a pointer to the symbol for the entity
+selected after substitution, or NULL if there is no such symbol
+or if there is a substitution error.  template_param_list is the
+parameter list for which template_arg_list is an argument list.
+source_pos give the source position.  options is a set of options
+for the copy/substitution.
+*/
+{
+  a_symbol_ptr   sym;
+  a_type_ptr     parent_type;
+  a_boolean      copy_error = FALSE;
+
+  check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
+                  (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_member ||
+                   con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function));
+  if (!con->source_corresp.is_class_member) {
+    check_assertion(con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function);
+    /* For a non-member unknown function, the original symbol (probably
+       an overload set) was saved when this constant was created. */
+    sym = con->variant.template_param.variant.unknown_function.symbol;
+    check_assertion(sym != NULL);
+  } else {
+    /* Member constant (normal case). */
+    /* This occurs for member constants specified in forms such as A<T>::x.
+       Do substitution on the parent type and then look up the name in the
+       updated class to see what the member is. */
+    a_symbol_ptr orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
+    check_assertion(orig_sym != NULL);
+    parent_type = parent_class_of(con);
+    if (parent_type->source_corresp.member_of_unknown_base) {
+      /* We're pretending that we found the member in a dependent
+         base class.  That means the original form of reference
+         was unqualified.  Leave the constant as it is. */
+      sym = orig_sym;
+    } else {
+      sym = copy_parent_type_with_substitution(orig_sym, parent_type,
+                                               template_arg_list,
+                                               template_param_list,
+                                               source_pos,
+                                               /*is_type=*/FALSE,
+                                               options,
+                                               &copy_error);
+      if (sym == orig_sym) {
+        /* A reference like "X::operator T" will not be substituted by the call
+           above because the parent type is not altered.  Check for an unknown
+           conversion function that must be processed. */
+        a_type_ptr	conv_type;
+        conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
+        if (conv_type != NULL) {
+          /* Substitute the any template parameters in the conversion type. */
+          conv_type = copy_type_with_substitution(conv_type, template_arg_list,
+                                                  template_param_list,
+                                                  source_pos,
+                                                  options, &copy_error);
+          /* Look for a conversion function that converts to the new type. */
+          sym = look_up_conversion_function(parent_type, conv_type,
+                                            source_pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (copy_error) sym = NULL;
+  return sym;
+}  /* symbol_for_template_param_unknown_entity_con_after_substitution */
+
+
 static a_constant_ptr copy_template_param_unknown_entity_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
@@ -13891,65 +13853,18 @@ substitution on a type), set *copy_error to TRUE.  options is a set of
 name lookup options.
 */
 {
-  a_constant_ptr con_copy;
-  a_symbol_ptr   sym, orig_sym;
-  a_type_ptr     parent_type;
+  a_symbol_ptr   sym;
   a_boolean      err = FALSE, type_check_needed = (guide_type != NULL);
   a_boolean      unhandled_template_args = is_template_ref;
+  a_constant_ptr con_copy = con;
 
-  check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
-                  (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_member ||
-                   con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function));
-  con_copy = con;
-  if (!con->source_corresp.is_class_member) {
-    check_assertion(con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function);
-    /* For a non-member unknown function, the original symbol (probably
-       an overload set) was saved when this constant was created. */
-    sym = con->variant.template_param.variant.unknown_function.symbol;
-    check_assertion(sym != NULL);
-  } else {
-    /* Member constant (normal case). */
-    /* This occurs for member constants specified in forms such as A<T>::x.
-       Do substitution on the parent type and then look up the name in the
-       updated class to see what the member is. */
-    orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
-    check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
-    parent_type = parent_class_of(con);
-    if (parent_type->source_corresp.member_of_unknown_base) {
-      /* We're pretending that we found the member in a dependent
-         base class.  That means the original form of reference
-         was unqualified.  Leave the constant as it is. */
-      sym = orig_sym;
-    } else {
-      sym = copy_parent_type_with_substitution(orig_sym, parent_type,
-                                               template_arg_list,
-                                               template_param_list,
-                                               source_pos,
-                                               /*is_type=*/FALSE,
-                                               options,
-                                               copy_error);
-      if (sym == orig_sym) {
-        /* A reference like "X::operator T" will not be substituted by the call
-           above because the parent type is not altered.  Check for an unknown
-           conversion function that must be processed. */
-        a_type_ptr	conv_type;
-        conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
-        if (conv_type != NULL) {
-          /* Substitute the any template parameters in the conversion type. */
-          conv_type = copy_type_with_substitution(conv_type, template_arg_list,
-                                                  template_param_list,
-                                                  source_pos,
-                                                  options, copy_error);
-          /* Look for a conversion function that converts to the new type. */
-          sym = look_up_conversion_function(parent_type, conv_type,
-                                            source_pos);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  /* Extract the symbol for the entity after substitution. */
+  sym = symbol_for_template_param_unknown_entity_con_after_substitution(
+                                                           con,
+                                                           template_arg_list,
+                                                           template_param_list,
+                                                           source_pos,
+                                                           options);
   if (sym == NULL) {
     /* The substituted parent class has no member of the specified name. */
     err = TRUE;
