@@ -302,6 +302,28 @@ set to TRUE before they are attached.
   if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
     an_il_entry_kind  entity_kind;
     char              *entity;
+    if ((dps->dso_flags & DSO_FRIEND) != 0 && !primary_decl) {
+      /* Standard attributes are allowed on friend declarations only if that
+         friend declaration is also a definition. */
+      an_attribute_ptr  ap, err_ap = NULL;
+      for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
+        if (ap->family == (a_byte_attribute_family)af_std) {
+          if (err_ap == NULL) err_ap = ap;
+          make_attr_unrecognized(ap);
+        }  /* if */
+      }  /* if */
+      for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
+        if (ap->family == (a_byte_attribute_family)af_std) {
+          if (err_ap == NULL) err_ap = ap;
+          make_attr_unrecognized(ap);
+        }  /* if */
+      }  /* if */
+      if (err_ap != NULL) {
+        pos_error(ec_friend_attribute_requires_definition,
+                  &err_ap->group->position);
+        goto done;
+      }  /* if */
+    }  /* if */
     if (dps->sym == NULL) {
       entity = NULL;
       entity_kind = iek_none;
@@ -322,6 +344,7 @@ set to TRUE before they are attached.
     attach_attributes(dps->prefix_attributes, entity, entity_kind);
     detach_parse_state_from_attributes(dps);
   }  /* if */
+done:;
 }  /* attach_decl_attributes */
 
 

@@ -1931,6 +1931,7 @@ ec_invalid_alignment_reducing_attr;;"alignment cannot be set to less than the de
 ec_attribute_on_explicit_instantiation;;"attributes are not allowed on explicit instantiations"
 ec_attr_disallows_definition;;"attribute %sq does not apply to a definition"
 ec_attr_requires_definition;;"attribute %sq requires a definition"
+ec_friend_attribute_requires_definition;;"standard attributes cannot appear on friend declarations that are not definitions"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
