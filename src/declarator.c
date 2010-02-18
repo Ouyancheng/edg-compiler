@@ -1903,8 +1903,9 @@ if this is the function declarator in a friend function declaration.
             (void)get_token();
             dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
           }  /* if */
-          dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         }  /* if */
+        if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+        if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
         /* Count the number of parameters encountered. */
         param_number++;
