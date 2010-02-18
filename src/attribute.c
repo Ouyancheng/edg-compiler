@@ -1922,7 +1922,13 @@ attribute ap applied to the given routine matches those constraints.
         constr += 2;
       } else if (constr[1] == 'v') {
         /* Check for virtual functions */
-        if (routine->is_virtual) {
+        if (routine->is_prototype_instantiation &&
+            routine->source_corresp.is_class_member &&
+            routine->template_arg_list == NULL &&
+            base_classes_of(parent_class_of(routine)) != NULL) {
+          /* A member of a class template prototype instantiation that has
+             base classes: We cannot tell if it is virtual or not. */
+        } else if (routine->is_virtual) {
           if (constr[0] == '-') {
             err = ec_attr_disallows_virtual_function;
           }  /* if */
