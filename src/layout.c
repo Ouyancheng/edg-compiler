@@ -4799,6 +4799,7 @@ issue a diagnostic if such a reduction is invalid or ignored.
                                                                   alignment) {
               break;
             }  /* if */
+            check_assertion(!ovflo);
           } else {
             check_assertion(aap->kind == (an_attribute_arg_kind)aak_type);
             if (alignment_of_type(aap->variant.type) == alignment) break;
