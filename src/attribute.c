@@ -2990,10 +2990,7 @@ return that entity.
       a_type_ptr  tp = aap->variant.type;
       check_assertion(ap->family == (a_byte_attribute_family)af_std);
       /* For references and/or arrays, use the underlying type. */
-      if (is_reference_type(tp)) {
-        tp = skip_typerefs(tp);
-        tp = type_pointed_to(tp);
-      }  /* if */
+      if (is_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       if (is_function_type(tp)) {
         pos_error(ec_function_type_not_allowed, &aap->position);
