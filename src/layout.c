@@ -4778,7 +4778,7 @@ static void check_explicit_alignment(a_type_ptr          class_type,
 /*
 The given class_type has the given explicitly specified alignment.  If this is
 a reduction of alignment compared to the "natural" alignment recorded in *lob,
-issue diagnostic if such a reduction is invalid or ignored.
+issue a diagnostic if such a reduction is invalid or ignored.
 */
 {
   if (class_type->alignment_set_explicitly) {
