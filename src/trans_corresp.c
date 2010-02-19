@@ -4883,12 +4883,11 @@ entities.
         } else if (corresp_found) {
           /* We've found the correspondence already; only look for
              conflicts. */
-        } else if (sym->kind == type_sym->kind ||
-                   /* "class" and "struct" are interchangeable if not both
-                      entries are definitions. */
-                   (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
-                    type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
-                    sym->defined != type_sym->defined)) {
+        } else if (sym->kind == type_sym->kind) {
+          /* This test will succeed when one symbol represents a "struct" and
+             the other a "class".  Strictly speaking, "class" and "struct" are
+             interchangeable only if the entries are not both for definitions,
+             but that is not enforced here. */
           a_type_ptr  corresp_type = type_symbol_type(sym);
           set_type_corresp(type, corresp_type);
           corresp_found = TRUE;
