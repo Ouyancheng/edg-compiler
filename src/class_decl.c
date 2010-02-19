@@ -16251,18 +16251,6 @@ classes.
          instantiation.  Such specializations are only allowed in Microsoft
          mode, but may still occur (with an error) in other modes. */
       class_state.is_nonreal_instantiation = TRUE;
-    } else if (is_template_instantiation && tag_sym->is_class_member) {
-      /* An instance of a member template.  Mark it as nonreal if the
-         instantiation is being triggered inside a prototype instantiation. */
-      if (sym_parent_class(tag_sym)
-                              ->variant.class_struct_union.is_nonreal_class) {
-        class_state.is_nonreal_instantiation = TRUE;
-        class_type->variant.class_struct_union.is_nonreal_class = TRUE;
-      }  /* if */
-    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
-      /* A definition of a nonreal class that is not a template instantiation.
-         This should only occur when defining a specialization of a class
-         in a class scope. */
       if (allow_in_class_specializations &&
           class_type->variant.class_struct_union.is_specialized) {
         class_state.is_nonreal_instantiation = TRUE;
@@ -16271,6 +16259,14 @@ classes.
              template<template <class X> class T> struct S struct T<int> {};
            Check that an error has been or will be issued. */
         expect_error();
+      }  /* if */
+    } else if (is_template_instantiation && tag_sym->is_class_member) {
+      /* An instance of a member template.  Mark it as nonreal if the
+         instantiation is being triggered inside a prototype instantiation. */
+      if (sym_parent_class(tag_sym)
+                              ->variant.class_struct_union.is_nonreal_class) {
+        class_state.is_nonreal_instantiation = TRUE;
+        class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
     }  /* if */
     /* If this class is nested in an in-class specialization, consider it
