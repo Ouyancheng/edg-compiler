@@ -1,5 +1,21 @@
 Version 4.2
 
+2/19/10  [EDGcpfe/10275]
+C-generating back end, GNU compatibility: builtin functions with LOWER_COMPLEX
+
+In C-generating back end configurations with GNU_COMPLEX_EXTENSIONS_ALLOWED
+and LOWER_COMPLEX set to TRUE, use of a builtin function whose parameters
+or return value are a complex type resulted in errors when compiling the
+generated code, because the lowered complex type is different from the
+type expected by gcc.  The C-generating back end has now been changed to
+emit declarations for such builtin functions, overriding the builtin
+declaration and avoiding the error.  For example:
+
+  __complex__ double f(__complex__ double z) {
+    return __builtin_csqrt(z);    // Previously an error in the generaed code
+  }
+
+
 2/17/10  [EDGcpfe/10469]
 Microsoft compatibility: class_rvalue.float_field is considered an lvalue
 

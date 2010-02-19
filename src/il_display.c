@@ -2759,6 +2759,11 @@ Display the indicated routine.
   if (ptr->implicit_alias) {
     disp_boolean("implicit_alias", TRUE);
   }  /* if */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+  if (ptr->builtin_using_complex_type) {
+    disp_boolean("builtin_using_complex_type", TRUE);
+  }  /* if */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {

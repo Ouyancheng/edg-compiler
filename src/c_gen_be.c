@@ -8395,8 +8395,17 @@ if this routine has a body (dump nothing if it has no body).
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rout->special_kind == (a_special_function_kind)sfk_none &&
              rout->variant.builtin_function_kind != 
-                                         (a_builtin_function_kind)bfk_none) {
-    /* GNU builtin functions should not be declared or defined. */
+                                         (a_builtin_function_kind)bfk_none
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX
+             /* When complex types are lowered, builtin functions using
+                complex types are incompatible with the lowered types and
+                thus must be declared as ordinary functions if they are
+                used. */
+             && !(rout->source_corresp.needed &&
+                  rout->builtin_using_complex_type)
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+             ) {
+    /* GNU builtin functions should otherwise not be declared or defined. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {

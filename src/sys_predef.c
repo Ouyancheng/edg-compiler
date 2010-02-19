@@ -382,6 +382,53 @@ The code is kept considerably more compact by using the following macros.
   enter_gnu_builtin_func2(edg_concat(name,l), long_double, long_double,      \
                           long_double)
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+/* The complex types passed as arguments and returned by these functions
+   will be lowered to C structs.  If these functions are used, they must be
+   declared in the generated C code as using those lowered types;
+   otherwise, compiling the generated code will report type mismatches
+   between the lowered types and the types used by the builtin functions.
+   Setting the builtin_using_complex_type flag enables the C-generating
+   back end to determine which builtin functions need to be declared. */
+#define make_gnu_builtin_func1(name, rtp, a1tp)                              \
+  make_gnu_builtin_function(bfk_prefix(name),                                \
+                            edg_concat(rtp,_type), edg_concat(a1tp,_type),   \
+                            (a_type_ptr)NULL, (a_type_ptr)NULL,              \
+                            (a_type_ptr)NULL, (a_type_ptr)NULL,              \
+                            (a_type_ptr)NULL, /*is_varargs=*/FALSE)
+#define make_gnu_builtin_func2(name, rtp, a1tp, a2tp)                        \
+  make_gnu_builtin_function(bfk_prefix(name),                                \
+                            edg_concat(rtp,_type), edg_concat(a1tp,_type),   \
+                            edg_concat(a2tp,_type), (a_type_ptr)NULL,        \
+                            (a_type_ptr)NULL, (a_type_ptr)NULL,              \
+                            (a_type_ptr)NULL, /*is_varargs=*/FALSE)
+#define enter_gnu_builtin_complex_to_real_funcs(name)                        \
+  make_gnu_builtin_func1(name, double, complex_double)->                     \
+                                         builtin_using_complex_type = TRUE;  \
+  make_gnu_builtin_func1(edg_concat(name,f), floating, complex_float)->      \
+                                         builtin_using_complex_type = TRUE;  \
+  make_gnu_builtin_func1(edg_concat(name,l), long_double,                    \
+                         complex_long_double)->                              \
+                                         builtin_using_complex_type = TRUE
+#define enter_gnu_builtin_complex_math_funcs1(name)                          \
+  make_gnu_builtin_func1(name, complex_double, complex_double)->             \
+                                         builtin_using_complex_type = TRUE;  \
+  make_gnu_builtin_func1(edg_concat(name,f), complex_float, complex_float)-> \
+                                         builtin_using_complex_type = TRUE;  \
+  make_gnu_builtin_func1(edg_concat(name,l), complex_long_double,            \
+                         complex_long_double)->                              \
+                                         builtin_using_complex_type = TRUE
+#define enter_gnu_builtin_complex_math_funcs2(name)                          \
+  make_gnu_builtin_func2(name, complex_double,                               \
+                         complex_double, complex_double)->                   \
+                                         builtin_using_complex_type = TRUE;  \
+  make_gnu_builtin_func2(edg_concat(name,f),                                 \
+                         complex_float, complex_float, complex_float)->      \
+                                         builtin_using_complex_type = TRUE;  \
+  make_gnu_builtin_func2(edg_concat(name,l), complex_long_double,            \
+                         complex_long_double, complex_long_double)->         \
+                                         builtin_using_complex_type = TRUE
+#else /* !(LOWER_COMPLEX && BACK_END_IS_C_GEN_BE) */
 #define enter_gnu_builtin_complex_to_real_funcs(name)                        \
   enter_gnu_builtin_func1(name, double, complex_double);                     \
   enter_gnu_builtin_func1(edg_concat(name,f), floating, complex_float);      \
@@ -398,6 +445,7 @@ The code is kept considerably more compact by using the following macros.
                           complex_float, complex_float, complex_float);      \
   enter_gnu_builtin_func2(edg_concat(name,l), complex_long_double,           \
                           complex_long_double, complex_long_double)
+#endif /* LOWER_COMPLEX && BACK_END_IS_C_GEN_BE */
 #else /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #define enter_gnu_builtin_complex_to_real_funcs(name) /* Nothing */
 #define enter_gnu_builtin_complex_math_funcs1(name) /* Nothing */

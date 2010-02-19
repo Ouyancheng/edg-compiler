@@ -10909,6 +10909,15 @@ typedef struct a_routine {
 			   another routine (indicated by aliased_routine).
 			   (E.g., a "strlen" declaration may be implicitly
 			   treated as an alias for "__builtin_strlen".) */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+  a_bit_field	builtin_using_complex_type:1;
+			/* TRUE if this routine is a builtin function, at
+			   least one of whose parameters or return type is
+			   a complex type.  Used by the C-generating back
+			   end to emit declarations for builtin functions
+			   involving types that are lowered and thus
+			   incompatible with the actual builtin function. */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
