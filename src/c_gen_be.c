@@ -8401,7 +8401,7 @@ if this routine has a body (dump nothing if it has no body).
                 complex types are incompatible with the lowered types and
                 thus must be declared as ordinary functions if they are
                 used. */
-             && !(rout->source_corresp.needed &&
+             && !(rout->source_corresp.referenced &&
                   rout->builtin_using_complex_type)
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
              ) {
