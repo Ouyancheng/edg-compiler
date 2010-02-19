@@ -13617,7 +13617,7 @@ if one is present.
 {
   a_variable_ptr      var_ptr = NULL;
   a_symbol_ptr        ext_sym;
-  a_type_ptr          type = state->type, prev_type = NULL;
+  a_type_ptr          type = state->type;
   a_boolean           is_static_data_member = FALSE;
   a_boolean           has_initializer = FALSE;
   a_boolean           is_variable_def = FALSE, is_tentative_def = FALSE;
@@ -13857,12 +13857,12 @@ if one is present.
     /* In some Microsoft and GNU modes, the name of the variable being
        initialized is not visible while parsing a parenthesized initializer.
        (Unless it had been previously declared, which is the case for static
-       data members or when prev_type is set).  To emulate this, we
+       data members or when state->prev_type is set).  To emulate this, we
        temporarily mark the associated symbol as invisible.*/
     a_boolean  decl_invisible_to_initializer =
                   has_parenthesized_initializer && !is_static_data_member &&
                   (microsoft_bugs || (gpp_mode && gnu_version < 30400)) &&
-                  prev_type == NULL;
+                  state->prev_type == NULL;
     if (decl_invisible_to_initializer && !state->sym->is_error) {
       state->sym->is_invisible = TRUE;
     }  /* if */
