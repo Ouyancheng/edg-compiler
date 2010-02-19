@@ -1725,7 +1725,8 @@ the current statement sequence.
     a_routine_ptr  rp = current_routine_entry();
     a_type_ptr     rtp = skip_typerefs(rp->type);
     if (rtp->variant.routine.extra_info->does_not_return &&
-        curr_reachability.reachable_considering_hints) {
+        curr_reachability.reachable_considering_hints &&
+        !rp->is_prototype_instantiation) {
       /* Issue a warning on the return statement.  (For implicit returns,
          the warning is issued on the current token, which is normally the
          closing brace.) */
