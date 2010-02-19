@@ -265,11 +265,6 @@ Return the field alignment for the given type.
   return result;
 }  /* field_alignment_for */
 
-#else /* !TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-/*
-The field alignment is therefore equal to the intrinsic alignment of the type.
-*/
-#define field_alignment_for(tp) (alignment_of_type(tp))
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
 

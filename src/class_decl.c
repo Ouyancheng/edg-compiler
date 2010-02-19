@@ -10094,6 +10094,7 @@ specific information about the member declaration, respectively.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  record_std_alignment_attr(decl_state);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!var->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */

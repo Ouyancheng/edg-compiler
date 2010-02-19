@@ -71,6 +71,11 @@ extern a_targ_alignment current_pack_pragma_value(void);
 
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 extern a_targ_alignment field_alignment_for(a_type_ptr  type);
+#else /* !TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+/*
+The field alignment is equal to the intrinsic alignment of the type.
+*/
+#define field_alignment_for(tp) (alignment_of_type(tp))
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
 extern a_boolean is_empty_class_type(a_type_ptr type);

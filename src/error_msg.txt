@@ -1932,6 +1932,8 @@ ec_attribute_on_explicit_instantiation;;"attributes are not allowed on explicit 
 ec_attr_disallows_definition;;"attribute %sq does not apply to a definition"
 ec_attr_requires_definition;;"attribute %sq requires a definition"
 ec_friend_attribute_requires_definition;;"standard attributes cannot appear on friend declarations that are not definitions"
+ec_inconsistent_alignment;;"specified alignment (%s1) is different from alignment (%s2) specified on a previous declaration"
+ec_variable_align_attr_not_on_definition;;"alignment attribute does not appear on definition %p"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

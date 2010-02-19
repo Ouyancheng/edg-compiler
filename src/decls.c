@@ -154,6 +154,7 @@ reflected in start_secondary_declarator.
   ps->prescanned_lifetime = NULL;
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
+  ps->alignment = 0;
   ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
   ps->p_postfix_entities = NULL;
   ps->assoc_func_decl_state = NULL;
@@ -13604,6 +13605,74 @@ function parameter declaration: This routine does nothing in that case.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+void record_std_alignment_attr(a_decl_parse_state_ptr  dps)
+/*
+If applicable, record the explicit alignment specified by standard alignment
+attributes on the declaration described by *dps in the corresponding variable
+entry.  Issue an error if this alignment is invalid (e.g., inconsistent with
+previous declarations).
+If no attribute was specified and dps->is_definition is TRUE, issue an error
+if prior declarations specified an alignment attribute.
+*/
+{
+  a_variable_ptr  vp = NULL;
+
+  if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+    vp = dps->sym->variant.variable.ptr;
+  } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+    vp = dps->sym->variant.static_data_member.variable;
+  }  /* if */
+  if (dps->alignment != 0) {
+    /* At least one standard attribute was specified. */
+    an_attribute_ptr  ap = find_attribute(ak_align, dps->prefix_attributes);
+    if (ap == NULL) ap = find_attribute(ak_align, dps->id_attributes);
+    check_assertion(ap != NULL);
+    /* Check that the specified alignment is consistent with any previously
+       specified alignments for the declared variable, and, if so, record that
+       alignment in the variable entry. */
+    if (vp == NULL) {
+      expect_error();
+    } else if (alignment_of_type(vp->type) > dps->alignment) {
+      /* The alignment (as specified by standard attributes) cannot be weaker
+         than the default alignment of the variable's type. */
+      pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
+    } else if (vp->alignment == 0) {
+      /* This is the first time an alignment attribute is explicitly specified
+         for this variable.  If a definition appeared previously, this is an
+         error. */
+      if (!dps->is_definition && dps->sym->defined) {
+        pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
+                        &ap->position, &dps->sym->decl_position);
+      } else {
+        vp->alignment = dps->alignment;
+      }  /* if */
+    } else if (vp->alignment != dps->alignment) {
+      /* A previous declaration specified an explicit alignment that is
+         inconsistent with the current declaration.  Issue an error. */
+      char  orig_align_str[100], new_align_str[100];
+      (void)sprintf(orig_align_str, "%d", vp->alignment);
+      (void)sprintf(new_align_str, "%d", dps->alignment);
+      pos_st2_error(ec_inconsistent_alignment, &ap->group->position,
+                    new_align_str, orig_align_str);
+    }  /* if */
+    /* Clear the alignment so that additional callbacks on this declaration
+       will have no effect. */
+    dps->alignment = 0;
+  } else if (dps->is_definition && vp != NULL && vp->alignment != 0) {
+    /* The current declaration is a definition with no explicit alignment
+       specified through a standard attribute, but a prior variable
+       declaration did specify an explicit alignment.  If that explicit
+       alignment was the result of an attribute, issue an error. */
+    an_attribute_ptr  ap = find_attribute(ak_align,
+                                          vp->source_corresp.attributes);
+    if (ap != NULL) {
+      pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
+                      &ap->position, &dps->declarator_pos);
+    }  /* if */
+  }  /* if */
+}  /* record_std_alignment_attr */
+
+
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
                                  a_decl_pos_block    *decl_pos_block)
@@ -13979,11 +14048,12 @@ if one is present.
        though it were a definition. */
     mark_variable_value_set(state->sym);
   }  /* if */
-#if DECL_MODIFIERS_IN_USE
   if (var_ptr != NULL) {
+#if DECL_MODIFIERS_IN_USE
     check_variable_decl_modifiers(var_ptr, state);
-  }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
+    record_std_alignment_attr(state);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("dump_decl_pos_info")) {
@@ -14480,6 +14550,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->prescanned_auto_initializer = NULL;
   ps->prescanned_lifetime = NULL;
   ps->source_sequence_entry = NULL;
+  ps->alignment = 0;
 }  /* start_secondary_declarator */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS

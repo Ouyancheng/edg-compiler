@@ -2998,6 +2998,7 @@ return that entity.
     an_attribute_arg_ptr  aap = ap->arguments;
     a_targ_alignment      alignment = 0;
     a_boolean             apply_value = TRUE;
+    a_decl_parse_state    *dps = (a_decl_parse_state*)ap->assoc_info;
     if (aap == NULL) {
       /* If there is no argument to the GNU "aligned" attribute, then the
          maximum alignment useful on the target is implied. */
@@ -3041,7 +3042,7 @@ return that entity.
     } else if (entity_kind == iek_field) {
       a_field_ptr  fp = (a_field_ptr)entity;
       if (ap->family == (a_byte_attribute_family)af_std) {
-        if (alignment_of_type(fp->type) > alignment) {
+        if (field_alignment_for(fp->type) > alignment) {
           pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
           make_attr_unrecognized(ap);
         } else if (alignment > fp->alignment) {
@@ -3064,10 +3065,13 @@ return that entity.
         /* GCC retains the "last" applied alignment.  Declarator attributes
            are applied before prefix attributes. */
         vp->alignment = alignment;
-      } else if (ap->family == (a_byte_attribute_family)af_std &&
-                 alignment_of_type(vp->type) > alignment) {
-        pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
-        make_attr_unrecognized(ap);
+      } else if (ap->family == (a_byte_attribute_family)af_std) {
+        check_assertion(dps != NULL);
+        if (alignment > dps->alignment) {
+          /* The actual recording of the alignment in the variable entry will
+             be done a call to record_std_alignment_attr later on. */
+          dps->alignment = alignment;
+        }  /* if */
       } else if (alignment > vp->alignment) {
         vp->alignment = alignment;
       }  /* if */

@@ -549,6 +549,11 @@ typedef struct a_decl_parse_state {
 			   old-style C parameter definition.  May be NULL even
 			   when is_old_style_param_decl is TRUE in error
 			   cases. */
+  a_targ_alignment
+		alignment;
+			/* The explicit alignment specified for the declared
+			   entity in this declaration, or zero if no alignment
+			   has been specified explicitly. */
   a_upc_block_size
 		upc_block_size;
 			/* The UPC block size associated with any UPC shared
@@ -898,6 +903,8 @@ extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
 
 extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
                                                  a_symbol_locator    *locator);
+
+extern void record_std_alignment_attr(a_decl_parse_state_ptr  dps);
 
 extern void decls_one_time_init(void);
 
