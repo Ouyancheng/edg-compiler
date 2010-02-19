@@ -12,7 +12,7 @@ emit declarations for such builtin functions, overriding the builtin
 declaration and avoiding the error.  For example:
 
   __complex__ double f(__complex__ double z) {
-    return __builtin_csqrt(z);    // Previously an error in the generaed code
+    return __builtin_csqrt(z);    // Previously an error in the generated code
   }
 
 
