@@ -134,6 +134,19 @@ standalone program, alloc_il is not available.
 #define alloc_il_for_c_gen_be(length) alloc_il(length)
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
+/*
+Macros used to determine whether a given entity is needed in the generated
+C code.  They use the "needed" flag if that is being maintained and the
+"referenced" flag otherwise.
+*/
+#if MAINTAIN_NEEDED_FLAGS
+#define scp_is_needed_in_generated_code(scp) needed_flag_is_set(scp)
+#else /* !MAINTAIN_NEEDED_FLAGS */
+#define scp_is_needed_in_generated_code(scp) (scp)->referenced
+#endif /* MAINTAIN_NEEDED_FLAGS */
+#define entity_needed_in_generated_code(entityp)               \
+  scp_is_needed_in_generated_code(&(entityp)->source_corresp)
+
 
 #if !C_GEN_BE_GENERATES_ANSI_C
 /*
@@ -1059,11 +1072,7 @@ information should be output.  In some modes, a #if 0 will be put out.
 {
   a_boolean output_code_for_entity;
 
-#if MAINTAIN_NEEDED_FLAGS
-  output_code_for_entity = needed_flag_is_set(source_corresp);
-#else /* !MAINTAIN_NEEDED_FLAGS */
-  output_code_for_entity = source_corresp->referenced;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+  output_code_for_entity = scp_is_needed_in_generated_code(source_corresp);
   if (!output_code_for_entity) {
     if (annotate) {
       write_if_0_directive();
@@ -1081,13 +1090,7 @@ end it here.
 */
 {
   if (annotate) {
-    if (
-#if MAINTAIN_NEEDED_FLAGS
-        !needed_flag_is_set(source_corresp)
-#else /* !MAINTAIN_NEEDED_FLAGS */
-        !source_corresp->referenced
-#endif /* MAINTAIN_NEEDED_FLAGS */
-                                   ) {
+    if (!scp_is_needed_in_generated_code(source_corresp)) {
       write_endif_0_directive();
     }  /* if */
   }  /* if */
@@ -8401,7 +8404,7 @@ if this routine has a body (dump nothing if it has no body).
                 complex types are incompatible with the lowered types and
                 thus must be declared as ordinary functions if they are
                 used. */
-             && !(rout->source_corresp.referenced &&
+             && !(entity_needed_in_generated_code(rout) &&
                   rout->builtin_using_complex_type)
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
              ) {
