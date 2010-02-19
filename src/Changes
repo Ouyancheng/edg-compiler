@@ -1,5 +1,35 @@
 Version 4.2
 
+2/19/10  [EDGcpfe/10439]
+C-generating back end, GNU compatibility: placement of visibility attribute
+
+The C-generating back end previously emitted function attributes, including
+(in configurations in which GNU_VISIBILITY_ATTRIBUTE_ALLOWED is TRUE)
+"visibility" attributes, immediately preceding the function name.  However,
+the "visibility" attribute can apply both to functions and to types,
+leading to ambiguity when the attribute followed the return type and
+preceded the function name.  Prior to gcc version 4.0, gcc resolved this
+ambiguity in favor of the function, but newer versions apply the attribute
+to the return type.  To avoid this problem, the C-generating back end now
+emits function attributes at the beginning of the declaration, where there
+is no ambiguity.  For example, with
+
+  struct __attribute__((visibility("default"))) S {
+    void* f();
+  };
+  void* S::f() { return 0; }
+
+the C-generating back end previously generated the function definition as
+
+  void *__attribute__((visibility("default"))) _ZN1S1fEv(...
+
+resulting in a warning when the generated code was compiled with recent
+versions of gcc that the 'visibility" attribute was ignored on non-class
+types; now it generates
+
+  __attribute__((visibility("default"))) void *_ZN1S1fEv(...
+
+
 2/19/10  [EDGcpfe/10456]
 Visibility of variable with parenthesized initializer
 

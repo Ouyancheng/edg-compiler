@@ -1965,19 +1965,19 @@ generation of top-level "const" in ANSI C mode.
   validate_type(type);
 #endif /* CHECKING */
   if (suppress_const) options = FTO_SUPPRESS_CONST;
-  /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/
-                                 (scp != NULL || temp != NULL || name != NULL),
-                       added_qualifiers, options, &octl);
 #if GNU_EXTENSIONS_ALLOWED
   if (rout != NULL) {
-    /* Any routine attributes should immediately precede the name. */
+    /* Any routine attributes should immediately precede the return type. */
     if (form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl)) {
       m_write_space();
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Write the specifiers and the first part of the declarator. */
+  form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
+                       /*need_trailing_space=*/
+                                 (scp != NULL || temp != NULL || name != NULL),
+                       added_qualifiers, options, &octl);
   /* Write the name if there is one. */
   if (name != NULL) {
     write_tok_str(name);
@@ -7986,15 +7986,15 @@ for the definition of the indicated routine.  scope is the associated scope.
   check_assertion_str(type->kind == (a_type_kind)tk_routine,
                       "dump_func_definition_type: type not routine");
   /* The storage class and similar preamble have already been written. */
-  /* Write the specifiers and the first part of the declarator. */
-  form_type_first_part_simple(qual_type, /*under_lhs_declarator=*/FALSE,
-                              /*need_trailing_space=*/TRUE, &octl);
 #if GNU_EXTENSIONS_ALLOWED
-  /* Any routine attributes should immediately precede the name. */
+  /* Any routine attributes should immediately precede the return type. */
   if (form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl)) {
     m_write_space();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Write the specifiers and the first part of the declarator. */
+  form_type_first_part_simple(qual_type, /*under_lhs_declarator=*/FALSE,
+                              /*need_trailing_space=*/TRUE, &octl);
   /* Write the name. */
   dump_routine_name(rout);
   /* Write the second part of the declarator. */
