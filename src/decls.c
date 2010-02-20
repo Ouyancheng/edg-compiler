@@ -13626,7 +13626,7 @@ if prior declarations specified an alignment attribute.
     /* At least one standard attribute was specified. */
     an_attribute_ptr  ap = find_attribute(ak_align, dps->prefix_attributes);
     if (ap == NULL) ap = find_attribute(ak_align, dps->id_attributes);
-    check_assertion(ap != NULL);
+    check_assertion(ap != NULL || vp == NULL);
     /* Check that the specified alignment is consistent with any previously
        specified alignments for the declared variable, and, if so, record that
        alignment in the variable entry. */
