@@ -2178,6 +2178,7 @@ Clear a rescan control block to default values.
 {
   rcblock->expr = NULL;
   rcblock->operator_token = tok_error;
+  rcblock->argument_list = NULL;
   rcblock->template_arg_list = NULL;
   rcblock->template_param_list = NULL;
   rcblock->options = CTWS_NO_OPTIONS;
@@ -2219,9 +2220,9 @@ that has it.
 }  /* strip_implicit_operations_for_rescan */
 
 
-static void make_rescan_operand(an_expr_node_ptr       expr,
-                                a_rescan_control_block *rcblock,
-                                an_operand             *operand)
+void make_rescan_operand(an_expr_node_ptr       expr,
+                         a_rescan_control_block *rcblock,
+                         an_operand             *operand)
 /*
 As part of redoing semantic analysis on an expression while doing template
 deduction, convert expr (an operand of the expression currently being
@@ -2331,6 +2332,72 @@ list being tried.
   *operator_position = eriep->operator_position;
   *operator_tok_seq_number = eriep->operator_token_sequence_number;
 }  /* make_rescan_operands */
+
+
+void make_call_rescan_operands(
+                              a_rescan_control_block  *rcblock,
+                              an_operand              *operand,
+                              an_operand              *bound_function_selector,
+                              a_source_position       *operator_position,
+                              a_token_sequence_number *operator_tok_seq_number)
+/*
+As part of redoing semantic analysis on an expression while doing template
+deduction, extract the operands of the call expression given by rcblock->expr
+and return the function to call as *operand, and the bound function selector
+(if any) as *bound_function_selector.  Also return the operator position and
+operator token sequence number in *operator_position and
+*operator_tok_seq_number.  rcblock also gives context information for the
+template deduction being done, e.g., the template argument list being tried.
+rcblock->argument_list is set to the start of the argument list for the call,
+to be converted to operand form later.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr, op1, args;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_boolean                     has_selector = FALSE;
+  a_boolean                     selector_is_pointer = FALSE;
+
+  check_assertion(expr != NULL && is_operation_node(expr));
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  op1 = expr->variant.operation.operands;
+  make_rescan_operand(op1, rcblock, operand);
+  /* See whether this kind of call has a bound function selector. */
+  switch (expr->variant.operation.kind) {
+    case eok_call:
+      has_selector = FALSE;
+      break;
+    case eok_dot_member_call:
+      has_selector = TRUE;
+      selector_is_pointer = FALSE;
+      break;
+    case eok_points_to_member_call:
+      has_selector = TRUE;
+      selector_is_pointer = TRUE;
+      break;
+    case eok_dot_pm_call:
+      has_selector = TRUE;
+      selector_is_pointer = FALSE;
+      break;
+    case eok_points_to_pm_call:
+      has_selector = TRUE;
+      selector_is_pointer = TRUE;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  args = op1->next;
+  if (has_selector) {
+    make_rescan_operand(args, rcblock, bound_function_selector);
+    bind_member_function_operand_to_selector(bound_function_selector,
+                                             selector_is_pointer,
+                                             operand);
+    args = args->next;
+  }  /* if */
+  rcblock->argument_list = args;
+  *operator_position = eriep->operator_position;
+  *operator_tok_seq_number = eriep->operator_token_sequence_number;
+}  /* make_call_rescan_operands */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
@@ -2517,6 +2584,21 @@ Restore the ref_entries_list too (not usually wanted).
   operand->ref_entries_list = orig_operand->ref_entries_list;
   operand->saved_ref_entries_list = orig_operand->saved_ref_entries_list;
 }  /* restore_operand_details_incl_ref */
+
+
+void restore_operand_id_details(an_operand *operand,
+                                an_operand *orig_operand)
+/*
+Adjunct to restore_operand_details: restore those operand flags that have
+to do with the form of an identifier reference.  They are not restored
+by default because a transformation on an operand might render it no
+longer an id-expression.
+*/
+{
+  operand->is_id_expression = orig_operand->is_id_expression;
+  operand->is_routine_name_followed_by_left_paren =
+                          orig_operand->is_routine_name_followed_by_left_paren;
+}  /* restore_operand_id_details */
 
 #if RECORD_FORM_OF_NAME_REFERENCE
 
@@ -12825,10 +12907,13 @@ used in generating the function-identifying operand in a call.
       set_operand_expr_position_if_expr(operand, ampersand_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+    operand->is_id_expression = FALSE;
+  } else {
+    /* No explicit "&". */
+    restore_operand_id_details(operand, &orig_operand);
   }  /* if */
   /* Change the kind in the reference entries to address-taken. */
   change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
-  operand->is_id_expression = FALSE;
 }  /* conv_function_designator_to_ptr_to_function */
 
 

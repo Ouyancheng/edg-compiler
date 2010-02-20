@@ -1486,6 +1486,10 @@ extern an_expr_node_ptr strip_implicit_operations_for_rescan(
                                         an_expr_node_ptr        expr,
                                         an_expr_rescan_info_entry_ptr *periep);
 
+extern void make_rescan_operand(an_expr_node_ptr       expr,
+                                a_rescan_control_block *rcblock,
+                                an_operand             *operand);
+
 extern
 void make_rescan_operands(a_rescan_control_block  *rcblock,
                           an_operand              *operand_1,
@@ -1493,6 +1497,13 @@ void make_rescan_operands(a_rescan_control_block  *rcblock,
                           an_operand              *operand_3,
                           a_source_position       *operator_position,
                           a_token_sequence_number *operator_tok_seq_number);
+
+extern void make_call_rescan_operands(
+                             a_rescan_control_block  *rcblock,
+                             an_operand              *operand,
+                             an_operand              *bound_function_selector,
+                             a_source_position       *operator_position,
+                             a_token_sequence_number *operator_tok_seq_number);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
@@ -1627,6 +1638,9 @@ extern void restore_operand_details(an_operand *operand,
 
 extern void restore_operand_details_incl_ref(an_operand *operand,
                                              an_operand *orig_operand);
+
+extern void restore_operand_id_details(an_operand *operand,
+                                       an_operand *orig_operand);
 
 extern a_boolean check_call_function_pointer_operand(an_operand *operand);
 

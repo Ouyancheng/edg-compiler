@@ -94,6 +94,10 @@ typedef struct a_rescan_control_block {
 			   expression associated with expr, if there is one.
 			   tok_error otherwise.  Also used only when calling
 			   the scan_xxx_operator routines. */
+  an_expr_node_ptr
+		argument_list;
+			/* When processing a call, this points to the
+			   argument list. */
   a_template_arg_ptr
 		template_arg_list;
 			/* The template argument list being tried. */

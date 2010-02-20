@@ -636,6 +636,9 @@ This routine is also used when scanning __builtin_offsetof constructs.
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
                          &operator_position, &operator_tok_seq_number);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -816,90 +819,127 @@ A pointer to the resulting operand list is returned.
 }  /* scan_expr_list */
 
 
-static void scan_call_arguments(a_type_ptr         function_type,
-                                a_routine_ptr	   routine,
-                                a_boolean          already_after_left_paren,
-                                an_expr_node_ptr   *p_argument_list,
-                                a_boolean          overloaded_function_case,
-                                a_boolean          unknown_dependent_function,
-                                an_arg_operand_ptr *p_arg_operand_list,
-                                a_source_position  *closing_paren_position)
+static void scan_call_arguments(
+                             a_type_ptr             function_type,
+                             a_routine_ptr          routine,
+                             a_boolean              already_after_left_paren,
+                             an_expr_node_ptr       *p_argument_list,
+                             a_boolean              return_raw_arguments,
+                             a_boolean              unknown_dependent_function,
+                             a_rescan_control_block *rcblock,
+                             an_arg_operand_ptr     *p_arg_operand_list,
+                             a_source_position      *closing_paren_position)
 /*
 Scan the arguments of a function call and return a list of argument
-expressions in *p_argument_list.  The type of the function being called is
-given by function_type; function_type is NULL if the type is not known,
-or for an overloaded function case.  unknown_dependent_function is TRUE
-if the function to be called is not known because it is specified by
-a template-dependent expression.  The caller may have prescanned the argument
-operands, in which case *p_arg_operand_list will point to those operands.
-Otherwise (the usual case), p_arg_operand_list or *p_arg_operand_list is NULL
-at the time of call and the current token at that time is either the opening
-"(" of the argument list if already_after_left_paren is FALSE, or the token
-following the left parenthesis if already_after_left_paren is TRUE.  (The
-add_stop_token call has not been done in any of those cases.)  On return, the
-current token is the token following the closing ")".  If
-overloaded_function_case is TRUE, this call is scanning the arguments for a
-call of an overloaded function, so build an argument operand list and return a
-pointer to it in *p_arg_operand_list (p_arg_operand_list is non-NULL in that
-case).  routine points to the routine being called; it's NULL if the specific
-function being called is not known, e.g., when overloaded_function_case is
-TRUE or when calling through a pointer.
-If closing_paren_position is non-NULL, *closing_paren_position is set to
-the source position of the closing parenthesis of the call.
+expressions in *p_argument_list.  The type of the function being
+called is given by function_type; function_type is NULL if the type is
+not known, or for an overloaded function case.
+unknown_dependent_function is TRUE if the function to be called is not
+known because it is specified by a template-dependent expression.  The
+current token is the "(" of the argument list if
+already_after_left_paren is FALSE, or the token following the left
+parenthesis if already_after_left_paren is TRUE.  (The add_stop_token
+call has not been done in either of those cases.)  On return, the current
+token is the token following the closing ")".  If return_raw_arguments
+is TRUE, just scan and return the arguments as an argument operand
+list in *p_arg_operand_list; do not check the arguments against any
+specific parameter list and do not set *p_argument_list (this is used,
+for example, when scanning the arguments for an overloaded function).
+routine points to the routine being called; it's NULL if the specific
+function being called is not known, e.g., when return_raw_arguments is
+TRUE or when calling through a pointer.  If closing_paren_position is
+non-NULL, *closing_paren_position is set to the source position of the
+closing parenthesis of the call.
+
+On entry, *p_arg_operand_list can be non-NULL to point to a pre-scanned
+argument list, which is then checked and processed as if it were scanned
+here.  The closing parenthesis is the current token in that case, and
+that token is bypassed here.  already_after_left_paren is ignored.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+argument list, given by rcblock->argument_list.  The arguments are
+returned in either *p_argument_list or *p_arg_operand_list, as specified
+by return_raw_arguments.  already_after_left_paren and the input value
+of *p_arg_operand are ignored.
 */
 {
-  an_arg_operand_ptr arg_operand_list;
+  an_arg_operand_ptr arg_operand_list, end_arg_operand_list;
   an_arg_check_block arg_block;
+  a_boolean          arg_list_was_prescanned = (rcblock == NULL &&
+                                                p_arg_operand_list != NULL &&
+                                                *p_arg_operand_list != NULL);
 
   db_enter(4, "scan_call_arguments");
-  if (overloaded_function_case) {
-    /* Overloaded function.  We don't know anything about the type of
+  if (return_raw_arguments) {
+    /* When asked to scan raw arguments, we don't know anything about the
        function being called. */
     function_type = NULL;
+    routine = NULL;
   }  /* if */
   /* Set the block used for checking argument types. */
   start_call_argument_processing(function_type, routine, &arg_block);
   if (unknown_dependent_function) {
     /* The function to be called is unknown because it's template-dependent. */
-    check_assertion(!overloaded_function_case && function_type == NULL);
+    check_assertion(!return_raw_arguments && function_type == NULL);
     arg_block.unknown_dependent_function = TRUE;
   } /* if */
 
-  if (!already_after_left_paren) {
-    /* Get past the opening parenthesis. */
-    (void)get_token();
-  }  /* if */
-  /* Add ")" as a stop token. */
-  add_matching_stop_token(tok_rparen);
-
-  if (p_arg_operand_list != NULL && *p_arg_operand_list != NULL) {
-    /* Use the argument operand list that was previously scanned (i.e.,
-       "prescanned"). */
+  if (rcblock != NULL) {
+    /* Convert the previously-scanned rcblock->argument_list list of
+       expressions into an argument operand list. */
+    an_expr_node_ptr arg_expr = rcblock->argument_list;
+    arg_operand_list = end_arg_operand_list = NULL;
+    while (arg_expr != NULL) {
+      an_arg_operand_ptr arg_op = alloc_arg_operand();
+      make_rescan_operand(arg_expr, rcblock, &arg_op->operand);
+      if (arg_operand_list == NULL) {
+        arg_operand_list = arg_op;
+      } else {
+        end_arg_operand_list->next = arg_op;
+      }  /* if */
+      end_arg_operand_list = arg_op;
+      arg_expr = arg_expr->next;
+    }  /* while */
+  } else if (arg_list_was_prescanned) {
+    /* *p_arg_operand points to a prescanned argument list. */
     arg_operand_list = *p_arg_operand_list;
-    *p_arg_operand_list = NULL;
   } else {
+    /* The argument list needs to be scanned. */
+    if (!already_after_left_paren) {
+      /* Get past the opening parenthesis. */
+      (void)get_token();
+    }  /* if */
+    /* Add ")" as a stop token. */
+    add_matching_stop_token(tok_rparen);
+    /* Scan the argument list. */  
     arg_operand_list =
                     scan_expr_list(/*trailing_comma_okay=*/any_cfront_mode());
+    set_err_pos_to_curr_token();
+    arg_block.closing_paren_position = pos_curr_token;
+    if (closing_paren_position != NULL) {
+      *closing_paren_position = pos_curr_token;
+    }  /* if */
   }  /* if */
-  /* End of argument list. */
-  set_err_pos_to_curr_token();
-  arg_block.closing_paren_position = pos_curr_token;
-  if (closing_paren_position != NULL) *closing_paren_position = pos_curr_token;
-  if (overloaded_function_case) {
+  if (return_raw_arguments) {
     check_assertion(p_arg_operand_list != NULL);
     *p_arg_operand_list = arg_operand_list;
+    *p_argument_list = NULL;
   } else {
     /* Check and transform the call arguments based on the parameter list. */
     process_call_argument_list(arg_operand_list, &arg_block);
+    /* Return argument list pointer to caller. */
+    *p_argument_list = arg_block.argument_head;
+    /* process_call_argument_list frees the arg operand list. */
+    if (p_arg_operand_list != NULL) *p_arg_operand_list = NULL;
   }  /* if */
-  /* Check for the closing paren. */
+  if (rcblock == NULL) {
+    /* Check for the closing parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_pos_curr_token;
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
-  /* Return argument list pointer to caller. */
-  *p_argument_list = arg_block.argument_head;
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    if (!arg_list_was_prescanned) remove_matching_stop_token(tok_rparen);
+  }  /* if */
   db_exit();
 }  /* scan_call_arguments */
 
@@ -927,8 +967,9 @@ one following the closing parenthesis.
   /* Scan the argument list. */
   scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                       /*already_after_left_paren=*/TRUE,
-                      &arg_list, /*overloaded_function_case=*/FALSE,
+                      &arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
+                      (a_rescan_control_block *)NULL,
                       prescanned_args, (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
@@ -1143,6 +1184,7 @@ source position is after the closing parenthesis of the argument list.
                       /*already_after_left_paren=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
+                      (a_rescan_control_block *)NULL,
                       &arg_operand_list, (a_source_position *)NULL);
   error_position = start_position;
 
@@ -1912,7 +1954,7 @@ are inhibited.
 }  /* scan_expr_for_builtin_choose_expr */
 
 
-static void scan_and_process_builtin_choose_expr_args(an_operand  *result)
+static void scan_and_process_builtin_choose_expr_args(an_operand *result)
 /*
 Parse the three comma-separated arguments in a construct of the form
     __builtin_choose_expr( <arg1>, <arg2>, <arg3>)
@@ -1955,13 +1997,17 @@ the chosen expression.  Only available in C mode.
 }  /* scan_and_process_builtin_choose_expr_args */
 
 
-static void scan_gnu_builtin_pseudo_call(an_operand  *operand,
-                                         an_operand  *result_op)
+static void scan_gnu_builtin_pseudo_call(an_operand             *operand,
+                                         a_rescan_control_block *rcblock,
+                                         an_operand             *result_op)
 /*
 Operand represents a GNU built-in function that needs special treatment when
 called (e.g., the arguments cannot be evaluated).  This function parses and --
 when appropriate -- evaluates a pseudo-call to the built-in function.
 *result_op is set to an operand representing the entire pseudo-call.
+If rcblock is non-NULL, we are redoing semantic analysis on a
+previously-scanned call; rcblock->expr points to the previously-scanned
+call, and rcblock->argument_list to the previously-scanned argument list.
 */
 {
   an_operand               arg;
@@ -1970,14 +2016,21 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
   a_builtin_function_kind  bfk;
   a_type_ptr               result_type;
   a_constant               result;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position        end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_operand               dummy_bound_function_selector;
 
   check_assertion(rp != NULL && is_gnu_builtin_function(rp));
   bfk = rp->variant.builtin_function_kind;
-  /* Pick up the "(" and add ")" as a stop token. */
-  check_assertion(curr_token == tok_lparen);
-  (void)get_token();
-  add_matching_stop_token(tok_rparen);
+  if (rcblock == NULL) {
+    /* Pick up the "(" and add ")" as a stop token. */
+    check_assertion(curr_token == tok_lparen);
+    (void)get_token();
+    add_matching_stop_token(tok_rparen);
+  }  /* if */
   if  (bfk == (a_builtin_function_kind)bfk_choose_expr) {
+    check_assertion(C_mode());  /* rcblock is not passed down. */
     scan_and_process_builtin_choose_expr_args(result_op);
   } else {
     /* Simple cases involving just one unevaluated argument (i.e., the argument
@@ -1996,15 +2049,45 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
          must therefore be treated as "potentially evaluated". */
       expr_stack->potentially_evaluated = TRUE;
     }  /* if */
-    /* Parse the pseudo-call argument.  GNU compilers accept multiple arguments
-       and no argument, but that does not seem a useful thing to emulate.  So
-       we'll issue a syntax error in those cases. */
-    scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    if (rcblock == NULL) {
+      /* Parse the pseudo-call argument.  GNU compilers accept multiple
+         arguments and no argument, but that does not seem a useful thing
+         to emulate.  So we'll issue a syntax error in those cases. */
+      scan_expr(&arg, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    } else {
+      /* Convert the previously-scanned expression to an_operand form. */
+      make_rescan_operand(rcblock->argument_list, rcblock, &arg);
+    }  /* if */
     /* Now determine the constant result of the pseudo-call by examining the
        (unevaluated) argument expression. */
     result_type = return_type_of(rp->type);
     result_type = skip_typerefs(result_type);
     check_assertion(is_integral_type(result_type));
+    if (is_template_dependent_context() &&
+        (is_indefinite_function_operand(operand) ||
+         is_template_param_type(arg.type) ||
+         (is_constant_operand(&arg) &&
+          arg.variant.constant.kind ==
+                                   (a_constant_repr_kind)ck_template_param))) {
+      /* The argument is template-dependent, so we can't fold.  Generate a
+         call. */
+      prep_generic_operand(&arg);
+      do_operand_transformations(operand, TOPT_NO_OPTIONS);
+#ifdef _lint
+      /* We pass dummy_bound_function_selector rather than a null pointer
+         constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
+      assemble_function_call(operand, &dummy_bound_function_selector,
+                             make_node_from_operand(&arg),
+                             /*compiler_generated=*/FALSE,
+                             /*is_conversion=*/FALSE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
+                             /*found_through_adl=*/FALSE,
+                             /*uses_operator_syntax=*/FALSE,
+                             &operand->position, result_op,
+                             (an_expr_node_ptr *)NULL);
+      goto result_built;
+    }  /* if */
     switch (bfk) {
       case bfk_constant_p:
         /* Except for string literals, GNU compilers do not treat address
@@ -2034,7 +2117,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
           } else {
             /* Leave an actual call in the IL.  (The usual transformations --
                including promotion -- are needed.) */
-            an_operand  dummy_bound_function_selector;
             do_operand_transformations(operand, TOPT_NO_OPTIONS);
             change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                                   SRK_REFERENCE);
@@ -2071,52 +2153,52 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
       default:
         unexpected_condition();
     }  /* switch */
+result_built:
     pop_expr_stack();
+  }  /* if */
+  if (rcblock == NULL) {
+    /* Scan the closing ")". */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  } else {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   result_op->position = operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  result_op->end_position = pos_curr_token;
+  result_op->end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
 }  /* scan_gnu_builtin_pseudo_call */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 
-static a_routine_ptr adjust_gnu_sync_call(an_operand          *target,
-                                          an_arg_operand_ptr  *args,
-                                          a_type_ptr          *result_type)
+static a_boolean is_gnu_sync_call(a_routine_ptr rout,
+                                  int           *n_args,
+                                  a_type_ptr    *result_type)
 /*
-A GNU built-in function (described by target) is being called and the current
-token is right after the left parenthesis of the call.  If the call is to a
-predeclared GNU __sync_...  function it may need to be adjusted.  For example,
-a call like:
-	__sync_fetch_and_add(&x, 3, ignored())
-must be replaced by
-	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3))
-if x is a 4-byte integral type.  Such transformations (if applicable) are made
-by this routine and require prescanning the argument types.  The actual routine
-to call is returned, and if the arguments to the call were prescanned, they are
-returned through *args (in that case, the current token on return is the
-closing right parenthesis).  If the call is indeed to a __sync_... function,
-*result_type is set to the type of the result (which may be different from the
-return type of the function: the caller is responsible to add a cast if
-needed).
+A GNU built-in function (described by rout) is being called.  See if it
+is a __sync__... function and if so return TRUE.  Also return *n_args set to
+the number of arguments expected and *result_type set to the result type of the
+function (or NULL if the result type will be based on the first argument
+type).  After the arguments are scanned, adjust_gnu_sync_call will be
+called to check and adjust the argument types.
 */
 {
-  int                      n_args = 0, k;
-  a_routine_ptr            rout;
   a_builtin_function_kind  bfk;
 
+  *n_args = 0;
   *result_type = NULL;
-  rout = routine_from_function_operand(target);
   bfk = rout->variant.builtin_function_kind;
   /* Check if this a generic __sync_... function and if so record the number
      of arguments expected by that function. */
   switch (bfk) {
     case bfk_sync_lock_release:
       *result_type = void_type();
-      n_args = 1;
+      *n_args = 1;
       break;
     case bfk_sync_fetch_and_add:
     case bfk_sync_fetch_and_sub:
@@ -2131,80 +2213,126 @@ needed).
     case bfk_sync_xor_and_fetch:
     case bfk_sync_nand_and_fetch:
     case bfk_sync_lock_test_and_set:
-      n_args = 2;
+      *n_args = 2;
       break;
     case bfk_sync_bool_compare_and_swap:
       *result_type = bool_type();
       /*FALLTHROUGH*/
     case bfk_sync_val_compare_and_swap:
-      n_args = 3;
+      *n_args = 3;
       break;
     default:
       /* Nothing more to be done. */
       break;
   }  /* switch */
-  if (n_args != 0) {
-    /* A generic __sync call that must be dispatched to a concrete version.
-       Determining which version is called requires knowing the type of the
-       first argument; we therefore prescan the argument list. */
-    a_source_position  first_arg_pos;
-    a_type_ptr         dispatch_type;
-    check_assertion(curr_token == tok_lparen);
-    (void)get_token();
-    first_arg_pos = pos_curr_token;
-    *args = scan_expr_list(/*trailing_comma_okay=*/FALSE);
-    if (*args == NULL) {
-      /* If there is no first argument, we cannot determine the concrete
-         version to call. */
-      expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+  return (*n_args != 0);
+}  /* is_gnu_sync_call */
+
+
+static a_routine_ptr adjust_gnu_sync_call(
+                                    an_operand         *target,
+                                    an_arg_operand_ptr args,
+                                    int                n_args,
+                                    a_type_ptr         *result_type,
+                                    a_source_position  *closing_paren_position,
+                                    an_expr_node_ptr   *arg_list)
+/*
+is_gnu_sync_call previously decided that the call being worked on is of
+a GNU __sync_... function.  *target describes the function specified in
+the call; on return it is updated to describe the appropriate concrete
+function based on the argument types.  args gives the argument list.
+n_args is the expected number of arguments, and *result_type the
+result type, as determined by is_gnu_sync_call.  *closing_paren_position
+gives the position of the final ")" in the argument list.  On return,
+*arg_list is set to point to the argument list in expression form, and
+the arg_operand entries pointed to by args will have been freed.
+
+This routine adjusts a call to refer instead to the proper concrete
+__sync_... function.  For example, a call like:
+	__sync_fetch_and_add(&x, 3, ignored())
+must be replaced by
+	(typeof(x))__sync_fetch_and_add_4((void*)&x, (typeof(x)3))
+if x is a 4-byte integral type.  The concrete routine to call is returned,
+and the argument list is checked and cast to appropriate types if
+necessary.  *result_type may be further updated if is_gnu_sync_call
+left it NULL; in either case, it is returned non-NULL to indicate
+that the final call needs to be cast to the indicated type.
+*/
+{
+  int                      k;
+  a_routine_ptr            rout;
+  a_builtin_function_kind  bfk;
+  a_source_position        first_arg_pos;
+  a_type_ptr               dispatch_type;
+  a_boolean                err = FALSE, template_case = FALSE;
+
+  *result_type = NULL;
+  *arg_list = NULL;
+  rout = routine_from_function_operand(target);
+  check_assertion(rout != NULL);
+  bfk = rout->variant.builtin_function_kind;
+  if (args == NULL) {
+    /* If there is no first argument, we cannot determine the concrete
+       version to call. */
+    expr_pos_error(ec_bad_type_for_gnu_sync_function, closing_paren_position);
+    conv_to_error_operand(target);
+    err = TRUE;
+  } else {
+    an_arg_operand_ptr *arg = &args;
+    first_arg_pos = args->operand.position;
+    /* Truncate the argument list to the length expected by the concrete
+       function.  Issue a warning on excess arguments.  Issue an error on
+       too few arguments. */
+    for (k = 0; k < n_args && *arg != NULL; ++k, arg = &(*arg)->next) {
+      /* Empty. */
+    }  /* for */
+    if (*arg != NULL) {
+      /* *arg points to the first excess argument. */
+      expr_pos_warning(ec_extra_arguments_ignored,
+                       &(*arg)->operand.position);
+      free_arg_operand_list(*arg);
+      *arg = NULL;
+    } else if (k != n_args) {
+      /* There are too few arguments. */
+      expr_pos_error(ec_too_few_arguments, closing_paren_position);
+      conv_to_error_operand(target);
+      err = TRUE;
       goto done;
-    } else {
-      /* Truncate the argument list to the length expected by the concrete
-         function.  Issue a warning on excess arguments.  (If there are too
-         few arguments, that will be caught by normal processing in
-         scan_call_arguments.) */
-      an_arg_operand_ptr  *arg = args;
-      for (k = 0; k < n_args && *arg != NULL; ++k, arg = &(*arg)->next) {
-        /* Empty. */
-      }  /* for */
-      if (*arg != NULL) {
-        /* *arg points to the first excess argument. */
-        expr_pos_warning(ec_extra_arguments_ignored,
-                         &(*arg)->operand.position);
-        free_arg_operand_list(*arg);
-        *arg = NULL;
-      }  /* if */
     }  /* if */
-    dispatch_type = skip_typerefs((*args)->operand.type);
-    if (!is_pointer_type(dispatch_type)) {
-      if (!is_error_type(dispatch_type) &&
-          !is_template_param_type(dispatch_type)) {
+    dispatch_type = skip_typerefs(args->operand.type);
+    if (is_pointer_type(dispatch_type)) {
+      dispatch_type = type_pointed_to(dispatch_type);
+      dispatch_type = skip_typerefs(dispatch_type);
+    } else if (is_template_param_type(dispatch_type)) {
+      template_case = TRUE;
+    } else {
+      if (!is_error_type(dispatch_type)) {
         expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       }  /* if */
+      conv_to_error_operand(target);
+      err = TRUE;
       goto done;
     }  /* if */
-    dispatch_type = type_pointed_to(dispatch_type);
-    dispatch_type = skip_typerefs(dispatch_type);
-    if (is_error_type(dispatch_type)) {
+    if (template_case || is_template_dependent_type(dispatch_type)) {
+      template_case = TRUE;
+    } else if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
       expect_error();
-    } else if (is_template_param_type(dispatch_type)) {
-      /* The transformation cannot be done (and is not needed) in template-
-         dependent contexts. */
+      err = TRUE;
     } else if (!is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
       expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
+      err = TRUE;
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                dispatch_type->size != 4 && dispatch_type->size != 8) {
       expr_pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
+      err = TRUE;
     } else {
       /* Find the concrete routine to dispatch the operation to. */
       a_symbol_ptr        sym;
       a_symbol_locator    loc;
       an_operand          orig_operand;
       char                name[100], suffix[3];
-      an_arg_operand_ptr  ap;
-      a_param_type_ptr    ptp;
       /* Construct the concrete routine's name: */
       check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
@@ -2234,14 +2362,34 @@ needed).
                                                   /*allow_ctor=*/FALSE,
                                                   /*will_call=*/TRUE);
       rout = sym->variant.routine.ptr;
+    }  /* if */
+    if (!err) {
+      an_arg_operand_ptr  ap;
+      a_param_type_ptr    ptp;
+      an_expr_node_ptr    end_arg_list = NULL;
       /* Convert the prescanned arguments to the type expected by the
-         function (if needed). */
-      ptp = skip_typerefs(rout->type)->variant.routine.extra_info
-                                     ->param_type_list;
-      for (ap = *args; ap != NULL; ap = ap->next, ptp = ptp->next) {
-        check_assertion(ptp != NULL);
+         function (if needed) and built the argument list in expression
+         form.  In the template-dependent case, build the argument list
+         but don't convert the arguments. */
+      if (!template_case) {
+        ptp = skip_typerefs(rout->type)->variant.routine.extra_info
+                                       ->param_type_list;
+      }  /* if */
+      for (ap = args; ap != NULL; ap = ap->next) {
+        an_expr_node_ptr expr_arg;
         do_operand_transformations(&ap->operand, TOPT_NO_OPTIONS);
-        cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
+        if (!template_case) {
+          check_assertion(ptp != NULL);
+          cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
+        }  /* if */
+        expr_arg = make_node_from_operand(&ap->operand);
+        if (*arg_list == NULL) {
+          *arg_list = expr_arg;
+        } else {
+          end_arg_list->next = expr_arg;
+        }  /* if */
+        end_arg_list = expr_arg;
+        if (!template_case) ptp = ptp->next;
       }  /* for */
       /* Return the type that should result from the call. */
       if (*result_type == NULL) {
@@ -2250,23 +2398,28 @@ needed).
     }  /* if */
   }  /* if */
 done:
+  free_arg_operand_list(args);
   return rout;
 }  /* adjust_gnu_sync_call */
 
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void scan_function_call(an_operand *operand,
-                               an_operand *bound_function_selector,
-			       an_operand *result)
+static void scan_function_call(an_operand             *operand,
+                               an_operand             *bound_function_selector,
+                               a_rescan_control_block *rcblock,
+                               an_operand             *result)
 /*
 Scan a function call.  The function to be called is given by *operand,
 modified by *bound_function_selector if the function is bound.  Even
 if the function is not bound, bound_function_selector points to an operand
 that can be filled in if an implicit selector is generated.
-On return, *result is set to an operand for the entire call.
-See section 6.5.2.2 of the C99 standard and [expr.call] of the
-C++ standard.  The current token is the "(" of the call.
+The current token is the "(" of the beginning of the argument list.
+Scan the arguments, make a call expression, and return an operand for
+it in *result.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned expression, and return the result in *result (or an
+error indication in *rcblock).  operand and bound_function_selector
+are expected to be NULL in that case.
 */
 {
   an_expr_node_ptr  argument_list, expr;
@@ -2280,6 +2433,7 @@ C++ standard.  The current token is the "(" of the call.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position operator_position, end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_operand        local_bound_function_selector, local_operand;
   an_arg_match_summary
                     this_match_summary;
   an_arg_operand_ptr
@@ -2300,7 +2454,8 @@ C++ standard.  The current token is the "(" of the call.
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean         call_folded_to_constant = FALSE;
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-  a_type_ptr        result_type = NULL;
+  a_type_ptr        sync_result_type = NULL;
+  int               sync_n_args;
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
@@ -2312,14 +2467,28 @@ C++ standard.  The current token is the "(" of the call.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   an_expr_node_ptr  operand_node;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean         gnu_sync_function_case = FALSE;
 
   db_enter(4, "scan_function_call");
 
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_lparen);
+    check_assertion(operand == NULL && bound_function_selector == NULL);
+    operand = &local_operand;
+    bound_function_selector = &local_bound_function_selector;
+    make_call_rescan_operands(rcblock, operand, bound_function_selector,
+                              &operator_position,
+                              &opening_paren_tok_seq_number);
+    closing_paren_position = rcblock->expr->expr_range.end;
+  } else {
+    /* Normal, non-rescan, processing. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Save the position of the "(". */
-  operator_position = pos_curr_token;
+    /* Save the position of the "(". */
+    operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  opening_paren_tok_seq_number = curr_token_sequence_number;
+    opening_paren_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
   call_position = operand->position;
   /* If the operand is a bound function, the start position of the call
      is the start of the selector.  Watch out for pointer to
@@ -2372,7 +2541,7 @@ C++ standard.  The current token is the "(" of the call.
                                         &pseudo_call);
     if (pseudo_call) {
       check_assertion(call_may_be_folded);
-      scan_gnu_builtin_pseudo_call(operand, result);
+      scan_gnu_builtin_pseudo_call(operand, rcblock, result);
       goto done;
     }  /* if */
   }  /* if */
@@ -2625,19 +2794,17 @@ C++ standard.  The current token is the "(" of the call.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (routine != NULL && is_gnu_builtin_function(routine)) {
-      /* If this is a call to a predeclared GNU __sync_... function adjust the
-         function that is being called. */
-      routine = adjust_gnu_sync_call(operand, &arg_operand_list, &result_type);
-      if (arg_operand_list != NULL) {
-        /* The arguments were prescanned, which means that operand (the callee
-           expression) must have been updated. */
-        already_after_left_paren = TRUE;
-        routine_type = routine->type;
-      }  /* if */
+    /* See if this is a call to a predeclared GNU __sync_... function.  If
+       so, the concrete routine to call will not be known until after the
+       arguments are scanned. */
+    if (is_gnu_sync_call(routine, &sync_n_args, &sync_result_type)) {
+      gnu_sync_function_case = TRUE;
+      routine_type = NULL;
+      routine = NULL;
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
-  /* Scan the arguments of the call. */
   if (orig_routine_type == NULL) {
     /* If this call is the result of optimizing a virtual function call to
        a direct call of an overriding function, we must use the type of the
@@ -2647,14 +2814,33 @@ C++ standard.  The current token is the "(" of the call.
        routine type. */
     orig_routine_type = routine_type;
   }  /* if */
+  /* Scan the arguments of the call.  For non-overloaded function calls,
+     this checks the arguments against the parameter types and converts
+     them as necessary. */
   scan_call_arguments(orig_routine_type, routine,
                       already_after_left_paren, &argument_list,
-                      overloaded_function_case, unknown_dependent_function,
+                      (overloaded_function_case || gnu_sync_function_case),
+                      unknown_dependent_function,
+                      rcblock,
                       &arg_operand_list, &closing_paren_position);
   error_position = call_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        
+#if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  if (gnu_sync_function_case) {
+    /* Check and adjust the arguments for a call of a GNU __sync_... function.
+       Also determine the concrete routine being called, based on the argument
+       types. */
+    routine = adjust_gnu_sync_call(operand, arg_operand_list,
+                                   sync_n_args, &sync_result_type,
+                                   &closing_paren_position, &argument_list);
+    /* arg_operand_list is freed by the subroutine. */
+    arg_operand_list = NULL;
+    routine_type = routine->type;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
   if (overloaded_function_case) {
     an_operand        orig_operand;
@@ -2712,6 +2898,10 @@ C++ standard.  The current token is the "(" of the call.
                                          operand->template_arg_list,
                                          (a_boolean)operand->is_qualified_name,
                                          operand);
+        restore_operand_details(operand, &orig_operand);
+        operand->bound_function = FALSE;
+        operand->selector_is_object_pointer = FALSE;
+        restore_operand_id_details(operand, &orig_operand);
         if (have_selector) {
           /* This comes up with operator() cases. */
           combine_unneeded_selector_with_operand(
@@ -2882,8 +3072,10 @@ C++ standard.  The current token is the "(" of the call.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-  if (result_type != NULL) {
-    cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
+  if (sync_result_type != NULL) {
+    /* Cast the call result to the right type for certain GNU __sync_...
+       function calls. */
+    cast_operand(sync_result_type, result, /*is_implicit_cast=*/TRUE);
   }  /* if */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 done:
@@ -6390,14 +6582,13 @@ Make a placeholder lvalue operand whose type is "type".
                                       &zero_con,
                                       ptr_type,
                                       /*is_explicit=*/FALSE);
-    /* Go by way of an_operand to get rescan information saved. */
-    make_constant_operand(&zero_con, operand);
-    expr = make_node_from_operand(operand);
   } else {
     /* Normal non-dependent case. */
     make_zero_of_proper_type(ptr_type, &zero_con);
-    expr = alloc_node_for_constant(&zero_con);
   }  /* if */
+  /* Go by way of an_operand to get rescan information saved. */
+  make_constant_operand(&zero_con, operand);
+  expr = make_node_from_operand(operand);
   expr = add_indirection_to_node(expr);
   make_lvalue_expression_operand(expr, operand);
   operand->is_dummy_lvalue = TRUE;
@@ -7865,8 +8056,9 @@ This is allowed in both Microsoft C and C++ modes.
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                         /*already_after_left_paren=*/FALSE,
                         &arg_list,
-                        /*overloaded_function_case=*/FALSE,
+                        /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
+                        (a_rescan_control_block *)NULL,
                         (an_arg_operand_ptr *)NULL,
                         &end_position);
   }  /* if */
@@ -9780,8 +9972,9 @@ specification allow a variable-sized array as the top type.
            headed by arg_operand_list. */
         scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                             /*already_after_left_paren=*/TRUE,
-                            &dummy, /*overloaded_function_case=*/TRUE,
+                            &dummy, /*return_raw_arguments=*/TRUE,
                             /*unknown_dependent_function=*/FALSE,
+                            (a_rescan_control_block *)NULL,
                             &arg_operand_list, (a_source_position *)NULL);
       }  /* if */
     }  /* if */
@@ -13529,6 +13722,7 @@ Also scans GNU statement expressions:
       a_boolean                need_expr = FALSE;
       a_boolean                need_expr_for_constant = FALSE;
       an_expr_node_ptr         expr = NULL;
+      a_boolean                parens_in_il = PARENS_IN_IL;
       a_local_expr_options_set options =
                                       (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
@@ -13549,7 +13743,7 @@ Also scans GNU statement expressions:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
-      if (!PARENS_IN_IL) {  /*lint !e506*/
+      if (!parens_in_il) {
         /* eok_parens nodes are not being recorded. */
       } else if (result->bound_function) {
         /* Can't maintain parentheses on a bound function, because we separate
@@ -20768,7 +20962,7 @@ bad_start_of_primary:
       case tok_lparen:
         /* Routine call. */
         scan_function_call(&operand, &local_bound_function_selector,
-                           &local_result);
+                           (a_rescan_control_block *)NULL, &local_result);
         break;
       case tok_period:
       case tok_arrow:
@@ -22265,6 +22459,10 @@ to TRUE if any non-access error is detected during the processing.
         break;
       case sk_overloaded_function:
       case sk_function_template:
+      case sk_routine:
+        /* sk_routine gets an indefinite function because presumably we
+           got here because we're forcing overload resolution because
+           argument-dependent lookup is going to be in effect. */
         make_indefinite_function_operand(sym, /*curr_id=*/FALSE, result);
         break;
       default:
@@ -22273,7 +22471,7 @@ to TRUE if any non-access error is detected during the processing.
     /* Set the proper source position, and any flags like whether the
        identifier reference was qualified. */
     restore_operand_details(result, &eriep->saved_operand);
-    result->is_id_expression = eriep->saved_operand.is_id_expression;
+    restore_operand_id_details(result, &eriep->saved_operand);
   }  /* if */
 }  /* make_operand_for_rescanned_identifier */
 
@@ -22296,6 +22494,11 @@ redoes semantic analysis.
        operator_token_for_expr_rescan. */
     switch (op) {
       case eok_subscript:
+      case eok_call:
+      case eok_dot_member_call:
+      case eok_points_to_member_call:
+      case eok_dot_pm_call:
+      case eok_points_to_pm_call:
       case eok_post_incr:
       case eok_post_decr:
       case eok_pre_incr:
@@ -22407,6 +22610,13 @@ postfix operators.
     switch (expr->variant.operation.kind) {
       case eok_subscript:
         operator_token = tok_lbracket;
+        break;
+      case eok_call:
+      case eok_dot_member_call:
+      case eok_points_to_member_call:
+      case eok_dot_pm_call:
+      case eok_points_to_pm_call:
+        operator_token = tok_lparen;
         break;
       case eok_post_incr:
         operator_token = tok_plus_plus;
@@ -22621,6 +22831,7 @@ rescan_expr_with_substitution.
   a_token_kind                  operator_token;
   a_boolean                     unary, postfix;
   a_boolean                     stack_pop_needed = FALSE;
+  an_expr_node_ptr              saved_expr = rcblock->expr;
 
   expr = strip_implicit_operations_for_rescan(expr, &eriep);
   /* Rescan information must have been saved on the expression when it was
@@ -22676,6 +22887,10 @@ rescan_expr_with_substitution.
     switch (operator_token) {
       case tok_lbracket:
         scan_subscript_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_lparen:
+        scan_function_call((an_operand *)NULL, (an_operand *)NULL,
+                           rcblock, result);
         break;
       case tok_plus:
       case tok_minus:
@@ -22743,6 +22958,7 @@ rescan_expr_with_substitution.
     rcblock->error_detected = TRUE;
   }  /* if */
   if (stack_pop_needed) pop_expr_stack();
+  rcblock->expr = saved_expr;
 }  /* rescan_expr_with_substitution_internal */
 
 
