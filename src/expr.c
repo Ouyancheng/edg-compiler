@@ -2429,9 +2429,9 @@ are expected to be NULL in that case.
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
   a_source_position call_position, first_arg_position;
-  a_source_position start_position, closing_paren_position;
+  a_source_position start_position, operator_position, closing_paren_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position operator_position, end_position;
+  a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        local_bound_function_selector, local_operand;
   an_arg_match_summary
