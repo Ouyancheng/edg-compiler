@@ -2994,7 +2994,8 @@ return that entity.
     check_assertion(ap->family == (a_byte_attribute_family)af_ms_declspec);
     constr = "c|e|t|v|d|r";
   }  /* if */
-  if (check_target_entity_match(constr, ap, entity, entity_kind)) {
+  if (check_target_entity_match(constr, ap, entity, entity_kind) &&
+      !is_unrecognized_attr(ap)) {
     an_attribute_arg_ptr  aap = ap->arguments;
     a_targ_alignment      alignment = 0;
     a_boolean             apply_value = TRUE;
