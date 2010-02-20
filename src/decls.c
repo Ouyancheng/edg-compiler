@@ -13665,7 +13665,7 @@ if prior declarations specified an alignment attribute.
        alignment was the result of an attribute, issue an error. */
     an_attribute_ptr  ap = find_attribute(ak_align,
                                           vp->source_corresp.attributes);
-    if (ap != NULL) {
+    if (ap != NULL && ap->family == (a_byte_attribute_family)af_std) {
       pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
                       &ap->position, &dps->declarator_pos);
     }  /* if */
