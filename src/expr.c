@@ -2480,7 +2480,11 @@ are expected to be NULL in that case.
     make_call_rescan_operands(rcblock, operand, bound_function_selector,
                               &operator_position,
                               &opening_paren_tok_seq_number);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     closing_paren_position = rcblock->expr->expr_range.end;
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+    closing_paren_position = operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
