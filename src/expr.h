@@ -254,10 +254,11 @@ extern void conv_nontype_template_arg_to_param_type(
 extern a_boolean expr_is_rescannable(an_expr_node_ptr expr);
 
 extern void rescan_expr_with_substitution_internal(
-                                       an_expr_node_ptr       expr,
-                                       a_rescan_control_block *rcblock,
-                                       a_boolean              force_stack_push,
-                                       an_operand_ptr         result);
+                               an_expr_node_ptr       expr,
+                               a_rescan_control_block *rcblock,
+                               a_boolean              force_stack_push,
+                               an_operand_ptr         result,
+                               an_operand_ptr         bound_function_selector);
 
 extern an_expr_node_ptr rescan_expr_with_substitution(
                                              an_expr_node_ptr       expr,

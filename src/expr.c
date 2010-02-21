@@ -4202,23 +4202,29 @@ nonstatic_member_function:
 }  /* scan_field_selection_operator */
 
 
-static void scan_ptr_to_member_operator(an_operand *operand_1,
-                                        an_operand *result,
-                                        an_operand *bound_function_selector)
+static void scan_ptr_to_member_operator(
+                               an_operand             *operand_1,
+                               a_rescan_control_block *rcblock,
+                               an_operand             *result,
+                               an_operand             *bound_function_selector)
 /*
-Scan the ".*" and "->*" operators (C++ only).  The left operand must be
-(a pointer to) a class.  The right operand must be a pointer-to-member
-of the class or a base class thereof.  Return the result of the selection
-in *result.  If the field selection produces a bound function, return the
-object bound with the function in *bound_function_selector.  See ARM 5.5.
+Scan the ".*" and "->*" operators.  *operand_1 is the left operand.
+The current token is the operator.  Scan the second operand, combine the
+two operands into an expression, and return an operand for that in
+*result.  If the result is a bound function, return the selector in
+*bound_function_selector.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned expression, and return the result
+in *result and *bound_function_selector (or an error indication in
+*rcblock).  operand_1 is expected to be NULL in that case.
 */
 {
+  a_token_kind      operator_token;
   a_boolean         is_arrow_operator;
   a_boolean         err = FALSE, processed = FALSE;
   a_type_ptr        operand_1_type, qual_operand_1_type;
   a_type_ptr        operand_2_type, qual_operand_2_type;
   a_type_ptr        operand_2_class, result_type;
-  an_operand        operand_2;
+  an_operand        local_operand_1, operand_2;
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
@@ -4228,11 +4234,21 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
 
   db_enter(4, "scan_ptr_to_member_operator");
 
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
   /* Remember if this was an arrow or a dot selector. */
-  is_arrow_operator = (curr_token == tok_arrow_star);
-  /* Save the position of the operator in case of error. */
-  copy_source_position(pos_curr_token, operator_position);
-  operator_tok_seq_number = curr_token_sequence_number;
+  is_arrow_operator = (operator_token == tok_arrow_star);
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Operation not allowed in preprocessor expression. */
@@ -4252,9 +4268,11 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
     err = TRUE;
   }  /* if */
 
-  /* Scan the second operand. */
-  (void)get_token();
-  scan_expr(&operand_2, PREC_PTR_TO_MEMBER, EOPT_NO_OPTIONS);
+  if (rcblock == NULL) {
+    /* Scan the second operand. */
+    (void)get_token();
+    scan_expr(&operand_2, PREC_PTR_TO_MEMBER, EOPT_NO_OPTIONS);
+  }  /* if */
 
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -18307,6 +18325,7 @@ to constants.  For example,
    } a;
    int b[a.e1];  // a.e1 accepted as a constant in some modes.
 
+This function doesn't look at the current or nearby tokens.
 */
 {
   a_boolean allows_folding = FALSE;
@@ -20977,7 +20996,8 @@ bad_start_of_primary:
       case tok_period_star:
       case tok_arrow_star:
         /* C++ pointer-to-member operators (.* and ->*). */
-        scan_ptr_to_member_operator(&operand, &local_result,
+        scan_ptr_to_member_operator(&operand, (a_rescan_control_block *)NULL,
+                                    &local_result,
                                     &local_bound_function_selector);
         break;
       case tok_star:
@@ -22503,6 +22523,8 @@ redoes semantic analysis.
       case eok_points_to_member_call:
       case eok_dot_pm_call:
       case eok_points_to_pm_call:
+      case eok_pm_field:
+      case eok_pm_points_to_field:
       case eok_post_incr:
       case eok_post_decr:
       case eok_pre_incr:
@@ -22621,6 +22643,12 @@ postfix operators.
       case eok_dot_pm_call:
       case eok_points_to_pm_call:
         operator_token = tok_lparen;
+        break;
+      case eok_pm_field:
+        operator_token = tok_period_star;
+        break;
+      case eok_pm_points_to_field:
+        operator_token = tok_arrow_star;
         break;
       case eok_post_incr:
         operator_token = tok_plus_plus;
@@ -22813,21 +22841,25 @@ postfix operators.
 
 
 void rescan_expr_with_substitution_internal(
-                                       an_expr_node_ptr       expr,
-                                       a_rescan_control_block *rcblock,
-                                       a_boolean              force_stack_push,
-                                       an_operand             *result)
+                               an_expr_node_ptr       expr,
+                               a_rescan_control_block *rcblock,
+                               a_boolean              force_stack_push,
+                               an_operand             *result,
+                               an_operand             *bound_function_selector)
 /*
 Redo the semantic analysis on the expression expr as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
 template argument list being tried.  It also has an error_detected
 flag, which is set to TRUE if any non-access error is detected during
 the rescan.  If there is no error, *result is set to an operand for the
-result after substitution.  If force_stack_push is TRUE, a push on the
-expression stack is always done; otherwise, it is done only if needed.
-This routine is intended for use within the expression-processing
-routines; for an alternative callable from outside, see
-rescan_expr_with_substitution.
+result after substitution.  If bound_function_selector is non-NULL,
+and if the expression results in a bound function, *bound_function_selector
+is set to the selector; if bound_function_selector is NULL and the
+expression results in a bound function, an error is (conceptually)
+issued.  If force_stack_push is TRUE, a push on the expression stack
+is always done; otherwise, it is done only if needed.  This routine is
+intended for use within the expression-processing routines; for an
+alternative callable from outside, see rescan_expr_with_substitution.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -22836,7 +22868,11 @@ rescan_expr_with_substitution.
   a_boolean                     unary, postfix;
   a_boolean                     stack_pop_needed = FALSE;
   an_expr_node_ptr              saved_expr = rcblock->expr;
+  an_operand                    local_bound_function_selector;
 
+  if (bound_function_selector == NULL) {
+    bound_function_selector = &local_bound_function_selector;
+  }  /* if */
   expr = strip_implicit_operations_for_rescan(expr, &eriep);
   /* Rescan information must have been saved on the expression when it was
      originally scanned. */
@@ -22862,6 +22898,8 @@ rescan_expr_with_substitution.
     make_operand_for_rescanned_identifier(expr, rcblock, result);
   } else if (unary) {
     /* Unary operators. */
+    /* The switch statement here should look a lot like the one at the top of
+       scan_expr_full. */
     switch (operator_token) {
       case tok_plus_plus:
       case tok_minus_minus:
@@ -22888,6 +22926,8 @@ rescan_expr_with_substitution.
     }  /* switch */
   } else {
     /* Operators other than unary operators, i.e., typically two-operand. */
+    /* The switch statement here should look a lot like the one in the loop in
+       scan_expr_full. */
     switch (operator_token) {
       case tok_lbracket:
         scan_subscript_operator((an_operand *)NULL, rcblock, result);
@@ -22896,14 +22936,19 @@ rescan_expr_with_substitution.
         scan_function_call((an_operand *)NULL, (an_operand *)NULL,
                            rcblock, result);
         break;
-      case tok_plus:
-      case tok_minus:
-        scan_add_operator((an_operand *)NULL, rcblock, result);
+      case tok_period_star:
+      case tok_arrow_star:
+        scan_ptr_to_member_operator((an_operand *)NULL, rcblock, result,
+                                    bound_function_selector);
         break;
       case tok_star:
       case tok_divide:
       case tok_remainder:
         scan_mult_operator((an_operand *)NULL, rcblock, result);
+        break;
+      case tok_plus:
+      case tok_minus:
+        scan_add_operator((an_operand *)NULL, rcblock, result);
         break;
       case tok_shift_left:
       case tok_shift_right:
@@ -22958,7 +23003,15 @@ rescan_expr_with_substitution.
         unexpected_condition();
     }  /* switch */
   }  /* if */
-  if (expr_stack->any_non_access_error_detected) {
+  if (result->bound_function &&
+      bound_function_selector == &local_bound_function_selector) {
+    /* The rescan returned a bound function, but the caller is not prepared
+       to accept one, so this is an error. */
+    conv_to_error_operand(result);
+    result->bound_function = FALSE;
+    discard_operand(bound_function_selector);
+    rcblock->error_detected = TRUE;
+  } else if (expr_stack->any_non_access_error_detected) {
     rcblock->error_detected = TRUE;
   }  /* if */
   if (stack_pop_needed) pop_expr_stack();
@@ -22985,7 +23038,8 @@ expression-processing routines.
   an_operand result;
 
   rescan_expr_with_substitution_internal(expr, rcblock,
-                                         /*force_stack_push=*/TRUE, &result);
+                                         /*force_stack_push=*/TRUE, &result,
+                                         (an_operand *)NULL);
   if (rcblock->error_detected) {
     set_error_constant(constant);
     expr = NULL;

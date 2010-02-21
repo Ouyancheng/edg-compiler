@@ -2167,7 +2167,10 @@ Inverse of save_operand_info_in_expr_rescan_info_entry: restore in *operand
 any extra rescan information saved previously in *eriep.
 */
 {
+  /* Don't restore bound_function; it is managed explicitly. */
+  a_boolean saved_bound_function = operand->bound_function;
   restore_operand_details(operand, &eriep->saved_operand);
+  operand->bound_function = saved_bound_function;
 }  /* restore_operand_info_from_expr_rescan_info_entry */
 
 
@@ -2220,9 +2223,11 @@ that has it.
 }  /* strip_implicit_operations_for_rescan */
 
 
-void make_rescan_operand(an_expr_node_ptr       expr,
-                         a_rescan_control_block *rcblock,
-                         an_operand             *operand)
+static void make_rescan_operand_full(
+                               an_expr_node_ptr       expr,
+                               a_rescan_control_block *rcblock,
+                               an_operand             *operand,
+                               an_operand             *bound_function_selector)
 /*
 As part of redoing semantic analysis on an expression while doing template
 deduction, convert expr (an operand of the expression currently being
@@ -2230,7 +2235,9 @@ processed) to an_operand form in *operand.  rcblock provides context
 information for the deduction being done, e.g., the template argument list.
 Note that the process here includes making a copy, so the operand
 returned will never use any part of the original expression, and the
-original expression is not modified.
+original expression is not modified.  If bound_function_selector is
+non-NULL, the caller is willing to accept a bound function as the result,
+and the selector for that can be stored in *bound_function_selector.
 */
 {
   an_expr_node_ptr              expr_copy;
@@ -2254,7 +2261,7 @@ original expression is not modified.
        and then back again. */
     rescan_expr_with_substitution_internal(expr, rcblock,
                                            /*force_stack_push=*/FALSE,
-                                           operand);
+                                           operand, bound_function_selector);
     rescanned_case = TRUE;
   } else {
     /* Copy the expression with substitution. */
@@ -2293,7 +2300,33 @@ original expression is not modified.
        survive in the IL.  Do that now. */
     restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
   }  /* if */
+}  /* make_rescan_operand_full */
+
+
+void make_rescan_operand(an_expr_node_ptr       expr,
+                         a_rescan_control_block *rcblock,
+                         an_operand             *operand)
+/*
+Interface to make_rescan_operand_full for the usual case where a bound
+function is not allowed.
+*/
+{
+  make_rescan_operand_full(expr, rcblock, operand, (an_operand *)NULL);
 }  /* make_rescan_operand */
+
+
+static void get_rescan_operator_positions(
+                        an_expr_rescan_info_entry_ptr eriep,
+                        a_source_position             *operator_position,
+                        a_token_sequence_number       *operator_tok_seq_number)
+/*
+Extract position information from the rescan info pointed to by eriep and
+return it in operator_position and operator_tok_seq_number.
+*/
+{
+  *operator_position = eriep->operator_position;
+  *operator_tok_seq_number = eriep->operator_token_sequence_number;
+}  /* get_rescan_operator_positions */
 
 
 void make_rescan_operands(a_rescan_control_block  *rcblock,
@@ -2329,8 +2362,8 @@ list being tried.
       make_rescan_operand(op3, rcblock, operand_3);
     }  /* if */
   }  /* if */
-  *operator_position = eriep->operator_position;
-  *operator_tok_seq_number = eriep->operator_token_sequence_number;
+  get_rescan_operator_positions(eriep, operator_position,
+                                operator_tok_seq_number);
 }  /* make_rescan_operands */
 
 
@@ -2354,49 +2387,59 @@ to be converted to operand form later.
 {
   an_expr_node_ptr              expr = rcblock->expr, op1, args;
   an_expr_rescan_info_entry_ptr eriep;
-  a_boolean                     has_selector = FALSE;
-  a_boolean                     selector_is_pointer = FALSE;
 
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = expr->rescan_info;
   check_assertion(eriep != NULL);
   op1 = expr->variant.operation.operands;
-  make_rescan_operand(op1, rcblock, operand);
-  /* See whether this kind of call has a bound function selector. */
-  switch (expr->variant.operation.kind) {
-    case eok_call:
-      has_selector = FALSE;
-      break;
-    case eok_dot_member_call:
-      has_selector = TRUE;
-      selector_is_pointer = FALSE;
-      break;
-    case eok_points_to_member_call:
-      has_selector = TRUE;
-      selector_is_pointer = TRUE;
-      break;
-    case eok_dot_pm_call:
-      has_selector = TRUE;
-      selector_is_pointer = FALSE;
-      break;
-    case eok_points_to_pm_call:
-      has_selector = TRUE;
-      selector_is_pointer = TRUE;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+  make_rescan_operand_full(op1, rcblock, operand, bound_function_selector);
   args = op1->next;
-  if (has_selector) {
-    make_rescan_operand(args, rcblock, bound_function_selector);
-    bind_member_function_operand_to_selector(bound_function_selector,
-                                             selector_is_pointer,
-                                             operand);
-    args = args->next;
+  /* A call like p->f(x) where the p->f part was treated as a static
+     selection during prototype instantiation (because we didn't know what
+     function f would be selected) might on a rescan produce a bound
+     function for the first operand.  If that doesn't happen, then
+     we might still have a call we did classify as having a selector,
+     and for those we have to extract the selector from the second operand
+     and bind it to the first operand. */
+  if (operand->bound_function) {
+    check_assertion(node_operator_is(expr, eok_call));
+  } else {
+    a_boolean has_selector = FALSE;
+    a_boolean selector_is_pointer = FALSE;
+    switch (expr->variant.operation.kind) {
+      case eok_call:
+        has_selector = FALSE;
+        break;
+      case eok_dot_member_call:
+        has_selector = TRUE;
+        selector_is_pointer = FALSE;
+        break;
+      case eok_points_to_member_call:
+        has_selector = TRUE;
+        selector_is_pointer = TRUE;
+        break;
+      case eok_dot_pm_call:
+        has_selector = TRUE;
+        selector_is_pointer = FALSE;
+        break;
+      case eok_points_to_pm_call:
+        has_selector = TRUE;
+        selector_is_pointer = TRUE;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (has_selector) {
+      make_rescan_operand(args, rcblock, bound_function_selector);
+      bind_member_function_operand_to_selector(bound_function_selector,
+                                               selector_is_pointer,
+                                               operand);
+      args = args->next;
+    }  /* if */
   }  /* if */
   rcblock->argument_list = args;
-  *operator_position = eriep->operator_position;
-  *operator_tok_seq_number = eriep->operator_token_sequence_number;
+  get_rescan_operator_positions(eriep, operator_position,
+                                operator_tok_seq_number);
 }  /* make_call_rescan_operands */
 
 
