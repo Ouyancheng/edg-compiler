@@ -24,7 +24,7 @@ the C-generating back end previously generated the function definition as
   void *__attribute__((visibility("default"))) _ZN1S1fEv(...
 
 resulting in a warning when the generated code was compiled with recent
-versions of gcc that the 'visibility" attribute was ignored on non-class
+versions of gcc that the "visibility" attribute was ignored on non-class
 types; now it generates
 
   __attribute__((visibility("default"))) void *_ZN1S1fEv(...
