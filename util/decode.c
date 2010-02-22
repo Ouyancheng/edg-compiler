@@ -3655,6 +3655,39 @@ The syntax is:
 }  /* demangle_template_param */
 
 
+static char *demangle_function_param(char                       *ptr,
+                                     a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 <function-param> and output the demangled form.  Return
+a pointer to the character position following what was demangled.
+A <function-param> encodes a reference to a function parameter.
+The syntax is:
+
+  <function-param> ::= fp_       # first function parameter
+                   ::= fp <parameter-2 non-negative number> _
+
+*/
+{
+  long num = 1;
+  char buffer[50];
+
+  /* Advance past the "fp". */
+  ptr += 2;
+  if (*ptr != '_') {
+    ptr = get_number(ptr, &num, dctl);
+    if (num < 0) {
+      bad_mangled_name(dctl);
+    } else {
+      num += 2;
+    }  /* if */
+  }  /* if */
+  ptr = advance_past_underscore(ptr, dctl);
+  (void)sprintf(buffer, "param#%lu", num);
+  write_id_str(buffer, dctl);
+  return ptr;
+}  /* demangle_function_param */
+
+
 /* Forward reference. */
 static char *demangle_source_name(
                                  char                       *ptr,
@@ -3937,6 +3970,22 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
+  } else if (kind == 'D') {
+    /* decltype:
+       Dt <expression> E  # decltype of an id-expression or class member access
+       DT <expression> E  # decltype of an expression */
+    p++;
+    if (*p == 't' || *p == 'T') {
+      write_id_str("decltype ", dctl);
+      if (*p == 't') {
+        p = demangle_expression(p+1, dctl);
+      } else {
+        write_id_ch('(', dctl);
+        p = demangle_expression(p+1, dctl);
+        write_id_ch(')', dctl);
+      }  /* if */
+      p = advance_past('E', p, dctl);
+    }  /* if */
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
@@ -4077,6 +4126,17 @@ to be on top of the type.
     /* Process the element type. */
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                               dctl);
+  } else if (kind == 'D') {
+    /* decltype:
+       Dt <expression> E  # decltype of an id-expression or class member access
+       DT <expression> E  # decltype of an expression */
+    p++;
+    if (*p == 't' || *p == 'T') {
+      dctl->suppress_id_output++;
+      p = demangle_expression(p+1, dctl);
+      dctl->suppress_id_output--;
+      p = advance_past('E', p, dctl);
+    }  /* if */
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -4163,6 +4223,16 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = "&=";
         } else if (ch2 == 'S') {
           str = "=";
+        } else if (ch2 == 't') {
+          /* alignof(type) */
+          str = "alignof(";
+          *num_operands = 0;
+          *close_str = ")";
+        } else if (ch2 == 'z') {
+          /* alignof(expression) */
+          str = "alignof(";
+          *close_str = ")";
+          *num_operands = 1;
         }  /* if */
         break;
       case 'c':
@@ -4302,10 +4372,6 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           str = "sizeof(";
           *num_operands = 0;
           *close_str = ")";
-        } else if (ch2 == 'r') {
-          /* Scope resolution operator "::". */
-          str = "::";
-          *num_operands = 0;
         } else if (ch2 == 'z') {
           /* sizeof(expression) */
           str = "sizeof(";
@@ -4799,157 +4865,262 @@ static char *demangle_expression(char                       *ptr,
 Demangle an IA-64 <expression> and output the demangled form.
 Return a pointer to the character position following what was demangled.
 An <expression> encodes an expression (usually for a nontype
-template argument value written in terms of template parameters).
+template argument value written in terms of template parameters or 
+trailing return types specified using decltype).
 The syntax is:
 
   <expression> ::= <unary operator-name> <expression>
                ::= <binary operator-name> <expression> <expression>
                ::= <trinary operator-name> <expression> <expression>
                                                                   <expression>
-               ::= st <type>                    # sizeof(type)
+               ::= cl <expression>+ E          # call
+               ::= cv <type> <expression>      # conversion with one argument
+               ::= cv <type> _ <expression>* E # conversion with a different 
+                                               # number of arguments
+               ::= st <type>                   # sizeof(type)
+               ::= at <type>                   # alignof (a type)
                ::= <template-param>
+               ::= <function-param>
+               ::= dt <expression> <unqualified-name> # expr.name
+               ::= dt <expression> <unqualified-name> <template-args>
+               ::= pt <expression> <unqualified-name> # expr->name
+               ::= pt <expression> <unqualified-name> <template-args>
                ::= sr <type> <unqualified-name> # dependent name
                ::= sr <type> <unqualified-name> <template-args>
-                                                # dependent template-id
+                                               # dependent template-id
+               ::= on <operator-name>          # dependent operator-function-id
+               ::= on <operator-name> <template-args> # dependent operator
+                                                      # template-id
+               ::= <source-name>               # dependent name
+               ::= <source-name> <template-args> # dependent template-id
                ::= <expr-primary>
 
-  <expr-primary> ::= L <type> <value number> E  # integer literal
-                 ::= L <type> <value float> E   # floating literal
-                 ::= L <mangled-name> E         # external name
+  <expr-primary> ::= L <type> <value number> E # integer literal
+                 ::= L <type> <value float> E  # floating literal
+                 ::= L <mangled-name> E        # external name
 
 */
 {
+  int          num_operands, length;
+  char         *op_str, *close_str;
+  a_func_block func_block;
+
   if (*ptr == 'L') {
     /* A literal or external name. */
     ptr = demangle_literal(ptr, dctl);
   } else if (*ptr == 'T') {
     /* A template parameter. */
     ptr = demangle_template_param(ptr, dctl);
-  } else {
-    int  num_operands, length;
-    char *op_str, *close_str;
-    /* An expression beginning with an operator name. */
+  } else if (*ptr == 'f' && ptr[1] == 'p') {
+    /* A function parameter. */
+    ptr = demangle_function_param(ptr, dctl);
+  } else if (*ptr == 'c' && ptr[1] == 'l') {
+    /* Call expression: "cl <expression>+ E" */
+    ptr += 2;
+    ptr = demangle_expression(ptr, dctl);
+    write_id_ch('(', dctl);
+    while (*ptr != 'E') {
+      ptr = demangle_expression(ptr, dctl);
+      if (*ptr == 'E' || dctl->err_in_id) break;
+      write_id_str(", ", dctl);
+    }  /* while */
+    ptr++;
+    write_id_ch(')', dctl);
+  } else if (*ptr == 'c' && ptr[1] == 'v') {
+    /* Conversion (with one or more arguments). */
+    write_id_ch('(', dctl);
+    ptr = demangle_type(ptr+2, dctl);
+    write_id_ch(')', dctl);
+    if (!dctl->err_in_id) {
+      if (*ptr != '_') {
+        /* Exactly one expression. */
+        ptr = demangle_expression(ptr, dctl);
+      } else {
+        /* Some number of expressions (other than one). */
+        ptr++;
+        while (*ptr != 'E') {
+          ptr = demangle_expression(ptr, dctl);
+          if (*ptr == 'E' || dctl->err_in_id) break;
+          write_id_str(", ", dctl);
+        }  /* while */
+        ptr++;
+      }  /* if */
+    }  /* if */
+  } else if (*ptr == 's' && ptr[1] == 't') {
+    /* sizeof(type): "st <type>". */
+    write_id_str("sizeof(", dctl);
+    ptr = demangle_type(ptr+2, dctl);
+    write_id_ch(')', dctl);
+  } else if (*ptr == 'a' && ptr[1] == 't') {
+    /* alignof(type): "at <type>". */
+    write_id_str("alignof(", dctl);
+    ptr = demangle_type(ptr+2, dctl);
+    write_id_ch(')', dctl);
+  } else if (*ptr == 's' && ptr[1] == 'r') {
+    ptr += 2;
+    /* Scope resolution "::":
+         sr <type> <name>
+       The <name> is limited to <unqualified-name> or
+       <unqualified-name> <template-args>, but we don't check that. */
+    a_boolean    gpp_qualified_name = FALSE;
+    if (emulate_gnu_abi_bugs) {
+      /* g++ 3.2 sometimes puts out a qualified name as the second
+         operand.  Look ahead to see whether that form is used.
+         If so, we want to skip over the type but not output it,
+         because the qualified name repeats that type. */
+      char *ptr2;
+      dctl->suppress_id_output++;
+      dctl->suppress_substitution_recording++;
+      ptr2 = demangle_type(ptr, dctl);
+      dctl->suppress_id_output--;
+      dctl->suppress_substitution_recording--;
+      if (*ptr2 == 'N') {
+        gpp_qualified_name = TRUE;
+        /* Scan the type again to get substitutions recorded. */
+        dctl->suppress_id_output++;
+        ptr = demangle_type(ptr, dctl);
+        dctl->suppress_id_output--;
+      }  /* if */
+    }  /* if */
+    if (!gpp_qualified_name) {
+      ptr = demangle_type(ptr, dctl);
+      write_id_str("::", dctl);
+    }  /* if */
+    ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+    if (emulate_gnu_abi_bugs) {
+      /* g++ 3.2 puts out the parameter types following the name
+         of a function. */
+      int  num_operands, length;
+      char *close_str;
+      if (*ptr == 'E' || *ptr == '_') {
+        /* No expression or parameter list next. */
+      } else if (*ptr == 'L' ||
+                 get_operator_name(ptr, &num_operands, &length,
+                                   &close_str, dctl) != NULL) {
+        /* Another expression is next, so no parameter list. */
+      } else {
+        /* Scan the parameter list. */
+        dctl->suppress_id_output++;
+        ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
+                                          BFT_PARAMS, dctl);
+        dctl->suppress_id_output--;
+      }  /* if */
+    }  /* if */
+  } else if (*ptr == 'd' && ptr[1] == 't') {
+    /* expr.name: "dt <expression> <unqualified-name>" or
+                  "dt <expression> <unqualified-name> <template-args>" */
+    write_id_ch('(', dctl);
+    ptr = demangle_expression(ptr+2, dctl);
+    if (!dctl->err_in_id) {
+      write_id_ch('.', dctl);
+      /* The <name> is limited to <unqualified-name> or
+         <unqualified-name> <template-args>, but we don't check that. */
+      ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+      write_id_ch(')', dctl);
+    }  /* if */
+  } else if (*ptr == 'p' && ptr[1] == 't') {
+    /* expr->name: "pt <expression> <unqualified-name>" or
+                   "pt <expression> <unqualified-name> <template-args>" */
+    write_id_ch('(', dctl);
+    ptr = demangle_expression(ptr+2, dctl);
+    if (!dctl->err_in_id) {
+      write_id_str("->", dctl);
+      /* The <name> is limited to <unqualified-name> or
+         <unqualified-name> <template-args>, but we don't check that. */
+      ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+      write_id_ch(')', dctl);
+    }  /* if */
+  } else if (*ptr == 'o' && ptr[1] == 'n') {
+    /* dependent operator-function-id: "on <operator-name>" or
+       dependent operator template-id: "on <operator-name> <template-args>" */
+    ptr += 2;
     op_str = get_operator_name(ptr, &num_operands, &length, &close_str, dctl);
     if (op_str == NULL) {
       bad_mangled_name(dctl);
     } else {
       ptr += length;
-      write_id_ch('(', dctl);
-      if (strncmp(op_str, "builtin-operation-", 18) == 0) {
-        /* Builtin operation.  Has a variable number of operands. */
-        int i;
-        write_id_str(op_str, dctl);
-        write_id_ch('(', dctl);
-        for (i = 1; i <= num_operands; i++) {
-          if (*ptr == 'T' && ptr[1] == 'O') {
-            /* "TO" indicates a type operand. */
-            ptr = demangle_type(ptr+2, dctl);
-          } else {
-            ptr = demangle_expression(ptr, dctl);
-          }  /* if */
-          if (i != num_operands) write_id_str(", ", dctl);
-        }  /* for */
-        write_id_ch(')', dctl);
-      } else if (num_operands == 1) {
-        /* Unary operations. */
-        if (strcmp(op_str, "cast") == 0) {
-          /* Cast. */
-          write_id_ch('(', dctl);
-          ptr = demangle_type(ptr, dctl);
-          write_id_ch(')', dctl);
-        } else {
-          /* Normal unary operator, not cast. */
-          write_id_str(op_str, dctl);
-        }  /* if */
-        ptr = demangle_expression(ptr, dctl);
-      } else if (num_operands == 2) {
-        /* Binary operations. */
-        ptr = demangle_expression(ptr, dctl);
-        write_id_str(op_str, dctl);
-        ptr = demangle_expression(ptr, dctl);
-      } else if (num_operands == 3) {
-        /* Ternary operations ("?"). */
-        ptr = demangle_expression(ptr, dctl);
-        write_id_str(op_str, dctl);
-        ptr = demangle_expression(ptr, dctl);
-        write_id_str(":", dctl);
-        ptr = demangle_expression(ptr, dctl);
-      } else {
-        /* Special cases: sizeof(type), __alignof__(type),
-           __uuidof(type), typeid(type), scope resolution "::" */
-        if (strcmp(op_str, "sizeof(") == 0) {
-          /* sizeof(type). */
-          write_id_str(op_str, dctl);
-          ptr = demangle_type(ptr, dctl);
-        } else if (strcmp(op_str, "__alignof__(") == 0) {
-          /* __alignof__(type). */
-          write_id_str(op_str, dctl);
-          ptr = demangle_type(ptr, dctl);
-        } else if (strcmp(op_str, "__uuidof(") == 0) {
-          /* __uuidof(type). */
-          write_id_str(op_str, dctl);
-          ptr = demangle_type(ptr, dctl);
-        } else if (strcmp(op_str, "typeid(") == 0) {
-          /* typeid(type). */
-          write_id_str(op_str, dctl);
-          ptr = demangle_type(ptr, dctl);
-        } else if (strcmp(op_str, "::") == 0) {
-          /* Scope resolution "::":
-               sr <type> <name>
-             The <name> is limited to <unqualified-name> or
-             <unqualified-name> <template-args>, but we don't check that. */
-          a_func_block func_block;
-          a_boolean    gpp_qualified_name = FALSE;
-          if (emulate_gnu_abi_bugs) {
-            /* g++ 3.2 sometimes puts out a qualified name as the second
-               operand.  Look ahead to see whether that form is used.
-               If so, we want to skip over the type but not output it,
-               because the qualified name repeats that type. */
-            char *ptr2;
-            dctl->suppress_id_output++;
-            dctl->suppress_substitution_recording++;
-            ptr2 = demangle_type(ptr, dctl);
-            dctl->suppress_id_output--;
-            dctl->suppress_substitution_recording--;
-            if (*ptr2 == 'N') {
-              gpp_qualified_name = TRUE;
-              /* Scan the type again to get substitutions recorded. */
-              dctl->suppress_id_output++;
-              ptr = demangle_type(ptr, dctl);
-              dctl->suppress_id_output--;
-            }  /* if */
-          }  /* if */
-          if (!gpp_qualified_name) {
-            ptr = demangle_type(ptr, dctl);
-            write_id_str(op_str, dctl);
-          }  /* if */
-          ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
-          if (emulate_gnu_abi_bugs) {
-            /* g++ 3.2 puts out the parameter types following the name
-               of a function. */
-            int  num_operands, length;
-            char *close_str;
-            if (*ptr == 'E' || *ptr == '_') {
-              /* No expression or parameter list next. */
-            } else if (*ptr == 'L' ||
-                       get_operator_name(ptr, &num_operands, &length,
-                                         &close_str, dctl) != NULL) {
-              /* Another expression is next, so no parameter list. */
-            } else {
-              /* Scan the parameter list. */
-              dctl->suppress_id_output++;
-              ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
-                                                BFT_PARAMS, dctl);
-              dctl->suppress_id_output--;
-            }  /* if */
-          }  /* if */
-        } else {
-          bad_mangled_name(dctl);
-        }  /* if */
+      write_id_str("operator ", dctl);
+      write_id_str(op_str, dctl);
+      if (*ptr == 'I') {
+        /* A <template-args> list is present. */
+        ptr = demangle_template_args(ptr, dctl);
       }  /* if */
-      write_id_str(close_str, dctl);
-      write_id_ch(')', dctl);
     }  /* if */
+  } else if ((op_str = get_operator_name(ptr, &num_operands, &length,
+                                         &close_str, dctl)) != NULL) {
+    /* An expression beginning with an operator name. */
+    ptr += length;
+    write_id_ch('(', dctl);
+    if (strncmp(op_str, "builtin-operation-", 18) == 0) {
+      /* Builtin operation.  Has a variable number of operands. */
+      int i;
+      write_id_str(op_str, dctl);
+      write_id_ch('(', dctl);
+      for (i = 1; i <= num_operands; i++) {
+        if (*ptr == 'T' && ptr[1] == 'O') {
+          /* "TO" indicates a type operand. */
+          ptr = demangle_type(ptr+2, dctl);
+        } else {
+          ptr = demangle_expression(ptr, dctl);
+        }  /* if */
+        if (i != num_operands) write_id_str(", ", dctl);
+      }  /* for */
+      write_id_ch(')', dctl);
+    } else if (num_operands == 1) {
+      /* Unary operations. */
+      if (strcmp(op_str, "cast") == 0) {
+        /* Cast. */
+        write_id_ch('(', dctl);
+        ptr = demangle_type(ptr, dctl);
+        write_id_ch(')', dctl);
+      } else {
+        /* Normal unary operator, not cast. */
+        write_id_str(op_str, dctl);
+      }  /* if */
+      ptr = demangle_expression(ptr, dctl);
+    } else if (num_operands == 2) {
+      /* Binary operations. */
+      ptr = demangle_expression(ptr, dctl);
+      write_id_str(op_str, dctl);
+      ptr = demangle_expression(ptr, dctl);
+    } else if (num_operands == 3) {
+      /* Ternary operations ("?"). */
+      ptr = demangle_expression(ptr, dctl);
+      write_id_str(op_str, dctl);
+      ptr = demangle_expression(ptr, dctl);
+      write_id_str(":", dctl);
+      ptr = demangle_expression(ptr, dctl);
+    } else {
+      /* Special cases: __alignof__(type), __uuidof(type), typeid(type) */
+      if (strcmp(op_str, "sizeof(") == 0) {
+        /* sizeof(type). */
+        write_id_str(op_str, dctl);
+        ptr = demangle_type(ptr, dctl);
+      } else if (strcmp(op_str, "__alignof__(") == 0) {
+        /* __alignof__(type). */
+        write_id_str(op_str, dctl);
+        ptr = demangle_type(ptr, dctl);
+      } else if (strcmp(op_str, "__uuidof(") == 0) {
+        /* __uuidof(type). */
+        write_id_str(op_str, dctl);
+        ptr = demangle_type(ptr, dctl);
+      } else if (strcmp(op_str, "typeid(") == 0) {
+        /* typeid(type). */
+        write_id_str(op_str, dctl);
+        ptr = demangle_type(ptr, dctl);
+      } else {
+        bad_mangled_name(dctl);
+      }  /* if */
+    }  /* if */
+    write_id_str(close_str, dctl);
+    write_id_ch(')', dctl);
+  } else {
+    /* Assume it's a dependent name:
+      <source-name>                  # dependent name
+      <source-name> <template-args>  # dependent template-id */
+    /* The <name> is limited to <unqualified-name> or
+       <unqualified-name> <template-args>, but we don't check that. */
+    ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
   }  /* if */
   return ptr;
 }  /* demangle_expression */
