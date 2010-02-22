@@ -5079,7 +5079,7 @@ done:
 
 static void cache_std_attribute_group(a_token_cache  *cache)
 /*
-The next tokens in the token stream are to left brackets, which are expected
+The next tokens in the token stream are two left brackets, which are expected
 to introduce a standard attribute group.  Cache the tokens making up that
 group in the given cache.
 */
