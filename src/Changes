@@ -40,8 +40,8 @@ of the same entity invisible, which does not match the behavior of the GNU
 and Microsoft compilers.  For example:
 
   extern int x;
-  int x = ((int)&x);  // Previously x in "&x" was not found in some GNU and
-                      // Microsoft modes.
+  int x((int)&x);  // Previously x in "&x" was not found in some GNU and
+                   // Microsoft modes.
 
 This is now fixed.
 
