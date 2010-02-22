@@ -1425,6 +1425,86 @@ syntactic properties of the current declaration.
   
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void set_param_syms_visibility(a_func_info_block  *func_info,
+                                      a_boolean          visible)
+/*
+Make each parameter symbol associated with func_info visible (if visible is
+TRUE) or invisible (if visible is FALSE).
+*/
+{
+  a_param_id_ptr  param_id = func_info->param_id_list;
+
+  for (; param_id != NULL; param_id = param_id->next) {
+    param_id->symbol->is_invisible = !visible;
+  }  /* for */
+}  /* set_param_syms_visibility */
+
+
+static void scan_trailing_return_type(a_decl_parse_state  *dps,
+                                      a_func_info_block   *func_info,
+                                      a_type_ptr          rout_type)
+/*
+A function declarator has just been parsed (resulting in the entry rout_type)
+and the current token is a "->".  Scan a trailing return type and update
+*rout_type and *dps accordingly (*dps and *func_info describe the current
+declaration).  Diagnostics are issued if the function declarator does not in
+fact allow for a trailing return type (e.g., because the type specifier was
+not "auto").  This routine is also called of the trailing return type of a
+lambda declarator.
+*/
+{
+  a_decl_parse_state             trt_dps;
+  a_boolean                      err = FALSE;
+
+  check_assertion(curr_token == tok_arrow);
+  if (func_info->lambda != NULL) {
+    /* No special syntax checks are needed. */
+  } else if (!dps->auto_type_specifier_seen) {
+    /* Something like "int ()->int". */
+    error(ec_trailing_return_type_requires_auto);
+    err = TRUE;
+  } else if (dps->in_nested_declarator) {
+    /* Something like "auto (()->int)". */
+    error(ec_trailing_return_type_in_nested_declarator);
+    err = TRUE;
+  } else if (dps->type != dps->auto_type) {
+    /* Something like "auto *()->int". */
+    pos_error(ec_trailing_return_type_function_without_simple_auto,
+              &dps->declarator_start_pos);
+    err = TRUE;
+  }  /* if */
+  /* Skip over the "->" token. */
+  (void)get_token();
+  dps->return_type_pos = pos_curr_token;
+  init_decl_parse_state(&trt_dps);
+  trt_dps.is_trailing_return_type = TRUE;
+  trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
+  /* In GNU mode, parameter symbols are marked invisible while processing
+     default arguments (which may or may not have been done already, depending
+     on the context).  They must however be visible while scanning a trailing
+     return type.  For example, in
+        void *x;
+        auto f(long x = (long)x)->decltype(2*x);
+     the x in the default argument must find the variable, but the x in the
+     trailing return type must find the parameter.
+  */
+  if (gpp_mode) set_param_syms_visibility(func_info, TRUE);
+  /* Parse the trailing return type. */
+  type_name_full(&trt_dps);
+  if (gpp_mode) set_param_syms_visibility(func_info, FALSE);
+  if (err) {
+    dps->specifiers_type = dps->declared_type = dps->type = error_type();
+  } else {
+    /* Replace the specifiers type (which was auto) and the type assembled
+       so far (which should be the same as the specifiers type)  by the
+       actual return type. */
+    dps->has_trailing_return_type = TRUE;
+    dps->specifiers_type = dps->declared_type = dps->type = trt_dps.type;
+    rout_type->variant.routine.extra_info->trailing_return_type = TRUE;
+  }  /* if */
+}  /* scan_trailing_return_type */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* state is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1624,44 +1704,7 @@ this is a helper function.
   if (curr_token == tok_arrow &&
       (trailing_return_types_enabled || is_lambda_decl)) {
     /* A trailing return type. */
-    a_decl_parse_state  trt_dps;
-    a_boolean           err = FALSE;
-    if (is_lambda_decl) {
-      /* No special syntax checks are needed. */
-    } else if (!state->auto_type_specifier_seen) {
-      /* Something like "int ()->int". */
-      error(ec_trailing_return_type_requires_auto);
-      err = TRUE;
-    } else if (state->in_nested_declarator) {
-      /* Something like "auto (()->int)". */
-      error(ec_trailing_return_type_in_nested_declarator);
-      err = TRUE;
-    } else if (state->type != state->auto_type) {
-      /* Something like "auto *()->int". */
-      pos_error(ec_trailing_return_type_function_without_simple_auto,
-                &state->declarator_start_pos);
-      err = TRUE;
-    }  /* if */
-    /* Skip over the "->" token. */
-    (void)get_token();
-    state->return_type_pos = pos_curr_token;
-    init_decl_parse_state(&trt_dps);
-    trt_dps.is_trailing_return_type = TRUE;
-    trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
-    /* Parse the trailing return type. */
-    type_name_full(&trt_dps);
-    if (err) {
-      state->specifiers_type = state->declared_type = state->type =
-                                                                 error_type();
-    } else {
-      /* Replace the specifiers type (which was auto) and the type assembled
-         so far (which should be the same as the specifiers type)  by the
-         actual return type. */
-      state->has_trailing_return_type = TRUE;
-      state->specifiers_type = state->declared_type = state->type =
-                                                                 trt_dps.type;
-      rtsp->trailing_return_type = TRUE;
-    }  /* if */
+    scan_trailing_return_type(state, func_info, rout_type);
   } else {
     state->return_type_pos = state->specifiers_pos;
   }  /* if */
