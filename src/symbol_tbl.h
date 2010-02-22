@@ -1754,7 +1754,8 @@ typedef struct a_template_instance {
 			   and static data members of template classes. */
   a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
-			   requested using a pragma directive. */
+			   requested using an explicit instantiation directive
+			   or an instantiation pragma. */
   a_bit_field	class_explicitly_instantiated:1;
 			/* TRUE if the instantiation request specified the
 			   class (meaning that all its members should be
@@ -1764,7 +1765,8 @@ typedef struct a_template_instance {
 			   members. */
   a_bit_field	explicit_do_not_instantiate:1;
 			/* TRUE if instantiation has been explicitly 
-			   suppressed by a do_not_instantiate pragma. */
+			   suppressed by an "extern template" directive or
+			   a do_not_instantiate pragma. */
   a_bit_field	explicit_can_instantiate:1;
 			/* TRUE if instantiation has been explicitly declared
                            as being possible by a can_instantiate pragma. */
@@ -1786,8 +1788,8 @@ typedef struct a_template_instance {
 			   messages. */
   a_source_position
 		explicit_instantiation_pos;
-			/* The position of the instantiation request pragma
-			   when explicit_instantiation is TRUE. */
+			/* The position of the explicit instantiation directive
+			   or pragma when explicit_instantiation is TRUE. */
   a_source_position
 		pos_of_first_reference;
 			/* The position of the first reference to the entity.
