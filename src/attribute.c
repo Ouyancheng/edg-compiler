@@ -1056,80 +1056,121 @@ ak_unrecognized, and return NULL.
 }  /* scan_attr_identifier_arg */
 
 
-/*ARGSUSED*/  /* ap is currently unused. */
-static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(
-                                                         an_attribute_ptr  ap)
+static an_attribute_arg_ptr get_raw_token(void)
 /*
-Scan tokens until (but not including) a non-matched right parenthesis, bracket,
-or brace.  Return these tokens as a list of aak_raw_token attribute argument
-entries.  (This is called for attributes whose "signature string" ends in "*)".
-That includes unrecognized attributes.)  The sequence of raw token entries is
-terminated by an aak_empty argument that holds the position of the subsequent
-token (the non-matched parenthesis, bracket, or brace).
+Create and return an aak_raw_token entry for the current token.  The current
+token is consumed by a call to get_token.
 */
 {
-  unsigned long         n_paren = 0, n_bracket = 0, n_brace = 0;
-  an_attribute_arg_ptr  aap = NULL, *p_aap = &aap;
+  an_attribute_arg_ptr  aap = alloc_attribute_arg();
+
+  check_assertion(curr_token != tok_newline);
+  aap->kind = (an_attribute_arg_kind)aak_raw_token;
+  aap->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  aap->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  aap->token_kind = (a_small_token_kind)curr_token;
+  aap->variant.token = il_string_for_curr_token();
+  (void)get_token();
+  return aap;
+}  /* get_raw_token */
+
+
+static an_attribute_arg_ptr get_balanced_token(
+                                         an_attribute_arg_ptr  *unmatched_aap)
+/*
+The standard defines the non-terminal "balanced-token" as follows:
+  balanced-token:
+         ( balanced-token-seq )
+         [ balanced-token-seq ]
+         { balanced-token-seq }
+         any token other than a parenthesis, a bracket, or a brace
+Scan such a construct and return a list of aak_raw_token attribute argument
+entries for the corresponding tokens.  If the balanced token is a "(", "[", or
+"{" that has no matching closing delimiter, set *unmatched_aap to point to
+the entry for the opening delimiter, unless *unmatched_aap already points to
+an entry.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL;
+  a_token_kind          closing_token;
+
+  switch (curr_token) {
+    case tok_end_of_source:
+      expect_error();
+      goto done;
+    case tok_lparen:
+      closing_token = tok_rparen;
+      break;
+    case tok_lbracket:
+      closing_token = tok_rbracket;
+      break;
+    case tok_lbrace:
+      closing_token = tok_rbrace;
+      break;
+    case tok_rparen:
+    case tok_rbracket:
+    case tok_rbrace:
+      goto done;
+      break;
+    default:
+      closing_token = tok_last;
+      break;
+  }  /* switch */
+  aap = get_raw_token();
+  if (closing_token != tok_last) {
+    /* The balanced-token started with a "(", "[", or "}": Scan and record
+       tokens until the matching closing delimiter (or tok_end_of_source). */
+    an_attribute_arg_ptr  *p_aap = &aap->next;
+    for (;;) {
+      *p_aap = get_balanced_token(unmatched_aap);
+      if (*p_aap == NULL) break;
+      /* Keep p_aap pointing to the last "next" pointer. */
+      do { p_aap = &(*p_aap)->next; } while (*p_aap != NULL);
+    }  /* for */
+    if (curr_token == closing_token) {
+      *p_aap = get_raw_token();
+    } else if (*unmatched_aap == NULL) {
+      *unmatched_aap = aap;
+    }  /* if */
+  }  /* if */
+done:
+  return aap;
+}  /* get_balanced_token */
+
+
+static an_attribute_arg_ptr scan_attr_remaining_arg_tokens(an_attribute_ptr ap)
+/*
+Scan tokens until (but not including) a right parenthesis matching the left
+parenthesis opening the argument list of the given attribute.  Return these
+tokens as a list of aak_raw_token attribute argument entries.  (This is called
+for attributes whose "signature string" ends in "*)".  That includes
+unrecognized attributes.)  The sequence of raw token entries is terminated by
+an aak_empty argument that holds the position of the subsequent token
+(normally, a right parenthesis).  Scanning also stops at an unmatched right
+parenthesis, bracket, or brace, or if tok_end_of_source is encountered: In
+such cases an error is issued and ap->kind is set to ak_unrecognized.
+*/
+{
+  an_attribute_arg_ptr  aap = NULL, unmatched_aap = NULL, *p_aap = &aap;
 
   /* Record tokens while keeping track of the number of parentheses, brackets,
      and braces.  Stop when encountering a right parenthesis, bracket, or
      brace not matching a recorded token. */
   for (;;) {
-    switch (curr_token) {
-      case tok_newline:
-        unexpected_condition();
-        break;
-      case tok_end_of_source:
-        expect_error();
-        goto done;
-      case tok_lparen:
-        ++n_paren;
-        goto default_case;
-      case tok_rparen:
-        if (n_paren == 0) {
-          goto done;
-        } else {
-          --n_paren;
-          goto default_case;
-        }  /* if */
-      case tok_lbracket:
-        ++n_bracket;
-        goto default_case;
-      case tok_rbracket:
-        if (n_bracket == 0) {
-          goto done;
-        } else {
-          --n_bracket;
-          goto default_case;
-        }  /* if */
-      case tok_lbrace:
-        ++n_brace;
-        goto default_case;
-      case tok_rbrace:
-        if (n_brace == 0) {
-          goto done;
-        } else {
-          --n_brace;
-          goto default_case;
-        }  /* if */
-      default:
-default_case:
-        /* Create an aak_raw_token entry for the current token and move on
-           to the next token. */
-        *p_aap = alloc_attribute_arg();
-        (*p_aap)->kind = (an_attribute_arg_kind)aak_raw_token;
-        (*p_aap)->position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        (*p_aap)->end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        (*p_aap)->token_kind = (a_small_token_kind)curr_token;
-        (*p_aap)->variant.token = il_string_for_curr_token();
-        p_aap = &(*p_aap)->next;
-        (void)get_token();
-        break;
-    }  /* switch */
+    *p_aap = get_balanced_token(&unmatched_aap);
+    if (*p_aap == NULL) break;
+    /* Keep p_aap pointing to the last "next" pointer. */
+    do { p_aap = &(*p_aap)->next; } while (*p_aap != NULL);
   }  /* for */
-done:
+  if (curr_token != tok_rparen && unmatched_aap == NULL) {
+    unmatched_aap = aap;
+  }  /* if */
+  if (unmatched_aap != NULL) {
+    pos_error(ec_unbalanced_attribute_argument, &unmatched_aap->position);
+    make_attr_unrecognized(ap);
+  }  /* if */
   /* Append an aak_empty argument to the sequence of raw tokens.  This is
      primarily useful for diagnostic purposes, by providing a record of the
      position of the subsequent token. */
@@ -1137,10 +1178,6 @@ done:
   (*p_aap)->kind = (an_attribute_arg_kind)aak_empty;
   (*p_aap)->position = pos_curr_token;
   /* Check that the token sequence was "balanced". */
-  if (n_paren != 0 || n_bracket != 0 || n_brace != 0) {
-    pos_error(ec_unbalanced_attribute_argument, &aap->position);
-    make_attr_unrecognized(ap);
-  }  /* if */
   return aap;
 }  /* scan_attr_remaining_arg_tokens */
 
