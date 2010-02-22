@@ -66,11 +66,6 @@ expr.h -- Declarations related to expression parsing.
 			   unary "&" operator where a pointer-to-member
 			   constant would be valid (presumably without
 			   intervening parentheses). */
-#define EOPT_FIELD_FOR_OFFSETOF 0x100
-			/* The dot or arrow operator being scanned must
-			   resolve to a nonstatic data member (or "field").
-			   This is used in the implementation of
-			   "__builtin_offsetof". */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;

@@ -1465,9 +1465,9 @@ extern
 void make_lvalue_or_rvalue_expression_operand(an_expr_node_ptr node,
                                               an_operand       *operand);
 
-extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
-                                             a_boolean    curr_id,
-                                             an_operand   *operand);
+extern void make_indefinite_function_operand(a_symbol_ptr     routine_sym,
+                                             a_symbol_locator *locator,
+                                             an_operand       *operand);
 
 extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         a_boolean       is_qualified_name,
@@ -1508,9 +1508,13 @@ extern void make_call_rescan_operands(
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 #if RECORD_FORM_OF_NAME_REFERENCE
+extern
+void set_operand_name_reference_from_locator(an_operand       *operand,
+                                             a_symbol_locator *locator);
 extern void set_operand_name_reference_from_locator_for_curr_id(
                                                           an_operand *operand);
 #else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define set_operand_name_reference_from_locator(x, y) /* Nothing */
 #define set_operand_name_reference_from_locator_for_curr_id(x) /* Nothing */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 

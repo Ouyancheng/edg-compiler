@@ -2606,7 +2606,7 @@ are expected to be NULL in that case.
         /* We can use an indefinite function operand whether the operator()
            function is overloaded or not. */
         make_indefinite_function_operand(member_function_symbol,
-                                         /*curr_id=*/FALSE,
+                                         (a_symbol_locator *)NULL,
                                          operand);
         overloaded_function_symbol = member_function_symbol;
         bind_member_function_operand_to_selector(
@@ -2641,7 +2641,8 @@ are expected to be NULL in that case.
                                          end_position_or_null(&end_position),
                                          operand->ref_entries_list, operand);
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (!operand->name_reference_set &&
+        if (rcblock == NULL &&  /* FIXME? */
+            !operand->name_reference_set &&
             locator_for_curr_id.is_qualified_name) {
           /* Remember the form of the name reference (it was set in
              scan_field_selection_operator for cases in which the object
@@ -3379,56 +3380,362 @@ end_of_routine:;
 }  /* process_overloaded_operator_arrow */
 
 
-static void scan_field_selection_operator(
-                            an_operand               *operand_1,
-                            a_local_expr_options_set local_options,
-                            an_operand               *result,
-                            an_operand               *bound_function_selector)
+static void scan_selection_second_operand(
+                            an_operand        *operand_1,
+                            a_type_ptr        class_struct_union_type,
+                            a_boolean         is_arrow_operator,
+                            a_symbol_locator  *locator,
+                            a_boolean         *is_vacuous_destructor_reference,
+                            a_type_ptr        *dtor_type,
+                            a_type_ptr        *updated_class_type,
+                            a_boolean         *err)
 /*
-Scan the "." and "->" operators, or a built-in offsetof operator.  The left
-operand must be (a pointer to) a class, struct, or union.  The right operand
-must be a member of the class, struct, or union.  Return the result of the
-selection in *result.  If the field selection produces a bound function in
-C++, return the object bound with the function in *bound_function_selector.
-local_options is the current set of expression-scanning options.  This routine
-is also called to parse a __builtin_offsetof construct (local_options will
-have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
+Scan and process the second operand of a selection operator, e.g., "x"
+in "p->x".  operand_1 gives the first operand.
+class_struct_union_type gives the type of the first operand (with
+"pointer to" stripped off for the "->" case; in spite of the name, in
+some vacuous destructor cases it may not be a class type, and it might
+be NULL in some error cases.  It does have cv-qualifiers stripped off,
+however.).  The operator is "->" if is_arrow_operator is TRUE.  The
+second operand is basically a name.  Return a locator for that name in
+*locator.  If the name is a vacuous destructor reference (e.g., as in
+"p->A::~A"), instead return *is_vacuous_destructor_reference TRUE and
+*dtor_type set to the class type (i.e., "A" in that example).
+*updated_class_type will be returned non-NULL if this routine wants to
+give the caller a new type to use for class_struct_union_type (that's
+used for some obscure pcc mode cases).  Set *err to TRUE if there is
+an error.
 */
 {
-  a_symbol_ptr          member_sym, projection_member_sym;
-  a_boolean             is_arrow_operator, is_lvalue;
-  a_type_ptr            class_struct_union_type = NULL;
-  a_type_ptr            orig_class_struct_union_type;
-  a_boolean             err = FALSE, found_id = FALSE;
-  a_boolean             operand_1_is_complete_class = FALSE, local_err;
-  a_boolean             need_operand_1_type_check = FALSE;
-  a_boolean             allow_constant_selection = FALSE;
-  a_boolean             need_member_sym_check;
-  a_ref_entry_ptr       rep;
-  a_type_ptr            routine_type;
-  a_boolean             is_qualified_name;
-  a_boolean             is_vacuous_destructor_reference = FALSE;
-  a_boolean             force_indefinite_function = FALSE;
-  a_source_position     member_position, qualified_member_position;
   an_identifier_options_set
                         gid_flags;
+  a_source_position     member_position, qualified_member_position;
+  a_boolean             is_qualified_name;
+
+  *is_vacuous_destructor_reference = FALSE;
+  *dtor_type = NULL;
+  *updated_class_type = NULL;
+  /* See if an identifier (or equivalent) is next. */
+  gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND |
+              GID_IS_EXPR_CONTEXT;
+  if (C_dialect == C_dialect_cplusplus) {
+    if (curr_token == tok_template) {
+      /* A construct like "p->template f<x>...".  If it is allowed in this
+         context, pass a flag to the identifier coalescing routine that
+         the name is known to be a template. */
+      if (!is_template_context()) {
+        /* The template keyword, when used for syntactic disambiguation,
+           may only appear within a template. */
+        expr_pos_diagnostic(strict_ansi_mode ?
+                                    strict_ansi_discretionary_severity :
+                                    es_warning,
+                            ec_template_not_in_template,
+                            &pos_curr_token);
+      } else {
+        gid_flags |= GID_FOLLOWS_TEMPLATE;
+      }  /* if */
+      (void)get_token();
+    }  /* if */
+    /* In C++, explicit calls of destructors are allowed for simple types
+       and classes without destructors.  For example, p->int::~int(). */
+    gid_flags |= GID_VACUOUS_DTOR_RECOGNIZED;
+    /* coverity[var_deref_model] */
+    if (*err || !is_class_struct_union_type(class_struct_union_type)) {
+      /* If the first operand is not a class, the vacuous destructor calls
+         can be things like p->~int(). */
+      gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
+    }  /* if */
+  }  /* if */
+  if (f_is_generalized_identifier_start(gid_flags, class_struct_union_type)) {
+    a_symbol_ptr member_sym = NULL;
+    a_boolean    local_err;
+    /* See if the name following the operator is a C++ qualified name, as
+       in "p->A::x". */
+    /* Leading "::" is allowed as of the Portland X3J16/WG21 meeting;
+       cfront always allowed it. */
+    is_qualified_name = coalesce_and_lookup_qualified_name(gid_flags,
+                                                           ilm_expr,
+                                                           &local_err);
+    *err |= local_err;
+    /* If the member is something like "A::x", member_position will give
+       the position of the "x" and qualified_member_position will give the
+       position of the "A". */
+    member_position = locator_for_curr_id.source_position;
+    qualified_member_position = pos_curr_token;
+    if (locator_for_curr_id.is_vacuous_destructor_reference) {
+      /* We have something like p->int::~int, a reference to a vacuous
+         destructor.  Also p->A::~A(), where A is a class without a
+         destructor. */
+      *is_vacuous_destructor_reference = TRUE;
+      /* Watch out for error cases like p->int::~float.  Also, in
+         some error cases like p->~xxx, where xxx is either undefined
+         or not a type name, class type will be NULL. */
+      *dtor_type = qualifier_class_type(locator_for_curr_id);
+      if (is_error_locator(locator_for_curr_id) || *dtor_type == NULL) {
+        *err = TRUE;
+      }  /* if */
+    } else {
+      /* Not a vacuous destructor case, i.e., normal case. */
+      a_boolean need_member_sym_check = TRUE;
+      a_boolean operand_1_is_complete_class =
+                           class_struct_union_type != NULL &&
+                           is_immediate_class_type(class_struct_union_type) &&
+                           !is_incomplete_type(class_struct_union_type);
+      /* Further checking beyond the fact that this is an identifier is not
+         possible if there was an error in the first operand. */
+      if (operand_1_is_complete_class) {
+        if (is_qualified_name) {
+qualified_name_check:
+          /* There was a qualified member name, as in "p->A::x".  "A" in the
+             preceding must be the class pointed to by p or a base class
+             thereof, i.e., "A::x" must be a member of the class of the
+             first operand or of one of its base classes. */
+          if (is_error_locator(locator_for_curr_id)) {
+            /* There was an error in the qualified name. */
+            *err = TRUE;
+          } else {
+            a_symbol_ptr projection_member_sym =
+                                           locator_for_curr_id.specific_symbol;
+            member_sym = fundamental_symbol_of(projection_member_sym);
+            if (!projection_member_sym->is_class_member) {
+              /* The qualified name is not the name of a class member
+                 (i.e., it's the name of a namespace member). */
+              if (expr_error_should_be_issued()) {
+                pos_sy_error(ec_not_class_member,
+                             &qualified_member_position,
+                             projection_member_sym);
+              }  /* if */
+              *err = TRUE;
+            } else if (class_struct_union_type->
+                                 variant.class_struct_union.is_nonreal_class ||
+                       sym_parent_class(projection_member_sym)->
+                                 variant.class_struct_union.is_nonreal_class) {
+              /* Skip the check for a nonreal class in a prototype
+                 instantiation. */
+            } else {
+              /* Make sure the name is a member of the class indicated by the
+                 left-hand side, or one of its base classes. */
+              if (!projection_member_sym->is_class_member ||
+                  !is_same_class_or_base_class_thereof(
+                        class_struct_union_type, sym_parent_class(
+                                                    projection_member_sym))) {
+                if (expr_error_should_be_issued()) {
+                  pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                               &qualified_member_position,
+                               class_struct_union_type);
+                }  /* if */
+                *err = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          need_member_sym_check = FALSE;
+        } else {
+          /* Normal case: not qualified member name. */
+          /* Look up this identifier in the scope of the class, struct, or
+             union. */
+          member_sym = class_qualified_id_lookup(
+                                       &locator_for_curr_id,
+                                       class_struct_union_type,
+                                       (IDL_IS_EXPR_CONTEXT |
+                                        IDL_IS_FIELD_SELECTION_OPERAND));
+          if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
+            /* This is a case like p->~A where the class has no destructor.
+               This is a vacuous destructor case if the types match.
+               Note that we do not allow ~A to be in a base class of the
+               class pointed to by p, because destructor names are not
+               inherited. */
+            a_symbol_ptr class_sym =
+              (a_symbol_ptr)class_struct_union_type->source_corresp.assoc_info;
+            if (destructor_name_matches_class_name(class_sym)) {
+              *is_vacuous_destructor_reference = TRUE;
+              locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
+              *dtor_type = class_struct_union_type;
+              locator_for_curr_id.parent.class_type = *dtor_type;
+              locator_for_curr_id.is_class_member = TRUE;
+              need_member_sym_check = FALSE;
+            }  /* if */
+          } else if (member_sym != NULL &&
+                     member_sym->kind == (a_symbol_kind)sk_class_template) {
+            /* For a member template, coalesce the template reference.
+               This will use the specific symbol already established. */
+            if (is_generalized_identifier_start(gid_flags)) {
+              member_sym = coalesce_and_lookup_generalized_identifier(
+                                                                   gid_flags,
+                                                                   ilm_expr,
+                                                                   &local_err);
+              if (local_err) {
+                *err = TRUE;
+              } else if (locator_for_curr_id.is_qualified_name) {
+                /* For qualified names, go back and do the normal checking. */
+                goto qualified_name_check;
+              }  /* if */
+            } else {
+              unexpected_condition_str(
+                            "scan_selection_second_operand: template problem");
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      /* If the field was not found in pcc or SVR4 C mode, look for any field
+         with that name.  If there's only one (or several with the same
+         offsets), cast the left-side variable to the right struct/union type
+         and do the selection with the found field (otherwise, an error can be
+         issued at this point). */
+      if (member_sym == NULL &&
+          (C_dialect == C_dialect_pcc || SVR4_C_mode) &&
+          /* Avoid the "rvalue . field" case. */
+          (is_arrow_operator || is_an_lvalue(operand_1))) {
+        member_sym = other_field_with_same_name();
+        if (member_sym == NULL) {
+          /* An error has been issued by other_field_with_same_name. */
+          *err = TRUE;
+          /* Avoid issuing a second error below. */
+          need_member_sym_check = FALSE;
+        } else {
+          /* We found a field we can use. */
+          make_locator_for_symbol(member_sym, &locator_for_curr_id);
+          locator_for_curr_id.source_position = member_position;
+          if (is_arrow_operator) {
+            /* "->" operator. */
+            expr_pos_warning(ec_old_fashioned_ptr_field_selection,
+                             &member_position);
+          } else {
+            /* "." operator.  Convert the lvalue to an rvalue pointer, then
+               use "->" instead.  Note that the test above has ensured that
+               operand_1 here is an lvalue. */
+            expr_pos_warning(ec_old_fashioned_field_selection,
+                             &member_position);
+            take_address_of_lvalue(operand_1, (a_source_position*)NULL);
+            is_arrow_operator = TRUE;
+          }  /* if */
+          /* Cast the pointer to a pointer to the proper struct or union. */
+          class_struct_union_type = sym_parent_class(member_sym);
+          *updated_class_type = class_struct_union_type;
+          cast_operand(make_pointer_type(class_struct_union_type),
+                       operand_1,
+                       /*is_implicit_cast=*/FALSE);
+          /* Mark the struct or union type as referenced, since a field
+             therein has been referenced. */
+          class_struct_union_type->source_corresp.referenced = TRUE;
+        }  /* if */
+      }  /* if */
+      if (member_sym == NULL && need_member_sym_check) {
+        /* The identifier is not a member of the operand_1 class, struct,
+           or union. */
+        *err = TRUE;
+        if (expr_error_should_be_issued()) expect_error();
+        if (!operand_1_is_complete_class) {
+          /* An error will be produced later because the first operand is
+             not (a pointer to) a complete class, so do not issue an error
+             here. */
+        } else if (is_error_locator(locator_for_curr_id)) {
+          /* An error was previously issued. */
+        } else {
+          if (expr_error_should_be_issued()) {
+            pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
+                           &error_position,
+                           locator_for_curr_id.symbol_header->identifier,
+                           (a_symbol_ptr)class_struct_union_type->
+                                                    source_corresp.assoc_info);
+          }  /* if */
+          /* Enter an undefined symbol and record a reference against it. */
+          { a_symbol_ptr undef_sym_ptr =
+                           enter_undefined_member_symbol(&locator_for_curr_id);
+            record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
+                                                              SRK_ERROR),
+                                    undef_sym_ptr,
+                                    &error_position,
+                                    /*update_il_entry=*/FALSE);
+          }
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!*err && !*is_vacuous_destructor_reference) {
+      *locator = locator_for_curr_id;
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Advance past the identifier. */
+    (void)get_token();
+  } else {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* The identifier is not present; error. */
+    (void)required_token(tok_identifier,
+                         C_dialect == C_dialect_cplusplus ?
+                                              ec_exp_member_name :
+                                              ec_exp_field_name);
+    *err = TRUE;
+  }  /* if */
+}  /* scan_selection_second_operand */
+
+
+static void scan_field_selection_operator(
+                               an_operand             *operand_1,
+                               a_rescan_control_block *rcblock,
+                               a_boolean              offsetof_case,
+                               an_operand             *result,
+                               an_operand             *bound_function_selector)
+/*
+Scan the "." and "->" operators.  *operand_1 is the left operand.  The
+current token is the operator.  Scan the member name operand, combine
+the two operands into an expression, and return an operand for that in
+*result.  If the result is a bound function, return the selector in
+*bound_function_selector.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned expression, and return the result in
+*result and *bound_function_selector (or an error indication in
+*rcblock).  operand_1 is expected to be NULL in that case.  This
+routine is also called to parse a __builtin_offsetof field construct
+(offsetof_case will be TRUE in that case).
+*/
+{
+  a_boolean             is_arrow_operator;
+  a_type_ptr            class_struct_union_type = NULL;
+  a_type_ptr            orig_class_struct_union_type;
+  a_boolean             err = FALSE;
+  a_boolean             need_operand_1_type_check = FALSE;
+  a_boolean             allow_constant_selection = FALSE;
+  a_ref_entry_ptr       rep;
+  a_type_ptr            routine_type;
+  a_boolean             is_vacuous_destructor_reference = FALSE;
+  a_boolean             force_indefinite_function = FALSE;
+  a_source_position     member_position;
   a_type_ptr            dtor_type;
   a_boolean             pcc_mode_integral_pointer_case = FALSE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+  an_operand            local_operand_1;
+  a_token_kind          operator_token;
   a_source_position     operator_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position     end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_token_sequence_number
                         operator_tok_seq_number;
+  a_symbol_locator      locator;
 
   db_enter(4, "scan_field_selection_operator");
 
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    operator_token = rcblock->operator_token;
+    check_assertion(operand_1 == NULL);
+    operand_1 = &local_operand_1;
+    check_assertion(!offsetof_case);
+#if 0
+    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                         &operator_position, &operator_tok_seq_number);
+#else
+    unexpected_condition();
+#endif
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+    operator_tok_seq_number = curr_token_sequence_number;
+  }  /* if */
   /* Remember if this was an arrow or a dot selector. */
-  is_arrow_operator = (curr_token == tok_arrow);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  operator_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  operator_tok_seq_number = curr_token_sequence_number;
+  is_arrow_operator = (operator_token == tok_arrow);
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
@@ -3567,8 +3874,6 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
       if (is_class_struct_union_type(class_struct_union_type)) {
         /* Instantiate the class if it is a template class. */
         complete_class_type_is_needed(class_struct_union_type);
-        operand_1_is_complete_class =
-                                !is_incomplete_type(class_struct_union_type);
       }  /* if */
       /* No error is issued yet if the first operand is not (a pointer to)
          a class, because (a) C++ allows p->int::~int(), and (b) prototype
@@ -3579,253 +3884,49 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
     }  /* if */
   }  /* if */
 
-  /* Scan the second operand. */
-  (void)get_token();
-  /* See if an identifier (or equivalent) is next. */
-  gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND |
-              GID_IS_EXPR_CONTEXT;
-  if (C_dialect == C_dialect_cplusplus) {
-    if (curr_token == tok_template) {
-      /* A construct like "p->template f<x>...".  If it is allowed in this
-         context, pass a flag to the identifier coalescing routine that
-         the name is known to be a template. */
-      if (!is_template_context()) {
-        /* The template keyword, when used for syntactic disambiguation,
-           may only appear within a template. */
-        expr_pos_diagnostic(strict_ansi_mode ?
-                                    strict_ansi_discretionary_severity :
-                                    es_warning,
-                            ec_template_not_in_template,
-                            &pos_curr_token);
-      } else {
-        gid_flags |= GID_FOLLOWS_TEMPLATE;
-      }  /* if */
-      (void)get_token();
-    }  /* if */
-    /* In C++, explicit calls of destructors are allowed for simple types
-       and classes without destructors.  For example, p->int::~int(). */
-    gid_flags |= GID_VACUOUS_DTOR_RECOGNIZED;
-    /* coverity[var_deref_model] */
-    if (err || !is_class_struct_union_type(class_struct_union_type)) {
-      /* If the first operand is not a class, the vacuous destructor calls
-         can be things like p->~int(). */
-      gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
-    }  /* if */
-  }  /* if */
-  if (f_is_generalized_identifier_start(gid_flags, class_struct_union_type)) {
-    found_id = TRUE;
-    member_sym = NULL;
-    /* See if the name following the operator is a C++ qualified name, as
-       in "p->A::x". */
-    /* Leading "::" is allowed as of the Portland X3J16/WG21 meeting;
-       cfront always allowed it. */
-    is_qualified_name = coalesce_and_lookup_qualified_name(gid_flags,
-                                                           ilm_expr,
-                                                           &local_err);
-    err |= local_err;
-    /* If the member is something like "A::x", member_position will give
-       the position of the "x" and qualified_member_position will give the
-       position of the "A". */
-    member_position = locator_for_curr_id.source_position;
-    qualified_member_position = pos_curr_token;
-    if (locator_for_curr_id.is_vacuous_destructor_reference) {
-      /* We have something like p->int::~int, a reference to a vacuous
-         destructor.  Also p->A::~A(), where A is a class without a
-         destructor. */
-      is_vacuous_destructor_reference = TRUE;
-      need_operand_1_type_check = FALSE;
-      /* Watch out for error cases like p->int::~float.  Also, in
-         some error cases like p->~xxx, where xxx is either undefined
-         or not a type name, class type will be NULL. */
-      dtor_type = qualifier_class_type(locator_for_curr_id);
-      if (is_error_locator(locator_for_curr_id) || dtor_type == NULL) {
-        err = TRUE;
-      }  /* if */
-    } else {
-      /* Not a vacuous destructor case, i.e., normal case. */
-      need_member_sym_check = TRUE;
-      /* Further checking beyond the fact that this is an identifier is not
-         possible if there was an error in the first operand. */
-      if (operand_1_is_complete_class) {
-        if (is_qualified_name) {
-qualified_name_check:
-          /* There was a qualified member name, as in "p->A::x".  "A" in the
-             preceding must be the class pointed to by p or a base class
-             thereof, i.e., "A::x" must be a member of the class of the
-             first operand or of one of its base classes. */
-          if (is_error_locator(locator_for_curr_id)) {
-            /* There was an error in the qualified name. */
-            err = TRUE;
-          } else {
-            projection_member_sym = locator_for_curr_id.specific_symbol;
-            member_sym = fundamental_symbol_of(projection_member_sym);
-            if (!projection_member_sym->is_class_member) {
-              /* The qualified name is not the name of a class member
-                 (i.e., it's the name of a namespace member). */
-              if (expr_error_should_be_issued()) {
-                pos_sy_error(ec_not_class_member,
-                             &qualified_member_position,
-                             projection_member_sym);
-              }  /* if */
-              err = TRUE;
-            } else if (class_struct_union_type->
-                                 variant.class_struct_union.is_nonreal_class ||
-                       sym_parent_class(projection_member_sym)->
-                                 variant.class_struct_union.is_nonreal_class) {
-              /* Skip the check for a nonreal class in a prototype
-                 instantiation. */
-            } else {
-              /* Make sure the name is a member of the class indicated by the
-                 left-hand side, or one of its base classes. */
-              if (!projection_member_sym->is_class_member ||
-                  !is_same_class_or_base_class_thereof(
-                        class_struct_union_type, sym_parent_class(
-                                                    projection_member_sym))) {
-                if (expr_error_should_be_issued()) {
-                  pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                               &qualified_member_position,
-                               class_struct_union_type);
-                }  /* if */
-                err = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          need_member_sym_check = FALSE;
-        } else {
-          /* Normal case: not qualified member name. */
-          /* Look up this identifier in the scope of the class, struct, or
-             union. */
-          member_sym = class_qualified_id_lookup(
-                                       &locator_for_curr_id,
-                                       class_struct_union_type,
-                                       (IDL_IS_EXPR_CONTEXT |
-                                        IDL_IS_FIELD_SELECTION_OPERAND));
-          if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
-            /* This is a case like p->~A where the class has no destructor.
-               This is a vacuous destructor case if the types match.
-               Note that we do not allow ~A to be in a base class of the
-               class pointed to by p, because destructor names are not
-               inherited. */
-            a_symbol_ptr class_sym =
-              (a_symbol_ptr)class_struct_union_type->source_corresp.assoc_info;
-            if (destructor_name_matches_class_name(class_sym)) {
-              is_vacuous_destructor_reference = TRUE;
-              locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
-              dtor_type = class_struct_union_type;
-              locator_for_curr_id.parent.class_type = dtor_type;
-              locator_for_curr_id.is_class_member = TRUE;
-              need_member_sym_check = FALSE;
-            }  /* if */
-          } else if (member_sym != NULL &&
-                     member_sym->kind == (a_symbol_kind)sk_class_template) {
-            /* For a member template, coalesce the template reference.
-               This will use the specific symbol already established. */
-            if (is_generalized_identifier_start(gid_flags)) {
-              member_sym = coalesce_and_lookup_generalized_identifier(
-                                                                   gid_flags,
-                                                                   ilm_expr,
-                                                                   &local_err);
-              projection_member_sym = locator_for_curr_id.specific_symbol;
-              if (local_err) {
-                err = TRUE;
-              } else if (locator_for_curr_id.is_qualified_name) {
-                /* For qualified names, go back and do the normal checking. */
-                goto qualified_name_check;
-              }  /* if */
-            } else {
-              unexpected_condition_str(
-                            "scan_field_selection_operator: template problem");
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      /* If the field was not found in pcc or SVR4 C mode, look for any field
-         with that name.  If there's only one (or several with the same
-         offsets), cast the left-side variable to the right struct/union type
-         and do the selection with the found field (otherwise, an error can be
-         issued at this point). */
-      if (member_sym == NULL &&
-          (C_dialect == C_dialect_pcc || SVR4_C_mode) &&
-          /* Avoid the "rvalue . field" case. */
-          (is_arrow_operator || is_an_lvalue(operand_1))) {
-        member_sym = other_field_with_same_name();
-        if (member_sym == NULL) {
-          /* An error has been issued by other_field_with_same_name. */
-          err = TRUE;
-          /* Avoid issuing a second error below. */
-          need_member_sym_check = FALSE;
-        } else {
-          /* We found a field we can use. */
-          make_locator_for_symbol(member_sym, &locator_for_curr_id);
-          locator_for_curr_id.source_position = member_position;
-          if (is_arrow_operator) {
-            /* "->" operator. */
-            expr_pos_warning(ec_old_fashioned_ptr_field_selection,
-                             &member_position);
-          } else {
-            /* "." operator.  Convert the lvalue to an rvalue pointer, then
-               use "->" instead.  Note that the test above has ensured that
-               operand_1 here is an lvalue. */
-            expr_pos_warning(ec_old_fashioned_field_selection,
-                             &member_position);
-            take_address_of_lvalue(operand_1, (a_source_position*)NULL);
-            is_arrow_operator = TRUE;
-          }  /* if */
-          /* Cast the pointer to a pointer to the proper struct or union. */
-          orig_class_struct_union_type = sym_parent_class(member_sym);
-          class_struct_union_type =skip_typerefs(orig_class_struct_union_type);
-          operand_1_is_complete_class = TRUE;
-          cast_operand(make_pointer_type(class_struct_union_type),
-                       operand_1,
-                       /*is_implicit_cast=*/FALSE);
-          /* Mark the struct or union type as referenced, since a field
-             therein has been referenced. */
-          orig_class_struct_union_type->source_corresp.referenced = TRUE;
-        }  /* if */
-      }  /* if */
-      if (member_sym == NULL && need_member_sym_check) {
-        /* The identifier is not a member of the operand_1 class, struct,
-           or union. */
-        err = TRUE;
-        if (expr_error_should_be_issued()) expect_error();
-        if (!operand_1_is_complete_class) {
-          /* An error will be produced below because the first operand is
-             not (a pointer to) a class, so do not issue an error here. */
-        } else if (is_error_locator(locator_for_curr_id)) {
-          /* An error was previously issued. */
-        } else {
-          if (expr_error_should_be_issued()) {
-            pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
-                           &error_position,
-                           locator_for_curr_id.symbol_header->identifier,
-                           (a_symbol_ptr)class_struct_union_type->
-                                                    source_corresp.assoc_info);
-          }  /* if */
-          /* Enter an undefined symbol and record a reference against it. */
-          { a_symbol_ptr undef_sym_ptr =
-                           enter_undefined_member_symbol(&locator_for_curr_id);
-            record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
-                                                              SRK_ERROR),
-                                    undef_sym_ptr,
-                                    &error_position,
-                                    /*update_il_entry=*/FALSE);
-          }
-        }  /* if */
-      }  /* if */
+  if (rcblock == NULL) {
+    a_type_ptr updated_class_type;
+    /* Advance past the operator and scan the second operand. */
+    (void)get_token();
+    scan_selection_second_operand(operand_1,
+                                  class_struct_union_type,
+                                  is_arrow_operator,
+                                  &locator,
+                                  &is_vacuous_destructor_reference,
+                                  &dtor_type,
+                                  &updated_class_type,
+                                  &err);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (updated_class_type != NULL) {
+      /* The subroutine asks that the class type be updated at this level.
+         This is used in pcc mode for an obscure feature. */
+      check_assertion(C_dialect == C_dialect_pcc);
+      class_struct_union_type = updated_class_type;
+      orig_class_struct_union_type = updated_class_type;
     }  /* if */
   } else {
-    /* The identifier is not present; error. */
-    (void)required_token(tok_identifier,
-                         C_dialect == C_dialect_cplusplus ?
-                                              ec_exp_member_name :
-                                              ec_exp_field_name);
-    member_position = null_source_position;
-    err = TRUE;
+    /* Redoing syntax analysis on a previously-scanned selection. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if 0
+    locator??
+    is_vacuous_destructor_reference??
+    dtor_type??
+#else
+    unexpected_condition();
+#endif
   }  /* if */
+  if (is_vacuous_destructor_reference) need_operand_1_type_check = FALSE;
 
-  if (need_operand_1_type_check && !operand_1_is_complete_class) {
+  if (need_operand_1_type_check &&
+      (!is_class_struct_union_type(class_struct_union_type) ||
+       is_incomplete_type(class_struct_union_type))) {
     /* The first operand is not (a pointer to) a complete class, struct,
-       or union. */
+       or union.  This check was delayed to this point so that we could
+       allow things like vacuous destructor references. */
     an_error_code err_code;
     /* If the problem is that the class is incomplete, use a different
        error message. */
@@ -3892,7 +3993,8 @@ qualified_name_check:
     } else {
       /* Class case. */
       dtor_type = skip_typerefs(dtor_type);
-      if (operand_1_is_complete_class &&
+      check_assertion(is_immediate_class_type(class_struct_union_type));
+      if (!is_incomplete_type(class_struct_union_type) &&
           !identical_types(class_struct_union_type, dtor_type) &&
           !class_struct_union_type->variant.class_struct_union.
                                                             is_nonreal_class &&
@@ -3926,7 +4028,9 @@ qualified_name_check:
        purposes. */
     /* Don't do this if the symbol is an overloaded function (we don't
        yet know which function is being called). */
-    check_assertion(member_sym != NULL);
+    a_symbol_ptr projection_member_sym = locator.specific_symbol;
+    a_symbol_ptr member_sym = fundamental_symbol_of(projection_member_sym);
+    member_position = locator.source_position;
     if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       rep = NULL;
     } else if (member_sym->potentially_overloaded) {
@@ -3938,12 +4042,11 @@ qualified_name_check:
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
-    projection_member_sym = locator_for_curr_id.specific_symbol;
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
-    expr_check_ambiguity_and_verify_access(&locator_for_curr_id);
-    if (is_error_locator(locator_for_curr_id)) {
+    expr_check_ambiguity_and_verify_access(&locator);
+    if (is_error_locator(locator)) {
       /* Some error in ambiguity or access control checking. */
       make_error_operand(result);
       /* Avoid further diagnostics by making this an error reference.
@@ -3953,6 +4056,7 @@ qualified_name_check:
       change_operand_refs_to_error(operand_1);
       change_refs_to_error(rep);
     } else {
+      a_boolean is_lvalue;
       /* See what kind of member we have. */
       switch (member_sym->kind) {
         case sk_field:
@@ -3972,7 +4076,7 @@ qualified_name_check:
              operand to the type of the member symbol. */
           cast_pointer_for_field_selection(operand_1, is_arrow_operator,
                                            member_sym, projection_member_sym,
-                                           (a_boolean)locator_for_curr_id.
+                                           (a_boolean)locator.
                                                  access_control_error_reported,
                                            /*do_protected_member_check=*/TRUE,
                                            &member_position);
@@ -3986,8 +4090,8 @@ qualified_name_check:
           /* Static data member reference. */
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
-                              &pos_curr_token,
-                              end_position_or_null(&end_pos_curr_token),
+                              &member_position,
+                              end_position_or_null(&end_position),
                               result, rep);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
@@ -4016,8 +4120,7 @@ nonstatic_member_function:
                                                  is_arrow_operator,
                                                  member_sym,
                                                  projection_member_sym,
-                                                 (a_boolean)
-                                                           locator_for_curr_id.
+                                                 (a_boolean)locator.
                                                  access_control_error_reported,
                                             /*do_protected_member_check=*/TRUE,
                                                  &member_position);
@@ -4028,22 +4131,20 @@ nonstatic_member_function:
                   member_sym->kind == (a_symbol_kind)sk_function_template ||
                   force_indefinite_function) {
                 /* Overloaded function or member template. */
-                make_indefinite_function_operand(locator_for_curr_id.
-                                                               specific_symbol,
-                                                 /*curr_id=*/TRUE,
+                make_indefinite_function_operand(locator.specific_symbol,
+                                                 &locator,
                                                  result);
               } else {
                 /* Non-overloaded function. */
                 make_function_designator_operand(projection_member_sym,
-                                                (a_boolean)locator_for_curr_id.
+                                                (a_boolean)locator.
                                                              is_qualified_name,
-                                                 &locator_for_curr_id.
-                                                               source_position,
+                                                 &member_position,
                                                  end_position_or_null(
-                                                          &end_pos_curr_token),
+                                                                &end_position),
                                                  rep,
                                                  result);
-                set_operand_name_reference_from_locator_for_curr_id(result);
+                set_operand_name_reference_from_locator(result, locator);
               }  /* if */
               copy_operand(operand_1, bound_function_selector);
               bind_member_function_operand_to_selector(bound_function_selector,
@@ -4053,13 +4154,14 @@ nonstatic_member_function:
           } else {
             /* Static member function. */
             make_function_designator_operand(projection_member_sym,
-                                             is_qualified_name,
+                                             (a_boolean)locator.
+                                                             is_qualified_name,
                                              &member_position,
                                              end_position_or_null(
-                                                          &end_pos_curr_token),
+                                                                &end_position),
                                              rep,
                                              result);
-            set_operand_name_reference_from_locator_for_curr_id(result);
+            set_operand_name_reference_from_locator(result, locator);
             combine_unneeded_selector_with_operand(operand_1,
                                                    is_arrow_operator,
                                                    result);
@@ -4085,14 +4187,12 @@ nonstatic_member_function:
              template is returned because there's only a representation
              for the class case as a member of a nonreal class, but
              it's really a function template. */
-          check_assertion(locator_for_curr_id.is_template_id &&
+          check_assertion(locator.is_template_id &&
                           is_template_dependent_context());
           make_unknown_dependent_function_operand(projection_member_sym,
                                                   /*is_template_id=*/TRUE,
-                                                  locator_for_curr_id.
-                                                             template_arg_list,
-                                                  (a_boolean)
-                                                        locator_for_curr_id.
+                                                  locator.template_arg_list,
+                                                  (a_boolean)locator.
                                                              is_qualified_name,
                                                   result);
           change_template_param_constant_operand_to_lvalue(result);
@@ -4111,7 +4211,7 @@ nonstatic_member_function:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
           expr_pos_error(ec_type_identifier_not_allowed,
-                         &locator_for_curr_id.source_position);
+                         &member_position);
           operand_will_not_be_used_because_of_error(operand_1);
           conv_to_error_operand(result);
           break;
@@ -4120,7 +4220,7 @@ nonstatic_member_function:
           internal_error("scan_field_selection_operator: bad symbol kind");
 #endif /* CHECKING */
       }  /* switch */
-      if (local_options & EOPT_FIELD_FOR_OFFSETOF) {
+      if (offsetof_case) {
         /* Enforce a field access.  The field should not be a bit field. */
         if (is_nontype_template_param_symbol(member_sym)) {
           /* A template-dependent case: We cannot tell yet whether the
@@ -4136,24 +4236,12 @@ nonstatic_member_function:
     }  /* if */
   }  /* if */
 
-  if (found_id) {
-    /* The identifier was present; advance past it.  This is done late
-       in order not to disturb locator_for_curr_id while it's still needed. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  } else {
-    end_position = operator_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
-
   /* The position of the operand is the position of the selection
      except when the operand is a bound function, in which case it's the
      position of the function name (because the selector has its own
      operand). */
   if (result->bound_function) {
+    check_assertion(!is_vacuous_destructor_reference);
     set_operand_position(result, &member_position, &end_position,
                          (a_source_position *)NULL);
   } else {
@@ -5366,7 +5454,8 @@ error indication in *rcblock).
           make_error_operand(result);
         }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (is_constant_operand(result) &&
+        if (rcblock == NULL &&  /* FIXME? */
+            is_constant_operand(result) &&
             result->variant.constant.kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member) {
           a_constant_ptr  constant = &result->variant.constant;
@@ -6680,7 +6769,8 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
     do {
       copy_operand(&local_result, &operand);
       if (curr_token == tok_period) {
-        scan_field_selection_operator(&operand, EOPT_FIELD_FOR_OFFSETOF,
+        scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
+                                      /*offsetof_case=*/TRUE,
                                       &local_result, (an_operand*)NULL);
       } else {
         scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
@@ -18912,7 +19002,7 @@ overloaded_function:
                generate it at the other end of the overload resolution
                when we know for sure whether or not we need it. */
             make_indefinite_function_operand(projection_sym_ptr,
-                                             /*curr_id=*/TRUE,
+                                             &locator_for_curr_id,
                                              result);
           }  /* if */
           break;
@@ -18924,7 +19014,7 @@ overloaded_function:
             /* No need to call change_refs_to_error; rep is NULL. */
           } else {
             make_indefinite_function_operand(projection_sym_ptr,
-                                             /*curr_id=*/TRUE,
+                                             &locator_for_curr_id,
                                              result);
           }  /* if */
           break;
@@ -20990,7 +21080,8 @@ bad_start_of_primary:
       case tok_period:
       case tok_arrow:
         /* Field selectors. */
-        scan_field_selection_operator(&operand, local_options, &local_result,
+        scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
+                                      /*offsetof_case=*/FALSE, &local_result,
                                       &local_bound_function_selector);
         break;
       case tok_period_star:
@@ -22487,7 +22578,9 @@ to TRUE if any non-access error is detected during the processing.
         /* sk_routine gets an indefinite function because presumably we
            got here because we're forcing overload resolution because
            argument-dependent lookup is going to be in effect. */
-        make_indefinite_function_operand(sym, /*curr_id=*/FALSE, result);
+        make_indefinite_function_operand(sym,
+                                         (a_symbol_locator *)NULL,
+                                         result);
         break;
       default:
         unexpected_condition();
@@ -22523,6 +22616,10 @@ redoes semantic analysis.
       case eok_points_to_member_call:
       case eok_dot_pm_call:
       case eok_points_to_pm_call:
+      case eok_dot_field:
+      case eok_points_to_field:
+      case eok_dot_static:
+      case eok_points_to_static:
       case eok_pm_field:
       case eok_pm_points_to_field:
       case eok_post_incr:
@@ -22643,6 +22740,14 @@ postfix operators.
       case eok_dot_pm_call:
       case eok_points_to_pm_call:
         operator_token = tok_lparen;
+        break;
+      case eok_dot_field:
+      case eok_dot_static:
+        operator_token = tok_period;
+        break;
+      case eok_points_to_field:
+      case eok_points_to_static:
+        operator_token = tok_arrow;
         break;
       case eok_pm_field:
         operator_token = tok_period_star;
@@ -22936,6 +23041,12 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_function_call((an_operand *)NULL, (an_operand *)NULL,
                            rcblock, result);
         break;
+      case tok_period:
+      case tok_arrow:
+        scan_field_selection_operator((an_operand *)NULL, rcblock,
+                                      /*offsetof_case=*/FALSE, result,
+                                      bound_function_selector);
+        break;
       case tok_period_star:
       case tok_arrow_star:
         scan_ptr_to_member_operator((an_operand *)NULL, rcblock, result,
@@ -23009,7 +23120,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
        to accept one, so this is an error. */
     conv_to_error_operand(result);
     result->bound_function = FALSE;
-    discard_operand(bound_function_selector);
+    operand_will_not_be_used_because_of_error(bound_function_selector);
     rcblock->error_detected = TRUE;
   } else if (expr_stack->any_non_access_error_detected) {
     rcblock->error_detected = TRUE;

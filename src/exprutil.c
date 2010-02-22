@@ -2481,8 +2481,21 @@ that extra work.
   return node;
 }  /* make_node_from_operand */
 
-
 #if RECORD_FORM_OF_NAME_REFERENCE
+
+void set_operand_name_reference_from_locator(an_operand       *operand,
+                                             a_symbol_locator *locator)
+/*
+Transfer the form-of-reference information (if any) from the given locator
+to the indicated operand.
+*/
+{
+  if (!C_mode() && !is_error_operand(operand)) {
+    make_name_reference_from_locator(locator, &operand->name_reference);
+    operand->name_reference_set = TRUE;
+  }  /* if */
+}  /* set_operand_name_reference_from_locator */
+
 
 void set_operand_name_reference_from_locator_for_curr_id(an_operand *operand)
 /*
@@ -2490,11 +2503,7 @@ Transfer the form-of-reference information (if any) from the
 locator_for_curr_id to the indicated operand.
 */
 {
-  if (!C_mode() && !is_error_operand(operand)) {
-    make_name_reference_from_locator(&locator_for_curr_id,
-                                     &operand->name_reference);
-    operand->name_reference_set = TRUE;
-  }  /* if */
+  set_operand_name_reference_from_locator(operand, &locator_for_curr_id);
 }  /* set_operand_name_reference_from_locator_for_curr_id */
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -3104,15 +3113,16 @@ an rvalue depending on node->is_lvalue.
 }  /* make_lvalue_or_rvalue_expression_operand */
 
 
-void make_indefinite_function_operand(a_symbol_ptr routine_sym,
-                                      a_boolean    curr_id,
-                                      an_operand   *operand)
+void make_indefinite_function_operand(a_symbol_ptr     routine_sym,
+                                      a_symbol_locator *locator,
+                                      an_operand       *operand)
 /*
 Make an operand for a C++ overloaded function symbol.  routine_sym points
 to the symbol entry for the function (possibly a projection symbol).
-If curr_id is TRUE, locator_for_curr_id is used for additional information.
-The current token position is used for the overall operand position.
-The operand is put into *operand and is a function designator.
+If locator is non-NULL, that locator is used to set some additional
+information about the identifier.  The current token position is used
+for the overall operand position.  The operand is put into *operand
+and is a function designator.
 */
 {
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
@@ -3120,11 +3130,11 @@ The operand is put into *operand and is a function designator.
   operand->type = unknown_type();
   operand->variant.symbol = routine_sym;
   set_operand_position_to_pos_curr_token(operand);
-  if (curr_id) {
-    operand->is_qualified_name = locator_for_curr_id.is_qualified_name;
-    operand->is_template_id = locator_for_curr_id.is_template_id;
-    operand->template_arg_list = locator_for_curr_id.template_arg_list;
-    operand->id_position = locator_for_curr_id.source_position;
+  if (locator != NULL) {
+    operand->is_qualified_name = locator->is_qualified_name;
+    operand->is_template_id = locator->is_template_id;
+    operand->template_arg_list = locator->template_arg_list;
+    operand->id_position = locator->source_position;
     set_operand_name_reference_from_locator_for_curr_id(operand);
   } else {
     operand->id_position = operand->position;
