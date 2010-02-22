@@ -7364,10 +7364,18 @@ storage_class_specifier:
           }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           if (std_attr_seen) {
-            /* Standard attributes must be the last item in a decl-specifier
-               sequence.  (We do accept other forms of attributes after them,
-               but no other specifier kinds.) */
-            goto something_unexpected;
+            if ((decl_specifiers_seen & DS_TYPE) == 0) {
+              /* If no type specifier has been seen yet, ignore the attributes
+                 with an error. */
+              pos_error(ec_unattached_attribute,
+                        &state->specifier_attributes->group->position);
+              state->specifier_attributes = NULL;
+            } else {
+              /* Standard attributes must be the last item in a decl-specifier
+                 sequence.  (We do accept other forms of attributes after them,
+                 but no other specifier kinds.) */
+              goto something_unexpected;
+            }  /* if */
           } else {
             specifier_allows_vacuous_decl = TRUE;
           }  /* if */
