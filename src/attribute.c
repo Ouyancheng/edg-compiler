@@ -2937,12 +2937,16 @@ other than returning FALSE.)
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
       con->kind != (a_constant_repr_kind)ck_error) {
     a_boolean  ovflo = FALSE;
-    check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
-    *val = value_of_integer_constant(con, &ovflo);
-    if (ovflo || *val < min_val || *val > max_val) {
-      report_bad_attribute_arg(aap, ap);
+    if (con->kind == (a_constant_repr_kind)ck_integer) {
+      *val = value_of_integer_constant(con, &ovflo);
+      if (ovflo || *val < min_val || *val > max_val) {
+        report_bad_attribute_arg(aap, ap);
+      } else {
+        known_good_value = TRUE;
+      }  /* if */
     } else {
-      known_good_value = TRUE;
+      pos_error(ec_exp_int_constant, &aap->position);
+      make_attr_unrecognized(ap);
     }  /* if */
   }  /* if */
   return known_good_value;
