@@ -1,5 +1,22 @@
 Version 4.2
 
+2/23/10  [EDGcpfe/10489]
+Unneeded-entity removal keeps class definition for "->" vacuous destructor call
+
+The removal of unneeded entities now recognizes that a vacuous destructor
+call using the "->" form, where the left operand is a pointer to class,
+requires that the definition of the underlying class be kept.  It was not
+formerly, which caused the C++-generating back end to produce uncompilable
+code for cases like:
+
+  struct A { int i; } *p;
+  int main() {
+    p->~A();
+  }
+
+Vacuous destructor calls in the "." form did not have this problem.
+
+
 2/19/10  [EDGcpfe/10439]
 C-generating back end, GNU compatibility: placement of visibility attribute
 
