@@ -3902,7 +3902,7 @@ routine is also called to parse a __builtin_offsetof field construct
     if (updated_class_type != NULL) {
       /* The subroutine asks that the class type be updated at this level.
          This is used in pcc mode for an obscure feature. */
-      check_assertion(C_dialect == C_dialect_pcc);
+      check_assertion(C_dialect == C_dialect_pcc || SVR4_C_mode);
       class_struct_union_type = updated_class_type;
       orig_class_struct_union_type = updated_class_type;
     }  /* if */
