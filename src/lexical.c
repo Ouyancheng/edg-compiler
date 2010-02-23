@@ -17001,6 +17001,13 @@ the source form (e.g., digraphs are returned as ordinary tokens).
   if (curr_token == tok_identifier) {
     /* For identifiers reuse the string already stored in IL memory. */
     result = locator_for_curr_id.symbol_header->identifier;
+  } else if (curr_token == tok_error ||
+             curr_token == tok_removed_default_arg ||
+             curr_token == tok_removed_template_body) {
+    /* These tokens do not have a text representation.  We only get here with
+       input that contains severe syntax errors. */
+    expect_error();
+    result = "<placeholder error token>";
   } else {
     /* No source characters are (reliably) available.  Create a cache
        containing the current token and recreate the string from that. */
