@@ -1113,7 +1113,6 @@ an entry.
     case tok_rbracket:
     case tok_rbrace:
       goto done;
-      break;
     default:
       closing_token = tok_last;
       break;
