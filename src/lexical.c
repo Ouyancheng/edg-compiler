@@ -1608,7 +1608,7 @@ a template argument list or is just a less-than sign.
     } else {
       if (std_attribute_tokens_next()) {
         /* The start of a standard attribute. */
-        cache_std_attribute(cache, caching_tokens);
+        cache_std_attribute(cache, !coalesce_ids);
       } else if (curr_token == tok_lparen || curr_token == tok_lbracket ||
                  curr_token == tok_lbrace ||
           (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
