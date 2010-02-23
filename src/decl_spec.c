@@ -7364,7 +7364,7 @@ storage_class_specifier:
           }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           if (std_attr_seen) {
-            if ((decl_specifiers_seen & DS_TYPE) == 0) {
+            if ((decl_specifiers_seen & (DS_TYPE | DS_VOID)) == 0) {
               /* If no type specifier has been seen yet, ignore the attributes
                  with an error. */
               pos_error(ec_unattached_attribute,
