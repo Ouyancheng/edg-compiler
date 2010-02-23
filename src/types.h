@@ -600,6 +600,11 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_RETURN_TYPE_QUALIFIERS 0x400
 			/* Ignore qualifiers when testing the return type of
 			   a top-level function type.  (Used in GNU C mode.) */
+#define TCF_CHECKING_DEDUCTION_RESULT 0x800
+			/* We are comparing two types to make sure deduction
+			   worked right and we didn't get a function type where
+			   we expected a non-function, or vice-versa.
+			   See verify_routine_type_matches_template. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

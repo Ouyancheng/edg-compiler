@@ -8521,7 +8521,8 @@ declared and before the partial instantiation of the function was done.
                                   (a_template_param_ptr)NULL,
                                   /*is_partial_order_check=*/FALSE);
   if (substituted_type == NULL ||
-      !types_are_compatible(substituted_type, type)) {
+      !f_types_are_compatible(substituted_type, type,
+                              TCF_CHECKING_DEDUCTION_RESULT)) {
     if (!is_or_contains_error_type(type) &&
         !is_or_contains_error_type(templ_rout->type)) {
       /* If the type contains an error type it is likely that the current
