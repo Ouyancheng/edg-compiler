@@ -14890,7 +14890,6 @@ passed via template_decl.
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
     a_boolean                         is_function = FALSE;
-
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
     add_stop_token(tok_colon);
@@ -14899,25 +14898,26 @@ passed via template_decl.
     /* Initialize certain decl_info fields each time through the loop. */
     decl_info.is_unnamed_field = FALSE;
     decl_info.decl_state.sym = NULL;
-    if (!decl_info.is_first_in_declarator_list &&
-        (dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR))) {
-      /* This section of code is entered when there is a comma-list of
-         constructors and/or destructors. */
+    if (!decl_info.is_first_in_declarator_list) {
+      /* Check if a secondary declarator declares a constructor or
+         destructor. */
       decl_info.is_destructor = decl_info.is_constructor = FALSE;
       if (curr_token == tok_compl ||
           (is_generalized_identifier_start(GID_NO_OPTIONS) &&
            locator_for_curr_id.is_destructor_name)) {
         decl_info.is_destructor = TRUE;
-        decl_state->type = unknown_type();
+        decl_state->type = decl_state->declared_type = unknown_type();
       } else if (curr_token == tok_identifier &&
                  is_constructor_decl(class_type)) {
         decl_info.is_constructor = TRUE;
-        decl_state->type = unknown_type();
-      } else {
+        decl_state->type = decl_state->declared_type = unknown_type();
+      } else if (no_decl_specifiers) {
         decl_start_pos = pos_curr_token;
-        decl_state->type = integer_type((an_integer_kind)ik_int);
+        decl_state->type = decl_state->declared_type =
+                                        integer_type((an_integer_kind)ik_int);
       }  /* if */
-    } else if (curr_token == tok_colon && !no_decl_specifiers) {
+    }  /* if */
+    if (curr_token == tok_colon && !no_decl_specifiers) {
       decl_info.is_unnamed_field = TRUE;
     }  /* if */
     /* The declarator can be omitted in some cases. */
