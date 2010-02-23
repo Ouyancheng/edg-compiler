@@ -4144,7 +4144,7 @@ nonstatic_member_function:
                                                                 &end_position),
                                                  rep,
                                                  result);
-                set_operand_name_reference_from_locator(result, locator);
+                set_operand_name_reference_from_locator(result, &locator);
               }  /* if */
               copy_operand(operand_1, bound_function_selector);
               bind_member_function_operand_to_selector(bound_function_selector,
@@ -4161,7 +4161,7 @@ nonstatic_member_function:
                                                                 &end_position),
                                              rep,
                                              result);
-            set_operand_name_reference_from_locator(result, locator);
+            set_operand_name_reference_from_locator(result, &locator);
             combine_unneeded_selector_with_operand(operand_1,
                                                    is_arrow_operator,
                                                    result);
