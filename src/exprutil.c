@@ -2443,6 +2443,35 @@ to be converted to operand form later.
 }  /* make_call_rescan_operands */
 
 
+void make_selection_rescan_operands(
+                              a_rescan_control_block  *rcblock,
+                              an_operand              *operand_1,
+                              a_source_position       *operator_position,
+                              a_token_sequence_number *operator_tok_seq_number)
+/*
+As part of redoing semantic analysis on an expression while doing
+template deduction, extract the operands of the expression given by
+rcblock->expr (a selection node) and return the first as operand_1.
+(The second operand will be handled later.)  Also return the operator
+position and operator token sequence number in *operator_position and
+*operator_tok_seq_number.  rcblock also gives context information for
+the template deduction being done, e.g., the template argument list
+being tried.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr, op1;
+  an_expr_rescan_info_entry_ptr eriep;
+
+  check_assertion(expr != NULL && is_operation_node(expr));
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  op1 = expr->variant.operation.operands;
+  make_rescan_operand(op1, rcblock, operand_1);
+  get_rescan_operator_positions(eriep, operator_position,
+                                operator_tok_seq_number);
+}  /* make_selection_rescan_operands */
+
+
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
 /*
 Return an expression node to represent the given operand, creating one

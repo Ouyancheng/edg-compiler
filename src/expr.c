@@ -3307,22 +3307,22 @@ typedef struct an_operator_arrow_block {
 
 
 static void process_overloaded_operator_arrow(
-                                          an_operand                  *operand,
-                                          a_token_sequence_number     tsn,
-                                          a_nondependent_call_depth   depth,
-                                          an_operator_arrow_block_ptr parent)
+                                an_operand                  *operand,
+                                a_source_position           *operator_position,
+                                a_token_sequence_number     tsn,
+                                a_nondependent_call_depth   depth,
+                                an_operator_arrow_block_ptr parent)
 /*
 operand is the first operand of a "->" field selection in C++.  See
 whether an operator-> function (or several) applies to convert the
 operand to a class or pointer to class.  If so, do the transformation
-and return the updated operand.  tsn is the token sequence number of the
-"->" token.  depth indicates the recursion depth (1 for a top-level
-call).  parent points to a list of blocks indicating transformations done
-so far on this operand, as a way to catch loops.  The current token is
-the "->".
+and return the updated operand.  operator_position is the position of,
+and tsn is the token sequence number of, the "->" token.  depth
+indicates the recursion depth (1 for a top-level call).  parent points
+to a list of blocks indicating transformations done so far on this
+operand, as a way to catch loops.
 */
 {
-  check_assertion(curr_token == tok_arrow);
   /* Note that we do not use "is_overloadable_type_operand" here.  That's
      deliberate: doing so could cause infinite loops. */
   if (is_class_struct_union_type(operand->type)) {
@@ -3357,15 +3357,15 @@ the "->".
                                      /*try_conversions=*/FALSE,
                                      /*has_predef_meaning=*/TRUE,
                                      operand, (an_operand *)NULL,
-                                     &pos_curr_token,
+                                     operator_position,
                                      tsn, depth,
                                      &result, &processed);
     }  /* if */
     if (processed) {
       an_operator_arrow_block block;
       /* An operator-> function was found and applied. */
-      set_operand_position(&result, &operand->position, &end_pos_curr_token,
-                           &pos_curr_token);
+      set_operand_position(&result, &operand->position, &operand->end_position,
+                           operator_position);
       copy_operand(&result, operand);
       /* If the operator function returns a class object or reference to
          class object, look for another operator->() function.  Maintain
@@ -3373,11 +3373,31 @@ the "->".
          loops. */
       block.parent = parent;
       block.class_type = qual_class_type;
-      process_overloaded_operator_arrow(operand, tsn, depth+1, &block);
+      process_overloaded_operator_arrow(operand, operator_position,
+                                        tsn, depth+1, &block);
     }  /* if */
   }  /* if */
 end_of_routine:;
 }  /* process_overloaded_operator_arrow */
+
+
+static a_symbol_ptr look_up_selection_name(
+                                      a_symbol_locator *locator,
+                                      a_type_ptr       class_struct_union_type)
+/*
+Look up the second operand name in a selection operation by looking up
+the name given by locator in the class given by class_struct_union_type.
+Return NULL if the name is not found.
+*/
+{
+  a_symbol_ptr member_sym;
+
+  member_sym = class_qualified_id_lookup(locator,
+                                         class_struct_union_type,
+                                         (IDL_IS_EXPR_CONTEXT |
+                                          IDL_IS_FIELD_SELECTION_OPERAND));
+  return member_sym;
+}  /* look_up_selection_name */
 
 
 static void scan_selection_second_operand(
@@ -3385,8 +3405,6 @@ static void scan_selection_second_operand(
                             a_type_ptr        class_struct_union_type,
                             a_boolean         is_arrow_operator,
                             a_symbol_locator  *locator,
-                            a_boolean         *is_vacuous_destructor_reference,
-                            a_type_ptr        *dtor_type,
                             a_type_ptr        *updated_class_type,
                             a_boolean         *err)
 /*
@@ -3398,13 +3416,13 @@ some vacuous destructor cases it may not be a class type, and it might
 be NULL in some error cases.  It does have cv-qualifiers stripped off,
 however.).  The operator is "->" if is_arrow_operator is TRUE.  The
 second operand is basically a name.  Return a locator for that name in
-*locator.  If the name is a vacuous destructor reference (e.g., as in
-"p->A::~A"), instead return *is_vacuous_destructor_reference TRUE and
-*dtor_type set to the class type (i.e., "A" in that example).
-*updated_class_type will be returned non-NULL if this routine wants to
-give the caller a new type to use for class_struct_union_type (that's
-used for some obscure pcc mode cases).  Set *err to TRUE if there is
-an error.
+*locator.  (For vacuous destructor cases, the locator will be set to
+describe the vacuous destructor name.)  The locator describes the
+result of looking up the name in the first operand's class, not just
+the name in the abstract.  *updated_class_type will be returned
+non-NULL if this routine wants to give the caller a new type to use
+for class_struct_union_type (that's used for some obscure pcc mode
+cases).  Set *err to TRUE if there is an error.
 */
 {
   an_identifier_options_set
@@ -3412,8 +3430,6 @@ an error.
   a_source_position     member_position, qualified_member_position;
   a_boolean             is_qualified_name;
 
-  *is_vacuous_destructor_reference = FALSE;
-  *dtor_type = NULL;
   *updated_class_type = NULL;
   /* See if an identifier (or equivalent) is next. */
   gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND |
@@ -3466,12 +3482,11 @@ an error.
       /* We have something like p->int::~int, a reference to a vacuous
          destructor.  Also p->A::~A(), where A is a class without a
          destructor. */
-      *is_vacuous_destructor_reference = TRUE;
       /* Watch out for error cases like p->int::~float.  Also, in
          some error cases like p->~xxx, where xxx is either undefined
          or not a type name, class type will be NULL. */
-      *dtor_type = qualifier_class_type(locator_for_curr_id);
-      if (is_error_locator(locator_for_curr_id) || *dtor_type == NULL) {
+      if (is_error_locator(locator_for_curr_id) ||
+          qualifier_class_type(locator_for_curr_id) == NULL) {
         *err = TRUE;
       }  /* if */
     } else {
@@ -3533,11 +3548,8 @@ qualified_name_check:
           /* Normal case: not qualified member name. */
           /* Look up this identifier in the scope of the class, struct, or
              union. */
-          member_sym = class_qualified_id_lookup(
-                                       &locator_for_curr_id,
-                                       class_struct_union_type,
-                                       (IDL_IS_EXPR_CONTEXT |
-                                        IDL_IS_FIELD_SELECTION_OPERAND));
+          member_sym = look_up_selection_name(&locator_for_curr_id,
+                                              class_struct_union_type);
           if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
             /* This is a case like p->~A where the class has no destructor.
                This is a vacuous destructor case if the types match.
@@ -3547,10 +3559,8 @@ qualified_name_check:
             a_symbol_ptr class_sym =
               (a_symbol_ptr)class_struct_union_type->source_corresp.assoc_info;
             if (destructor_name_matches_class_name(class_sym)) {
-              *is_vacuous_destructor_reference = TRUE;
               locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
-              *dtor_type = class_struct_union_type;
-              locator_for_curr_id.parent.class_type = *dtor_type;
+              locator_for_curr_id.parent.class_type = class_struct_union_type;
               locator_for_curr_id.is_class_member = TRUE;
               need_member_sym_check = FALSE;
             }  /* if */
@@ -3650,15 +3660,16 @@ qualified_name_check:
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!*err && !*is_vacuous_destructor_reference) {
-      *locator = locator_for_curr_id;
-    }  /* if */
+    /* The locator is copied back even on an error so that the caller can
+       test the is_vacuous_destructor_reference flag. */
+    *locator = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the identifier. */
     (void)get_token();
   } else {
+    clear_locator(locator, &pos_curr_token);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3670,6 +3681,156 @@ qualified_name_check:
     *err = TRUE;
   }  /* if */
 }  /* scan_selection_second_operand */
+
+
+static void get_locator_for_rescanned_selection_second_operand(
+                                a_type_ptr             class_struct_union_type,
+                                a_boolean              is_arrow_operator,
+                                a_rescan_control_block *rcblock,
+                                a_symbol_locator       *locator,
+                                a_boolean              *err)
+/*
+A selection operator is being rescanned to redo semantic analysis.
+rcblock->expr is the selection expression.  The first operand has
+already been retrieved, and its underlying class type is given by
+class_struct_union_type (NULL if there is an error in the first
+operand).  is_arrow_operator is TRUE if the operator is "->" rather
+than ".".  Produce a symbol locator for the second operand, which is
+basically a name, and put that in *locator.  The locator describes the
+result of looking up the name in the first operand's class, not just
+the name in the abstract.  Set *err to TRUE if there is an error.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr, op1, op2;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_symbol_ptr                  sym;
+  an_operand                    operand;
+  a_boolean                     is_qualified = FALSE;
+  an_expr_operator_kind         op;
+
+  check_assertion(expr != NULL && is_operation_node(expr));
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  op1 = expr->variant.operation.operands;
+  op2 = op1->next;
+  op = expr->variant.operation.kind;
+  switch (op) {
+    case eok_dot_field:
+    case eok_points_to_field:
+      /* A field selection like this names a concrete field.  Get the symbol
+         for it and make a locator. */
+      check_assertion(op2->kind == (an_expr_node_kind)enk_field);
+      sym = symbol_for(op2->variant.field);
+      check_assertion(sym != NULL);
+      make_locator_for_symbol(sym, locator);
+      break;
+    case eok_dot_static:
+    case eok_points_to_static:
+      /* Rescan the second operand, producing an operand that essentially
+         names something.  Things like parentheses and lvalue-to-rvalue
+         conversion code should be dropped off. */
+      sym = NULL;
+      make_rescan_operand(op2, rcblock, &operand);
+      if (is_error_operand(&operand)) {
+      } else if (is_expression_operand(&operand)) {
+        expr = operand.variant.expression;
+        if (is_variable_node(expr)) {
+          sym = symbol_for(expr->variant.variable);
+        } else if (is_routine_node(expr)) {
+          sym = symbol_for(expr->variant.routine);
+        }  /* if */
+      } else if (is_indefinite_function_operand(&operand) ||
+                 is_sym_for_member_operand(&operand)) {
+        /* For operands that contain a symbol, we have the result symbol
+           directly. */
+        sym = operand.variant.symbol;
+        is_qualified = operand.is_qualified_name;
+      } else if (is_constant_operand(&operand)) {
+        a_constant_ptr con = &operand.variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_template_param) {
+          if (con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+            a_type_ptr     parent_type = parent_class_of(con);
+            a_class_symbol_supplement_ptr
+                        parent_cssp = symbol_supplement_for_class(parent_type);
+            if (parent_cssp->template_param_for_proxy_class != NULL) {
+              /* The parent type is a proxy class for a template parameter.
+                 Substitute the original template parameter for the proxy
+                 class. */
+              parent_type = parent_cssp->template_param_for_proxy_class;
+            }  /* if */
+            /* For a member of an unknown class, look up the member name
+               in the actual class of the first operand.  This comes up
+               for p->x where p has a template parameter type (and therefore
+               there's no way to name the class of x when it's looked up
+               in the prototype instantiation). */
+            if (parent_type == type_of_unknown_templ_param_nontype &&
+                is_arrow_operator) {
+              if (class_struct_union_type != NULL &&
+                  !is_incomplete_type(class_struct_union_type) &&
+                  symbol_for(con) != NULL) {
+                clear_locator(locator, &eriep->saved_operand.position);
+                locator->symbol_header = symbol_for(con)->header;
+                sym = look_up_selection_name(locator, class_struct_union_type);
+              }  /* if */
+              goto have_symbol;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        /* Do substitution on the constant and produce a symbol. */
+        sym  = symbol_for_template_param_unknown_entity_con_after_substitution(
+                                                con,
+                                                rcblock->template_arg_list,
+                                                rcblock->template_param_list,
+                                                &eriep->saved_operand.position,
+                                                rcblock->options);
+      } else {
+        unexpected_condition();
+      }  /* if */
+have_symbol:
+      if (sym != NULL) {
+        make_locator_for_symbol(sym, locator);
+        locator->is_qualified_name = is_qualified;
+      } else {
+        *err = TRUE;
+        rcblock->error_detected = TRUE;
+        clear_locator(locator, &eriep->saved_operand.position);
+      }  /* if */
+      break;
+    case eok_dot_vacuous_destructor_call:
+    case eok_points_to_vacuous_destructor_call:
+      /* A vacuous destructor call.  The underlying type of the first
+         operand gives the "destructor class" type (which might not be a
+         class at all). */
+      { a_type_ptr dtor_type = op1->type;
+        if (op==(an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
+          if (is_pointer_type(dtor_type)) {
+            dtor_type = type_pointed_to(dtor_type);
+          } else if (is_template_param_type(dtor_type)) {
+            dtor_type = type_of_unknown_templ_param_nontype;
+          } else {
+            check_assertion(is_error_type(dtor_type));
+          }  /* if */
+        }  /* if */
+        clear_locator(locator, &null_source_position);
+        locator->is_vacuous_destructor_reference = TRUE;
+        locator->is_class_member = TRUE;
+        locator->parent.class_type = dtor_type;
+      }
+      break;
+    default:
+      unexpected_condition_str("bad selection operator in rescan");
+  }  /* switch */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (op2 != NULL) {
+    locator->source_position = op2->expr_range.start;
+  } else
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Do not insert code here. */
+  {
+    locator->source_position = eriep->saved_operand.position;
+  }  /* if */
+}  /* get_locator_for_rescanned_selection_second_operand */
 
 
 static void scan_field_selection_operator(
@@ -3702,7 +3863,6 @@ routine is also called to parse a __builtin_offsetof field construct
   a_boolean             is_vacuous_destructor_reference = FALSE;
   a_boolean             force_indefinite_function = FALSE;
   a_source_position     member_position;
-  a_type_ptr            dtor_type;
   a_boolean             pcc_mode_integral_pointer_case = FALSE;
   an_operand            local_operand_1;
   a_token_kind          operator_token;
@@ -3722,12 +3882,11 @@ routine is also called to parse a __builtin_offsetof field construct
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     check_assertion(!offsetof_case);
-#if 0
-    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
-#else
-    unexpected_condition();
-#endif
+    /* Pick up the first operand now.  The second (basically a name) will
+       be deciphered a bit later. */
+    make_selection_rescan_operands(rcblock, operand_1,
+                                   &operator_position,
+                                   &operator_tok_seq_number);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -3781,6 +3940,7 @@ routine is also called to parse a __builtin_offsetof field construct
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
       /* Process overloaded operator->, if applicable. */
       process_overloaded_operator_arrow(operand_1,
+                                        &operator_position,
                                         operator_tok_seq_number,
                                         (a_nondependent_call_depth)1,
                                         (an_operator_arrow_block_ptr)NULL);
@@ -3892,8 +4052,6 @@ routine is also called to parse a __builtin_offsetof field construct
                                   class_struct_union_type,
                                   is_arrow_operator,
                                   &locator,
-                                  &is_vacuous_destructor_reference,
-                                  &dtor_type,
                                   &updated_class_type,
                                   &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3907,19 +4065,23 @@ routine is also called to parse a __builtin_offsetof field construct
       orig_class_struct_union_type = updated_class_type;
     }  /* if */
   } else {
-    /* Redoing syntax analysis on a previously-scanned selection. */
+    /* Redoing semantic analysis on a previously-scanned selection. */
+    get_locator_for_rescanned_selection_second_operand(class_struct_union_type,
+                                                       is_arrow_operator,
+                                                       rcblock,
+                                                       &locator,
+                                                       &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if 0
-    locator??
-    is_vacuous_destructor_reference??
-    dtor_type??
-#else
-    unexpected_condition();
-#endif
   }  /* if */
-  if (is_vacuous_destructor_reference) need_operand_1_type_check = FALSE;
+  /* Note here that the is_vacuous_destructor_reference flag is valid even
+     if the error flag is also set, and it is intentional that we check it
+     anyway. */
+  if (locator.is_vacuous_destructor_reference) {
+    is_vacuous_destructor_reference = TRUE;
+    need_operand_1_type_check = FALSE;
+  }  /* if */
 
   if (need_operand_1_type_check &&
       (!is_class_struct_union_type(class_struct_union_type) ||
@@ -3958,6 +4120,7 @@ routine is also called to parse a __builtin_offsetof field construct
     operand_will_not_be_used_because_of_error(operand_1);
   } else if (is_vacuous_destructor_reference) {
     an_expr_node_ptr node;
+    a_type_ptr       dtor_type = locator.parent.class_type;
     /* A reference to a destructor for a class or simple type that does not
        have one, e.g., p->int::~int(). */
     if (!is_class_struct_union_type(dtor_type)) {
@@ -4024,6 +4187,7 @@ routine is also called to parse a __builtin_offsetof field construct
                               node);
     make_expression_operand(node, result);
   } else {
+    /* Normal selection, not a vacuous destructor reference. */
     /* Record that the field was referenced, for cross-reference (etc.)
        purposes. */
     /* Don't do this if the symbol is an overloaded function (we don't
@@ -4131,7 +4295,7 @@ nonstatic_member_function:
                   member_sym->kind == (a_symbol_kind)sk_function_template ||
                   force_indefinite_function) {
                 /* Overloaded function or member template. */
-                make_indefinite_function_operand(locator.specific_symbol,
+                make_indefinite_function_operand(projection_member_sym,
                                                  &locator,
                                                  result);
               } else {
@@ -22620,6 +22784,8 @@ redoes semantic analysis.
       case eok_points_to_field:
       case eok_dot_static:
       case eok_points_to_static:
+      case eok_dot_vacuous_destructor_call:
+      case eok_points_to_vacuous_destructor_call:
       case eok_pm_field:
       case eok_pm_points_to_field:
       case eok_post_incr:
@@ -22743,10 +22909,12 @@ postfix operators.
         break;
       case eok_dot_field:
       case eok_dot_static:
+      case eok_dot_vacuous_destructor_call:
         operator_token = tok_period;
         break;
       case eok_points_to_field:
       case eok_points_to_static:
+      case eok_points_to_vacuous_destructor_call:
         operator_token = tok_arrow;
         break;
       case eok_pm_field:

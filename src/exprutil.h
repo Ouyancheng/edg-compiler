@@ -1452,6 +1452,12 @@ extern a_statement_ptr make_call_assignment_statement(
                                             an_expr_node_ptr  source,
                                             a_source_position *err_pos);
 
+extern void make_selection_rescan_operands(
+                             a_rescan_control_block  *rcblock,
+                             an_operand              *operand_1,
+                             a_source_position       *operator_position,
+                             a_token_sequence_number *operator_tok_seq_number);
+
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 
