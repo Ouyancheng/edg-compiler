@@ -6622,6 +6622,10 @@ for use in generating cross-reference output describing this declaration.
     overload_symbol = idlb.overload_symbol;
     effective_decl_level = idlb.effective_decl_level;
     storage_class = idlb.storage_class;
+    if (idlb.is_new_template_instance) {
+      /* This declaration triggered the creation of a new template instance. */
+      dps->first_decl = TRUE;
+    }  /* if */
   }  /* if */
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
@@ -7294,10 +7298,6 @@ skip_overloading:;
       /* Replace the routine pointed to from the extern-routine symbol with
          the new one. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr = NULL;
-    }  /* if */
-    if (idlb.is_new_template_instance) {
-      /* This declaration triggered the creation of a new template instance. */
-      dps->first_decl = TRUE;
     }  /* if */
     sym->variant.routine.instance_ptr =
                                 linked_symbol->variant.routine.instance_ptr;
