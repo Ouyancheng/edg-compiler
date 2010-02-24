@@ -7998,7 +7998,6 @@ definition of a member function of a class template.
   }  /* if */
   if (func_info->is_definition) {
     /* This is a defining declaration of the function template. */
-    dps->is_definition = TRUE;
     idlb.is_definition = TRUE;
     if (func_info->function_type_from_typedef) {
       /* Just as it is an error when a normal function is defined for the
@@ -8067,7 +8066,7 @@ definition of a member function of a class template.
         /* If this is the definition of a class member specified with a
            qualified name, it must be outside of the parent. */
         if (qualifier_class_type(*locator) != NULL) {
-          tssp->variant.function.routine->defined_outside_of_parent = TRUE;
+          rout_ptr->defined_outside_of_parent = TRUE;
         }  /* if */
       } else if (sym_is_namespace_member(sym)) {
         /* Likewise, if this is the definition of a namespace member using

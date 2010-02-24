@@ -1,5 +1,18 @@
 Version 4.2
 
+2/23/10  [EDGcpfe/9913]
+Attributes on instantations of member functions of class templates
+
+Previously, and attribute appearing on out-of-class definition of a member
+function of a class template was silently ignored.  Now the attribute is
+applied when instantiating the member definition.  For example:
+
+  template<class T> struct S { void f(); };
+  template<class T> __attribute((noinline)) void S<T>::f() {}
+  template struct S<int>;  // Attribute noinline is applied to S<int>::f
+                           // when S<int>::f is fully instantiated.
+
+
 2/23/10  [EDGcpfe/10489]
 Unneeded-entity removal keeps class definition for "->" vacuous destructor call
 

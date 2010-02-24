@@ -4126,15 +4126,41 @@ template arguments with which the template function routine was instantiated.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+static void attach_attributes_to_routine_instance(
+                               a_routine_ptr                     rp,
+                               a_template_symbol_supplement_ptr  tssp,
+                               a_boolean                         primary_only)
+/*
+rp represents an instance of the template associated with tssp.  Instantiate
+any attributes recorded in the prototype instantiation of that template, and
+attach the result to rp.  If primary_only is TRUE, only do this for the
+attributes whose on_primary_declaration flag is TRUE.
+*/
+{
+  an_attribute_ptr  inst_attr;
+
+  /* First get a substituted copy of the attributes list. */
+  inst_attr = copy_of_attributes_with_substitution(
+                    tssp->variant.function.routine->source_corresp.attributes,
+                    primary_only,
+                    tssp->variant.function.decl_cache.decl_info->parameters,
+                    rp->template_arg_list, parent_class_or_null(rp),
+                    (a_boolean*)NULL);
+  if (inst_attr != NULL) {
+    attach_attributes(inst_attr, (char*)rp, iek_routine);
+  }  /* if */
+}  /* attach_attributes_to_routine_instance */
+
+
 static void instantiate_template_function(a_template_instance_ptr  tip)
 /*
 Instantiate the body of the template function associated with tip.
 */
 {
   a_symbol_ptr                      rout_sym;
-  a_routine_ptr                     rout_ptr;
-  a_template_symbol_supplement_ptr  tssp;
-  a_symbol_ptr			    template_sym;
+  a_routine_ptr                     rout_ptr, proto_rout_ptr;
+  a_template_symbol_supplement_ptr  tssp, proto_tssp;
+  a_symbol_ptr                      template_sym, proto_sym;
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
 
@@ -4161,6 +4187,22 @@ Instantiate the body of the template function associated with tip.
     force_definition_of_compiler_generated_routine(rout_ptr);
     goto done;
   }  /* if */
+  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* For function templates, use the prototype template if there is one. */
+    proto_sym = prototype_template_of(template_sym);
+    proto_tssp = template_supplement_for_symbol(proto_sym);
+  } else {
+    /* A member function of a class template -- just use the template
+       supplement of the member function. */
+    proto_sym = template_sym;
+    proto_tssp = tssp;
+  }  /* if */
+  proto_rout_ptr = proto_tssp->variant.function.routine;
+  /* Set the defined_outside_of_parent flag based on the setting of the
+     template itself.  Note that this must be done before the function
+     is lowered. */
+  rout_ptr->defined_outside_of_parent =
+                                     proto_rout_ptr->defined_outside_of_parent;
   if (nonclass_prototype_instantiations &&
       defer_function_prototype_instantiations) {
     a_symbol_ptr			proto_sym;
@@ -4251,6 +4293,16 @@ Instantiate the body of the template function associated with tip.
     rout_ptr->source_corresp.name_linkage =
                                 (a_name_linkage_kind)nlk_cplusplus_external;
   }  /* if */
+  if (rout_ptr->source_corresp.is_class_member &&
+      rout_ptr->defined_outside_of_parent &&
+      rout_ptr->template_arg_list == NULL &&
+      proto_rout_ptr->source_corresp.attributes != NULL) {
+    /* A nontemplate member of a class template that was defined outside its
+       parent class.  If the definition included attributes, they have not
+       been applied yet: Do so now. */
+    attach_attributes_to_routine_instance(rout_ptr, proto_tssp,
+                                          /*primary_only=*/TRUE);
+  }  /* if */
   ++(tssp->pending_instantiations);
   /* Push the template instantiation scope. */
   tcp = cache_for_template(tssp);
@@ -4321,23 +4373,6 @@ Instantiate the body of the template function associated with tip.
        specification is just ignored.) */
     pos_error(ec_no_exception_support,
               &func_info_ptr->throw_position);
-  }  /* if */
-  /* Set the defined_outside_of_parent flag based on the setting of the
-     template itself.  Note that this must be done before the function
-     is lowered. */
-  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
-    /* For function templates, use the prototype template if there is one. */
-    a_symbol_ptr			proto_sym;
-    a_template_symbol_supplement_ptr	proto_tssp;
-    proto_sym = prototype_template_of(template_sym);
-    proto_tssp = template_supplement_for_symbol(proto_sym);
-    rout_sym->variant.routine.ptr->defined_outside_of_parent =
-               proto_tssp->variant.function.routine->defined_outside_of_parent;
-  } else {
-    /* A member function of a class template -- just use the template
-       supplement of the member function. */
-    rout_sym->variant.routine.ptr->defined_outside_of_parent =
-                     tssp->variant.function.routine->defined_outside_of_parent;
   }  /* if */
   /* Reactivate the tokens comprising the function body and scan them. */
   rescan_reusable_cache(&tcp->tokens);
@@ -9224,14 +9259,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                     // templ_rout->source_corresp.attributes is
                                     // not null.
       */
-      an_attribute_ptr  inst_attr;
-      inst_attr = copy_of_attributes_with_substitution(
-                       templ_rout->source_corresp.attributes,
-                       /*primary_only=*/FALSE,
-                       tssp->variant.function.decl_cache.decl_info->parameters,
-                       templ_arg_list, parent_class_or_null(rp),
-                       (a_boolean*)NULL);
-      attach_attributes(inst_attr, (char*)rp, iek_routine);
+      attach_attributes_to_routine_instance(rp, tssp, /*primary_only=*/FALSE);
     }  /* if */
 #if DECL_MODIFIERS_IN_USE
     { a_decl_modifiers_block  decl_modifiers;
