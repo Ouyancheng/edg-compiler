@@ -3644,12 +3644,13 @@ The syntax is:
     ptr = get_number(ptr, &num, dctl);
     if (num < 0) {
       bad_mangled_name(dctl);
+      num = 0;
     } else {
       num += 2;
     }  /* if */
   }  /* if */
   ptr = advance_past_underscore(ptr, dctl);
-  (void)sprintf(buffer, "T%lu", num);
+  (void)sprintf(buffer, "T%ld", num);
   write_id_str(buffer, dctl);
   return ptr;
 }  /* demangle_template_param */
@@ -3658,8 +3659,9 @@ The syntax is:
 static char *demangle_function_param(char                       *ptr,
                                      a_decode_control_block_ptr dctl)
 /*
-Demangle an IA-64 <function-param> and output the demangled form.  Return
-a pointer to the character position following what was demangled.
+Demangle an IA-64 <function-param> and output the demangled form.
+Function parameter placeholders are needed for late-specified return types.
+Return a pointer to the character position following what was demangled.
 A <function-param> encodes a reference to a function parameter.
 The syntax is:
 
@@ -3677,12 +3679,13 @@ The syntax is:
     ptr = get_number(ptr, &num, dctl);
     if (num < 0) {
       bad_mangled_name(dctl);
+      num = 0;
     } else {
       num += 2;
     }  /* if */
   }  /* if */
   ptr = advance_past_underscore(ptr, dctl);
-  (void)sprintf(buffer, "param#%lu", num);
+  (void)sprintf(buffer, "param#%ld", num);
   write_id_str(buffer, dctl);
   return ptr;
 }  /* demangle_function_param */
@@ -3985,6 +3988,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
         write_id_ch(')', dctl);
       }  /* if */
       p = advance_past('E', p, dctl);
+    } else {
+      bad_mangled_name(dctl);
     }  /* if */
   } else {
     /* No declarator part to process.  Handle the specifier type. */
@@ -4133,9 +4138,13 @@ to be on top of the type.
     p++;
     if (*p == 't' || *p == 'T') {
       dctl->suppress_id_output++;
+      dctl->suppress_substitution_recording++;
       p = demangle_expression(p+1, dctl);
+      dctl->suppress_substitution_recording--;
       dctl->suppress_id_output--;
       p = advance_past('E', p, dctl);
+    } else {
+      bad_mangled_name(dctl);
     }  /* if */
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
@@ -4881,13 +4890,13 @@ The syntax is:
                ::= at <type>                   # alignof (a type)
                ::= <template-param>
                ::= <function-param>
+               ::= sr <type> <unqualified-name> # dependent name
+               ::= sr <type> <unqualified-name> <template-args>
+                                               # dependent template-id
                ::= dt <expression> <unqualified-name> # expr.name
                ::= dt <expression> <unqualified-name> <template-args>
                ::= pt <expression> <unqualified-name> # expr->name
                ::= pt <expression> <unqualified-name> <template-args>
-               ::= sr <type> <unqualified-name> # dependent name
-               ::= sr <type> <unqualified-name> <template-args>
-                                               # dependent template-id
                ::= on <operator-name>          # dependent operator-function-id
                ::= on <operator-name> <template-args> # dependent operator
                                                       # template-id
@@ -4920,11 +4929,15 @@ The syntax is:
     ptr = demangle_expression(ptr, dctl);
     write_id_ch('(', dctl);
     while (*ptr != 'E') {
+      if (*ptr == '\0') {
+        bad_mangled_name(dctl);
+        break;
+      }  /* if */
       ptr = demangle_expression(ptr, dctl);
       if (*ptr == 'E' || dctl->err_in_id) break;
       write_id_str(", ", dctl);
     }  /* while */
-    ptr++;
+    if (!dctl->err_in_id) ptr++;
     write_id_ch(')', dctl);
   } else if (*ptr == 'c' && ptr[1] == 'v') {
     /* Conversion (with one or more arguments). */
@@ -4939,11 +4952,15 @@ The syntax is:
         /* Some number of expressions (other than one). */
         ptr++;
         while (*ptr != 'E') {
+          if (*ptr == '\0') {
+            bad_mangled_name(dctl);
+            break;
+          }  /* if */
           ptr = demangle_expression(ptr, dctl);
           if (*ptr == 'E' || dctl->err_in_id) break;
           write_id_str(", ", dctl);
         }  /* while */
-        ptr++;
+        if (!dctl->err_in_id) ptr++;
       }  /* if */
     }  /* if */
   } else if (*ptr == 's' && ptr[1] == 't') {
@@ -5091,7 +5108,8 @@ The syntax is:
       write_id_str(":", dctl);
       ptr = demangle_expression(ptr, dctl);
     } else {
-      /* Special cases: __alignof__(type), __uuidof(type), typeid(type) */
+      /* Special cases: sizeof(type), __alignof__(type),
+         __uuidof(type), typeid(type), scope resolution "::" */
       if (strcmp(op_str, "sizeof(") == 0) {
         /* sizeof(type). */
         write_id_str(op_str, dctl);
