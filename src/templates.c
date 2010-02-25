@@ -4143,7 +4143,7 @@ attributes whose on_primary_declaration flag is TRUE.
   inst_attr = copy_of_attributes_with_substitution(
                     tssp->variant.function.routine->source_corresp.attributes,
                     primary_only,
-                    tssp->variant.function.decl_cache.decl_info->parameters,
+                    cache_for_template(tssp)->decl_info->parameters,
                     rp->template_arg_list, parent_class_or_null(rp),
                     (a_boolean*)NULL);
   if (inst_attr != NULL) {
