@@ -7099,7 +7099,8 @@ dps->specifier_attributes list.
     *p_ap = to_prefix;
     *end_specifier = to_specifier;
     if (dps->specifier_attributes != NULL) {
-      attach_type_attributes(&dps->specifiers_type, dps->specifier_attributes);
+      attach_type_attributes(&dps->specifiers_type, dps->specifier_attributes,
+                             (void*)dps);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && dps->prefix_attributes != NULL) {

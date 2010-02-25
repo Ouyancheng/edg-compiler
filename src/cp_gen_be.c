@@ -4679,6 +4679,8 @@ default arguments should be suppressed (needed for template specializations).
   if (rtsp->exception_specification != NULL) {
     gen_exception_specification(rtsp->exception_specification);
   }  /* if */
+  gen_attributes(type->source_corresp.attributes, al_explicit,
+                 /*primary_only=*/FALSE);
   if (rtsp->trailing_return_type) {
     write_tok_str("->");
     gen_type(type->variant.routine.return_type);

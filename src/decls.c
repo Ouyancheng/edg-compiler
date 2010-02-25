@@ -8932,7 +8932,8 @@ symbol entry, and return a pointer to it in state->sym.
        typedef int __attribute((vector_size(16))) Vec
                                                    __attribute((aligned(16)));
      */
-  transform_type_with_gnu_attributes(&type_ptr, state->id_attributes);
+  transform_type_with_gnu_attributes(&type_ptr, state->id_attributes,
+                                     (void*)state);
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   loc_sym = locator->specific_symbol;
   if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {

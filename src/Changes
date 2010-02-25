@@ -1,5 +1,16 @@
 Version 4.2
 
+2/24/10  [EDGcpfe/9095]
+GNU compatibility: Attribute vector_size after a function or array declarator
+
+In GNU modes with gnu_version >= 40000, the front end now applies a vector_size
+attribute appearing after a function or array declarator to, respectively, the
+return type or element type of that function or array.  For example:
+
+  int f() __attribute((vector_size(16)));
+    // Same as "int __attribute((vector_size(16))) f();
+
+
 2/23/10  [EDGcpfe/9913]
 Attributes on instantations of member functions of class templates
 

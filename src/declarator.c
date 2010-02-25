@@ -140,7 +140,7 @@ standard-attribute syntax).
       }  /* if */
     }  /* if */
     /* Apply the remaining attributes to the type. */
-    attach_type_attributes(p_type, attributes);
+    attach_type_attributes(p_type, attributes, (void*)dps);
   }  /* if */
 }  /* scan_declarator_attributes */
 
@@ -4178,7 +4178,7 @@ attributes are applied to the underlying type).
       } while (*p_from != NULL);
       /* Apply any extracted attributes to dps->declared_type. */
       if (tt_attributes != NULL) {
-        attach_type_attributes(&dps->declared_type, tt_attributes);
+        attach_type_attributes(&dps->declared_type, tt_attributes, (void*)dps);
       }  /* if */
     }  /* if */
     /* Append the remaining attributes (if any) to the list pointed to by
@@ -5529,6 +5529,11 @@ function_lparen:
         pos_error(ec_ptr_or_ref_to_qualified_function_type,
                   &locator->source_position);
       }  /* if */
+    }  /* if */
+    /* Type attributes may have changed state->declared_type, which should
+       stay in sync with complete_type in non-nested contexts. */
+    if (!state->in_nested_declarator) {
+      complete_type = state->declared_type;
     }  /* if */
     /* Add the new type to the bottom of the existing derived type list.
        Note that this involves error checking. */

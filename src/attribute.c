@@ -2561,12 +2561,16 @@ attributes, call attach_type_attributes.)
 
 
 void transform_type_with_gnu_attributes(a_type_ptr        *p_type,
-                                        an_attribute_ptr  attributes)
+                                        an_attribute_ptr  attributes,
+                                        void              *assoc_info)
 /*
 Apply any type-transforming GNU attributes in the given list of attributes to
 *p_type and set *p_type to the resulting type.  The attribute list is not
-attached to any IL entry.  (This is used to handle GNU type-transforming
-attributes on typedefs.)
+attached to any IL entry.  assoc_info is the value that should be recorded in
+the assoc_info field of the attribute while it is applied to the type:
+Normally, it is a pointer to the a_decl_parse_state associated with the
+construct produces *p_type.
+(This routine is used to handle GNU type-transforming attributes on typedefs.)
 */
 {
   an_attribute_ptr  ap;
@@ -2574,7 +2578,9 @@ attributes on typedefs.)
   for (ap = attributes; ap != NULL; ap = ap->next) {
     if (ap->family == (a_byte_attribute_family)af_gnu &&
         is_type_transforming_attribute(ap)) {
+      ap->assoc_info = assoc_info;
       *p_type = (a_type_ptr)apply_one_attribute(ap, (char*)*p_type, iek_type);
+      ap->assoc_info = NULL;
     }  /* if */
   }  /* for */
 }  /* transform_type_with_gnu_attributes */
@@ -2598,21 +2604,27 @@ type is tp.  attributes must be non-NULL.
 
 
 void attach_type_attributes(a_type_ptr        *p_type,
-                            an_attribute_ptr  attributes)
+                            an_attribute_ptr  attributes,
+                            void              *assoc_info)
 /*
 Apply the given attributes to *p_type, which results in a type T.  Attach the
 attributes to the type entry for T directly if T is a routine type, and via a
 typeref pointing to the attributes on top of T otherwise.  Return the type
 entry to which the attributes are attach through *p_type.  If attributes is
-NULL, do nothing.
+NULL, do nothing.  assoc_info is the value that should be recorded in the
+assoc_info field of the attribute while it is applied to the type: Normally,
+it is a pointer to the a_decl_parse_state associated with the construct
+produces *p_type.
 */
 {
   if (attributes != NULL) {
     an_attribute_ptr  ap;
     a_type_ptr        new_type = *p_type;
     for (ap = attributes; ap != NULL; ap = ap->next) {
+      ap->assoc_info = assoc_info;
       new_type = (a_type_ptr)
                            apply_one_attribute(ap, (char*)new_type, iek_type);
+      ap->assoc_info = NULL;
     }  /* for */
     if (new_type->kind != (a_type_kind)tk_routine) {
       /* Attributes should not be recorded directly in type entries that might
@@ -4914,17 +4926,30 @@ attribute doesn't apply to the given type, issue an error and return an
 error type.
 */
 {
-  a_type_ptr            elem_type = (a_type_ptr)entity, result;
+  a_type_ptr            elem_type = (a_type_ptr)entity, vector_type, result;
   an_attribute_arg_ptr  aap = ap->arguments;
   a_constant_ptr        size_con;
   a_boolean             ovflo = FALSE, err = FALSE;
   a_host_large_integer  size = 0;
+  a_decl_parse_state    *dps = NULL;
 
   /* Simple table-based constraint checking ensures that we can make a number
      of assumptions here. */
   check_assertion(entity_kind == iek_type &&
                   aap != NULL && aap->next == NULL &&
                   aap->kind == (an_attribute_arg_kind)aak_constant);
+  if (gnu_mode && gnu_version >= 40000 &&
+      (elem_type->kind == (a_type_kind)tk_routine ||
+       elem_type->kind == (a_type_kind)tk_array)) {
+    /* If the attribute was applied to a function or array declarator, it
+       applies to the return type or element type respectively. */
+    dps = (a_decl_parse_state*)ap->assoc_info;
+    if (!dps->in_nested_declarator) {
+      elem_type = dps->declared_type;
+    } else {
+      dps = NULL;
+    }  /* if */
+  }  /* if */
   /* Validate the element type. */
   if (is_error_type(elem_type)) {
     err = TRUE;
@@ -4974,11 +4999,22 @@ error type.
     make_attr_unrecognized(ap);
     result = error_type();
   } else {
-    result = alloc_type((a_type_kind)tk_vector);
-    result->source_corresp.decl_position = ap->position;
-    result->size = size;
-    result->variant.vector.element_type = elem_type;
-    result->variant.vector.size_constant = size_con;
+    vector_type = alloc_type((a_type_kind)tk_vector);
+    vector_type->source_corresp.decl_position = ap->position;
+    vector_type->size = size;
+    vector_type->variant.vector.element_type = elem_type;
+    vector_type->variant.vector.size_constant = size_con;
+    if (dps != NULL) {
+      /* The attribute appeared on a function or array declarator.  Don't
+         modify the function or array type directly, but the return type or
+         element type.  At this point in the processing
+         (add_to_derived_types_list has not yet been called) this is achieved
+         by updating dps->declared_type. */
+      dps->declared_type = vector_type;
+      result = (a_type_ptr)entity;
+    } else {
+      result = vector_type;
+    }  /* if */
   }  /* if */
   return (char*)result;
 }  /* apply_vector_size_attr */

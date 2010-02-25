@@ -115,13 +115,15 @@ extern void attach_attributes(an_attribute_ptr  attributes,
                               an_il_entry_kind  entity_kind);
 
 extern void transform_type_with_gnu_attributes(a_type_ptr        *p_type,
-                                               an_attribute_ptr  attributes);
+                                               an_attribute_ptr  attributes,
+                                               void              *assoc_info);
 
 extern a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
                                                an_attribute_ptr  attributes);
 
 extern void attach_type_attributes(a_type_ptr        *p_type,
-                                   an_attribute_ptr  attributes);
+                                   an_attribute_ptr  attributes,
+                                   void              *assoc_info);
 
 extern an_attribute_ptr *f_last_attribute_link(an_attribute_ptr  *attributes);
 

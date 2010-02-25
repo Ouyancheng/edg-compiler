@@ -205,7 +205,8 @@ The given type may contain typerefs that carry attributes: Render those
 attributes if octl->output_attributes is non-NULL (and use that routine to
 output those attributes).  stop_type is a type along the typeref chain (or
 stop_type == type if there are no typerefs): Do not render attributes
-associated with that type entry or entries under it.
+associated with that type entry or entries under it, except that if stop_type
+is a tk_routine entry, any attributes on that routine type entry are rendered.
 */
 {
   if (octl->output_attributes != NULL) {
@@ -218,6 +219,11 @@ associated with that type entry or entries under it.
       }  /* if */
       type = type->variant.typeref.type;
     }  /* while */
+    if (type->kind == (a_type_kind)tk_routine &&
+        type->source_corresp.attributes != NULL) {
+      octl->output_attributes(type->source_corresp.attributes,
+                              al_explicit, /*primary_only=*/FALSE);
+    }  /* if */
   }  /* if */
 }  /* output_type_attributes */
 
