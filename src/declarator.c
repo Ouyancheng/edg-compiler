@@ -1689,9 +1689,10 @@ this is a helper function.
        !((esp->exception_specification_type_list == NULL && !esp->throw_any) ||
          (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external &&
           esp->throw_any)))) {
-    /* Microsoft compilers used to ignore exception specifications entirely.
-       Current versions have nonstandard semantics for "throw()" and (for
-       extern "C" functions) for "throw (...)". */
+    /* Early Microsoft compilers ignored exception specifications entirely.
+       Newer versions ignore all exception specifications except "throw()"
+       (which is treated in a nonstandard way) and "throw(...)" applied to
+       extern "C" functions (a nonstandard extension). */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
