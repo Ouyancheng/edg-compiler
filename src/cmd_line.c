@@ -2406,11 +2406,16 @@ setting is used, and to set various unmentioned settings as needed.
 
 static void check_and_set_cpp0x_mode_options(void)
 /*
-Enable any features specific to C++0x (i.e., features not in the published
-C++ standards of 1998 or 2003, but currently present in the working paper for
-the next standard).
+Enable any features specific to C++0x (i.e., features not in the published C++
+standards of 1998 or 2003, but currently present in the working paper for the
+next standard).  In addition, enable some pre-C++0x standard features that are 
+not always enabled in default mode (e.g., exception handling).
 */
 {
+  if (!option_kind_used[(int)optk_exception_handling]) {
+    /* Enable exceptions by default. */
+    exceptions_enabled = TRUE;
+  }  /* if */
   right_shift_can_be_angle_brackets = TRUE;
   extended_friends_enabled = TRUE;
   mixed_string_concat_enabled = TRUE;

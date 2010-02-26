@@ -1,5 +1,11 @@
 Version 4.2
 
+2/26/10  [EDGcpfe/10503]
+Exception handling in C++0x mode
+
+In C++0x mode, support for exception handling is now enabled by default.
+
+
 2/24/10  [EDGcpfe/9095]
 GNU compatibility: Attribute vector_size after a function or array declarator
 
