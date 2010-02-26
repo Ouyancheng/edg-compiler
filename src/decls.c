@@ -10730,7 +10730,6 @@ a normal try.
 {
   a_handler_ptr                handler, prev_handler;
   a_type_ptr                   type_ptr = NULL;
-  a_symbol_ptr                 sym;
   a_symbol_locator             locator;
   a_source_position            decl_pos;
   a_routine_ptr                cctor, dtor;
@@ -10790,7 +10789,6 @@ a normal try.
           /* Implicit int. */
           report_implicit_int(&pos_curr_token, state.specifiers_type);
         }  /* if */
-        sym = NULL;
         if (is_abstract_or_real_declarator_start()) {
           a_decl_flag_set  di_flags = (DI_REAL_DECLARATOR_ALLOWED |
                                        DI_ABSTRACT_DECLARATOR_ALLOWED);
@@ -10800,9 +10798,9 @@ a normal try.
           declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
                      &locator, (a_func_info_block_ptr)NULL, &decl_pos_block);
           if (state.do_flags & DO_REAL_DECLARATOR_SCANNED) {
-            sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
-                               decl_scope_level,
-                               /*suppress_redecl_error=*/FALSE);
+            state.sym = enter_symbol((a_symbol_kind)sk_variable, &locator,
+                                     decl_scope_level,
+                                     /*suppress_redecl_error=*/FALSE);
           }  /* if */
         }  /* if */
         check_use_of_auto_type(&state);
@@ -10847,21 +10845,21 @@ a normal try.
            explicit name. */
         handler->parameter = make_handler_parameter(state.type);
         /* Update the symbol, if there is one. */
-        if (sym != NULL) {
-          sym->variant.variable.ptr = handler->parameter;
-          set_source_corresp(&(handler->parameter->source_corresp), sym);
-          record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                                    &sym->decl_position,
+        if (state.sym != NULL) {
+          state.sym->variant.variable.ptr = handler->parameter;
+          set_source_corresp(&(handler->parameter->source_corresp), state.sym);
+          record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
+                                    state.sym, &state.sym->decl_position,
                                     state.source_sequence_entry);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          sym->variant.variable.ptr->declared_type = state.declared_type;
+          state.sym->variant.variable.ptr->declared_type = state.declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          mark_variable_value_set(sym);
+          mark_variable_value_set(state.sym);
         }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         /* Record additional source-range information in the variable entry
            for the handler parameter. */
-        if (sym != NULL) {
+        if (state.sym != NULL) {
           update_decl_pos_info(&handler->parameter->source_corresp,
                                &decl_pos_block);
         } else {
@@ -10875,6 +10873,7 @@ a normal try.
         /* Set the is_local_to_function flag after returning from
            set_source_corresp. */
         handler->parameter->source_corresp.is_local_to_function = TRUE;
+        attach_decl_attributes(&state, /*primary_decl=*/TRUE);
         /* A handler parameter is initialized by the run-time when the
            handler is invoked.  Create the dynamic init entry to represent
            the initialization. */
@@ -10884,9 +10883,8 @@ a normal try.
           a_source_position  pos;
           a_boolean          allow_suppressed_ctor =
                                   (microsoft_mode && microsoft_version < 1310);
-
-          if (sym != NULL) {
-            pos = sym->decl_position;
+          if (state.sym != NULL) {
+            pos = state.sym->decl_position;
           } else {
             pos = pos_curr_token;
           }  /* if */
