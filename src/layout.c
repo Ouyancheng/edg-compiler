@@ -1765,7 +1765,7 @@ is FALSE, field subobjects are ignored while searching for a conflict.
     goto done;
   } /* if */
   if (array_subobject &&
-      !has_unknown_specified_bound(subobject_type) &&
+      !has_any_unknown_specified_bound(subobject_type) &&
       !is_incomplete_type(subobject_type)) {
     num_array_elts = num_array_elements(subobject_type);
     subobject_type = underlying_array_element_type(subobject_type);

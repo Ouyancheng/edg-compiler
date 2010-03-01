@@ -1009,6 +1009,29 @@ tp itself.
 }  /* skip_array_types */
 
 
+a_boolean has_any_unknown_specified_bound(a_type_ptr  array_type)
+/*
+Return TRUE if the given array type has a specified bound that is unknown
+(a template parameter or a run-time quantity).  For multi-level arrays,
+return TRUE if this is the case for any of the bounds.
+*/
+{
+  a_boolean  result = FALSE;
+
+  array_type = skip_typerefs(array_type);
+  check_assertion(is_array(array_type));
+  do {
+    if (has_unknown_specified_bound(array_type)) {
+      result = TRUE;
+      break;
+    } else {
+      array_type = skip_typerefs(array_type->variant.array.element_type);
+    }  /* if */
+  } while (is_array(array_type));
+  return result;
+}  /* has_any_unknown_specified_bound */
+
+
 a_targ_size_t num_array_elements(a_type_ptr array_type)
 /*
 Compute and return the number of elements in an array.  For multi-dimensional
