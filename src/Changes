@@ -42,7 +42,7 @@ return type or element type of that function or array.  For example:
 2/23/10  [EDGcpfe/9913]
 Attributes on instantations of member functions of class templates
 
-Previously, and attribute appearing on out-of-class definition of a member
+Previously, an attribute appearing on an out-of-class definition of a member
 function of a class template was silently ignored.  Now the attribute is
 applied when instantiating the member definition.  For example:
 
