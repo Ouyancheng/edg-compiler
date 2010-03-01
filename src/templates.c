@@ -6357,9 +6357,9 @@ points to the template parameter list.
   if ((flags & MTT_ALLOW_ADDED_QUALIFIERS) != 0 &&
        is_qualified_type(templ_type)) {
     /* Usually, the type qualifiers must match, but if the 
-         MTT_ALLOW_ADDED_QUALIFIERS flag is set, any additional qualifiers
-         will be ignored.  This occurs when the template type is a qualified
-         array type. */
+       MTT_ALLOW_ADDED_QUALIFIERS flag is set, any additional qualifiers
+       will be ignored.  This occurs when the template type is a qualified
+       array type. */
     skip_common_type_qualifiers(&type, &templ_type);
     templ_type = skip_typerefs(templ_type);
   }  /* if */
@@ -6790,6 +6790,13 @@ points to the template parameter list.
             }  /* if */
           }  /* if */
           break;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+        case tk_vector:
+          /* Vector types are in principle similar to array types.  However,
+             current GNU versions (4.4.x and earlier) do not appear to support
+             deduction of vector types. */
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
         default:
           /* They are simple types -- these are leaf nodes in a type tree.
              Check for identity. */
@@ -7895,6 +7902,15 @@ make_new_type:
           }  /* if */
         }  /* if */
         break;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        /* Vector types are in principle similar array types.  However,
+           current GNU versions (4.4.x and earlier) do not appear to support
+           substitution of vector types. */
+        *copy_error = TRUE;
+        new_type = error_type();
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
       default:;
         /* No modification required. */
         new_type = type;

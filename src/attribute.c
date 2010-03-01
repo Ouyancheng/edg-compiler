@@ -4958,11 +4958,9 @@ error type.
     pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
     err = TRUE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  } else if (is_template_param_type(elem_type)) {
-    pos_error(ec_vector_size_with_dependent_element_type, &ap->position);
-    err = TRUE;
   } else if (!is_integral_or_enum_type(elem_type) &&
-             !is_floating_type(elem_type)) {
+             !is_floating_type(elem_type) &&
+             !is_template_param_type(elem_type)) {
     pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,
               &ap->position);
     err = TRUE;
@@ -4972,10 +4970,15 @@ error type.
   /* Validate the vector size. */
   size_con = aap->variant.constant;
   if (size_con->kind == (a_constant_repr_kind)ck_template_param) {
-    /* We currently do not accept dependent vector sizes.  (GCC ignores the
-       attribute with a warning, but that seems overly surprising.) */
-    pos_error(ec_dependent_vector_size, &ap->position);
-    err = TRUE;
+    if (gnu_version < 40400) {
+      /* Early GCC versions ignore dependent vector sizes with a warning, but
+         that seems overly surprising.  So we issue an error on such cases. */
+      pos_error(ec_dependent_vector_size, &ap->position);
+      err = TRUE;
+    } else {
+      /* Record a dummy (nonzero) size. */
+      size = 1;
+    }  /* if */
   } else {
     check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
     size = value_of_integer_constant(size_con, &ovflo);
