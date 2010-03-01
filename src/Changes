@@ -1,5 +1,27 @@
 Version 4.2
 
+3/1/10   [EDGcpfe/10351]
+GNU C++ compatibility: Template-dependent vector_size attribute
+
+In GNU C++ mode, the element type for the GNU vector_size attribute can now
+be template-dependent.  When gnu_version >= 40400, the vector size parameter
+of the attribute can be dependent too.  For example:
+
+  template<class T> void f() {
+    __attribute((vector_size(16))) T x;  // Now accepted in GNU C++ mode.
+    __attribute((vector_size(sizeof(T)))) int y;
+             // Also accepted in GNU C++ mode when gnu_version >= 40400.
+  }
+  template void f<int>();
+
+However, as is the case with current GCC compilers, such uses are currently
+not supported in contexts requiring deduction and substitution.  E.g.:
+
+  template<class T> void g(T __attribute((vector_size(16)))) {}
+  template void g<float>(float __attribute((vector_size(16))));
+    // Error: No matching template.
+
+
 2/26/10  [EDGcpfe/10503]
 Exception handling in C++0x mode
 
