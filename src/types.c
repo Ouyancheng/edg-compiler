@@ -1021,7 +1021,8 @@ arrays, give the total number of elements.
   check_assertion_str(array_type->kind == (a_type_kind)tk_array,
                       "num_array_elements: type not array");
   for (;;) {
-    check_assertion(!has_unknown_specified_bound(array_type));
+    check_assertion_str(!has_unknown_specified_bound(array_type),
+                        "num_array_elements: array with unknown bound");
     elems_this_level = array_type->variant.array.variant.number_of_elements;
     check_assertion_str(elems_this_level > 0 ||
                         array_type->variant.array.bound_is_zero,

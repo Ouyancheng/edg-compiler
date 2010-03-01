@@ -1,5 +1,21 @@
 Version 4.2
 
+3/1/10   [EDGcpfe/10505]
+Abort on template-dependent array size in local class of a function template
+
+In configurations with IA64_ABI set to TRUE and C++ modes (like strict mode)
+that parse templates in their generic form, the front end aborted in
+num_array_elements (types.c) when a local class of a function template
+contained a field with a template-dependent array bound.  For example:
+
+  template <typename T> void f() {
+    struct C { int x[59][sizeof(T)]; };
+      // Previously aborted in num_array_elements (in strict mode).
+  }
+
+This is now fixed.
+
+
 3/1/10   [EDGcpfe/10351]
 GNU C++ compatibility: Template-dependent vector_size attribute
 
