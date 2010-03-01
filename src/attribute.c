@@ -2948,7 +2948,8 @@ other than returning FALSE.)
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
       con->kind != (a_constant_repr_kind)ck_error) {
     a_boolean  ovflo = FALSE;
-    if (con->kind == (a_constant_repr_kind)ck_integer) {
+    if (con->kind == (a_constant_repr_kind)ck_integer &&
+        is_integral_type(con->type)) {
       *val = value_of_integer_constant(con, &ovflo);
       if (ovflo || *val < min_val || *val > max_val) {
         report_bad_attribute_arg(aap, ap);
