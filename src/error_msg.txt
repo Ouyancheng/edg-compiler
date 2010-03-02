@@ -1736,7 +1736,7 @@ ec_vector_size_must_be_multiple_of_element_size;;"vector size must be a multiple
 ec_mixed_vector_scalar_operation;;"mixed vector-scalar operation not allowed"
 ec_vectors_must_have_same_size;;"operation requires two vectors of the same size"
 ec_dependent_vector_size;;"template-dependent vector size is not allowed"
-ec_vector_size_with_dependent_element_type;;"vector_size attribute is not allowed on a template-dependent type"
+REMOVED;ec_vector_size_with_dependent_element_type;;"vector_size attribute is not allowed on a template-dependent type"
 REMOVED;ec_vector_size_attribute_not_allowed;;"vector_size attribute is not allowed here"
 ec_vector_size_attribute_on_complex_type;;"vector_size attribute is not allowed with a complex element type"
 REMOVED;ec_vector_size_must_be_integer_constant;;"vector size must be an integer constant"

@@ -7904,7 +7904,7 @@ make_new_type:
         break;
 #if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
-        /* Vector types are in principle similar array types.  However,
+        /* Vector types are in principle similar to array types.  However,
            current GNU versions (4.4.x and earlier) do not appear to support
            substitution of vector types. */
         *copy_error = TRUE;
