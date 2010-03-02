@@ -18169,7 +18169,8 @@ the header of a lambda.
        lambda. */
   }  /* if */
 look_for_var:
-  /* Skip any function prototype scopes from lambda headers or block externs. */
+  /* Skip any function prototype scopes from lambda headers or
+     block externs. */
   for (;
        scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
        sd--) {}
