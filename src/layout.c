@@ -1586,7 +1586,7 @@ bugs).
            type of that array. */
 #if IA64_ABI
         /* In the IA-64 ABI, in each element of the array. */
-        if (!has_unknown_specified_bound(field_type)) {
+        if (!has_any_unknown_specified_bound(field_type)) {
           num_array_elts = num_array_elements(field_type);
         }  /* if */
 #endif /* IA64_ABI */
@@ -1821,7 +1821,7 @@ is FALSE, field subobjects are ignored while searching for a conflict.
           num_field_array_elts = 1;
           if (is_array_type(field->type)) {
             /* Watch out for prototype instantiations. */
-            if (!has_unknown_specified_bound(field->type)) {
+            if (!has_any_unknown_specified_bound(field->type)) {
               if (skip_typerefs(field->type)->size == 0 ||
                   (emulate_gnu_abi_bugs &&
                    has_dimension_of_length_one(field->type))) {
