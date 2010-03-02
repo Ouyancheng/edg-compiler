@@ -3026,18 +3026,27 @@ a structured statement has ended.
 
 static void asm_statement(void)
 /*
-Scan an asm statement.  This is a non-ANSI construct but it is defined in
-C++.  Its form is
+Scan a C++ asm statement.  Its form is
 
-asm ( "string" ) ;
+	asm ( "string" ) ;
 
+This is accepted as an extensions in non-strict, non-Microsoft C modes.
+In Microsoft C modes, the variant using "_asm" or "__asm" is accepted instead.
+In strict C mode, the variant using "__asm" is accepted.
 */
 {
-  a_statement_ptr sp;
+  a_statement_ptr  sp;
 
   db_enter(3, "asm_statement");
 
   check_for_unreachable_code();
+  if (struct_stmt_stack[depth_stmt_stack].prefix_attributes != NULL) {
+    /* Prefix attributes are not allowed on asm declarations. */
+    pos_error(ec_invalid_attribute_location,
+              &struct_stmt_stack[depth_stmt_stack].prefix_attributes
+                                                  ->group->position);
+    struct_stmt_stack[depth_stmt_stack].prefix_attributes = NULL;
+  }  /* if */
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_asm);
   stmt_update_source_sequence_list(sp);
