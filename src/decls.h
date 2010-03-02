@@ -853,8 +853,9 @@ extern void handler_declaration(a_statement_ptr     sp,
                                 a_source_position*  catch_pos,
 				a_boolean	    is_function_try_block);
 
-extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
-                                        a_boolean  is_asm_statement);
+extern an_asm_entry_ptr asm_declaration(a_boolean         asm_decl_allowed,
+                                        a_boolean         is_asm_statement,
+                                        an_attribute_ptr  *p_attributes);
 
 extern a_variable_ptr condition_declaration(void);
 

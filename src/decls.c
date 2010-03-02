@@ -11017,8 +11017,9 @@ a normal try.
 #if !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* is_asm_statement is not referenced.*/
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED */
-an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
-                                 a_boolean  is_asm_statement)
+an_asm_entry_ptr asm_declaration(a_boolean         asm_decl_allowed,
+                                 a_boolean         is_asm_statement,
+                                 an_attribute_ptr  *p_attributes)
 /*
 Scan an asm declaration, create an entry to represent it in the IL, and
 return a pointer to the asm entry.  asm_decl_allowed is FALSE if an error
@@ -11053,6 +11054,10 @@ In GNU C and C++ modes support is provided for additional syntax:
 This may appear only at function or block scope.  The operand-spec tells
 the compiler how to map C/C++ variables into and out of the assembly
 instruction's operands.
+
+*p_attributes points to any prefix attributes (NULL if none).  Such attributes
+are invalid: If *p_attributes is non-NULL issue an error and set *p_attributes
+to NULL.
 */
 {
   a_constant                asm_string;
@@ -11075,6 +11080,12 @@ instruction's operands.
     /* Issue diagnostics on pragmas that are trying to bind to an asm
        declaration. */
     cannot_bind_to_curr_construct();
+    if (*p_attributes != NULL) {
+      /* Prefix attributes are not allowed on asm declarations. */
+      pos_error(ec_invalid_attribute_location,
+                &(*p_attributes)->group->position);
+      *p_attributes = NULL;
+    }  /* if */
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   if (curr_token == tok_microsoft_asm) {
@@ -14288,7 +14299,8 @@ indicates how processing should proceed after the call.
       /* Scan the asm declaration. */
       add_stop_token(tok_semicolon);
       (void)asm_declaration(!state->is_old_style_param_decl,
-                            /*is_asm_statement=*/FALSE);
+                            /*is_asm_statement=*/FALSE,
+                            &state->prefix_attributes);
       remove_stop_token(tok_semicolon);
       end_of_decl_action = eoda_done;
     }  /* if */

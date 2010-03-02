@@ -3035,24 +3035,23 @@ In Microsoft C modes, the variant using "_asm" or "__asm" is accepted instead.
 In strict C mode, the variant using "__asm" is accepted.
 */
 {
-  a_statement_ptr  sp;
-
+  a_statement_ptr    sp;
+  a_source_position  asm_pos;
+  an_asm_entry_ptr   asm_entry;
   db_enter(3, "asm_statement");
 
   check_for_unreachable_code();
-  if (struct_stmt_stack[depth_stmt_stack].prefix_attributes != NULL) {
-    /* Prefix attributes are not allowed on asm declarations. */
-    pos_error(ec_invalid_attribute_location,
-              &struct_stmt_stack[depth_stmt_stack].prefix_attributes
-                                                  ->group->position);
-    struct_stmt_stack[depth_stmt_stack].prefix_attributes = NULL;
-  }  /* if */
+  asm_pos = pos_curr_token;
+  /* Note: process_curr_construct_pragmas is intentionally not called.  Also,
+     asm_declaration is called before adding a statement entry, to avoid
+     attaching any prefix attributes (which are not valid here). */
+  asm_entry =
+      asm_declaration(/*asm_decl_allowed=*/TRUE, /*is_asm_statement=*/TRUE,
+                      &struct_stmt_stack[depth_stmt_stack].prefix_attributes);
   /* Allocate the statement. */
-  sp = add_statement((a_statement_kind)stmk_asm);
+  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_asm, &asm_pos);
   stmt_update_source_sequence_list(sp);
-  /* Note: process_curr_construct_pragmas is intentionally not called. */
-  sp->variant.asm_entry = asm_declaration(/*asm_decl_allowed=*/TRUE,
-                                          /*is_asm_statement=*/TRUE);
+  sp->variant.asm_entry = asm_entry;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
