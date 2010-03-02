@@ -3111,16 +3111,16 @@ part of a template-dependent expression.
 #endif /* !IA64_ABI */
       break;
 #if IA64_ABI
-    case enk_runtime_sizeof:
-      if (expr->variant.runtime_sizeof.is_type) {
-        mangled_encoding_for_sizeof(expr->variant.runtime_sizeof.variant.type,
+    case enk_sizeof:
+      if (expr->variant.sizeof_info.is_type) {
+        mangled_encoding_for_sizeof(expr->variant.sizeof_info.variant.type,
                                     (an_expr_node_ptr)NULL,
                                    (a_template_param_constant_kind)tpck_sizeof,
                                     mctl);
       } else {
         check_assertion(!expr->is_lvalue);
         mangled_encoding_for_sizeof((a_type_ptr)NULL,
-                                    expr->variant.runtime_sizeof.variant.expr,
+                                    expr->variant.sizeof_info.variant.expr,
                                    (a_template_param_constant_kind)tpck_sizeof,
                                     mctl);
       }  /* if */

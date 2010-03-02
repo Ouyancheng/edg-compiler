@@ -6130,26 +6130,25 @@ analysis on a previously-scanned expression, and return the result in
 }  /* scan_arith_prefix_operator */
 
 
-static an_expr_node_ptr make_runtime_sizeof_expr(a_boolean  is_type,
-                                                 a_type_ptr type,
-                                                 an_operand *operand,
-                                                 an_operand *result)
+static an_expr_node_ptr make_sizeof_expr(a_boolean  is_type,
+                                         a_type_ptr type,
+                                         an_operand *operand,
+                                         an_operand *result)
 /*
-Create an enk_runtime_sizeof expression for a sizeof and return a pointer
+Create an enk_sizeof expression for a sizeof and return a pointer
 to it.  If is_type is TRUE, this is a "sizeof(type)", and "type" indicates
 the type.  If is_type is FALSE, this is a "sizeof expression", and
 "operand" indicates the expression.  If result is non-NULL, an operand for
 the sizeof result is built and returned there.
 */
 {
-  an_expr_node_ptr node =
-                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
+  an_expr_node_ptr node = alloc_expr_node((an_expr_node_kind)enk_sizeof);
 
   node->type = integer_type(targ_size_t_int_kind);
-  node->variant.runtime_sizeof.is_type = is_type;
+  node->variant.sizeof_info.is_type = is_type;
   if (is_type) {
     /* sizeof(type). */
-    node->variant.runtime_sizeof.variant.type = type;
+    node->variant.sizeof_info.variant.type = type;
   } else {
     /* sizeof expression. */
     an_expr_node_ptr expr;
@@ -6159,7 +6158,7 @@ the sizeof result is built and returned there.
       prep_generic_operand(operand);
     }  /* if */
     expr = make_node_from_operand(operand);
-    node->variant.runtime_sizeof.variant.expr = expr;
+    node->variant.sizeof_info.variant.expr = expr;
     /* Make sure the referenced flag is set on a VLA variable. */
     expr = skip_parens(expr);
     if (expr->is_lvalue && is_variable_node(expr)) {
@@ -6172,7 +6171,7 @@ the sizeof result is built and returned there.
     make_expression_operand(node, result);
   }  /* if */
   return node;
-}  /* make_runtime_sizeof_expr */
+}  /* make_sizeof_expr */
 
 
 static void scan_sizeof_operator(an_operand *result)
@@ -6475,8 +6474,7 @@ Syntax:
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime.  Note the use of orig_sizeof_type
          to preserve typedefs. */
-      (void)make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand,
-                                     result);
+      (void)make_sizeof_expr(is_type, orig_sizeof_type, &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
@@ -6494,8 +6492,7 @@ Syntax:
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
-      (void)make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand,
-                                     result);
+      (void)make_sizeof_expr(is_type, orig_sizeof_type, &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
@@ -6540,9 +6537,9 @@ Syntax:
                cases, and just record the type. */
             is_type = TRUE;
           }  /* if */
-          constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
-                                                   &operand,
-                                                   (an_operand *)NULL);
+          constant.expr = make_sizeof_expr(is_type, orig_sizeof_type,
+                                           &operand,
+                                           (an_operand *)NULL);
           operand_was_used = !is_type;
           switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */

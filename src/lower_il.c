@@ -14278,9 +14278,9 @@ cast.  See lower_expr for typical invocation.
       lower_typeid(expr);
       break;
 #endif /* ABI_CHANGES_FOR_RTTI */
-    case enk_runtime_sizeof:
-      /* enk_runtime_sizeof can appear when SIZEOF_TYPE_IS_UNKNOWN is
-         defined. */
+    case enk_sizeof:
+      /* enk_sizeof can appear when SIZEOF_TYPE_IS_UNKNOWN is defined or
+         if VLAs are allowed in C++ mode. */
       lower_runtime_sizeof(expr);
       break;
     case enk_object_lifetime:

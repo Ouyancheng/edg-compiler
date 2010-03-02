@@ -9136,18 +9136,18 @@ done_with_operation_after_parens:
       }  /* if */
       write_tok_ch(')');
       break;
-    case enk_runtime_sizeof:
+    case enk_sizeof:
       write_tok_str("sizeof(");
-      if (expr->variant.runtime_sizeof.is_type) {
+      if (expr->variant.sizeof_info.is_type) {
         /* sizeof(type). */
-        gen_type(expr->variant.runtime_sizeof.variant.type);
+        gen_type(expr->variant.sizeof_info.variant.type);
       } else {
         /* sizeof(expr). */
-        if (expr->variant.runtime_sizeof.variant.expr->is_lvalue) {
-          gen_expression(expr->variant.runtime_sizeof.variant.expr);
+        if (expr->variant.sizeof_info.variant.expr->is_lvalue) {
+          gen_expression(expr->variant.sizeof_info.variant.expr);
         } else {
           an_expr_node_ptr sizeof_expr =
-                                     expr->variant.runtime_sizeof.variant.expr;
+                                        expr->variant.sizeof_info.variant.expr;
           gen_expression(sizeof_expr);
         }  /* if */
       }  /* if */

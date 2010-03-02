@@ -3427,15 +3427,15 @@ Display the indicated expression node.
       disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
       disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
       break;
-    case enk_runtime_sizeof:
-      (void)printf("enk_runtime_sizeof\n");
+    case enk_sizeof:
+      (void)printf("enk_sizeof\n");
       disp_boolean("is_type",
-                   (a_boolean)ptr->variant.runtime_sizeof.is_type);
-      if (ptr->variant.runtime_sizeof.is_type) {
-        disp_ptr("type", (char *)ptr->variant.runtime_sizeof.variant.type,
+                   (a_boolean)ptr->variant.sizeof_info.is_type);
+      if (ptr->variant.sizeof_info.is_type) {
+        disp_ptr("type", (char *)ptr->variant.sizeof_info.variant.type,
                  iek_type);
       } else {
-        disp_ptr("expr", (char *)ptr->variant.runtime_sizeof.variant.expr,
+        disp_ptr("expr", (char *)ptr->variant.sizeof_info.variant.expr,
                  iek_expr_node);
       }  /* if */
       break;

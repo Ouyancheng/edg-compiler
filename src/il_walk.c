@@ -3059,9 +3059,9 @@ as specified in the control block.
         traverse_expr(expr->variant.typeid_info.expr, tblock);
       }  /* if */
       break;
-    case enk_runtime_sizeof:
-      if (!expr->variant.runtime_sizeof.is_type) {
-        traverse_expr(expr->variant.runtime_sizeof.variant.expr, tblock);
+    case enk_sizeof:
+      if (!expr->variant.sizeof_info.is_type) {
+        traverse_expr(expr->variant.sizeof_info.variant.expr, tblock);
       }  /* if */
       break;
     case enk_address_of_ellipsis:

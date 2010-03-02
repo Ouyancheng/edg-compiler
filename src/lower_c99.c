@@ -1133,9 +1133,9 @@ lower_vla_dimensions).
 
 void lower_runtime_sizeof(an_expr_node_ptr expr)
 /*
-Do lowering for an enk_runtime_sizeof, which can appear for VLAs or when
+Do lowering for an enk_sizeof, which can appear for VLAs or when
 SIZEOF_TYPE_IS_UNKNOWN is defined.  In the non-VLA case, the "lowering" is
-really just lowering the subtree and leaving the enk_runtime_sizeof itself
+really just lowering the subtree and leaving the enk_sizeof itself
 in the IL.  If VLAs are lowered, the node is replaced by an expression
 representing the number of bytes of the VLA type underlying the sizeof
 expression.
@@ -1145,11 +1145,11 @@ expression.
   an_expr_node_ptr  byte_count, precomputation = NULL;
   a_type_ptr        vla_type;
 
-  if (expr->variant.runtime_sizeof.is_type) {
+  if (expr->variant.sizeof_info.is_type) {
     /* Something like "sizeof(X[2][n][m/2])".  Unlike uses of VLAs in
        declarations there is no stmk_set_vla_size for VLA types named in
        expressions.  So we may have to perform computations on the fly. */
-    vla_type = expr->variant.runtime_sizeof.variant.type;
+    vla_type = expr->variant.sizeof_info.variant.type;
     if (!(vla_enabled && is_vla_type(vla_type))) {
       if (!C_mode()) {
         lower_os_type(vla_type);
@@ -1159,7 +1159,7 @@ expression.
     precomputation = lower_vla_dimensions(vla_type);
   } else {
     /* sizeof was applied to a VLA expression. */
-    precomputation = expr->variant.runtime_sizeof.variant.expr;
+    precomputation = expr->variant.sizeof_info.variant.expr;
     vla_type = precomputation->type;
     if (precomputation->is_lvalue) {
       precomputation = add_address_of_to_node(precomputation);
@@ -1180,17 +1180,17 @@ expression.
   overwrite_node(expr, byte_count);
 done:;
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-  /* We're not lowering the run-time sizeof operator, but we may have to
+  /* We're not lowering the sizeof operator, but we may have to
      lower the argument if that argument is an expression.  (expr->type
      was lowered by the caller.) */
-  if (expr->variant.runtime_sizeof.is_type) {
-    a_type_ptr  type = expr->variant.runtime_sizeof.variant.type;
+  if (expr->variant.sizeof_info.is_type) {
+    a_type_ptr  type = expr->variant.sizeof_info.variant.type;
     lower_vla_dimensions_in_type(type);
     if (!C_mode()) {
       lower_os_type(type);
     }  /* if */
   } else {
-    lower_any_expr(expr->variant.runtime_sizeof.variant.expr);
+    lower_any_expr(expr->variant.sizeof_info.variant.expr);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
@@ -3628,7 +3628,7 @@ second parameter.
     case enk_address_of_ellipsis:
       /* Nothing to be done. */
       break;
-    case enk_runtime_sizeof:
+    case enk_sizeof:
       lower_runtime_sizeof(expr);
       break;
 #if GNU_EXTENSIONS_ALLOWED

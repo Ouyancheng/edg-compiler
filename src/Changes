@@ -1,5 +1,21 @@
 Version 4.2
 
+3/2/10   [EDGcpfe/10512]
+enk_runtime_sizeof renamed enk_sizeof
+
+IL CHANGE: The IL expression node kind enk_runtime_sizeof was originally
+used exclusively for sizeof applied to variable-length arrays.  Since
+then, however, it has been used in a lot of contexts for non-VLA
+(i.e., non-runtime) sizeofs, for example in backing expressions for
+constants, in prototype instantiations, and with the SIZEOF_TYPE_IS_UNKNOWN
+feature.  Therefore, we have now renamed it enk_sizeof to reflect
+its generality.  The enumerator enk_runtime_sizeof continues to be
+defined (as equal to enk_sizeof), but customers will have to change code
+that references the sizeof variant of an_expr_node, which has also been
+renamed.  References like p->variant.runtime_sizeof.x must be changed to
+p->variant.sizeof_info.x.
+
+
 3/1/10   [EDGcpfe/10505]
 Abort on template-dependent array size in local class of a function template
 

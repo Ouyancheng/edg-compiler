@@ -1711,15 +1711,15 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_node(node->variant.typeid_info.expr, level + 2);
       }  /* if */
       break;
-    case enk_runtime_sizeof:
-      fputs("runtime sizeof: ", f_debug);
-      if (node->variant.runtime_sizeof.is_type) {
+    case enk_sizeof:
+      fputs("sizeof: ", f_debug);
+      if (node->variant.sizeof_info.is_type) {
         fputs("type = ", f_debug);
-        db_abbreviated_type(node->variant.runtime_sizeof.variant.type);
+        db_abbreviated_type(node->variant.sizeof_info.variant.type);
         fputc('\n', f_debug);
       } else {
         fprintf(f_debug, "expr =\n");
-        db_expr_node(node->variant.runtime_sizeof.variant.expr, level + 2);
+        db_expr_node(node->variant.sizeof_info.variant.expr, level + 2);
       }  /* if */
       break;
     case enk_address_of_ellipsis:
@@ -5614,15 +5614,15 @@ are allowed under a sizeof (etc.) in a template argument expression.
                                              node1->variant.typeid_info.expr,
                                              node2->variant.typeid_info.expr));
         break;
-      case enk_runtime_sizeof:
-        eq = (node1->variant.runtime_sizeof.is_type ==
-              node2->variant.runtime_sizeof.is_type &&
-              (node1->variant.runtime_sizeof.is_type ?
-                 identical_types(node1->variant.runtime_sizeof.variant.type,
-                                 node2->variant.runtime_sizeof.variant.type) :
+      case enk_sizeof:
+        eq = (node1->variant.sizeof_info.is_type ==
+              node2->variant.sizeof_info.is_type &&
+              (node1->variant.sizeof_info.is_type ?
+                 identical_types(node1->variant.sizeof_info.variant.type,
+                                 node2->variant.sizeof_info.variant.type) :
                  compare_template_param_constant_expressions(
-                                 node1->variant.runtime_sizeof.variant.expr,
-                                 node2->variant.runtime_sizeof.variant.expr)));
+                                 node1->variant.sizeof_info.variant.expr,
+                                 node2->variant.sizeof_info.variant.expr)));
         break;
       case enk_reuse_value:
         eq = compare_template_param_dynamic_inits(
@@ -14862,22 +14862,22 @@ be called to start a copy.
                                                 options, cblock);
       }  /* if */
       break;
-    case enk_runtime_sizeof:
+    case enk_sizeof:
       /* If there is an expression, copy it. */
-      if (!expr->variant.runtime_sizeof.is_type) {
+      if (!expr->variant.sizeof_info.is_type) {
         if (in_file_scope(expr_copy) && !in_file_scope(expr)) {
           /* Potential memory region problem -- the expression under the
-             runtime sizeof may refer to function-local variables, so
-             drop the expression and just use the type.  This comes up when
+             sizeof may refer to function-local variables, so drop the
+             expression and just use the type.  This comes up when
              copying VLA bound expressions that are overall constant, but
              have a nonconstant part under a sizeof. */
-          expr_copy->variant.runtime_sizeof.is_type = TRUE;
-          expr_copy->variant.runtime_sizeof.variant.type =
-                               expr->variant.runtime_sizeof.variant.expr->type;
+          expr_copy->variant.sizeof_info.is_type = TRUE;
+          expr_copy->variant.sizeof_info.variant.type =
+                                  expr->variant.sizeof_info.variant.expr->type;
         } else {
-          expr_copy->variant.runtime_sizeof.variant.expr =
-                    i_copy_expr_tree(expr->variant.runtime_sizeof.variant.expr,
-                                     options, cblock);
+          expr_copy->variant.sizeof_info.variant.expr =
+                       i_copy_expr_tree(expr->variant.sizeof_info.variant.expr,
+                                        options, cblock);
         }  /* if */
       }  /* if */
       break;

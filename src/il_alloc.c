@@ -2653,9 +2653,9 @@ fields to default values.
       node->variant.typeid_info.type = NULL;
       node->variant.typeid_info.expr = NULL;
       break;
-    case enk_runtime_sizeof:
-      node->variant.runtime_sizeof.is_type = TRUE;
-      node->variant.runtime_sizeof.variant.type = NULL;
+    case enk_sizeof:
+      node->variant.sizeof_info.is_type = TRUE;
+      node->variant.sizeof_info.variant.type = NULL;
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:

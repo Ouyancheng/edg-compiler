@@ -11467,12 +11467,15 @@ enum an_expr_node_kind_tag {
 			   node is not necessarily the top node in the
 			   expression tree.  C++ only. */
   enk_typeid,		/* C++ typeid expression. */
-  enk_runtime_sizeof,	/* A sizeof expression that cannot be evaluated
-			   until runtime.  Used in C to determine the size
-			   of a type involving a variable length array.
-			   Also used (in both C and C++) in certain
-			   source-analysis configurations to represent a
-			   sizeof in expression form. */
+  enk_sizeof,
+  enk_runtime_sizeof = enk_sizeof,  /* Old name. */
+			/* A sizeof expression.  Usually those are folded to
+			   constants at compile time, but this operator
+			   still appears in backing expressions, for sizeofs
+			   applied to dependent types or expressions in
+			   prototype instantiations, and for sizeofs that
+			   are actually variable (e.g., sizeof a
+			   variable-length array). */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -12475,11 +12478,7 @@ typedef struct an_expr_node {
 			   type-specifier, this is the expression
 			   specified; otherwise NULL. */
     } typeid_info;
-    /* When kind == enk_runtime_sizeof: */
-    /* Used for a sizeof whose size is not known at compile time (e.g.,
-       for a variable-length array), and in some source-analysis
-       configurations as an expression representation for sizeofs
-       so we can re-create the original code. */
+    /* When kind == enk_sizeof: */
     struct {
       a_byte_boolean
 		is_type;
@@ -12493,7 +12492,7 @@ typedef struct an_expr_node {
         an_expr_node_ptr
 		expr;	/* The expression whose size is needed. */
       } variant;
-    } runtime_sizeof;
+    } sizeof_info;
 #if GNU_EXTENSIONS_ALLOWED
     /* When kind == enk_statement: */
     a_statement_ptr

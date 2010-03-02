@@ -629,6 +629,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,an_attribute_location_tag::al_trailing_return)*/
 /*lint -esym(769,an_attribute_location_tag::al_other)*/
 /*lint -esym(769,an_attribute_location_tag::al_last)*/
+/*lint -esym(769,an_expr_node_kind_tag::enk_runtime_sizeof)*/
 
 #endif /* ifndef LINT_H */
 

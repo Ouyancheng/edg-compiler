@@ -5228,19 +5228,19 @@ done_with_operation:
       dump_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
-    case enk_runtime_sizeof:
+    case enk_sizeof:
       write_tok_str("sizeof(");
-      if (expr->variant.runtime_sizeof.is_type) {
+      if (expr->variant.sizeof_info.is_type) {
         /* sizeof(type). */
-        dump_type(expr->variant.runtime_sizeof.variant.type,
+        dump_type(expr->variant.sizeof_info.variant.type,
                   /*add_pointer_to=*/FALSE);
       } else {
         /* sizeof(expr). */
-        if (expr->variant.runtime_sizeof.variant.expr->is_lvalue) {
-          dump_expression(expr->variant.runtime_sizeof.variant.expr);
+        if (expr->variant.sizeof_info.variant.expr->is_lvalue) {
+          dump_expression(expr->variant.sizeof_info.variant.expr);
         } else {
           an_expr_node_ptr sizeof_expr =
-                                     expr->variant.runtime_sizeof.variant.expr;
+                                        expr->variant.sizeof_info.variant.expr;
           if (is_routine_node(sizeof_expr)) {
             /* For the address of a function, we need an extra "&".  The
                normal output suppresses it as unnecessary, but in a sizeof
