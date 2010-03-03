@@ -225,6 +225,21 @@ Execute the end-of-parse callbacks registered for the declaration described by
 }  /* run_end_of_parse_actions */
 
 
+static void disallow_attributes(an_attribute_ptr  *p_attributes)
+/*
+If *p_attributes is non-NULL, issue an error message indicating that
+attributes are not allowed at the location in which the associated attribute
+appeared, and set *p_attributes to NULL;
+*/
+{
+  if (*p_attributes != NULL) {
+    pos_error(ec_invalid_attribute_location,
+              &(*p_attributes)->group->position);
+    *p_attributes = NULL;
+  }  /* if */
+}  /* disallow_attributes */
+
+
 static void diagnose_unattached_attributes(an_attribute_ptr  attributes)
 /*
 Attributes is a list (possibly NULL) of attributes that do not apply to any
@@ -11080,12 +11095,8 @@ to NULL.
     /* Issue diagnostics on pragmas that are trying to bind to an asm
        declaration. */
     cannot_bind_to_curr_construct();
-    if (*p_attributes != NULL) {
-      /* Prefix attributes are not allowed on asm declarations. */
-      pos_error(ec_invalid_attribute_location,
-                &(*p_attributes)->group->position);
-      *p_attributes = NULL;
-    }  /* if */
+    /* Prefix attributes are not allowed on asm declarations. */
+    disallow_attributes(p_attributes);
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
   if (curr_token == tok_microsoft_asm) {
@@ -14229,12 +14240,8 @@ indicates how processing should proceed after the call.
          final token of the declaration. */
       a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
       a_source_position	           directive_start_pos = pos_curr_token;
-      if (state->prefix_attributes != NULL) {
-        /* Attributes cannot precede the "template" keyword. */
-        pos_error(ec_invalid_attribute_location,
-                  &state->prefix_attributes->group->position);
-        state->prefix_attributes = NULL;
-      }  /* if */
+      /* Attributes cannot precede the "template" keyword. */
+      disallow_attributes(&state->prefix_attributes);
       if (curr_token == tok_extern) {
         /* In some modes "extern template ..." is permitted. */
         (void)get_token();
@@ -14256,6 +14263,8 @@ indicates how processing should proceed after the call.
          return. */
       end_of_decl_action = eoda_skip_final_token;
     } else if (curr_token == tok_namespace) {
+      /* Attributes cannot precede the "namespace" keyword. */
+      disallow_attributes(&state->prefix_attributes);
       /* Process a namespace definition or a namespace alias declaration. */
       namespace_declaration(final_token);
       /* Swallow the current token if it is the same as *final_token, then
@@ -14264,6 +14273,8 @@ indicates how processing should proceed after the call.
     } else if (curr_token == tok_using) {
       /* A using-directive (which has the form "using namespace N;") or a
          using-declaration ("using N::x;" or "using ::x;"); */
+      /* Attributes cannot precede a using-declaration or using-directive. */
+      disallow_attributes(&state->prefix_attributes);
       if (next_token() == tok_namespace) {
         using_directive(state);
       } else {
