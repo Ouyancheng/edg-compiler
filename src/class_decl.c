@@ -7106,12 +7106,14 @@ possibility.
     /* Create a dummy symbol to return when there's been an error.  This is
        required for further processing, in case there's a definition of the
        the routine body. */
-    a_routine_ptr	rp;
+    a_routine_ptr  rp = make_routine(function_type, (a_storage_class)sc_static,
+                                     NO_SCOPE_DEPTH);
     sym = enter_symbol((a_symbol_kind)sk_routine, locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/FALSE);
-    rp = make_routine(function_type, (a_storage_class)sc_static,
-                      NO_SCOPE_DEPTH);
     sym->variant.routine.ptr = rp;
+    state->sym = sym;
+    state->first_decl = TRUE;
+    state->prev_type = NULL;
     /* If this is a friend declaration in a prototype instantiation,
        mark it as a prototype instantiation too. */
     if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
