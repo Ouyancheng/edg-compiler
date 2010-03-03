@@ -1,5 +1,19 @@
 Version 4.2
 
+3/3/10   [EDGcpfe/10518]
+Fix to setting of decltype_expr_not_parenthesized flag
+
+The decltype_expr_not_parenthesized flag in a tk_typeref type, used
+to indicate the presence of significant parentheses around the
+expression in a decltype, was not set correctly in some cases.
+Now, it is correctly set to to TRUE only when (a) no parentheses
+surround the expression, and (b) that lack of parentheses is
+significant, i.e., for id-expressions and member access operators.
+So, something like "decltype(a.f(x))" will now have the flag
+FALSE, because while it has no parentheses the parentheses are
+not significant around a function call.
+
+
 3/2/10   [EDGcpfe/10512]
 enk_runtime_sizeof renamed enk_sizeof
 

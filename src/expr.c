@@ -7356,7 +7356,8 @@ If parens_also is TRUE, skip parentheses also.
 
 
 static a_type_ptr decltype_from_operand(an_operand  *operand,
-                                        a_boolean   leading_paren_seen)
+                                        a_boolean   leading_paren_seen,
+                                        a_boolean   *no_parens_matters)
 /*
 Determine the type resulting from a decltype(<expr>) construct where operand
 represents <expr>.  leading_paren_seen is TRUE if the <expr> started with a
@@ -7366,11 +7367,16 @@ In the general case, the result is the type of the expression if the
 expression is an rvalue, or a reference to that type if it's an lvalue.
 However, different rules apply for non-parenthesized id-expressions, for
 non-parenthesized class member access expressions, and for calls.
+
+*no_parens_matters is returned TRUE for cases where there are no surrounding
+parentheses (i.e., leading_paren_seen is FALSE) and the lack of parentheses
+does matter for the kind of expression (i.e., id-expression or member access).
 */
 {
   a_type_ptr        result = NULL;
   an_expr_node_ptr  expr = NULL;
 
+  *no_parens_matters = FALSE;
   if (is_expression_operand(operand)) {
     /* Strip a reference indirection from the expression, if present, so
        we can see what's underneath. */
@@ -7405,6 +7411,7 @@ non-parenthesized class member access expressions, and for calls.
       default:
         unexpected_condition();
     }  /* switch */
+    *no_parens_matters = TRUE;
   } else if (operand->is_id_expression) {
     /* Produce the type of the entity referenced by the id-expression.
        Note that some id-expressions are represented as class member access
@@ -7437,6 +7444,7 @@ id_case:
     } else {
       goto general_case;
     }  /* if */
+    *no_parens_matters = TRUE;
   } else if (expr != NULL &&
              (expr = strip_ref_indirect(expr, /*parens_also=*/TRUE),
               is_call_node(expr))) {
@@ -7479,6 +7487,7 @@ of the decltype.
 {
   a_type_ptr type;
   an_operand operand;
+  a_boolean  no_parens_matters;
 
   /* Make an operand so we will have whatever extra information was saved
      with the expression for use in decltype_from_operand. */
@@ -7497,8 +7506,9 @@ of the decltype.
     operand.position = *source_pos;
   }  /* if */
   type = decltype_from_operand(&operand,
-                             /*leading_paren_seen=*/!operand.is_id_expression);
+                             /*leading_paren_seen=*/!operand.is_id_expression,
                              /*FIXME*/
+                               &no_parens_matters);
   return type;
 }  /* decltype_from_substituted_expr_or_constant */
 
@@ -7619,10 +7629,12 @@ NULL, the end position in its specifiers_range is updated.
     a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = is_template_dependent_context() &&
                                 is_template_dependent_type(result);
+    a_boolean   no_parens_matters;
     tp->variant.typeref.type = decltype_from_operand(&operand,
-                                                     leading_paren_seen);
+                                                     leading_paren_seen,
+                                                     &no_parens_matters);
     tp->variant.typeref.is_decltype = TRUE;
-    tp->variant.typeref.decltype_expr_not_parenthesized = !leading_paren_seen;
+    tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
     if (dependent_arg) {
       prep_generic_operand(&operand);
     }  /* if */

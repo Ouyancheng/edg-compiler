@@ -7171,8 +7171,14 @@ typedef struct a_type {
       a_bit_field
 		decltype_expr_not_parenthesized:1;
 			/* This is a decltype entry and its argument
-			   expression was not parenthesized.  TRUE only if
-			   the parentheses can affect the resulting type. */
+			   expression is not parenthesized.  TRUE only if
+			   (a) there are no parentheses around the decltype
+			   argument expression and (b) that lack of parentheses
+			   is significant (the meaning would be different if
+			   parentheses were present; that is the case only for
+			   id-expressions and member access operators).
+			   So, for example, TRUE for "decltype(x.y)" and
+			   FALSE for "decltype((x.y))". */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_typeof:1;
