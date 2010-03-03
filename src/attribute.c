@@ -3343,6 +3343,18 @@ entity.
            Fortunately, these don't run into problems with block-extern
            declarations either. */
         prev_type = rp->type;
+      } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        /* A block-extern declaration in a prototype instantiation.  In this
+           case no sk_extern_routine symbol is available either, but it is
+           unclear whether this constitutes an actual declaration while no
+           real instantiation has been done.  Nonetheless, we diagnose cases
+           like:
+             template<class T> void g() {
+               int f();
+               [[noreturn]] int f();
+             }
+           if prototype instantiations of function templates are done. */
+        prev_type = rp->type;
       } else {
         a_symbol_locator  loc, eloc;
         a_symbol_ptr      esym;
@@ -3353,7 +3365,8 @@ entity.
                         esym->kind == (a_symbol_kind)sk_extern_routine);
         prev_type = esym->variant.extern_symbol_descr->type;
       }  /* if */
-      if (!prev_type->variant.routine.extra_info->does_not_return) {
+      if (prev_type != NULL &&
+          !prev_type->variant.routine.extra_info->does_not_return) {
         pos_st_error(ec_attr_must_also_appear_in_first_declaration,
                      &ap->position, ap->name);
         make_attr_unrecognized(ap);
