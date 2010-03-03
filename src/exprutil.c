@@ -2472,6 +2472,82 @@ being tried.
 }  /* make_selection_rescan_operands */
 
 
+void make_sizeof_rescan_operands(
+                              a_rescan_control_block  *rcblock,
+                              a_boolean               *p_is_type,
+                              an_operand              *operand,
+                              a_type_ptr              *p_type,
+                              a_source_position       *operator_position,
+                              a_token_sequence_number *operator_tok_seq_number)
+/*
+As part of redoing semantic analysis on an expression while doing
+template deduction, extract the operands of the expression given by
+rcblock->expr (a sizeof node) and:
+
+1)  Set *p_is_type indicating whether the sizeof is applied to a type (TRUE) or
+    an expression (FALSE).
+2)  For the expression case, set *operand to the rescanned expression.
+3)  For the type case, set *p_type to the substituted type.
+
+Also return the operator position and operator token sequence number
+in *operator_position and *operator_tok_seq_number.  rcblock also gives
+context information for the template deduction being done, e.g., the
+template argument list being tried.
+*/
+{
+  a_boolean                     is_type;
+  a_type_ptr                    type;
+  an_expr_node_ptr              expr = rcblock->expr, op1;
+  an_expr_rescan_info_entry_ptr eriep;
+
+  check_assertion(expr != NULL);
+  eriep = expr->rescan_info;
+  check_assertion(eriep != NULL);
+  if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+     /* Expression form. */
+    is_type = expr->variant.sizeof_info.is_type;
+    if (is_type) {
+      type = expr->variant.sizeof_info.variant.type;
+    } else {
+      op1 = expr->variant.sizeof_info.variant.expr;
+    }  /* if */
+  } else if (is_constant_node(expr)) {
+    /* tpck_sizeof constant form. */
+    a_constant_ptr con = expr->variant.constant;
+    check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
+                    con->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_sizeof);
+    op1 = generic_sizeof_arg_expr(con);
+    is_type = (op1 == NULL);
+    if (is_type) {
+      type = con->variant.template_param.variant.templ_sizeof.type;
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  *p_is_type = is_type;
+  if (is_type) {
+    /* Type case.  Do substitution on the type. */
+    a_boolean copy_error = FALSE;
+    *p_type = copy_type_with_substitution(type,
+                                          rcblock->template_arg_list,
+                                          rcblock->template_param_list,
+                                          &eriep->saved_operand.position,
+                                          CTWS_NON_CONSTANT_EXPR,
+                                          &copy_error);
+    if (copy_error) {
+      rcblock->error_detected = TRUE;
+    }  /* if */
+  } else {
+    /* Expression case.  Rescan the operand. */
+    make_rescan_operand(op1, rcblock, operand);
+    *p_type = NULL;
+  }  /* if */
+  get_rescan_operator_positions(eriep, operator_position,
+                                operator_tok_seq_number);
+}  /* make_sizeof_rescan_operands */
+
+
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
 /*
 Return an expression node to represent the given operand, creating one

@@ -7649,7 +7649,7 @@ a pointer over a reference type or creating an array of references.
                                             templ_arg_list,
                                             templ_param_list,
                                             source_pos,
-                                            options,
+                                            (options | CTWS_NON_CONSTANT_EXPR),
                                             copy_error);
         } else {
           /* Make an identically qualified type of a copy (or reuse) of the

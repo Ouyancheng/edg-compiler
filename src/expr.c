@@ -6174,19 +6174,17 @@ the sizeof result is built and returned there.
 }  /* make_sizeof_expr */
 
 
-static void scan_sizeof_operator(an_operand *result)
+static void scan_sizeof_operator(a_rescan_control_block *rcblock,
+                                 an_operand             *result)
 /*
-Scan the sizeof operator.  The operand of the sizeof operator cannot be an
-expression with function or incomplete type.  The operand cannot be the
-parenthesized name of an incomplete or function type.  The operand cannot be
-an lvalue that is a bit-field.  See section 3.3.3.4 of the standard.
-
-Syntax:
-	sizeof unary-expression
-	sizeof ( type-name )
+Scan the sizeof operator.  The current token is the sizeof keyword.
+Scan a type or expression operand, and return an operand for sizeof
+applied to that, in *operand.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned sizeof expression, and return the
+result in *result (or an error indication in *rcblock).
 */
 {
-  a_source_position     start_position, type_position;
+  a_source_position     operator_position, start_position, type_position;
   a_source_position     lparen_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position     end_position;
@@ -6195,28 +6193,42 @@ Syntax:
   a_constant            constant;
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
   a_type_ptr            sizeof_type, orig_sizeof_type;
-  a_local_expr_options_set
-                        local_options;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
   a_boolean             in_constant_expression = (expr_stack != NULL &&
                                                   curr_expr_kind_is_const());
+  a_token_kind          operator_token;
 #if UPC_EXTENSIONS_ALLOWED
-  a_token_kind          kind = curr_token;
   a_upc_block_size      block_size;
-  a_boolean             upc_blocksizeof_scan = (kind == tok_upc_blocksizeof);
   a_boolean             multiply_by_threads_needed = FALSE;
   a_boolean             use_special_upc_size = FALSE;
   a_upc_block_size      special_upc_size;
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  a_boolean             operand_was_scanned = FALSE, operand_was_used = FALSE;
+  a_boolean             operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                         region_to_switch_back_to;
   a_boolean             sizeof_itself_is_potentially_evaluated =
                                           curr_expr_is_potentially_evaluated();
 
   db_enter(4, "scan_sizeof_operator");
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    a_token_sequence_number operator_tok_seq_number;
+    operator_token = rcblock->operator_token;
+    make_sizeof_rescan_operands(rcblock, &is_type, &operand, &sizeof_type,
+                                &operator_position, &operator_tok_seq_number);
+    operand_was_created = !is_type;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    type_position = operator_position;  /* Don't have real type position. */
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_token = curr_token;
+    operator_position = pos_curr_token;
+  }  /* if */
+  start_position = operator_position;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Sizeof not possible for preprocessing expressions. */
@@ -6232,92 +6244,110 @@ Syntax:
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  /* Save the position of the sizeof keyword. */
-  copy_source_position(pos_curr_token, start_position);
 
-  (void)get_token();
-  if (curr_token == tok_lparen) {
-    /* A left parenthesis could indicate a type in parentheses or an expression
-       in parentheses, i.e.,
-         sizeof (int)  vs.
-         sizeof (i)
-       We can distinguish the two using the first token inside the parentheses.
-       However, if the construct is an expression in parentheses, we must
-       then scan it with a special flag indicating that a left parenthesis was
-       trapped.  It's not enough to just scan the expression to the matching
-       right parenthesis, as shown by the following:
-         sizeof (v).b
-       The sizeof should be applied to "(v).b", not just "(v)". */
-    is_parenthesized = TRUE;
-    copy_source_position(pos_curr_token, lparen_position);
+  if (rcblock == NULL) {
     (void)get_token();
-    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
-      /* This is a type-name in parentheses. */
-      is_type = TRUE;
-    }  /* if */
+    if (curr_token == tok_lparen) {
+      /* A left parenthesis could indicate a type in parentheses or
+         an expression in parentheses, i.e.,
+           sizeof (int)  vs.
+           sizeof (i)
+         We can distinguish the two using the first token inside the
+         parentheses.  However, if the construct is an expression in
+         parentheses, we must then scan it with a special flag indicating
+         that a left parenthesis was trapped.  It's not enough to just scan
+         the expression to the matching right parenthesis, as shown by
+         the following:
+           sizeof (v).b
+         The sizeof should be applied to "(v).b", not just "(v)". */
+      is_parenthesized = TRUE;
+      copy_source_position(pos_curr_token, lparen_position);
+      (void)get_token();
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED)) {
+        /* This is a type-name in parentheses. */
+        is_type = TRUE;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && !C_mode()) {
-    /* Microsoft allows "sizeof T" without parentheses in C++ mode,
-       where T is a type-name (not a keyword like "int").  If we have
-       a type name that is not followed by a left parenthesis, assume this
-       to be the size of the type. */
-    if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT) &&
-        next_token() != tok_lparen &&
-        curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE)) {
-      /* Something like
-           typedef int I;
-           sizeof I;
-         but not
-           sizeof I();
-      */
-      is_type = TRUE;
-    }  /* if */
+    } else if (microsoft_mode && !C_mode()) {
+      /* Microsoft allows "sizeof T" without parentheses in C++ mode,
+         where T is a type-name (not a keyword like "int").  If we have
+         a type name that is not followed by a left parenthesis, assume this
+         to be the size of the type. */
+      if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT) &&
+          next_token() != tok_lparen &&
+          curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE)) {
+        /* Something like
+             typedef int I;
+             sizeof I;
+           but not
+             sizeof I();
+        */
+        is_type = TRUE;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
+    }  /* if */
 
-  if (is_type) {
-    copy_source_position(pos_curr_token, type_position);
-    if (is_parenthesized) {
-      /* Scan the type-name for a parenthesized type. */
-      add_matching_stop_token(tok_rparen);
-      sizeof_type = scan_type_for_sizeof(
+    if (is_type) {
+      copy_source_position(pos_curr_token, type_position);
+      if (is_parenthesized) {
+        /* Scan the type-name for a parenthesized type. */
+        add_matching_stop_token(tok_rparen);
+        sizeof_type = scan_type_for_sizeof(
                                       sizeof_itself_is_potentially_evaluated);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = end_pos_curr_token;
+        end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)required_token(tok_rparen, ec_exp_rparen);
-      remove_matching_stop_token(tok_rparen);
-      if (compound_literals_allowed && curr_token == tok_lbrace) {
-        /* Something like sizeof(int){37} -- the type is the beginning
-           of a compound literal. */
-        scan_compound_literal(&sizeof_type, &type_position, result,
-                              EOPT_NO_OPTIONS);
-        sizeof_type = result->type;
-      }  /* if */
-    } else {
-      /* Unparenthesized type, e.g., "sizeof T" (Microsoft extension). */
+        (void)required_token(tok_rparen, ec_exp_rparen);
+        remove_matching_stop_token(tok_rparen);
+        if (compound_literals_allowed && curr_token == tok_lbrace) {
+          /* Something like sizeof(int){37} -- the type is the beginning
+             of a compound literal. */
+          scan_compound_literal(&sizeof_type, &type_position, result,
+                                EOPT_NO_OPTIONS);
+          sizeof_type = result->type;
+        }  /* if */
+      } else {
+        /* Unparenthesized type, e.g., "sizeof T" (Microsoft extension). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      sizeof_type = simple_type_specifier_sequence();
+        sizeof_type = simple_type_specifier_sequence();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = curr_construct_end_position;
+        end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-      unexpected_condition();
+        unexpected_condition();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+    } else {
+      /* It has been determined that the operand of the sizeof is an expression
+         and not a type.  Scan the operand. */
+      a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
+      if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
+      scan_expr(&operand, PREC_PREFIX, local_options);
+      operand_was_created = TRUE;
+      if (is_parenthesized) {
+        /* When scanning the expression with a trapped left parenthesis, the
+           position returned in the operand indicates the token following
+           the left parenthesis, which is wrong.  Correct it. */
+        copy_source_position(lparen_position, operand.position);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
+  }  /* if */
+
+  /* The type or expression has been scanned (or retrieved from rcblock, on
+     a rescan). */
+  if (is_type) {
+    /* Type case. */
     /* If the top type is a reference, drop the reference so that the sizeof
        applies to the type referenced (ARM 5.3.2). */
     if (is_reference_type(sizeof_type)) {
       sizeof_type = type_pointed_to(sizeof_type);
     }  /* if */
   } else {
-    /* It has been determined that the operand of the sizeof is an expression
-       and not a type.  Scan the operand. */
-    local_options = EOPT_NO_OPTIONS;
-    if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
-    scan_expr(&operand, PREC_PREFIX, local_options);
-    operand_was_scanned = TRUE;
+    /* Expression case. */
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */
@@ -6326,12 +6356,6 @@ Syntax:
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-    if (is_parenthesized) {
-      /* When scanning the expression with a trapped left parenthesis, the
-         position returned in the operand indicates the token following
-         the left parenthesis, which is wrong.  Correct it. */
-      copy_source_position(lparen_position, operand.position);
-    }  /* if */
     if (is_bit_field_operand(&operand)) {
       /* This is a bit field; it is illegal except when in pcc compatibility
 	 mode. */
@@ -6344,20 +6368,16 @@ Syntax:
     force_complete_type_if_a_variable(&operand);
     sizeof_type = operand.type;
     copy_source_position(operand.position, type_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = operand.end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-
   orig_sizeof_type = sizeof_type;
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     /* Determine if the multiplication by THREADS is needed before the
        typerefs are stripped off. */
     multiply_by_threads_needed =
-                   (kind == tok_sizeof &&
+                   (operator_token == tok_sizeof &&
                     is_underlying_threads_dimensioned_array_type(sizeof_type));
-    if (upc_blocksizeof_scan) {
+    if (operator_token == tok_upc_blocksizeof) {
       /* Save the block size before stripping the typerefs. */
       block_size = get_underlying_upc_block_size(sizeof_type);
       special_upc_size = block_size;
@@ -6424,16 +6444,16 @@ Syntax:
   if (upc_mode) {
     /* Special handling for VLAs.  Not all operations are defined for them. */
     if (vla_enabled && is_vla_type(sizeof_type)) {
-      switch ((int)kind) {
+      switch ((int)operator_token) {
         case tok_upc_localsizeof:
           /* Turn this into a sizeof. */
-          kind = tok_sizeof;
+          operator_token = tok_sizeof;
           break;
         case tok_upc_blocksizeof:
           /* Return as if it were indefinite block size. */
           special_upc_size = UPC_BLOCK_SIZE_INDEFINITE;
           use_special_upc_size = TRUE;
-          kind = tok_sizeof;
+          operator_token = tok_sizeof;
           break;
         default:
           /* Do nothing. */
@@ -6445,10 +6465,11 @@ Syntax:
       expr_pos_error(ec_expr_not_constant, &start_position);
       make_error_operand(result);
       err = TRUE;
-    } else if (kind == tok_upc_localsizeof) {
+    } else if (operator_token == tok_upc_localsizeof) {
       special_upc_size = (a_upc_block_size)upc_local_type_size(sizeof_type);
       use_special_upc_size = TRUE;
-    } else if (kind == tok_upc_elemsizeof && is_array_type(sizeof_type)) {
+    } else if (operator_token == tok_upc_elemsizeof &&
+               is_array_type(sizeof_type)) {
       sizeof_type = underlying_array_element_type(sizeof_type);
       sizeof_type = skip_typerefs(sizeof_type);
     }  /* if */
@@ -6463,8 +6484,8 @@ Syntax:
     make_constant_operand(&constant, result);
   } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  /* Do not add code here */
-  if (vla_enabled && is_vla_type(sizeof_type)) {
+  /* Do not add code here. */
+  if (vla_enabled && is_vla_type(sizeof_type) && !template_case) {
     /* One or more of the top array types is a variable-length array. */
     if (in_constant_expression) {
       /* Not allowed in a constant expression. */
@@ -6555,16 +6576,16 @@ Syntax:
     copy_operand(result, &mo1);
     do_binary_operation((an_expr_operator_kind)eok_multiply,
                         &mo1, &mo2, integer_type(targ_size_t_int_kind),
-                        result, &start_position);
+                        result, &operator_position);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-  if (operand_was_scanned && !operand_was_used) {
+  if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
-                       &start_position);
+                       &operator_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -20849,7 +20870,7 @@ see expr.h).
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_sizeof:
       /* Sizeof operation. */
-      scan_sizeof_operator(&local_result);
+      scan_sizeof_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_alignof:
@@ -22866,12 +22887,15 @@ redoes semantic analysis.
         case tpck_address:
         case tpck_unknown_function:
         case tpck_template_ref:
+        case tpck_sizeof:
           rescannable = TRUE;
           break;
         default:
           break;
       }  /* switch */
     }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+    rescannable = TRUE;
   }  /* if */
   return rescannable;
 }  /* expr_is_rescannable */
@@ -23098,12 +23122,19 @@ postfix operators.
         case tpck_template_ref:
           operator_token = tok_identifier;
           break;
+        case tpck_sizeof:
+          operator_token = tok_sizeof;
+          *unary = TRUE;
+          break;
         default:
           break;
       }  /* switch */
     }  /* if */
     check_assertion_str(operator_token != tok_error,
                         "invalid const in expr rescan");
+  } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+    operator_token = tok_sizeof;
+    *unary = TRUE;
   } else {
     unexpected_condition_str("invalid expr kind in expr rescan");
   }  /* if */
@@ -23191,6 +23222,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_compl:
       case tok_not:
         scan_arith_prefix_operator(rcblock, result);
+        break;
+      case tok_sizeof:
+        scan_sizeof_operator(rcblock, result);
         break;
       default:
         unexpected_condition();

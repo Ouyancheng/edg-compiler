@@ -1458,6 +1458,14 @@ extern void make_selection_rescan_operands(
                              a_source_position       *operator_position,
                              a_token_sequence_number *operator_tok_seq_number);
 
+extern void make_sizeof_rescan_operands(
+                             a_rescan_control_block  *rcblock,
+                             a_boolean               *p_is_type,
+                             an_operand              *operand,
+                             a_type_ptr              *p_type,
+                             a_source_position       *operator_position,
+                             a_token_sequence_number *operator_tok_seq_number);
+
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 

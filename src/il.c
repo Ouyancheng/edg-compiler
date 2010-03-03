@@ -13333,8 +13333,9 @@ an_expr_node_ptr copy_template_param_expr(
                                   a_constant_ptr           constant,
                                   a_constant_ptr           *alloc_con)
 /*
-Copy the expression expr, and return a pointer to the copy.  The expression
-is a constant expression that is part of a template argument expression.
+Copy the expression expr, and return a pointer to the copy.  The
+expression is part of a template deduction context, and is usually
+but not always a constant expression (see CTWS_NON_CONSTANT_EXPR).
 In the process of copying, replace any template parameters
 with the corresponding values from the template argument list
 template_arg_list.  template_param_list is the parameter list for which
