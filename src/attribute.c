@@ -2690,6 +2690,9 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
                            ->template_info
                            ->cache.decl_info
                            ->parameters;
+  } else {
+    *p_t_args = NULL;
+    *p_t_params = NULL;
   }  /* if */
 }  /* get_substitution_pairs_for_template_class */
 
@@ -2718,7 +2721,7 @@ TRUE if a substitution error occurs.
       parent_class->variant.class_struct_union.is_template_class) {
     /* If the parent class is itself a template instance, first recursively
        substitute any parameters that it is associated with. */
-    a_template_arg_ptr    parent_t_args;
+    a_template_arg_ptr    parent_t_args = NULL;
     a_template_param_ptr  parent_t_params;
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
                                               &parent_t_args);
@@ -2757,8 +2760,8 @@ is a class member, parent_class points to the entry for its parent class
       parent_class->variant.class_struct_union.is_template_class) {
     /* If the parent class is itself a template instance, first recursively
        substitute any parameters that it is associated with. */
-    a_template_arg_ptr    parent_t_args = NULL;
-    a_template_param_ptr  parent_t_params = NULL;
+    a_template_arg_ptr    parent_t_args;
+    a_template_param_ptr  parent_t_params;
     get_substitution_pairs_for_template_class(parent_class, &parent_t_params,
                                               &parent_t_args);
     substitute_attribute_arg_type(aap, parent_t_params, parent_t_args,
