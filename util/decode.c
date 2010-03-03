@@ -3973,11 +3973,12 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
-  } else if (kind == 'D') {
+  } else if (kind == 'D' && 
+             (p[1] == 't' || p[1] == 'T')) {
     /* decltype:
        Dt <expression> E  # decltype of an id-expression or class member access
        DT <expression> E  # decltype of an expression */
-    p++;
+    p += 2;
     if (*p == 't' || *p == 'T') {
       write_id_str("decltype ", dctl);
       if (*p == 't') {
@@ -4131,11 +4132,12 @@ to be on top of the type.
     /* Process the element type. */
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                               dctl);
-  } else if (kind == 'D') {
+  } else if (kind == 'D' && 
+             (p[1] == 't' || p[1] == 'T')) {
     /* decltype:
        Dt <expression> E  # decltype of an id-expression or class member access
        DT <expression> E  # decltype of an expression */
-    p++;
+    p += 2;
     if (*p == 't' || *p == 'T') {
       dctl->suppress_id_output++;
       dctl->suppress_substitution_recording++;
