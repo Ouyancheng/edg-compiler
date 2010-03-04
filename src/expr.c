@@ -7435,6 +7435,7 @@ does matter for the kind of expression (i.e., id-expression or member access).
     an_expr_node_ptr  arg2 = expr->variant.operation.operands;
     check_assertion(arg2 != NULL && arg2->next != NULL);
     arg2 = arg2->next;
+    *no_parens_matters = TRUE;
     switch (expr->variant.operation.kind) {
       case eok_dot_field:
       case eok_points_to_field:
@@ -7450,7 +7451,6 @@ does matter for the kind of expression (i.e., id-expression or member access).
       default:
         unexpected_condition();
     }  /* switch */
-    *no_parens_matters = TRUE;
   } else if (operand->is_id_expression) {
     /* Produce the type of the entity referenced by the id-expression.
        Note that some id-expressions are represented as class member access
