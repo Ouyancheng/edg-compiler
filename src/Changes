@@ -1,5 +1,20 @@
 Version 4.2
 
+3/4/10   [EDGcpfe/10519]
+"extern template" should be ignored for explicitly specialized entities
+
+An "extern template" directive should have been ignored for entities that
+were explicitly specialized, but was not.  Now fixed.  In the example
+below, when using the IA-64 ABI, A<char>::f should have been emitted in
+a COMDAT group, but was not.
+
+  template<class T> class A {
+    virtual void f();
+  };
+  template<> inline void A<char>::f() {}
+  extern template class A<char>;
+
+
 3/3/10   [EDGcpfe/10518]
 Fix to setting of decltype_expr_not_parenthesized flag
 

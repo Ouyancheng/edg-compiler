@@ -21756,14 +21756,14 @@ directive.
       if (issue_errors) {
         sym_error(ec_not_instantiatable_entity, sym);
       }  /* if */
-    } else if (routine->is_specialized &&
-               pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
+    } else if (routine->is_specialized) {
       /* A specialization declaration has been supplied.  If an explicit
          specialization is followed by an explicit instantiation, the
          explicit instantiation is simply ignored (see core issue 259).
          Issue an error if this was an instantiation pragma. */
       result = FALSE;
-      if (issue_errors && is_pragma) {
+      if (issue_errors && is_pragma &&
+          pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
         sym_diagnostic(strict_ansi_discretionary_severity,
                        ec_instantiation_requested_and_specialized, sym);
       }  /* if */
@@ -21790,14 +21790,14 @@ directive.
     }  /* if */
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-    if (sym->variant.static_data_member.variable->is_specialized &&
-        pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
+    if (sym->variant.static_data_member.variable->is_specialized) {
       /* A specialization declaration has been supplied.  If an explicit
          specialization is followed by an explicit instantiation, the
          explicit instantiation is simply ignored (see core issue 259).
          Issue an error if this was an instantiation pragma. */
       result = FALSE;
-      if (issue_errors && is_pragma) {
+      if (issue_errors && is_pragma &&
+          pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
         sym_diagnostic(strict_ansi_discretionary_severity,
                        ec_instantiation_requested_and_specialized, sym);
       }  /* if */
