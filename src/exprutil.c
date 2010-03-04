@@ -2472,7 +2472,7 @@ being tried.
 }  /* make_selection_rescan_operands */
 
 
-void make_sizeof_rescan_operands(
+void make_sizeof_et_al_rescan_operands(
                               a_rescan_control_block  *rcblock,
                               a_boolean               *p_is_type,
                               an_operand              *operand,
@@ -2482,10 +2482,10 @@ void make_sizeof_rescan_operands(
 /*
 As part of redoing semantic analysis on an expression while doing
 template deduction, extract the operands of the expression given by
-rcblock->expr (a sizeof node) and:
+rcblock->expr (a sizeof or alignof node) and:
 
-1)  Set *p_is_type indicating whether the sizeof is applied to a type (TRUE) or
-    an expression (FALSE).
+1)  Set *p_is_type indicating whether the operator is applied to a type (TRUE)
+    or an expression (FALSE).
 2)  For the expression case, set *operand to the rescanned expression.
 3)  For the type case, set *p_type to the substituted type.
 
@@ -2512,11 +2512,13 @@ template argument list being tried.
       op1 = expr->variant.sizeof_info.variant.expr;
     }  /* if */
   } else if (is_constant_node(expr)) {
-    /* tpck_sizeof constant form. */
+    /* tpck_sizeof or tpck_alignof constant form. */
     a_constant_ptr con = expr->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
-                    con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_sizeof);
+                    (con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_sizeof ||
+                     con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_alignof));
     op1 = generic_sizeof_arg_expr(con);
     is_type = (op1 == NULL);
     if (is_type) {
@@ -2545,7 +2547,7 @@ template argument list being tried.
   }  /* if */
   get_rescan_operator_positions(eriep, operator_position,
                                 operator_tok_seq_number);
-}  /* make_sizeof_rescan_operands */
+}  /* make_sizeof_et_al_rescan_operands */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)

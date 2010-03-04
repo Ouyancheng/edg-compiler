@@ -6216,8 +6216,10 @@ result in *result (or an error indication in *rcblock).
     /* Redoing semantic analysis on a previously-scanned expression. */
     a_token_sequence_number operator_tok_seq_number;
     operator_token = rcblock->operator_token;
-    make_sizeof_rescan_operands(rcblock, &is_type, &operand, &sizeof_type,
-                                &operator_position, &operator_tok_seq_number);
+    make_sizeof_et_al_rescan_operands(rcblock,
+                                      &is_type, &operand, &sizeof_type,
+                                      &operator_position,
+                                      &operator_tok_seq_number);
     operand_was_created = !is_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
@@ -6342,7 +6344,7 @@ result in *result (or an error indication in *rcblock).
   if (is_type) {
     /* Type case. */
     /* If the top type is a reference, drop the reference so that the sizeof
-       applies to the type referenced (ARM 5.3.2). */
+       applies to the type referenced. */
     if (is_reference_type(sizeof_type)) {
       sizeof_type = type_pointed_to(sizeof_type);
     }  /* if */
@@ -6593,21 +6595,29 @@ result in *result (or an error indication in *rcblock).
 }  /* scan_sizeof_operator */
 
 
-static void scan_alignof_operator(an_operand *result)
+static void scan_alignof_operator(a_rescan_control_block *rcblock,
+                                  an_operand             *result)
 /*
 Scan the __ALIGNOF__ operator.  This is an extension that is similar
 to sizeof, but returns the alignment requirement rather than the size.
 
 Syntax:
-        __ALIGNOF__ ( type-name )    or   __alignof__ ( type-name )
-        __ALIGNOF__ expression       or   __alignof__ expression
+        __ALIGNOF__ ( type-name )
+        __ALIGNOF__ expression
 
-Fewer error checks are done.  A warning about the use of this nonstandard
-feature would be inappropriate, because the feature is probably used to
-implement <stdarg.h>, a standard feature.
+There are several variants of the keyword spelling in various modes.
+A warning about the use of this nonstandard feature would be inappropriate,
+because the feature is probably used to implement <stdarg.h>, a standard
+feature.
+
+The current token is the __ALIGNOF__ keyword (however spelled).
+Scan a type or expression operand, and return an operand for alignof
+applied to that, in *operand.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned sizeof expression, and return the
+result in *result (or an error indication in *rcblock).
 */
 {
-  a_source_position   start_position, type_position;
+  a_source_position   operator_position, start_position, type_position;
   a_source_position   lparen_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
@@ -6623,11 +6633,30 @@ implement <stdarg.h>, a standard feature.
 #if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
   a_boolean           use_field_alignment = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-  a_boolean           operand_was_scanned = FALSE, operand_was_used = FALSE;
+  a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                       region_to_switch_back_to;
 
   db_enter(4, "scan_alignof_operator");
+
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    a_token_sequence_number operator_tok_seq_number;
+    check_assertion(rcblock->operator_token == tok_alignof);
+    make_sizeof_et_al_rescan_operands(rcblock,
+                                      &is_type, &operand, &alignof_type,
+                                      &operator_position,
+                                      &operator_tok_seq_number);
+    operand_was_created = !is_type;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    type_position = operator_position;  /* Don't have real type position. */
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+  }  /* if */
+  start_position = operator_position;
 
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like an array bound,
@@ -6638,67 +6667,86 @@ implement <stdarg.h>, a standard feature.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-  /* Save the position of the __ALIGNOF__ keyword. */
-  copy_source_position(pos_curr_token, start_position);
-  (void)get_token();
 
-  if (curr_token == tok_lparen) {
-    /* A left parenthesis could indicate a type in parentheses or an expression
-       in parentheses, i.e.,
-         __ALIGNOF__ (int)  vs.
-         __ALIGNOF__ (i)
-       We can distinguish the two using the first token inside the parentheses.
-       However, if the construct is an expression in parentheses, we must
-       then scan it with a special flag indicating that a left parenthesis was
-       trapped.  It's not enough to just scan the expression to the matching
-       right parenthesis, as shown by the following:
-         __ALIGNOF__ (v).b
-       The __ALIGNOF__ should be applied to "(v).b", not just "(v)". */
-    is_parenthesized = TRUE;
-    copy_source_position(pos_curr_token, lparen_position);
+  if (rcblock == NULL) {
+    /* Advance past the __ALIGNOF__ token. */
     (void)get_token();
-    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
-      /* This is a type-name in parentheses. */
-      is_type = TRUE;
+    if (curr_token == tok_lparen) {
+      /* A left parenthesis could indicate a type in parentheses or
+         an expression in parentheses, i.e.,
+           __ALIGNOF__ (int)  vs.
+           __ALIGNOF__ (i)
+         We can distinguish the two using the first token inside the
+         parentheses.  However, if the construct is an expression in
+         parentheses, we must then scan it with a special flag indicating
+         that a left parenthesis was trapped.  It's not enough to just scan
+         the expression to the matching right parenthesis, as shown by
+         the following:
+           __ALIGNOF__ (v).b
+         The __ALIGNOF__ should be applied to "(v).b", not just "(v)". */
+      is_parenthesized = TRUE;
+      copy_source_position(pos_curr_token, lparen_position);
+      (void)get_token();
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED)) {
+        /* This is a type-name in parentheses. */
+        is_type = TRUE;
+      }  /* if */
+    } else if (microsoft_mode) {
+      /* Microsoft requires the parentheses even around an expression. */
+      expr_pos_diagnostic(es_discretionary_error, ec_exp_lparen,
+                          &pos_curr_token);
     }  /* if */
-  } else if (microsoft_mode) {
-    /* Microsoft requires the parentheses even around an expression. */
-    expr_pos_diagnostic(es_discretionary_error, ec_exp_lparen,
-                        &pos_curr_token);
+
+    if (is_type) {
+      copy_source_position(pos_curr_token, type_position);
+      if (is_parenthesized) {
+        /* Scan the type-name for a parenthesized type. */
+        add_matching_stop_token(tok_rparen);
+        type_name(&alignof_type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (void)required_token(tok_rparen, ec_exp_rparen);
+        remove_matching_stop_token(tok_rparen);
+        if (compound_literals_allowed && curr_token == tok_lbrace) {
+          /* Something like __ALIGNOF__ (int){37} -- the type is the beginning
+             of a compound literal. */
+          scan_compound_literal(&alignof_type, &type_position, result,
+                                EOPT_NO_OPTIONS);
+          alignof_type = result->type;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* It has been determined that the operand of __ALIGNOF__ is an
+         expression and not a type.  Scan the operand. */
+      a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
+      if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
+      scan_expr(&operand, PREC_PREFIX, local_options);
+      operand_was_created = TRUE;
+      if (is_parenthesized) {
+        /* When scanning the expression with a trapped left parenthesis, the
+           position returned in the operand indicates the token following
+           the left parenthesis, which is wrong.  Correct it. */
+        copy_source_position(lparen_position, operand.position);
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
   }  /* if */
 
+  /* The type or expression has been scanned (or retrieved from rcblock, on
+     a rescan). */
   if (is_type) {
-    copy_source_position(pos_curr_token, type_position);
-    if (is_parenthesized) {
-      /* Scan the type-name for a parenthesized type. */
-      add_matching_stop_token(tok_rparen);
-      type_name(&alignof_type);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)required_token(tok_rparen, ec_exp_rparen);
-      remove_matching_stop_token(tok_rparen);
-      if (compound_literals_allowed && curr_token == tok_lbrace) {
-        /* Something like __ALIGNOF__ (int){37} -- the type is the beginning
-           of a compound literal. */
-        scan_compound_literal(&alignof_type, &type_position, result,
-                              EOPT_NO_OPTIONS);
-        alignof_type = result->type;
-      }  /* if */
-    }  /* if */
+    /* Type case. */
     /* If the top type is a reference, drop the reference so that the operator
-       applies to the type referenced (ARM 5.3.2). */
+       applies to the type referenced. */
     if (is_reference_type(alignof_type)) {
       alignof_type = type_pointed_to(alignof_type);
     }  /* if */
   } else {
-    /* It has been determined that the operand of __ALIGNOF__ is an expression
-       and not a type.  Scan the operand. */
-    a_local_expr_options_set  local_options = EOPT_NO_OPTIONS;
-    if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
-    scan_expr(&operand, PREC_PREFIX, local_options);
-    operand_was_scanned = TRUE;
+    /* Expression case. */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && is_expression_operand(&operand) &&
         skip_parens(operand.variant.expression)->kind ==
@@ -6748,12 +6796,6 @@ implement <stdarg.h>, a standard feature.
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-    if (is_parenthesized) {
-      /* When scanning the expression with a trapped left parenthesis, the
-         position returned in the operand indicates the token following
-         the left parenthesis, which is wrong.  Correct it. */
-      copy_source_position(lparen_position, operand.position);
-    }  /* if */
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -6840,15 +6882,12 @@ implement <stdarg.h>, a standard feature.
                      targ_size_t_int_kind);
   }  /* if */
   make_constant_operand(&constant, result);
-  if (operand_was_scanned && !operand_was_used) {
+  if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   set_operand_position(result, &start_position, &end_position,
-                       &start_position);
+                       &operator_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -20887,7 +20926,7 @@ see expr.h).
 
     case tok_alignof:
       /* __ALIGNOF__ operation. */
-      scan_alignof_operator(&local_result);
+      scan_alignof_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_builtin_offsetof:
@@ -22900,6 +22939,7 @@ redoes semantic analysis.
         case tpck_unknown_function:
         case tpck_template_ref:
         case tpck_sizeof:
+        case tpck_alignof:
           rescannable = TRUE;
           break;
         default:
@@ -23138,6 +23178,10 @@ postfix operators.
           operator_token = tok_sizeof;
           *unary = TRUE;
           break;
+        case tpck_alignof:
+          operator_token = tok_alignof;
+          *unary = TRUE;
+          break;
         default:
           break;
       }  /* switch */
@@ -23237,6 +23281,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         break;
       case tok_sizeof:
         scan_sizeof_operator(rcblock, result);
+        break;
+      case tok_alignof:
+        scan_alignof_operator(rcblock, result);
         break;
       default:
         unexpected_condition();
