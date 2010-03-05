@@ -2250,7 +2250,7 @@ rescan_info is NULL or no default information is available, abort.
   an_expr_rescan_info_entry_ptr eriep = expr->rescan_info, default_eriep;
 
   if (eriep == NULL) {
-    /* Generate default rudimentatry rescan information from the information
+    /* Generate default rudimentary rescan information from the information
        on the nearest enclosing expression that has it. */
     check_assertion_str(rescan_info != NULL,
                         "missing rescan info");

@@ -786,6 +786,14 @@ typedef struct an_expr_stack_entry {
 			   on this list.)  The field is copied to newly pushed
 			   entries, and then copied back when the entry is
 			   popped. */
+  an_expr_rescan_info_entry_ptr
+		default_rescan_info;
+			/* When template_deduction_context is TRUE, this
+			   points to the rescan information on the nearest
+			   enclosing expression that has one, and is NULL
+			   otherwise.  This is used to provide default rescan
+			   information (e.g., source positions) for expressions
+			   that don't have any. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -1452,6 +1460,11 @@ extern a_statement_ptr make_call_assignment_statement(
                                             an_expr_node_ptr  source,
                                             a_source_position *err_pos);
 
+extern a_boolean is_uuidof_expr(an_expr_node_ptr expr,
+                                a_boolean        *is_type,
+                                an_expr_node_ptr *op_expr,
+                                a_type_ptr       *type);
+
 extern void make_selection_rescan_operands(
                              a_rescan_control_block  *rcblock,
                              an_operand              *operand_1,
@@ -1499,6 +1512,10 @@ extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
 extern an_expr_node_ptr strip_implicit_operations_for_rescan(
                                         an_expr_node_ptr        expr,
                                         an_expr_rescan_info_entry_ptr *periep);
+
+extern an_expr_rescan_info_entry_ptr get_expr_rescan_info(
+                                       an_expr_node_ptr          expr,
+                                       an_expr_rescan_info_entry *rescan_info);
 
 extern void make_rescan_operand(an_expr_node_ptr       expr,
                                 a_rescan_control_block *rcblock,

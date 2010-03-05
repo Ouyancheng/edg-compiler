@@ -3703,14 +3703,14 @@ the name in the abstract.  Set *err to TRUE if there is an error.
 {
   an_expr_node_ptr              expr = rcblock->expr, op1, op2;
   an_expr_rescan_info_entry_ptr eriep;
+  an_expr_rescan_info_entry     rescan_info;
   a_symbol_ptr                  sym;
   an_operand                    operand;
   a_boolean                     is_qualified = FALSE;
   an_expr_operator_kind         op;
 
   check_assertion(expr != NULL && is_operation_node(expr));
-  eriep = expr->rescan_info;
-  check_assertion(eriep != NULL);
+  eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
   op = expr->variant.operation.kind;
@@ -6613,7 +6613,7 @@ feature.
 The current token is the __ALIGNOF__ keyword (however spelled).
 Scan a type or expression operand, and return an operand for alignof
 applied to that, in *operand.  If rcblock is non-NULL, redo semantic
-analysis on a previously-scanned sizeof expression, and return the
+analysis on a previously-scanned alignof expression, and return the
 result in *result (or an error indication in *rcblock).
 */
 {
@@ -6918,9 +6918,7 @@ Make a placeholder lvalue operand whose type is "type".
     /* Normal non-dependent case. */
     make_zero_of_proper_type(ptr_type, &zero_con);
   }  /* if */
-  /* Go by way of an_operand to get rescan information saved. */
-  make_constant_operand(&zero_con, operand);
-  expr = make_node_from_operand(operand);
+  expr = alloc_node_for_constant(&zero_con);
   expr = add_indirection_to_node(expr);
   make_lvalue_expression_operand(expr, operand);
   operand->is_dummy_lvalue = TRUE;
@@ -9232,8 +9230,9 @@ there was an error type somewhere in the type.
 }  /* underlying_uuidof_type */
  
 
-static void scan_uuidof_operator(an_operand *result,
-                                 a_boolean  after_keyword)
+static void scan_uuidof_operator(a_rescan_control_block *rcblock,
+                                 an_operand             *result,
+                                 a_boolean              after_keyword)
 /*
 Scan the C++ __uuidof operator, a Microsoft C++ extension.
 
@@ -9243,10 +9242,13 @@ Syntax:
 
 The value of the operation is an lvalue of type "const struct _GUID".
 The current token is the __uuidof, unless after_keyword is TRUE, in
-which case it's the token after __uuidof.
+which case it's the token after __uuidof.  If rcblock is non-NULL,
+redo semantic analysis on a previously-scanned uuidof expression, and
+return the result in *result (or an error indication in *rcblock).
+after_keyword is ignored in that case.
 */
 {
-  a_source_position   start_position, operand_position;
+  a_source_position   operator_position, start_position, operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -9254,15 +9256,33 @@ which case it's the token after __uuidof.
   a_type_ptr          uuidof_type;
   a_boolean           err = FALSE, template_case = FALSE;
   a_boolean           is_type;
-  a_boolean           operand_was_scanned = FALSE, operand_was_used = FALSE;
+  a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
   an_expr_stack_entry expr_stack_entry;
   a_memory_region_number
                       region_to_switch_back_to;
 
 
   db_enter(4, "scan_uuidof_operator");
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    a_token_sequence_number operator_tok_seq_number;
+    check_assertion(rcblock->operator_token == tok_uuidof);
+    make_sizeof_et_al_rescan_operands(rcblock,
+                                      &is_type, &operand, &uuidof_type,
+                                      &operator_position,
+                                      &operator_tok_seq_number);
+    operand_was_created = !is_type;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* In the type case, we don't have the actual type position. */
+    operand_position = is_type ? operator_position : operand.position;
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+  }  /* if */
   /* Save the position of the __uuidof keyword. */
-  start_position = pos_curr_token;
+  start_position = operator_position;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* __uuidof not possible for preprocessing expressions. */
@@ -9274,38 +9294,48 @@ which case it's the token after __uuidof.
      switch back.  Any expression nodes allocated must be in the function-scope
      memory region. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* __uuidof is not allowed in integral constant expression. */
     expr_pos_error(ec_bad_integral_operator, &start_position);
     err = TRUE;
   }  /* if */
-  /* Advance past __uuidof. */
-  if (!after_keyword) (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
-  /* Disambiguate to choose between the type case and the expression case. */
-  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                       DFS_SINGLE_TYPE_REQUIRED)) {
-    /* Scan a type name. */
-    is_type = TRUE;
-    operand_position = pos_curr_token;
-    type_name(&uuidof_type);
+  if (rcblock == NULL) {
+    /* Advance past __uuidof. */
+    if (!after_keyword) (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    /* Disambiguate to choose between the type case and the expression case. */
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      /* Scan a type name. */
+      is_type = TRUE;
+      operand_position = pos_curr_token;
+      type_name(&uuidof_type);
+    } else {
+      /* Scan an expression. */
+      /* The expression is not evaluated. */
+      is_type = FALSE;
+      scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+      operand_position = operand.position;
+      operand_was_created = TRUE;
+    }  /* if */
+  }  /* if */
+
+  /* The type or expression has been scanned (or retrieved from rcblock, on
+     a rescan). */
+  if (is_type) {
+    /* Type case. */
     /* If the type is a reference, drop that. */
     if (is_reference_type(uuidof_type)) {
       uuidof_type = type_pointed_to(uuidof_type);
     }  /* if */
   } else {
-    /* Scan an expression. */
-    /* The expression is not evaluated. */
-    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
-    expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-    is_type = FALSE;
-    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    operand_position = operand.position;
-    operand_was_scanned = TRUE;
+    /* Expression case. */
     /* Rule out indefinite functions. */
     do_operand_transformations(&operand,
                                (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
@@ -9365,26 +9395,24 @@ which case it's the token after __uuidof.
          that is the result of the __uuidof operation. */
       make_uuidof_constant(uuidof_type, &uuidof_con);
     }  /* if */
+    /* is_uuidof_expr has to match the structure of what's created here. */
     make_lvalue_expression_operand(add_indirection_to_node(
                                          alloc_node_for_constant(&uuidof_con)),
                                    result);
   }  /* if */
-  if (operand_was_scanned) {
-    if (!operand_was_used) {
-      /* The expression was discarded. */
-      undo_side_effects_for_discarded_unevaluated_expression();
-    }  /* if */
-    pop_expr_stack();
+  if (operand_was_created && !operand_was_used) {
+    /* The expression was discarded. */
+    undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
+  if (rcblock == NULL) {
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
   set_operand_position(result, &start_position, &end_position,
-                       &start_position);
+                       &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
+  pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
 }  /* scan_uuidof_operator */
@@ -21039,7 +21067,8 @@ see expr.h).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
       /* Microsoft __uuidof operation. */
-      scan_uuidof_operator(&local_result, /*after_keyword=*/FALSE);
+      scan_uuidof_operator((a_rescan_control_block *)NULL,
+                           &local_result, /*after_keyword=*/FALSE);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -22771,9 +22800,10 @@ to TRUE if any non-access error is detected during the processing.
   an_expr_rescan_info_entry_ptr eriep;
   a_symbol_ptr                  sym;
 
-  eriep = expr->rescan_info;
-  check_assertion(eriep != NULL);
   check_assertion(is_constant_node(expr));
+  /* We pass the second argument as NULL because we require explicit
+     rescan information on this node. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   /* Do substitution and produce a symbol for the substituted result. */
   sym = symbol_for_template_param_unknown_entity_con_after_substitution(
                                                 expr->variant.constant,
@@ -22942,6 +22972,7 @@ redoes semantic analysis.
         case tpck_alignof:
           rescannable = TRUE;
           break;
+        case tpck_uuidof:  /* Not handled at this level; see "*' operator */
         default:
           break;
       }  /* switch */
@@ -23020,7 +23051,16 @@ postfix operators.
         *unary = TRUE;
         break;
       case eok_indirect:
-        operator_token = tok_star;
+        { a_boolean        is_type;
+          an_expr_node_ptr op_expr;
+          a_type_ptr       type;
+          if (is_uuidof_expr(expr, &is_type, &op_expr, &type)) {
+            /* The IL representation for __uuidof has a "*" on top. */
+            operator_token = tok_uuidof;
+          } else {
+            operator_token = tok_star;
+          }  /* if */
+        }
         *unary = TRUE;
         break;
       case eok_unary_plus:
@@ -23182,6 +23222,7 @@ postfix operators.
           operator_token = tok_alignof;
           *unary = TRUE;
           break;
+        case tpck_uuidof: /* Not handled at this level; see "*" operator. */
         default:
           break;
       }  /* switch */
@@ -23221,7 +23262,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
-  an_expr_rescan_info_entry_ptr eriep;
+  an_expr_rescan_info_entry_ptr eriep, explicit_eriep;
+  an_expr_rescan_info_entry     rescan_info;
+  an_expr_rescan_info_entry_ptr saved_default_rescan_info;
   a_token_kind                  operator_token;
   a_boolean                     unary, postfix;
   a_boolean                     stack_pop_needed = FALSE;
@@ -23231,12 +23274,16 @@ alternative callable from outside, see rescan_expr_with_substitution.
   if (bound_function_selector == NULL) {
     bound_function_selector = &local_bound_function_selector;
   }  /* if */
-  expr = strip_implicit_operations_for_rescan(expr, &eriep);
-  /* Rescan information must have been saved on the expression when it was
-     originally scanned. */
-  check_assertion(eriep != NULL);
+  expr = strip_implicit_operations_for_rescan(expr, &explicit_eriep);
+  /* Get rescan info for the expression, either explicit/attached or
+     defaulted from context. */
+  eriep = explicit_eriep;
+  if (eriep == NULL) {
+    eriep = get_expr_rescan_info(expr, &rescan_info);
+  }  /* if */
   if (force_stack_push ||
-      eriep->expression_kind != expr_stack->expression_kind) {
+      eriep->expression_kind != expr_stack->expression_kind ||
+      !expr_stack->template_deduction_context) {
     push_expr_stack(eriep->expression_kind, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
@@ -23244,6 +23291,13 @@ alternative callable from outside, see rescan_expr_with_substitution.
     expr_stack_entry.suppress_diagnostics = TRUE;
     stack_pop_needed = TRUE;
   }  /* if */
+  saved_default_rescan_info = expr_stack->default_rescan_info;
+  if (explicit_eriep != NULL) {
+    /* This expression has rescan info, so save it as the model for
+       default rescan info for any subnodes that don't have their own
+       rescan info. */
+    expr_stack->default_rescan_info = explicit_eriep;
+  } /* if */
   /* The expr field in the control block is used as a way to pass the
      expression to the scan_xxx_operator routines without having to add
      an extra parameter on each of those routines. */
@@ -23285,6 +23339,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_alignof:
         scan_alignof_operator(rcblock, result);
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_uuidof:
+        scan_uuidof_operator(rcblock, result, /*after_keyword=*/FALSE);
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
@@ -23384,6 +23443,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   } else if (expr_stack->any_non_access_error_detected) {
     rcblock->error_detected = TRUE;
   }  /* if */
+  expr_stack->default_rescan_info = saved_default_rescan_info;
   if (stack_pop_needed) pop_expr_stack();
   rcblock->expr = saved_expr;
 }  /* rescan_expr_with_substitution_internal */
@@ -24381,7 +24441,8 @@ the __uuidof keyword.
                   &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  scan_uuidof_operator(&result, /*after_keyword=*/TRUE);
+  scan_uuidof_operator((a_rescan_control_block *)NULL,
+                       &result, /*after_keyword=*/TRUE);
   if (is_error_operand(&result)) {
     uuid_str = NULL;
   } else {
