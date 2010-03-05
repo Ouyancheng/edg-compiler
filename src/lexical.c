@@ -9107,7 +9107,22 @@ position of the __if_exists or __if_not_exists token.
     } else {
       /* For non-dependent identifiers the tokens are only retained if
          the condition is TRUE. */
-      result = is_if_exists == (sym != NULL && !sym->is_error);
+      a_boolean	exists = FALSE;
+      if (sym == NULL || sym->is_error) {
+        /* The symbol does not exist or is an error symbol (which is
+           is considered to not exist). */
+      } else if (is_template_class_and_not_specific_def_symbol(sym)) {
+        /* For a non-specialized  instance of a class template, the symbol
+           is only considered to exist if the type has been (or is in the
+           process of being) instantiated. */
+        a_type_ptr	tp = type_symbol_type(sym);
+        exists =
+                tp->variant.class_struct_union.extra_info->assoc_scope != NULL;
+      } else {
+        /* All other symbols are considered to exist. */
+        exists = TRUE;
+      }  /* if */
+      result = is_if_exists == exists;
     }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
     /* For a dependent identifier, create a source sequence entry to

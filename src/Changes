@@ -1,5 +1,34 @@
 Version 4.2
 
+3/5/10   [EDGcpfe/10509]
+Microsoft compatibility: use of template class instance in __if_exists
+
+When an instance of a class template is named in a Microsoft __if_exists
+or __if_not_exists directive, it should only be considered to exist if the
+instance has been instantiated, is in the process of being instantiated,
+or been explicitly specialized.  We now emulate the Microsoft behavior
+correctly in Microsoft mode.  Formerly, such instances were always
+considered to exist.  The example below now prints "Does not exist".
+
+  #include <stdio.h>
+  template <int N> struct A;
+  template <typename T> struct B {
+    __if_exists(A<1>) {
+      static const bool val = true;
+    }
+    __if_not_exists(A<1>) {
+      static const bool val = false;
+    }
+  };
+  int main() {
+    if (B<int>::val) {
+      printf("Exists\n");
+    } else {
+      printf("Does not exist\n");
+    }
+  }
+
+
 3/4/10   [EDGcpfe/10519]
 "extern template" should be ignored for explicitly specialized entities
 
