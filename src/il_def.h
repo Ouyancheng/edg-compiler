@@ -339,7 +339,7 @@ typedef a_byte a_name_linkage_kind;
 /* Name linkage kinds are applied both to names and to routine types, yet
    only certain of them are appropriate for routine types.  For example, the
    name of a static function may have nlk_internal linkage, but its type would
-   have nlk_external (extern "C") or nlk_cplusplus_external (extern "C++)
+   have nlk_external (extern "C") or nlk_cplusplus_external (extern "C++")
    linkage.  Linkage kinds that are added by a given implementation may or
    may not apply to routine types. */
 #ifdef is_custom_name_linkage_kind_for_rout_type
