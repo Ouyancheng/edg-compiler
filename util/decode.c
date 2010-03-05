@@ -3978,20 +3978,15 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* decltype:
        Dt <expression> E  # decltype of an id-expression or class member access
        DT <expression> E  # decltype of an expression */
-    p += 2;
-    if (*p == 't' || *p == 'T') {
-      write_id_str("decltype ", dctl);
-      if (*p == 't') {
-        p = demangle_expression(p+1, dctl);
-      } else {
-        write_id_ch('(', dctl);
-        p = demangle_expression(p+1, dctl);
-        write_id_ch(')', dctl);
-      }  /* if */
-      p = advance_past('E', p, dctl);
+    write_id_str("decltype ", dctl);
+    if (p[1] == 't') {
+      p = demangle_expression(p+2, dctl);
     } else {
-      bad_mangled_name(dctl);
+      write_id_ch('(', dctl);
+      p = demangle_expression(p+2, dctl);
+      write_id_ch(')', dctl);
     }  /* if */
+    p = advance_past('E', p, dctl);
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
@@ -4137,17 +4132,12 @@ to be on top of the type.
     /* decltype:
        Dt <expression> E  # decltype of an id-expression or class member access
        DT <expression> E  # decltype of an expression */
-    p += 2;
-    if (*p == 't' || *p == 'T') {
-      dctl->suppress_id_output++;
-      dctl->suppress_substitution_recording++;
-      p = demangle_expression(p+1, dctl);
-      dctl->suppress_substitution_recording--;
-      dctl->suppress_id_output--;
-      p = advance_past('E', p, dctl);
-    } else {
-      bad_mangled_name(dctl);
-    }  /* if */
+    dctl->suppress_id_output++;
+    dctl->suppress_substitution_recording++;
+    p = demangle_expression(p+2, dctl);
+    dctl->suppress_substitution_recording--;
+    dctl->suppress_id_output--;
+    p = advance_past('E', p, dctl);
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
