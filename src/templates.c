@@ -11189,7 +11189,6 @@ been instantiated, update the befriending information for the instances.
        of the instantiations of the enclosing class template and update
        the befriending information for the instantiations of those
        templates. */
-    a_symbol_list_entry_ptr	slep;
     for (slep = tssp->subordinate_templates; slep != NULL; slep = slep->next) {
       a_symbol_ptr			subordinate_sym;
       a_template_symbol_supplement_ptr	subordinate_tssp;
@@ -11958,7 +11957,6 @@ subordinate templates.
        We need to visit the template symbols for this template in each
        of the instantiations of the enclosing class template process
        the instantiations list of those templates. */
-    a_symbol_list_entry_ptr	slep;
     for (slep = primary_tssp->subordinate_templates;
          slep != NULL; slep = slep->next) {
       a_symbol_ptr			subordinate_sym;
