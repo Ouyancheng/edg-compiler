@@ -3030,7 +3030,7 @@ Scan a C++ asm statement.  Its form is
 
 	asm ( "string" ) ;
 
-This is accepted as an extensions in non-strict, non-Microsoft C modes.
+This is accepted as an extension in non-strict, non-Microsoft C modes.
 In Microsoft C modes, the variant using "_asm" or "__asm" is accepted instead.
 In strict C mode, the variant using "__asm" is accepted.
 */
