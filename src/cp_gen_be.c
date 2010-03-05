@@ -1434,9 +1434,11 @@ associated a_template entry.
        class template declaration.  In that case the current source sequence
        entry is pointing to the a_template entry which in turn points to
        "type". */
-    check_assertion(is_immediate_class_type(type) &&
-                    type->variant.class_struct_union.
-                                                 is_prototype_instantiation &&
+    check_assertion(((is_immediate_class_type(type) &&
+                      type->variant.class_struct_union.
+                                                 is_prototype_instantiation) ||
+                     (type->kind == (a_type_kind)tk_typeref &&
+                      type->variant.typeref.is_prototype_instantiation)) &&
                     ss_entry_ptr(curr_source_sequence_entry, a_template_ptr)
                                       ->prototype_instantiation.type == type);
     adv_curr_source_sequence_entry();
@@ -5640,6 +5642,7 @@ declaration following this one is such a continuation.
   a_type_ptr        under_type;
   a_boolean         anon_union_case = FALSE;
   an_attribute_ptr  attributes;
+  a_boolean         is_alias = type->variant.typeref.is_alias;
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
@@ -5684,13 +5687,18 @@ declaration following this one is such a continuation.
       construct_pragma_pack_if_needed(specifier_type);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-    if (!suppress_specifiers) write_tok_str("typedef ");
+    if (is_alias) {
+      write_tok_str("using ");
+    } else {
+      if (!suppress_specifiers) write_tok_str("typedef ");
+    }  /* if */
     if (is_function_type(under_type) &&
         (class_type = f_skip_typerefs(under_type)->variant.routine.extra_info->
                                                          this_class) != NULL) {
       /* A cfront member function typedef, e.g.,
            typedef int A::f(int);
          Put out with a qualified name. */
+      check_assertion(!is_alias);
       form_type_first_part(under_type, /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
                            TQ_NONE, 
@@ -5704,9 +5712,18 @@ declaration following this one is such a continuation.
       form_type_second_part_simple(under_type, /*under_lhs_declarator=*/FALSE,
                                    &octl);
     } else {
-      /* Normal typedef. */
+      /* Normal typedef or alias. */
+      a_boolean	include_name = TRUE;
+      if (is_alias) {
+        /* An alias of the form "using name = type" (the "using" was output
+           above). */
+        gen_unqualified_name(&type->source_corresp, iek_type);
+        include_name = FALSE;
+        write_tok_str(" = ");
+      }  /* if */
       gen_general_declaration_using_type(under_type,
-                                         &type->source_corresp,
+                                         include_name ? &type->source_corresp
+                                                      : NULL,
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
                                          GDO_NO_OPTIONS,

@@ -3590,8 +3590,8 @@ for more information.
              if the decltype was constructed inside a function whose body
              is complete.  Such types are always considered non-identical to
              other types.) */
-          an_expr_node_ptr  expr1 = type_1->variant.typeref.expr;
-          an_expr_node_ptr  expr2 = type_2->variant.typeref.expr;
+          an_expr_node_ptr  expr1 = type_1->variant.typeref.extra_info->expr;
+          an_expr_node_ptr  expr2 = type_2->variant.typeref.extra_info->expr;
           a_local_expr_node_ref_kind
                             lerk = type_1->variant.typeref.is_decltype ?
                                   (a_local_expr_node_ref_kind)lerk_decltype :
@@ -10401,6 +10401,24 @@ from the same class as the one with which vbcp is associated.
   }  /* for */
   return is_indirect;
 }  /* virtual_base_class_is_indirect */
+
+
+int32_t *min_template_arguments_for_type(a_type_ptr	tp)
+/*
+Return a pointer to the min_template_arguments field for tp, or NULL if tp
+does not have such a field.
+*/
+{
+  int32_t	*result = NULL;
+
+  if (tp->kind == (a_type_kind)tk_typeref) {
+    result = &tp->variant.typeref.extra_info->min_template_arguments;
+  } else if (is_immediate_class_type(tp)) {
+    result = &tp->variant.class_struct_union.extra_info->
+                                                        min_template_arguments;
+  }  /* if */
+  return result;
+}  /* min_template_arguments_for_type */
 
 
 void types_early_init(void)

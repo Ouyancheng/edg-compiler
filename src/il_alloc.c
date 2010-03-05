@@ -47,6 +47,7 @@ static unsigned long
 		num_base_classes_allocated,
 		num_template_args_allocated,
 		num_template_param_type_supplements_allocated,
+		num_typeref_type_supplements_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_local_static_variable_inits_allocated,
@@ -1089,6 +1090,27 @@ and return a pointer to it.
 }  /* alloc_template_param_type_supplement */
 
 
+static a_typeref_type_supplement_ptr alloc_typeref_type_supplement(void)
+/*
+Allocate a typeref type supplement entry, initialize its fields, and return
+a pointer to it.
+*/
+{
+  a_typeref_type_supplement_ptr ttsp;
+
+  ttsp = (a_typeref_type_supplement_ptr)alloc_il(
+                                            sizeof(a_typeref_type_supplement));
+#if DEBUG
+  num_typeref_type_supplements_allocated++;
+#endif /* DEBUG */
+  ttsp->min_template_arguments = -1;
+  ttsp->expr = NULL;
+  ttsp->template_arg_list = NULL;
+  ttsp->assoc_template = NULL;
+  return ttsp;
+}  /* alloc_typeref_type_supplement */
+
+
 a_base_class_ptr alloc_base_class(void)
 /*
 Allocate a base class entry, initialize its fields, and return a pointer
@@ -1329,7 +1351,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->construction_vtbls                = NULL;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
-  ctsp->min_template_arguments            = -1L;
+  ctsp->min_template_arguments            = -1;
 #if NEED_NAME_MANGLING
   ctsp->lambda_parent.routine             = NULL;
 #endif /* NEED_NAME_MANGLING */
@@ -1553,7 +1575,7 @@ to default values.
       break;
     case tk_typeref:
       pte->variant.typeref.type        = NULL;
-      pte->variant.typeref.expr        = NULL;
+      pte->variant.typeref.extra_info = alloc_typeref_type_supplement();
 #if DO_IL_LOWERING
       pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
@@ -1578,6 +1600,10 @@ to default values.
       pte->variant.typeref.is_typeof = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.typeref.for_type_attributes = FALSE;
+      pte->variant.typeref.is_alias = FALSE;
+      pte->variant.typeref.is_template_alias = FALSE;
+      pte->variant.typeref.is_nonreal = FALSE;
+      pte->variant.typeref.is_prototype_instantiation = FALSE;
 #if CENTERLINE_CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -4329,6 +4355,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("templ param supplement",
                 num_template_param_type_supplements_allocated,
                 a_template_param_type_supplement);
+  db_space_used("typeref type supplement",
+                num_typeref_type_supplements_allocated,
+                a_typeref_type_supplement);
   db_space_used("type", num_types_allocated, a_type);
   db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   db_space_used("local static var inits",
@@ -4693,6 +4722,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_switch_stmt_descriptions_allocated),
       pch_saved_var_array_elem(num_template_args_allocated),
       pch_saved_var_array_elem(num_template_param_type_supplements_allocated),
+      pch_saved_var_array_elem(num_typeref_type_supplements_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
       pch_saved_var_array_elem(num_condition_supplements_allocated),
       pch_saved_var_array_elem(num_types_allocated),
@@ -4827,6 +4857,7 @@ initializations that are done for each compilation.
   num_template_args_allocated            = 0;
   num_template_param_type_supplements_allocated
                                          = 0;
+  num_typeref_type_supplements_allocated = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_local_static_variable_inits_allocated

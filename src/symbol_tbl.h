@@ -822,13 +822,6 @@ typedef struct a_class_symbol_supplement {
 			   of a class template or a nested class of a class
 			   template.  NULL for other classes including 
 			   other instantiations of the template. */
-  a_symbol_ptr	next_in_instantiations_list;
-			/* When the class is an instance of a class template
-			   or a nested class of a class template, this field
-			   points to the next instance in the instantiations
-			   list pointed to by the template symbol supplement
-			   of the template with which this instance is
-			   associated. */
   a_source_position
 		instantiation_position;
 			/* For a nonspecialized template class that has been
@@ -2037,23 +2030,28 @@ typedef struct a_template_symbol_supplement {
 			   for error recovery purposes. */
   bitfield_to_avoid_codecenter_warnings()
   union {
-    /* When symbol kind = sk_class_template: */
+    /* When symbol kind = sk_class_template (note that this symbol kind is used
+       for class templates and template aliases): */
     struct {
-      a_symbol_ptr
+      a_symbol_list_entry_ptr
                 instantiations;
-                        /* Pointer to a list of symbols describing template
-                           classes that have been instantiated from this
-                           class template.  Nonreal classes are included
-			   in this list, but prototype instantiations are
-			   not. */
+                        /* Pointer to a list of symbols describing types
+                           that have been instantiated from this class
+			   template or template alias.  Nonreal types are
+			   included in this list, but prototype instantiations
+			   are not.  For class templates, the symbols on the
+			   list are classes.  For template aliases, the
+			   symbols are types. */
       a_type_kind
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which
-			   the instantiated types will have. */
+			   the instantiated types will have.  Not used for
+			   template aliases. */
       a_symbol_ptr
 		prototype_instantiation;
 			/* Points to the symbol representing the prototype
-			   instantiation. */
+			   instantiation.  For class templates, this is a
+			   class.  For template aliases, this is a type. */
       a_symbol_ptr
 		partial_specializations;
 			/* A list of class template symbols for partial
@@ -2061,9 +2059,9 @@ typedef struct a_template_symbol_supplement {
 			   This is present only for class templates that are
 			   "primary" templates (i.e., those that are not
 			   already partial specializations).  NULL for
-			   templates with no partial specializations or for
+			   templates with no partial specializations, for
 			   templates that are already partial
-			   specializations. */
+			   specializations, and for template aliases. */
       a_symbol_ptr
 		primary_template_sym;
 			/* For partial specialization, points back to the
@@ -2106,11 +2104,17 @@ typedef struct a_template_symbol_supplement {
 			   be used when scanning template argument lists of
 			   the template template parameter. */
       a_bit_field
+		is_template_alias:1;
+			/* TRUE if this is a template alias. */
+      a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
-			   class template has been completed.  Used to
-			   prevent a real instantiation from occurring while
-			   the prototype instantiation is in progress. */
+			   class template or template alias has been completed.
+			   Used for class templates to prevent a real
+			   instantiation from occurring while the prototype
+			   instantiation is in progress.  Used for template
+			   aliases to detect uses of the alias name within
+			   its definition. */
       a_bit_field /* a_name_linkage_kind */
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The name linkage associated with this class
@@ -2120,7 +2124,7 @@ typedef struct a_template_symbol_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
 		is_interface:1;
-			/* TRUE for Microsoft __interface templates. */
+			/* TRUE for Microsoft __interface class templates. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		not_standalone_nested_class:1;
@@ -2146,7 +2150,7 @@ typedef struct a_template_symbol_supplement {
       a_bit_field
 		any_full_instantiations:1;
 			/* TRUE if any full instantiations have been done of
-			   this template or any of its partial
+			   this class template or any of its partial
 			   specializations. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -4247,6 +4251,15 @@ extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
    (sym)->variant.class_struct_union.type->                             \
                         variant.class_struct_union.is_specialized)
 
+/* Return the template argument list associated with a given template class
+   or template alias symbol. */
+#define template_arg_list_for_symbol(sym)				\
+  ((sym)->kind == (a_symbol_kind)sk_type				\
+    ? (sym)->variant.type.ptr->						\
+                     variant.typeref.extra_info->template_arg_list	\
+    : (sym)->variant.class_struct_union.type->				\
+                     variant.class_struct_union.extra_info->template_arg_list)
+
 /* Return TRUE if the given symbol kind corresponds to a tag. */
 #define is_tag_symbol_kind(kind)                                 \
   ((kind) == (a_symbol_kind)sk_class_or_struct_tag ||            \
@@ -4500,11 +4513,6 @@ symbol; otherwise return the original symbol.
    must be a namespace symbol. */
 #define namespace_symbol_namespace(sym)					\
   (skip_namespace_aliases((sym)->variant.namespace_info.ptr))
-
-/* Return a pointer to the next instance symbol in a list of class
-   instantiations. */
-#define next_instance_sym(sym)						\
-  ((sym)->variant.class_struct_union.extra_info->next_in_instantiations_list)
 
 /*
 Given a symbol kind (associated with a template parameter) return the

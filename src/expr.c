@@ -7681,7 +7681,7 @@ NULL, the end position in its specifiers_range is updated.
        directly to it, and instead we use the "a_local_expr_node_ref"
        mechanism. */
     if (in_file_scope(expr)) {
-      tp->variant.typeref.expr = expr;
+      tp->variant.typeref.extra_info->expr = expr;
     } else {
       make_local_expr_node_ref(
               expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp,
@@ -7837,7 +7837,7 @@ NULL, the end position in its specifiers_range is updated.
          directly to it, and instead we use the "a_local_expr_node_ref"
          mechanism. */
       if (in_file_scope(expr)) {
-        typeof_type->variant.typeref.expr = expr;
+        typeof_type->variant.typeref.extra_info->expr = expr;
       } else {
         make_local_expr_node_ref(
            expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type,

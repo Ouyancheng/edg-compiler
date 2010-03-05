@@ -544,6 +544,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_attribute,	/* an_attribute */
   iek_attribute_arg,	/* an_attribute_arg */
   iek_attribute_group,	/* an_attribute_group */
+  iek_typeref_type_supplement,
+			/* a_typeref_type_supplement */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -682,6 +684,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_attribute */			"attribute",
 /* iek_attribute_arg */			"attribute-arg",
 /* iek_attribute_group */		"attribute-group",
+/* iek_typeref_type_supplement */	"typeref-type-supplement",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -6135,10 +6138,10 @@ typedef struct a_class_type_supplement {
 			   of this class type. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
-  long		min_template_arguments;
+  int32_t	min_template_arguments;
 			/* The minimum number of template arguments used to
 			   refer to this instance in the source (using
-			   default arguments); -1L for non-template classes
+			   default arguments); -1 for non-template classes
 			   and for template classes in which all template
 			   arguments were always explicitly specified. */
 #if NEED_NAME_MANGLING
@@ -6232,6 +6235,43 @@ typedef struct a_template_param_type_supplement {
 			/* The parameter list position and template nesting
 			   depth of the parameter. */
 } a_template_param_type_supplement;
+
+
+/*
+Entry containing additional information about a typeref type.
+*/
+typedef struct a_typeref_type_supplement *a_typeref_type_supplement_ptr;
+typedef struct a_typeref_type_supplement {
+  a_template_arg_ptr
+		template_arg_list;
+			/* For types that are instantiations of a template
+			   alias, this points to the template argument list
+			   on which the instantiation is based.  NULL for
+			   ordinary types that are not generated from a
+			   template alias. */
+  a_template_ptr
+		assoc_template;
+			/* For instantiated entities, this points to the
+			   the template from which they were generated;
+			   otherwise, this is NULL. */
+  an_expr_node_ptr
+		expr;	/* The expression argument for a decltype or typeof
+			   construct (is_decltype or is_typeof is TRUE).  When
+			   the expression is local to a function, this field is
+			   NULL and the expression must be retrieved using
+			   find_local_expr_node.  For typeof, this field is
+			   also NULL for the typeof(type) variant; that case
+			   can be distinguished from the typeof(local-expr)
+			   case only by calling find_local_expr_node and
+			   getting a NULL result.  The function decltype_arg
+			   can be used to fetch the expression in all cases. */
+  int32_t	min_template_arguments;
+			/* The minimum number of template arguments used to
+			   refer to this instance in the source (using
+			   default arguments); -1 for non-template types
+			   and for template aliases in which all template
+			   arguments were always explicitly specified. */
+} a_typeref_type_supplement;
 
 
 /*
@@ -7094,17 +7134,10 @@ typedef struct a_type {
       a_type_ptr
                 type;
                         /* Type referenced. */
-      an_expr_node_ptr
-		expr;	/* The expression argument for a decltype or typeof
-			   construct (is_decltype or is_typeof is TRUE).  When
-			   the expression is local to a function, this field is
-			   NULL and the expression must be retrieved using
-			   find_local_expr_node.  For typeof, this field is
-			   also NULL for the typeof(type) variant; that case
-			   can be distinguished from the typeof(local-expr)
-			   case only by calling find_local_expr_node and
-			   getting a NULL result.  The function decltype_arg
-			   can be used to fetch the expression in all cases. */
+      a_typeref_type_supplement_ptr
+		extra_info;
+			/* Pointer to a supplement containing additional
+			   information about this typeref. */
 #if DO_IL_LOWERING
       a_type_ptr
 		orig_type;
@@ -7191,6 +7224,27 @@ typedef struct a_type {
 			   attributes applied to it and this entry's attributes
 			   field (in source_corresp) describes those
 			   attributes. */
+      a_bit_field
+		is_alias:1;
+			/* TRUE for typedefs declared using the alias
+			   syntax. */
+      a_bit_field
+		is_template_alias:1;
+			/* TRUE for types created for instantiations of
+			   template aliases, including the prototype
+			   instantiation. */
+      a_bit_field
+		is_nonreal:1;
+			/* TRUE if the type is an instantiation of a template
+			   alias based on template arguments that include
+			   one or more template parameters.
+                           In addition, types from template aliases that
+			   are nested within nonreal classes are marked as
+			   nonreal. */
+      a_bit_field
+		is_prototype_instantiation:1;
+			/* TRUE when this type is a nonreal type that
+		 	   is a prototype instantiation. */
       bitfield_to_avoid_codecenter_warnings()
     } typeref;
     /* When kind == tk_ptr_to_member: */
@@ -14973,6 +15027,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_attribute),
   sizeof(an_attribute_arg),
   sizeof(an_attribute_group),
+  sizeof(a_typeref_type_supplement),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

@@ -2374,10 +2374,10 @@ enclosing template.
       if (instance_sym != NULL) break;
     }  /* if */
   }  /* for */
-  if (instance_sym == NULL) {
-    /* Either no instantiation scopes, or only instantiation scopes
-       with NULL instance symbols.  Just use the innermost namespace
-       scope. */
+  if (instance_sym == NULL || instance_sym->kind == (a_symbol_kind)sk_type) {
+    /* Either no instantiation scopes, only instantiation scopes
+       with NULL instance symbols, or an instantiation of a template alias.
+       Just use the innermost namespace scope. */
     result = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   } else if (is_class_struct_union_symbol(instance_sym)) {
     /* The entity is a class.  Get the referencing namespace from the
@@ -4938,6 +4938,391 @@ Return TRUE if the template argument list pointed to by tap is dependent.
 }  /* template_arg_list_is_dependent */
 
 
+static void strip_types_from_template_arg_list(a_template_arg_ptr tap)
+/*
+Remove any local typedefs or nonreal typedefs from the template argument
+list specified by tap.
+*/
+{
+  if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+    for (; tap != NULL; tap = tap->next) {
+      if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
+        tap->variant.type =
+                           strip_local_and_nonreal_typedefs(tap->variant.type);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* strip_types_from_template_arg_list */
+
+
+static a_symbol_ptr create_partial_instantiation_of_class(
+				a_symbol_ptr		class_template_sym,
+				a_template_arg_ptr	template_arg_list)
+/*
+Do a partial instantiation of class_template_sym based on the template
+arguments specified by template_arg_list.  Return the symbol for the class
+that was created.  The partial instantiation is usually an incomplete
+type that can be completed later by doing a full instantiation, but if the
+template argument list contains nonreal types, or if the template itself
+is nonreal, a complete nonreal type is returned.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				primary_template_sym;
+  a_template_symbol_supplement_ptr	primary_tssp;
+  a_boolean				trans_unit_pushed;
+  a_symbol_list_entry_ptr		slep;
+  a_symbol_ptr				sym;
+  a_type_ptr				class_type;
+  a_class_type_supplement_ptr		ctsp;
+
+  tssp = class_template_sym->variant.template_info;
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
+  sym = make_template_class_symbol(class_template_sym);
+  /* Add the new symbol to the head of the instantiation list.  The
+     instantiation list of the primary template is always used (i.e.,
+     not the list of a partial specialization). */
+  primary_template_sym = primary_template_of(class_template_sym);
+  primary_tssp = primary_template_sym->variant.template_info;
+  slep = alloc_symbol_list_entry();
+  slep->symbol = sym;
+  slep->next = primary_tssp->variant.class_template.instantiations;
+  primary_tssp->variant.class_template.instantiations = slep;
+  /* Now create a new type entry. */
+  class_type = alloc_type(tssp->variant.class_template.type_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  class_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+  class_type->variant.class_struct_union.abstract =
+                                    tssp->variant.class_template.is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  class_type->variant.class_struct_union.is_template_class = TRUE;
+  sym->variant.class_struct_union.type = class_type;
+  set_source_corresp(&(class_type->source_corresp), sym);
+  set_membership_in_source_corresp(&(class_type->source_corresp), sym);
+  if (tssp->is_nonreal_member ||
+      tssp->variant.class_template.template_template_param) {
+    /* Instantiations of a nonreal member template (for example,
+       T::A<int>) are created as nonreal instantiations.  Likewise,
+       instantiations of template template parameters are nonreal. */
+    class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+  } else if (sym->is_class_member) {
+    /* If the enclosing class is nonreal, then any instances of member
+       classes must also be nonreal. */
+    a_type_ptr			parent_class;
+    parent_class = sym_parent_class(sym);
+    if (parent_class->variant.class_struct_union.is_nonreal_class) {
+      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+    }  /* if */
+  }  /* if */
+  /* If this is a "real instantiation" leave the type incomplete; it will
+     become complete when it is instantiated.  However, if it depends in
+     some way on a template parameter and is therefore a "nonreal"
+     instantiation, give it a size and alignment to permit it to pass
+     through subsequent processing without causing spurious errors. */
+  if (template_arg_list_is_dependent(template_arg_list)) {
+    class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+  }  /* if */
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(template_arg_list);
+  /* Record the argument list in the type.  It should be available in the
+     IL at least for name generation and possibly for debuggers, too.  Note,
+     however, that the type itself is not added to the scope types list
+     until a full instantiation takes place -- or, if there is none, in
+     pop_scope, as with ordinary classes. */
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  ctsp->template_arg_list = template_arg_list;
+  {
+    /* For certain classes (like X<int>::Y<T>) the prototype instantiation
+       must be fetched from the prototype template (e.g., X<T>::Y).  Hence
+       we cannot just use prototype_sym. */
+    a_symbol_ptr  proto_template = prototype_template_of(class_template_sym);
+    ctsp->assoc_template =
+                    proto_template->variant.template_info->il_template_entry;
+  }  /* if */
+  if (sym->is_class_member) {
+    /* If this is an instance of a member template, set the access of
+       the type based on the access stored in the template. */
+    class_type->source_corresp.access =
+                    (an_access_specifier)tssp->variant.class_template.access;
+  }  /* if */
+  /* A template instantiation will have the same name-linkage (C++ or
+     internal) as the template itself has.  In some error cases, it is
+     simpler to force C++ linkage to avoid linkage-related errors during
+     error recovery. */
+  if (tssp->is_error) {
+    class_type->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+  } else {
+    class_type->source_corresp.name_linkage =
+                                   tssp->variant.class_template.name_linkage;
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  if (microsoft_mode or_near_and_far_enabled()) {
+    a_symbol_ptr	prototype_template_prototype_sym;
+    a_type_ptr	prototype_type;
+    /* Update the Microsoft decl modifier information for this class based
+       on the information stored in the prototype instantiation.  If this
+       is an instance of a subordinate template, use the prototype
+       instantiation associated with the prototype template. */
+    prototype_template_prototype_sym =
+           prototype_template_of(class_template_sym)->variant.template_info->
+                              variant.class_template.prototype_instantiation;
+    prototype_type = prototype_template_prototype_sym == NULL ? NULL :
+                         prototype_template_prototype_sym->
+                                             variant.class_struct_union.type;
+    if (prototype_type != NULL) {
+      a_class_type_supplement_ptr  prototype_ctsp;
+      an_extended_decl_info_block  extended_decl_info;
+      a_source_position            pos;
+
+      pos = class_template_sym->decl_position;
+      clear_extended_decl_info_block(extended_decl_info);
+      prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      extended_decl_info.decl_modifiers.flags =
+                                  prototype_ctsp->decl_modifiers;
+      extended_decl_info.decl_modifiers.uuid_string =
+                                  prototype_ctsp->uuid_string;
+      extended_decl_info.inheritance_kind = prototype_ctsp->inheritance_kind;
+      extended_decl_info.inheritance_kind_pos = pos;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+      extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
+#endif /* NEAR_AND_FAR_ALLOWED */
+      update_extended_decl_info_for_class(class_type, &extended_decl_info,
+                                          /*explicit_inst=*/FALSE, &pos);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
+  class_type->incomplete =
+                   !class_type->variant.class_struct_union.is_nonreal_class;
+  if (!class_type->variant.class_struct_union.is_nonreal_class) {
+    record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
+                              sym, &sym->decl_position,
+                              (a_source_sequence_entry_ptr)NULL);
+  }  /* if */
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = sym->variant.class_struct_union.extra_info;
+    cssp->member_decl_scope = take_next_scope_number();
+    class_type->size = 1;
+    class_type->alignment = 1;
+    if (prototype_instantiations_in_il) {
+      /* If this is a nonreal member, add the type to the file scope types
+         list.  Otherwise, pass in NO_SCOPE_DEPTH so that the add routine
+         will figure out the appropriate scope to be used. */
+      a_scope_depth	depth_to_add;
+      depth_to_add = tssp->is_nonreal_member ? DEPTH_OF_FILE_SCOPE
+                                             : NO_SCOPE_DEPTH;
+      add_to_types_list_full(class_type, depth_to_add,
+                             /*do_placeholder=*/FALSE);
+    }  /* if */
+  } else {
+    /* Update the friend information associated with this template.
+       These are the classes that declared this template as a friend. */
+    update_befriending_classes_for_class(tssp, class_type);
+    /* Add the type to the types list of the appropriate scope.  Pass
+       NO_SCOPE_DEPTH to the subroutine to force it to compute which scope's
+       list it belongs to.  add_to_types_list also creates the appropriate
+       placeholder typerefs (in case this partial instantiation occurs
+       inside a class definition and/or a namespace). */
+    add_to_types_list(class_type, NO_SCOPE_DEPTH);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      fputs("partial instantiation of \"", f_debug);
+      db_type_name(class_type);
+      fputs("\":\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    add_source_sequence_entry_for_partial_instantiation(
+                                           (char *)class_type,
+                                           (an_il_entry_kind)iek_type,
+                                           class_type);
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+#if DEBUG
+  if (db_sym_trace("instantiations", sym)) {
+    fprintf(f_debug, "Partial instantiation of: ");
+    db_symbol_name_trans_unit(sym);
+    fprintf(f_debug, " based on ");
+    db_symbol_name_trans_unit(class_template_sym);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* Call a routine that manages the correspondence of entities between
+     translation units to notify it of the new instance. */
+  record_instantiation(sym, tssp);
+  /* If the translation unit stack was pushed above, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
+  return sym;
+}  /* create_partial_instantiation_of_class */
+
+
+static a_symbol_ptr instantiate_template_alias(
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	template_arg_list)
+/*
+Instantiate a template alias based on the template alias specified by
+template_sym and the template argument list template_arg_list.
+Return the symbol for the type that was created.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_boolean				trans_unit_pushed;
+  a_symbol_list_entry_ptr		slep;
+  a_symbol_ptr				instance_sym;
+  a_type_ptr				type;
+  a_typeref_type_supplement_ptr		ttsp;
+
+  tssp = template_sym->variant.template_info;
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+  /* Create the symbol for the alias instance. */
+  instance_sym = make_template_class_symbol(template_sym);
+  /* Add the new symbol to the head of the instantiation list. */
+  slep = alloc_symbol_list_entry();
+  slep->symbol = instance_sym;
+  slep->next = tssp->variant.class_template.instantiations;
+  tssp->variant.class_template.instantiations = slep;
+  /* Create the type entry for the alias. */
+  type = alloc_type((a_type_kind)tk_typeref);
+  type->variant.typeref.is_alias = TRUE;
+  type->variant.typeref.is_template_alias = TRUE;
+  instance_sym->variant.type.ptr = type;
+  set_source_corresp(&(type->source_corresp), instance_sym);
+  set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
+  /* Record the argument list in the type. */
+  ttsp = type->variant.typeref.extra_info;
+  ttsp->template_arg_list = template_arg_list;
+  if (instance_sym->is_class_member) {
+    /* If the enclosing class is nonreal, then any instances of the member
+       alias must also be nonreal. */
+    a_type_ptr			parent_class;
+    parent_class = sym_parent_class(instance_sym);
+    if (parent_class->variant.class_struct_union.is_nonreal_class) {
+      type->variant.typeref.is_nonreal = TRUE;
+    }  /* if */
+  }  /* if */
+  /* See if the template arguments involve any nonreal types. */
+  if (template_arg_list_is_dependent(template_arg_list)) {
+    type->variant.typeref.is_nonreal = TRUE;
+  }  /* if */
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(template_arg_list);
+  {
+    /* For certain types (like X<int>::Y<T>) the prototype instantiation
+       must be fetched from the prototype template (e.g., X<T>::Y). */
+    a_symbol_ptr  proto_template = prototype_template_of(template_sym);
+    ttsp->assoc_template =
+                    proto_template->variant.template_info->il_template_entry;
+  }  /* if */
+  if (instance_sym->is_class_member) {
+    /* If this is an instance of a member alias, set the access of
+       the type based on the access stored in the template. */
+    type->source_corresp.access =
+                    (an_access_specifier)tssp->variant.class_template.access;
+  }  /* if */
+  {
+    a_template_cache_ptr	body_cache;
+    a_type_ptr			result_type = NULL;
+    a_symbol_ptr		template_sym_of_prototype;
+    a_template_symbol_supplement_ptr
+				tssp_of_prototype;
+    /* The instantiation process may rescan various things and invalidate the
+       current token positions as a result.  Save these positions so that they
+       may be restored when we are done. */
+    a_source_position           saved_pos_curr_token, saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* If this is an alias defined within a class template, the prototype
+       instantiation is associated with the definition within the original
+       template.  Get a pointer to the template symbol that is associated
+       with the prototype instantiation. */
+    template_sym_of_prototype = prototype_template_of(template_sym);
+    tssp_of_prototype =
+                     template_supplement_for_symbol(template_sym_of_prototype);
+    body_cache = cache_for_template(tssp_of_prototype);
+    if (body_cache->tokens.first_token == NULL) {
+      /* The template definition is missing.  This should only occur in error
+         cases. */
+      check_assertion(total_errors != 0);
+      result_type = error_type();
+      type->variant.typeref.type = result_type;
+    } else {
+      /* Push the template instantiation scope for the instantiation. */
+      (void)push_template_instantiation_scope(body_cache->decl_info,
+					      (a_type_ptr)NULL,
+					      (a_routine_ptr)NULL,
+					      instance_sym, template_sym,
+					      template_arg_list,
+                                              /*push_lex_state=*/TRUE,
+                                              PS_NO_OPTIONS);
+      /* Reactivate any pragmas that should be bound to the generated
+         instance. */
+      reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+      /* Rescan the tokens of the alias. */
+      rescan_reusable_cache(&body_cache->tokens);
+      record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
+                                instance_sym, &instance_sym->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
+      /* Scan the type. */
+      type_name(&result_type);
+      type->variant.typeref.type = result_type;
+      /* Process any pragmas that are to be bound to this instance. */
+      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+      /* In the normal case the current token should be end_of_source,
+         which was inserted to mark the end of the cached token stream.
+         If necessary, keep flushing until end-of-source is found. */
+      flush_past_token_cache_terminator();
+    }  /* if */
+    /* Restore the saved position information. */
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  /* Add the type to the types list of the appropriate scope.  Pass
+     NO_SCOPE_DEPTH to force it to compute the scope list to be used.
+     Suppress the placeholder processing for nonreal types. */
+  if (type->variant.typeref.is_nonreal) {
+    if (prototype_instantiations_in_il) {
+      add_to_types_list_full(type, NO_SCOPE_DEPTH, /*do_placeholder=*/FALSE);
+    }  /* if */
+  } else {
+    add_to_types_list(type, NO_SCOPE_DEPTH);
+  }  /* if */
+#if DEBUG
+  if (db_sym_trace("instantiations", instance_sym)) {
+    fprintf(f_debug, "Instantiation of: ");
+    db_symbol_name_trans_unit(instance_sym);
+    fprintf(f_debug, " based on ");
+    db_symbol_name_trans_unit(template_sym);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* Call a routine that manages the correspondence of entities between
+     translation units to notify it of the new instance. */
+  record_instantiation(instance_sym, tssp);
+  /* If the translation unit stack was pushed above, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
+  return instance_sym;
+}  /* instantiate_template_alias */
+
+
 a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
@@ -4989,11 +5374,9 @@ prototype instantiation is considered as a potential match.
   a_symbol_ptr                      sym;
   a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
-  a_type_ptr                        class_type;
-  a_class_type_supplement_ptr       ctsp;
   a_template_symbol_supplement_ptr  tssp;
-  a_template_arg_ptr                tap;
   an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+  a_boolean                         is_template_alias;
 
   db_enter(3, "find_template_class");
   check_assertion(class_template_sym->kind ==
@@ -5003,6 +5386,7 @@ prototype instantiation is considered as a potential match.
   class_template_sym =
               template_argument_if_template_template_param(class_template_sym);
   tssp = class_template_sym->variant.template_info;
+  is_template_alias = tssp->variant.class_template.is_template_alias;
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
   if (tssp->is_nonreal_member || tssp->is_error) {
@@ -5022,15 +5406,14 @@ prototype instantiation is considered as a potential match.
       /* Old list is the template argument list from the prototype
          instantiation of the primary template.  See if the list passed
          in matches it. */
-      old_list = prototype_sym->variant.class_struct_union.type->
-                     variant.class_struct_union.extra_info->template_arg_list;
+      old_list = template_arg_list_for_symbol(prototype_sym);
       if (equiv_template_arg_lists(old_list, *new_list,
                                    eta_options | ETA_IS_PROTOTYPE)) {
         /* A match.  Set sym which will suppress any further search. */
         sym = prototype_sym;
       }  /* if */
     }  /* if */
-    if (sym == NULL) {
+    if (sym == NULL && !is_template_alias) {
       /* The list passed in did not match the primary prototype instantiation.
          See if it matches any of the partial specializations. */
       a_symbol_ptr	ps_sym;
@@ -5063,15 +5446,16 @@ prototype instantiation is considered as a potential match.
   if (sym == NULL) {
     /* Make a pass over the symbols representing instantiations of the class
        template. */
-    sym = tssp->variant.class_template.instantiations;
-    for (; sym != NULL; sym = next_instance_sym(sym)) {
+    a_symbol_list_entry_ptr	slep;
+    slep = tssp->variant.class_template.instantiations;
+    for (; slep != NULL; slep = slep->next) {
       /* Note that we consider prototype instantiations at this point too.
          This is needed to find prototype instantiations of Microsoft
          in-class specializations. */
       /* Old list is the template argument list from a template class that has
          already been created.  See if the list passed in matches it. */
-      old_list = sym->variant.class_struct_union.type->
-                     variant.class_struct_union.extra_info->template_arg_list;
+      sym = slep->symbol;
+      old_list = template_arg_list_for_symbol(sym);
       if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
         /* We've found a match. */
 #if DEBUG
@@ -5080,207 +5464,17 @@ prototype instantiation is considered as a potential match.
         break;
       }  /* if */
     }  /* for */
+    if (slep == NULL) sym = NULL;
   }  /* if */
   if (sym == NULL) {
-    /* No match was found on the list, so do a partial instantiation of the
-       template class based on the template arguments.  First create a symbol
-       (but do not enter it into the symbol table, since class templates
-       are always looked up through the template). */
-    a_symbol_ptr			primary_template_sym;
-    a_template_symbol_supplement_ptr	primary_tssp;
-    a_boolean				trans_unit_pushed;
-    /* Switch to the translation unit containing the template, if needed. */
-    trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
-    sym = make_template_class_symbol(class_template_sym);
-    /* Add the new symbol to the head of the instantiation list.  The
-       instantiation list of the primary template is always used (i.e.,
-       not the list of a partial specialization). */
-    primary_template_sym = primary_template_of(class_template_sym);
-    primary_tssp = primary_template_sym->variant.template_info;
-    next_instance_sym(sym) =
-                           primary_tssp->variant.class_template.instantiations;
-    primary_tssp->variant.class_template.instantiations = sym;
-    /* Now create a new type entry. */
-    class_type = alloc_type(tssp->variant.class_template.type_kind);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    class_type->variant.class_struct_union.is_interface =
-                                    tssp->variant.class_template.is_interface;
-    class_type->variant.class_struct_union.abstract =
-                                    tssp->variant.class_template.is_interface;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    class_type->variant.class_struct_union.is_template_class = TRUE;
-    sym->variant.class_struct_union.type = class_type;
-    set_source_corresp(&(class_type->source_corresp), sym);
-    set_membership_in_source_corresp(&(class_type->source_corresp), sym);
-    if (tssp->is_nonreal_member ||
-        tssp->variant.class_template.template_template_param) {
-      /* Instantiations of a nonreal member template (for example,
-         T::A<int>) are created as nonreal instantiations.  Likewise,
-         instantiations of template template parameters are nonreal. */
-      class_type->variant.class_struct_union.is_nonreal_class = TRUE;
-    } else if (sym->is_class_member) {
-      /* If the enclosing class is nonreal, then any instances of member
-         classes must also be nonreal. */
-      a_type_ptr			parent_class;
-      parent_class = sym_parent_class(sym);
-      if (parent_class->variant.class_struct_union.is_nonreal_class) {
-        class_type->variant.class_struct_union.is_nonreal_class = TRUE;
-      }  /* if */
-    }  /* if */
-    /* If this is a "real instantiation" leave the type incomplete; it will
-       become complete when it is instantiated.  However, if it depends in
-       some way on a template parameter and is therefore a "nonreal"
-       instantiation, give it a size and alignment to permit it to pass
-       through subsequent processing without causing spurious errors. */
-    for (tap = *new_list; tap != NULL; tap = tap->next) {
-      if (!class_type->variant.class_struct_union.is_nonreal_class) {
-        if (template_arg_is_dependent(tap)) {
-          class_type->variant.class_struct_union.is_nonreal_class = TRUE;
-        }  /* if */
-      }  /* if */
-      if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
-        /* Local typedef names (legal if they refer to nonlocal types) should
-           not be part of the type signature of the template class itself,
-           which is nonlocal.  Strip them off, if there are any. */
-        if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
-          tap->variant.type =
-                           strip_local_and_nonreal_typedefs(tap->variant.type);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    /* Record the argument list in the type.  It should be available in the
-       IL at least for name generation and possibly for debuggers, too.  Note,
-       however, that the type itself is not added to the scope types list
-       until a full instantiation takes place -- or, if there is none, in
-       pop_scope, as with ordinary classes. */
-    ctsp = class_type->variant.class_struct_union.extra_info;
-    ctsp->template_arg_list = *new_list;
-    {
-      /* For certain classes (like X<int>::Y<T>) the prototype instantiation
-         must be fetched from the prototype template (e.g., X<T>::Y).  Hence
-         we cannot just use prototype_sym. */
-      a_symbol_ptr  proto_template = prototype_template_of(class_template_sym);
-      ctsp->assoc_template =
-                      proto_template->variant.template_info->il_template_entry;
-    }  /* if */
-    if (sym->is_class_member) {
-      /* If this is an instance of a member template, set the access of
-         the type based on the access stored in the template. */
-      class_type->source_corresp.access =
-                      (an_access_specifier)tssp->variant.class_template.access;
-    }  /* if */
-    /* A template instantiation will have the same name-linkage (C++ or
-       internal) as the template itself has.  In some error cases, it is
-       simpler to force C++ linkage to avoid linkage-related errors during
-       error recovery. */
-    if (tssp->is_error) {
-      class_type->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
+    /* There is no instantiation for this set of template arguments.  Create
+       an instantiation now. */
+    if (is_template_alias) {
+      sym = instantiate_template_alias(class_template_sym, *new_list);
     } else {
-      class_type->source_corresp.name_linkage =
-                                     tssp->variant.class_template.name_linkage;
+      sym = create_partial_instantiation_of_class(class_template_sym,
+                                                  *new_list);
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-    if (microsoft_mode or_near_and_far_enabled()) {
-      a_symbol_ptr	prototype_template_prototype_sym;
-      a_type_ptr	prototype_type;
-      /* Update the Microsoft decl modifier information for this class based
-         on the information stored in the prototype instantiation.  If this
-         is an instance of a subordinate template, use the prototype
-         instantiation associated with the prototype template. */
-      prototype_template_prototype_sym =
-             prototype_template_of(class_template_sym)->variant.template_info->
-                                variant.class_template.prototype_instantiation;
-      prototype_type = prototype_template_prototype_sym == NULL ? NULL :
-                           prototype_template_prototype_sym->
-                                               variant.class_struct_union.type;
-      if (prototype_type != NULL) {
-        a_class_type_supplement_ptr  prototype_ctsp;
-        an_extended_decl_info_block  extended_decl_info;
-        a_source_position            pos;
-
-        pos = class_template_sym->decl_position;
-        clear_extended_decl_info_block(extended_decl_info);
-        prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        extended_decl_info.decl_modifiers.flags =
-                                    prototype_ctsp->decl_modifiers;
-        extended_decl_info.decl_modifiers.uuid_string =
-                                    prototype_ctsp->uuid_string;
-        extended_decl_info.inheritance_kind = prototype_ctsp->inheritance_kind;
-        extended_decl_info.inheritance_kind_pos = pos;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if NEAR_AND_FAR_ALLOWED
-        extended_decl_info.qualifiers = prototype_ctsp->qualifiers;
-#endif /* NEAR_AND_FAR_ALLOWED */
-        update_extended_decl_info_for_class(class_type, &extended_decl_info,
-                                            /*explicit_inst=*/FALSE, &pos);
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-    class_type->incomplete =
-                     !class_type->variant.class_struct_union.is_nonreal_class;
-    if (!class_type->variant.class_struct_union.is_nonreal_class) {
-      record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
-                                sym, &sym->decl_position,
-                                (a_source_sequence_entry_ptr)NULL);
-    }  /* if */
-    if (class_type->variant.class_struct_union.is_nonreal_class) {
-      a_class_symbol_supplement_ptr	cssp;
-      cssp = sym->variant.class_struct_union.extra_info;
-      cssp->member_decl_scope = take_next_scope_number();
-      class_type->size = 1;
-      class_type->alignment = 1;
-      if (prototype_instantiations_in_il) {
-        /* If this is a nonreal member, add the type to the file scope types
-           list.  Otherwise, pass in NO_SCOPE_DEPTH so that the add routine
-           will figure out the appropriate scope to be used. */
-        a_scope_depth	depth_to_add;
-        depth_to_add = tssp->is_nonreal_member ? DEPTH_OF_FILE_SCOPE
-                                               : NO_SCOPE_DEPTH;
-        add_to_types_list_full(class_type, depth_to_add,
-                               /*do_placeholder=*/FALSE);
-      }  /* if */
-    } else {
-      /* Update the friend information associated with this template.
-         These are the classes that declared this template as a friend. */
-      update_befriending_classes_for_class(tssp, class_type);
-      /* Add the type to the types list of the appropriate scope.  Pass
-         NO_SCOPE_DEPTH to the subroutine to force it to compute which scope's
-         list it belongs to.  add_to_types_list also creates the appropriate
-         placeholder typerefs (in case this partial instantiation occurs
-         inside a class definition and/or a namespace). */
-      add_to_types_list(class_type, NO_SCOPE_DEPTH);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
-        fputs("partial instantiation of \"", f_debug);
-        db_type_name(class_type);
-        fputs("\":\n", f_debug);
-      }  /* if */
-#endif /* DEBUG */
-      add_source_sequence_entry_for_partial_instantiation(
-                                             (char *)class_type,
-                                             (an_il_entry_kind)iek_type,
-                                             class_type);
-#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    }  /* if */
-#if DEBUG
-    if (db_sym_trace("instantiations", sym)) {
-      fprintf(f_debug, "Partial instantiation of: ");
-      db_symbol_name_trans_unit(sym);
-      fprintf(f_debug, " based on ");
-      db_symbol_name_trans_unit(class_template_sym);
-      fprintf(f_debug, "\n");
-    }  /* if */
-#endif /* DEBUG */
-    /* Call a routine that manages the correspondence of entities between
-       translation units to notify it of the new instance. */
-    record_instantiation(sym, tssp);
-    /* If the translation unit stack was pushed above, pop it now. */
-    if (trans_unit_pushed) pop_translation_unit_stack();
   } else {
     /* We are reusing a class type that already exists, so *new_list will not
        be used.  Return the entries to the available list for reuse. */
@@ -10237,6 +10431,81 @@ Also, add the instance to the definitions list for the template.
 }  /* find_static_data_member_template */
 
 
+static void find_alias_member(a_symbol_ptr		alias_sym,
+                              a_type_ptr		parent_class,
+			      a_token_sequence_number	token_sequence_number)
+/*
+alias_sym is a symbol representing a template alias member of a real
+class.  parent_class is type of the enclosing class.  Find the symbol
+for a template alias from the prototype instantiation (it serves as
+the template for the real alias), and record it in the typeref entry
+already associated with alias_sym.  token_sequence_number is used to
+match the alias in the real class with the corresponding entry in the
+prototype instantiation.  Note that if parent_class is not an instantiation,
+this routine has no effect.
+*/
+{
+  a_type_ptr		corresp_prototype_type;
+  a_symbol_ptr		corresp_prototype_tag_sym;
+  a_symbol_ptr		parent_class_sym;
+
+  /* Get the prototype instantiation symbol that corresponds to the parent
+     class of this member template. */
+  parent_class_sym = symbol_for(parent_class);
+  corresp_prototype_tag_sym =
+                         corresp_prototype_for_class_symbol(parent_class_sym);
+  if (corresp_prototype_tag_sym != NULL) {
+    a_scope_ptr		prototype_scope;
+    /* Find an alias symbol belonging to the prototype instantiation
+       and corresponding to alias_sym. */
+    corresp_prototype_type = type_symbol_type(corresp_prototype_tag_sym);
+    /* Get the scope in which the members of the class represented by
+       corresp_prototype_tag_sym were declared. */
+    prototype_scope = corresp_prototype_type->
+                            variant.class_struct_union.extra_info->assoc_scope;
+    if (prototype_scope == NULL) {
+      /* In some error cases the prototype instantiation type does not have
+         a definition. */
+      expect_error();
+    } else {
+      a_scope_number			corresp_prototype_decl_scope;
+      a_symbol_ptr			proto_sym;
+      a_template_symbol_supplement_ptr	alias_tssp;
+      a_template_symbol_supplement_ptr	proto_tssp;
+      corresp_prototype_decl_scope = prototype_scope->number;
+      for (proto_sym = alias_sym->header->inactive_symbols;
+           proto_sym != NULL;
+           proto_sym = proto_sym->next) {
+        if (proto_sym->decl_scope == corresp_prototype_decl_scope &&
+            proto_sym->kind == (a_symbol_kind)sk_class_template) {
+          proto_tssp = proto_sym->variant.template_info;
+          if (proto_tssp->token_sequence_number == token_sequence_number) {
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      check_assertion_str2(proto_sym != NULL || total_errors != 0,
+                           "find_alias_member:",
+                           "no corresponding template");
+      if (proto_sym != NULL) {
+        a_symbol_list_entry_ptr	slep;
+        /* proto_sym is the template symbol with which alias_sym is
+           associated. */
+        alias_tssp = alias_sym->variant.template_info;
+        /* Create the pointer back to the original template. */
+        alias_tssp->prototype_template = proto_sym;
+        /* Add the new template to the list of templates based on the original
+           template. */
+        slep = alloc_symbol_list_entry();
+        slep->symbol = alias_sym;
+        slep->next = proto_tssp->subordinate_templates;
+        proto_tssp->subordinate_templates = slep;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* find_alias_member */
+
+
 a_symbol_ptr find_template_function(
 			a_symbol_ptr		templ_sym,
                         a_template_arg_ptr	*new_list,
@@ -10809,9 +11078,10 @@ class_definition is TRUE if the specifiers are part of a class template
 definition (as opposed to a mere declaration).
 */
 {
-  a_symbol_ptr  instance_sym;
-  a_type_ptr	prototype_type;
-  a_symbol_ptr	prototype_sym;
+  a_symbol_ptr			instance_sym;
+  a_type_ptr			prototype_type;
+  a_symbol_ptr			prototype_sym;
+  a_symbol_list_entry_ptr	slep;
 
   /* The general attribute application mechanism doesn't set the DLL flags
      (because some information required to check those attributes is not
@@ -10847,9 +11117,11 @@ definition (as opposed to a mere declaration).
     }  /* if */
   }  /* if */
   /* Update any instances that have already been created. */
-  for (instance_sym = tssp->variant.class_template.instantiations;
-       instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
-    a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
+  for (slep = tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_type_ptr  tp;
+    instance_sym = slep->symbol;
+    tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym) &&
         !tp->variant.class_struct_union.is_specialized) {
       update_extended_decl_info_for_class(tp, extended_decl_info,
@@ -10861,7 +11133,6 @@ definition (as opposed to a mere declaration).
        We need to visit the template symbols for this template in each
        of the instantiations of the enclosing class template and update
        the instantiations of those templates. */
-    a_symbol_list_entry_ptr	slep;
     for (slep = tssp->subordinate_templates; slep != NULL; slep = slep->next) {
       a_symbol_ptr			subordinate_sym;
       a_template_symbol_supplement_ptr	subordinate_tssp;
@@ -10889,15 +11160,18 @@ been instantiated, update the befriending information for the instances.
 {
   a_class_list_entry_ptr  clep;
   a_symbol_ptr            instance_sym;
+  a_symbol_list_entry_ptr slep;
 
   clep = alloc_list_entry_for_class();
   clep->next = tssp->befriending_classes;
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
   /* Update any instances that have already been created. */
-  for (instance_sym = tssp->variant.class_template.instantiations;
-       instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
-    a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
+  for (slep = tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_type_ptr  tp;
+    instance_sym = slep->symbol;
+    tp = instance_sym->variant.class_struct_union.type;
     if (is_real_class_symbol(instance_sym)) {
       /* Don't do this for the nonreal class types. */
       if (class_declared_in != tp) {
@@ -11011,10 +11285,13 @@ any classes that declared the nested class as a template friend.
            symbol. */
         a_class_symbol_supplement_ptr		cssp;
         a_template_symbol_supplement_ptr	tssp;
+        a_symbol_list_entry_ptr			slep;
         cssp = sym->variant.class_struct_union.extra_info;
         tssp = template_supplement_for_symbol(ct_symbol);
-        next_instance_sym(sym) = tssp->variant.class_template.instantiations;
-        tssp->variant.class_template.instantiations = sym;
+        slep = alloc_symbol_list_entry();
+        slep->symbol = sym;
+        slep->next = tssp->variant.class_template.instantiations;
+        tssp->variant.class_template.instantiations = slep;
         cssp->corresp_prototype_sym = ct_symbol;
         class_type->variant.class_struct_union.is_template_class = TRUE;
         /* Update the friend information associated with this template.
@@ -11126,16 +11403,18 @@ generated.
         }  /* if */
       }  /* for */
     } else {
-     a_symbol_ptr	sym;
+      a_symbol_ptr		sym;
+      a_symbol_list_entry_ptr	slep;
       check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
       /* When a member class template is specialized, the list of partial
          specializations should be cleared because those partial
          specializations were associated with the prototype template. */
       tssp->variant.class_template.partial_specializations = NULL;
-      for (sym = tssp->variant.class_template.instantiations; sym != NULL;
-           sym = next_instance_sym(sym)) {
+      for (slep = tssp->variant.class_template.instantiations; slep != NULL;
+           slep = slep->next) {
         /* It is only an error if the class type is complete and is not a
            itself a specialization. */
+        sym = slep->symbol;
         if (!is_nonreal_instance_class_symbol(sym) &&
             !is_incomplete_type(type_symbol_type(sym)) &&
             !is_template_instance_specific_def_symbol(sym)) {
@@ -11344,32 +11623,46 @@ initially used when processing the declaration of a partial specialization.
   a_symbol_ptr			prototype_sym;
   a_type_ptr			prototype_type;
   a_class_symbol_supplement_ptr	prototype_cssp;
+  a_boolean			is_template_alias;
 
+  is_template_alias = tssp->variant.class_template.is_template_alias;
   if (sym->kind == (a_symbol_kind)sk_class_template) {
     a_template_param_ptr	templ_param_list;
-    a_class_type_supplement_ptr	prototype_ctsp;
+    a_class_type_supplement_ptr	prototype_ctsp = NULL;
     a_template_arg_ptr		templ_arg_list;
     /* This is a class template declaration, not a declaration for
        a normal class nested within a template. */
     prototype_sym = make_template_class_symbol(sym);
     /* Now create a new type entry. */
-    prototype_type = alloc_type(tssp->variant.class_template.type_kind);
-    prototype_type->source_corresp.access = access_for_symbol(sym);
+    if (is_template_alias) {
+      prototype_type = alloc_type((a_type_kind)tk_typeref);
+      prototype_type->variant.typeref.extra_info->assoc_template =
+                                                 decl_state->il_template_entry;
+      prototype_sym->variant.type.ptr = prototype_type;
+      prototype_type->variant.typeref.is_alias = TRUE;
+      prototype_type->variant.typeref.is_template_alias = TRUE;
+      prototype_type->variant.typeref.is_nonreal = TRUE;
+      prototype_type->variant.typeref.is_prototype_instantiation = TRUE;
+    } else {
+      prototype_type = alloc_type(tssp->variant.class_template.type_kind);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    prototype_type->autonomous_primary_tag_decl = TRUE;
+      prototype_type->autonomous_primary_tag_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    prototype_type->variant.class_struct_union.is_interface =
+      prototype_type->variant.class_struct_union.is_interface =
                                     tssp->variant.class_template.is_interface;
-    prototype_type->variant.class_struct_union.abstract =
+      prototype_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    prototype_type->variant.class_struct_union.is_template_class = TRUE;
-    prototype_sym->variant.class_struct_union.type = prototype_type;
+      prototype_type->variant.class_struct_union.is_template_class = TRUE;
+      prototype_sym->variant.class_struct_union.type = prototype_type;
+      prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+      prototype_ctsp->assoc_template = decl_state->il_template_entry;
+    }  /* if */
+    prototype_type->source_corresp.access = access_for_symbol(sym);
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
     set_membership_in_source_corresp(&(prototype_type->source_corresp),
                                      prototype_sym);
-    prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
     if (prototype_instantiations_in_il) {
       if (decl_state->decl_scope_err) {
         /* Don't add the type to the type list in error cases.  This is done
@@ -11387,7 +11680,6 @@ initially used when processing the declaration of a partial specialization.
         add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
       }  /* if */
     }  /* if */
-    prototype_ctsp->assoc_template = decl_state->il_template_entry;
     /* Use the name linkage saved at the point of the original template
        declaration. */
     prototype_type->source_corresp.name_linkage =
@@ -11396,7 +11688,10 @@ initially used when processing the declaration of a partial specialization.
     /* Create a template argument list that corresponds to the template
        parameter list. */
     templ_arg_list = create_prototype_arg_list(templ_param_list);
-    if (is_partial_specialization) {
+    if (is_template_alias) {
+      prototype_type->variant.typeref.extra_info->template_arg_list
+                                                              = templ_arg_list;
+    } else if (is_partial_specialization) {
       /* This is the initial declaration of a partial specialization.
          The template argument list for the partial specialization should
          be taken from the nonreal type created when the declaration was
@@ -11427,25 +11722,28 @@ initially used when processing the declaration of a partial specialization.
   /* The prototype_instantiation field is set in the template supplement
      of what may be a partial specialization, not in the primary template. */
   tssp->variant.class_template.prototype_instantiation = prototype_sym;
-  prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
-  prototype_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
-  prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
-  prototype_cssp->template_info = tssp;
-  if (sym->kind == (a_symbol_kind)sk_class_template) {
-    /* Call a routine that manages the correspondence of entities between
-       translation units to notify it of the new instance.  Note that this
-       must occur after the type has been marked as being a prototype
-       instantiation. */
-    record_instantiation(prototype_sym, tssp);
-  }  /* if */
+  if (!is_template_alias) {
+    prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
+    prototype_type->
+                  variant.class_struct_union.is_prototype_instantiation = TRUE;
+    prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
+    prototype_cssp->template_info = tssp;
+    if (sym->kind == (a_symbol_kind)sk_class_template) {
+      /* Call a routine that manages the correspondence of entities between
+         translation units to notify it of the new instance.  Note that this
+         must occur after the type has been marked as being a prototype
+         instantiation. */
+      record_instantiation(prototype_sym, tssp);
+    }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-  if (prototype_instantiations_in_il && !decl_state->decl_scope_err) {
-    /* Make sure we keep the prototype instantiations in the IL even
-       though no one will be referring to them. */
-    mark_as_needed((char *)prototype_type, (an_il_entry_kind)iek_type);
-    set_class_definition_needed(prototype_type);
-  }  /* if */
+    if (prototype_instantiations_in_il && !decl_state->decl_scope_err) {
+      /* Make sure we keep the prototype instantiations in the IL even
+         though no one will be referring to them. */
+      mark_as_needed((char *)prototype_type, (an_il_entry_kind)iek_type);
+      set_class_definition_needed(prototype_type);
+    }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
 }  /* create_prototype_type */
 
 
@@ -11589,6 +11887,7 @@ subordinate templates.
   a_template_symbol_supplement_ptr	ps_tssp;
   a_template_symbol_supplement_ptr	primary_tssp;
   a_symbol_ptr				sym;
+  a_symbol_list_entry_ptr		slep;
 
   ps_tssp = ps_sym->variant.template_info;
   if (primary_sym == NULL) {
@@ -11597,9 +11896,10 @@ subordinate templates.
     primary_sym = ps_tssp->variant.class_template.primary_template_sym;
   }  /* if */
   primary_tssp = primary_sym->variant.template_info;
-  for (sym = primary_tssp->variant.class_template.instantiations;
-       sym != NULL; sym = next_instance_sym(sym)) {
-    a_type_ptr				instance_type;
+  for (slep = primary_tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_type_ptr	instance_type;
+    sym = slep->symbol;
     instance_type = sym->variant.class_struct_union.type;
     /* Skip nonreal classes.  This includes prototype instantiations. */
     if (instance_type->variant.class_struct_union.is_nonreal_class) continue;
@@ -11932,12 +12232,14 @@ for any previously instantiated instances of the parent class template and
 add this partial specialization to those instances.
 */
 {
-  a_symbol_ptr	instance_sym;
+  a_symbol_ptr			instance_sym;
+  a_symbol_list_entry_ptr	slep;
 
-  for (instance_sym = parent_tssp->variant.class_template.instantiations;
-       instance_sym != NULL; instance_sym = next_instance_sym(instance_sym)) {
-    a_type_ptr				instance_type;
-    a_template_arg_ptr			template_arg_list;
+  for (slep = parent_tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_type_ptr		instance_type;
+    a_template_arg_ptr	template_arg_list;
+    instance_sym = slep->symbol;
     instance_type = instance_sym->variant.class_struct_union.type;
     /* Skip nonreal classes.  This includes prototype instantiations. */
     if (instance_type->variant.class_struct_union.is_nonreal_class) continue;
@@ -14431,12 +14733,13 @@ the size of arr can be computed.
   a_symbol_ptr                      instance_sym;
   a_type_ptr                        class_type;
   a_dependent_type_fixup_ptr        dtfp;
+  a_symbol_list_entry_ptr	    slep;
 
   /* Loop though all the instantiations of the current class template. */
   tssp = template_supplement_for_symbol(sym);
-  for (instance_sym = tssp->variant.class_template.instantiations;
-       instance_sym != NULL;
-       instance_sym = next_instance_sym(instance_sym)) {
+  for (slep = tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    instance_sym = slep->symbol;
     if (instance_sym == tssp->variant.class_template.prototype_instantiation) {
       /* Ignore the prototype instantiation. */
     } else {
@@ -14616,7 +14919,7 @@ static void record_string_version_of_template(
                                 a_symbol_ptr           sym,
                                 a_token_cache          *p_template_body_cache)
 /*
-Make the string version of the template.
+Make the string version of the template specified by sym and tssp.
 */
 {
   if (sym != NULL && !sym->is_error) {
@@ -16201,6 +16504,232 @@ information).  See the definition of a_tmpl_decl_state for details.
 }  /* scan_template_param_clauses */
 
 
+static void alias_prototype_instantiation(
+			a_symbol_ptr		template_sym)
+/*
+This routine is called to do the prototype instantiation of the template
+alias specified by template_sym.  This is done to detect those errors that
+can be diagnosed at template definition time.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_cache_ptr			tcp;
+  a_scope_stack_entry_ptr		ssep;
+  a_boolean				scope_pushed = FALSE;
+  a_template_arg_ptr			template_arg_list;
+  a_symbol_ptr				prototype_sym;
+  a_type_ptr				tp = NULL;
+  a_type_ptr				prototype_type;
+
+  tssp = template_supplement_for_symbol(template_sym);
+  prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  prototype_type = prototype_sym->variant.type.ptr;
+  ssep = &scope_stack[depth_scope_stack];
+  /* Push the template instantiation scope. */
+  tcp = cache_for_template(tssp);
+  template_arg_list =
+                 prototype_type->variant.typeref.extra_info->template_arg_list;
+  /* Push an instantiation scope for the prototype instantiation.  In some
+     cases a new scope is not needed.  scope_pushed will be set to indicate
+     whether or not any scopes were actually pushed. */
+  scope_pushed = push_template_instantiation_scope(
+                                        tcp->decl_info,
+ 				        (a_type_ptr)NULL, (a_routine_ptr)NULL,
+  				        prototype_sym, template_sym,
+  				        template_arg_list,
+                                        /*push_lex_state=*/TRUE,
+                                        PS_PROTOTYPE_INSTANTIATION);
+  /* Reactivate any pragmas that should be bound to the generated
+     instance. */
+  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+  /* Reactivate the tokens comprising the alias type. */
+  rescan_reusable_cache(&tcp->tokens);
+  type_name(&tp);
+  check_assertion(tp != NULL);
+  prototype_type->variant.typeref.type = tp;
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(prototype_sym, (a_statement_ptr)NULL);
+  if (scope_pushed) {
+    /* Pop the template instantiation scope. */
+    pop_template_instantiation_scope();
+  }  /* if */
+  /* In the normal case the current token should be end_of_source, which was
+     inserted to mark the end of the cached token stream. If necessary, keep
+     flushing until end-of-source is found. */
+  flush_past_token_cache_terminator();
+  /* Mark the prototype instantiation type as being complete. */
+  tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+}  /* alias_prototype_instantiation */
+
+
+static a_symbol_ptr template_alias_declaration(
+					a_tmpl_decl_state_ptr decl_state)
+/*
+Scan a template alias declaration.  A template alias declaration has the form:
+
+  template <template-parameter-list> using identifier = type-id;
+
+The template parameter clause has already been scanned at the time this
+routine has been called, and the current token is the tok_using of the
+alias-declaration.
+
+Unlike other template declarations, a template alias is essentially always
+a definition.  As a result, when the declaration appears in a class it
+fully defines the entity so there is no reason to have an out-of-class
+definition.
+
+Return a pointer to the class template symbol used to represent the template
+alias
+*/
+{
+  a_symbol_locator			locator;
+  a_scope_stack_entry_ptr		ssep;
+  a_symbol_ptr				sym = NULL;
+  a_template_symbol_supplement_ptr	tssp;
+  a_token_cache_ptr			p_token_cache = NULL;
+  a_token_cache				token_cache;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean				saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_boolean				keep_token_cache = TRUE;
+  a_token_sequence_number		tsn_for_alias =
+                                                    curr_token_sequence_number;
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
+  /* Set the specifiers end position here; it will be overwritten later unless
+     there is an error in scanning the identifier. */
+  decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* All alias declarations are considered definitions. */
+  decl_state->defines_something = TRUE;
+  /* Skip past the "using". */
+  check_assertion(curr_token == tok_using);
+  (void)get_token();
+  if (!is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
+                                       GID_DISALLOW_OPERATOR_NAME)) {
+    /* Not an identifier. */
+    pos_error(ec_exp_identifier, &pos_curr_token);
+    set_to_error_locator(locator);
+  } else if (locator_for_curr_id.is_template_id) {
+    /* A template-id is not allowed. */
+    pos_error(ec_template_id_not_allowed, &pos_curr_token);
+    set_to_error_locator(locator);
+  } else if (locator_for_curr_id.is_error) {
+    /* Some error occurred while scanning the identifier (e.g., it might be
+       a qualified name).  Se the locator to an error locator. */
+    set_to_error_locator(locator);
+  } else {
+    /* A valid identifier was scanned. */
+    locator = locator_for_curr_id;
+    /* Skip past the identifier. */
+    (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Set the specifiers end position.  */
+    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
+    decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
+    decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  /* The next token should be "=". */
+  if (curr_token == tok_assign) {
+    /* Skip past the "=". */
+    (void)get_token();
+  } else {
+    pos_error(ec_exp_assign, &pos_curr_token);
+  }  /* if */
+  /* Enter the symbol at the scope indicated by effective_decl_level. */
+  ssep = &scope_stack[decl_state->effective_decl_level];
+  /* Create the symbol for the alias.  A class template symbols is used. */
+  sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+                     decl_state->effective_decl_level,
+                     /*suppress_error=*/FALSE);
+  tssp = sym->variant.template_info;
+  tssp->variant.class_template.is_template_alias = TRUE;
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                             ssep->il_scope->variant.assoc_namespace);
+  } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    set_class_membership(sym, (a_source_correspondence *)NULL,
+                         decl_state->class_declared_in);
+    tssp->variant.class_template.access = decl_state->access; 
+  }  /* if */
+  if (sym->is_class_member) {
+    /* This is a member class template declaration.  See if the enclosing
+       class was also generated from a template.  If so, find the
+       corresponding class template symbol from the prototype instantiation. */
+    if (decl_state->in_prototype_instantiation) {
+      /* Save the token sequence number associated with this declaration.
+         This is done here for aliases that are class members.  This
+         information is used later to match a template declaration in
+         a real instantiation with the corresponding template from the
+         prototype instantiation. */
+      tssp->token_sequence_number = tsn_for_alias;
+    } else {
+      /* Find the alias declaration from the prototype instantiation
+        (if any). */
+      find_alias_member(sym, sym_parent_class(sym), tsn_for_alias);
+      /* The cache from the prototype template will be used, so we don't
+         need to keep the one from this declaration. */
+      if (tssp->prototype_template != NULL) keep_token_cache = FALSE;
+    }  /* if */
+  }  /* if */
+  /* Cache the type-id from the alias. */
+  if (curr_token != tok_end_of_source) {
+    a_token_set_array		stop_tokens;
+    a_token_sequence_number	split_location;
+    split_location = curr_token_sequence_number;
+    p_token_cache = &token_cache;
+    clear_token_cache(p_token_cache, /*reusable=*/TRUE);
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    cache_token_stream(p_token_cache, stop_tokens);
+    if (keep_token_cache) {
+      terminate_token_cache(p_token_cache);
+      /* The declaration token cache contains the complete declaration
+         including the "= type-id".  Split the cache so that the type-id is
+         removed from the declaration cache and placed in the definition
+         cache. */
+      split_token_cache(&decl_state->decl_token_cache,
+                        p_token_cache, split_location,
+                        /*include_prev_token=*/FALSE,
+                        /*okay_if_not_found=*/FALSE);
+    } else {
+      discard_token_cache(p_token_cache);
+      p_token_cache = NULL;
+    } /* if */
+  } /* if */
+  /* Save the IL template entry pointer for this symbol. */
+  set_il_template_entry(decl_state, sym, tssp);
+  /* Save the information needed to create an instantiation based
+     on the definition of the template.  First, save the initializer
+     expression. */
+  set_template_cache_info(&tssp->cache, p_token_cache,
+                          decl_state->decl_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry since we have one for the recorded prototype instantiation. */
+    saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  mark_defined(sym, &locator.source_position);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Create the symbol for the prototype instantiation. */
+  create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                        /*is_partial_specialization=*/FALSE);
+  return sym;
+}  /* template_alias_declaration */
+
+
 static
 void template_declaration(a_tmpl_decl_state_ptr	decl_state)
 /*
@@ -16280,9 +16809,16 @@ any non-empty template parameter lists that were scanned.
       /* Save a pointer to the token cache for class template body. */
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
+  } else if (alias_declarations_enabled && curr_token == tok_using) {
+    /* A template alias declaration. */
+    sym = template_alias_declaration(decl_state);
+    tssp = template_supplement_for_symbol(sym);
+    /* Save a pointer to the token cache for the alias definition. */
+    p_template_body_cache = &tssp->cache.tokens;
   } else {
-    /* Not a class template declaration.  Check for a function template
-       declaration or a static data member template definition. */
+    /* Not a class template declaration or template alias.  Check for a
+       function template declaration or a static data member template
+       definition. */
     /* Determine whether the thing being declared is a member of a
        class template.  This is needed to know how references to the
        parent class should be processed.  This must be done before 
@@ -16466,6 +17002,11 @@ any non-empty template parameter lists that were scanned.
         !decl_state->decl_scope_err) {
       create_out_of_class_entry_for_partial_spec(decl_state, sym);
     }  /* if */
+  } else if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
+    /* A template alias. */
+    check_assertion(tssp->variant.class_template.is_template_alias);
+    /* Do the prototype instantiation evaluation of the alias type. */
+    alias_prototype_instantiation(sym);
   } else if (nonclass_prototype_instantiations && sym != NULL) {
     if (is_function_or_template_symbol(sym)) {
       /* Do the prototype instantiation of the function. */

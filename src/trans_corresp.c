@@ -1802,10 +1802,11 @@ all_instantiations list of the associated template symbol supplement.
     /* Nontemplate member of class template or template template parameter:
        no instantiations to mark. */
   } else if (is_class_template_symbol(templ_sym)) {
-    a_symbol_ptr  inst = tssp->variant.class_template.instantiations,
-                  proto = tssp
-                             ->variant.class_template.prototype_instantiation;
-    a_type_ptr    class_type;
+    a_symbol_list_entry_ptr slep;
+    a_symbol_ptr            inst;
+    a_symbol_ptr            proto;
+    a_type_ptr              class_type;
+    proto = tssp->variant.class_template.prototype_instantiation;
     /* Process the prototype instantiation first. */
     if (proto != NULL) {
       class_type = type_symbol_type(proto);
@@ -1814,7 +1815,9 @@ all_instantiations list of the associated template symbol supplement.
         add_instantiation(tssp, proto);
       }  /* if */
     }  /* if */
-    for (; inst != NULL; inst = next_instance_sym(inst)) {
+    for (slep = tssp->variant.class_template.instantiations;
+         slep != NULL; slep = slep->next) {
+      inst = slep->symbol;
       if (inst != proto) {
         /* Sometimes the prototype instantiation is placed on the
            instantiations list; skip it since it has been processed above. */
@@ -3624,11 +3627,13 @@ is in fact valid.
         match = FALSE;
         process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
       } else {
-        a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
+        a_symbol_list_entry_ptr	slep;
         /* First process the prototype instantiation. */
         match = verify_type_correspondence(proto);
-        for (; inst != NULL; inst = next_instance_sym(inst)) {
-          a_type_ptr  inst_type = type_symbol_type(inst);
+        for (slep = tssp->variant.class_template.instantiations;
+             slep != NULL; slep = slep->next) {
+          a_symbol_ptr inst = slep->symbol;
+          a_type_ptr   inst_type = type_symbol_type(inst);
           if (match) {
             /* Only check real instantiations if the prototype instantiation
                matched. */
@@ -5330,14 +5335,18 @@ be templ itself and therefore unusable).
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
     /* Record the instantiations for later processing to avoid infinite
        recursion. */
-    a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
-    for (; inst != NULL; inst = next_instance_sym(inst)) {
+    a_symbol_list_entry_ptr slep;
+    a_symbol_ptr            inst;
+    for (slep = tssp->variant.class_template.instantiations;
+         slep != NULL; slep = slep->next) {
+      inst = slep->symbol;
       if (!has_correspondence(inst->variant.class_struct_union.type)) {
         add_pending_instantiation(inst);
       }  /* if */
     }  /* for */
-    inst = corresp_tssp->variant.class_template.instantiations;
-    for (; inst != NULL; inst = next_instance_sym(inst)) {
+    for (slep = corresp_tssp->variant.class_template.instantiations;
+         slep != NULL; slep = slep->next) {
+      inst = slep->symbol;
       if (!has_correspondence(inst->variant.class_struct_union.type)) {
         add_pending_instantiation(inst);
       }  /* if */
@@ -6583,9 +6592,11 @@ corresponding instance, or NULL if no corresponding instance is found.
       if (result_sym == NULL) {
         /* We still haven't found a match.  Go through the instantiations
            list. */
-        a_symbol_ptr	inst_sym;
-        for (inst_sym = tssp->variant.class_template.instantiations;
-             inst_sym != NULL; inst_sym = inst_sym->next) {
+        a_symbol_list_entry_ptr	slep;
+        a_symbol_ptr            inst_sym;
+        for (slep = tssp->variant.class_template.instantiations;
+             slep != NULL; slep = slep->next) {
+          inst_sym = slep->symbol;
           if (is_corresponding_sym_in_trans_unit(corresp_ptr,
                                                  inst_sym, tup)) {
             result_sym = inst_sym;

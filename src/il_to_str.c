@@ -482,18 +482,20 @@ The output includes template arguments on template classes.
   }  /* if */
   /* Check for template arguments on a class name. */
   if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type) {
-    a_type_ptr type = (a_type_ptr)scp;
+    a_type_ptr		type = (a_type_ptr)scp;
+    a_template_arg_ptr	tap = NULL;
     /* Ignore template parameters and classes whose bodies have been
        eliminated. */
     if (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info != NULL) {
-      a_template_arg_ptr tap =
-                type->variant.class_struct_union.extra_info->template_arg_list;
-      if (tap != NULL) {
-        /* This is a template class name.  Put out the template argument
-           list, e.g., "<int, float>". */
-        form_template_args(tap, octl);
-      }  /* if */
+      tap = type->variant.class_struct_union.extra_info->template_arg_list;
+    } else if (type->kind == (a_type_kind)tk_typeref) {
+      tap = type->variant.typeref.extra_info->template_arg_list;
+    }  /* if */
+    if (tap != NULL) {
+      /* This is a template class name or template alias name.  Put out the
+         template argument list, e.g., "<int, float>". */
+      form_template_args(tap, octl);
     }  /* if */
   }  /* if */
 }  /* form_unqualified_name */
@@ -1244,7 +1246,7 @@ The given type represents a decltype construct.  Return its argument
 expression if available, or NULL otherwise.
 */
 {
-  an_expr_node_ptr  expr = type->variant.typeref.expr;
+  an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
 
   if (expr == NULL && innermost_function_scope != NULL) {
     a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?

@@ -226,6 +226,17 @@ no name.
 }  /* disp_name */
 
 
+static void disp_int32(char    *name,
+                       int32_t value)
+/*
+Display an int32_t value along with a name.
+*/
+{
+  disp_name(name);
+  (void)printf("%ld\n", (long)value);
+}  /* disp_long */
+
+
 static void disp_long(char *name,
                       long value)
 /*
@@ -1355,6 +1366,26 @@ Display the indicated template parameter type supplement.
 }  /* disp_template_param_type_supplement */
 
 
+static void disp_typeref_type_supplement(a_typeref_type_supplement_ptr ptr)
+/*
+Display the indicated typeref type supplement.
+*/
+{
+  if (ptr->template_arg_list != NULL) {
+    disp_template_arg_list("template_arg_list", ptr->template_arg_list);
+  }  /* if */
+  if (ptr->assoc_template != NULL) {
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
+  }  /* if */
+  if (ptr->expr != NULL) {
+    disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+  }  /* if */
+  if (ptr->min_template_arguments >= 0) {
+    disp_int32("min_template_arguments", ptr->min_template_arguments);
+  }  /* if */
+}  /* disp_typeref_type_supplement */
+
+
 static char* type_kind_string(a_type_kind  type_kind)
 /*
 Return a string corresponding to the indicated type kind.
@@ -1814,13 +1845,11 @@ Display the indicated type entry.
     case tk_typeref:
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
                iek_type);
+      disp_typeref_type_supplement(ptr->variant.typeref.extra_info);
 #if DO_IL_LOWERING
       /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
-      if (ptr->variant.typeref.expr != NULL) {
-        disp_ptr("expr", (char *)ptr->variant.typeref.expr, iek_expr_node);
-      }  /* if */
       if (ptr->variant.typeref.is_placeholder_for_class_instantiation) {
         disp_boolean("is_placeholder_for_class_instantiation", TRUE);
       } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {
@@ -1861,6 +1890,18 @@ Display the indicated type entry.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       if (ptr->variant.typeref.for_type_attributes) {
         disp_boolean("for_type_attributes", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.is_alias) {
+        disp_boolean("is_alias", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.is_template_alias) {
+        disp_boolean("is_template_alias", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.is_nonreal) {
+        disp_boolean("is_nonreal", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.is_prototype_instantiation) {
+        disp_boolean("is_prototype_instantiation", TRUE);
       }  /* if */
       break;
     case tk_ptr_to_member:
@@ -5266,7 +5307,7 @@ Display the indicated class type supplement entry.
   /* Likewise construction_vtbls. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
-  disp_long("min_template_arguments", ptr->min_template_arguments);
+  disp_int32("min_template_arguments", ptr->min_template_arguments);
 #if NEED_NAME_MANGLING
   if (ptr->defined_in_static_data_member_initializer) {
     disp_ptr("lambda_parent.variable", (char*)ptr->lambda_parent.variable,
@@ -5561,6 +5602,7 @@ This routine is called during IL walking.
   /* Do not display entries that are displayed at the point of use. */
   switch (entry_kind) {
     case iek_template_param_type_supplement:
+    case iek_typeref_type_supplement:
     case iek_routine_type_supplement:
     case iek_based_type_list_member:
     case iek_block:

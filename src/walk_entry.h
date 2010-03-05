@@ -1052,8 +1052,9 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.typeref.expr, an_expr_node_ptr,
-                     iek_expr_node);
+            walk_ptr(ptr->variant.typeref.extra_info,
+                     a_typeref_type_supplement_ptr,
+                     iek_typeref_type_supplement);
 #if DO_IL_LOWERING
 #if KEEP_IN_IL_WALK
             walk_ptr(ptr->variant.typeref.orig_type, a_type_ptr, iek_type);
@@ -2680,6 +2681,16 @@ after_entry_from_class:
            not linked into the IL. */
         walk_ptr(ptr->class_type, a_type_ptr, iek_type);
         remap_ptr(ptr->orig_nested_type, a_type_ptr, iek_type);
+      }
+      break;
+    case iek_typeref_type_supplement:
+      {
+        a_typeref_type_supplement_ptr ptr =
+                                      (a_typeref_type_supplement_ptr)entry_ptr;
+        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
+        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
       }
       break;
     case iek_constructor_init:

@@ -1094,6 +1094,9 @@ extern a_boolean virtual_base_class_is_indirect(a_base_class_ptr vbcp,
 
 extern void types_early_init(void);
 
+extern int32_t *min_template_arguments_for_type(a_type_ptr	tp);
+
+
 #endif /* ifndef TYPES_H */
 
 /******************************************************************************

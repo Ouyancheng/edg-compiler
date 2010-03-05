@@ -1109,6 +1109,7 @@ do_variable:
           col = 0;
         }  /* for */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
+          a_symbol_list_entry_ptr	slep;
           /* Display the prototype instantiation. */
           inst_sym = tssp->variant.class_template.prototype_instantiation;
           if (inst_sym != NULL) {
@@ -1125,12 +1126,12 @@ do_variable:
             inst_sym = inst_sym->next;
           }  /* while */
           /* Display instantiations based on this template. */
-          inst_sym = tssp->variant.class_template.instantiations;
-          while (inst_sym != NULL) {
+          slep = tssp->variant.class_template.instantiations;
+          while (slep != NULL) {
             fprintf(f_debug, "%*sinstantiation:\n", indentation, "");
             fprintf(f_debug, "%*s", indentation + 2, "");
-            db_symbol(inst_sym, "", indentation + 4);
-            inst_sym = next_instance_sym(inst_sym);
+            db_symbol(slep->symbol, "", indentation + 4);
+            slep = slep->next;
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           a_routine_ptr            routine = tssp->variant.function.routine;
@@ -2645,6 +2646,7 @@ and return a pointer to it.
       tssp->variant.class_template.primary_template_sym = NULL;
       tssp->variant.class_template.out_of_class_partial_specs = NULL;
       tssp->variant.class_template.friend_info = NULL;
+      tssp->variant.class_template.is_template_alias = FALSE;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access = (an_access_specifier)as_public;
       tssp->variant.class_template.name_linkage =
@@ -2768,7 +2770,6 @@ state.
         cssp->routine_fixup_list = NULL;
         cssp->class_template = NULL;
         cssp->template_info = NULL;
-        cssp->next_in_instantiations_list = NULL;
         cssp->member_decl_scope = NO_SCOPE_NUMBER;
         cssp->instantiation_position = null_source_position;
         cssp->template_param_for_proxy_class = NULL;
@@ -5095,31 +5096,43 @@ a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol)
 /*
 Create a symbol for an instance of a class template.  Link the symbol to
 the class template symbol but do not enter it into the symbol table.
-ct_symbol is the symbol of the class template.
+ct_symbol is the symbol of the class template.  This is also used to
+create the instance symbols for template aliases.
 */
 {
   a_symbol_ptr 				sym;
   a_symbol_kind 			kind;
   a_class_symbol_supplement_ptr		cssp;
+  a_boolean				is_template_alias;
+  a_template_symbol_supplement_ptr	tssp;
 
-  /* Determine kind of symbol to be entered.  It can be either a
-     class_or_struct or a union depending on the type of the class
-     template. */
-  switch (ct_symbol->variant.template_info->variant.class_template.type_kind) {
-    case tk_class:
-    case tk_struct:  kind = (a_symbol_kind)sk_class_or_struct_tag;  break;
-    case tk_union:   kind = (a_symbol_kind)sk_union_tag;            break;
+  tssp = ct_symbol->variant.template_info;
+  is_template_alias = tssp->variant.class_template.is_template_alias;
+  if (is_template_alias) {
+    kind = (a_symbol_kind)sk_type;
+  } else {
+    /* Determine kind of symbol to be entered.  It can be either a
+       class_or_struct or a union depending on the type of the class
+       template. */
+    switch (tssp->variant.class_template.type_kind) {
+      case tk_class:
+      case tk_struct:  kind = (a_symbol_kind)sk_class_or_struct_tag;  break;
+      case tk_union:   kind = (a_symbol_kind)sk_union_tag;            break;
 #if CHECKING
-    default:
-      internal_error("make_template_class_symbol: bad type kind");
+      default:
+        internal_error("make_template_class_symbol: bad type kind");
 #endif /* CHECKING */
-  }  /* switch */
+    }  /* switch */
+  }  /* if */
   /* Create the symbol.  Use the position of the template declaration as its
      declaration position. */
   sym = alloc_symbol(kind, ct_symbol->header, &ct_symbol->decl_position);
-  /* Set the pointer that points back to the original class template symbol. */
-  cssp = sym->variant.class_struct_union.extra_info;
-  cssp->class_template = ct_symbol;
+  if (!is_template_alias) {
+    /* Set the pointer that points back to the original class template
+       symbol. */
+    cssp = sym->variant.class_struct_union.extra_info;
+    cssp->class_template = ct_symbol;
+  }  /* if */
   /* Make the declaration scope the same as the class template's. */
   sym->decl_scope = ct_symbol->decl_scope;
   /* Set the new symbol to have the same class or namespace membership as

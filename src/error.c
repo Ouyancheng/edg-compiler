@@ -1022,6 +1022,10 @@ declaration position to eliminate redundant file names in a diagnostic.
       } else if (sym->kind == (a_symbol_kind)sk_class_template &&
                  sym->variant.template_info->is_nonreal_member) {
         entity_kind = ec_template;
+      } else if (sym->kind == (a_symbol_kind)sk_class_template &&
+                 sym->variant.template_info->
+                                    variant.class_template.is_template_alias) {
+        entity_kind = ec_template_alias;
       } else {
         entity_kind = ec_class_template;
       }  /* if */

@@ -341,13 +341,13 @@ Dump decl-pos information for the specified symbol (for debugging).
     } else if (sym->kind == (a_symbol_kind)sk_class_template) {
       /* Display decl-pos info for each explicit specialization of the
          class template. */
-      a_symbol_ptr  instance_sym;
-
-      for (instance_sym = sym->variant.template_info->
+      a_symbol_list_entry_ptr	    slep;
+      for (slep = sym->variant.template_info->
                                   variant.class_template.instantiations;
-           instance_sym != NULL;
-           instance_sym = next_instance_sym(instance_sym)) {
-        if (instance_sym->variant.class_struct_union.type->
+           slep != NULL; slep = slep->next) {
+        a_symbol_ptr  instance_sym = slep->symbol;
+        if (is_class_struct_union_symbol(instance_sym) &&
+            instance_sym->variant.class_struct_union.type->
                              variant.class_struct_union.is_specialized) {
           db_decl_pos_info(instance_sym);
         }  /* if */
@@ -3369,6 +3369,10 @@ be NULL if we don't yet know which instance we are dealing with.
     a_class_symbol_supplement_ptr	cssp;
     cssp = instance_sym->variant.class_struct_union.extra_info;
     nsp = cssp->referencing_namespace;
+  } else if (instance_sym->kind == (a_symbol_kind)sk_type) {
+    /* The instance points to a type for a template alias.  Use the
+       current innermost namespace. */
+    nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   } else {
     /* The instance points to a routine or static data member.  Return
        the referencing namespace from the template instance record. */
@@ -5229,20 +5233,23 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       {
       a_template_symbol_supplement_ptr  tssp;
       a_symbol_ptr                      template_class_sym;
+      a_symbol_list_entry_ptr           slep;
       tssp = sym->variant.template_info;
-      template_class_sym = tssp->variant.class_template.instantiations;
-      for (; template_class_sym != NULL;
-             template_class_sym = next_instance_sym(template_class_sym)) {
-
-        if (template_class_sym->variant.class_struct_union.type->
+      /* Only check instances of class templates, not template aliases. */
+      if (!tssp->variant.class_template.is_template_alias) {
+        for (slep = tssp->variant.class_template.instantiations;
+             slep != NULL; slep = slep->next) {
+          template_class_sym = slep->symbol;
+          if (template_class_sym->variant.class_struct_union.type->
                                 variant.class_struct_union.is_nonreal_class) {
-          /* Skip the recursive check for prototype instantiation of a class
-             template. */
-        } else {
-          end_of_scope_symbol_check(template_class_sym, scope_kind,
-                                    curr_routine);
-        }  /* if */
-      }  /* for */
+            /* Skip the recursive check for prototype instantiation of a class
+               template. */
+          } else {
+            end_of_scope_symbol_check(template_class_sym, scope_kind,
+                                      curr_routine);
+          }  /* if */
+        }  /* for */
+      }  /* if */
       }
       break;
     case sk_function_template:

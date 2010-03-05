@@ -13044,8 +13044,17 @@ a routine to lookup the appropriate instance (or generate one if needed).
      class template name are handled. */
   current_instantiation_sym = template_sym;
   if (template_sym != NULL) {
+    a_template_symbol_supplement_ptr	tssp;
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
+    tssp = template_supplement_for_symbol(template_sym);
+    if (tssp != NULL && tssp->variant.class_template.is_template_alias &&
+        !tssp->variant.class_template.prototype_instantiation_complete) {
+      /* The template alias name is used in the alias definition. */
+      pos_sy_error(ec_alias_used_in_type, &start_position,
+                   template_sym);
+      template_sym = NULL;
+    }  /* if */
   }  /* if */
   if (next_tok != tok_lt) {
     if (options & GID_CLASS_TEMPLATE_REQUIRED) {
@@ -13168,9 +13177,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
     a_boolean			is_templ_member_class_sym = FALSE;
     a_symbol_ptr		tmc_sym;
     a_type_ptr			type;
-    a_class_type_supplement_ptr ctsp;
     a_scope_stack_entry_ptr	ssep;
     a_boolean			is_outermost_tmc = TRUE;
+    int32_t			*p_min_template_arguments;
     ssep = &scope_stack[depth_scope_stack];
     tmc_sym = ssep->templ_member_class_sym;
     /* Determine whether the template being used is either the class associated
@@ -13262,12 +13271,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
     }  /* if */
     arg_list_coalesced = TRUE;
     type = type_symbol_type(new_sym);
-    ctsp = type->variant.class_struct_union.extra_info;
+    p_min_template_arguments = min_template_arguments_for_type(type);
     if (first_defaulted_arg >= 0 &&
-        (ctsp->min_template_arguments == -1L ||
-         ctsp->min_template_arguments > first_defaulted_arg)) {
+        (*p_min_template_arguments == -1L ||
+         *p_min_template_arguments > first_defaulted_arg)) {
       /* Record the number of arguments used in this reference. */
-      ctsp->min_template_arguments = first_defaulted_arg;
+      *p_min_template_arguments = first_defaulted_arg;
     }  /* if */
     if (is_constructor_reference) {
       /* If a constructor symbol was passed originally, replace the class

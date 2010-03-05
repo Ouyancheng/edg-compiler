@@ -999,6 +999,11 @@ EXTERN a_boolean
 			   "(int, int)->int").  This is a C++0x extension. */
 
 EXTERN a_boolean
+		alias_declarations_enabled;
+			/* TRUE if C++0x alias-declarations and template
+			   aliases are allowed. */
+
+EXTERN a_boolean
 		std_attributes_enabled;
 			/* TRUE if C++0x attribute syntax (e.g., [[final]]) is
 			   accepted. */
