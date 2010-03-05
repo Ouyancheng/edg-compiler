@@ -9110,9 +9110,9 @@ position of the __if_exists or __if_not_exists token.
       a_boolean	exists = FALSE;
       if (sym == NULL || sym->is_error) {
         /* The symbol does not exist or is an error symbol (which is
-           is considered to not exist). */
+           considered to not exist). */
       } else if (is_template_class_and_not_specific_def_symbol(sym)) {
-        /* For a non-specialized  instance of a class template, the symbol
+        /* For a non-specialized instance of a class template, the symbol
            is only considered to exist if the type has been (or is in the
            process of being) instantiated. */
         a_type_ptr	tp = type_symbol_type(sym);
