@@ -23051,16 +23051,17 @@ postfix operators.
         *unary = TRUE;
         break;
       case eok_indirect:
+        operator_token = tok_star;
+#if MICROSOFT_EXTENSIONS_ALLOWED
         { a_boolean        is_type;
           an_expr_node_ptr op_expr;
           a_type_ptr       type;
           if (is_uuidof_expr(expr, &is_type, &op_expr, &type)) {
             /* The IL representation for __uuidof has a "*" on top. */
             operator_token = tok_uuidof;
-          } else {
-            operator_token = tok_star;
           }  /* if */
         }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         *unary = TRUE;
         break;
       case eok_unary_plus:
