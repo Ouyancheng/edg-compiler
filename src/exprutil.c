@@ -861,6 +861,7 @@ is pushed regardless of any of the other factors.
   new_entry->objectless_nonstatic_data_ref_pos = null_source_position;
   new_entry->current_lambda_in_header = NULL;
   new_entry->p_end_of_entities_defined_in_expression = NULL;
+  new_entry->default_rescan_info = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -2087,6 +2088,19 @@ instead.
 }  /* extract_node_from_operand */
 
 
+static void clear_expr_rescan_info_entry(an_expr_rescan_info_entry_ptr eriep)
+/*
+Clear the fields of the given expression rescan info entry to default
+values.
+*/
+{
+  clear_operand((an_operand_kind)ok_error, &eriep->saved_operand);
+  eriep->expression_kind = (an_expression_kind)ek_normal;
+  eriep->operator_position = null_source_position;
+  eriep->operator_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+}  /* clear_expr_rescan_info_entry */
+
+
 static an_expr_rescan_info_entry_ptr alloc_expr_rescan_info_entry(void)
 /*
 Allocate an expression rescan information entry (used to save information
@@ -2101,10 +2115,7 @@ set its fields to default values, and return a pointer to it.
 #if DEBUG
   num_expr_rescan_info_entries_allocated++;
 #endif /* DEBUG */
-  clear_operand((an_operand_kind)ok_error, &eriep->saved_operand);
-  eriep->expression_kind = (an_expression_kind)ek_normal;
-  eriep->operator_position = null_source_position;
-  eriep->operator_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  clear_expr_rescan_info_entry(eriep);
   return eriep;
 }  /* alloc_expr_rescan_info_entry */
 
@@ -2223,6 +2234,43 @@ that has it.
 }  /* strip_implicit_operations_for_rescan */
 
 
+an_expr_rescan_info_entry_ptr get_expr_rescan_info(
+                                        an_expr_node_ptr          expr,
+                                        an_expr_rescan_info_entry *rescan_info)
+/*
+Extract the rescan_info pointer from the indicated expression node and
+return it.  If the node does not have recorded rescan information, see if
+there is default information available in the expression stack from
+an enclosing expression with rescan info, use that to build default
+rescan information (containing basically just positions) in *rescan_info,
+and return a pointer to that.  If default information is needed and
+rescan_info is NULL or no default information is available, abort.
+*/
+{
+  an_expr_rescan_info_entry_ptr eriep = expr->rescan_info, default_eriep;
+
+  if (eriep == NULL) {
+    /* Generate default rudimentatry rescan information from the information
+       on the nearest enclosing expression that has it. */
+    check_assertion_str(rescan_info != NULL,
+                        "missing rescan info");
+    check_assertion_str(expr_stack != NULL &&
+                        expr_stack->default_rescan_info != NULL,
+                        "missing default rescan info");
+    eriep = rescan_info;
+    default_eriep = expr_stack->default_rescan_info;
+    clear_expr_rescan_info_entry(eriep);
+    eriep->saved_operand.position = default_eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    eriep->saved_operand.end_position =
+                                     default_eriep->saved_operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    eriep->expression_kind = default_eriep->expression_kind;
+  }  /* if */
+  return eriep;
+}  /* get_expr_rescan_info */
+
+
 static void make_rescan_operand_full(
                                an_expr_node_ptr       expr,
                                a_rescan_control_block *rcblock,
@@ -2245,11 +2293,14 @@ and the selector for that can be stored in *bound_function_selector.
   a_constant                    constant;
   a_constant_ptr                alloc_con;
   an_expr_rescan_info_entry_ptr eriep;
+  an_expr_rescan_info_entry     rescan_info;
 
   /* Drop implicit operations like conversions, since they don't have a
      source counterpart. */
   expr = strip_implicit_operations_for_rescan(expr, &eriep);
-  check_assertion(eriep != NULL);
+  if (eriep == NULL) {
+    eriep = get_expr_rescan_info(expr, &rescan_info);
+  }  /* if */
   if (rcblock->error_detected) {
     /* For speed, stop substituting if there was a deduction error on
        a previous operand. */
@@ -2348,10 +2399,10 @@ list being tried.
 {
   an_expr_node_ptr              expr = rcblock->expr, op1, op2, op3;
   an_expr_rescan_info_entry_ptr eriep;
+  an_expr_rescan_info_entry     rescan_info;
 
   check_assertion(expr != NULL && is_operation_node(expr));
-  eriep = expr->rescan_info;
-  check_assertion(eriep != NULL);
+  eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
   make_rescan_operand(op1, rcblock, operand_1);
   op2 = op1->next;
@@ -2389,8 +2440,9 @@ to be converted to operand form later.
   an_expr_rescan_info_entry_ptr eriep;
 
   check_assertion(expr != NULL && is_operation_node(expr));
-  eriep = expr->rescan_info;
-  check_assertion(eriep != NULL);
+  /* We pass NULL for the second argument because we want to require
+     explicit rescan information on all calls. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   op1 = expr->variant.operation.operands;
   make_rescan_operand_full(op1, rcblock, operand, bound_function_selector);
   args = op1->next;
@@ -2461,15 +2513,64 @@ being tried.
 {
   an_expr_node_ptr              expr = rcblock->expr, op1;
   an_expr_rescan_info_entry_ptr eriep;
+  an_expr_rescan_info_entry     rescan_info;
 
   check_assertion(expr != NULL && is_operation_node(expr));
-  eriep = expr->rescan_info;
-  check_assertion(eriep != NULL);
+  eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
   make_rescan_operand(op1, rcblock, operand_1);
   get_rescan_operator_positions(eriep, operator_position,
                                 operator_tok_seq_number);
 }  /* make_selection_rescan_operands */
+
+
+a_boolean is_uuidof_expr(an_expr_node_ptr expr,
+                         a_boolean        *is_type,
+                         an_expr_node_ptr *op_expr,
+                         a_type_ptr       *type)
+/*
+Return TRUE if the indicated expression is the IL that represents a
+Microsoft __uuidof construct, i.e., a "*" operator on top of a constant
+that gives the address of a GUID for a uuidof.  When TRUE if returned,
+*is_type is returned TRUE to indicate the __uuidof is applied to a type
+(which is returned in *type) or FALSE to indicate it is applied to an
+expression (which is returned in *op_expr).
+*/
+{
+  a_boolean is_uuidof = FALSE;
+
+  *is_type = FALSE;
+  *type = NULL;
+  *op_expr = NULL;
+  if (is_operation_node(expr) &&
+      expr->variant.operation.compiler_generated &&
+      node_operator_is(expr, eok_indirect)) {
+    /* The expression has a generated "*" on top.  Look underneath to
+       see if we have a uuidof address. */
+    expr = expr->variant.operation.operands;
+    if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_address) {
+        if (con->variant.address.kind == (an_address_base_kind)abk_uuidof) {
+          is_uuidof = TRUE;
+          *is_type = TRUE;
+          *type = con->variant.address.variant.type;
+        }  /* if */
+      } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        if (con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_uuidof) {
+          is_uuidof = TRUE;
+          *op_expr = generic_sizeof_arg_expr(con);
+          *is_type = (*op_expr == NULL);
+          if (*is_type) {
+            *type = con->variant.template_param.variant.templ_sizeof.type;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_uuidof;
+}  /* is_uuidof_expr */
 
 
 void make_sizeof_et_al_rescan_operands(
@@ -2482,7 +2583,7 @@ void make_sizeof_et_al_rescan_operands(
 /*
 As part of redoing semantic analysis on an expression while doing
 template deduction, extract the operands of the expression given by
-rcblock->expr (a sizeof or alignof node) and:
+rcblock->expr (a sizeof, alignof, or uuidof node) and:
 
 1)  Set *p_is_type indicating whether the operator is applied to a type (TRUE)
     or an expression (FALSE).
@@ -2497,30 +2598,32 @@ template argument list being tried.
 {
   a_boolean                     is_type;
   a_type_ptr                    type;
-  an_expr_node_ptr              expr = rcblock->expr, op1;
+  an_expr_node_ptr              expr = rcblock->expr, op_expr;
   an_expr_rescan_info_entry_ptr eriep;
+  an_expr_rescan_info_entry     rescan_info;
 
   check_assertion(expr != NULL);
-  eriep = expr->rescan_info;
-  check_assertion(eriep != NULL);
-  if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+  eriep = get_expr_rescan_info(expr, &rescan_info);
+  if (is_uuidof_expr(expr, &is_type, &op_expr, &type)) {
+    /* The expression represents a __uuidof. */
+  } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
      /* Expression form. */
     is_type = expr->variant.sizeof_info.is_type;
     if (is_type) {
       type = expr->variant.sizeof_info.variant.type;
     } else {
-      op1 = expr->variant.sizeof_info.variant.expr;
+      op_expr = expr->variant.sizeof_info.variant.expr;
     }  /* if */
   } else if (is_constant_node(expr)) {
-    /* tpck_sizeof or tpck_alignof constant form. */
+    /* tpck_sizeof, tpck_alignof, or tpck_uuidof constant form. */
     a_constant_ptr con = expr->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                     (con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_sizeof ||
                      con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_alignof));
-    op1 = generic_sizeof_arg_expr(con);
-    is_type = (op1 == NULL);
+    op_expr = generic_sizeof_arg_expr(con);
+    is_type = (op_expr == NULL);
     if (is_type) {
       type = con->variant.template_param.variant.templ_sizeof.type;
     }  /* if */
@@ -2542,7 +2645,7 @@ template argument list being tried.
     }  /* if */
   } else {
     /* Expression case.  Rescan the operand. */
-    make_rescan_operand(op1, rcblock, operand);
+    make_rescan_operand(op_expr, rcblock, operand);
     *p_type = NULL;
   }  /* if */
   get_rescan_operator_positions(eriep, operator_position,
