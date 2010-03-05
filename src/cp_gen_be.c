@@ -5670,7 +5670,7 @@ declaration following this one is such a continuation.
      and this routine is called for each one. */
   adv_curr_source_sequence_entry();
   /* The caller has called set_decl_position already. */
-  gen_attributes(attributes, al_prefix, sec_decl != NULL);
+  gen_attributes(attributes, al_prefix, sec_decl == NULL);
   if (anon_union_case) {
     /* The strange nonstandard anonymous union case described above. */
     gen_type_name(under_type);

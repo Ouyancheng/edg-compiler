@@ -9382,7 +9382,7 @@ symbol entry, and return a pointer to it in state->sym.
   }  /*if */
   /* Return the type name symbol to the caller. */
   state->sym = sym;
-  attach_decl_attributes(state, /*primary_decl=*/TRUE);
+  attach_decl_attributes(state, /*primary_decl=*/!is_redecl);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if ((gnu_mode || microsoft_mode) && !is_redecl && !is_error_type(type_ptr)) {
     if (!tp->source_corresp.is_deprecated) {
