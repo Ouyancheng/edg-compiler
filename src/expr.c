@@ -6177,11 +6177,17 @@ the sizeof result is built and returned there.
 static void scan_sizeof_operator(a_rescan_control_block *rcblock,
                                  an_operand             *result)
 /*
-Scan the sizeof operator.  The current token is the sizeof keyword.
-Scan a type or expression operand, and return an operand for sizeof
-applied to that, in *operand.  If rcblock is non-NULL, redo semantic
-analysis on a previously-scanned sizeof expression, and return the
-result in *result (or an error indication in *rcblock).
+Scan the sizeof operator.
+
+Syntax:
+        sizeof ( type-id )
+        sizeof expression
+
+The current token is the sizeof keyword.  Scan a type or expression
+operand, and return an operand for sizeof applied to that, in
+*operand.  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned sizeof expression, and return the result in *result
+(or an error indication in *rcblock).
 */
 {
   a_source_position     operator_position, start_position, type_position;
@@ -6602,7 +6608,7 @@ Scan the __ALIGNOF__ operator.  This is an extension that is similar
 to sizeof, but returns the alignment requirement rather than the size.
 
 Syntax:
-        __ALIGNOF__ ( type-name )
+        __ALIGNOF__ ( type-id )
         __ALIGNOF__ expression
 
 There are several variants of the keyword spelling in various modes.
@@ -8496,29 +8502,58 @@ the transformed node.
 }  /* operand_is_objectless_nonstatic_data_mem_ref */
 
 
-static void scan_typeid_operator(an_operand *result)
+static void scan_typeid_operator(a_rescan_control_block *rcblock,
+                                 an_operand             *result)
 /*
-Scan the C++ typeid operator.  See [expr.typeid].
+Scan the C++ typeid operator.
 
 Syntax:
 	typeid ( expression )
 	typeid ( type-id )
 
+The current token is the typeid keyword.  Scan a type or expression
+operand, and return an operand for typeid applied to that, in *result.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+typeid expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
-  a_source_position start_position, operand_position;
+  a_source_position operator_position, start_position, operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        operand;
   an_expr_node_ptr  expr = NULL;
+  a_boolean         is_type;
   a_type_ptr        typeid_type;
   a_boolean         err = FALSE;
   a_boolean         microsoft_template_arg_case = FALSE;
+  an_expr_stack_entry
+                    expr_stack_entry;
+  a_memory_region_number
+                    region_to_switch_back_to;
+  a_boolean         objectless_nonstatic_data_ref_seen = FALSE;
+  a_source_position objectless_nonstatic_data_ref_pos;
 
   db_enter(4, "scan_typeid_operator");
-  /* Save the position of the typeid keyword. */
-  start_position = pos_curr_token;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    a_token_sequence_number operator_tok_seq_number;
+    check_assertion(rcblock->operator_token == tok_typeid);
+    make_sizeof_et_al_rescan_operands(rcblock,
+                                      &is_type, &operand, &typeid_type,
+                                      &operator_position,
+                                      &operator_tok_seq_number);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* In the type case, we don't have the actual type position. */
+    operand_position = is_type ? operator_position : operand.position;
+  } else {
+    /* Normal, non-rescan, processing. */
+    operator_position = pos_curr_token;
+  }  /* if */
+  start_position = operator_position;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Typeid not possible for preprocessing expressions. */
@@ -8527,7 +8562,7 @@ Syntax:
 #endif /* CHECKING */
   /* RTTI is outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
-                                              &pos_curr_token,
+                                              &start_position,
                                               ec_rtti_in_embedded_cplusplus);
   if (curr_expr_kind_is_const()) {
     /* typeid is not allowed in constant expressions. */
@@ -8544,55 +8579,62 @@ Syntax:
   if (!err && is_incomplete_type(type_of_type_info)) {
     expr_pos_error(ec_typeid_needs_typeinfo, &start_position);
   }  /* if */
-  /* Advance past typeid. */
-  (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
-  /* Disambiguate to choose between the type case and the expression case. */
-  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                       DFS_SINGLE_TYPE_REQUIRED)) {
-    /* Scan a type name. */
-    operand_position = pos_curr_token;
-    type_name(&typeid_type);
+  /* Push an entry on the expression stack so the operand will be handled
+     properly.  For simplicity, this is done even for the cases where the
+     operand will turn out to be a type. */
+  if (microsoft_template_arg_case) {
+    /* Something like X<... typeid(<expr>) ...>.  Scan the <expr> argument
+       like a sizeof expression so that function calls etc. are accepted in
+       what is otherwise a constant-expression context. */
+    switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+  } else {
+    /* Allow objectless references to nonstatic data members.  These are
+       permitted only in unevaluated operands, so we will check later and
+       issue an error if one appears in the polymorphic lvalue case where
+       the operand is evaluated. */
+    push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    expr_stack->potentially_unevaluated = TRUE;
+  }  /* if */
+  if (rcblock == NULL) {
+    /* Advance past typeid. */
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    /* Disambiguate to choose between the type case and the expression case. */
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      /* Scan a type name. */
+      is_type = TRUE;
+      operand_position = pos_curr_token;
+      type_name(&typeid_type);
+    } else {
+      /* Scan an expression. */
+      is_type = FALSE;
+      scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+      operand_position = operand.position;
+      objectless_nonstatic_data_ref_seen =
+                                expr_stack->objectless_nonstatic_data_ref_seen;
+      objectless_nonstatic_data_ref_pos =
+                                 expr_stack->objectless_nonstatic_data_ref_pos;
+    }  /* if */
+  }  /* if */
+
+  /* The type or expression has been scanned (or retrieved from rcblock, on
+     a rescan). */
+  if (is_type) {
+    /* Type case. */
     /* If the type is a reference, drop that. */
     if (is_reference_type(typeid_type)) {
       typeid_type = type_pointed_to(typeid_type);
     }  /* if */
   } else {
-    an_expr_stack_entry     expr_stack_entry;
-    a_memory_region_number  region_to_switch_back_to;
-    a_boolean               objectless_nonstatic_data_ref_seen;
-    a_source_position       objectless_nonstatic_data_ref_pos;
-    /* Scan an expression. */
-    if (microsoft_template_arg_case) {
-      /* Something like X<... typeid(<expr>) ...>.  Scan the <expr> argument
-         like a sizeof expression so that function calls etc. are accepted in
-         what is otherwise a constant-expression context. */
-      switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
-      push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                      /*force_object_lifetime=*/FALSE,
-                      /*suppress_object_lifetime=*/FALSE);
-    } else {
-      /* Allow objectless references to nonstatic data members.  These are
-         permitted only in unevaluated operands, so we will check later and
-         issue an error if one appears in the polymorphic lvalue case where
-         the operand is evaluated. */
-      push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
-                      /*force_object_lifetime=*/FALSE,
-                      /*suppress_object_lifetime=*/FALSE);
-      expr_stack->potentially_unevaluated = TRUE;
-    }  /* if */
-    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    operand_position = operand.position;
-    objectless_nonstatic_data_ref_seen =
-                                expr_stack->objectless_nonstatic_data_ref_seen;
-    objectless_nonstatic_data_ref_pos =
-                                 expr_stack->objectless_nonstatic_data_ref_pos;
-    pop_expr_stack();
-    if (microsoft_template_arg_case) {
-      switch_back_to_original_region(region_to_switch_back_to);
-    }  /* if */
+    /* Expression case. */
     /* Rule out indefinite functions. */
     do_operand_transformations(&operand,
                                (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
@@ -8600,13 +8642,13 @@ Syntax:
                                 TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
     force_complete_type_if_a_variable(&operand);
-    typeid_type = operand.type;
     if (is_sym_for_member_operand(&operand)) {
       /* Can't take typeid of a member function.  Diagnose it as an
          attempt to use a nonstandard pointer to member syntax. */
       conv_sym_for_member_operand_to_ptr_to_member(&operand,
                                                    (a_source_position *)NULL);
     }  /* if */
+    typeid_type = operand.type;
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
     /* As of now (April 2009), the working draft doesn't give special
@@ -8697,12 +8739,18 @@ Syntax:
     expr_pos_error(ec_vla_not_allowed, &operand_position);
     err = TRUE;
   }  /* if */
+  if (rcblock == NULL) {
+    /* Check for and pass over the right parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
+    end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
+  pop_expr_stack();
+  if (microsoft_template_arg_case) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
   if (err) {
     make_error_operand(result);
   } else {
@@ -8711,7 +8759,7 @@ Syntax:
                         result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
-                       &start_position);
+                       &operator_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_typeid_operator */
@@ -9242,10 +9290,11 @@ Syntax:
 
 The value of the operation is an lvalue of type "const struct _GUID".
 The current token is the __uuidof, unless after_keyword is TRUE, in
-which case it's the token after __uuidof.  If rcblock is non-NULL,
-redo semantic analysis on a previously-scanned uuidof expression, and
-return the result in *result (or an error indication in *rcblock).
-after_keyword is ignored in that case.
+which case it's the token after __uuidof.  Scan a type or expression
+operand, and return an operand for __uuidof applied to that, in *result.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__uuidof expression, and return the result in *result (or an error
+indication in *rcblock).  after_keyword is ignored in that case.
 */
 {
   a_source_position   operator_position, start_position, operand_position;
@@ -9406,6 +9455,9 @@ after_keyword is ignored in that case.
   }  /* if */
   if (rcblock == NULL) {
     /* Check for and pass over the right parenthesis. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_matching_stop_token(tok_rparen);
   }  /* if */
@@ -21034,7 +21086,7 @@ see expr.h).
 
     case tok_typeid:
       /* typeid operation. */
-      scan_typeid_operator(&local_result);
+      scan_typeid_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_va_start:
@@ -22970,6 +23022,7 @@ redoes semantic analysis.
         case tpck_template_ref:
         case tpck_sizeof:
         case tpck_alignof:
+        case tpck_typeid:
           rescannable = TRUE;
           break;
         case tpck_uuidof:  /* Not handled at this level; see "*' operator */
@@ -22978,6 +23031,8 @@ redoes semantic analysis.
       }  /* switch */
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+    rescannable = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
     rescannable = TRUE;
   }  /* if */
   return rescannable;
@@ -23223,6 +23278,10 @@ postfix operators.
           operator_token = tok_alignof;
           *unary = TRUE;
           break;
+        case tpck_typeid:
+          operator_token = tok_typeid;
+          *unary = TRUE;
+          break;
         case tpck_uuidof: /* Not handled at this level; see "*" operator. */
         default:
           break;
@@ -23232,6 +23291,9 @@ postfix operators.
                         "invalid const in expr rescan");
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
     operator_token = tok_sizeof;
+    *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
+    operator_token = tok_typeid;
     *unary = TRUE;
   } else {
     unexpected_condition_str("invalid expr kind in expr rescan");
@@ -23345,6 +23407,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_uuidof_operator(rcblock, result, /*after_keyword=*/FALSE);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_typeid:
+        scan_typeid_operator(rcblock, result);
+        break;
       default:
         unexpected_condition();
     }  /* switch */

@@ -2583,7 +2583,7 @@ void make_sizeof_et_al_rescan_operands(
 /*
 As part of redoing semantic analysis on an expression while doing
 template deduction, extract the operands of the expression given by
-rcblock->expr (a sizeof, alignof, or uuidof node) and:
+rcblock->expr (a sizeof, alignof, uuidof, or typeid node) and:
 
 1)  Set *p_is_type indicating whether the operator is applied to a type (TRUE)
     or an expression (FALSE).
@@ -2607,21 +2607,31 @@ template argument list being tried.
   if (is_uuidof_expr(expr, &is_type, &op_expr, &type)) {
     /* The expression represents a __uuidof. */
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
-     /* Expression form. */
+     /* sizeof in expression form. */
     is_type = expr->variant.sizeof_info.is_type;
     if (is_type) {
       type = expr->variant.sizeof_info.variant.type;
     } else {
       op_expr = expr->variant.sizeof_info.variant.expr;
     }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
+     /* typeid in expression form. */
+    op_expr = expr->variant.typeid_info.expr;
+    is_type = (op_expr == NULL);
+    if (is_type) {
+      type = expr->variant.typeid_info.type;
+    }  /* if */
   } else if (is_constant_node(expr)) {
-    /* tpck_sizeof, tpck_alignof, or tpck_uuidof constant form. */
+    /* tpck_sizeof, tpck_alignof, or tpck_typeid constant form. */
+    /* tpck_uuidof gets handled above and doesn't get here. */
     a_constant_ptr con = expr->variant.constant;
     check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                     (con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_sizeof ||
                      con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_alignof));
+                                (a_template_param_constant_kind)tpck_alignof ||
+                     con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_typeid));
     op_expr = generic_sizeof_arg_expr(con);
     is_type = (op_expr == NULL);
     if (is_type) {
