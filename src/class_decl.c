@@ -16489,8 +16489,10 @@ classes.
         if (curr_token == tok_asm || curr_token == tok_microsoft_asm) {
           /* An asm declaration is not allowed in a class definition, but
              scan it anyway (after issuing the error). */
+          an_attribute_ptr  attributes;
           (void)asm_declaration(/*asm_decl_allowed=*/FALSE,
-                                /*is_asm_statement=*/FALSE);
+                                /*is_asm_statement=*/FALSE,
+                                &attributes);
           /* The semicolon will have been consumed by the subroutine.
              Continue looping through the members. */
           goto next_declaration;
