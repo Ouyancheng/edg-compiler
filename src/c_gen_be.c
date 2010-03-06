@@ -8343,6 +8343,7 @@ if this routine has a body (dump nothing if it has no body).
 #if IA64_ABI && ONE_INSTANTIATION_PER_OBJECT
   a_boolean       part_of_current_output_file = TRUE;
 #endif /* IA64_ABI && ONE_INSTANTIATION_PER_OBJECT */
+  a_boolean       is_marked_weak = FALSE;
 
   if (rout->suppress_inline_body && has_defn) {
     /* The body is present only to be used for inlining.  This happens
@@ -8524,6 +8525,7 @@ if this routine has a body (dump nothing if it has no body).
         /* GCC does not support COMDAT, but it does support weak, which
            provides a sufficient approximation. */
         write_tok_str(" __attribute__((__weak__))");
+        is_marked_weak = TRUE;
       }  /* if */
       write_space();
       start_comment();
@@ -8561,9 +8563,12 @@ if this routine has a body (dump nothing if it has no body).
       /* gcc will be used to compile this generated code, so we know how to
          indicate an inline function. */
       /* gcc ignores __inline__ on functions with ellipses, so don't
-         mark such functions as inline. */
+         mark such functions as inline.  Recent versions of gcc issue an
+         error for a function marked both inline and weak, so don't mark a
+         weak function as inline, either. */
       if (!f_skip_typerefs(rout->type)->variant.routine.extra_info->
-                                                                has_ellipsis) {
+                                                                has_ellipsis &&
+          !is_marked_weak) {
         write_tok_str("__inline__ ");
       }  /* if */
     }  /* if */

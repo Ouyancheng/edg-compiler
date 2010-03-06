@@ -1,5 +1,23 @@
 Version 4.2
 
+3/5/10   [EDGcpfe/1011]
+C-generating back end, GNU compatibility: inline weak functions
+
+Recent versions of gcc do not allow a routine to be marked as both weak and
+inline.  Because the C-generating back end, when
+gcc_is_generated_code_target is TRUE, uses weak symbols as a workaround for
+the absence of support for COMDAT groups, this combination occurred for
+inline functions that are assigned to a COMDAT group.  The C-generating
+back end has now been modified to suppress the inline specifier for such
+functions.  For example:
+
+  struct S {
+    void foo () { typedef S X; }  // Previously weak inline, now just weak
+    void bar ();
+  };
+  void S::bar () { foo (); }
+
+
 3/5/10   [EDGcpfe/10509]
 Microsoft compatibility: use of template class instance in __if_exists
 
