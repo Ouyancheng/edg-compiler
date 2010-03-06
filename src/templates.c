@@ -16512,7 +16512,6 @@ can be diagnosed at template definition time.
 {
   a_template_symbol_supplement_ptr	tssp;
   a_template_cache_ptr			tcp;
-  a_scope_stack_entry_ptr		ssep;
   a_boolean				scope_pushed = FALSE;
   a_template_arg_ptr			template_arg_list;
   a_symbol_ptr				prototype_sym;
@@ -16522,7 +16521,6 @@ can be diagnosed at template definition time.
   tssp = template_supplement_for_symbol(template_sym);
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   prototype_type = prototype_sym->variant.type.ptr;
-  ssep = &scope_stack[depth_scope_stack];
   /* Push the template instantiation scope. */
   tcp = cache_for_template(tssp);
   template_arg_list =
