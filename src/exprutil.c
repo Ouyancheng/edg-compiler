@@ -2643,15 +2643,20 @@ template argument list being tried.
   *p_is_type = is_type;
   if (is_type) {
     /* Type case.  Do substitution on the type. */
-    a_boolean copy_error = FALSE;
-    *p_type = copy_type_with_substitution(type,
-                                          rcblock->template_arg_list,
-                                          rcblock->template_param_list,
-                                          &eriep->saved_operand.position,
-                                          CTWS_NON_CONSTANT_EXPR,
-                                          &copy_error);
-    if (copy_error) {
-      rcblock->error_detected = TRUE;
+    if (type == NULL) {
+      /* For __uuidof(0), the type is NULL. */
+      *p_type = NULL;
+    } else {
+      a_boolean copy_error = FALSE;
+      *p_type = copy_type_with_substitution(type,
+                                            rcblock->template_arg_list,
+                                            rcblock->template_param_list,
+                                            &eriep->saved_operand.position,
+                                            CTWS_NON_CONSTANT_EXPR,
+                                            &copy_error);
+      if (copy_error) {
+        rcblock->error_detected = TRUE;
+      }  /* if */
     }  /* if */
   } else {
     /* Expression case.  Rescan the operand. */

@@ -9320,6 +9320,7 @@ indication in *rcblock).  after_keyword is ignored in that case.
                                       &is_type, &operand, &uuidof_type,
                                       &operator_position,
                                       &operator_tok_seq_number);
+    /* Note that for the __uuidof(0) case uuidof_type is NULL here. */
     operand_was_created = !is_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
@@ -9380,7 +9381,8 @@ indication in *rcblock).  after_keyword is ignored in that case.
   if (is_type) {
     /* Type case. */
     /* If the type is a reference, drop that. */
-    if (is_reference_type(uuidof_type)) {
+    /* For __uuidof(0) on a rescan, uuidof_type is NULL. */
+    if (uuidof_type != NULL && is_reference_type(uuidof_type)) {
       uuidof_type = type_pointed_to(uuidof_type);
     }  /* if */
   } else {
