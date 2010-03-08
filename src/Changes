@@ -1,10 +1,10 @@
 Version 4.2
 
-3/5/10   [EDGcpfe/1011]
+3/5/10   [EDGcpfe/10011]
 C-generating back end, GNU compatibility: inline weak functions
 
-Recent versions of gcc do not allow a routine to be marked as both weak and
-inline.  Because the C-generating back end, when
+Beginning with version 4.4, gcc does not allow a routine to be marked as
+both weak and inline.  Because the C-generating back end, when
 gcc_is_generated_code_target is TRUE, uses weak symbols as a workaround for
 the absence of support for COMDAT groups, this combination occurred for
 inline functions that are assigned to a COMDAT group.  The C-generating
