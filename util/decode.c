@@ -4966,12 +4966,12 @@ The syntax is:
     ptr = demangle_type(ptr+2, dctl);
     write_id_ch(')', dctl);
   } else if (*ptr == 's' && ptr[1] == 'r') {
-    ptr += 2;
     /* Scope resolution "::":
          sr <type> <name>
        The <name> is limited to <unqualified-name> or
        <unqualified-name> <template-args>, but we don't check that. */
     a_boolean    gpp_qualified_name = FALSE;
+    ptr += 2;
     if (emulate_gnu_abi_bugs) {
       /* g++ 3.2 sometimes puts out a qualified name as the second
          operand.  Look ahead to see whether that form is used.
