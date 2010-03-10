@@ -249,6 +249,7 @@ of the current identifier.
   write_id_str(buffer, dctl);
 }  /* write_id_number */
 
+#if IA64_ABI
 
 static void write_id_signed_number(long                       num,
                                    a_decode_control_block_ptr dctl)
@@ -263,6 +264,7 @@ of the current identifier.
   write_id_str(buffer, dctl);
 }  /* write_id_signed_number */
 
+#endif /* IA64_ABI */
 
 static void bad_mangled_name(a_decode_control_block_ptr dctl)
 /*
@@ -3894,7 +3896,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
                ::= O <type> # rvalue reference-to (C++0x)
                ::= C <type> # complex pair (C 2000)
        */
-    a_boolean need_trailing_space = TRUE;
+    need_trailing_space = TRUE;
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
       need_trailing_space = FALSE;
@@ -4702,14 +4704,14 @@ Demangle an IA-64 float literal and output the demangled form.
 Return a pointer to the character position following what was demangled.
 The syntax is:
 
-  <expr-primary> ::= L <type <value float> E
+  <expr-primary> ::= L <type> <value float> E
 
 <float> is the hexadecimal representation of the floating-point value,
 high-order bytes first, using lower-case letters.
 */
 {
-  int  i, length;
-  char *p;
+  sizeof_t i, length;
+  char     *p;
   union {
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     long double ld;
@@ -4999,8 +5001,6 @@ The syntax is:
     if (emulate_gnu_abi_bugs) {
       /* g++ 3.2 puts out the parameter types following the name
          of a function. */
-      int  num_operands, length;
-      char *close_str;
       if (*ptr == 'E' || *ptr == '_') {
         /* No expression or parameter list next. */
       } else if (*ptr == 'L' ||

@@ -524,6 +524,7 @@ should be used to determine the length.
       case fk_normal: start_string = ""; break;
       case fk_tt: start_string = "{\\tt "; break;
       case fk_em: start_string = "{\\em "; break;
+      case fk_none: break;
     }  /* switch */
     fprintf(doc_output_file, "%s", start_string);
     curr_font = font;
@@ -568,6 +569,7 @@ should be used to determine the length.
       case fk_normal: start_string = "<rm>"; break;
       case fk_tt: start_string = "<tt>"; break;
       case fk_em: start_string = "<em>"; break;
+      case fk_none: break;
     }  /* switch */
     fprintf(doc_output_file, "%s", start_string);
     curr_font = font;
