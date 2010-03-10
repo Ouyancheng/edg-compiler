@@ -432,7 +432,7 @@ entire module id.
 #if IA64_ABI
           num_chars_to_output <= 0 ||
 #endif /* IA64_ABI */
-          num < (num_chars_to_output + prefix_len)) {
+          num < ((unsigned long)num_chars_to_output + prefix_len)) {
         bad_mangled_name(dctl);
       } else {
         /* Skip the underscore. */
@@ -4675,14 +4675,14 @@ caller does not need the value.
 }  /* demangle_unqualified_name */
 
 
-static int get_hex_digit(char                       *ptr,
-                         a_decode_control_block_ptr dctl)
+static unsigned char get_hex_digit(char                       *ptr,
+                                   a_decode_control_block_ptr dctl)
 /*
 Convert a hexadecimal digit at ptr to an integral value, and return the
 value.
 */
 {
-  int           value;
+  unsigned char value;
   unsigned char ch = (unsigned char)ptr[0];
 
   if (isdigit(ch)) {
