@@ -31,11 +31,6 @@ which in addition to its use on Itanium is used on a lot of versions of
 gcc.
 */
 
-#include "basics.h"
-#include "host_envir.h"
-#if IA64_ABI
-#include "targ_def.h" /* For DEFAULT_EMULATE_GNU_ABI_BUGS */
-#endif /* IA64_ABI */
 #include "decode.h"
 
 
