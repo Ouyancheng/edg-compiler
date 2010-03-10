@@ -1,5 +1,24 @@
 Version 4.2
 
+3/10/10  [EDGcpfe/10521]
+GNU C++ mode: deduction of conversion function template returning reference
+
+The template deduction for a conversion function template returning a
+reference to a cv-qualified type has been adjusted to match g++ in
+GNU C++ mode.  g++ appears to use the rules in [temp.deduct.conv] of the
+standard before they were corrected by core issue 976.
+
+  struct C {
+    C();
+    template <class U> C(const C<U>&);
+    template <class U> operator const C<U>&() const;
+  };
+  const C<const int> foo() {
+    const C<int> obj;
+    return obj;  // Should be ambiguous, now unambiguous in g++ mode
+  }
+
+
 3/5/10   [EDGcpfe/10011]
 C-generating back end, GNU compatibility: inline weak functions
 

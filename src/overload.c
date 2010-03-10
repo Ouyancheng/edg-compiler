@@ -9136,10 +9136,15 @@ This routine is only used in C++ mode.
          returns a reference) and the "A" of that section is eff_dest_type
          (ditto for a reference type; is_reference_binding indicates that
          has happened). */
+      /* g++ uses old [temp.deduct.conv] rules predating core issue 976
+         and therefore doesn't drop the cv-qualifiers on P when A is not
+         a reference (because at that point in the old rules, P had not
+         been changed to the underlying type if it was a reference).
+         Checked in 4.4. */
       if (matches_template_type(is_reference_binding ?
                                                   eff_dest_type :
                                                   skip_typerefs(eff_dest_type),
-                                is_reference_binding ?
+                                is_reference_binding || gpp_mode ?
                                                   return_type :
                                                   skip_typerefs(return_type),
                                 &template_arg_list,
