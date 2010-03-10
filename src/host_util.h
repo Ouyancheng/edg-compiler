@@ -188,7 +188,9 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 */
 {
   a_boolean	is_regular = FALSE;
+#if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
   a_boolean	encoding_change_needed = TRUE;
+#endif /* defined(MEM_MANAGE_H) */
 
 #if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
