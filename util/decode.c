@@ -394,7 +394,7 @@ static char *get_number(char                       *p,
 #endif /* IA64_ABI */
 
 static char *demangle_module_id(char                       *ptr,
-                                long                       num,
+                                unsigned long              num,
                                 char                       *prefix,
                                 a_decode_control_block_ptr dctl)
 /*
@@ -411,7 +411,7 @@ entire module id.
 {
 #if IA64_ABI
   long		num_chars_to_output;
-#else /* IA64_ABI */
+#else /* !IA64_ABI */
   unsigned long num_chars_to_output;
 #endif /* IA64_ABI */
   char          *start;
@@ -472,7 +472,7 @@ previous value of dctl->end_of_name for later restoration.
   }  /* if */
   do {
     n = n*10 + (ch - '0');
-    if (n > ((dctl->end_of_name - p) - 1)) {
+    if (n > (unsigned long)((dctl->end_of_name - p) - 1)) {
       /* Bad number (bigger than the amount of text remaining). */
       bad_mangled_name(dctl);
       n = ((dctl->end_of_name - p) - 1);
@@ -553,7 +553,7 @@ previous value of dctl->end_of_name for later restoration.
 {
   p = get_single_digit_number(p, num, dctl);
   *prev_end = dctl->end_of_name;
-  if (*num > (dctl->end_of_name - p)) {
+  if (*num > (unsigned long)(dctl->end_of_name - p)) {
     /* Bad length (too large). */
     bad_mangled_name(dctl);
   } else {
@@ -1007,7 +1007,7 @@ position following what was demangled.
       if (is_builtin_operation) {
         /* Builtin operation has a variable number of operations, and
            they may be type operands. */
-        int i;
+        unsigned int i;
         for (i = 1; i <= num_operands; i++) {
           if (get_char(p, dctl) == 'T') {
             /* Type operand. */
@@ -1172,7 +1172,7 @@ block that controls output of extra information on template parameters.
     if (skipped) dctl->suppress_id_output--;
     if (unskipped) dctl->suppress_id_output++;
     /* Stop after the last argument. */
-    if ((p - arg_base) >= nchars) break;
+    if ((unsigned long)(p - arg_base) >= nchars) break;
     write_id_str(", ", dctl);
   }  /* for */
   dctl->end_of_name = prev_end;
@@ -4482,13 +4482,13 @@ output the rest of the string).  This is used for an EDG extension.
     /* A module id name (an EDG extension), which has the form
          <length> _ <file-name-length> _ <file-name> <rest-of-module-id>
        Only the file name part is put out. */
-    ptr = demangle_module_id(ptr, num, (char *)NULL, dctl);
+    ptr = demangle_module_id(ptr, (unsigned long)num, (char *)NULL, dctl);
   } else if (num >= 9 && start_of_id_is("_INTERNAL", ptr)) {
     /* An EDG extension to individuate certain entities so they don't
        collide with similarly named (or unnamed) entities in other
        translation units. */
     write_id_str("[local to ", dctl);
-    ptr = demangle_module_id(ptr+9, num-9, ptr, dctl);
+    ptr = demangle_module_id(ptr+9, (unsigned long)num-9, ptr, dctl);
     write_id_str("]", dctl);
   } else {
     if (num >= 11 && start_of_id_is("_GLOBAL__N_", ptr)) {
