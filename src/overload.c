@@ -5754,6 +5754,37 @@ lookup should be suppressed.
 }  /* is_symbol_for_which_arg_dependent_lookup_should_be_suppressed */
 
 
+static a_boolean is_gpp_falsely_dependent_argument(an_operand *operand)
+/*
+Return TRUE if the given operand is to be treated as dependent when it's
+an argument of a call in gpp mode even though the standard says it's not.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* The cases we care about are "this->x" and "*(this->x)".  g++ sees
+     those as dependent even if the type of x is known. */
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (is_operation_node(expr) &&
+        node_operator_is(expr, eok_indirect)) {
+      /* Drop "*". */
+      expr = expr->variant.operation.operands;
+    }  /* if */
+    if (is_operation_node(expr) &&
+        node_operator_is(expr, eok_points_to_field) &&
+        !expr->variant.operation.compiler_generated) {
+      expr = expr->variant.operation.operands;
+      if (is_variable_node(expr) &&
+          expr->variant.variable->is_this_parameter) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_gpp_falsely_dependent_argument */
+
+
 #if !BACK_END_IS_CP_GEN_BE
 /*ARGSUSED*/  /* found_through_adl is only used with the C++-generating
                  back end. */
@@ -5885,6 +5916,13 @@ and return NULL.  This routine is called only in C++ mode.
            be a null pointer constant given the right choice of template
            arguments.  In other modes, we disallow use of such constants
            as null pointer constants in argument matching. */
+        dependent_call = TRUE;
+        break;
+      } else if (gpp_mode &&
+                 is_gpp_falsely_dependent_argument(arg)) {
+        /* g++ incorrectly treats something like "this->x" in a member
+           function of a template as dependent even if the type of x is
+           not dependent. */
         dependent_call = TRUE;
         break;
       }  /* if */

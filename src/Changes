@@ -1,5 +1,29 @@
 Version 4.2
 
+3/12/10  [EDGcpfe/10527]
+GNU C++ mode: "this->x" is falsely considered dependent as a call argument
+
+g++ falsely considers an expression like "this->x" in a template to 
+be dependent even if the type of the member "x" is non-dependent.
+Now, in g++ mode, we also consider that expression to be dependent
+when it's an argument to a call (but not in all other cases).
+
+  template <class T> class C;
+  template <> struct C<int> {
+    int m1;
+    void foo(int);
+  };
+  template <class T> struct X : C<T> {
+    int m2;
+    virtual void f() {
+      foo(this->m1);   // Okay
+      foo(this->m2);   // Error according to standard; now accepted in
+                       // g++ mode (because call is taken as dependent)
+    }
+  };
+  X<int> x;
+
+
 3/10/10  [EDGcpfe/10521]
 GNU C++ mode: deduction of conversion function template returning reference
 
