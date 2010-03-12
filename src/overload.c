@@ -9154,6 +9154,7 @@ This routine is only used in C++ mode.
       conv_routine_type = conversion_routine->type;
     } else {
       a_type_ptr eff_dest_type = requested_type;
+      a_boolean  weird_gpp_case = FALSE;
       /* The symbol is a function template. */
       check_assertion(eff_dest_type != NULL);  /* For Coverity. */
       /* Don't do type deduction if that would produce a conversion
@@ -9181,12 +9182,12 @@ This routine is only used in C++ mode.
          Checked in 4.4. */
       if (gpp_mode && !is_reference_binding &&
           is_reference_type(il_return_type_of(conv_routine_type))) {
-        return_type = skip_typerefs(return_type);
+        weird_gpp_case = TRUE;
       }  /* if */
       if (matches_template_type(is_reference_binding ?
                                                   eff_dest_type :
                                                   skip_typerefs(eff_dest_type),
-                                is_reference_binding ?
+                                is_reference_binding || weird_gpp_case ?
                                                   return_type :
                                                   skip_typerefs(return_type),
                                 &template_arg_list,
