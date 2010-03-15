@@ -2565,10 +2565,17 @@ this function points to a tree that includes a dynamic-init entry.
               /* Note that we may get here with any_more_members == FALSE and
                  a designator can turn it into TRUE again. */
               a_type_ptr array_type = skip_typerefs(context.type);
+              /* In general, more "members" are available if the array length
+                 is larger than the current element index.  In the case of
+                 templates, the array length may not be known, or the
+                 underlying type could be a type that allows for additional
+                 initializers: In those cases any_more_members is also TRUE. */
               any_more_members =
                 (array_type->variant.array.is_template_dependent_size_array ||
                  array_type->variant.array.variant.number_of_elements
-                                                        > curr_array_element);
+                                                       > curr_array_element ||
+                 is_template_param_type(
+                                  underlying_array_element_type(array_type)));
             } else {
               /* Keep track of the maximum subscript seen: */
               if (curr_array_element > array_size) {

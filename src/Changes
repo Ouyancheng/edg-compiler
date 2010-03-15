@@ -1,5 +1,25 @@
 Version 4.2
 
+3/15/10  [EDGcpfe/10526]
+Spurious error on array initializer in template
+
+In modes that perform prototype instantiations of function templates (such as
+strict mode and some GNU C++ modes), the front end sometimes issued a spurious
+error on an aggregate initializer for an array with a template-dependent
+element type.  The diagnostic erroneously claimed too many initializer values
+are present (when in fact the number of allowable initializer values is not
+fixed since the underlying element type is a priori unknown).  For example:
+
+  template<typename T> struct S {
+    struct X;
+    void f() {
+      X x[2] = { 1, 2, 3 };  // Previously triggered a "too many initializer
+    }                        // values" error.
+  };
+
+This is now fixed.
+
+
 3/12/10  [EDGcpfe/10527]
 GNU C++ mode: "this->x" is falsely considered dependent as a call argument
 
