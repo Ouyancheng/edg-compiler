@@ -1,5 +1,17 @@
 Version 4.2
 
+3/15/10  [EDGcpfe/10531]
+GNU compatibility: Default alignment for __attribute((aligned))
+
+In GNU modes, specifying __attribute((aligned)) (i.e., without an argument to
+the "aligned" attribute) is equivalent to setting the alignment to a value
+indicated by the configuration macro TARG_MAXIMUM_INTRINSIC_ALIGNMENT.
+Previously, that macro was set to 8 by default, but it appears that recent
+versions of GCC treat __attribute((aligned)) as __attribute((aligned(16)))
+on many popular platforms.  The default value for the configuration macro
+TARG_MAXIMUM_INTRINSIC_ALIGNMENT is therefore now set to 16.
+
+
 3/15/10  [EDGcpfe/10526]
 Spurious error on array initializer in template
 

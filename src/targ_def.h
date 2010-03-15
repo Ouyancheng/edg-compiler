@@ -2452,13 +2452,13 @@ maximum pack alignment to 128 by default.
 /*
 The maximum alignment the target can take advantage of.  (On some platforms
 very high pack alignments are allowed, but they do not provide any advantage
-in terms of memory bandwidth.)  This value is used in GNU C mode to determine
+in terms of memory bandwidth.)  This value is used in GNU mode to determine
 the alignment of entities with an "aligned" attribute without arguments.
 This is the default value used to initialize global variable
 targ_maximum_intrinsic_alignment.
 */
 #ifndef TARG_MAXIMUM_INTRINSIC_ALIGNMENT
-#define TARG_MAXIMUM_INTRINSIC_ALIGNMENT 8
+#define TARG_MAXIMUM_INTRINSIC_ALIGNMENT 16
 #endif /* !defined(TARG_MAXIMUM_INTRINSIC_ALIGNMENT) */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
