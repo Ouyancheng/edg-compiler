@@ -3208,11 +3208,13 @@ a parameter.  So we know that the declaration involved a function declarator.)
     }  /* for */
   } else if (dps->first_decl) {
     /* Nothing to check. */
+  } else if (dps->prev_type == NULL || is_error_type(dps->prev_type)) {
+    /* In some unusual error cases, first_decl may be FALSE, but the type of
+       the preceding declaration is not available. */
+    expect_error();
   } else {
-    a_type_ptr        orig_type = dps->prev_type;
+    a_type_ptr        orig_type = skip_typerefs(dps->prev_type);
     a_param_type_ptr  ptp, orig_ptp;
-    check_assertion(orig_type != NULL);
-    orig_type = skip_typerefs(orig_type);
     ptp = function_type_params(dps->declared_type);
     orig_ptp = function_type_params(orig_type);
     for (; ptp != NULL; ptp = ptp->next, orig_ptp = orig_ptp->next) {
