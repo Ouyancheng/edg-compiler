@@ -3710,6 +3710,9 @@ Display the indicated handler.
   disp_ptr("parameter", (char *)ptr->parameter, iek_variable);
   disp_ptr("statement", (char *)ptr->statement, iek_statement);
   disp_ptr("dynamic_init", (char *)ptr->dynamic_init, iek_dynamic_init);
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+  disp_ptr("typeinfo_var", (char *)ptr->typeinfo_var, iek_variable);
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 }  /* disp_handler */
 
 

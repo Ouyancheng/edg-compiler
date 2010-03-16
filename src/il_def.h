@@ -12908,6 +12908,13 @@ typedef struct a_handler {
 			   by bitwise copy); it also identifies the destructor
 			   to be used, if any.  NULL when the exception
 			   declaration is an ellipsis. */
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+  a_variable_ptr
+		typeinfo_var;
+			/* Points to a typeinfo variable for the underlying
+			   type being caught in this clause (except for the
+			   ellipsis case when it is NULL). */
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 } a_handler;
 
 /* Description of an exception-handling "try" statement and the associated

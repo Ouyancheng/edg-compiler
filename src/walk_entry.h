@@ -1665,6 +1665,9 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         walk_ptr(ptr->statement, a_statement_ptr, iek_statement);
         walk_ptr(ptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+        walk_ptr(ptr->typeinfo_var, a_variable_ptr, iek_variable);
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
       }
       break;
     case iek_try_supplement:

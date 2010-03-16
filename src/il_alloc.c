@@ -2955,6 +2955,9 @@ Allocate a handler, clear it to default values, and return a pointer to it.
   hp->parameter    = NULL;
   hp->statement    = NULL;
   hp->dynamic_init = NULL;
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+  hp->typeinfo_var = NULL;
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   clear_stmt_source_position(hp->catch_position);
 
   return hp;

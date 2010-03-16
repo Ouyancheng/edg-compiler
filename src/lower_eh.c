@@ -2675,7 +2675,6 @@ if necessary.
   return typeinfo_var;
 } /* get_typeinfo_var */
 
-#if DO_FULL_PORTABLE_EH_LOWERING
 
 static a_variable_ptr typeinfo_var_for_type(
                                            a_type_ptr           type,
@@ -2699,7 +2698,6 @@ type is indicated in the returned value of *flags_value and
   return typeinfo_var;
 }  /* typeinfo_var_for_type */
 
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 static void generate_type_typeinfo_var_if_needed(a_type_ptr type)
 /*
@@ -5389,6 +5387,18 @@ be passed down.
        a C field. */
     handler->statement->variant.block.extra_info->assoc_scope->
                                                   variant.assoc_handler = NULL;
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+    if (handler->parameter != NULL) {
+      /* Presumably the catch handler for this clause will need access to the
+         typeinfo for the parameter, so create a variable for it (thereby
+         forcing the typeinfo to be emitted). */
+      a_variable_ptr       ptr_flags_var = NULL;
+      an_eh_type_flags_set flags_value;
+      check_assertion(handler->parameter->type->used_in_exception_or_rtti);
+      handler->typeinfo_var = typeinfo_var_for_type(handler->parameter->type,
+                                                    &flags_value,
+                                                    &ptr_flags_var);
+    }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* for */
 #if DO_FULL_PORTABLE_EH_LOWERING
