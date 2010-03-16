@@ -2406,7 +2406,7 @@ static void db_attribute(an_attribute_ptr  ap)
 Output the given attribute to f_debug.
 */
 {
-  char  *str;
+  char  *str, *name;
   if (ap == NULL) {
     (void)fprintf(f_debug, "null attribute pointer\n");
     goto done;
@@ -2424,7 +2424,12 @@ Output the given attribute to f_debug.
     default:
       unexpected_condition();
   }  /* switch */
-  (void)fprintf(f_debug, str, ap->name);
+  if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+    name = ap->name;
+  } else {
+    name = "";
+  }  /* if */
+  (void)fprintf(f_debug, str, name);
   if (ap->arguments != NULL) {
     an_attribute_arg_ptr  aap = ap->arguments;
     (void)fprintf(f_debug, "(");
@@ -2489,8 +2494,33 @@ including (a) the string descr, (b) a rendering of the given attribute, and
     (void)fprintf(f_debug, "ATTR %s ", descr);
     db_attribute(ap);
     if (entity != NULL) {
-      (void)fprintf(f_debug, "\nfor entity:\n");
-      db_entity_info(entity, entity_kind);
+      (void)fprintf(f_debug, "\nfor %s ",
+                    il_entry_kind_names[(int)entity_kind]);
+      if (entity_kind == iek_type) {
+        db_abbreviated_type((a_type_ptr)entity);
+      } else if (source_corresp_for_il_entry(entity, entity_kind) != NULL) {
+        a_source_correspondence  *scp = (a_source_correspondence*)entity;
+        (void)fprintf(f_debug, "%s", db_name_str(scp, entity_kind));
+      } else {
+        switch (entity_kind) {
+          case iek_param_type:
+            { char  *name = ((a_param_type*)entity)->name;
+              (void)fprintf(f_debug, "%s", name == NULL ? "(unnamed)" : name);
+            }
+            break;
+          case iek_using_decl:
+            (void)fprintf(f_debug, "at ");
+            db_source_position(&((a_using_decl*)entity)->position);
+            break;
+          case iek_statement:
+            (void)fprintf(f_debug, "at ");
+            db_source_position(&((a_statement*)entity)->position);
+            break;
+          default:
+            (void)fprintf(f_debug, "(no extra info).");
+        }  /* if */
+      }  /* if */
+      (void)fprintf(f_debug, ".\n");
     } else {
       (void)fprintf(f_debug, "\nis stand-alone.\n");
     }  /* if */
