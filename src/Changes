@@ -5,8 +5,8 @@ Force definition of typeinfo for types in catch clauses
 
 In configurations where DO_FULL_PORTABLE_EH_LOWERING is FALSE, the typeinfo
 entries for types used in catch clauses may not be marked as needed in the IL.
-A change has been made to force the definition of effective typeinfo for types
-used in catch clauses (in anticipation that the back end will need them).
+A change has been made to force the definition of the effective typeinfo for
+types used in catch clauses (in anticipation that the back end will need them).
 There is no change in configurations where DO_FULL_PORTABLE_EH_LOWERING is
 TRUE (the typeinfo continues to be emitted as needed by the constructs added
 during lowering).  This example had not generated typeinfo for D, but now does:
