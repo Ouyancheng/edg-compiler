@@ -9991,9 +9991,11 @@ is the template entry for the template being declared.
   a_template_instance_ptr           tip;
   a_type_ptr                        tp;
   a_template_arg_ptr                templ_arg_list;
+  a_routine_ptr	                    rout;
 
   db_enter(3, "record_predeclared_template_function");
   tip = rout_sym->variant.routine.instance_ptr;
+  rout = rout_sym->variant.routine.ptr;
   if (tip != NULL) {
     /* Symbol is already marked as an instantiation. */
     if (tip->template_sym != templ_sym) {
@@ -10001,6 +10003,12 @@ is the template entry for the template being declared.
     } else {
       tssp = templ_sym->variant.template_info;
     }  /* if */
+  } else if (rout->source_corresp.name_linkage !=
+                                 (a_name_linkage_kind)nlk_cplusplus_external &&
+             rout->source_corresp.name_linkage !=
+                                 (a_name_linkage_kind)nlk_internal) {
+    /* The routine does not have C++ or internal name linkage, so it cannot be
+       a match. */
   } else {
     tp = skip_typerefs(rout_sym->variant.routine.ptr->type);
     if (is_match_for_function_template(templ_sym, tp, &templ_arg_list, &sym,

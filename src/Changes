@@ -1,5 +1,21 @@
 Version 4.2
 
+3/16/10  [EDGcpfe/10528]
+Abort on extern "C" function when guiding declaration are enabled
+
+An abort could occur (in find_or_create_master_instance) when an extern
+"C" function is declared in more than one namespace, a later function
+template is declared that matches the type of the extern "C" function,
+and guiding declarations are enabled.  The abort occurred only if C and
+C++ function types are not distinct.  Now fixed.
+
+  extern "C" int func(int);
+  namespace N {
+    extern "C" int func(int x);
+    template <class T> T func(T x) { }
+  }
+
+
 3/15/10  [EDGcpfe/10531]
 GNU compatibility: Default alignment for __attribute((aligned))
 
