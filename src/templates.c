@@ -5196,9 +5196,6 @@ Return the symbol for the type that was created.
   instance_sym->variant.type.ptr = type;
   set_source_corresp(&(type->source_corresp), instance_sym);
   set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
-  /* Record the argument list in the type. */
-  ttsp = type->variant.typeref.extra_info;
-  ttsp->template_arg_list = template_arg_list;
   if (instance_sym->is_class_member) {
     /* If the enclosing class is nonreal, then any instances of the member
        alias must also be nonreal. */
@@ -5214,6 +5211,9 @@ Return the symbol for the type that was created.
   }  /* if */
   /* Remove any local or nonreal typedefs from the argument list. */
   strip_types_from_template_arg_list(template_arg_list);
+  /* Record the argument list in the type. */
+  ttsp = type->variant.typeref.extra_info;
+  ttsp->template_arg_list = template_arg_list;
   {
     /* For certain types (like X<int>::Y<T>) the prototype instantiation
        must be fetched from the prototype template (e.g., X<T>::Y). */
