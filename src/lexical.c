@@ -12138,7 +12138,9 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
                                                   field_sel_type,
                                                   IDL_MUST_BE_CLASS);
           }  /* if */
-          if (other_sym != NULL && is_class_symbol(other_sym)) {
+          if (other_sym != NULL &&
+              (is_class_symbol(other_sym) ||
+               is_template_param_type_symbol(other_sym))) {
             other_tp = type_symbol_type(other_sym);
             other_tp = skip_typerefs(other_tp);
             if (acceptable_dtor_type(field_sel_type, other_tp)) {

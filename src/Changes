@@ -1,5 +1,24 @@
 Version 4.2
 
+3/16/10  [EDGcpfe/10449]
+Spurious error on qualified destructor name during prototype instantiation
+
+A spurious error was issued on a dependent qualified destructor name
+in modes in which nonclass prototype instantiations are done.  Now fixed.
+
+  class A { };
+  template< class X > void f(void *p) {
+    typedef typename X::C * my_type;
+    my_type my  = (my_type)p;
+    (*my ).X::C::~C(); // spurious error here
+    my->X::C::~C();    // ... and here
+  }
+  struct G { typedef A C; };
+  void g(void *x) {
+    f<G>(x);
+  }
+
+
 3/16/10  [EDGcpfe/10528]
 Abort on extern "C" function when guiding declaration are enabled
 
