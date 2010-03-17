@@ -2413,23 +2413,24 @@ Output the given attribute to f_debug.
   }  /* if */
   switch (ap->family) {
     case af_std:
-      str = "[[%s";
+      str = "[[";
       break;
     case af_gnu:
-      str = "__attribute((%s";
+      str = "__attribute((";
       break;
     case af_ms_declspec:
-      str = "__declspec(%s";
+      str = "__declspec(";
       break;
     default:
       unexpected_condition();
   }  /* switch */
-  if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
-    name = ap->name;
-  } else {
-    name = "";
+  (void)fprintf(f_debug, str);
+  if (ap->namespace_name != NULL) {
+    (void)fprintf(f_debug, "%s::", ap->namespace_name);
   }  /* if */
-  (void)fprintf(f_debug, str, name);
+  if (ap->name != NULL) {
+    (void)fprintf(f_debug, "%s", ap->name);
+  }  /* if */
   if (ap->arguments != NULL) {
     an_attribute_arg_ptr  aap = ap->arguments;
     (void)fprintf(f_debug, "(");
