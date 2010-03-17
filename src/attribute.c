@@ -2406,7 +2406,8 @@ static void db_attribute(an_attribute_ptr  ap)
 Output the given attribute to f_debug.
 */
 {
-  char  *str, *name;
+  char  *str;
+
   if (ap == NULL) {
     (void)fprintf(f_debug, "null attribute pointer\n");
     goto done;
