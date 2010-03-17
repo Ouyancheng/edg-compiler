@@ -5278,8 +5278,13 @@ list template_arg_list.  Return the symbol for the type that was created.
       /* Scan the type. */
       type_name(&result_type);
       type->variant.typeref.type = result_type;
-      /* Process any pragmas that are to be bound to this instance. */
-      process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      if (type->variant.typeref.is_nonreal) {
+        /* Discard pragmas on nonreal aliases. */
+        discard_curr_construct_pragmas();
+      } else {
+        /* Process any pragmas that are to be bound to this instance. */
+        process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      }  /* if */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
       /* In the normal case the current token should be end_of_source,
