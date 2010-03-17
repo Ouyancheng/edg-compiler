@@ -5642,7 +5642,7 @@ declaration following this one is such a continuation.
   a_type_ptr        under_type;
   a_boolean         anon_union_case = FALSE;
   an_attribute_ptr  attributes;
-  a_boolean         is_alias = type->variant.typeref.is_alias;
+  a_boolean         is_alias;
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
@@ -5660,9 +5660,11 @@ declaration following this one is such a continuation.
       under_type = (a_type_ptr)sec_decl->entity.ptr;
     }  /* if */
     attributes = sec_decl->attributes;
+    is_alias = sec_decl->is_alias;
   } else {
     under_type = type->variant.typeref.type;
     attributes = type->source_corresp.attributes;
+    is_alias = type->variant.typeref.is_alias;
   }  /* if */
   /* Advance past the source sequence entry for the typedef itself. */
   /* This does not use check_for_and_take_source_seq_entry on purpose,
@@ -5718,6 +5720,7 @@ declaration following this one is such a continuation.
         /* An alias of the form "using name = type" (the "using" was output
            above). */
         gen_unqualified_name(&type->source_corresp, iek_type);
+        gen_attributes(attributes, al_declarator_id, sec_decl == NULL);
         include_name = FALSE;
         write_tok_str(" = ");
       }  /* if */

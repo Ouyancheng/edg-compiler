@@ -9292,6 +9292,7 @@ symbol entry, and return a pointer to it in state->sym.
     sym = enter_typedef_symbol(tp, locator, decl_scope_level,
                                suppress_redecl_error);
     set_source_corresp(&(tp->source_corresp), sym);
+    state->first_decl = TRUE;
     nsp = NULL;
     if (!C_mode()) {
       if (class_type != NULL) {
@@ -12032,6 +12033,7 @@ Scan a using directive.  Its syntax is:
 
   using namespace namespace-name
 
+The caller has consumed the "using" token: The current token is "namespace".
 A using-directive entry is created and activated for the current scope.
 */
 {
@@ -12046,8 +12048,7 @@ A using-directive entry is created and activated for the current scope.
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
                                           ec_namespaces_in_embedded_cplusplus);
-  /* Bypass "using" and "namespace". */
-  (void)get_token();
+  /* Bypass "namespace". */
   (void)get_token();
   add_stop_token(tok_semicolon);
   if (!is_decl_qualified_name_start()) {
@@ -12304,12 +12305,14 @@ TRUE if and only if a redeclaration error is issued.
 }  /* import_any_hidden_tags */
 
 
-static void nonmember_using_declaration(void)
+static void nonmember_using_declaration(a_decl_parse_state  *dps)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
 
   using qualified-name ;
 
+The "using" token was consumed by the caller: The current token is (presumably)
+a qualified-name.
 A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
@@ -12324,10 +12327,8 @@ current scope.
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
+                                          &dps->start_pos,
                                           ec_using_decl_in_embedded_cplusplus);
-  /* Bypass "using". */
-  (void)get_token();
   add_stop_token(tok_semicolon);
   if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
     syntax_error(ec_exp_identifier);
@@ -12512,6 +12513,89 @@ current scope.
   /* Check for final semicolon in the caller. */
   db_exit();
 }  /* nonmember_using_declaration */
+
+
+static void alias_declaration(a_decl_parse_state  *dps)
+/*
+Handle a declaration of the form:
+
+	using <identifier> = <type-id> ;
+
+which is essentially equivalent to a typedef.
+
+The caller has consumed the "using" token: The <identifier> is the current
+token.  The caller is also responsible for checking and consuming the final
+semicolon.
+
+*dps describes the declaration (which can be a class member or not).
+*/
+{
+  a_symbol_locator  loc;
+  a_decl_pos_block  decl_pos_block;
+
+  clear_decl_pos_block(&decl_pos_block);
+  add_stop_token(tok_semicolon);
+  check_assertion(curr_token == tok_identifier);
+  decl_pos_block.decl_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.specifiers_range.start = dps->start_pos;
+  decl_pos_block.specifiers_range.end = curr_construct_end_position;
+  decl_pos_block.identifier_range.start = pos_curr_token;
+  decl_pos_block.identifier_range.end = end_pos_curr_token;
+  decl_pos_block.declarator_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  loc = locator_for_curr_id;
+  if (loc.is_qualified_name) {
+    pos_error(ec_qualified_name_not_allowed, &pos_curr_token);
+    set_to_error_locator(loc);
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  dps->source_sequence_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  (void)get_token();
+  /* Although the alias name is not technically a "declarator-id", it has
+     exactly the same function and relation to any subsequent attributes.
+     We therefore record the attributes with al_declarator_id. */
+  dps->id_attributes = scan_attributes(al_declarator_id);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.declarator_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (required_token(tok_assign, ec_exp_assign)) {
+    a_type_ptr  parent_type = NULL;
+    if (dps->in_class_scope) {
+      check_assertion(scope_stack_top().kind ==
+                                        (a_scope_kind)sck_class_struct_union);
+      parent_type = scope_stack_top().assoc_type;
+    }  /* if */
+    decl_pos_block.var_init_range.start = pos_curr_token;
+    type_name_full(dps);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block.var_init_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    decl_typedef(&loc, dps, parent_type, &decl_pos_block);
+    if (dps->sym != NULL && dps->sym->kind == (a_symbol_kind)sk_type) {
+      a_type_ptr  tp = dps->sym->variant.type.ptr;
+      if (type_is_typedef(tp)) {
+        /* Record that the typedef was expressed via an alias declaration.
+           For primary declarations, this is done directly in the a_type entry;
+           for secondary declarations, the flag is in the associated
+           a_src_seq_secondary_decl entry. */
+        if (dps->first_decl) {
+          tp->variant.typeref.is_alias = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        } else if (dps->source_sequence_entry != NULL &&
+                   ss_entry_kind(dps->source_sequence_entry) ==
+                                                 iek_src_seq_secondary_decl) {
+          ss_entry_ptr(dps->source_sequence_entry,
+                       a_src_seq_secondary_decl_ptr)->is_alias = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+  /* Check for final semicolon in the caller. */
+}  /* alias_declaration */
 
 
 void check_prefix_attributes_without_a_declarator(a_decl_parse_state  *dps)
@@ -14271,14 +14355,25 @@ indicates how processing should proceed after the call.
          return. */
       end_of_decl_action = eoda_skip_final_token;
     } else if (curr_token == tok_using) {
-      /* A using-directive (which has the form "using namespace N;") or a
-         using-declaration ("using N::x;" or "using ::x;"); */
+      /* An alias-declaration ("using <identifier> = ... ", C++0x only), a
+         using-directive (which has the form "using namespace N;"), or a
+         using-declaration ("using N::x;" or "using ::x;"). */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Skip over the "using" token. */
+      (void)get_token();
       /* Attributes cannot precede a using-declaration or using-directive. */
       disallow_attributes(&state->prefix_attributes);
-      if (next_token() == tok_namespace) {
+      if (curr_token == tok_namespace) {
         using_directive(state);
       } else {
-        nonmember_using_declaration();
+        if (alias_declarations_enabled &&
+            curr_token == tok_identifier && next_token() == tok_assign) {
+          alias_declaration(state);
+        } else {
+          nonmember_using_declaration(state);
+        }  /* if */
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;

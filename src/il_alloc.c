@@ -3681,6 +3681,9 @@ and return a pointer to it.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   sssdp->is_decl_after_first_in_comma_list = FALSE;
   sssdp->explicit_storage_class      = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sssdp->is_alias                    = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CENTERLINE_CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

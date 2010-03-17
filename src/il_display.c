@@ -5509,6 +5509,11 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->explicit_storage_class) {
     disp_boolean("explicit_storage_class", TRUE);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (sssdp->is_alias) {
+    disp_boolean("is_alias", TRUE);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_src_seq_secondary_decl */
 
 

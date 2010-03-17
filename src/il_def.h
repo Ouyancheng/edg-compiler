@@ -1425,6 +1425,11 @@ typedef struct a_src_seq_secondary_decl {
 			   Used by the C++-generating back end to avoid
 			   rendering "int f(), n;" as "extern int f(), n;"
 			   (or vice versa). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	is_alias:1;
+			/* TRUE if this declaration is for a typedef declared
+			   using the alias syntax. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
@@ -7226,8 +7231,10 @@ typedef struct a_type {
 			   attributes. */
       a_bit_field
 		is_alias:1;
-			/* TRUE for typedefs declared using the alias
-			   syntax. */
+			/* TRUE for typedefs declared using the alias syntax.
+			   (This reflects the primary declaration of a typedef.
+			   For subsequent declarations, see the corresponding
+			   a_src_seq_secondary_decl entry.) */
       a_bit_field
 		is_template_alias:1;
 			/* TRUE for types created for instantiations of
