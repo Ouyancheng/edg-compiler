@@ -2522,7 +2522,7 @@ including (a) the string descr, (b) a rendering of the given attribute, and
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
             break;
           default:
-            (void)fprintf(f_debug, "(no extra info).");
+            (void)fprintf(f_debug, "(no extra info)");
         }  /* if */
       }  /* if */
       (void)fprintf(f_debug, ".\n");
@@ -2531,7 +2531,7 @@ including (a) the string descr, (b) a rendering of the given attribute, and
     }  /* if */
     (void)fprintf(f_debug, "ATTR END\n");
   }  /* if */
-}  /* log_attribute_action */
+}  /* db_log_attribute_action */
 
 #else /* !DEBUG */
 
@@ -5678,7 +5678,7 @@ that entity).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
 
-/*ARGSUSED*/  /* entity_kind are unused (but required by the callback type). */
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_edg_e1_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)
@@ -5692,7 +5692,7 @@ effect).
 }  /* apply_edg_e1_attr */
 
 
-/*ARGSUSED*/  /* entity_kind are unused (but required by the callback type). */
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_edg_n1_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)
