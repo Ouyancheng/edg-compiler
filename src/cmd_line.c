@@ -1238,15 +1238,23 @@ Initialize the option information table.
                          "no_nonstd_instantiation_lookup",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_token_separators_in_pp_output,
-                         "no_token_separators_in_pp_output", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_none);
 #if GNU_EXTENSIONS_ALLOWED
   add_option_description(optk_gnu_c89_inlining, "gcc89_inlining", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  add_option_description(optk_token_separators_in_pp_output,
+                         "no_token_separators_in_pp_output", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
+  add_option_description(optk_cpp0x_sfinae,
+                         "c++0x_sfinae", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae,
+                         "no_c++0x_sfinae", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2457,7 +2465,9 @@ not always enabled in default mode (e.g., exception handling).
     nullptr_enabled = TRUE;
   }  /* if */
 #ifdef FIXME_JSA_TEST_MODE
-  cpp0x_sfinae_enabled = TRUE;
+  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+    cpp0x_sfinae_enabled = TRUE;
+  }  /* if */
 #endif /* FIXME_JSA_TEST_MODE */
 }  /* check_and_set_cpp0x_mode_options */
 
@@ -8028,6 +8038,9 @@ enable_microsoft_mode:
       case optk_token_separators_in_pp_output:
         check_assertion(opt_value == TRUE);
         no_token_separators_in_pp_output = TRUE;
+        break;
+      case optk_cpp0x_sfinae:
+        cpp0x_sfinae_enabled = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
