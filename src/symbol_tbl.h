@@ -2031,27 +2031,27 @@ typedef struct a_template_symbol_supplement {
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template (note that this symbol kind is used
-       for class templates and template aliases): */
+       for class templates and alias templates): */
     struct {
       a_symbol_list_entry_ptr
                 instantiations;
                         /* Pointer to a list of symbols describing types
                            that have been instantiated from this class
-			   template or template alias.  Nonreal types are
+			   template or alias template.  Nonreal types are
 			   included in this list, but prototype instantiations
 			   are not.  For class templates, the symbols on the
-			   list are classes.  For template aliases, the
+			   list are classes.  For alias templates, the
 			   symbols are types. */
       a_type_kind
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which
 			   the instantiated types will have.  Not used for
-			   template aliases. */
+			   alias templates. */
       a_symbol_ptr
 		prototype_instantiation;
 			/* Points to the symbol representing the prototype
 			   instantiation.  For class templates, this is a
-			   class.  For template aliases, this is a type. */
+			   class.  For alias templates, this is a type. */
       a_symbol_ptr
 		partial_specializations;
 			/* A list of class template symbols for partial
@@ -2061,7 +2061,7 @@ typedef struct a_template_symbol_supplement {
 			   already partial specializations).  NULL for
 			   templates with no partial specializations, for
 			   templates that are already partial
-			   specializations, and for template aliases. */
+			   specializations, and for alias templates. */
       a_symbol_ptr
 		primary_template_sym;
 			/* For partial specialization, points back to the
@@ -2104,16 +2104,16 @@ typedef struct a_template_symbol_supplement {
 			   be used when scanning template argument lists of
 			   the template template parameter. */
       a_bit_field
-		is_template_alias:1;
-			/* TRUE if this is a template alias. */
+		is_alias_template:1;
+			/* TRUE if this is an alias template. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
-			   class template or template alias has been completed.
+			   class template or alias template has been completed.
 			   Used for class templates to prevent a real
 			   instantiation from occurring while the prototype
-			   instantiation is in progress.  Used for template
-			   aliases to detect uses of the alias name within
+			   instantiation is in progress.  Used for alias
+			   templates to detect uses of the alias name within
 			   its definition. */
       a_bit_field /* a_name_linkage_kind */
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;

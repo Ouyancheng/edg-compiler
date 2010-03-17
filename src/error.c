@@ -1024,8 +1024,8 @@ declaration position to eliminate redundant file names in a diagnostic.
         entity_kind = ec_template;
       } else if (sym->kind == (a_symbol_kind)sk_class_template &&
                  sym->variant.template_info->
-                                    variant.class_template.is_template_alias) {
-        entity_kind = ec_template_alias;
+                                    variant.class_template.is_alias_template) {
+        entity_kind = ec_alias_template;
       } else {
         entity_kind = ec_class_template;
       }  /* if */

@@ -1935,7 +1935,7 @@ ec_friend_attribute_requires_definition;;"standard attributes cannot appear on f
 ec_inconsistent_alignment;;"specified alignment (%s1) is different from alignment (%s2) specified on a previous declaration"
 ec_variable_align_attr_not_on_definition;;"alignment attribute must also appear on definition %p"
 ec_alias_used_in_type;;"%n may not be used in the type-id of the alias-declaration"
-ec_template_alias;INTERNAL;"template alias"
+ec_alias_template;INTERNAL;"alias template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

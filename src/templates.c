@@ -2376,7 +2376,7 @@ enclosing template.
   }  /* for */
   if (instance_sym == NULL || instance_sym->kind == (a_symbol_kind)sk_type) {
     /* Either no instantiation scopes, only instantiation scopes
-       with NULL instance symbols, or an instantiation of a template alias.
+       with NULL instance symbols, or an instantiation of an alias template.
        Just use the innermost namespace scope. */
     result = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   } else if (is_class_struct_union_symbol(instance_sym)) {
@@ -5167,9 +5167,8 @@ static a_symbol_ptr instantiate_template_alias(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	template_arg_list)
 /*
-Instantiate a template alias based on the template alias specified by
-template_sym and the template argument list template_arg_list.
-Return the symbol for the type that was created.
+Instantiate the alias template template_sym using the template argument
+list template_arg_list.  Return the symbol for the type that was created.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -5376,7 +5375,7 @@ prototype instantiation is considered as a potential match.
   a_template_arg_ptr                old_list;
   a_template_symbol_supplement_ptr  tssp;
   an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
-  a_boolean                         is_template_alias;
+  a_boolean                         is_alias_template;
 
   db_enter(3, "find_template_class");
   check_assertion(class_template_sym->kind ==
@@ -5386,7 +5385,7 @@ prototype instantiation is considered as a potential match.
   class_template_sym =
               template_argument_if_template_template_param(class_template_sym);
   tssp = class_template_sym->variant.template_info;
-  is_template_alias = tssp->variant.class_template.is_template_alias;
+  is_alias_template = tssp->variant.class_template.is_alias_template;
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
   if (tssp->is_nonreal_member || tssp->is_error) {
@@ -5413,7 +5412,7 @@ prototype instantiation is considered as a potential match.
         sym = prototype_sym;
       }  /* if */
     }  /* if */
-    if (sym == NULL && !is_template_alias) {
+    if (sym == NULL && !is_alias_template) {
       /* The list passed in did not match the primary prototype instantiation.
          See if it matches any of the partial specializations. */
       a_symbol_ptr	ps_sym;
@@ -5469,7 +5468,7 @@ prototype instantiation is considered as a potential match.
   if (sym == NULL) {
     /* There is no instantiation for this set of template arguments.  Create
        an instantiation now. */
-    if (is_template_alias) {
+    if (is_alias_template) {
       sym = instantiate_template_alias(class_template_sym, *new_list);
     } else {
       sym = create_partial_instantiation_of_class(class_template_sym,
@@ -10443,9 +10442,9 @@ static void find_alias_member(a_symbol_ptr		alias_sym,
                               a_type_ptr		parent_class,
 			      a_token_sequence_number	token_sequence_number)
 /*
-alias_sym is a symbol representing a template alias member of a real
+alias_sym is a symbol representing a alias template member of a real
 class.  parent_class is type of the enclosing class.  Find the symbol
-for a template alias from the prototype instantiation (it serves as
+for an alias template from the prototype instantiation (it serves as
 the template for the real alias), and record it in the typeref entry
 already associated with alias_sym.  token_sequence_number is used to
 match the alias in the real class with the corresponding entry in the
@@ -11630,9 +11629,9 @@ initially used when processing the declaration of a partial specialization.
   a_symbol_ptr			prototype_sym;
   a_type_ptr			prototype_type;
   a_class_symbol_supplement_ptr	prototype_cssp;
-  a_boolean			is_template_alias;
+  a_boolean			is_alias_template;
 
-  is_template_alias = tssp->variant.class_template.is_template_alias;
+  is_alias_template = tssp->variant.class_template.is_alias_template;
   if (sym->kind == (a_symbol_kind)sk_class_template) {
     a_template_param_ptr	templ_param_list;
     a_class_type_supplement_ptr	prototype_ctsp = NULL;
@@ -11641,7 +11640,7 @@ initially used when processing the declaration of a partial specialization.
        a normal class nested within a template. */
     prototype_sym = make_template_class_symbol(sym);
     /* Now create a new type entry. */
-    if (is_template_alias) {
+    if (is_alias_template) {
       prototype_type = alloc_type((a_type_kind)tk_typeref);
       prototype_type->variant.typeref.extra_info->assoc_template =
                                                  decl_state->il_template_entry;
@@ -11695,7 +11694,7 @@ initially used when processing the declaration of a partial specialization.
     /* Create a template argument list that corresponds to the template
        parameter list. */
     templ_arg_list = create_prototype_arg_list(templ_param_list);
-    if (is_template_alias) {
+    if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;
     } else if (is_partial_specialization) {
@@ -11729,7 +11728,7 @@ initially used when processing the declaration of a partial specialization.
   /* The prototype_instantiation field is set in the template supplement
      of what may be a partial specialization, not in the primary template. */
   tssp->variant.class_template.prototype_instantiation = prototype_sym;
-  if (!is_template_alias) {
+  if (!is_alias_template) {
     prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
     prototype_type->
                   variant.class_struct_union.is_prototype_instantiation = TRUE;
@@ -16566,10 +16565,11 @@ can be diagnosed at template definition time.
 }  /* alias_prototype_instantiation */
 
 
-static a_symbol_ptr template_alias_declaration(
+static a_symbol_ptr alias_template_declaration(
 					a_tmpl_decl_state_ptr decl_state)
 /*
-Scan a template alias declaration.  A template alias declaration has the form:
+Scan an alias template declaration.  An alias template declaration has the
+form:
 
   template <template-parameter-list> using identifier = type-id;
 
@@ -16577,7 +16577,7 @@ The template parameter clause has already been scanned at the time this
 routine has been called, and the current token is the tok_using of the
 alias-declaration.
 
-Unlike other template declarations, a template alias is essentially always
+Unlike other template declarations, an alias template is essentially always
 a definition.  As a result, when the declaration appears in a class it
 fully defines the entity so there is no reason to have an out-of-class
 definition.
@@ -16649,7 +16649,7 @@ alias
                      decl_state->effective_decl_level,
                      /*suppress_error=*/FALSE);
   tssp = sym->variant.template_info;
-  tssp->variant.class_template.is_template_alias = TRUE;
+  tssp->variant.class_template.is_alias_template = TRUE;
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
@@ -16731,7 +16731,7 @@ alias
   create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
                         /*is_partial_specialization=*/FALSE);
   return sym;
-}  /* template_alias_declaration */
+}  /* alias_template_declaration */
 
 
 static
@@ -16814,13 +16814,13 @@ any non-empty template parameter lists that were scanned.
       p_template_body_cache = &tssp->cache.tokens;
     }  /* if */
   } else if (alias_declarations_enabled && curr_token == tok_using) {
-    /* A template alias declaration. */
-    sym = template_alias_declaration(decl_state);
+    /* An alias template declaration. */
+    sym = alias_template_declaration(decl_state);
     tssp = template_supplement_for_symbol(sym);
     /* Save a pointer to the token cache for the alias definition. */
     p_template_body_cache = &tssp->cache.tokens;
   } else {
-    /* Not a class template declaration or template alias.  Check for a
+    /* Not a class template declaration or alias template.  Check for a
        function template declaration or a static data member template
        definition. */
     /* Determine whether the thing being declared is a member of a
@@ -17007,8 +17007,8 @@ any non-empty template parameter lists that were scanned.
       create_out_of_class_entry_for_partial_spec(decl_state, sym);
     }  /* if */
   } else if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
-    /* A template alias. */
-    check_assertion(tssp->variant.class_template.is_template_alias);
+    /* An alias template. */
+    check_assertion(tssp->variant.class_template.is_alias_template);
     /* Do the prototype instantiation evaluation of the alias type. */
     alias_prototype_instantiation(sym);
   } else if (nonclass_prototype_instantiations && sym != NULL) {

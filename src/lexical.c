@@ -13050,7 +13050,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     class_is_being_instantiated =
             current_class_symbol_if_class_template(&current_instantiation_sym);
     tssp = template_supplement_for_symbol(template_sym);
-    if (tssp != NULL && tssp->variant.class_template.is_template_alias &&
+    if (tssp != NULL && tssp->variant.class_template.is_alias_template &&
         !tssp->variant.class_template.prototype_instantiation_complete) {
       /* The template alias name is used in the alias definition. */
       pos_sy_error(ec_alias_used_in_type, &start_position,

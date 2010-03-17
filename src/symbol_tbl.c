@@ -2646,7 +2646,7 @@ and return a pointer to it.
       tssp->variant.class_template.primary_template_sym = NULL;
       tssp->variant.class_template.out_of_class_partial_specs = NULL;
       tssp->variant.class_template.friend_info = NULL;
-      tssp->variant.class_template.is_template_alias = FALSE;
+      tssp->variant.class_template.is_alias_template = FALSE;
       tssp->variant.class_template.prototype_instantiation_complete = FALSE;
       tssp->variant.class_template.access = (an_access_specifier)as_public;
       tssp->variant.class_template.name_linkage =
@@ -5103,12 +5103,12 @@ create the instance symbols for template aliases.
   a_symbol_ptr 				sym;
   a_symbol_kind 			kind;
   a_class_symbol_supplement_ptr		cssp;
-  a_boolean				is_template_alias;
+  a_boolean				is_alias_template;
   a_template_symbol_supplement_ptr	tssp;
 
   tssp = ct_symbol->variant.template_info;
-  is_template_alias = tssp->variant.class_template.is_template_alias;
-  if (is_template_alias) {
+  is_alias_template = tssp->variant.class_template.is_alias_template;
+  if (is_alias_template) {
     kind = (a_symbol_kind)sk_type;
   } else {
     /* Determine kind of symbol to be entered.  It can be either a
@@ -5127,7 +5127,7 @@ create the instance symbols for template aliases.
   /* Create the symbol.  Use the position of the template declaration as its
      declaration position. */
   sym = alloc_symbol(kind, ct_symbol->header, &ct_symbol->decl_position);
-  if (!is_template_alias) {
+  if (!is_alias_template) {
     /* Set the pointer that points back to the original class template
        symbol. */
     cssp = sym->variant.class_struct_union.extra_info;

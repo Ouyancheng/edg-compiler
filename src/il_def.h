@@ -6247,8 +6247,8 @@ typedef struct a_typeref_type_supplement {
 			/* For types that are instantiations of a template
 			   alias, this points to the template argument list
 			   on which the instantiation is based.  NULL for
-			   ordinary types that are not generated from a
-			   template alias. */
+			   ordinary types that are not generated from an
+			   alias template. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
@@ -7231,14 +7231,14 @@ typedef struct a_type {
       a_bit_field
 		is_template_alias:1;
 			/* TRUE for types created for instantiations of
-			   template aliases, including the prototype
+			   alias templates, including the prototype
 			   instantiation. */
       a_bit_field
 		is_nonreal:1;
 			/* TRUE if the type is an instantiation of a template
 			   alias based on template arguments that include
 			   one or more template parameters.
-                           In addition, types from template aliases that
+                           In addition, types from alias templates that
 			   are nested within nonreal classes are marked as
 			   nonreal. */
       a_bit_field

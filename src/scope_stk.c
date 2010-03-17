@@ -5235,8 +5235,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       a_symbol_ptr                      template_class_sym;
       a_symbol_list_entry_ptr           slep;
       tssp = sym->variant.template_info;
-      /* Only check instances of class templates, not template aliases. */
-      if (!tssp->variant.class_template.is_template_alias) {
+      /* Only check instances of class templates, not alias templates. */
+      if (!tssp->variant.class_template.is_alias_template) {
         for (slep = tssp->variant.class_template.instantiations;
              slep != NULL; slep = slep->next) {
           template_class_sym = slep->symbol;
