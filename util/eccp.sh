@@ -560,6 +560,7 @@ check_abbreviation()
 --c99
 --c++
 --c++0x
+--c++0x_sfinae
 --c_to_obj_lib
 --cfront_2.1
 --cfront_3.0
@@ -665,6 +666,7 @@ check_abbreviation()
 --no_brief_diagnostics
 --no_c99
 --no_c++0x
+--no_c++0x_sfinae
 --no_check_concatenations
 --no_class_name_injection
 --no_code_gen
@@ -1347,6 +1349,8 @@ process_option()
          --no_auto_storage | \
          --nullptr | \
          --no_nullptr | \
+         --c++0x_sfinae | \
+         --no_c++0x_sfinae | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
