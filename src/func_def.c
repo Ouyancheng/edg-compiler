@@ -1462,12 +1462,12 @@ member declaration (allowed in some Microsoft modes only).
       set_routine_special_kind(rp, other_rp->special_kind);
       rp->variant = other_rp->variant;
     }  /* if */
-    *old_type = type_ptr;
+    dps->prev_type = *old_type = type_ptr;
   } else {
     rp = sym->variant.routine.ptr;
     /* A member function symbol with a compatible type was found. */
     orig_pos = sym->decl_position;
-    *old_type = routine_symbol_type(sym);
+    dps->prev_type = *old_type = routine_symbol_type(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
         rout_type->variant.routine.extra_info->calling_convention != 
