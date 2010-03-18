@@ -2425,7 +2425,7 @@ Output the given attribute to f_debug.
     default:
       unexpected_condition();
   }  /* switch */
-  (void)fprintf(f_debug, str);
+  (void)fprintf(f_debug, "%s", str);
   if (ap->namespace_name != NULL) {
     (void)fprintf(f_debug, "%s::", ap->namespace_name);
   }  /* if */
