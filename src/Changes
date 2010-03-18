@@ -1,5 +1,30 @@
 Version 4.2
 
+3/18/10  [EDGcpfe/9345,EDGcpfe/10330,EDGcpfe/10406]
+Microsoft compatibility: Predeclaring ::type_info
+
+In Microsoft mode the front end previously predeclared type_info in the global
+namespace provided DEFAULT_TYPE_INFO_IN_NAMESPACE_STD was set to FALSE (if it
+was set to TRUE, the type_info structure was invisible until a declaration was
+seen in the source).  See the Changes entry of 12/7/05.  Now, a separate macro
+MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD is used to control this feature and
+the DEFAULT_TYPE_INFO_IN_NAMESPACE_STD controls where the front ends places
+type_info in non-Microsoft modes.
+MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD is FALSE by default, which matches
+Microsoft compilers and is almost always what is desired.  Front end
+applications that want Microsoft-like behavior in general but must link with
+a run-time support library that places type_info in namespace std can set the
+macro to TRUE instead, but this is expected to be unusual (e.g., it is unlikely
+to work when processing code that includes the standard Microsoft headers,
+since those headers will declare type_info in the global namespace).
+
+In addition, in Microsoft mode pragma_define_type_info_is_required is set to
+FALSE if type_info is predeclared in the global namespace (which, as described
+above, is now the common case).  This ensures that the type_info structure
+appearing in Microsoft header files is handled correctly (i.e., no special
+pragma is required on the header-file definition of type_info).
+
+
 3/16/10  [EDGcpfe/10533]
 Force definition of typeinfo for types in catch clauses
 

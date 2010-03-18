@@ -2636,11 +2636,26 @@ for the same purpose.
 Flag that is TRUE if the runtime library defines class type_info in the
 "std" namespace.  Usually this should be set to the same value as
 RUNTIME_USES_NAMESPACES.  This flag is used to initialize global variable
-type_info_in_namespace_std.
+type_info_in_namespace_std in non-Microsoft modes.  (See also the description
+of MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD below.)
 */
 #ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD
 #define DEFAULT_TYPE_INFO_IN_NAMESPACE_STD RUNTIME_USES_NAMESPACES
 #endif /* ifndef DEFAULT_TYPE_INFO_IN_NAMESPACE_STD */
+
+/*
+Flag that is FALSE if in Microsoft mode type_info should be predeclared in
+the global namespace.  This is usually desirable since it is what Microsoft
+compilers (and their associated run-time support library) do.  However, if
+the front end is paired with a run-time support library that places type_info
+in namespace std (as per the C++ standard), linker errors will ensue.  This
+macro is the initial value of type_info_in_namespace_std in Microsoft mode.
+(See also DEFAULT_TYPE_INFO_IN_NAMESPACE_STD above.)
+*/
+#ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
+#define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD FALSE
+#endif /* ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
+
 
 
 #if RUNTIME_USES_NAMESPACES

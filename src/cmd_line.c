@@ -1761,6 +1761,12 @@ by a command line option.
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
   } else {
     /* Microsoft C++ mode. */
+    type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
+    if (type_info_in_namespace_std) {
+      /* We will presumably want to pick ::type_info from the Microsoft
+         headers.  In that case, we cannot expect an EDG-specific pragma. */
+      pragma_define_type_info_is_required = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_exception_handling]) {
       exceptions_enabled = TRUE;
     }  /* if */

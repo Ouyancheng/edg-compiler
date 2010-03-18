@@ -857,6 +857,18 @@ Enable recognition of Microsoft attributes for internal versions.
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING 0
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
 
+/*
+For test versions, eschew the Microsoft approach to predeclaring type_info
+in the global namespace since that doesn't match the EDG run-time support
+library.
+*/
+#ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD
+#if EDG_TEST_VERSION || MACOSX_TEST_VERSION || LINUX_TEST_VERSION
+#define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD 1
+#endif /* EDG_TEST_VERSION || MACOSX_TEST_VERSION || LINUX_TEST_VERSION */
+#endif /* ifndef MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD */
+
+
 #ifndef LOWER_FIXED_POINT
 #ifndef EMBEDDED_C_ALLOWED
 #define EMBEDDED_C_ALLOWED 0
