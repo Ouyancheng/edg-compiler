@@ -1496,12 +1496,22 @@ extern void make_indefinite_function_operand(a_symbol_ptr     routine_sym,
                                              a_symbol_locator *locator,
                                              an_operand       *operand);
 
+extern void make_undefined_symbol_operand(a_symbol_ptr      sym,
+                                          a_ref_entry_ptr   ref_list,
+                                          a_source_position *position,
+                                          an_operand        *operand);
+
 extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         a_boolean       is_qualified_name,
                                         a_ref_entry_ptr rep,
                                         an_operand      *operand);
 
 extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
+
+extern void record_operator_position_in_rescan_info(
+                              an_operand              *operand,
+                              a_source_position       *operator_position,
+                              a_token_sequence_number operator_tok_seq_number);
 
 extern void restore_operand_info_from_expr_rescan_info_entry(
                                         an_operand                    *operand,

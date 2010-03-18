@@ -3011,6 +3011,9 @@ are expected to be NULL in that case.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
     }  /* if */
     make_expression_operand(call_node, result);
+    record_operator_position_in_rescan_info(result,
+                                            &operator_position,
+                                            opening_paren_tok_seq_number);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -18939,11 +18942,10 @@ invalid uses of typename.
            turned into an implicitly declared function (in C) or ignored
            (in C++, with argument-dependent lookup), or diagnosed as an
            error. */
-        clear_operand((an_operand_kind)ok_undefined_symbol, result);
-        result->type = unknown_type();
-        result->variant.symbol = sym_ptr;
-        result->ref_entries_list = ref_entry(sym_ptr, &pos_curr_token);
-        result->id_position = locator_for_curr_id.source_position;
+        make_undefined_symbol_operand(sym_ptr,
+                                      ref_entry(sym_ptr, &pos_curr_token),
+                                      &locator_for_curr_id.source_position,
+                                      result);
       }  /* if */
     }  /* if */
   } else {
@@ -22899,6 +22901,11 @@ to TRUE if any non-access error is detected during the processing.
         make_indefinite_function_operand(sym,
                                          (a_symbol_locator *)NULL,
                                          result);
+        break;
+      case sk_undefined:
+        make_undefined_symbol_operand(sym, (a_ref_entry_ptr)NULL,
+                                      &eriep->saved_operand.position,
+                                      result);
         break;
       default:
         unexpected_condition();

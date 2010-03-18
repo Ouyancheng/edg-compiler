@@ -2081,7 +2081,7 @@ instead.
 #if CHECKING
     default:
       internal_error
-	("make_node_from_operand: converting unexpected operand kind");
+	("extract_node_from_operand: converting unexpected operand kind");
 #endif /* CHECKING */
   }  /* switch */
   return node;
@@ -2143,7 +2143,7 @@ entry attached to the expression node so it will be available for the rescan.
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
 
-static void record_operator_position_in_rescan_info(
+void record_operator_position_in_rescan_info(
                                an_operand              *operand,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number)
@@ -3365,6 +3365,27 @@ and is a function designator.
     operand->id_position = operand->position;
   }  /* if */
 }  /* make_indefinite_function_operand */
+
+
+void make_undefined_symbol_operand(a_symbol_ptr      sym,
+                                   a_ref_entry_ptr   ref_list,
+                                   a_source_position *position,
+                                   an_operand        *operand)
+/*
+Make an operand for an undefined symbol.  This is a fairly transient
+operand that will be either turned into an implicitly-declared function
+(in C) or ignored (in C++, with argument_dependent lookup), or diagnosed
+as an error.  sym is the undefined symbol; ref_list is the list of
+reference entries to be recorded, if any; position is the source position
+of the reference.  The resulting operand is placed in *operand.
+*/
+{
+  clear_operand((an_operand_kind)ok_undefined_symbol, operand);
+  operand->type = unknown_type();
+  operand->variant.symbol = sym;
+  operand->ref_entries_list = ref_list;
+  operand->id_position = *position;
+}  /* make_undefined_symbol_operand */
 
 
 void make_sym_for_member_operand(a_symbol_ptr    member_sym,
