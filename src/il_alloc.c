@@ -1107,6 +1107,9 @@ a pointer to it.
   ttsp->expr = NULL;
   ttsp->template_arg_list = NULL;
   ttsp->assoc_template = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  ttsp->type_id_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return ttsp;
 }  /* alloc_typeref_type_supplement */
 

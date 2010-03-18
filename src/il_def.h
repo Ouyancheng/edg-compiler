@@ -6276,6 +6276,12 @@ typedef struct a_typeref_type_supplement {
 			   default arguments); -1 for non-template types
 			   and for template aliases in which all template
 			   arguments were always explicitly specified. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		type_id_range;
+			/* For typeref entries for aliases, the source range
+			   of the type to which an alias refers. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_typeref_type_supplement;
 
 

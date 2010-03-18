@@ -16552,7 +16552,15 @@ can be diagnosed at template definition time.
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   /* Reactivate the tokens comprising the alias type. */
   rescan_reusable_cache(&tcp->tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  prototype_type->variant.typeref.extra_info->type_id_range.start =
+                                                                pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   type_name(&tp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  prototype_type->variant.typeref.extra_info->type_id_range.end =
+                                                   curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   check_assertion(tp != NULL);
   prototype_type->variant.typeref.type = tp;
   /* Process any pragmas that are to be bound to this instance. */
@@ -16597,6 +16605,7 @@ alias
   a_template_symbol_supplement_ptr	tssp;
   a_token_cache_ptr			p_token_cache = NULL;
   a_token_cache				token_cache;
+  an_attribute_ptr			attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean				saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -16605,9 +16614,8 @@ alias
                                                     curr_token_sequence_number;
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* The specifiers range covers just the "using" keyword. */
   decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
-  /* Set the specifiers end position here; it will be overwritten later unless
-     there is an error in scanning the identifier. */
   decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* All alias declarations are considered definitions. */
@@ -16634,12 +16642,18 @@ alias
     /* Skip past the identifier. */
     (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Set the specifiers end position.  */
-    decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
+    decl_state->decl_pos_block.declarator_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  /* Although the alias name is not defined as a declarator-id it
+     is treated as one with respect to attributes. */
+  attributes = scan_attributes(al_declarator_id);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->decl_pos_block.declarator_range.end =
+                                                   curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* The next token should be "=". */
   if (curr_token == tok_assign) {
     /* Skip past the "=". */
@@ -16655,6 +16669,7 @@ alias
                      /*suppress_error=*/FALSE);
   tssp = sym->variant.template_info;
   tssp->variant.class_template.is_alias_template = TRUE;
+  tssp->attributes = attributes;
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
@@ -16735,6 +16750,11 @@ alias
   /* Create the symbol for the prototype instantiation. */
   create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
                         /*is_partial_specialization=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  update_decl_pos_info(&tssp->variant.class_template.prototype_instantiation->
+                                              variant.type.ptr->source_corresp,
+                       &decl_state->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return sym;
 }  /* alias_template_declaration */
 

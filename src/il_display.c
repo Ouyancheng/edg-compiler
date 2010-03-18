@@ -1383,6 +1383,9 @@ Display the indicated typeref type supplement.
   if (ptr->min_template_arguments >= 0) {
     disp_int32("min_template_arguments", ptr->min_template_arguments);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_range("type_id_range", &ptr->type_id_range);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_typeref_type_supplement */
 
 
