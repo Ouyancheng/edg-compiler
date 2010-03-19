@@ -1762,7 +1762,7 @@ by a command line option.
   } else {
     /* Microsoft C++ mode. */
     type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
-    if (type_info_in_namespace_std) {
+    if (!type_info_in_namespace_std) {
       /* We will presumably want to pick ::type_info from the Microsoft
          headers.  In that case, we cannot expect an EDG-specific pragma. */
       pragma_define_type_info_is_required = FALSE;
