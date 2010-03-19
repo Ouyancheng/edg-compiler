@@ -1,23 +1,5 @@
 Version 4.2
 
-3/10/10  [EDGcpfe/10148]
-Ability to build standalone version of decode.o
-
-Changes have been made to decode.c and decode.h to allow decode.c to be
-compiled without including any front end header files.  Typically, decode.c is
-compiled for the host platform (and used as part of the host-based edg_decode
-and edg_prelink tools).  In some cases it may be desirable to cross-compile
-decode.c in order to provide demangling capability in the target platform
-(i.e., implement __cxa_demangle in the IA-64 ABI); these changes make it easier
-to do this.  To build a standalone version, the new configuration macro
-STANDALONE_DECODE must be set to TRUE.  The values of front end configuration
-macros are not available when STANDALONE_DECODE is TRUE (because the front end
-header files aren't included), so values for the following configuration macros
-must be supplied: IA64_ABI and USE_BOOL_FOR_BOOLEAN_IN_CPLUSPLUS (as well as
-DEFAULT_EMULATE_GNU_ABI_BUGS and USE_LONG_DOUBLE_FOR_HOST_FP_VALUE when
-IA64_ABI is set to TRUE).
-
-
 1/11/10  [EDGcpfe/10361]
 Incorrect demangling of lambdas in static data member initializers (IA-64 ABI)
 
