@@ -1952,6 +1952,31 @@ the same as depth_scope_stack).
 }  /* compute_effective_decl_level */
 
 
+static a_scope_depth get_effective_depth_innermost_namespace(void)
+/*
+Return the "effective" innermost namespace scope depth.  Usually, this is just
+depth_innermost_namespace_scope.  In GNU C++ modes, however, namespace
+extensions that are implicitly pushed on the scope stack as part of a
+class or namespace reactivation are ignored.  This is used to emulate GCC's
+behavior wrt. certain block extern declarations.  For example:
+      namespace N { struct S { void f(); }; }
+      void N::S::f() {
+        void g();  // ::g in g++ mode, N::g otherwise.
+      }
+*/
+{
+  a_scope_depth  depth = depth_innermost_namespace_scope;
+
+  if (gpp_mode && depth != DEPTH_OF_FILE_SCOPE) {
+    while (scope_stack[depth].kind == (a_scope_kind)sck_namespace_extension &&
+           !scope_stack[depth].explicitly_declared_namespace_extension) {
+      depth = scope_stack[depth-1].depth_innermost_namespace_scope;
+    }  /* while */
+  }  /* if */
+  return depth;
+}  /* get_effective_depth_innermost_namespace */
+
+
 static a_boolean is_local_class_friend_decl(an_id_linkage_block  *idlbp)
 /*
 Return TRUE if and only if the declaration being processed (with the given
@@ -5437,6 +5462,7 @@ for use in generating cross-reference output describing this declaration.
   an_id_linkage_kind       linkage;
   a_source_correspondence  *source_corresp_ptr;
   a_scope_depth            effective_decl_level;
+  a_scope_depth            saved_depth_innermost_namespace_scope;
   a_boolean                suppress_ext_sym_lookup = FALSE;
   a_boolean                is_variable_def = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5506,6 +5532,23 @@ for use in generating cross-reference output describing this declaration.
   linked_symbol = idlb.linked_symbol;
   effective_decl_level = idlb.effective_decl_level;
   linkage = idlb.linkage;
+  if (gpp_mode && idlb.is_block_extern_decl &&
+      depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    /* In GNU C++ mode, the "innermost namespace scope" considered for block-
+       extern declarations should ignore namespace extension scopes that don't
+       correspond to actual namespace extension declarations (instead, they
+       are the result of "reactivating" the namespace).  E.g.:
+          namespace N { struct S { void f(); }; }
+          void N::S::f() {
+            extern float g;  // ::g in g++ mode, N::g otherwise.
+          }
+    */
+    saved_depth_innermost_namespace_scope = depth_innermost_namespace_scope;
+    depth_innermost_namespace_scope =
+                                    get_effective_depth_innermost_namespace();
+  } else {
+    saved_depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
+  }  /* if */
   /* alloc_at_file_scope will be TRUE if the IL variable entry must be
      allocated in the file scope memory region.  This is always true
      for variables with linkage. */
@@ -5969,7 +6012,10 @@ for use in generating cross-reference output describing this declaration.
   /* Return linkage kind. */
   *linkage_ptr = linkage;
   dps->storage_class = storage_class;
-
+  /* Restore the "innermost namespace scope" if it was modified. */
+  if (saved_depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
+    depth_innermost_namespace_scope = saved_depth_innermost_namespace_scope;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(sym, "", 4);
@@ -6479,6 +6525,7 @@ for use in generating cross-reference output describing this declaration.
   an_id_linkage_kind       linkage;
   a_source_correspondence  *source_corresp_ptr;
   a_scope_depth            effective_decl_level;
+  a_scope_depth            saved_depth_innermost_namespace_scope;
   a_boolean                template_function_specific_decl = FALSE;
   a_boolean                explicit_template_reference = FALSE;
   a_boolean                suppress_ext_sym_lookup = FALSE;
@@ -6601,7 +6648,7 @@ for use in generating cross-reference output describing this declaration.
   if (func_info->is_implicit_declaration) {
     check_assertion_str(srk_flags & SRK_IMPLICIT,
                         "decl_routine: missing SRK_IMPLICIT");
-    if (C_dialect != C_dialect_cplusplus) {
+    if (C_mode()) {
       /* For an implicit function, the identifier would not be in the process
          of being declared implicitly as a function if there were any visible
          declaration of it, and therefore it must have external linkage. */
@@ -6641,6 +6688,23 @@ for use in generating cross-reference output describing this declaration.
       /* This declaration triggered the creation of a new template instance. */
       dps->first_decl = TRUE;
     }  /* if */
+  }  /* if */
+  if (gpp_mode && idlb.is_block_extern_decl &&
+      depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
+    /* In GNU C++ mode, the "innermost namespace scope" considered for block-
+       extern declarations should ignore namespace extension scopes that don't
+       correspond to actial namespace extension declarations (instead, they
+       are the result of "reactivating" the namespace).  E.g.:
+          namespace N { struct S { void f(); }; }
+          void N::S::f() {
+            void g();  // ::g in g++ mode, N::g otherwise.
+          }
+    */
+    saved_depth_innermost_namespace_scope = depth_innermost_namespace_scope;
+    depth_innermost_namespace_scope =
+                                    get_effective_depth_innermost_namespace();
+  } else {
+    saved_depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
   }  /* if */
   if (linkage != idl_none && linked_symbol != NULL) {
     /* There is a previous identifier of this name in the same scope,
@@ -7825,7 +7889,10 @@ skip_overloading:;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Return the linkage kind. */
   *linkage_ptr = linkage;
-
+  /* Restore the "innermost namespace scope" if it was modified. */
+  if (saved_depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
+    depth_innermost_namespace_scope = saved_depth_innermost_namespace_scope;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(sym, "", 4);
