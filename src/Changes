@@ -47,8 +47,8 @@ namespace provided DEFAULT_TYPE_INFO_IN_NAMESPACE_STD was set to FALSE (if it
 was set to TRUE, the type_info structure was invisible until a declaration was
 seen in the source).  See the Changes entry of 12/7/05.  Now, a separate macro
 MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD is used to control this feature and
-the DEFAULT_TYPE_INFO_IN_NAMESPACE_STD controls where the front ends places
-type_info in non-Microsoft modes.
+the DEFAULT_TYPE_INFO_IN_NAMESPACE_STD macro controls where the front end
+places type_info in non-Microsoft modes.
 MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD is FALSE by default, which matches
 Microsoft compilers and is almost always what is desired.  Front end
 applications that want Microsoft-like behavior in general but must link with
