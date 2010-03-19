@@ -1,5 +1,29 @@
 Version 4.2
 
+3/18/10  [EDGcpfe/10539]
+Eliminate use of thunk in some cases in the IA-64 ABI
+
+When populating virtual function tables in the IA-64 ABI, lowering attempts to
+avoid the use of thunks when possible.  Lowering now checks for the case where
+the overriding base is the same as the subobject and suppresses the thunk
+reference in the virtual function table.  In the example below, the
+construction vtable for the D-in-A subobject had referred to thunks for
+invoking (complete and subobject) D::~D and now refers directly to (complete
+and subobject) D::~D:
+
+  struct B {
+    virtual void f();
+    virtual ~B() {}
+  };
+  struct D: virtual B {
+    virtual ~D() {}
+  };
+  struct A: virtual D {
+    virtual void g();
+  };
+  void A::g() {}
+
+
 3/18/10  [EDGcpfe/9345,EDGcpfe/10330,EDGcpfe/10406]
 Microsoft compatibility: Predeclaring ::type_info
 
