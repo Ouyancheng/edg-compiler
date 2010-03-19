@@ -4830,26 +4830,39 @@ transparent.  If not, issue a diagnostic and return FALSE.
        subsequent integer fields may be smaller than the first field.
        Otherwise, GCC does not permit the union to be transparent.  It seems
        that GCC looks at the type of the field, not the actual size -- for
-       example, the size of bit fields is ignored. */
-    for (f = first_field->next; f != NULL; f = f->next) {
-      a_type_ptr  ft1 = skip_typerefs(first_field->type),
-                  ft2 = skip_typerefs(f->type);
-      if (ft1->size == ft2->size ||
-          (ft1->size > ft2->size &&
-           ft1->kind == ft2->kind && ft1->kind == (a_type_kind)tk_integer)) {
-        /* Acceptable field type. */
-      } else {
-        a_symbol_ptr sym = symbol_for(f);
-        if (sym != NULL && has_name(f)) {
-          pos_syty_warning(ec_union_cannot_be_transparent_sym,
-                           pos, sym, tp);
+       example, the size of bit fields is ignored (but GCC 4.x and later
+       don't allow a bit field as the first field).   The first field cannot
+       have a (real or complex) floating-point type. */
+    if (is_floating_type(first_field->type)) {
+      /* The first field cannot have a floating-point type. */
+      f = first_field;
+      pos_ty_warning(ec_transparent_union_cannot_have_floating_first_field,
+                     pos, tp);
+    } else if (gnu_version >= 40000 && first_field->is_bit_field) {
+      /* The first field cannot be a bit field. */
+      f = first_field;
+      pos_ty_warning(ec_transparent_union_cannot_have_bit_field_first, pos,
+                     tp);
+    } else {
+      for (f = first_field->next; f != NULL; f = f->next) {
+        a_type_ptr  ft1 = skip_typerefs(first_field->type),
+                    ft2 = skip_typerefs(f->type);
+        if (ft1->size == ft2->size ||
+            (ft1->size > ft2->size &&
+             ft1->kind == ft2->kind && ft1->kind == (a_type_kind)tk_integer)) {
+          /* Acceptable field type. */
         } else {
-          pos_ty2_warning(ec_union_cannot_be_transparent, pos,
-                          tp, f->type);
+          /* Unacceptable field type: Issue a warning. */
+          a_symbol_ptr sym = symbol_for(f);
+          if (sym != NULL && has_name(f)) {
+            pos_syty_warning(ec_union_cannot_be_transparent_sym, pos, sym, tp);
+          } else {
+            pos_ty2_warning(ec_union_cannot_be_transparent, pos, tp, f->type);
+          }  /* if */
+          break;
         }  /* if */
-        break;
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   }  /* if */
   /* If an error occurred, f will point to the first field that did not meet
      the requirements. */

@@ -1,5 +1,20 @@
 Version 4.2
 
+3/19/10  [EDGcpfe/10493]
+GNU C compatibility: First-field constraints for transparent unions
+
+In GNU C mode, a union whose first field has a floating-point type cannot be
+transparent: The transparent_union attribute applied to such a union is
+ignored with a warning.  Similarly, when gnu_version >= 40000, the first field
+cannot be a bit field.  For example:
+
+  union T {
+    float f;
+    int i;
+  }  __attribute((transparent_union));  // The attribute is ignored with a
+                                        // warning.
+
+
 3/18/10  [EDGcpfe/10539]
 Eliminate use of thunk in some cases in the IA-64 ABI
 

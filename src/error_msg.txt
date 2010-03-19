@@ -1936,6 +1936,8 @@ ec_inconsistent_alignment;;"specified alignment (%s1) is different from alignmen
 ec_variable_align_attr_not_on_definition;;"alignment attribute must also appear on definition %p"
 ec_alias_used_in_type;;"%n may not be used in the type-id of the alias-declaration"
 ec_alias_template;INTERNAL;"alias template"
+ec_transparent_union_cannot_have_floating_first_field;;"%t cannot be transparent because its first field has a floating-point type"
+ec_transparent_union_cannot_have_bit_field_first;;"%t cannot be transparent because its first field is a bit field"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
