@@ -1492,6 +1492,23 @@ ensure_macro_buffer_space.
     macro_buffer_region_in_progress = dst;
     dst += num_chars_to_copy;
   }  /* if */
+  /* Check to see if any of the source line modifications are replacements
+     for text in the old buffer that was not copied into the new buffer
+     and, if so, break that association.  (This occurs when
+     read_logical_source_line is called during a macro invocation.  In that
+     case, all source line modifications except those holding saved text
+     for scanned macro arguments are removed, and the line_loc for those
+     modifications can refer to text associated with modifications that
+     were removed.) */
+  for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+    if (ptr_in_range(slmp->line_loc, macro_buffer,
+                     next_avail_in_macro_buffer)) {
+      check_assertion(slmp->contains_saved_macro_argument_text);
+      rem_source_line_modif_from_hash_table(slmp);
+      slmp->line_loc = NULL;
+      slmp->num_chars_to_delete = 0;
+    }  /* if */
+  }  /* for */
   free_general((a_void_ptr)macro_buffer, (sizeof_t)(old_size+1));
   macro_buffer = new_macro_buffer;
   after_end_of_macro_buffer = macro_buffer + new_size;

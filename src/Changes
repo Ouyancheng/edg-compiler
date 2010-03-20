@@ -1,5 +1,15 @@
 Version 4.2
 
+3/20/10  [EDGcpfe/10549]
+Memory corruption after multi-line invocation of complex macros
+
+If a macro invocation spans more than one line and the expansion of the
+macro is large enough to result in reallocation of the macro buffer, the
+front end sometimes wrote through a dangling pointer into the buffer's
+previous location, scribbling on data structures subsequently allocated in
+the newly-freed space.  This has now been fixed.
+
+
 3/19/10  [EDGcpfe/10493]
 GNU C compatibility: First-field constraints for transparent unions
 
