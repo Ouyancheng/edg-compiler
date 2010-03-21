@@ -6693,7 +6693,7 @@ for use in generating cross-reference output describing this declaration.
       depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
     /* In GNU C++ mode, the "innermost namespace scope" considered for block-
        extern declarations should ignore namespace extension scopes that don't
-       correspond to actial namespace extension declarations (instead, they
+       correspond to actual namespace extension declarations (instead, they
        are the result of "reactivating" the namespace).  E.g.:
           namespace N { struct S { void f(); }; }
           void N::S::f() {
