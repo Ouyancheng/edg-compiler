@@ -7,10 +7,11 @@ Previously, if a GNU attribute "weakref" (gnu_version >= 40100) referred to an
 entity that was declared but not defined in the same translation unit, the
 effect was as if the alias was a declaration with an "asm name" corresponding
 to the aliased name.  Now, the attribute is handled normally (by pointing the
-aliased_routine or aliased_variable field to the aliased entity).  For example:
+aliased_routine or aliased_variable field to the aliased entity).  
+For example (assuming gnu_version >= 40200):
 
   void f();
-  void g() __attribute((weakref("f")));
+  static void g() __attribute((weakref("f")));
     // Previously treated as "void g() __asm("f") __attribute((weakref));".
 
 
