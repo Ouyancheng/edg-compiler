@@ -1,5 +1,19 @@
 Version 4.2
 
+3/22/10  [EDGcpfe/9924,EDGcpfe/10545]
+GNU compatibility: Attribute "weakref" behavior
+
+Previously, if a GNU attribute "weakref" (gnu_version >= 40100) referred to an
+entity that was declared but not defined in the same translation unit, the
+effect was as if the alias was a declaration with an "asm name" corresponding
+to the aliased name.  Now, the attribute is handled normally (by pointing the
+aliased_routine or aliased_variable field to the aliased entity).  For example:
+
+  void f();
+  void g() __attribute((weakref("f")));
+    // Previously treated as "void g() __asm("f") __attribute((weakref));".
+
+
 3/20/10  [EDGcpfe/10549]
 Memory corruption after multi-line invocation of complex macros
 

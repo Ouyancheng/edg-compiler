@@ -5868,34 +5868,49 @@ cycle of aliased entities.  Break the cycle if that is the case.
 }  /* report_any_alias_loop */
 
 
-static a_boolean undefined_aliased_entity(a_symbol_ptr   aliased_sym,
-                                          a_symbol_kind  needed_kind)
+static a_boolean is_aliasable(a_symbol_ptr  aliased_sym,
+                              a_symbol_ptr  alias_sym)
 /*
-Return TRUE if aliased_sym (found through lookup for an alias attribute)
-should be treated as an undefined entity (this includes the case where
-aliased_sym is NULL).  If aliased_sym->kind is different from needed_kind,
-return FALSE.  Similarly, if aliased_sym is itself an alias, treat it as
-being defined (i.e., return FALSE).
+alias_sym represents an alias declared with the GNU "alias" or "weakref"
+attribute, and aliased_sym (which may be NULL) is what was found when looking
+up the name indicated by the attribute.  Return TRUE if alias_sym can indeed
+be recorded as an alias for aliased_sym.
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean  result;
 
   if (aliased_sym == NULL) {
     /* The alias is to a name not at all declared in the current translation
        unit. */
-    result = TRUE;
-  } else if (aliased_sym->kind != needed_kind) {
+    result = FALSE;
+  } else if (aliased_sym->kind != alias_sym->kind) {
     /* The alias refers to an entity of a kind different from that implied
        by the alias declaration (e.g., a variable alias referring to a
-       function declaration).  Don't treat that as an undefined case: An error
-       will be issued elsewhere. */
-  } else if (!aliased_sym->defined) {
-    /* This is usually a case of an alias to an undefined entity, but if it
-       is an alias to another alias we treat that other alias as "defined". */
-    result = !aliased_sym->is_alias;
+       function declaration).  This is treated as "aliasable" here: An error
+       is issued elsewhere. */
+    result = TRUE;
+  } else if (aliased_sym->defined || aliased_sym->is_alias) {
+    /* These cases are always valid. */
+    result = TRUE;
+  } else {
+    /* If the alias established with the "alias" attribute, aliased_sym must
+       be defined or it must itself be an alias.  However, if it is defined
+       with the "weakref" attribute, that is not required. */ 
+    a_boolean  is_weakref = FALSE;
+    switch (alias_sym->kind) {
+      case sk_routine:
+        is_weakref = alias_sym->variant.routine.ptr->is_weakref;
+        break;
+      case sk_variable:
+        is_weakref = alias_sym->variant.variable.ptr->is_weakref;
+        break;
+      default:
+        unexpected_condition();
+    }  /* if */
+    result = is_weakref;
   }  /* if */
   return result;
-}  /* undefined_aliased_entity */
+}  /* is_aliasable */
 
 
 /* Pointer to a hash table mapping explicit asm names (a GNU extension) to
@@ -5958,8 +5973,9 @@ attribute refers to that name).
     p_sym = (a_symbol_ptr*)hash_find(asm_name_map, (a_void_ptr)str,
                                      /*create=*/TRUE);
     /* If multiple entities are declared with the same asm name, retain the
-       first one if it is "defined".  Otherwise, record the new one instead. */
-    if (*p_sym == NULL || undefined_aliased_entity(*p_sym, (*p_sym)->kind)) {
+       first one if it is "defined" (aliases are considered "defined" in this
+       context).  Otherwise, record the new one instead. */
+    if (*p_sym == NULL || (!(*p_sym)->defined && !(*p_sym)->is_alias)) {
       *p_sym = sym;
     }  /* if */
   }  /* if */
@@ -6006,10 +6022,8 @@ Traverse the list of alias fixups and set the alias fields as needed.
                       (sizeof_t)strlen(entry->aliased_name), &locator);
     aliased_sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
 #if GNU_EXTENSIONS_ALLOWED
-    if (entry->alias != NULL &&
-        (aliased_sym == NULL ||
-         undefined_aliased_entity(aliased_sym, entry->alias->kind))) {
-      /* If ordinary lookup of the alias attribute didn't yield a defined
+    if (entry->alias != NULL && !is_aliasable(aliased_sym, entry->alias)) {
+      /* If ordinary lookup of the alias attribute didn't yield an aliasable
          entity, we attempt to find the alias among the GNU asm names we
          previously recorded. */
       a_symbol_ptr  *p_sym;
@@ -6059,14 +6073,16 @@ Traverse the list of alias fixups and set the alias fields as needed.
       unexpected_condition();
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (undefined_aliased_entity(aliased_sym, entry->alias->kind)) {
-      /* The aliased entity was not defined in this translation unit (either
-         not declared at all, or declared but not defined).  GCC versions
-         prior to 4.0 (on Intel platforms) treat this as an alternative way to
-         specify the asm name of the alias.  Newer GCC versions treat it as an
-         error (as do earlier versions on some non-Intel platforms).  We
-         emulate the behavior implemented for Intel-based platforms.  No error
-         (or warning) is issued if the alias is for a "weakref" attribute. */
+    } else if (!is_aliasable(aliased_sym, entry->alias)) {
+      /* The aliased entity was not declared in this translation unit (i.e.,
+         aliased_sym is NULL), or no direct alias can be recorded for some
+         other reason (e.g., the "alias" attribute requires that aliased_sym
+         have a definition or be an alias itself).  GCC versions prior to 4.0
+         (on Intel platforms) treat this as an alternative way to specify the
+         asm name of the alias.  Newer GCC versions treat it as an error (as
+         do earlier versions on some non-Intel platforms).  We emulate the
+         behavior implemented for Intel-based platforms.  No error (or
+         warning) is issued if the alias is for a "weakref" attribute. */
       a_boolean  is_weakref = FALSE;
       switch (entry->alias->kind) {
         case sk_routine:
