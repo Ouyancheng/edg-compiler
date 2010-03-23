@@ -1,5 +1,20 @@
 Version 4.2
 
+3/23/10  [EDGcpfe/10554]
+GNU C++ compatibility: limiting use of undefined template
+
+Certain versions of g++ allow the use of an undefined function template in
+the definition of a class template (i.e., case #1 below).  The change made
+to allow that usage also permitted #2, which is not accepted by g++.  In
+addition, newer versions of g++ (3.4 and beyond) no longer allow #1.  We now
+reject #2 in all g++ modes and accept #1 only  when gnu_version is < 30400.
+
+  template <class T> struct A {
+    friend void f<>(A<T>); // #1
+    friend class X<T>;  // #2
+  };
+
+
 3/23/10  [EDGcpfe/10551]
 Diagnostic pragma information not saved in PCH files
 
