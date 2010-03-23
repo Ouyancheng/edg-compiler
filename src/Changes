@@ -1,5 +1,22 @@
 Version 4.2
 
+3/23/10  [EDGcpfe/10546]
+GNU C++ compatibility: local types in template argument deduction
+
+Beginning with version 4.1, g++ treats the use of a local type as a template
+argument as a deduction failure rather than selecting the function and
+issuing an error as was done in earlier versions.  We now emulate this
+behavior in g++ mode when gnu_version is >= 40100.
+
+  template <class T> void f(T);  // #1
+  void f(...);  // #2
+  int main() {
+    struct X {};
+    X x;
+    f(x);  // now calls #2
+  }
+
+
 3/22/10  [EDGcpfe/9924,EDGcpfe/10545]
 GNU compatibility: Attribute "weakref" behavior
 

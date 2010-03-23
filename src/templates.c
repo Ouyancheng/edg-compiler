@@ -1640,18 +1640,32 @@ during wrapup processing by compare_function_templates.
 #if GNU_EXTENSIONS_ALLOWED
       } else {
         /* A type parameter. */
-        if (gpp_mode && gnu_version >= 30400) {
+        if (gpp_mode && gnu_version >= 30400 && !cpp0x_mode) {
           /* In GNU C++ mode, attempts to bind a template parameter to a class
              type or enumeration type with no name for linkage purposes is
              treated as a deduction failure rather than an outright error.
              Earlier versions of g++ do not behave that way.  Lambdas are
              excluded from this special treatment. */
-          a_type_ptr  unqual_type = tap->variant.type;
-          if (((is_immediate_class_type(unqual_type) &&
-                !class_type_supp(unqual_type)->is_lambda_closure_class) ||
-               is_immediate_enum_type(unqual_type)) &&
-               !has_name(unqual_type)) {
+          a_type_ptr  tp = tap->variant.type;
+          a_boolean   is_lambda_closure_class;
+          a_boolean   is_class = is_immediate_class_type(tp);
+          is_lambda_closure_class =
+                      is_class && class_type_supp(tp)->is_lambda_closure_class;
+          if (((is_class && !is_lambda_closure_class) ||
+               is_immediate_enum_type(tp)) &&
+               !has_name(tp)) {
             match = FALSE;
+          }  /* if */
+          if (match && gnu_version >= 40100) {
+            /* g++, starting with version 4.1, treat a local type as a template
+               argument as a deduction failure (but not unnamed or VLA
+               types). */
+            a_boolean		is_unnamed, is_local, is_vla;
+            if (!is_lambda_closure_class &&
+                is_invalid_template_arg_type(
+                                        tp, &is_unnamed, &is_local, &is_vla)) {
+              if (is_local) match = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
