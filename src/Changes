@@ -1,5 +1,23 @@
 Version 4.2
 
+3/23/10  [EDGcpfe/10551]
+Diagnostic pragma information not saved in PCH files
+
+The diagnostic severity information for diagnostic pragmas was not saved
+in precompiled header files.  As a result, such pragmas would not take
+effect in compilations making use of the precompiled header.  Now fixed.
+
+  file: test.h:
+  #pragma diag_suppress=declared_but_not_referenced
+  int i;
+
+  file: test.c:
+  #include "test.h"
+  int main() {
+    int x;  // warning was issued on use of PCH
+  }
+
+
 3/23/10  [EDGcpfe/10546]
 GNU C++ compatibility: local types in template argument deduction
 

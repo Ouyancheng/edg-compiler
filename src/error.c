@@ -5693,6 +5693,9 @@ are handled in error_init.)
       pch_saved_var_array_elem(head_of_file_index_list),
       pch_saved_var_array_elem(tail_of_file_index_list),
       pch_saved_var_array_elem(error_position),
+      pch_array_saved_var_array_elem(default_severity_for_error_code),
+      pch_array_saved_var_array_elem(current_severity_for_error_code),
+      pch_array_saved_var_array_elem(once_flag_for_error_code),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
