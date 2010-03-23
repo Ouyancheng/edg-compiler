@@ -5893,9 +5893,9 @@ be recorded as an alias for aliased_sym.
     /* These cases are always valid. */
     result = TRUE;
   } else {
-    /* If the alias established with the "alias" attribute, aliased_sym must
-       be defined or it must itself be an alias.  However, if it is defined
-       with the "weakref" attribute, that is not required. */ 
+    /* If the alias is established with the "alias" attribute, aliased_sym
+       must be defined or it must itself be an alias.  However, if it is
+       defined with the "weakref" attribute, that is not required. */ 
     a_boolean  is_weakref = FALSE;
     switch (alias_sym->kind) {
       case sk_routine:
