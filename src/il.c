@@ -13700,7 +13700,6 @@ a_type_ptr type_of_decltype_expr_with_substitution(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
-                                  a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error)
 /*
@@ -13714,26 +13713,14 @@ set to TRUE for an error.
   a_type_ptr new_type = NULL;
 
   if (cpp0x_sfinae_enabled) {
-    a_constant       constant, *alloc_con;
-    an_expr_node_ptr expr_copy;
-    expr_copy = copy_template_param_expr(expr,
-                                         template_arg_list,
-                                         template_param_list,
-                                         /*guide_type=*/(a_type_ptr)NULL,
-                                         source_pos,
-                                         options,
-                                         copy_error,
-                                         &constant,
-                                         &alloc_con);
-    if (!*copy_error) {
-      a_constant_ptr con = (alloc_con != NULL) ? alloc_con : &constant;
-      new_type = decltype_from_substituted_expr_or_constant(expr_copy,
-                                                            con,
-                                                            expr,
-                                                            source_pos);
-    }  /* if */
+    /* C++0X SFINAE rules: do the substitution by rescanning. */
+    new_type = decltype_of_expr_with_substitution(expr,
+                                                  template_arg_list,
+                                                  template_param_list,
+                                                  options,
+                                                  copy_error);
   } else {
-    /* Pre-C++0x SFINAE rules apply. */
+    /* Pre-C++0x SFINAE rules apply, so deduction fails. */
     *copy_error = TRUE;
   }  /* if */
   return new_type;

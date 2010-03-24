@@ -251,6 +251,7 @@ extern a_boolean expr_is_rescannable(an_expr_node_ptr expr);
 extern void rescan_expr_with_substitution_internal(
                                an_expr_node_ptr       expr,
                                a_rescan_control_block *rcblock,
+                               a_boolean              is_operand_of_address_of,
                                a_boolean              force_stack_push,
                                an_operand_ptr         result,
                                an_operand_ptr         bound_function_selector);
@@ -285,13 +286,16 @@ extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 extern char *scan_uuidof_operand(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern a_type_ptr decltype_from_substituted_expr_or_constant(
-                                                an_expr_node_ptr  expr_copy,
-                                                a_constant_ptr    con,
-                                                an_expr_node_ptr  expr_orig,
-                                                a_source_position *source_pos);
+extern
+a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
+                                  a_decl_pos_block       *decl_pos_block);
 
-extern a_type_ptr scan_decltype_operator(a_decl_pos_block  *decl_pos_block);
+extern a_type_ptr decltype_of_expr_with_substitution(
+                                  an_expr_node_ptr expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error);
 
 #if GNU_EXTENSIONS_ALLOWED 
 

@@ -3708,7 +3708,6 @@ the name in the abstract.  Set *err to TRUE if there is an error.
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
   a_symbol_ptr                  sym;
-  an_operand                    operand;
   a_boolean                     is_qualified = FALSE;
   an_expr_operator_kind         op;
 
@@ -3733,23 +3732,13 @@ the name in the abstract.  Set *err to TRUE if there is an error.
          names something.  Things like parentheses and lvalue-to-rvalue
          conversion code should be dropped off. */
       sym = NULL;
-      make_rescan_operand(op2, rcblock, &operand);
-      if (is_error_operand(&operand)) {
-      } else if (is_expression_operand(&operand)) {
-        expr = operand.variant.expression;
-        if (is_variable_node(expr)) {
-          sym = symbol_for(expr->variant.variable);
-        } else if (is_routine_node(expr)) {
-          sym = symbol_for(expr->variant.routine);
-        }  /* if */
-      } else if (is_indefinite_function_operand(&operand) ||
-                 is_sym_for_member_operand(&operand)) {
-        /* For operands that contain a symbol, we have the result symbol
-           directly. */
-        sym = operand.variant.symbol;
-        is_qualified = operand.is_qualified_name;
-      } else if (is_constant_operand(&operand)) {
-        a_constant_ptr con = &operand.variant.constant;
+      op2 = strip_implicit_operations_for_rescan(
+                                        op2,
+                                        (an_expr_rescan_info_entry_ptr *)NULL);
+      if (is_constant_node(op2)) {
+        /* Most template cases come across as ck_template_param constants
+           which we can do substitution on and produce a symbol. */
+        a_constant_ptr con = op2->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_template_param) {
           if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
@@ -3787,6 +3776,12 @@ the name in the abstract.  Set *err to TRUE if there is an error.
                                                 rcblock->template_param_list,
                                                 &eriep->saved_operand.position,
                                                 rcblock->options);
+      } else if (is_variable_node(op2)) {
+        /* Static data member. */
+        sym = symbol_for(op2->variant.variable);
+      } else if (is_routine_node(op2)) {
+        /* Static member function. */
+        sym = symbol_for(op2->variant.routine);
       } else {
         unexpected_condition();
       }  /* if */
@@ -7517,48 +7512,6 @@ general_case:
 }  /* decltype_from_operand */
 
 
-a_type_ptr decltype_from_substituted_expr_or_constant(
-                                                 an_expr_node_ptr  expr_copy,
-                                                 a_constant_ptr    con,
-                                                 an_expr_node_ptr  expr_orig,
-                                                 a_source_position *source_pos)
-/*
-Template substitution has just been done on the expression underlying
-a decltype.  The original expression is expr_orig, and the substituted
-expression is expr_copy.  If expr_copy is NULL, the result after substitution
-is a constant, which is pointed to by con.  Return the decltype type,
-which is based on the expression type.  Source_pos is the source position
-of the decltype.
-*/
-{
-  a_type_ptr type;
-  an_operand operand;
-  a_boolean  no_parens_matters;
-
-  /* Make an operand so we will have whatever extra information was saved
-     with the expression for use in decltype_from_operand. */
-  if (expr_copy != NULL) {
-    make_lvalue_or_rvalue_expression_operand(expr_copy, &operand);
-    if (expr_orig->rescan_info != NULL) {
-      /* Restore extra information (like whether the operand was an
-         id-expression) from the rescan information. */
-      restore_operand_info_from_expr_rescan_info_entry(&operand,
-                                                       expr_orig->rescan_info);
-    } else {
-      operand.position = *source_pos;
-    }  /* if */
-  } else {
-    make_constant_operand(con, &operand);
-    operand.position = *source_pos;
-  }  /* if */
-  type = decltype_from_operand(&operand,
-                             /*leading_paren_seen=*/!operand.is_id_expression,
-                             /*FIXME*/
-                               &no_parens_matters);
-  return type;
-}  /* decltype_from_substituted_expr_or_constant */
-
-
 static a_scope_depth scope_depth_to_allocate_decltype_expr(void)
 /*
 We are about to scan the argument expression for a C++0x decltype or GNU typeof
@@ -7593,7 +7546,8 @@ function memory region.  For example:
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-a_type_ptr scan_decltype_operator(a_decl_pos_block  *decl_pos_block)
+a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
+                                  a_decl_pos_block       *decl_pos_block)
 /*
 Scan the decltype operator.  This is a C++0x construct that is similar to
 sizeof (in that its argument is not evaluated), but returns a type rather
@@ -7602,8 +7556,12 @@ than a size.  It is used in type contexts, not expression contexts.
 Syntax:
         decltype ( expression )
 
-The parentheses are required, unlike for sizeof.  If  decl_pos_block is not
-NULL, the end position in its specifiers_range is updated.
+The parentheses are required, unlike for sizeof.  If decl_pos_block is
+not NULL, the end position in its specifiers_range is updated.  If
+rcblock is non-NULL, redo semantic analysis on a previously-scanned
+decltype expression, and return the result type (or an error
+indication in *rcblock).  This routine is intended to be called from
+outside of the expression-processing routines.
 */
 {
   a_type_ptr              result;
@@ -7618,16 +7576,28 @@ NULL, the end position in its specifiers_range is updated.
   a_source_sequence_entry_ptr  ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  /* Skip the decltype token. */
-  check_assertion(!C_mode() && curr_token == tok_decltype);
-  (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  /* Remember if the first character of the expression is a parenthesis.  This
-     is significant if the expression that follows is an id-expression or a
-     class member access.  E.g., decltype(x) may be different from
-     decltype((x)). */
-  leading_paren_seen = (curr_token == tok_lparen);
+  check_assertion(!C_mode());
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression.
+       Note that rcblock->expr is the expression that is the operand of
+       the decltype, not the decltype itself, because there is no
+       expression for that. */
+    check_assertion(decl_pos_block == NULL);
+    make_rescan_operand(rcblock->expr, rcblock, &operand);
+    leading_paren_seen = !operand.is_id_expression;  /* FIXME */
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Skip the decltype token. */
+    check_assertion(curr_token == tok_decltype);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    /* Remember if the first character of the expression is a parenthesis.
+       This is significant if the expression that follows is an id-expression
+       or a class member access.  E.g., decltype(x) may be different from
+       decltype((x)). */
+    leading_paren_seen = (curr_token == tok_lparen);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* A decltype construct may include embedded statements and declarations if
      it contains a statement expression.  To allow e.g. the C++-generating back
@@ -7644,7 +7614,6 @@ NULL, the end position in its specifiers_range is updated.
      be in the function-scope memory region. */
   expr_scope_depth = scope_depth_to_allocate_decltype_expr();
   switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
-  /* Scan the argument expression. */
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -7652,8 +7621,13 @@ NULL, the end position in its specifiers_range is updated.
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
-  add_matching_stop_token(tok_rparen);
-  scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (rcblock == NULL) {
+    /* This call is done late because we need the expression stack to be pushed
+       already. */
+    add_matching_stop_token(tok_rparen);
+    /* Scan the argument expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  }  /* if */
   /* Give an error on an indefinite function. */
   do_operand_transformations(&operand,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
@@ -7699,7 +7673,7 @@ NULL, the end position in its specifiers_range is updated.
     result = tp;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ssep == NULL) {
+  if (ssep == NULL || rcblock != NULL) {
     /* No source sequence entries are being recorded. */
   } else if (ssep->next == NULL) {
     /* The decltype argument did not embed source sequence entries.  So we do
@@ -7713,21 +7687,52 @@ NULL, the end position in its specifiers_range is updated.
                                                (a_byte_il_entry_kind)iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL) {
-    /* Update the end of the specifiers range to describe the end of the
-       typeof construct. */
-    decl_pos_block->specifiers_range.end = end_pos_curr_token;
-  }  /* if */
+    if (decl_pos_block != NULL) {
+      /* Update the end of the specifiers range to describe the end of the
+         typeof construct. */
+      decl_pos_block->specifiers_range.end = end_pos_curr_token;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  remove_matching_stop_token(tok_rparen);
-  (void)required_token(tok_rparen, ec_exp_rparen);
+    /* Check for and pass over the right parenthesis. */
+    remove_matching_stop_token(tok_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   switch_back_to_original_region(region_to_switch_back_to);
   return result;
 }  /* scan_decltype_operator */
+
+
+a_type_ptr decltype_of_expr_with_substitution(
+                                  an_expr_node_ptr         expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error)
+/*
+expr is the previously-scanned operand expression of a decltype.  Do
+template deduction substitution on it using template_arg_list,
+template_param_list, and options.  Return the type of decltype applied
+to the resulting expression, or *copy_error set to TRUE if there was
+an error.  This routine is intended to be called from outside of the
+expression-processing routines.
+*/
+{
+  a_type_ptr             new_type;
+  a_rescan_control_block rcblock;
+
+  clear_rescan_control_block(&rcblock);
+  rcblock.template_arg_list = template_arg_list;
+  rcblock.template_param_list = template_param_list;
+  rcblock.options = options;
+  rcblock.expr = expr;
+  new_type = scan_decltype_operator(&rcblock, (a_decl_pos_block *)NULL);
+  if (rcblock.error_detected) *copy_error = TRUE;
+  return new_type;
+}  /* decltype_of_expr_with_substitution */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -7744,8 +7749,10 @@ Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
         typeof ( expression )   or   __typeof__ ( expression )
 
-The parentheses are required, unlike for sizeof.  If  decl_pos_block is not
-NULL, the end position in its specifiers_range is updated.
+The parentheses are required, unlike for sizeof.  If decl_pos_block is
+not NULL, the end position in its specifiers_range is updated.  This
+routine is intended to be called from outside of the
+expression-processing routines.
 */
 {
   a_type_ptr                  result;
@@ -18830,6 +18837,9 @@ in fact turn out to be a constant.
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
+                            a_rescan_control_block   *rcblock,
+                            a_symbol_ptr             sym_to_rescan,
+                            an_operand               *rescan_operand,
                             a_symbol_ptr             *p_sym_ptr,
                             a_boolean                *p_okay_after_typename)
 /*
@@ -18841,7 +18851,11 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
 In Microsoft mode, if p_okay_after_typename is not NULL, return a flag
 through it indicating whether or not the identifier is one that would be
 valid in a typename specifier.  This is used by the caller to diagnose
-invalid uses of typename.
+invalid uses of typename.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned identifier expression whose symbol
+is given by sym_for_rescan, and whose operand is given by rescan_operand,
+and return the result in *operand (or an error indication in *rcblock).
+The other input parameters (except local_options) are ignored in that case.
 */
 {
   a_symbol_ptr       sym_ptr, projection_sym_ptr = NULL, anon_var_sym;
@@ -18860,6 +18874,10 @@ invalid uses of typename.
                      lambda_capture;
   an_expression_kind saved_expr_kind;
   a_boolean          is_objectless_nonstatic_data_mem_ref = FALSE;
+  a_symbol_locator   locator;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_identifier");
 
@@ -18869,41 +18887,77 @@ invalid uses of typename.
     internal_error ("scan_identifier: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* Save the current source position. */
-  copy_source_position(pos_curr_token, start_position);
   /* Note if this identifier is in a context where it could be a
      pointer-to-member constant. */
   is_ptr_to_member_context = (local_options & EOPT_PTR_TO_MEMBER_CONTEXT) != 0;
-
-  /* If the identifier is the start of a C++ qualified name, get the whole
-     name.  If not, look the name up as a normal identifier.  This routine
-     also handles operator names. */
-  sym_ptr = coalesce_and_lookup_generalized_identifier
-                                            (GID_IS_EXPR_CONTEXT,
-                                             ilm_expr, &err);
-#if GNU_EXTENSIONS_ALLOWED
-  { a_token_sequence_number paren_tok_seq_number;
-    if (gpp_mode && gnu_version >= 30400 &&
-        do_dependent_name_processing &&
-        is_nonspecialized_instantiation_context() &&
-        !is_template_dependent_context() &&
-        arg_dependent_lookup_enabled &&
-        !locator_for_curr_id.is_qualified_name &&
-        next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen &&
-        get_nondependent_call_info(paren_tok_seq_number,
-                                   (a_nondependent_call_depth)0) == NULL) {
-      /* This is a dependent call in a real (not prototype) instantiation.
-         g++ 3.4 has a bug with dependent name lookup -- it does not
-         ignore entities declared later in the compilation.  Redo the
-         lookup, suppressing that part of the processing. */
-      clear_specific_symbol(locator_for_curr_id);
-      sym_ptr = normal_id_lookup(&locator_for_curr_id,
-                                 IDL_IS_EXPR_CONTEXT |
-                                 IDL_SUPPRESS_DECL_SEQ_CHECK);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned identifier
+       expression.  sym_to_rescan gives the symbol, which has already
+       been determined from rescan_operand. */
+    sym_ptr = sym_to_rescan;
+    start_position = rescan_operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rescan_operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Make a locator for the symbol. */
+    make_locator_for_symbol(sym_ptr, &locator);
+    locator.is_qualified_name = rescan_operand->is_qualified_name;
+    locator.access_control_error_reported =
+                                 rescan_operand->access_control_error_reported;
+    locator.is_template_id = rescan_operand->is_template_id;
+    locator.template_arg_list = rescan_operand->template_arg_list;
+    /* For a qualified name like X::y, the locator position is the position of
+       the "y", and start_position is the position of the "X".   The operand
+       position is the "X", and the operand id_position is the "y". */
+    if (rescan_operand->id_position.seq != 0) {
+      locator.source_position = rescan_operand->id_position;
+    } else {
+      locator.source_position = start_position;
     }  /* if */
-  }
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+    /* If the identifier is the start of a C++ qualified name, get the whole
+       name.  If not, look the name up as a normal identifier.  This routine
+       also handles operator names. */
+    sym_ptr = coalesce_and_lookup_generalized_identifier
+                                              (GID_IS_EXPR_CONTEXT,
+                                               ilm_expr, &err);
+    locator = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if GNU_EXTENSIONS_ALLOWED
+    { a_token_sequence_number paren_tok_seq_number;
+      if (gpp_mode && gnu_version >= 30400 &&
+          do_dependent_name_processing &&
+          is_nonspecialized_instantiation_context() &&
+          !is_template_dependent_context() &&
+          arg_dependent_lookup_enabled &&
+          !locator.is_qualified_name &&
+          next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen &&
+          get_nondependent_call_info(paren_tok_seq_number,
+                                     (a_nondependent_call_depth)0) == NULL) {
+        /* This is a dependent call in a real (not prototype) instantiation.
+           g++ 3.4 has a bug with dependent name lookup -- it does not
+           ignore entities declared later in the compilation.  Redo the
+           lookup, suppressing that part of the processing. */
+        clear_specific_symbol(locator);
+        sym_ptr = normal_id_lookup(&locator,
+                                   IDL_IS_EXPR_CONTEXT |
+                                   IDL_SUPPRESS_DECL_SEQ_CHECK);
+      }  /* if */
+    }
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (locator_for_curr_id.is_semivisible_nested_type) {
+    if (microsoft_mode && sym_ptr != NULL && is_constructor_symbol(sym_ptr) &&
+        next_token() == tok_lparen) {
+      /* In Microsoft mode, treat the name of a constructor as the name
+         of the class, so that something like "C::C()" is seen as a
+         functional-notation type conversion. */
+      sym_ptr = symbol_for(sym_parent_class(sym_ptr));
+    }  /* if */
+  }  /* if */
+  if (locator.is_semivisible_nested_type) {
     /* The symbol in the locator is a nested class that is not visible
        according to the ARM lookup rules but is returned in support of the
        nested class anachronism (ARM 18.3.5).  Issue an anachronism
@@ -18911,30 +18965,31 @@ invalid uses of typename.
     if (expr_diagnostic_should_be_issued(anachronism_error_severity,
                                          ec_nested_class_anachronism)) {
       sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                     locator_for_curr_id.specific_symbol);
+                     locator.specific_symbol);
     }  /* if */
   }  /* if */
   if (sym_ptr == NULL) {
-    if (is_error_locator(locator_for_curr_id)) {
+    check_assertion(rcblock == NULL);
+    if (is_error_locator(locator)) {
       /* An error was already issued. */
       make_error_operand(result);
     } else {
       /* The symbol was not in the symbol table; create an sk_undefined
          symbol.  It is not entered into the symbol table at this time. */
       sym_ptr = alloc_symbol((a_symbol_kind)sk_undefined,
-                             locator_for_curr_id.symbol_header,
-                             &locator_for_curr_id.source_position);
+                             locator.symbol_header,
+                             &locator.source_position);
       if (curr_expr_kind_is_const()) {
         /* In a constant expression, an undefined identifier is still
            flagged as "undefined" -- it makes the error message clearer. */
         enter_undefined_symbol(sym_ptr);
         if (expr_error_should_be_issued()) {
           str_error(ec_undefined_identifier,
-                    locator_for_curr_id.symbol_header->identifier);
+                    locator.symbol_header->identifier);
         }  /* if */
         record_symbol_reference((a_symbol_reference_kind)(SRK_REFERENCE |
                                                           SRK_ERROR),
-                                sym_ptr, &locator_for_curr_id.source_position,
+                                sym_ptr, &locator.source_position,
                                 /*update_il_entry=*/FALSE);
         make_error_operand(result);
       } else {
@@ -18943,24 +18998,27 @@ invalid uses of typename.
            (in C++, with argument-dependent lookup), or diagnosed as an
            error. */
         make_undefined_symbol_operand(sym_ptr,
-                                      ref_entry(sym_ptr, &pos_curr_token),
-                                      &locator_for_curr_id.source_position,
+                                      ref_entry(sym_ptr, &start_position),
+                                      &locator.source_position,
                                       result);
       }  /* if */
     }  /* if */
   } else {
     /* The symbol is defined. */
-    if (microsoft_mode && is_constructor_symbol(sym_ptr) &&
-        next_token() == tok_lparen) {
-      /* In Microsoft mode, treat the name of a constructor as the name
-         of the class, so that something like "C::C()" is seen as a
-         functional-notation type conversion. */
-      sym_ptr = symbol_for(sym_parent_class(sym_ptr));
-    }  /* if */
     /* Create a reference entry for the symbol if needed. */
-    /* Don't do this if the symbol is an overloaded function (we don't
-       yet know which function is being called). */
     if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* No reference entry if the symbol is an overloaded function (we don't
+         yet know which function is being called). */
+      rep = NULL;
+    } else if (sym_ptr->potentially_overloaded) {
+      /* Force overload processing on a symbol in a prototype instantiation
+         that coexists with a using-declaration that might or might not
+         overload it. */
+      check_assertion(is_function_or_template_symbol(sym_ptr));
+      force_indefinite_function = TRUE;
+      rep = NULL;
+    } else if (rcblock != NULL) {
+      /* No cross-reference entries in rescans. */
       rep = NULL;
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&
                !C_mode() && arg_dependent_lookup_enabled &&
@@ -18972,7 +19030,7 @@ invalid uses of typename.
                !(gpp_mode &&
                  is_gnu_builtin_function(sym_ptr->variant.routine.ptr)) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-               next_token() == tok_lparen) {
+               (check_assertion(rcblock == NULL), next_token() == tok_lparen)){
       /* When argument-dependent lookup is enabled, even if the symbol
          is a simple routine name it might not be the routine that is
          called, so go to overload resolution and handle the reference
@@ -18980,21 +19038,14 @@ invalid uses of typename.
          is immediately followed by a left parenthesis. */
       force_indefinite_function = TRUE;
       rep = NULL;
-    } else if (sym_ptr->potentially_overloaded) {
-      /* Force overload processing on a symbol in a prototype instantiation
-         that coexists with a using-declaration that might or might not
-         overload it. */
-      check_assertion(is_function_or_template_symbol(sym_ptr));
-      force_indefinite_function = TRUE;
-      rep = NULL;
     } else {
-      rep = ref_entry(sym_ptr, &locator_for_curr_id.source_position);
+      rep = ref_entry(sym_ptr, &locator.source_position);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
-    expr_check_ambiguity_and_verify_access(&locator_for_curr_id);
-    if (is_error_locator(locator_for_curr_id)) {
+    expr_check_ambiguity_and_verify_access(&locator);
+    if (is_error_locator(locator)) {
       /* Some kind of error in the ambiguity and access control checking. */
       make_error_operand(result);
       change_refs_to_error(rep);
@@ -19004,20 +19055,18 @@ invalid uses of typename.
         /* Unless it is a qualified-name reference, if sym_ptr is visible with
            new-style for-init declaration scoping but would be hidden using
            the old (cfront compatible) rules, a warning is appropriate. */
-        if (sym_ptr->hidden_by_old_for_init &&
-            !locator_for_curr_id.is_qualified_name) {
-          report_for_init_difference(sym_ptr,
-                                     &locator_for_curr_id.source_position);
+        if (sym_ptr->hidden_by_old_for_init && !locator.is_qualified_name) {
+          report_for_init_difference(sym_ptr, &locator.source_position);
         }  /* if */
       }  /* if */
-      projection_sym_ptr = locator_for_curr_id.specific_symbol;
+      projection_sym_ptr = locator.specific_symbol;
       /* What kind of symbol is it? */
       switch (sym_ptr->kind) {
         case sk_constant:
           /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_sym_constant_operand(sym_ptr, result);
-          result->is_qualified_name = locator_for_curr_id.is_qualified_name;
-          set_operand_name_reference_from_locator_for_curr_id(result);
+          result->is_qualified_name = locator.is_qualified_name;
+          set_operand_name_reference_from_locator(result, &locator);
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant
                is integral or enum.  This is needed for nontype template
@@ -19043,8 +19092,7 @@ variable:
              reference local variables of any containing function.
              Check for those. */
           if (bad_nested_function_variable_ref(sym_ptr,
-                                               &locator_for_curr_id.
-                                                               source_position,
+                                               &locator.source_position,
                                                result, &rep,
                                                &lambda_capture)) {
             /* Error. */
@@ -19078,17 +19126,16 @@ variable:
               check_reference_from_inline_function(sym_ptr);
             }  /* if */
             /* Make a variable operand that is an lvalue. */
-            make_lvalue_variable_operand(
-                                     var_ptr,
-                                     &pos_curr_token,
-                                     end_position_or_null(&end_pos_curr_token),
-                                     result, rep);
+            make_lvalue_variable_operand(var_ptr,
+                                         &start_position,
+                                         end_position_or_null(&end_position),
+                                         result, rep);
           }  /* if */
           if (is_error_operand(result)) {
             change_refs_to_error(rep);
             rep = NULL;
           } else {
-            set_operand_name_reference_from_locator_for_curr_id(result);
+            set_operand_name_reference_from_locator(result, &locator);
           }  /* if */
           break;
         case sk_routine:
@@ -19121,15 +19168,14 @@ normal_function:
             }  /* if */
             /* Make a function designator operand for the function. */
             make_function_designator_operand(projection_sym_ptr,
-                                             (a_boolean)locator_for_curr_id.
+                                             (a_boolean)locator.
                                                              is_qualified_name,
-                                             &locator_for_curr_id.
-                                                               source_position,
+                                             &locator.source_position,
                                              end_position_or_null(
-                                                          &end_pos_curr_token),
+                                                                &end_position),
                                              rep,
                                              result);
-            set_operand_name_reference_from_locator_for_curr_id(result);
+            set_operand_name_reference_from_locator(result, &locator);
           }  /* if */
           break;
         case sk_field:
@@ -19165,8 +19211,7 @@ normal_function:
               rep = NULL;
             } else if (bad_nested_function_variable_ref(
                                                   anon_var_sym,
-                                                  &locator_for_curr_id.
-                                                               source_position,
+                                                  &locator.source_position,
                                                   result, &rep,
                                                   (a_lambda_capture **)NULL)) {
               /* If we're inside a local class, we are not allowed to reference
@@ -19176,8 +19221,7 @@ normal_function:
                  Check for those. */
             } else {
               make_anonymous_union_field_operand(sym_ptr, anon_var_sym,
-                                                 &locator_for_curr_id.
-                                                               source_position,
+                                                 &locator.source_position,
                                                  rep, result);
             }  /* if */
           } else {
@@ -19189,8 +19233,9 @@ normal_function:
                  &A::x++
                where the "++" binds more tightly than the "&". */
             if (is_ptr_to_member_context &&
-                locator_for_curr_id.is_qualified_name &&
-                token_ends_expr(next_token(), prec_level, local_options)) {
+                locator.is_qualified_name &&
+                (rcblock != NULL ||
+                 token_ends_expr(next_token(), prec_level, local_options))) {
               /* The field was referenced by a qualified name and is the
                  immediate operand of a unary "&"; make up an operand that
                  preserves the qualified name so scan_ampersand_operator can
@@ -19220,7 +19265,7 @@ normal_function:
                              /*is_implicit_cast=*/TRUE);
                 expr_stack->objectless_nonstatic_data_ref_seen = TRUE;
                 expr_stack->objectless_nonstatic_data_ref_pos =
-                                           locator_for_curr_id.source_position;
+                                                       locator.source_position;
                 is_objectless_nonstatic_data_mem_ref = TRUE;
                 if (sun_mode || cpp0x_mode) {
                   /* Objectless references to non-static data members are
@@ -19228,19 +19273,19 @@ normal_function:
                 } else if (strict_ansi_mode) {
                   expr_pos_diagnostic(strict_ansi_discretionary_severity,
                                       ec_member_ref_requires_object,
-                                      &locator_for_curr_id.source_position);
+                                      &locator.source_position);
                 } else if (gnu_mode || microsoft_mode) {
                   expr_pos_diagnostic(es_discretionary_error,
                                       ec_member_ref_requires_object,
-                                      &locator_for_curr_id.source_position);
+                                      &locator.source_position);
                 }  /* if */
                 goto do_selection;
               }  /* if */
               /* Make an operand for the "this" pointer. */
               if (make_this_pointer_operand(sym_ptr,
                                             projection_sym_ptr,
-                                          &locator_for_curr_id.source_position,
-                                            (a_boolean)locator_for_curr_id.
+                                            &locator.source_position,
+                                            (a_boolean)locator.
                                                  access_control_error_reported,
                                             &this_pointer_operand)) {
                 /* Do the field selection relative to the "this" pointer. */
@@ -19300,8 +19345,7 @@ do_selection:
                "&f" and "f" are nonstandard ways of getting a pointer-to-
                member). */
             make_sym_for_member_operand(projection_sym_ptr,
-                                        (a_boolean)
-                                         locator_for_curr_id.is_qualified_name,
+                                        (a_boolean)locator.is_qualified_name,
                                         rep, result);
           }  /* if */
           break;
@@ -19320,7 +19364,7 @@ overloaded_function:
                generate it at the other end of the overload resolution
                when we know for sure whether or not we need it. */
             make_indefinite_function_operand(projection_sym_ptr,
-                                             &locator_for_curr_id,
+                                             &locator,
                                              result);
           }  /* if */
           break;
@@ -19332,7 +19376,7 @@ overloaded_function:
             /* No need to call change_refs_to_error; rep is NULL. */
           } else {
             make_indefinite_function_operand(projection_sym_ptr,
-                                             &locator_for_curr_id,
+                                             &locator,
                                              result);
           }  /* if */
           break;
@@ -19342,25 +19386,34 @@ overloaded_function:
              template is returned because there's only a representation
              for the class case as a member of a nonreal class, but it's
              really a function template. */
-          check_assertion(locator_for_curr_id.is_template_id &&
+          check_assertion(locator.is_template_id &&
                           is_template_dependent_context());
           make_unknown_dependent_function_operand(projection_sym_ptr,
                                                   /*is_template_id=*/TRUE,
-                                                  locator_for_curr_id.
-                                                             template_arg_list,
-                                                  (a_boolean)
-                                                       locator_for_curr_id.
+                                                  locator.template_arg_list,
+                                                  (a_boolean)locator.
                                                              is_qualified_name,
                                                   result);
           change_template_param_constant_operand_to_lvalue(result);
           break;
         case sk_undefined:
-          /* Symbol was found in the symbol table, but it is undefined.  This
-             means that it was encountered earlier but was never turned into a
-             function call.  Or, there was an ambiguity error.  No error
-             message is issued here because one was issued earlier.  An error
-             operand is returned. */
-          make_error_operand(result);
+          if (rcblock == NULL) {
+            /* Symbol was found in the symbol table, but it is undefined.
+               This means that it was encountered earlier but was never turned
+               into a function call.  Or, there was an ambiguity error.
+               No error message is issued here because one was issued earlier.
+               An error operand is returned. */
+            make_error_operand(result);
+          } else {
+            /* In the rescan case, return an undefined symbol operand.
+               While we only create an undefined symbol operand from source
+               in some special circumstances, if we bothered to create one
+               and save it in the IL, we preserve it here in the rescan. */
+            make_undefined_symbol_operand(sym_ptr,
+                                          (a_ref_entry_ptr)NULL,
+                                          &locator.source_position,
+                                          result);
+          }  /* if */
           break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
         case sk_named_address_space:
@@ -19378,11 +19431,11 @@ overloaded_function:
         case sk_union_tag:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
-          if (C_dialect == C_dialect_cplusplus && next_token() == tok_lparen) {
+          if (!C_mode() && rcblock == NULL && next_token() == tok_lparen) {
             /* In C++, a functional-notation type conversion. */
             a_type_ptr cast_type = type_symbol_type(sym_ptr);
-            if (microsoft_bugs && locator_for_curr_id.is_qualified_name &&
-                !locator_for_curr_id.is_file_scope_qualified_name) {
+            if (microsoft_bugs && locator.is_qualified_name &&
+                !locator.is_file_scope_qualified_name) {
               /* The Microsoft compiler allows typename to be used in many
                  invalid locations.  Set a flag if this context would be
                  valid after typename. */
@@ -19441,17 +19494,18 @@ overloaded_function:
               sym_ptr->variant.param_id->dummy_vla_variable = var_ptr;
             }  /* if */
             /* Generate an expression node referring to the dummy variable. */
-            make_lvalue_variable_operand(
-                                     var_ptr,
-                                     &pos_curr_token,
-                                     end_position_or_null(&end_pos_curr_token),
-                                     result, rep);
+            make_lvalue_variable_operand(var_ptr,
+                                         &start_position,
+                                         end_position_or_null(&end_position),
+                                         result, rep);
             check_assertion(is_expression_operand(result));
-            /* Create a_vla_fixup for the parameter, initialize its
-               members, and link it into the list of vla fixups for the
-               current function prototype scope. */
-            add_vla_fixup_entry((a_type_ptr)NULL, result->variant.expression,
-                                sym_ptr, &result->position);
+            if (rcblock == NULL) {
+              /* Create a_vla_fixup for the parameter, initialize its
+                 members, and link it into the list of vla fixups for the
+                 current function prototype scope. */
+              add_vla_fixup_entry((a_type_ptr)NULL, result->variant.expression,
+                                  sym_ptr, &result->position);
+            }  /* if */
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);
@@ -19480,8 +19534,7 @@ overloaded_function:
   /* Remember whether or not an access control error was reported on the
      identifier.  This is useful for suppressing additional errors due
      to the ARM 11.5 protected member access check. */
-  result->access_control_error_reported =
-                             locator_for_curr_id.access_control_error_reported;
+  result->access_control_error_reported=locator.access_control_error_reported;
   if (!okay_for_integral_const_expr ||
       !(is_integral_type(result->type) ||
         is_template_param_type(result->type) ||
@@ -19490,10 +19543,7 @@ overloaded_function:
        expression. */
     rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (!C_mode() && arg_dependent_lookup_enabled &&
+  if (!C_mode() && rcblock == NULL && arg_dependent_lookup_enabled &&
       (is_undefined_symbol_operand(result) ||
        is_indefinite_function_operand(result)) &&
       next_token() == tok_lparen) {
@@ -19503,8 +19553,13 @@ overloaded_function:
        functions when argument-dependent lookup may apply. */
     result->is_routine_name_followed_by_left_paren = TRUE;
   }  /* if */
-  /* Advance past the identifier. */
-  (void)get_token();
+  if (rcblock == NULL) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Advance past the identifier. */
+    (void)get_token();
+  }  /* if */
 after_advance_past_id:
 
   error_position = result->position = start_position;
@@ -20767,6 +20822,8 @@ see expr.h).
           goto bad_start_of_primary;
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
+                        (a_rescan_control_block *)NULL, (a_symbol *)NULL,
+                        (an_operand *)NULL,
                         (a_symbol_ptr *)NULL, &okay_after_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If okay_after_typename is TRUE, clear the flag that indicates
@@ -22840,9 +22897,10 @@ This is callable from outside of the expression processing routines.
 
 
 static void make_operand_for_rescanned_identifier(
-                                               an_expr_node_ptr       expr,
-                                               a_rescan_control_block *rcblock,
-                                               an_operand             *result)
+                               an_expr_node_ptr       expr,
+                               a_rescan_control_block *rcblock,
+                               a_boolean              is_operand_of_address_of,
+                               an_operand             *result)
 /*
 expr is an expression referencing a constant (enk_constant) that is
 in essence an identifier reference, encountered while redoing semantic
@@ -22851,6 +22909,8 @@ operand in *result for the identifier after template substitution.
 rcblock provides the deduction context, e.g., the template argument
 list being tried.  It also has an error_detected flag, which is set
 to TRUE if any non-access error is detected during the processing.
+is_operand_of_address_of is TRUE if the expression is the immediate
+operand of an "&" operator.
 */
 {
   an_expr_rescan_info_entry_ptr eriep;
@@ -22872,44 +22932,15 @@ to TRUE if any non-access error is detected during the processing.
     make_error_operand(result);
     copy_operand_position(&eriep->saved_operand, result);
   } else {
-    /* Build an operand for the symbol. */
-    switch (sym->kind) {
-      case sk_constant:
-        make_sym_constant_operand(sym, result);
-        break;
-      case sk_static_data_member:
-        make_lvalue_variable_operand(sym->variant.static_data_member.variable,
-                                     &eriep->saved_operand.position,
-                                     end_position_or_null(
-                                           &eriep->saved_operand.end_position),
-                                     result, (a_ref_entry_ptr)NULL);
-        break;
-      case sk_field:
-      case sk_member_function:
-        make_sym_for_member_operand(
-                             sym,
-                             (a_boolean)eriep->saved_operand.is_qualified_name,
-                             (a_ref_entry_ptr)NULL,
-                             result);
-        break;
-      case sk_overloaded_function:
-      case sk_function_template:
-      case sk_routine:
-        /* sk_routine gets an indefinite function because presumably we
-           got here because we're forcing overload resolution because
-           argument-dependent lookup is going to be in effect. */
-        make_indefinite_function_operand(sym,
-                                         (a_symbol_locator *)NULL,
-                                         result);
-        break;
-      case sk_undefined:
-        make_undefined_symbol_operand(sym, (a_ref_entry_ptr)NULL,
-                                      &eriep->saved_operand.position,
-                                      result);
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
+    /* Build an operand for the symbol as if it had just been scanned as
+       an identifier */
+    a_local_expr_options_set options = EOPT_NO_OPTIONS;
+    if (is_operand_of_address_of) {
+      options |= EOPT_PTR_TO_MEMBER_CONTEXT;
+    }  /* fi */
+    scan_identifier(result, options, PREC_LOWEST, rcblock, sym,
+                    &eriep->saved_operand,
+                    (a_symbol_ptr *)NULL, (a_boolean *)NULL);
     /* Set the proper source position, and any flags like whether the
        identifier reference was qualified. */
     restore_operand_details(result, &eriep->saved_operand);
@@ -23314,6 +23345,7 @@ postfix operators.
 void rescan_expr_with_substitution_internal(
                                an_expr_node_ptr       expr,
                                a_rescan_control_block *rcblock,
+                               a_boolean              is_operand_of_address_of,
                                a_boolean              force_stack_push,
                                an_operand             *result,
                                an_operand             *bound_function_selector)
@@ -23327,10 +23359,12 @@ result after substitution.  If bound_function_selector is non-NULL,
 and if the expression results in a bound function, *bound_function_selector
 is set to the selector; if bound_function_selector is NULL and the
 expression results in a bound function, an error is (conceptually)
-issued.  If force_stack_push is TRUE, a push on the expression stack
-is always done; otherwise, it is done only if needed.  This routine is
-intended for use within the expression-processing routines; for an
-alternative callable from outside, see rescan_expr_with_substitution.
+issued.  If is_operand_of_address_of is TRUE, the expression is the
+immediate operand of an "&" operator.  If force_stack_push is TRUE, a
+push on the expression stack is always done; otherwise, it is done
+only if needed.  This routine is intended for use within the
+expression-processing routines; for an alternative callable from
+outside, see rescan_expr_with_substitution.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -23379,7 +23413,8 @@ alternative callable from outside, see rescan_expr_with_substitution.
   rcblock->operator_token = operator_token;
   if (operator_token == tok_identifier) {
     /* The expression is essentially an identifier reference. */
-    make_operand_for_rescanned_identifier(expr, rcblock, result);
+    make_operand_for_rescanned_identifier(expr, rcblock,
+                                          is_operand_of_address_of, result);
   } else if (unary) {
     /* Unary operators. */
     /* The switch statement here should look a lot like the one at the top of
@@ -23543,6 +23578,7 @@ expression-processing routines.
   an_operand result;
 
   rescan_expr_with_substitution_internal(expr, rcblock,
+                                         /*is_operand_of_address_of=*/FALSE,
                                          /*force_stack_push=*/TRUE, &result,
                                          (an_operand *)NULL);
   if (rcblock->error_detected) {
@@ -24698,7 +24734,9 @@ this routine is called only when microsoft_mode is TRUE.
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Scan the identifier. */
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
-                  PREC_LOWEST, &projection_sym_ptr, (a_boolean*)NULL);
+                  PREC_LOWEST, (a_rescan_control_block *)NULL,
+                  (a_symbol *)NULL, (an_operand *)NULL,
+                  &projection_sym_ptr, (a_boolean*)NULL);
   if (is_error_operand(&operand) || projection_sym_ptr == NULL) {
     /* Some previous error. */
   } else {

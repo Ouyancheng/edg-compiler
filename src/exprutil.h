@@ -1513,10 +1513,6 @@ extern void record_operator_position_in_rescan_info(
                               a_source_position       *operator_position,
                               a_token_sequence_number operator_tok_seq_number);
 
-extern void restore_operand_info_from_expr_rescan_info_entry(
-                                        an_operand                    *operand,
-                                        an_expr_rescan_info_entry_ptr eriep);
-
 extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
 
 extern an_expr_node_ptr strip_implicit_operations_for_rescan(

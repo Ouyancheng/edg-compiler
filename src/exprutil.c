@@ -2170,7 +2170,7 @@ need to be allocated).
 }  /* record_operator_position_in_rescan_info */
 
 
-void restore_operand_info_from_expr_rescan_info_entry(
+static void restore_operand_info_from_expr_rescan_info_entry(
                                         an_operand                    *operand,
                                         an_expr_rescan_info_entry_ptr eriep)
 /*
@@ -2201,7 +2201,7 @@ Clear a rescan control block to default values.
 
 
 an_expr_node_ptr strip_implicit_operations_for_rescan(
-                                         an_expr_node_ptr        expr,
+                                         an_expr_node_ptr              expr,
                                          an_expr_rescan_info_entry_ptr *periep)
 /*
 Strip compiler-generated operations (e.g., implicit casts) from the top of
@@ -2274,6 +2274,7 @@ rescan_info is NULL or no default information is available, abort.
 static void make_rescan_operand_full(
                                an_expr_node_ptr       expr,
                                a_rescan_control_block *rcblock,
+                               a_boolean              is_operand_of_address_of,
                                an_operand             *operand,
                                an_operand             *bound_function_selector)
 /*
@@ -2281,11 +2282,13 @@ As part of redoing semantic analysis on an expression while doing template
 deduction, convert expr (an operand of the expression currently being
 processed) to an_operand form in *operand.  rcblock provides context
 information for the deduction being done, e.g., the template argument list.
-Note that the process here includes making a copy, so the operand
-returned will never use any part of the original expression, and the
-original expression is not modified.  If bound_function_selector is
-non-NULL, the caller is willing to accept a bound function as the result,
-and the selector for that can be stored in *bound_function_selector.
+is_operand_of_address_of is TRUE if this expression is the immediate
+operand of an "&" operator.  Note that the process here includes making
+a copy, so the operand returned will never use any part of the
+original expression, and the original expression is not modified.  If
+bound_function_selector is non-NULL, the caller is willing to accept a
+bound function as the result, and the selector for that can be stored
+in *bound_function_selector.
 */
 {
   an_expr_node_ptr              expr_copy;
@@ -2308,9 +2311,10 @@ and the selector for that can be stored in *bound_function_selector.
   } else if (expr_is_rescannable(expr)) {
     /* Rescan the expression.  Note that going this route rather than through
        copy_template_param_expr allows us to keep the rescanned expression
-       in an_operand form rather than having to convert in to an expression
+       in an_operand form rather than having to convert it to an expression
        and then back again. */
     rescan_expr_with_substitution_internal(expr, rcblock,
+                                           is_operand_of_address_of,
                                            /*force_stack_push=*/FALSE,
                                            operand, bound_function_selector);
     rescanned_case = TRUE;
@@ -2362,7 +2366,8 @@ Interface to make_rescan_operand_full for the usual case where a bound
 function is not allowed.
 */
 {
-  make_rescan_operand_full(expr, rcblock, operand, (an_operand *)NULL);
+  make_rescan_operand_full(expr, rcblock, /*is_operand_of_address_of=*/FALSE,
+                           operand, (an_operand *)NULL);
 }  /* make_rescan_operand */
 
 
@@ -2400,11 +2405,14 @@ list being tried.
   an_expr_node_ptr              expr = rcblock->expr, op1, op2, op3;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
+  a_boolean                     is_operand_of_address_of;
 
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
-  make_rescan_operand(op1, rcblock, operand_1);
+  is_operand_of_address_of = node_operator_is(expr, eok_address_of);
+  make_rescan_operand_full(op1, rcblock, is_operand_of_address_of,
+                           operand_1, (an_operand *)NULL);
   op2 = op1->next;
   if (op2 != NULL) {
     make_rescan_operand(op2, rcblock, operand_2);
@@ -2444,7 +2452,8 @@ to be converted to operand form later.
      explicit rescan information on all calls. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   op1 = expr->variant.operation.operands;
-  make_rescan_operand_full(op1, rcblock, operand, bound_function_selector);
+  make_rescan_operand_full(op1, rcblock, /*is_operand_of_address_of=*/FALSE,
+                           operand, bound_function_selector);
   args = op1->next;
   /* A call like p->f(x) where the p->f part was treated as a static
      selection during prototype instantiation (because we didn't know what

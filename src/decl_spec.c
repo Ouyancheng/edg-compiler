@@ -8125,7 +8125,8 @@ process_class_specifier:
         break;
       case tok_decltype:
         { a_source_position  decltype_pos = pos_curr_token;
-          *type_ptr = scan_decltype_operator(decl_pos_block);
+          *type_ptr = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                              decl_pos_block);
           if (!is_error_type(*type_ptr) &&
               (basic_type != bt_none || sign != sign_none ||
                size != size_none)) {
