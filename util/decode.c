@@ -79,11 +79,9 @@ typedef size_t true_size_t;
 #if IA64_ABI
 #include "targ_def.h" /* For DEFAULT_EMULATE_GNU_ABI_BUGS and others. */
 #endif /* IA64_ABI */
-
-#endif /* COMPILE_DECODE_FOR_LIB_SRC */
-
 #include "decode.h"
 
+#endif /* COMPILE_DECODE_FOR_LIB_SRC */
 
 /*
 Block used to hold state variables.  A block is used so that these routines
@@ -2974,11 +2972,6 @@ end_of_routine:;
 }  /* uncompress_mangled_name */
 
 
-/* Make sure that decode_identifier doesn't collide with symbols in user
-   programs when being compiled as part of lib_src. */
-#if COMPILE_DECODE_FOR_LIB_SRC
-static
-#endif /* COMPILE_DECODE_FOR_LIB_SRC */
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,

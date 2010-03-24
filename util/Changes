@@ -3,7 +3,7 @@ Version 4.2
 3/24/10  [EDGcpfe/10148]
 __cxa_demangle now available in the IA-64 ABI runtime library
 
-Changes have been made to decode.c and decode.h to allow decode.c to be cross
+Changes have been made to decode.c to allow decode.c to be cross
 compiled (as part of the runtime library built in the lib_src directory).
 Typically, decode.c is compiled for the host platform (and used as part of the
 host-based edg_decode and edg_prelink tools).  The IA-64 ABI specifies that the
