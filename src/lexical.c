@@ -12998,6 +12998,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
          instantiation in g++ (versions < 30400) or Sun mode.  Ignore this
          error. */
       template_sym = NULL;
+      sun_gpp_undefined_template = TRUE;
     } else if (!is_error_symbol &&
                !lt_permitted_context && !is_expr_context) {
       /* A nontype symbol followed by a template argument list in a
