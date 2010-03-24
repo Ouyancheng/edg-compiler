@@ -28,6 +28,11 @@ decode.h -- Declarations for decode.c (name demangler for C++).
 #ifndef DECODE_H
 #define DECODE_H 1
 
+/* Make sure that decode_identifier doesn't collide with symbols in user
+   programs when being compiled as part of lib_src. */
+#if COMPILE_DECODE_FOR_LIB_SRC
+static
+#endif /* COMPILE_DECODE_FOR_LIB_SRC */
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,

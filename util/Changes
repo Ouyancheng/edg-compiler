@@ -1,5 +1,24 @@
 Version 4.2
 
+3/24/10  [EDGcpfe/10148]
+__cxa_demangle now available in the IA-64 ABI runtime library
+
+Changes have been made to decode.c and decode.h to allow decode.c to be cross
+compiled (as part of the runtime library built in the lib_src directory).
+Typically, decode.c is compiled for the host platform (and used as part of the
+host-based edg_decode and edg_prelink tools).  The IA-64 ABI specifies that the
+__cxa_demangle routine be available to programs on the target platform to
+demangle mangled names.  decode.c can now be built for the target platform by
+setting the new COMPILE_DECODE_FOR_LIB_SRC configuration macro to TRUE.  When
+TRUE, header files from the front end are no longer included (although
+header files from lib_src are now required).  Additionally, values for the
+following configuration macros must be supplied: DEFAULT_EMULATE_GNU_ABI_BUGS
+and USE_LONG_DOUBLE_FOR_HOST_FP_VALUE.  COMPILE_DECODE_FOR_LIB_SRC can only be
+used with the IA-64 ABI (i.e., IA64_ABI must be TRUE).  Note that the
+__cxa_demangle routine may be in the __cxxabiv1 namespace in certain runtime
+configurations.
+
+
 1/11/10  [EDGcpfe/10361]
 Incorrect demangling of lambdas in static data member initializers (IA-64 ABI)
 

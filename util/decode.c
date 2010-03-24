@@ -31,11 +31,57 @@ which in addition to its use on Itanium is used on a lot of versions of
 gcc.
 */
 
-#include "basics.h"
+#if COMPILE_DECODE_FOR_LIB_SRC
+/*
+When COMPILE_DECODE_FOR_LIB_SRC is TRUE, this file is being cross compiled for
+inclusion in the runtime library (so that __cxa_demangle is available).
+Compiling in this mode implies that IA64_ABI is TRUE (no externally visible
+symbols are defined in Cfront mode).  When cross compiling, don't include any
+header files from the front end.  Since we don't have access to the settings of
+the front end configuration macros, make sure the ones we use have been
+defined.
+*/
+
+#ifndef IA64_ABI
+#define IA64_ABI 1
+#else /* defined(IA64_ABI) */
+#if !IA64_ABI
+ #error IA64_ABI macro must be TRUE when COMPILE_DECODE_FOR_LIB_SRC is TRUE
+#endif /* !IA64_ABI */
+#endif /* ifndef IA64_ABI */
+
+#ifndef DEFAULT_EMULATE_GNU_ABI_BUGS
+ #error DEFAULT_EMULATE_GNU_ABI_BUGS macro must be set when \
+        COMPILE_DECODE_FOR_LIB_SRC is TRUE
+#endif /* ifndef DEFAULT_EMULATE_GNU_ABI_BUGS */
+
+#ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+ #error USE_LONG_DOUBLE_FOR_HOST_FP_VALUE macro must be set when \
+        COMPILE_DECODE_FOR_LIB_SRC is TRUE
+#endif /* ifndef USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+
+#include "basics.h"   /* Includes version in lib_src directory. */
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdio.h>
+#ifndef sizeof_t
+typedef size_t sizeof_t;
+#endif /* ifndef sizeof_t */
+#ifndef true_size_t
+typedef size_t true_size_t;
+#endif /* ifndef true_size_t */
+
+#else /* !COMPILE_DECODE_FOR_LIB_SRC */
+
+#include "basics.h"   /* Includes version in src directory. */
 #include "host_envir.h"
 #if IA64_ABI
-#include "targ_def.h" /* For DEFAULT_EMULATE_GNU_ABI_BUGS */
+#include "targ_def.h" /* For DEFAULT_EMULATE_GNU_ABI_BUGS and others. */
 #endif /* IA64_ABI */
+
+#endif /* COMPILE_DECODE_FOR_LIB_SRC */
+
 #include "decode.h"
 
 
@@ -2928,6 +2974,11 @@ end_of_routine:;
 }  /* uncompress_mangled_name */
 
 
+/* Make sure that decode_identifier doesn't collide with symbols in user
+   programs when being compiled as part of lib_src. */
+#if COMPILE_DECODE_FOR_LIB_SRC
+static
+#endif /* COMPILE_DECODE_FOR_LIB_SRC */
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
@@ -5838,6 +5889,11 @@ Utility to set the state of the demangler to its initial values.
 }  /* init_demangle_state */
 
 
+/* Make sure that decode_identifier doesn't collide with symbols in user
+   programs when being compiled as part of lib_src. */
+#if COMPILE_DECODE_FOR_LIB_SRC
+static
+#endif /* COMPILE_DECODE_FOR_LIB_SRC */
 void decode_identifier(char      *id,
                        char      *output_buffer,
                        sizeof_t  output_buffer_size,
@@ -5917,6 +5973,11 @@ Result status codes used by __cxa_demangle.
 #define CXA_DEMANGLE_INVALID_NAME	-2
 #define CXA_DEMANGLE_INVALID_ARGUMENTS	-3
 
+
+#if COMPILE_DECODE_FOR_LIB_SRC && defined(__EDG_RUNTIME_USES_NAMESPACES)
+namespace __cxxabiv1 {
+  using namespace std;
+#endif /* COMPILE_DECODE_FOR_LIB_SRC&&defined(__EDG_RUNTIME_USES_NAMESPACES) */
 
 EXTERN_C char *__cxa_demangle(char		*mangled_name,
 			      char		*user_buffer,
@@ -6022,6 +6083,10 @@ and "user_buffer_size" is set to the new size.
   return buf_to_use;
 #undef TEMP_BUFFER_SIZE
 }  /* __cxa_demangle */
+
+#if COMPILE_DECODE_FOR_LIB_SRC && defined(__EDG_RUNTIME_USES_NAMESPACES)
+}  /* namespace __cxxabiv1 */
+#endif /* COMPILE_DECODE_FOR_LIB_SRC&&defined(__EDG_RUNTIME_USES_NAMESPACES) */
 
 #endif /* !IA64_ABI */
 
