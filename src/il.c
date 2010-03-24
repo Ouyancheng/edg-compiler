@@ -7264,6 +7264,11 @@ it's to be moved to another position in the list.
            template parameter declaration.  Don't try to enter the class
            in the IL. */
         may_be_added = FALSE;
+      } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+        /* In some cases, nonreal nested class types are associated with a
+           template instantiation scope.  However, the IL entry should not be
+           recorded there since there is no associated a_scope entry. */
+        may_be_added = FALSE;
       } else if (type_ptr->source_corresp.is_class_member) {
         if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
             ssep->assoc_type != parent_class_of(type_ptr)) {
