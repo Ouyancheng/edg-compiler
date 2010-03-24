@@ -1657,8 +1657,8 @@ during wrapup processing by compare_function_templates.
             match = FALSE;
           }  /* if */
           if (match && gnu_version >= 40100) {
-            /* g++, starting with version 4.1, treat a local type as a template
-               argument as a deduction failure (but not unnamed or VLA
+            /* g++, starting with version 4.1, treats a local type as a
+               template argument as a deduction failure (but not unnamed or VLA
                types). */
             a_boolean		is_unnamed, is_local, is_vla;
             if (!is_lambda_closure_class &&
