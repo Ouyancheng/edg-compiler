@@ -15966,7 +15966,7 @@ to be copied.
       } else if (candidate_functions == NULL) {
         /* There is no applicable operator= function. */
         if (expr_error_should_be_issued()) {
-          if (is_const_qualified_type(source_expr->type)) {
+          if (get_type_qualifiers(source_expr->type) == TQ_CONST) {
             /* The common case: missing const assignment operator function. */
             pos_ty_error(ec_missing_const_assignment_operator, dest_decl_pos,
                          class_type);
