@@ -1,5 +1,24 @@
 Version 4.2
 
+3/26/10  [EDGcpfe/9976]
+C++0x: Attributes "override", "hiding", and "base_check"
+
+In C++0x mode, the front end now supports the standard attributes "override",
+"hiding", and "base_check".  Attribute "override" indicates that a virtual
+function overrides a matching function in a base class.  "hiding" indicates
+that a derived-class member hides a base class member.  "base_check" can
+appear on a base class definition, and causes the front end to issue errors
+if overriding virtual functions are not marked with [[override]] or hiding
+members are not marked with [[hiding]].  For example:
+
+  struct B { virtual void f(), f(int); };
+  struct[[base_check]] D: B {
+    [[override]] virtual void f();      // Okay.
+    [[override]] virtual void f(char);  // Error: No overridden f(char) in B.
+    virtual void f(int);                // Error: Missing [[override]].
+  };
+
+
 3/26/10  [EDGcpfe/10558]
 Microsoft compatibility: spurious error on empty __if_exists
 

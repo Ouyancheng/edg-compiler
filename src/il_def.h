@@ -1917,11 +1917,14 @@ typedef enum an_attribute_kind_tag {
   /* Standard attributes (some of which also have GNU and/or Microsoft
      variants). */
   ak_align,		/* "align" (std, ms) or "aligned" (gnu). */
+  ak_base_check,	/* "base_check" (std). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */
   ak_final,		/* "final" (std). */
+  ak_hiding,		/* "hiding" (std). */
   ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
   ak_nothrow,		/* "nothrow" (std, gnu, ms). */
+  ak_override,		/* "override" (std). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -10777,8 +10780,16 @@ typedef struct a_routine {
 			/* TRUE if the address of this routine has been
 			   taken somewhere. */
   a_bit_field	is_virtual:1;
-			/* TRUE for class member functions declared with a
-			   "virtual" specifier (C++ only). */
+			/* TRUE for virtual member functions (i.e., member
+			   functions declared with a "virtual" specifier or
+			   member functions that are virtual because they
+			   match a virtual member function in a base class).
+			   (C++ only). */
+  a_bit_field	overrides_base_member:1;
+			/* TRUE for virtual member functions that are known to
+			   override at least one virtual function in a base
+			   class.  (To find the overridden functions, see
+			   overriding_virtual_functions in a_base_class.) */
   a_bit_field	pure_virtual:1;
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if

@@ -189,10 +189,13 @@ static an_attr_descr known_attr_table[] = {
 #if USER_CONTROL_OF_STRUCT_PACKING
   { "align", "(ct)", "c+", ak_align },
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  { "base_check", "", "1c+", ak_base_check },
   { "carries_dependency", "", "1c+", ak_carries_dependency },
   { "final", "", "1c+", ak_final },
+  { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
   { "nothrow", "", "1c+", ak_nothrow },
+  { "override", "", "1c+", ak_override },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -424,10 +427,13 @@ typedef struct an_attr_appl_descr {
 
 /* Application functions for standard attributes. */
 static an_attr_application_fn apply_align_attr;
+static an_attr_application_fn apply_base_check_attr;
 static an_attr_application_fn apply_carries_dependency_attr;
 static an_attr_application_fn apply_final_attr;
+static an_attr_application_fn apply_hiding_attr;
 static an_attr_application_fn apply_noreturn_attr;
 static an_attr_application_fn apply_nothrow_attr;
+static an_attr_application_fn apply_override_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -523,10 +529,13 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_empty_attr, "", NO_APPL_FN },
   /* Standard attributes. */
   { ak_align, "", apply_align_attr },
+  { ak_base_check, "c:+d", apply_base_check_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
+  { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
+  { ak_override, "r:+v!", apply_override_attr },
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
@@ -3211,6 +3220,23 @@ return that entity.
 }  /* apply_align_attr */
 
 
+static char* apply_base_check_attr(an_attribute_ptr  ap,
+                                   char              *entity,
+                                   an_il_entry_kind  entity_kind)
+/*
+The given entity must be a class type.  Apply the "base_check" attribute to it
+and return entity.  (The "checking" implied by "base_check" is delayed until
+the class' definition has been completed.)
+*/
+{
+  a_type_ptr  tp = (a_type_ptr)entity;
+
+  check_assertion(entity_kind == iek_type);
+  symbol_supplement_for_class(tp)->base_check = TRUE;
+  return entity;
+}  /* apply_base_check_attr */
+
+
 static void check_carries_dependency_for_params(a_decl_parse_state_ptr  dps)
 /*
 Check constraints on the carries_dependency attribute specified on the
@@ -3328,6 +3354,7 @@ attribute to it and return the entity.
          out-of-class member definition, which is invalid. */
       pos_st_error(ec_attr_must_appear_in_class_definition,
                    &ap->position, ap->name);
+      make_attr_unrecognized(ap);
     } else {
       rp->sealed = TRUE;
     }  /* if */
@@ -3340,6 +3367,29 @@ attribute to it and return the entity.
   }  /* if */
   return entity;
 }  /* apply_final_attr */
+
+
+static char* apply_hiding_attr(an_attribute_ptr  ap,
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
+/*
+Check that the "hiding" attribute appears in a class definition.  Additional
+checking is delayed until the definition is complete (because later member
+declarations can affect the validity of the attribute), but record the use
+of this attribute in the class to avoid unnecessary work for class definitions
+that do not involve the \"hiding\" attribute.  Return the given entity.
+*/
+{
+  if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
+    pos_st_error(ec_attr_must_appear_in_class_definition,
+                 &ap->position, ap->name);
+    make_attr_unrecognized(ap);
+  } else {
+    symbol_supplement_for_class(scope_stack_top().assoc_type)
+                                                   ->check_hiding_attr = TRUE;
+  }  /* if */
+  return entity;
+}  /* apply_hiding_attr */
 
 
 static char* apply_noreturn_attr(an_attribute_ptr  ap,
@@ -3462,6 +3512,31 @@ entity.
 done:
   return entity;
 }  /* apply_nothrow_attr */
+
+
+static char* apply_override_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the given "override" attribute to the given entity and return that
+entity.
+*/
+{
+  check_assertion(entity_kind == iek_routine);
+  if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
+    /* The attribute is presumably being applied to an out-of-class member
+       definition, which is invalid. */
+    pos_st_error(ec_attr_must_appear_in_class_definition,
+                 &ap->position, ap->name);
+    make_attr_unrecognized(ap);
+  } else {
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+    if (!dps->override_okay) {
+      pos_error(ec_override_member_does_not_override, &dps->declarator_pos);
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_override_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 

@@ -3472,9 +3472,7 @@ overriding of which orep is a part.
   for (; udecl != NULL; udecl = udecl->next) {
     if (udecl->entity.kind == (a_byte_il_entry_kind)iek_routine) {
       a_routine_ptr  routine = (a_routine_ptr)udecl->entity.ptr;
-
-      if (((a_symbol_ptr)routine->source_corresp.assoc_info)->header ==
-                                                                     header) {
+      if (symbol_for(routine)->header == header) {
         result = TRUE;
         break;
       }  /* if */
@@ -3484,27 +3482,58 @@ overriding of which orep is a part.
 }  /* base_function_unhidden_by_projection */
 
 
-static void check_override_registry(an_override_registry_entry_ptr  first_orep,
-                                    a_symbol_ptr                    tag_sym)
+static a_boolean class_member_name_marked_as_hiding(a_symbol_ptr         csym,
+                                                    a_symbol_header_ptr  hdr)
 /*
-orep is the first entry in the "override-registry" for the class associated
-with tag_sym.  Traverse the linked list, checking each entry for conditions
-that would warrant a warning.  There are two cases: when the overridden
-function is an overload set in a base class and one or more virtual functions
-was overridden by a declaration in the current class and one or more was not
-overridden; though allowed, this could produce subtle inconsistencies in a
-user program, so issue a warning.  The other case is where a declaration in
-the derived class might have been intended to override a base class virtual
-function, but didn't.  Again, it's perfectly legal, but it *might* have been
-a mistake.  Both these warnings should perhaps be remarks.
+Return TRUE if a member of the class represented by csym with the name
+represented by hdr was declared with the C++0x attribute "hiding".
 */
 {
-  an_override_registry_entry_ptr  orep = first_orep, next_orep;
+  a_boolean  result = FALSE;
+
+  if (csym->variant.class_struct_union.extra_info->check_hiding_attr) {
+    a_symbol_ptr  msym = csym->variant.class_struct_union.extra_info->symbols;
+    for (; msym != NULL; msym = msym->next_in_scope) {
+      if (msym->header == hdr) {
+        a_boolean     ovl = symbol_is(msym, sk_overloaded_function);
+        a_symbol_ptr  sym = ovl ? msym->variant.overloaded_function.symbols
+                                : msym;
+        for (; sym != NULL; sym = ovl ? sym->next : NULL) {
+          a_source_correspondence  *scp = source_corresp_entry_for_symbol(sym);
+          if (scp != NULL &&
+              find_attribute(ak_hiding, scp->attributes) != NULL) {
+            result = TRUE;
+            goto done;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* class_member_name_marked_as_hiding */
+
+
+static void check_override_registry(a_class_def_state  *class_state)
+/*
+class_state describes a class definition that has just been completed.
+Check for cases where a set of overloaded virtual functions in the base class 
+was only partially overridden and issue a diagnostic if appropriate.
+Similarly, check for virtual functions that are hidden rather than overridden.
+(Whether a diagnostic is issued at all and the severity of any diagnostics is
+dependent on the use of the C++0x attributes "base_check" and "hiding".)
+*/
+{
+  a_symbol_ptr  tag_sym = symbol_for(class_state->class_type);
+  a_boolean     strict_checking =
+                   tag_sym->variant.class_struct_union.extra_info->base_check;
+  an_override_registry_entry_ptr
+                orep = class_state->override_registry, next_orep;
 
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
     if (orep->override_count < orep->virtual_function_count) {
-      if (orep->virtual_function_count > 1 && orep->override_count > 0) {
+      if (orep->override_count > 0) {
         /* Issue a diagnostic on partial override of an overloaded
            virtual function. */
         if (base_function_unhidden_by_projection(tag_sym, orep)) {
@@ -3512,8 +3541,14 @@ a mistake.  Both these warnings should perhaps be remarks.
              declarations projected through a using-declaration. */
           goto next;
         } else {
-          pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
-                          orep->overridden_sym, tag_sym);
+          /* Issue a diagnostic, unless the C++0x attribute "hiding" was
+             specified on the function's name in the derived class. */
+          if (!class_member_name_marked_as_hiding(
+                                     tag_sym, orep->overridden_sym->header)) {
+            pos_sy2_diagnostic(strict_checking ? es_error : es_warning,
+                               ec_partial_override, &tag_sym->decl_position,
+                               orep->overridden_sym, tag_sym);
+          }  /* if */
           /* No need to issue any more diagnostics on this name. */
           remove_name_from_override_registry(orep);
         }  /* if */
@@ -3525,7 +3560,6 @@ a mistake.  Both these warnings should perhaps be remarks.
           goto next;
         } else {
           a_symbol_list_entry_ptr  slep = orep->override_failures;
-
           for (; slep != NULL; slep = slep->next) {
             pos_sy2_warning(ec_virtual_function_decl_hidden,
                             &slep->symbol->decl_position,
@@ -3875,12 +3909,12 @@ return_types_are_override_compatible.
 /*ARGSUSED*/  /* func_info is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean check_for_virtual_function(
-                                     a_boolean             virtual_specified,
-                                     a_symbol_ptr          rout_sym,
-                                     a_type_ptr            class_type,
-                                     a_class_def_state_ptr class_state,
-                                     a_func_info_block_ptr func_info,
-                                     a_source_position     *source_pos)
+                                     a_boolean               virtual_specified,
+                                     a_symbol_ptr            rout_sym,
+                                     a_decl_parse_state_ptr  dps,
+                                     a_class_def_state_ptr   class_state,
+                                     a_func_info_block_ptr   func_info,
+                                     a_source_position       *source_pos)
 /*
 A nonstatic member function, represented by rout_sym, has been declared
 and, depending on the value of virtual_specified, may have been explicitly
@@ -3892,12 +3926,13 @@ functions that are overridden by the current declaration is recorded to
 allow for appropriate processing later (e.g., the construction of virtual
 function tables).  If the current routine is a virtual function either
 from explicit specification or from "inheriting" its virtualness, mark the
-routine entry and return TRUE; otherwise return FALSE.  class_type and
-class_state describe the parent class of the member function, and func_info
-points to some additional information about the function declaration.
+routine entry and return TRUE; otherwise return FALSE.  class_state describes
+the parent class of the member function (which is being defined), and dps and
+func_info point to some additional information about the function declaration.
 Any diagnostics are issued at the given position.
 */
 {
+  a_type_ptr                      class_type = class_state->class_type;
   a_boolean                       overloaded;
   a_base_class_ptr                bcp, return_adjustment_bcp;
   a_symbol_ptr                    symbol_list, sym, sym_next;
@@ -3905,9 +3940,7 @@ Any diagnostics are issued at the given position.
   a_routine_ptr                   rout, rp;
   a_scope_ptr                     base_class_scope;
   a_boolean                       any_override_candidates = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean                       override_modifier_okay = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                       real_override = FALSE;
   an_override_registry_entry_ptr  *registry_ptr;
 
   db_enter(4, "check_for_virtual_function");
@@ -3932,9 +3965,7 @@ Any diagnostics are issued at the given position.
           /* Base class destructor is virtual. */
           check_virtual_function_override(class_state, rout_sym, sym, bcp,
                                           (a_base_class_ptr)NULL, source_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          override_modifier_okay = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          dps->override_okay = real_override = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -3945,9 +3976,7 @@ Any diagnostics are issued at the given position.
       if (base_class_scope == NULL) {
         /* This is probably a nonreal base class in a prototype instantiation.
            Don't attempt a lookup in this case. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        override_modifier_okay = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        dps->override_okay = TRUE;
         goto next_base_class;
       }  /* if */
       /* Inner loop:  go through all the symbols for this name, looking for
@@ -4058,9 +4087,7 @@ Any diagnostics are issued at the given position.
             /* Match */
             check_virtual_function_override(class_state, rout_sym, sym, bcp,
                                             return_adjustment_bcp, source_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            override_modifier_okay = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            dps->override_okay = real_override = TRUE;
             /* If this declaration amounts to an override of a member of an
                overload set, record some information about it in the
                partial-override-registry.  This allows for a diagnostic later
@@ -4084,11 +4111,27 @@ Any diagnostics are issued at the given position.
 next_base_class:;
   }  /* for */
 done:
+  if (real_override) {
+    rout->overrides_base_member = TRUE;
+    /* rout was found to override at least one specific base class member. */
+    if (!rout->compiler_generated &&
+        rout->special_kind != (a_special_function_kind)sfk_destructor &&
+        symbol_supplement_for_class(class_type)->base_check) {
+      /* If a class has the "base_check" attribute, overriding virtual
+         member functions must have the "override" attribute.  Destructors
+         and compiler-generated functions are exempted from this
+         requirement. */
+      if (find_attribute(ak_override, dps->prefix_attributes) == NULL &&
+          find_attribute(ak_override, dps->id_attributes) == NULL) {
+        pos_error(ec_missing_override_attr_in_base_check_class,
+                  &dps->declarator_pos);
+      }  /* if */
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (func_info->override && !override_modifier_okay) {
+  } else if (func_info->override && !dps->override_okay) {
     pos_error(ec_override_member_does_not_override, source_pos);
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (rout->is_virtual) {
     /* Reflect the presence of a virtual function in the enclosing class. */
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
@@ -9220,7 +9263,7 @@ implicitly declared member functions.
            because of insufficient type information.  To avoid spurious
            errors, we do not call check_for_virtual_function in such
            cases. */
-      } else if (check_for_virtual_function(is_virtual, sym, class_type,
+      } else if (check_for_virtual_function(is_virtual, sym, decl_state,
                                             class_state, func_info,
                                             &locator->source_position)) {
         /* Classes with virtual functions require nontrivial default
@@ -15825,6 +15868,149 @@ from such interface-like types.)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_using_decl_ptr find_unhiding_using_decl(a_type_ptr    dtype,
+                                                 a_symbol_ptr  bsym)
+/*
+If the given derived type (dtype) contains a using-declaration that refers to
+the name of the given base class member (bsym), return an a_using_decl entry
+associated with that using declaration.  Otherwise, return NULL.
+*/
+{
+  a_using_decl_ptr     udp = class_type_supp(dtype)->assoc_scope->using_decls;
+  a_symbol_header_ptr  hdr = bsym->header;
+
+  check_assertion(bsym->is_class_member);
+  for (; udp != NULL; udp = udp->next) {
+    check_assertion(udp->is_class_member);
+    a_source_correspondence  *scp = source_corresp_for_il_entry(
+                                           udp->entity.ptr, udp->entity.kind);
+    if (((a_symbol_ptr)scp->assoc_info)->header == hdr) break;
+  }  /* for */
+  return udp;
+}  /* find_unhiding_using_decl */
+
+
+static a_boolean sym_hides_base_member(a_symbol_ptr  sym,
+                                       a_symbol_ptr  *p_bsym)
+/*
+Return TRUE if the given class member symbol (sym) hides a base class member,
+and if so return the symbol for a hidden member in *p_bsym.  Otherwise,
+return TRUE and set *p_bsym to NULL.
+*/
+{
+  a_boolean         result;
+  a_symbol_locator  loc;
+  a_symbol_ptr      bsym;
+
+  make_locator_for_symbol(sym, &loc);
+  clear_specific_symbol(loc);
+  loc.parent.class_type = NULL;
+  loc.is_class_member = FALSE;
+  bsym = normal_id_lookup(&loc, IDL_SKIP_CURR_SCOPE |
+                                IDL_DO_NOT_CREATE_PROJ_SYM);
+  if (bsym == NULL || !bsym->is_class_member ||
+      find_base_class_of(sym_parent_class(sym),
+                         sym_parent_class(bsym)) == NULL) {
+    /* The declaration does not hide a base member. */
+    result = FALSE;
+    *p_bsym = NULL;
+  } else {
+    result = TRUE;
+    *p_bsym = bsym;
+  }  /* if */
+  return result;
+}  /* sym_hides_base_member */
+
+
+static void check_base_member_hiding(a_class_def_state  *class_state)
+/*
+class_state describes a class definition that was just completed.  Diagnose
+unintentional hiding of base class members as appropriate.  This may include
+issuing errors if the class was defined with the C++0x attribute "base_check". 
+Also diagnose cases where a member declared with the "hiding" attribute does
+not actually hide a base class member.
+*/
+{
+  a_type_ptr    dtype = class_state->class_type;
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(dtype);
+  a_symbol_ptr  msym = cssp->symbols;
+
+  if (cssp->base_check || cssp->check_hiding_attr) {
+    for (; msym != NULL; msym = msym->next_in_scope) {
+      a_boolean     ovl = symbol_is(msym, sk_overloaded_function);
+      a_symbol_ptr  sym = ovl ? msym->variant.overloaded_function.symbols
+                              : msym;
+      for (; sym != NULL; sym = ovl ? sym->next : NULL) {
+        a_source_correspondence  *scp = source_corresp_entry_for_symbol(sym);
+        an_attribute_ptr         ap;
+        a_symbol_ptr             bsym;
+        if (symbol_is(sym, sk_member_function) &&
+            sym->variant.routine.ptr->compiler_generated) {
+          /* Don't check compiler-generated member functions. */
+        } else if (symbol_is(sym, sk_type) &&
+                   sym->variant.type.is_injected_class_name) {
+          /* Don't check the injected class name. */
+        } else if (symbol_is(sym, sk_projection)) {
+          /* Don't check using-declarations or implicitly generated
+             projections. */
+        } else if (scp != NULL &&
+                   (ap = find_attribute(ak_hiding, scp->attributes)) != NULL) {
+          /* The declaration was marked as [[hiding]]: Check that it does
+             indeed hide base class member. */
+          if (!sym_hides_base_member(sym, &bsym)) {
+            /* The declaration does not hide a base member. */
+            pos_error(ec_hiding_attr_on_nonhiding_member, &ap->position);
+          } else {
+            /* Check if the hidden base class member is "unhidden" by a
+               using-declaration in the derived class. */
+            a_using_decl_ptr  udp = find_unhiding_using_decl(dtype, bsym);
+            if (udp != NULL) {
+              pos2_diagnostic(es_error, ec_hiding_attr_on_unhidden_member,
+                              &ap->position, &udp->position);
+            }  /* if */
+          }  /* if */
+        } else if (cssp->base_check) {
+          /* The declaration was not marked as [[hiding]] but the enclosing
+             class has the "base_check" attribute: Check that [[hiding]] is
+             not required. */
+          if (symbol_is(sym, sk_member_function) &&
+              sym->variant.routine.ptr->overrides_base_member) {
+            /* Don't check for hiding if a member function overrides a base
+               class (technically, an overriding virtual function hides the
+               members it overrides, but that is normal). */
+          } else if (scp != NULL &&
+                     find_attribute(ak_override, scp->attributes) != NULL) {
+            /* If the declaration is marked with the "override" attribute but
+               does not actually override a base class member, an error will
+               already have been issued, and adding another one reporting
+               hiding is not likely to be helpful. */
+            expect_error();
+          } else if (sym_hides_base_member(sym, &bsym)) {
+            /* Check if the hidden base class member is "unhidden" by a
+               using-declaration in the derived class. */
+            a_using_decl_ptr  udp = find_unhiding_using_decl(dtype, bsym);
+            if (udp == NULL) {
+              if (symbol_is(bsym, sk_overloaded_function)) {
+                bsym = bsym->variant.overloaded_function.symbols;
+              }  /* if */
+              pos_sy_error(ec_hiding_attr_required, &sym->decl_position, bsym);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
+  if (class_state->override_registry != NULL) {
+    /* Check for incomplete overriding of virtual functions, and issue
+       diagnostics where appropriate. */
+    check_override_registry(class_state);
+    /* All entries on the list have been freed, so clear the pointer. */
+    class_state->override_registry = NULL;
+  }  /* if */
+}  /* check_base_member_hiding */
+
+
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
                                       a_class_def_state  *class_state)
@@ -15967,19 +16153,15 @@ bits of information that were acquired while parsing.
     /* Issue warnings/remarks if the class has an operator new but no
        operator delete, etc. */
     check_operator_new_and_delete(tag_sym);
-    if (class_state->override_registry != NULL) {
-      /* Check for incomplete overriding of virtual functions, and issue
-         diagnostics where appropriate. */
-      check_override_registry(class_state->override_registry, tag_sym);
-      /* All entries on the list have been freed, so clear the pointer. */
-      class_state->override_registry = NULL;
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Record whether this class is "interface-like" (i.e., a non-__interface
        type that is a valid base for an __interface type). */
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Check for missing or erroneous uses of the "hiding" attribute and
+       for incomplete overriding of virtual functions. */
+    check_base_member_hiding(class_state);
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */

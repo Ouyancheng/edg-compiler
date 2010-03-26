@@ -464,6 +464,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_property_field:1;
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier. */
+  a_bit_field	override_okay:1;
+			/* TRUE if this is a member function on which the
+			   "override" attribute (C++0x) attribute or modifier
+			   (Microsoft) can be specified. */
   an_attribute_ptr
 		prefix_attributes;
 			/* A list of non-type-transforming attributes scanned

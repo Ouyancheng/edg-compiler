@@ -2226,6 +2226,7 @@ to it.  The entry is allocated in the file scope memory region.
   set_routine_special_kind(rp, (a_special_function_kind)sfk_none);
   rp->address_taken               = FALSE;
   rp->is_virtual                  = FALSE;
+  rp->overrides_base_member       = FALSE;
   rp->pure_virtual                = FALSE;
   rp->sealed                      = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

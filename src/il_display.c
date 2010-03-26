@@ -2685,6 +2685,9 @@ Display the indicated routine.
   if (ptr->is_virtual) {
     disp_boolean("is_virtual", TRUE);
   }  /* if */
+  if (ptr->overrides_base_member) {
+    disp_boolean("overrides_base_member", TRUE);
+  }  /* if */
   if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", TRUE);
   }  /* if */

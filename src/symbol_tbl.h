@@ -1053,6 +1053,13 @@ typedef struct a_class_symbol_supplement {
 			   in the initializer for a static data member of a
 			   class template, in an inline function body, or in
 			   a function template body. */
+  a_bit_field	base_check:1;
+			/* TRUE if this class was defined with the C++0x
+			   "base_check" attribute, which in turn requires
+			   diagnosing "accidental" hiding and overriding. */
+  a_bit_field	check_hiding_attr:1;
+			/* TRUE if this class includes a member declared with
+			   the C++0x "hiding" attribute. */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 
@@ -4058,6 +4065,12 @@ extern a_symbol_header_ptr find_symbol_header(char             *identifier,
 Return the symbol associated with an IL entry.
 */
 #define symbol_for(entry)  ((a_symbol_ptr)(entry)->source_corresp.assoc_info)
+
+/*
+Return whether a given symbol is of a given kind.
+*/
+#define symbol_is(sym, sym_kind)                                                 \
+  ((sym)->kind == (a_symbol_kind)(sym_kind))
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

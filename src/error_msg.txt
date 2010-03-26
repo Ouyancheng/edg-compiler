@@ -1501,7 +1501,7 @@ ec_duplicate_class_modifier;;"duplicate class modifier"
 ec_function_modifiers_abstract_and_sealed;;"a member function cannot have both the \"abstract\" and \"sealed\" modifiers"
 ec_pure_specifier_on_sealed_member;;"a sealed member cannot be pure virtual"
 ec_function_modifier_requires_virtual_function;;"nonvirtual function cannot be declared with \"abstract\" or \"sealed\" modifier"
-ec_override_member_does_not_override;;"member function declared with \"override\" modifier does not override a base class member"
+ec_override_member_does_not_override;;"member function declared with \"override\" does not override a base class member"
 ec_override_of_sealed_function;;"cannot override sealed %nd"
 ec_type_is_declared_abstract;;"%nd was declared with the class modifier \"abstract\""
 ec_at_line;INTERNAL;"at line "
@@ -1938,6 +1938,10 @@ ec_alias_used_in_type;;"%n may not be used in the type-id of the alias-declarati
 ec_alias_template;INTERNAL;"alias template"
 ec_transparent_union_cannot_have_floating_first_field;;"%t cannot be transparent because its first field has a floating-point type"
 ec_transparent_union_cannot_have_bit_field_first;;"%t cannot be transparent because its first field is a bit field"
+ec_missing_override_attr_in_base_check_class;;"virtual function of a \"base_check\" class overrides a base class member but lacks the \"override\" attribute"
+ec_hiding_attr_on_nonhiding_member;;"\"hiding\" attribute specified on a declaration that does not hide a base class declaration"
+ec_hiding_attr_on_unhidden_member;;"\"hiding\" attribute specified on a declaration referred to by the using-declaration %p"
+ec_hiding_attr_required;;"attribute \"hiding\" is required on a declaration (in a \"base_check\" class) that hides %nd"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
