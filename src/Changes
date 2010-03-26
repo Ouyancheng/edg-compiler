@@ -1,5 +1,23 @@
 Version 4.2
 
+3/26/10  [EDGcpfe/10558]
+Microsoft compatibility: spurious error on empty __if_exists
+
+A spurious error would occur if there were no tokens inside an __if_exists
+or __if_not_exists in which test was true.  The error would also occur when
+the directive was not literally empty but when there were no effective
+tokens as a result of a nested __if_exists or __if_not_exists that produced
+no tokens (because its test was false).  Now fixed.
+
+  struct A {
+    enum {e1};
+    // Both of these cases resulted in errors
+    __if_exists(e1) { }
+    typedef int type;
+    __if_exists(e1) { __if_not_exists(type) { typedef int type; }}
+  };
+
+
 3/24/10  [EDGcpfe/10550]
 Internal error on nonstandard friend declaration in Sun mode class template
 

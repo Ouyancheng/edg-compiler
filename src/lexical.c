@@ -1689,9 +1689,10 @@ Put the tokens saved in *cache onto the rescan list so that they will be
 re-fetched by get_token.  On return, the current token is the first
 token of the cache.  The token that was the current token on entry is
 placed at the end of the rescan list so that it will be fetched again
-after the rescanned tokens have been gotten.  If there are no tokens
-in the cache, nothing is done.  discard_curr_token is TRUE if the
-current token should be discarded, FALSE if the token should be retained.
+after the rescanned tokens have been gotten.  discard_curr_token is TRUE
+if the current token should be discarded, FALSE if the token should be
+retained.  If there are no tokens in the cache, nothing is done (except
+that the current token may be discarded).  
 */
 {
   db_enter(4, "f_rescan_cached_tokens");
@@ -1719,6 +1720,10 @@ current token should be discarded, FALSE if the token should be retained.
     any_initial_get_token_tests_needed = TRUE;
     /* Fetch the first cached token. */
     (void)get_token();
+  } else {
+    /* The caller expects the current token to be discarded.  Skip over it
+       now. */
+    if (discard_curr_token) (void)get_token();
   }  /* if */
   db_exit();
 }  /* f_rescan_cached_tokens */
