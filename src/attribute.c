@@ -3220,6 +3220,7 @@ return that entity.
 }  /* apply_align_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_base_check_attr(an_attribute_ptr  ap,
                                    char              *entity,
                                    an_il_entry_kind  entity_kind)
@@ -3369,6 +3370,7 @@ attribute to it and return the entity.
 }  /* apply_final_attr */
 
 
+/*ARGSUSED*/  /* entity_kind is unused (but required by the callback type). */
 static char* apply_hiding_attr(an_attribute_ptr  ap,
                                char              *entity,
                                an_il_entry_kind  entity_kind)

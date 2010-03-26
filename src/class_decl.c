@@ -15881,9 +15881,9 @@ associated with that using declaration.  Otherwise, return NULL.
 
   check_assertion(bsym->is_class_member);
   for (; udp != NULL; udp = udp->next) {
-    check_assertion(udp->is_class_member);
     a_source_correspondence  *scp = source_corresp_for_il_entry(
                                            udp->entity.ptr, udp->entity.kind);
+    check_assertion(udp->is_class_member);
     if (((a_symbol_ptr)scp->assoc_info)->header == hdr) break;
   }  /* for */
   return udp;
