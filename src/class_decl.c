@@ -3950,7 +3950,7 @@ Any diagnostics are issued at the given position.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         goto next_base_class;
       }  /* if */
-      /* Inner loop:  go thorough all the symbols for this name, looking for
+      /* Inner loop:  go through all the symbols for this name, looking for
          one which represents a member function (overloaded or simple) from
          the base class under examination. */
       /*lint --e{446,445} sym modified in loop (LINTBUG) */
