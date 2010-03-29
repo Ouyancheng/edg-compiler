@@ -23,7 +23,7 @@ members are not marked with [[hiding]].  For example:
 Microsoft compatibility: spurious error on empty __if_exists
 
 A spurious error would occur if there were no tokens inside an __if_exists
-or __if_not_exists in which test was true.  The error would also occur when
+or __if_not_exists in which the test was true.  The error would also occur when
 the directive was not literally empty but when there were no effective
 tokens as a result of a nested __if_exists or __if_not_exists that produced
 no tokens (because its test was false).  Now fixed.
