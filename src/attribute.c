@@ -194,7 +194,6 @@ static an_attr_descr known_attr_table[] = {
   { "final", "", "1c+", ak_final },
   { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
-  { "nothrow", "", "1c+", ak_nothrow },
   { "override", "", "1c+", ak_override },
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -432,7 +431,6 @@ static an_attr_application_fn apply_carries_dependency_attr;
 static an_attr_application_fn apply_final_attr;
 static an_attr_application_fn apply_hiding_attr;
 static an_attr_application_fn apply_noreturn_attr;
-static an_attr_application_fn apply_nothrow_attr;
 static an_attr_application_fn apply_override_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -443,6 +441,7 @@ static an_attr_application_fn apply_deprecated_attr;
 static an_attr_application_fn apply_naked_attr;
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 static an_attr_application_fn apply_noinline_attr;
+static an_attr_application_fn apply_nothrow_attr;
 static an_attr_application_fn apply_section_attr;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -534,7 +533,6 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
-  { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
   { ak_override, "r:+v!", apply_override_attr },
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -544,6 +542,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_naked, "r", apply_naked_attr },
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   { ak_noinline, "t|p|r|v|d", apply_noinline_attr },
+  { ak_nothrow, "t|r|v|d", apply_nothrow_attr },
   { ak_section, "r|v:-a!", apply_section_attr },
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -3484,44 +3483,6 @@ entity.
 }  /* apply_noreturn_attr */
 
 
-static char* apply_nothrow_attr(an_attribute_ptr  ap,
-                                char              *entity,
-                                an_il_entry_kind  entity_kind)
-/*
-Apply the given "nothrow" attribute to the given entity and return that
-entity.
-*/
-{
-  if (entity_kind != iek_routine) {
-    /* The nothrow attribute applies only to routines, but GCC only issues a
-       warning in some other contexts. */
-    an_error_severity  sev = ap->family == (a_byte_attribute_family)af_gnu ? 
-                                                        es_warning : es_error;
-    report_bad_attribute_target(sev, ap);
-    goto done;
-  } else {
-    a_routine_ptr  rp = (a_routine_ptr)entity;
-    if (ap->family == (a_byte_attribute_family)af_std) {
-      /* The standard attribute has more constraints than the corresponding GNU
-         attribute: It must appear on the first declaration of that routine. */
-      a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-      if (dps != NULL && !dps->first_decl && !rp->never_throws) {
-        /* A redeclaration and the attribute didn't appear on the first
-           declaration: Issue an error. */
-        pos_st_error(ec_attr_must_also_appear_in_first_declaration,
-                     &ap->position, ap->name);
-        make_attr_unrecognized(ap);
-      }  /* if */
-    }  /* if */
-    if (!is_unrecognized_attr(ap)) {
-      rp->never_throws = TRUE;
-    }  /* if */
-  }  /* if */
-done:
-  return entity;
-}  /* apply_nothrow_attr */
-
-
 static char* apply_override_attr(an_attribute_ptr  ap,
                                  char              *entity,
                                  an_il_entry_kind  entity_kind)
@@ -3650,6 +3611,32 @@ and return the entity.
   }  /* if */
   return entity;
 }  /* apply_noinline_attr */
+
+
+static char* apply_nothrow_attr(an_attribute_ptr  ap,
+                                char              *entity,
+                                an_il_entry_kind  entity_kind)
+/*
+Apply the given "nothrow" attribute to the given entity and return that
+entity.
+*/
+{
+  if (entity_kind != iek_routine) {
+    /* The nothrow attribute applies only to routines, but GCC only issues a
+       warning in some other contexts. */
+    an_error_severity  sev = ap->family == (a_byte_attribute_family)af_gnu ? 
+                                                        es_warning : es_error;
+    report_bad_attribute_target(sev, ap);
+    goto done;
+  } else {
+    a_routine_ptr  rp = (a_routine_ptr)entity;
+    if (!is_unrecognized_attr(ap)) {
+      rp->never_throws = TRUE;
+    }  /* if */
+  }  /* if */
+done:
+  return entity;
+}  /* apply_nothrow_attr */
 
 
 static char* apply_section_attr(an_attribute_ptr  ap,

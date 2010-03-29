@@ -4292,11 +4292,104 @@ Display the indicated attribute entry.
   switch (ap->kind) {
     case ak_unrecognized:        kind_name = "unrecognized";        break;
     case ak_empty_attr:          kind_name = "empty attribute";     break;
+    /* Standard attributes: */
     case ak_align:               kind_name = "align";               break;
-    case ak_noreturn:            kind_name = "noreturn";            break;
-    case ak_final:               kind_name = "final";               break;
+    case ak_base_check:          kind_name = "base_check";          break;
     case ak_carries_dependency:  kind_name = "carries_dependency";  break;
+    case ak_final:               kind_name = "final";               break;
+    case ak_hiding:              kind_name = "hiding";              break;
+    case ak_noreturn:            kind_name = "noreturn";            break;
+    case ak_override:            kind_name = "override";            break;
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    /* Nonstandard attributes available in both GNU and Microsoft
+       configurations. */
+    case ak_deprecated:          kind_name = "deprecated";          break;
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    case ak_naked:               kind_name = "naked";               break;
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+    case ak_noinline:            kind_name = "noinline";            break;
     case ak_nothrow:             kind_name = "nothrow";             break;
+    case ak_section:             kind_name = "section";             break;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    /* GNU-only attributes. */
+    case ak_alias:               kind_name = "alias";               break;
+    case ak_alloc_size:          kind_name = "alloc_size";          break;
+    case ak_always_inline:       kind_name = "always_inline";       break;
+    case ak_artificial:          kind_name = "artificial";          break;
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+    case ak_cdecl:               kind_name = "cdecl";               break;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+    case ak_cleanup:             kind_name = "cleanup";             break;
+    case ak_cold:                kind_name = "cold";                break;
+    case ak_const:               kind_name = "const";               break;
+    case ak_constructor:         kind_name = "constructor";         break;
+    case ak_destructor:          kind_name = "destructor";          break;
+    case ak_error:               kind_name = "error";               break;
+    case ak_externally_visible:  kind_name = "externally_visible";  break;
+    case ak_flatten:             kind_name = "flatten";             break;
+    case ak_format:              kind_name = "format";              break;
+    case ak_format_arg:          kind_name = "format_arg";          break;
+    case ak_gnu_inline:          kind_name = "gnu_inline";          break;
+    case ak_hot:                 kind_name = "hot";                 break;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    case ak_init_priority:       kind_name = "init_priority";       break;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    case ak_malloc:              kind_name = "malloc";              break;
+    case ak_mode:                kind_name = "mode";                break;
+    case ak_no_instrument_function:
+                                 kind_name = "no_instrument_function";
+                                                                    break;
+    case ak_no_check_memory_usage:
+                                 kind_name = "no_check_memory_usage";
+                                                                    break;
+    case ak_nocommon:            kind_name = "nocommon";            break;
+    case ak_nonnull:             kind_name = "nonnull";             break;
+    case ak_packed:              kind_name = "packed";              break;
+    case ak_pure:                kind_name = "pure";                break;
+    case ak_sentinel:            kind_name = "sentinel";            break;
+#if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
+    case ak_stdcall:             kind_name = "stdcall";             break;
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
+    case ak_strong:              kind_name = "strong";              break;
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+    case ak_tls_model:           kind_name = "tls_model";           break;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+    case ak_transparent_union:   kind_name = "transparent_union";   break;
+    case ak_unused:              kind_name = "unused";              break;
+    case ak_used:                kind_name = "used";                break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case ak_vector_size:         kind_name = "vector_size";         break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    case ak_visibility:          kind_name = "visibility";          break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    case ak_warn_unused_result:  kind_name = "warn_unused_result";  break;
+    case ak_warning:             kind_name = "warning";             break;
+    case ak_weak:                kind_name = "weak";                break;
+    case ak_weakref:             kind_name = "weakref";             break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Microsoft-__declspec-only attributes. */
+    case ak_dllexport:           kind_name = "dllexport";           break;
+    case ak_dllimport:           kind_name = "dllimport";           break;
+    case ak_implementation_key:  kind_name = "implementation_key";  break;
+    case ak_intrin_type:         kind_name = "intrin_type";         break;
+    case ak_noalias:             kind_name = "noalias";             break;
+    case ak_novtable:            kind_name = "novtable";            break;
+    case ak_property:            kind_name = "property";            break;
+    case ak_restrict:            kind_name = "restrict";            break;
+    case ak_selectany:           kind_name = "selectany";           break;
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+    case ak_thread:              kind_name = "thread";              break;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+    case ak_uuid:                kind_name = "uuid";                break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+  /* Attributes used for testing by EDG. */
+    case ak_edg_e1:              kind_name = "edg_e1";              break;
+    case ak_edg_n1:              kind_name = "edg_n1";              break;
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
     default:                     kind_name = "** BAD KIND **";      break;
   }  /* switch */
   disp_name("kind");

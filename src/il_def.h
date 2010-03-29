@@ -1923,7 +1923,6 @@ typedef enum an_attribute_kind_tag {
   ak_final,		/* "final" (std). */
   ak_hiding,		/* "hiding" (std). */
   ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
-  ak_nothrow,		/* "nothrow" (std, gnu, ms). */
   ak_override,		/* "override" (std). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -1934,6 +1933,7 @@ typedef enum an_attribute_kind_tag {
   ak_naked,		/* "naked" (gnu, ms). */
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   ak_noinline,		/* "noinline" (gnu, ms). */
+  ak_nothrow,		/* "nothrow" (gnu, ms). */
   ak_section,		/* "section" (gnu) or "allocate" (ms). */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
