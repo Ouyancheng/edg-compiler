@@ -7,8 +7,8 @@ In C++0x mode, the front end now supports the standard attributes "override",
 "hiding", and "base_check".  Attribute "override" indicates that a virtual
 function overrides a matching function in a base class.  "hiding" indicates
 that a derived-class member hides a base class member.  "base_check" can
-appear on a base class definition, and causes the front end to issue errors
-if overriding virtual functions are not marked with [[override]] or hiding
+appear on a class definition, and causes the front end to issue errors if
+overriding virtual functions are not marked with [[override]] or hiding
 members are not marked with [[hiding]].  For example:
 
   struct B { virtual void f(), f(int); };

@@ -3379,13 +3379,19 @@ Check that the "hiding" attribute appears in a class definition.  Additional
 checking is delayed until the definition is complete (because later member
 declarations can affect the validity of the attribute), but record the use
 of this attribute in the class to avoid unnecessary work for class definitions
-that do not involve the \"hiding\" attribute.  Return the given entity.
+that do not involve the "hiding" attribute.  Return the given entity.
 */
 {
+  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+
+  check_assertion(dps != NULL);
   if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
     pos_st_error(ec_attr_must_appear_in_class_definition,
                  &ap->position, ap->name);
     make_attr_unrecognized(ap);
+  } else if ((dps->dso_flags & DSO_FRIEND) != 0) {
+    /* Something like "friend class[[hiding]] X;" is invalid. */
+    report_bad_attribute_target(es_error, ap);
   } else {
     symbol_supplement_for_class(scope_stack_top().assoc_type)
                                                    ->check_hiding_attr = TRUE;

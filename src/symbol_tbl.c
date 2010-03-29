@@ -2825,7 +2825,7 @@ state.
         cssp->lambda_inside_default_arg_expression = FALSE;
         cssp->lambda_immediately_inside_default_arg_expression = FALSE;
         cssp->lambda_in_invalid_scope = FALSE;
-	cssp->lambda_subject_to_trans_unit_corresp = FALSE;
+        cssp->lambda_subject_to_trans_unit_corresp = FALSE;
         cssp->base_check = FALSE;
         cssp->check_hiding_attr = FALSE;
 #if CENTERLINE_CHECKING

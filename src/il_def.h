@@ -10784,7 +10784,7 @@ typedef struct a_routine {
 			   functions declared with a "virtual" specifier or
 			   member functions that are virtual because they
 			   match a virtual member function in a base class).
-			   (C++ only). */
+			   (C++ only.) */
   a_bit_field	overrides_base_member:1;
 			/* TRUE for virtual member functions that are known to
 			   override at least one virtual function in a base
