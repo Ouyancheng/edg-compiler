@@ -1994,8 +1994,8 @@ attributes framework).  It initially implements GNU attributes and C++0x
 attributes, but it is also designed to handle Microsoft-style __declspec
 attributes in the future.
 
-In C++0x mode, the attributes "align", "noreturn", "nothrow", "final", and
-"carries_dependency" are now supported.  For example:
+In C++0x mode, the attributes "align", "carries_dependency", "final", and
+"noreturn" are now supported.  For example:
 
   [[noreturn]] void f() {}  // Warning is issued: calls to f() do return.
 
