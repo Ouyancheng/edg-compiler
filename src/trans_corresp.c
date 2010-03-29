@@ -3546,7 +3546,7 @@ is in fact valid.
 */
 {
   a_boolean       match = TRUE;
-  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_symbol_ptr    templ_sym = symbol_for(templ);
 
   if (trans_unit_corresp_of(templ) != NULL) {
     a_template_ptr  corresp_templ =
@@ -3558,7 +3558,6 @@ is in fact valid.
        value for "scp->access". */
     a_source_correspondence_ptr
                     scp, corresp_scp;
-
     if (templ == corresp_templ) {
       /* This is the canonical entry.  If applicable, verify the entry in
          the primary translation unit against this one.  Otherwise, nothing
@@ -3572,7 +3571,7 @@ is in fact valid.
         goto done;
       }  /* if */
     }  /* if */
-    corresp_sym = (a_symbol_ptr)corresp_templ->source_corresp.assoc_info;
+    corresp_sym = symbol_for(corresp_templ);
     scp = &templ->canonical_template->source_corresp,
     corresp_scp = &corresp_templ->source_corresp;
     match = verify_name_correspondence(templ);
@@ -3587,7 +3586,9 @@ is in fact valid.
          (!is_class_template_symbol(templ_sym) && !is_type_symbol(templ_sym) &&
           is_exported(templ) != is_exported(corresp_templ)) ||
          (tssp != NULL &&
-          (!equiv_template_param_lists(
+          (tssp->variant.class_template.is_alias_template !=
+                     corresp_tssp->variant.class_template.is_alias_template ||
+           !equiv_template_param_lists(
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
@@ -3608,38 +3609,57 @@ is in fact valid.
       /* The templates don't seem to match, so don't try to verify the
          instantiations. */
     } else if (is_class_template_symbol(templ_sym)) {
-      /* A class template. Verify the instantiations (if any). */
-      a_type_ptr  proto = prototype_template_of(templ_sym)
+      /* A class or alias template. Verify the instantiations (if any). */
+      a_symbol_ptr  proto_sym = prototype_template_of(templ_sym)
                               ->variant.template_info
-                              ->variant.class_template.prototype_instantiation
-                              ->variant.class_struct_union.type,
-                  corresp_proto = prototype_template_of(corresp_sym)
+                              ->variant.class_template.prototype_instantiation,
+                    corresp_proto_sym = prototype_template_of(corresp_sym)
                               ->variant.template_info
-                              ->variant.class_template.prototype_instantiation
-                              ->variant.class_struct_union.type;
-      /* For partial specializations we must also verify the template arguments
-         (attached to the prototype instantiations). */
-      if (!equiv_template_arg_lists(
+                              ->variant.class_template.prototype_instantiation;
+      a_symbol_list_entry_ptr
+                    slep;
+      if (symbol_is(proto_sym, sk_type)) {
+        /* An alias template. */
+        /* First process the prototype instantiation. */
+          match = verify_type_correspondence(proto_sym->variant.type.ptr);
+          if (match) {
+            /* Only check real instantiations if the prototype instantiation
+               matched. */
+            for (slep = tssp->variant.class_template.instantiations;
+                 slep != NULL; slep = slep->next) {
+              a_symbol_ptr inst = slep->symbol;
+              a_type_ptr   inst_type = type_symbol_type(inst);
+              (void)verify_type_correspondence(inst_type);
+            }  /* for */
+          }  /* if */
+      } else {
+        /* An ordinary class template. */
+        a_type_ptr  proto = proto_sym->variant.class_struct_union.type,
+                    corresp_proto = corresp_proto_sym
+                                             ->variant.class_struct_union.type;
+        /* For partial specializations we must also verify the template
+           arguments (attached to the prototype instantiations). */
+        if (!equiv_template_arg_lists(
              proto->variant.class_struct_union.extra_info->template_arg_list,
              corresp_proto->
                     variant.class_struct_union.extra_info->template_arg_list,
              ETA_NO_OPTIONS)) {
-        match = FALSE;
-        process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
-      } else {
-        a_symbol_list_entry_ptr	slep;
-        /* First process the prototype instantiation. */
-        match = verify_type_correspondence(proto);
-        for (slep = tssp->variant.class_template.instantiations;
-             slep != NULL; slep = slep->next) {
-          a_symbol_ptr inst = slep->symbol;
-          a_type_ptr   inst_type = type_symbol_type(inst);
+          match = FALSE;
+          process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
+        } else {
+          /* First process the prototype instantiation. */
+          match = verify_type_correspondence(proto);
           if (match) {
             /* Only check real instantiations if the prototype instantiation
                matched. */
-            (void)verify_type_correspondence(inst_type);
+            for (slep = tssp->variant.class_template.instantiations;
+                 slep != NULL; slep = slep->next) {
+              a_symbol_ptr inst = slep->symbol;
+              a_type_ptr   inst_type = type_symbol_type(inst);
+              (void)verify_type_correspondence(inst_type);
+            }  /* for */
           }  /* if */
-        }  /* for */
+        }  /* if */
       }  /* if */
     } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
       /* A function template.  Verify the instantiations (if any). */
@@ -5404,9 +5424,10 @@ be templ itself and therefore unusable).
 static a_template_ptr find_corresp_class_template(a_template_ptr  templ,
                                                   a_symbol_ptr    sym)
 /*
-Find a class template from another translation unit corresponding to the given
-class template templ.  However, only consider sym and its subordinate symbols
-when looking up a correspondence: if none is found, return NULL.
+Find a class (or alias) template from another translation unit corresponding
+to the given class (or alias) template templ.  However, only consider sym and
+its subordinate symbols when looking up a correspondence: if none is found,
+return NULL.
 */
 {
   a_template_ptr  corresp_templ = NULL;
@@ -5418,7 +5439,10 @@ when looking up a correspondence: if none is found, return NULL.
   /* The symbol "sym" always corresponds to a primary symbol. */
   check_assertion(
            corresp_tssp->variant.class_template.primary_template_sym == NULL);
-  if (tssp->variant.class_template.primary_template_sym != NULL) {
+  if (tssp->variant.class_template.is_alias_template !=
+                     corresp_tssp->variant.class_template.is_alias_template) {
+    /* Class templates cannot match alias templates. */
+  } else if (tssp->variant.class_template.primary_template_sym != NULL) {
     /* The given template is a partial specialization: look for a partial
        specialization with the same set of parameters and arguments.
        First, however, we must check that they come from corresponding
