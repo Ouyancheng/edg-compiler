@@ -19,7 +19,7 @@ specify the type of an IA-64 ABI vtable entry.  See the Changes entry in
 the front end for more information.
 
 
-9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102]
+9/30/09  [EDGcpfe/8623, EDGcpfe/9926, EDGcpfe/10102, EDGcpfe/10522]
 C++0x: Support for nullptr
 
 Exception handling and RTTI support for the C++0x decltype(nullptr) type has
@@ -27,8 +27,7 @@ been added to both Cfront and IA-64 ABIs.  A thrown std::nullptr_t type can now
 be caught by handlers with pointer type or pointer to member type. The new
 flags ETS_IS_POINTER_TO_DATA_MEMBER and ETS_IS_POINTER_TO_MEMBER_FUNCTION have
 been added to the flags field of the exception type specification entry for
-this purpose.  A new abi::__nullptr_type_info derived type_info type has been
-added in the IA-64 ABI as part of the RTTI support for std::nullptr_t.
+this purpose.
 
 Note that these changes require that --c++0x be specified when compiling the
 library (i.e., the Makefile may need to be updated).

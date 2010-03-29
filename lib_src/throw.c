@@ -1029,7 +1029,7 @@ is returned via nullptr_conv_needed (if it is not NULL).
                type_info == &MANGLED_NAME_OF_NULLPTR
 #endif /* !ABI_CHANGES_FOR_RTTI */
 #else /* ifdef __EDG_IA64_ABI */
-               typeid(*type_info) == typeid(abi::__nullptr_type_info)
+               *type_info == typeid(decltype(nullptr))
 #endif /* ifdef __EDG_IA64_ABI */
                                                                      ) {
       /* A thrown std::nullptr_t matches a pointer or pointer to member

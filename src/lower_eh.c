@@ -460,7 +460,6 @@ string literals were implemented).
     case tik_ptr_to_member:
     case tik_si_class:
     case tik_vmi_class:
-    case tik_nullptr:
       /* No derived classes. */
       break;
     case tik_pbase:
@@ -582,7 +581,6 @@ string literals were implemented).
       case tik_function:
       case tik_class:
       case tik_pbase:
-      case tik_nullptr:
         base_class = make_user_typeinfo_type();
         break;
       case tik_pointer:
@@ -634,7 +632,6 @@ string literals were implemented).
       case tik_function:
       case tik_class:
       case tik_pointer:
-      case tik_nullptr:
         /* There are no additional fields. */
         break;
       case tik_pbase:
@@ -716,15 +713,13 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
              is_vector_type(type) || 
 #endif /* GNU_VECTOR_TYPES_ALLOWED && IA64_ABI */
              is_integral_type(type) || 
-             is_floating_type(type)) {
+             is_floating_type(type) ||
+             is_or_was_nullptr_type(type)) {
     tinfo_kind = tik_fundamental;
   } else if (is_array_type(type)) {
     tinfo_kind = tik_array;
   } else if (is_function_type(type)) {
     tinfo_kind = tik_function;
-  } else if (is_or_was_nullptr_type(type)) {
-    /* Test before is_pointer_type test to catch lowered nullptr types. */
-    tinfo_kind = tik_nullptr;
   } else if (is_pointer_type(type)) {
     tinfo_kind = tik_pointer;
   } else if (is_ptr_to_member_type(type)) {
@@ -810,7 +805,6 @@ indicated kind, or NULL if the type_info is not in a namespace.
     case tik_pbase:
     case tik_pointer:
     case tik_ptr_to_member:
-    case tik_nullptr:
       sym = symbol_for_namespace_abi;
       check_assertion(sym != NULL);
       break;
@@ -1725,7 +1719,6 @@ typeinfo variable in a COMDAT group.
       case tik_array:
       case tik_function:
       case tik_class:
-      case tik_nullptr:
         /* There are no additional fields. */
         aggr_con->variant.aggregate.first_constant = type_info_con;
         aggr_con->variant.aggregate.last_constant = type_info_con;

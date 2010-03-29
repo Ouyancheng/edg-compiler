@@ -107,12 +107,6 @@ namespace __cxxabiv1 {
     const __class_type_info *__context;
   };
 
-#pragma define_type_info
-  class __nullptr_type_info : public type_info {
-  public:
-    virtual ~__nullptr_type_info();
-  };
-
   extern "C" {
     /* Pure virtual function calls. */
     void __cxa_pure_virtual();

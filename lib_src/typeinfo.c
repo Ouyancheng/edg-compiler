@@ -351,17 +351,6 @@ called.
 {
 }  /* __pointer_to_member_type_info::~__pointer_to_member_type_info */
 
-#ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED
-
-__nullptr_type_info::~__nullptr_type_info()
-/*
-Destructor for __nullptr_type_info.  This should never actually be 
-called.  
-*/
-{
-}  /* __nullptr_type_info::~__nullptr_type_info */
-
-#endif /* ifdef __EDG_CPP0X_IL_EXTENSIONS_SUPPORTED */
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace __cxxabiv1 */

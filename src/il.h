@@ -92,7 +92,8 @@ enum a_type_info_kind_tag {
 			   "implementation" type_info type, and
 			   providing this alias makes it unnecessary to
 			   conditionalize that code. */
-  tik_fundamental,	/* Void, integral types, floating types. */
+  tik_fundamental,	/* Void, integral, floating, decltype(nullptr)
+			   types. */
   tik_enum,		/* Enumeration types. */
   tik_array,		/* Array types. */
   tik_function,		/* Function types. */
@@ -104,7 +105,6 @@ enum a_type_info_kind_tag {
 			   pointers-to-members. */
   tik_pointer,		/* Pointer types. */
   tik_ptr_to_member,	/* Pointer-to-member types. */
-  tik_nullptr,		/* decltype(nullptr) type. */
 #else /* !IA64_ABI */
   tik_implementation,	/* Implementation type. */
 #endif /* !IA64_ABI */
@@ -128,7 +128,6 @@ EXTERN char	*type_info_names[(int)tik_last+1]
   "__pbase_type_info",		/* tik_pbase */
   "__pointer_type_info",	/* tik_pointer */
   "__pointer_to_member_type_info", /* tik_ptr_to_member */
-  "__nullptr_type_info",	/* tik_nullptr */
 #else /* !IA64_ABI */
   NULL,				/* tik_implementation */
 #endif /* !IA64_ABI */
