@@ -15937,7 +15937,11 @@ not actually hide a base class member.
                 cssp = symbol_supplement_for_class(dtype);
   a_symbol_ptr  msym = cssp->symbols;
 
-  if (cssp->base_check || cssp->check_hiding_attr) {
+  /* Don't check for hiding if a base is dependent.  Otherwise, only check
+     if the class is a "base_check" class or if the "hiding" attribute
+     appeared on a member declaration. */
+  if ((cssp->base_check || cssp->check_hiding_attr) &&
+      !has_dependent_base_class(dtype)) {
     for (; msym != NULL; msym = msym->next_in_scope) {
       a_boolean     ovl = symbol_is(msym, sk_overloaded_function);
       a_symbol_ptr  sym = ovl ? msym->variant.overloaded_function.symbols
