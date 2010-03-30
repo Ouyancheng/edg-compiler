@@ -16395,9 +16395,11 @@ that case.
     check_assertion(expr != NULL &&
                     is_operation_node(expr) &&
                     node_operator_is(expr, eok_question));
+#if GNU_EXTENSIONS_ALLOWED
     if (expr->variant.operation.is_gnu_two_operand_question_mark) {
       is_gnu_two_operand_form = TRUE;
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, &operand_3,
@@ -23503,10 +23505,12 @@ outside, see rescan_expr_with_substitution.
       case tok_ne:
         scan_eq_operator((an_operand *)NULL, rcblock, result);
         break;
+#if GNU_EXTENSIONS_ALLOWED
      case tok_gnu_max:
      case tok_gnu_min:
         scan_gnu_min_max_operator((an_operand *)NULL, rcblock, result);
         break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_ampersand:
       case tok_or:
       case tok_excl_or:
