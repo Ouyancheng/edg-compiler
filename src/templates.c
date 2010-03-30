@@ -2854,7 +2854,8 @@ loading of classes.
                    tssp_of_prototype->cache.decl_info->parameters,
                    template_arg_list, parent_class_or_null(class_type),
                    (a_boolean*)NULL);
-        attach_tag_attributes(ap, class_type, /*is_definition=*/TRUE,
+        attach_tag_attributes(ap, class_type, (a_decl_parse_state*)NULL,
+                              /*is_definition=*/TRUE,
                               /*is_forward_decl=*/FALSE,
                               /*ignore_gnu_attributes=*/FALSE);
       }  /* if */
@@ -3487,7 +3488,8 @@ A pointer to the head of the list is returned in tcsp.
     /* When parsing the template, some attributes were encountered between the
        class-key ("class", "struct", or "union") and the template name. */
     attach_tag_attributes(tssp->attributes, prototype_type,
-                          /*is_definition=*/TRUE, /*is_forward_decl=*/FALSE,
+                          (a_decl_parse_state*)NULL, /*is_definition=*/TRUE,
+                          /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
   }  /* if */
   /* Scan the base specifiers list, if any, and the body of the class.

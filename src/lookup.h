@@ -131,8 +131,10 @@ represented as a bit set:
 #define IDL_HIDDEN_NAME_LOOKUP	0x20000
 				/* Indicates that the name is being looked
 				   up as part of the hidden name table
-				   processing.  This suppresses the creation
-				   of projection symbols. */
+				   processing or to determine the validity of
+				   the C++0x [[hiding]] attribute.  This
+				   suppresses the creation of projection
+				   symbols. */
 #define IDL_SKIP_TEMPLATE_DECL_SCOPES 0x40000
 				/* Skip any template declaration scopes before
 				   doing other processing. */

@@ -15907,8 +15907,7 @@ return TRUE and set *p_bsym to NULL.
   clear_specific_symbol(loc);
   loc.parent.class_type = NULL;
   loc.is_class_member = FALSE;
-  bsym = normal_id_lookup(&loc, IDL_SKIP_CURR_SCOPE |
-                                IDL_DO_NOT_CREATE_PROJ_SYM);
+  bsym = normal_id_lookup(&loc, IDL_SKIP_CURR_SCOPE | IDL_HIDDEN_NAME_LOOKUP);
   if (bsym == NULL || !bsym->is_class_member ||
       find_base_class_of(sym_parent_class(sym),
                          sym_parent_class(bsym)) == NULL) {

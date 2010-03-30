@@ -2432,11 +2432,12 @@ may be emitted at the given position.
 }  /* update_membership_of_class */
 
 
-void attach_tag_attributes(an_attribute_ptr  attributes,
-                           a_type_ptr        type,
-                           a_boolean         is_definition,
-                           a_boolean         is_forward_decl,
-                           a_boolean         ignore_gnu_attributes)
+void attach_tag_attributes(an_attribute_ptr    attributes,
+                           a_type_ptr          type,
+                           a_decl_parse_state  *dps,
+                           a_boolean           is_definition,
+                           a_boolean           is_forward_decl,
+                           a_boolean           ignore_gnu_attributes)
 /*
 The given attributes were specified on the given type after a "class", "enum",
 "struct", or "union" keyword.  Attach and apply the attributes to the type.
@@ -2449,6 +2450,8 @@ rather than e.g.
 If ignore_gnu_attributes is TRUE, turn any recognized GNU attributes into
 ak_unrecognized attributes (which means they will have no further effect), and
 issue a warning.
+*dps describes the declaration that is being parsed.  dps is NULL if the
+attributes are attached as part of the template instantiation process.
 */
 {
   a_boolean         gnu_warning_emitted = FALSE, std_error_emitted = FALSE;
@@ -2498,7 +2501,17 @@ issue a warning.
         }  /* if */
       }  /* if */
     }  /* for */
+    /* Temporarily attach dps to the attributes, to the application routines
+       can examine the declaration context (e.g., to see if the tag is declared
+       as part of a friend declaration). */
+    for (ap = attributes; ap != NULL; ap = ap->next) {
+      ap->assoc_info = (void*)dps;
+    }  /* for */
     attach_attributes(attributes, (char*)type, iek_type);
+    /* Detach dps from the attributes. */
+    for (ap = attributes; ap != NULL; ap = ap->next) {
+      ap->assoc_info = NULL;
+    }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (is_forward_decl) {
       /* If a source sequence entry was recorded (which would necessarily be a
@@ -3558,7 +3571,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     if (std_attributes_enabled && is_explicit_instantiation) {
       diagnose_std_attribute_on_explicit_instantiation(tag_attributes);
     }  /* if */
-    attach_tag_attributes(tag_attributes, class_type, is_class_definition,
+    attach_tag_attributes(tag_attributes, class_type, dps, is_class_definition,
                           curr_token == tok_semicolon, ignore_gnu_attributes);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The call to attach_tag_attributes does not directly apply DLL
@@ -4037,7 +4050,8 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void enum_specifier(a_decl_flag_set      dsi_flags,
+static void enum_specifier(a_decl_parse_state   *dps,
+                           a_decl_flag_set      dsi_flags,
                            a_boolean            vacuous_decl_allowed,
                            a_type_ptr           *type_ptr,
                            an_ms_attribute_ptr  *p_ms_attributes,
@@ -4806,7 +4820,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     } else {
       enum_type->variant.integer.enum_info.constant_list = constant_list;
     }  /* if */
-    attach_tag_attributes(tag_attributes, enum_type, is_definition,
+    attach_tag_attributes(tag_attributes, enum_type, dps, is_definition,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
     if (gnu_mode && curr_token == tok_attribute) {
@@ -4888,7 +4902,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     check_for_file_with_unterminated_type_definition(&end_pos);
   } else {
     /* No brace-enclosed list follows. */
-    attach_tag_attributes(tag_attributes, enum_type, is_definition,
+    attach_tag_attributes(tag_attributes, enum_type, dps, is_definition,
                           curr_token == tok_semicolon && !strict_ansi_mode,
                           /*ignore_gnu_attributes=*/TRUE);
   }  /* if */
@@ -8031,7 +8045,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            enum_specifier(input_flags, vacuous_decl_allowed, type_ptr,
+            enum_specifier(state, input_flags, vacuous_decl_allowed, type_ptr,
                            &state->ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
@@ -8051,7 +8065,7 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            enum_specifier(input_flags, /*vacuous_decl_allowed=*/FALSE,
+            enum_specifier(state, input_flags, /*vacuous_decl_allowed=*/FALSE,
                            &dummy_type, (an_ms_attribute_ptr*)NULL,
                            &dummy_flag, &dummy_flag, decl_pos_block);
           }  /* if */

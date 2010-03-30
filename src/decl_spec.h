@@ -125,11 +125,12 @@ extern void update_membership_of_class(a_symbol_ptr       tag_sym,
                                        a_scope_depth      decl_level,
                                        a_source_position  *diag_pos);
 
-extern void attach_tag_attributes(an_attribute_ptr  attributes,
-                                  a_type_ptr        type,
-                                  a_boolean         is_definition,
-                                  a_boolean         is_forward_decl,
-                                  a_boolean         ignore_gnu_attributes);
+extern void attach_tag_attributes(an_attribute_ptr    attributes,
+                                  a_type_ptr          type,
+                                  a_decl_parse_state  *dps,
+                                  a_boolean           is_definition,
+                                  a_boolean           is_forward_decl,
+                                  a_boolean           ignore_gnu_attributes);
 
 extern void diagnose_std_attribute_on_explicit_instantiation(
                                                         an_attribute_ptr  ap);
