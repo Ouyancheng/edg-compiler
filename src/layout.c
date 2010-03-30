@@ -4802,7 +4802,11 @@ issue a diagnostic if such a reduction is invalid or ignored.
         }  /* if */
       }  /* for */
       if (gnu_mode || sun_mode) {
-        if (!class_type->variant.class_struct_union.is_packed) {
+        a_boolean  is_packed = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+        is_packed = class_type->variant.class_struct_union.is_packed;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        if (!is_packed) {
           pos_warning(ec_alignment_reduction_ignored,
                       ap != NULL ? &ap->position
                                  : &class_type->source_corresp.decl_position);
