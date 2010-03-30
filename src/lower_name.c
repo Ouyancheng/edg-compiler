@@ -5156,6 +5156,46 @@ point to the source correspondence of an entity to be used as a discriminator.
 
 #endif /* IA64_ABI */
 
+static void mangled_template_alias_encoding(a_type_ptr               type,
+                                            a_mangling_control_block *mctl)
+/*
+Create a mangled encoding for the template alias specified by type.  The ABI
+does not specify a mangling for template aliases as they do not appear in
+externally visible mangled names.  Mangle a template alias as though it were a
+class template (there should not be a class template with the same name as
+a template alias in the same scope).  No demangling changes are required for
+the template alias case.
+*/
+{
+  char                 *name =
+                        unmangled_or_fabricated_name_of(&type->source_corresp);
+#if !IA64_ABI
+  a_length_reservation length_reservation;
+#endif /* !IA64_ABI */
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref &&
+                  type->variant.typeref.is_template_alias &&
+                  type->variant.typeref.extra_info->template_arg_list != NULL);
+#if !IA64_ABI
+  reserve_space_for_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
+  /* Use the alias name (preceded by its length in the IA-64 ABI). */
+#if IA64_ABI
+  add_number_to_mangled_name((unsigned long)strlen(name), mctl);
+#endif /* IA64_ABI */
+  add_str_to_mangled_name(name, mctl);
+  /* Add the template arguments. */
+  mangled_template_arguments(
+                           type->variant.typeref.extra_info->template_arg_list,
+                           /*partial_spec=*/FALSE,
+                           /*old_form=*/FALSE,
+                           mctl);
+#if !IA64_ABI
+  fill_in_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_template_alias_encoding */
+
+
 /*ARGSUSED*/  /* <-- check_for_subst is only used for the IA-64 ABI. */
               /* <-- ok_to_mangle_type is only used for the Cfront ABI. */
 static void mangled_type_name_full(a_type_ptr               type,
@@ -5310,6 +5350,10 @@ potential performance improvement, allowing re-use of a mangled name).
                            /*show_template_specialization*/FALSE,
                            /*show_specialization=*/FALSE,
                            mctl);
+  } else if (type->kind == (a_type_kind)tk_typeref &&
+             type->variant.typeref.is_template_alias) {
+    /* Template alias. */
+    mangled_template_alias_encoding(type, mctl);
   } else {
     /* Not a class name (typedef, template parameter member or enum). */
 #if !IA64_ABI
@@ -7162,6 +7206,9 @@ is what mangled_type_name generates, plus a prefix.
        entity_needs_to_be_individuated(&type->source_corresp, iek_type) ||
        /* Mangle unnamed types. */
        !has_name(type) ||
+       /* Mangle template aliases. */
+       (type->kind == (a_type_kind)tk_typeref &&
+        type->variant.typeref.is_template_alias) ||
        /* Mangle class types with template arguments. */
        (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->
