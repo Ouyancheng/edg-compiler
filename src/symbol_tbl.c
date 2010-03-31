@@ -10341,7 +10341,7 @@ the end of the scope entry symbol list for the class.  The symbol
 found must meet the criteria indicated by "options".
 
 look_in_dependent_bases is TRUE if the lookup should consider dependent
-base classes of generated temple classes.  If tentative_type_lookup is
+base classes of generated template classes.  If tentative_type_lookup is
 TRUE, a projection symbol is only created if the symbol returned by
 find_progenitor_symbol is a type.  Likewise, if tentative_template_lookup
 is TRUE, a projection symbol is only created if the symbol returned by

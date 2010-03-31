@@ -9950,7 +9950,7 @@ common cases.
 }  /* type_name_full */
 
 
-static void check_type_definition_in_type_name(a_decl_parse_state  *dps)
+void check_type_definition_in_type_name(a_decl_parse_state  *dps)
 /*
 dps describes a type-name scanned by type_name_full.  In C++ mode, issue an
 error if the specifiers in the type-name defined a class or enum type.  (Early
@@ -12611,6 +12611,7 @@ semicolon.
   decl_pos_block.identifier_range.start = pos_curr_token;
   decl_pos_block.identifier_range.end = end_pos_curr_token;
   decl_pos_block.declarator_range.start = pos_curr_token;
+  decl_pos_block.declarator_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   loc = locator_for_curr_id;
   if (loc.is_qualified_name) {
@@ -12626,7 +12627,9 @@ semicolon.
      We therefore record the attributes with al_declarator_id. */
   dps->id_attributes = scan_attributes(al_declarator_id);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_pos_block.declarator_range.end = curr_construct_end_position;
+  if (dps->id_attributes != NULL) {
+    decl_pos_block.declarator_range.end = curr_construct_end_position;
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (required_token(tok_assign, ec_exp_assign)) {
     a_type_ptr  parent_type = NULL;
@@ -12635,11 +12638,7 @@ semicolon.
                                         (a_scope_kind)sck_class_struct_union);
       parent_type = scope_stack_top().assoc_type;
     }  /* if */
-    decl_pos_block.var_init_range.start = pos_curr_token;
     type_name_full(dps);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_pos_block.var_init_range.end = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     decl_typedef(&loc, dps, parent_type, &decl_pos_block);
     if (dps->sym != NULL && dps->sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr  tp = dps->sym->variant.type.ptr;
@@ -12658,6 +12657,12 @@ semicolon.
                        a_src_seq_secondary_decl_ptr)->is_alias = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        /* Record the location of the type-id. */
+        tp->variant.typeref.extra_info->type_id_range.start = dps->start_pos;
+        tp->variant.typeref.extra_info->type_id_range.end =
+                                                  curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
     }  /* if */
   }  /* if */

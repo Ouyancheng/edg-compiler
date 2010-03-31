@@ -691,6 +691,8 @@ when all decl-specifiers are missing.
 
 extern void type_name_full(a_decl_parse_state  *dps);
 
+extern void check_type_definition_in_type_name(a_decl_parse_state  *dps);
+
 extern void type_name(a_type_ptr  *type);
 
 extern a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,

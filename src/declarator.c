@@ -2582,6 +2582,7 @@ if this is the function declarator in a friend function declaration.
   if (decl_pos_block != NULL) {
     decl_pos_block->declarator_range.end = pos_curr_token;
   }  /* if */
+  curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
@@ -3092,6 +3093,7 @@ constant.
   if (decl_pos_block != NULL) {
     decl_pos_block->declarator_range.end = end_pos_curr_token;
   }  /* if */
+  curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for closing right bracket. */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
@@ -3452,6 +3454,7 @@ Additional position information is recorded in *decl_pos_block.
         if (decl_pos_block != NULL) {
           decl_pos_block->declarator_range.end = end_pos_curr_token;
         }  /* if */
+        curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         scan_microsoft_calling_convention(&ptr_mods->cc_descr.call_conv);
       } else if (curr_token == tok_based) {
@@ -3476,6 +3479,7 @@ Additional position information is recorded in *decl_pos_block.
         if (decl_pos_block != NULL) {
           decl_pos_block->declarator_range.end = end_pos_curr_token;
         }  /* if */
+        curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         (void)get_token();
       } else if (curr_token == tok_microsoft_w64) {
@@ -3973,6 +3977,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     if (decl_pos_block != NULL) {
       decl_pos_block->declarator_range.end = end_pos_curr_token;
     }  /* if */
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the "*", "&", or "Name::*". */
     (void)get_token();
@@ -4566,6 +4571,7 @@ declared entity is known to not be a function.
       decl_pos_block->identifier_range.end = end_pos_curr_token;
       decl_pos_block->declarator_range.end = end_pos_curr_token;
     }  /* if */
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
   } else {
@@ -4617,6 +4623,7 @@ declared entity is known to not be a function.
         decl_pos_block->identifier_range.end = end_pos_curr_token;
         decl_pos_block->declarator_range.end = end_pos_curr_token;
       }  /* if */
+      curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Advance past the destructor. */
       (void)get_token();
@@ -5894,6 +5901,7 @@ the parameters.
     decl_pos_block->declarator_range.start = pos_curr_token;
     decl_pos_block->declarator_range.end = end_pos_curr_token;
   }  /* if */
+  curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (state->declared_storage_class == (a_storage_class)sc_typedef) {
     input_flags |= DI_IS_TYPEDEF_DECLARATION;

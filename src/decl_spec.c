@@ -8612,6 +8612,7 @@ something_unexpected:
       /* Each time through the loop assume the current token is the last. */
       decl_pos_block->specifiers_range.end = end_pos_curr_token;
     }  /* if */
+    curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
 no_get_token:

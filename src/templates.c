@@ -5193,6 +5193,7 @@ list template_arg_list.  Return the symbol for the type that was created.
   a_symbol_ptr				instance_sym;
   a_type_ptr				type;
   a_typeref_type_supplement_ptr		ttsp;
+  a_type_ptr				parent_class = NULL;
 
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
@@ -5212,10 +5213,9 @@ list template_arg_list.  Return the symbol for the type that was created.
   set_source_corresp(&(type->source_corresp), instance_sym);
   set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
   if (instance_sym->is_class_member) {
+    parent_class = sym_parent_class(instance_sym);
     /* If the enclosing class is nonreal, then any instances of the member
        alias must also be nonreal. */
-    a_type_ptr			parent_class;
-    parent_class = sym_parent_class(instance_sym);
     if (parent_class->variant.class_struct_union.is_nonreal_class) {
       type->variant.typeref.is_nonreal = TRUE;
     }  /* if */
@@ -5244,7 +5244,6 @@ list template_arg_list.  Return the symbol for the type that was created.
   }  /* if */
   {
     a_template_cache_ptr	body_cache;
-    a_type_ptr			result_type = NULL;
     a_symbol_ptr		template_sym_of_prototype;
     a_template_symbol_supplement_ptr
 				tssp_of_prototype;
@@ -5272,9 +5271,10 @@ list template_arg_list.  Return the symbol for the type that was created.
       /* The template definition is missing.  This should only occur in error
          cases. */
       check_assertion(total_errors != 0);
-      result_type = error_type();
-      type->variant.typeref.type = result_type;
+      type->variant.typeref.type = error_type();
     } else {
+      a_decl_parse_state  dps;
+      init_decl_parse_state(&dps);
       /* Push the template instantiation scope for the instantiation. */
       (void)push_template_instantiation_scope(body_cache->decl_info,
 					      (a_type_ptr)NULL,
@@ -5291,15 +5291,26 @@ list template_arg_list.  Return the symbol for the type that was created.
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
+      dps.sym = instance_sym;
       /* Scan the type. */
-      type_name(&result_type);
-      type->variant.typeref.type = result_type;
+      type_name_full(&dps);
+      check_type_definition_in_type_name(&dps);
+      type->variant.typeref.type = dps.type;
       if (type->variant.typeref.is_nonreal) {
         /* Discard pragmas on nonreal aliases. */
         discard_curr_construct_pragmas();
       } else {
         /* Process any pragmas that are to be bound to this instance. */
         process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      }  /* if */
+      /* Apply any attributes to the alias. */
+      if (tssp->attributes != NULL) {
+        dps.id_attributes = copy_of_attributes_with_substitution(
+                                   tssp->attributes, /*primary_only=*/FALSE,
+                                   tssp->cache.decl_info->parameters,
+                                   template_arg_list, parent_class,
+                                   (a_boolean*)NULL);
+        attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
@@ -11669,6 +11680,7 @@ initially used when processing the declaration of a partial specialization.
       prototype_type->variant.typeref.is_template_alias = TRUE;
       prototype_type->variant.typeref.is_nonreal = TRUE;
       prototype_type->variant.typeref.is_prototype_instantiation = TRUE;
+      prototype_type->source_corresp.attributes = tssp->attributes;
     } else {
       prototype_type = alloc_type(tssp->variant.class_template.type_kind);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -16660,15 +16672,21 @@ alias
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
     decl_state->decl_pos_block.declarator_range.start = pos_curr_token;
+    decl_state->decl_pos_block.declarator_range.start = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Although the alias name is not defined as a declarator-id it
      is treated as one with respect to attributes. */
   attributes = scan_attributes(al_declarator_id);
+  if (attributes != NULL) {
+    /* Alias template declarations are always "primary" declarations (they
+       cannot be redeclared). */
+    mark_primary_decl_attributes(attributes);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  decl_state->decl_pos_block.declarator_range.end =
+    decl_state->decl_pos_block.declarator_range.end =
                                                    curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   /* The next token should be "=". */
   if (curr_token == tok_assign) {
     /* Skip past the "=". */
