@@ -4069,7 +4069,7 @@ Return the symbol associated with an IL entry.
 /*
 Return whether a given symbol is of a given kind.
 */
-#define symbol_is(sym, sym_kind)                                                 \
+#define symbol_is(sym, sym_kind)                                             \
   ((sym)->kind == (a_symbol_kind)(sym_kind))
 
 
