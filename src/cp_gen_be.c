@@ -2142,6 +2142,8 @@ argument list and to FALSE otherwise.
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       tap = type->variant.class_struct_union.extra_info->template_arg_list;
+    } else if (type->kind == (a_type_kind)tk_typeref) {
+      tap = type->variant.typeref.extra_info->template_arg_list;
     }  /* if */
   } else if (entry_kind == iek_routine) {
     /* Check for template arguments on a routine, but put them out only if
