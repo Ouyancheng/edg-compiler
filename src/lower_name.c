@@ -5163,7 +5163,7 @@ Create a mangled encoding for the template alias specified by type.  The ABI
 does not specify a mangling for template aliases as they do not appear in
 externally visible mangled names.  Mangle a template alias as though it were a
 class template (there should not be a class template with the same name as
-a template alias in the same scope).  No demangling changes are required for
+an alias template in the same scope).  No demangling changes are required for
 the template alias case.
 */
 {
