@@ -1734,6 +1734,12 @@ the routine so it can be inlined on calls from here on.
   a_routine_type_supplement_ptr
                 rtsp = routine_type->variant.routine.extra_info;
 
+  /* Routines with the noinline attribute have had their never_inline
+     flag set to TRUE in the front end.  Routines that have the is_weak flag
+     set are inlined if is_inline is set (i.e., the setting of is_weak is
+     ignored for this inliner).  Note that this implementation of inlining
+     ignores the setting of always_inline. */
+  check_assertion(routine->is_inline && !routine->never_inline);
   /* Rule out certain cases up front. */
   if (scope->variables != NULL) {
     /* Function has local static variables. */
