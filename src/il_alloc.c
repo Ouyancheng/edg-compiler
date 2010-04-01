@@ -1587,6 +1587,8 @@ to default values.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       pte->variant.typeref.qualifiers  = TQ_NONE;
       pte->variant.typeref.is_placeholder_for_class_instantiation = FALSE;
+      pte->variant.typeref
+                .referenced_by_class_instantiation_placeholder_typeref = FALSE;
       pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
       pte->variant.typeref.is_placeholder_for_nested_class_def = FALSE;
 #if NEAR_AND_FAR_ALLOWED

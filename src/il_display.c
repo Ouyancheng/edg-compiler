@@ -1864,6 +1864,11 @@ Display the indicated type entry.
         disp_type_qualifiers(ptr->variant.typeref.qualifiers);
         (void)printf("\n");
       }  /* if */
+      if (ptr->variant.typeref.
+                       referenced_by_class_instantiation_placeholder_typeref) {
+        disp_boolean("referenced_by_class_instantiation_placeholder_typeref",
+                     TRUE);
+      }  /* if */
 #if NEAR_AND_FAR_ALLOWED
       if (ptr->variant.typeref.explicit_memory_attribute_made_implicit) {
         disp_boolean("explicit_memory_attribute_made_implicit", TRUE);

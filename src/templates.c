@@ -5322,6 +5322,10 @@ list template_arg_list.  Return the symbol for the type that was created.
                                    (a_boolean*)NULL);
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */
+      /* Record in the file scope where this type was created, so that IL
+         lowering correctly orders types when promoting nested types that this
+         alias instance may depend on (see also promote_type_list). */
+      add_placeholder_for_class_instantiation(type);
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
       /* In the normal case the current token should be end_of_source,

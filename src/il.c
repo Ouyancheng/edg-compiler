@@ -7345,9 +7345,10 @@ instantiations) below that on the scope stack.
   a_type_ptr                     inst_placeholder;
 
   db_enter(4, "add_placeholder_for_class_instantiation");
-  /* This function should not be called for a partial instantiation. */
-  check_assertion_str2(type_ptr->variant.class_struct_union.
-                                   extra_info->assoc_scope != NULL,
+  /* This function should not be called for the partial instantiation of a
+     class template. */
+  check_assertion_str2(!is_immediate_class_type(type_ptr) ||
+                       class_type_supp(type_ptr)->assoc_scope != NULL,
                        "add_placeholder_for_class_instantiation",
                        "class is not fully instantiated");
   ssep = &scope_stack[scope_depth];
@@ -7387,8 +7388,15 @@ instantiations) below that on the scope stack.
                            ssep->assoc_type);
       inst_placeholder->
              variant.typeref.is_placeholder_for_class_instantiation = TRUE;
-      type_ptr->variant.class_struct_union.
+      if (type_ptr->kind == (a_type_kind)tk_typeref) {
+        check_assertion(type_ptr->variant.typeref.is_alias);
+        type_ptr->variant.typeref.
               referenced_by_class_instantiation_placeholder_typeref = TRUE;
+      } else {
+        check_assertion(is_immediate_class_type(type_ptr));
+        type_ptr->variant.class_struct_union.
+              referenced_by_class_instantiation_placeholder_typeref = TRUE;
+      }  /* if */
       add_to_types_list(inst_placeholder, scope_depth);
     }  /* if */
   }  /* if */
@@ -19126,10 +19134,17 @@ the class instantiations because the placeholders will be removed.
       if (type->kind == (a_type_kind)tk_typeref &&
           type->variant.typeref.is_placeholder_for_class_instantiation) {
         a_type_ptr inst_type = type->variant.typeref.type;
-        check_assertion(inst_type->variant.class_struct_union.
-                        referenced_by_class_instantiation_placeholder_typeref);
-        inst_type->variant.class_struct_union.
+        if (inst_type->kind == (a_type_kind)tk_typeref) {
+          check_assertion(inst_type->variant.typeref.is_alias);
+          inst_type->variant.typeref.
                  referenced_by_class_instantiation_placeholder_typeref = FALSE;
+        } else {
+          check_assertion(is_immediate_class_type(inst_type));
+          check_assertion(inst_type->variant.class_struct_union.
+                        referenced_by_class_instantiation_placeholder_typeref);
+          inst_type->variant.class_struct_union.
+                 referenced_by_class_instantiation_placeholder_typeref = FALSE;
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */

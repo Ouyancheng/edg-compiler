@@ -7175,10 +7175,18 @@ typedef struct a_type {
 		is_placeholder_for_class_instantiation:1;
 			/* TRUE if the typeref appears on a class types list
 			   to indicate the declaration sequence position of
-			   the template class type to which it refers, which
-			   is on the file scope or a namespace scope types
-			   list.  Used for template classes that are
+			   the template type to which it refers, which is on
+			   the file scope or a namespace scope types list.
+			   Used for class and alias templates that are
 			   instantiated in the midst of a class definition. */
+      a_bit_field
+		referenced_by_class_instantiation_placeholder_typeref:1;
+			/* TRUE if this type entry is pointed to by a
+			   placeholder typeref on a class scope's types list;
+			   the type entry for the associated typeref will have
+			   is_placeholder_for_class_instantiation set to
+			   TRUE.  (If TRUE, this entry must be an instance of
+			   an alias template.) */
       a_bit_field
 		is_placeholder_for_namespace_type:1;
 			/* TRUE if the typeref appears on the file-scope

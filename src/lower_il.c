@@ -17067,7 +17067,8 @@ end_local_types for later processing.
     if (type->kind == (a_type_kind)tk_typeref &&
         type->variant.typeref.is_placeholder_for_class_instantiation) {
       /* This type is a placeholder typeref that indicates the point at
-         which a class instantiation appeared in the class.  For example:
+         which a class template or alias template instantiation appeared in
+         the class.  For example:
            template<class T> struct TMPL {};
            struct A {
              typedef int I;
@@ -17092,7 +17093,7 @@ end_local_types for later processing.
       /* If the type-as-subobject for the type followed it on the file scope
          list, it was also removed from the list, and left attached to
          the primary type by the "next" pointer. */
-      if (type->next != NULL) {
+      if (is_immediate_class_type(type) && type->next != NULL) {
         /* The type-as-subobject is present, so arrange to have it be the
            type processed the next time around the loop.  That will get
            it placed back on the promotion_scope types list and get its
@@ -17310,7 +17311,8 @@ Go through the indicated scope (the file scope, a namespace scope, a function
 or block scope, or a class scope) and look for classes that have associated
 instantiation or outside-of-parent definition placeholders.  Unlink such
 classes from the type list.  They will be reinserted (logically) at the point
-of the placeholder.
+of the placeholder.  Perform a similar operation for alias template instances
+that first appeared in class scope.
 */
 {
   a_type_ptr      type, next_type, insert_pointer;
@@ -17331,7 +17333,7 @@ of the placeholder.
       a_class_type_supplement_ptr ctsp = NULL;
       next_type = type->next;
       if (is_immediate_class_type(type)) {
-        ctsp = type->variant.class_struct_union.extra_info;
+        ctsp = class_type_supp(type);
         /* Look at the nested classes inside the class, if any. */
         if (ctsp->assoc_scope != NULL) {
           unlink_classes_with_placeholders_in_scope(ctsp->assoc_scope);
@@ -17343,8 +17345,7 @@ of the placeholder.
              promoted_type != NULL;
              promoted_type = promoted_type->next) {
           if (is_immediate_class_type(promoted_type)) {
-            promoted_ctsp = promoted_type->
-                                         variant.class_struct_union.extra_info;
+            promoted_ctsp = class_type_supp(promoted_type);
             if (promoted_ctsp->assoc_scope != NULL) {
               unlink_classes_with_placeholders_in_scope(
                                                    promoted_ctsp->assoc_scope);
@@ -17390,19 +17391,37 @@ of the placeholder.
           check_assertion(scope->kind == (a_scope_kind)sck_class_struct_union);
           do_unlink = TRUE;
         }  /* if */
+      } else if (type->kind == (a_type_kind)tk_typeref &&
+                 type->variant.typeref
+                      .referenced_by_class_instantiation_placeholder_typeref) {
+        /* Similar to the class of class template instances above, but for
+           alias template instances. */
+#if DEBUG
+        if (debug_level >= 4) {
+          (void)fprintf(f_debug, "Taking instantiation out of list: ");
+          db_type_name(type);
+          (void)fprintf(f_debug, "\n");
+        }  /* if */
+#endif /* DEBUG */
+        check_assertion(scope->kind == (a_scope_kind)sck_file ||
+                        scope->kind == (a_scope_kind)sck_namespace ||
+                        scope->kind == (a_scope_kind)sck_class_struct_union);
+        do_unlink = TRUE;
       }  /* if */
       if (do_unlink) {
         /* Remove a class type from its type list.  Remove the class's
            type-as-subobject too, if it has one. */
-        if (next_type != NULL && ctsp->type_as_subobject == next_type) {
+        if (next_type != NULL && ctsp != NULL &&
+            ctsp->type_as_subobject == next_type) {
           /* Yes, the next type is the corresponding type-as-subobject, so
              remove it along with the primary type. */
           a_type_ptr type_as_subobject = next_type;
           next_type = type_as_subobject->next;
           type_as_subobject->next = NULL;
         } else {
-          /* The type-as-subobject is not there, so remove just the
-             primary type. */
+          /* The type-as-subobject is not there, so remove just the primary
+             type (that includes the case where "type" represents an alias
+             template instance). */
           type->next = NULL;
         }  /* if */
         /* Link around the removed type(s). */
