@@ -5194,7 +5194,17 @@ list template_arg_list.  Return the symbol for the type that was created.
   a_type_ptr				type;
   a_typeref_type_supplement_ptr		ttsp;
   a_type_ptr				parent_class = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                             saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Temporarily disallow source sequence entries.  Since alias templates
+     cannot be explicitly specialized configurations that represent template
+     instances as specializations cannot do so for alias templates. */
+  saved_sses_disallowed = source_sequence_entries_disallowed;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(template_sym);
@@ -5350,6 +5360,11 @@ list template_arg_list.  Return the symbol for the type that was created.
   record_instantiation(instance_sym, tssp);
   /* If the translation unit stack was pushed above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. the generation of source sequence
+     entries. */
+  source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return instance_sym;
 }  /* instantiate_template_alias */
 
