@@ -3204,6 +3204,7 @@ issue_diagnostic:
 
 static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_symbol_locator       *locator,
+                            a_decl_parse_state     *dps,
                             a_type_ptr             type_ptr,
                             an_id_linkage_block    *idlbp,
                             a_boolean              redeclaration,
@@ -3213,11 +3214,10 @@ static a_symbol_ptr create_external_symbol_for_linked_entity(
                             a_routine_ptr          *routine_ptr)
 /*
 Find or create an external symbol entry for a variable or routine being
-declared.  *locator gives the symbol locator for the identifier;
-is_function is TRUE for a function, FALSE for a variable; type_ptr
-gives the variable or routine type; name_linkage indicates the linkage
-(internal, external, C++ external).  Aside from creating the
-entry, this routine checks that the new declaration is compatible with
+declared.  *locator gives the symbol locator for the identifier; dps describes
+the declaration; type_ptr gives the variable or routine type; name_linkage
+indicates the linkage (internal, external, C++ external).  Aside from creating
+the entry, this routine checks that the new declaration is compatible with
 any previous linked declaration of the same name.  redeclaration is
 TRUE if the present declaration is a redeclaration within the same scope.
 suppress_incompatible_error is TRUE to suppress incompatibility errors
@@ -3413,7 +3413,6 @@ created; the caller must set it.
          weaken this to a warning.) */
       a_symbol_ptr   sym = locator->symbol_header->other_symbols;
       a_routine_ptr  rp;
-
       for (; sym != NULL; sym = sym->next) {
         if (sym->kind == (a_symbol_kind)sk_extern_routine) {
           /* Ignore symbols not associated with the current file scope.  These
@@ -3522,6 +3521,7 @@ created; the caller must set it.
     }  /* if */
     if (use_existing_il_entry) {
       /* An existing IL entry can be reused. */
+      if (dps->prev_type == NULL) dps->prev_type = preexisting_type;
       /* See if the entry's type has been changed.  Note that we're checking
          for pointer equality here, so an equivalent but distinct type
          will fail to match.  One of the issues that deals with is routine
@@ -5667,7 +5667,7 @@ for use in generating cross-reference output describing this declaration.
        If we do not already have an IL entry, and the external symbol entry
        points to one, get a pointer to it and use it. */
     *ext_sym = 
-        create_external_symbol_for_linked_entity(locator, type_ptr, &idlb,
+        create_external_symbol_for_linked_entity(locator, dps, type_ptr, &idlb,
                                                  redeclaration,
                                                  redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
@@ -6324,6 +6324,7 @@ is_function_def is TRUE if the redeclaration is a definition.
 
 static a_symbol_ptr create_external_symbol_for_routine(
                          a_symbol_locator       *locator,
+                         a_decl_parse_state     *dps,
                          a_type_ptr             type_ptr,
                          an_id_linkage_block    *idlbp,
                          a_boolean              microsoft_specialization_redef,
@@ -6333,10 +6334,10 @@ static a_symbol_ptr create_external_symbol_for_routine(
 /*
 Find or create an external symbol entry for a routine being declared.
 This is a wrapper for create_external_symbol_for_linked_entity that returns
-NULL for some template-related cases.  locator, type_ptr, and idlbp describe
-the routine being declared.  microsoft_specialization_redef is TRUE for the
-relatively rare case of a specialization being redefined (only allowed in
-some Microsoft bugs modes).  suppress_incompatible_error is TRUE if no
+NULL for some template-related cases.  locator, dps, type_ptr, and idlbp
+describe the routine being declared.  microsoft_specialization_redef is TRUE
+for the relatively rare case of a specialization being redefined (only allowed
+in some Microsoft bugs modes).  suppress_incompatible_error is TRUE if no
 incompatibility diagnostic should be emitted.  If suppress_ext_sym_lookup is
 TRUE, an existing compatible external symbol is ignored.  *routine_ptr is set
 to point to a routine entry attached to an existing compatible external symbol
@@ -6363,7 +6364,7 @@ to point to a routine entry attached to an existing compatible external symbol
   } else {
     /* Create an external symbol for the present linkable declaration. */
     result = create_external_symbol_for_linked_entity(
-                                       locator, type_ptr, idlbp,
+                                       locator, dps, type_ptr, idlbp,
                                        /*redeclaration=*/FALSE,
                                        suppress_incompatible_error,
                                        suppress_ext_sym_lookup,
@@ -7355,9 +7356,9 @@ skip_overloading:;
         is_template_dependent_type(type_ptr))) {
     /* Create an external symbol for the present linkable declaration. */
     *ext_sym = create_external_symbol_for_routine(
-                   locator, type_ptr, &idlb, microsoft_specialization_redef,
-                   redecl_error_already_issued, suppress_ext_sym_lookup,
-                   &routine_ptr);
+                   locator, dps, type_ptr, &idlb,
+                   microsoft_specialization_redef, redecl_error_already_issued,
+                   suppress_ext_sym_lookup, &routine_ptr);
   }  /* if */
   if (template_function_specific_decl && sym != linked_symbol) {
     /* This is a declaration of a template function at the local scope.
