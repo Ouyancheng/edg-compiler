@@ -1,5 +1,27 @@
 Version 4.2
 
+4/1/10  [EDGcpfe/10147]
+Assertion failure in set_primary_ctor_or_dtor_kind
+
+Prior to version 4.0, a constructor of an unnamed local class had been given a
+mangled name, however, due to changes in 4.0, such constructors were not given
+mangled names in configurations where local entities are not promoted to file
+scope.  This caused an assertion failure on such cases (in
+set_primary_ctor_or_dtor_kind in lower_init.c).  A change has been made to give
+mangled names to constructors of local unnamed types in all cases.  This
+failure occurs in IA-64 ABI configurations where
+PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE is FALSE.  This regression was introduced
+in version 4.0 and is now fixed.  For example:
+
+  void f() {
+    struct {
+      struct A {
+        A() {}
+      } a;
+    } x;
+  }
+
+
 3/26/10  [EDGcpfe/9976]
 C++0x: Attributes "override", "hiding", and "base_check"
 
