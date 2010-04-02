@@ -12603,31 +12603,36 @@ handle_as_definition:
     /* Check the kind of declaration within a class. */
     if (friend_decl) {
       /* This is a friend declaration. */
-      if (microsoft_dialect_is_generated_code_target &&
-          !curr_name_context_class()->source_corresp.is_local_to_function) {
-        /* In Microsoft mode a storage class can be specified on a friend
-           declaration (but only in a non-local class). */
-        if ((rout->storage_class == (a_storage_class)sc_extern &&
-             !rout->is_inline) ||
-            (rout->storage_class == (a_storage_class)sc_static &&
-             rout->is_inline)) {
-          /* The storage class can be omitted -- the default is right. */
-        } else {
-          /* Specify the storage class explicitly. */
-          storage_class = rout->storage_class;
-        }  /* if */
+      if (!suppress_specifiers) {
+        /* Determine the storage class, if not default, and put out the
+           "friend" keyword. */
+        if (microsoft_dialect_is_generated_code_target &&
+            !curr_name_context_class()->source_corresp.is_local_to_function) {
+          /* In Microsoft mode a storage class can be specified on a friend
+             declaration (but only in a non-local class). */
+          if ((rout->storage_class == (a_storage_class)sc_extern &&
+               !rout->is_inline) ||
+              (rout->storage_class == (a_storage_class)sc_static &&
+               rout->is_inline)) {
+            /* The storage class can be omitted -- the default is right. */
+          } else {
+            /* Specify the storage class explicitly. */
+            storage_class = rout->storage_class;
+          }  /* if */
 #ifdef SUN_TARGET_VERSION_NUMBER
-      } else if (sun_is_generated_code_target &&
-                 sun_target_version_number <= 0x530 &&
-                 rout->storage_class == (a_storage_class)sc_static) {
-        /* In older Sun dialects, "static" can be specified on a friend
-           declaration, but the order of specifiers is important: "static
-           friend" is accepted, but "friend static" is not, so we explicitly
-           output "static" here and leave the storage class unspecified. */
-        write_tok_str("static ");
+        } else if (sun_is_generated_code_target &&
+                   sun_target_version_number <= 0x530 &&
+                   rout->storage_class == (a_storage_class)sc_static) {
+          /* In older Sun dialects, "static" can be specified on a friend
+             declaration, but the order of specifiers is important: "static
+             friend" is accepted, but "friend static" is not, so we
+             explicitly output "static" here and leave the storage class
+             unspecified. */
+          write_tok_str("static ");
 #endif /* SUN_TARGET_VERSION_NUMBER */
+        }  /* if */
+        write_tok_str("friend ");
       }  /* if */
-      write_tok_str("friend ");
     } else {
       /* This is a declaration or definition of a member function inside
          its own class. */

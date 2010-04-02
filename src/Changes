@@ -1,5 +1,17 @@
 Version 4.2
 
+4/2/10  [EDGcpfe/10565]
+C++-generating back end: multi-declarator friend declarations
+
+For a friend declaration declaring more than one function, the C++-generating
+back end erroneously repeated the "friend" keyword for each declarator.  This
+is now fixed.  For example:
+
+  class C {
+    friend int f(), g();  // Previously generated "friend int f(), friend g();"
+  }
+
+
 4/1/10  [EDGcpfe/10147]
 Assertion failure in set_primary_ctor_or_dtor_kind
 
