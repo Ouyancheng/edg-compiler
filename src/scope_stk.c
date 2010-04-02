@@ -5040,9 +5040,10 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       /* Check if this routine was declared using a type with no linkage.  The
          check is done for routines that are referenced but not defined.
          The will_be_instantiated check is used so that a template that could
-         be instantiated is considered defined. */
+         be instantiated is considered defined.  (Microsoft compilers do not
+         not impose this restriction.) */
       if (decls_using_types_without_linkage_allowed &&
-          sym->referenced &&
+          sym->referenced && !microsoft_mode &&
           (storage_class == (a_storage_class)sc_extern &&
            (!rout_ptr->is_template_function || !will_be_instantiated(sym)))) {
         /* Check if this routine was declared using a type with no

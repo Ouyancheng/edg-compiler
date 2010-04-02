@@ -1,5 +1,20 @@
 Version 4.2
 
+4/2/10  [EDGcpfe/10575]
+Microsoft compatibility: Functions depending on types with no linkage
+
+C++0x allows function with external linkage to depend on types with no linkage
+provided the function is defined in the translation unit where the types are
+defined (see Changes entry for EDGcpfe/9627 of 3/17/09).  The same rule
+applies in Microsoft modes with microsoft_version >= 1400, but now the
+definition is no longer required (this is likely to result in a linker error
+later on, but it matches the behavior of Microsoft compilers).  For example:
+
+  typedef struct {} *T;
+  void g(T);            // Missing definition of "g" no longer triggers an
+  void f(T x) { g(x); } // error in Microsoft modes.
+
+
 4/2/10  [EDGcpfe/10565]
 C++-generating back end: multi-declarator friend declarations
 
