@@ -486,7 +486,15 @@ typedef struct an_expr_rescan_info_entry {
   a_token_sequence_number
 		operator_token_sequence_number;
 			/* Token sequence number for the operator, if there
-			   is one.  NO_TOKEN_SEQUENCE_NUMBER otherwise. */
+			   is one.  NO_TOKEN_SEQUENCE_NUMBER otherwise.
+			   Not set for operators that can't be overloaded. */
+  a_source_position
+		secondary_operator_position;
+			/* Position of a second operator, e.g., the closing
+			   "]" of a subscript or the ":" of a "?" operator.
+			   Also used for the type position for a cast. */
+  a_type_ptr	cast_type;
+			/* For a cast, the type cast to.  Otherwise, NULL. */
 } an_expr_rescan_info_entry;
 
 /*
@@ -531,7 +539,8 @@ the address of null_source_position.
 
 
 /*
-Get the expression node, if any, associated with an operand.
+Get the expression node, if any, associated with an operand.  This just
+fetches an existing expression node, or returns NULL; it never creates one.
 */
 #define expr_node_from_operand(operand)                                    \
   (is_expression_operand(operand) ? (operand)->variant.expression :        \
@@ -1471,13 +1480,23 @@ extern void make_selection_rescan_operands(
                              a_source_position       *operator_position,
                              a_token_sequence_number *operator_tok_seq_number);
 
-extern void make_sizeof_et_al_rescan_operands(
-                             a_rescan_control_block  *rcblock,
-                             a_boolean               *p_is_type,
-                             an_operand              *operand,
-                             a_type_ptr              *p_type,
-                             a_source_position       *operator_position,
-                             a_token_sequence_number *operator_tok_seq_number);
+extern
+void make_sizeof_et_al_rescan_operands(
+                              a_rescan_control_block  *rcblock,
+                              a_boolean               *p_is_type,
+                              an_operand              *operand,
+                              a_type_ptr              *p_type,
+                              a_source_position       *operator_position,
+                              a_token_sequence_number *operator_tok_seq_number,
+                              a_source_position       *type_position);
+
+extern void make_cast_rescan_operands(
+                              a_rescan_control_block *rcblock,
+                              a_source_position      *start_position,
+                              a_type_ptr             *cast_type, 
+                              a_source_position      *type_position,
+                              an_operand             *operand,
+                              an_operand             *bound_function_selector);
 
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
@@ -1508,10 +1527,26 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
 
 extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
 
-extern void record_operator_position_in_rescan_info(
-                              an_operand              *operand,
-                              a_source_position       *operator_position,
-                              a_token_sequence_number operator_tok_seq_number);
+extern an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
+                                           a_boolean        parens_also);
+
+extern void record_operator_position_in_rescan_info_if_expr(
+                               an_operand              *operand,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2);
+
+extern void record_cast_position_in_expr_rescan_info(
+                                             an_expr_node_ptr  expr,
+                                             a_source_position *start_position,
+                                             a_source_position *type_position,
+                                             a_type_ptr        cast_type);
+
+extern
+void record_cast_position_in_rescan_info(an_operand        *operand,
+                                         a_source_position *start_position,
+                                         a_source_position *type_position,
+                                         a_type_ptr        cast_type);
 
 extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
 
@@ -1522,6 +1557,12 @@ extern an_expr_node_ptr strip_implicit_operations_for_rescan(
 extern an_expr_rescan_info_entry_ptr get_expr_rescan_info(
                                        an_expr_node_ptr          expr,
                                        an_expr_rescan_info_entry *rescan_info);
+extern void make_rescan_operand_full(
+                            an_expr_node_ptr         expr,
+                            a_rescan_control_block   *rcblock,
+                            a_local_expr_options_set local_options,
+                            an_operand               *operand,
+                            an_operand               *bound_function_selector);
 
 extern void make_rescan_operand(an_expr_node_ptr       expr,
                                 a_rescan_control_block *rcblock,
@@ -1533,14 +1574,16 @@ void make_rescan_operands(a_rescan_control_block  *rcblock,
                           an_operand              *operand_2,
                           an_operand              *operand_3,
                           a_source_position       *operator_position,
-                          a_token_sequence_number *operator_tok_seq_number);
+                          a_token_sequence_number *operator_tok_seq_number,
+                          a_source_position       *operator_position_2);
 
 extern void make_call_rescan_operands(
                              a_rescan_control_block  *rcblock,
                              an_operand              *operand,
                              an_operand              *bound_function_selector,
                              a_source_position       *operator_position,
-                             a_token_sequence_number *operator_tok_seq_number);
+                             a_token_sequence_number *operator_tok_seq_number,
+                             a_source_position       *closing_paren_position);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
@@ -1750,20 +1793,24 @@ extern void error_and_make_error_operand(an_error_code error_code,
 				         an_operand    *operand);
 
 extern
-void do_binary_operation_full(an_expr_operator_kind op,
-                              an_operand            *operand_1,
-                              an_operand            *operand_2,
-                              a_type_ptr            result_type,
-                              a_boolean             result_is_lvalue,
-                              an_operand            *result,
-                              a_source_position     *operator_position);
+void do_binary_operation_full(an_expr_operator_kind   op,
+                              an_operand              *operand_1,
+                              an_operand              *operand_2,
+                              a_type_ptr              result_type,
+                              a_boolean               result_is_lvalue,
+                              an_operand              *result,
+                              a_source_position       *operator_position,
+                              a_token_sequence_number operator_tok_seq_number,
+                              a_source_position       *operator_position_2);
 
-extern void do_binary_operation(an_expr_operator_kind op,
-			        an_operand            *operand_1,
-			        an_operand            *operand_2,
-			        a_type_ptr            type_for_result,
-			        an_operand            *result,
-			        a_source_position     *operator_position);
+extern
+void do_binary_operation(an_expr_operator_kind   op,
+                         an_operand              *operand_1,
+                         an_operand              *operand_2,
+                         a_type_ptr              result_type,
+                         an_operand              *result,
+                         a_source_position       *operator_position,
+                         a_token_sequence_number operator_tok_seq_number);
 
 extern void prep_generic_operand_full(an_operand *operand,
                                       a_boolean  lvalue_expected,
@@ -1780,19 +1827,22 @@ extern void generic_cast_operand(an_operand         *operand,
 extern an_expr_node_ptr prep_generic_argument_list(
                                              an_arg_operand *arg_operand_list);
 
-extern void template_binary_operation(
-                              an_expr_operator_kind  op,
-                              an_operand             *operand_1,
-                              an_operand             *operand_2,
-                              an_operand             *result,
-                              a_source_position      *operator_position,
-                              a_token_sequence_number operator_tok_seq_number);
+extern
+void template_binary_operation(an_expr_operator_kind   op,
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               an_operand              *result,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2);
 
-extern void do_unary_operation(an_expr_operator_kind op,
-                               an_operand            *operand,
-                               a_type_ptr            result_type,
-                               an_operand            *result,
-                               a_source_position     *start_position);
+extern
+void do_unary_operation(an_expr_operator_kind   op,
+                        an_operand              *operand,
+                        a_type_ptr              result_type,
+                        an_operand              *result,
+                        a_source_position       *start_position,
+                        a_token_sequence_number operator_tok_seq_number);
 
 extern
 void template_unary_operation(an_expr_operator_kind   op,
@@ -1801,24 +1851,27 @@ void template_unary_operation(an_expr_operator_kind   op,
                               a_source_position       *start_position,
                               a_token_sequence_number operator_tok_seq_number);
 
-extern void do_question_operation(an_operand *operand_1,
-                                  an_operand *operand_2,
-                                  an_operand *operand_3,
-                                  a_type_ptr result_type,
-                                  a_boolean  result_is_an_lvalue,
-                                  a_boolean  suppress_class_rvalue_temp,
-                                  a_boolean  template_case,
-                                  a_boolean  is_gnu_two_operand_form,
-                                  an_operand *result);
+extern
+void do_question_operation(an_operand        *operand_1,
+                           an_operand        *operand_2,
+                           an_operand        *operand_3,
+                           a_type_ptr        result_type,
+                           a_boolean         result_is_an_lvalue,
+                           a_boolean         suppress_class_rvalue_temp,
+                           a_boolean         template_case,
+                           a_boolean         is_gnu_two_operand_form,
+                           a_source_position *question_position,
+                           a_source_position *colon_position,
+                           an_operand        *result);
 
-extern void template_question_operation(
-                               an_operand              *operand_1,
-                               an_operand              *operand_2,
-                               an_operand              *operand_3,
-                               a_boolean               is_gnu_two_operand_form,
-                               a_source_position       *question_position,
-                               a_token_sequence_number question_tok_seq_number,
-                               an_operand              *result);
+extern
+void template_question_operation(an_operand        *operand_1,
+                                 an_operand        *operand_2,
+                                 an_operand        *operand_3,
+                                 a_boolean         is_gnu_two_operand_form,
+                                 a_source_position *question_position,
+                                 a_source_position *colon_position,
+                                 an_operand        *result);
 
 extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 

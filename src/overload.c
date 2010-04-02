@@ -11038,7 +11038,8 @@ static void make_generic_operation_operand(
                                an_operand              *operand_2,
                                an_operand              *result,
                                a_source_position       *operator_position,
-                               a_token_sequence_number operator_tok_seq_number)
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2)
 /*
 Make an operand for a "generic" operation, i.e., one on template-dependent
 operands in a prototype instantiation.  kind indicates the operation,
@@ -11047,6 +11048,8 @@ operand_1 and operand_2 are the operands (operand_2 is needed only
 for non-unary operations).  The result operand is returned in *result.
 *operator_position gives the source position of the operator.
 operator_tok_seq_number gives the token sequence number of the operator.
+If non-NULL, operator_position_2 gives the source position of a secondary
+operator (e.g., the "]" of a subscript operation).
 */
 {
   an_expr_operator_kind generic_op =
@@ -11067,7 +11070,8 @@ operator_tok_seq_number gives the token sequence number of the operator.
     /* Two-operand operation. */
     template_binary_operation(generic_op, operand_1, operand_2,
                               result, operator_position,
-                              operator_tok_seq_number);
+                              operator_tok_seq_number,
+                              operator_position_2);
   }  /* if */
 }  /* make_generic_operation_operand */
 
@@ -11105,6 +11109,7 @@ void check_for_operator_overloading(
                              a_source_position         *operator_position,
                              a_token_sequence_number   operator_tok_seq_number,
                              a_nondependent_call_depth call_depth,
+                             a_source_position         *operator_position_2,
                              an_operand                *result,
                              a_boolean                 *processed)
 /*
@@ -11131,10 +11136,13 @@ operator "?", with unary_operator FALSE; the two operands are the second
 and third operands of the "?" ("?" cannot be overloaded, but conversion
 functions could still apply).  operator_position gives the operator source
 position.  operator_tok_seq_number gives the token sequence number of
-the operator.  call_depth is usually zero, but if non-zero is a disambiguator
-for operator_tok_seq_number.  This routine also checks for template-dependent
-operands in a prototype instantiation, and builds a generic expression for
-such cases (where operator overloading might apply, but we can't tell).
+the operator.  If operator_position_2 is non-NULL, it gives a secondary
+operator position (e.g., the "]" in a subscript operation).
+call_depth is usually zero, but if non-zero is a disambiguator for
+operator_tok_seq_number.  This routine also checks for
+template-dependent operands in a prototype instantiation, and builds a
+generic expression for such cases (where operator overloading might
+apply, but we can't tell).
 */
 {
   an_arg_operand_ptr       arg_operand_list, arg_operand_list2, arg_operand;
@@ -11178,7 +11186,8 @@ such cases (where operator overloading might apply, but we can't tell).
        generic operator. */
     make_generic_operation_operand(kind, unary_operator, operand_1, operand_2,
                                    result, operator_position,
-                                   operator_tok_seq_number);
+                                   operator_tok_seq_number,
+                                   operator_position_2);
     *processed = TRUE;
   } else if (!curr_expr_kind_is_const()) {
     /* Check for operator overloading (but not in constant expressions). */
@@ -11248,9 +11257,11 @@ such cases (where operator overloading might apply, but we can't tell).
              dependent call in the prototype instantiation.  If it was a
              nondependent call, it was recorded, along with (usually) the
              symbol chosen by overload resolution. */
-          a_nondependent_call_info_ptr ndcall_info;
-          ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
-                                                   call_depth);
+          a_nondependent_call_info_ptr ndcall_info = NULL;
+          if (operator_tok_seq_number != 0) {
+            ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
+                                                     call_depth);
+          }  /* if */
           dependent_call = (ndcall_info == NULL);
           proj_function_symbol = function_symbol = NULL;
           if (!dependent_call) proj_function_symbol = ndcall_info->symbol;
@@ -11457,7 +11468,8 @@ select_best_function:
           make_generic_operation_operand(kind, unary_operator,
                                          operand_1, operand_2,
                                          result, operator_position,
-                                         operator_tok_seq_number);
+                                         operator_tok_seq_number,
+                                         operator_position_2);
           check_assertion(!dependent_call);
           if (is_prototype_instantiation_context()) {
             /* Make sure this call is treated as a nondependent call in

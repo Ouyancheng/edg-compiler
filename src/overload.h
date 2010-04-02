@@ -668,6 +668,7 @@ extern void check_for_operator_overloading(
                              a_source_position         *operator_position,
                              a_token_sequence_number   operator_tok_seq_number,
                              a_nondependent_call_depth call_depth,
+                             a_source_position         *operator_position_2,
                              an_operand                *result,
                              a_boolean                 *processed);
 

@@ -617,7 +617,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
 {
   an_operand         local_operand_1, operand_2;
   a_type_ptr         result_type;
-  a_source_position  operator_position;
+  a_source_position  operator_position, closing_bracket_position;
   a_token_sequence_number
                      operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -635,7 +635,8 @@ This routine is also used when scanning __builtin_offsetof constructs.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         &closing_bracket_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -665,6 +666,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
     add_matching_stop_token(tok_rbracket);
     /* Scan the second operand. */
     scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
+    closing_bracket_position = pos_curr_token;
   }  /* if */
 
   if (err) {
@@ -711,6 +713,7 @@ This routine is also used when scanning __builtin_offsetof constructs.
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     &closing_bracket_position,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -759,7 +762,8 @@ This routine is also used when scanning __builtin_offsetof constructs.
       do_binary_operation_full((an_expr_operator_kind)eok_subscript,
                                operand_1, &operand_2, result_type,
                                /*result_is_lvalue=*/TRUE, result,
-                               &operator_position);
+                               &operator_position, operator_tok_seq_number,
+                               &closing_bracket_position);
       if (!is_error_operand(result)) {
         if (pointer_operand_is_second) {
           set_pointer_operand_is_second_flag(result);
@@ -849,7 +853,7 @@ routine points to the routine being called; it's NULL if the specific
 function being called is not known, e.g., when return_raw_arguments is
 TRUE or when calling through a pointer.  If closing_paren_position is
 non-NULL, *closing_paren_position is set to the source position of the
-closing parenthesis of the call.
+closing parenthesis of the call (but it's not set on a rescan).
 
 On entry, *p_arg_operand_list can be non-NULL to point to a pre-scanned
 argument list, which is then checked and processed as if it were scanned
@@ -860,7 +864,8 @@ If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 argument list, given by rcblock->argument_list.  The arguments are
 returned in either *p_argument_list or *p_arg_operand_list, as specified
 by return_raw_arguments.  already_after_left_paren and the input value
-of *p_arg_operand are ignored.
+of *p_arg_operand are ignored.  *closing_paren_position is not set or
+altered.
 */
 {
   an_arg_operand_ptr arg_operand_list, end_arg_operand_list;
@@ -900,6 +905,10 @@ of *p_arg_operand are ignored.
       end_arg_operand_list = arg_op;
       arg_expr = arg_expr->next;
     }  /* while */
+    /* closing_paren_position is deliberately not set.  At this level in the
+       rescan we only know about the arguments, and not about the surrounding
+       parentheses.  It's not set to NULL because the caller is likely to
+       have set it correctly already. */
   } else if (arg_list_was_prescanned) {
     /* *p_arg_operand points to a prescanned argument list. */
     arg_operand_list = *p_arg_operand_list;
@@ -945,8 +954,9 @@ of *p_arg_operand are ignored.
 
 
 static void scan_dependent_parenthesized_initializer(
-                                          an_arg_operand_ptr *prescanned_args,
-                                          a_dynamic_init_ptr *dip)
+                                       a_rescan_control_block *rcblock,
+                                       an_arg_operand_ptr     *prescanned_args,
+                                       a_dynamic_init_ptr     *dip)
 /*
 Scan and process a parenthesized list of expressions that is the initializer
 of an entity of a template-dependent type.  If the expression operands were
@@ -957,6 +967,9 @@ On entry, the current token is the one following the opening parenthesis
 (unless the argument was prescanned, in which case the current token is the
 one following the prescanned argument).  On return, the current token is the
 one following the closing parenthesis.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+initializer list (given by rcblock->argument_list) and return the result
+as usual (or an error indication in *rcblock).
 */
 {
   an_expr_node_ptr  arg_list;
@@ -969,10 +982,10 @@ one following the closing parenthesis.
                       /*already_after_left_paren=*/TRUE,
                       &arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
-                      (a_rescan_control_block *)NULL,
+                      rcblock,
                       prescanned_args, (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = curr_construct_end_position;
+  if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Set the dynamic init entry to represent "constructor" initialization,
      leaving the constructor pointer NULL. */
@@ -981,7 +994,7 @@ one following the closing parenthesis.
                                       /*add_default_args=*/FALSE,
                                       /*implied_source=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_position;
+  if (rcblock == NULL) curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* scan_dependent_parenthesized_initializer */
 
@@ -1059,16 +1072,18 @@ initialized is assumed not to be a variable.
 }  /* scan_parenthesized_initializer_expression */
 
 
-static void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
-                                a_source_position  *source_pos,
-                                a_type_ptr         object_class_type,
-                                a_type_ptr         dest_type,
-                                an_arg_operand_ptr *prescanned_args,
-                                a_boolean          fill_in_dtor,
-                                a_boolean          elision_allowed,
-                                a_boolean          *trivial_ctor,
-                                a_dynamic_init_ptr *p_dip,
-                                an_expr_node_ptr   *p_temp_init_node)
+static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
+                                a_source_position      *source_pos,
+                                a_type_ptr             object_class_type,
+                                a_type_ptr             dest_type,
+                                an_arg_operand_ptr     *prescanned_args,
+                                a_boolean              fill_in_dtor,
+                                a_boolean              elision_allowed,
+                                a_rescan_control_block *rcblock,
+                                a_boolean              *trivial_ctor,
+                                a_dynamic_init_ptr     *p_dip,
+                                an_expr_node_ptr       *p_temp_init_node,
+                                a_source_position      *closing_paren_position)
 /*
 Scan and process the argument list for a C++ constructor call.  If
 prescanned_args is NULL, no arguments were prescanned and the current token
@@ -1099,7 +1114,9 @@ to be called (either because the class doesn't have one or because
 fill_in_dtor is FALSE), return *trivial_ctor set to TRUE, don't
 construct a dynamic initialization entry, and return *p_dip set
 to NULL.  Otherwise, return *trivial_ctor set to FALSE if
-trivial_ctor is non-NULL.
+trivial_ctor is non-NULL.  If closing_paren_position is non-NULL,
+*closing_paren_position is set to the source position of the
+closing parenthesis (but it's not set on a rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -1110,6 +1127,10 @@ enclosed initializers for classes that have constructors, as in
 The caller need not add the right parenthesis to the stop tokens set, or
 remove it later, as this routine takes care of that.  On return, the
 source position is after the closing parenthesis of the argument list.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+expression, and return the result as usual (or an error indication in
+*rcblock).
 */
 {
   a_boolean           overloaded_function_case = FALSE;
@@ -1123,7 +1144,6 @@ source position is after the closing parenthesis of the argument list.
   a_type_ptr          routine_type, class_type;
   a_class_symbol_supplement_ptr
                       cssp;
-  a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
   an_arg_match_summary_ptr
                       arg_match_list = NULL;
@@ -1137,7 +1157,6 @@ source position is after the closing parenthesis of the argument list.
   cssp = symbol_supplement_for_class(class_type);
   /* If the object_class_type is not specified, use the default. */
   if (object_class_type == NULL) object_class_type = class_type;
-  start_position = pos_curr_token;
   if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
        can be checked as the argument list is scanned. */
@@ -1165,8 +1184,11 @@ source position is after the closing parenthesis of the argument list.
     routine_type = NULL;
     routine = NULL;
   }  /* if */
-  if (value_initialization_enabled && curr_token == tok_rparen &&
-      (prescanned_args == NULL || *prescanned_args == NULL)) {
+  if (value_initialization_enabled &&
+      (rcblock != NULL ?
+        (rcblock->argument_list == NULL) :
+        (curr_token == tok_rparen &&
+         (prescanned_args == NULL || *prescanned_args == NULL)))) {
     /* Empty parentheses ("()") indicate value-initialization.  (If an
        argument was prescanned, the parentheses weren't empty even if the
        current token is ")".) */
@@ -1184,9 +1206,9 @@ source position is after the closing parenthesis of the argument list.
                       /*already_after_left_paren=*/TRUE,
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
-                      (a_rescan_control_block *)NULL,
-                      &arg_operand_list, (a_source_position *)NULL);
-  error_position = start_position;
+                      rcblock,
+                      &arg_operand_list, closing_paren_position);
+  error_position = *source_pos;
 
   if (overloaded_function_case) {
     /* The constructors are overloaded.  Select the proper one. */
@@ -2430,9 +2452,6 @@ are expected to be NULL in that case.
   a_boolean         vacuous_destructor_case = FALSE;
   a_source_position call_position, first_arg_position;
   a_source_position start_position, operator_position, closing_paren_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        local_bound_function_selector, local_operand;
   an_arg_match_summary
                     this_match_summary;
@@ -2468,6 +2487,7 @@ are expected to be NULL in that case.
   an_expr_node_ptr  operand_node;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         gnu_sync_function_case = FALSE;
+  a_boolean         result_operand_is_call;
 
   db_enter(4, "scan_function_call");
 
@@ -2479,18 +2499,12 @@ are expected to be NULL in that case.
     bound_function_selector = &local_bound_function_selector;
     make_call_rescan_operands(rcblock, operand, bound_function_selector,
                               &operator_position,
-                              &opening_paren_tok_seq_number);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    closing_paren_position = rcblock->expr->expr_range.end;
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-    closing_paren_position = operator_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                              &opening_paren_tok_seq_number,
+                              &closing_paren_position);
   } else {
     /* Normal, non-rescan, processing. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the position of the "(". */
     operator_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     opening_paren_tok_seq_number = curr_token_sequence_number;
   }  /* if */
   call_position = operand->position;
@@ -2632,13 +2646,15 @@ are expected to be NULL in that case.
                                                  access_control_error_reported,
                                     bound_function_selector)) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        end_position = operand->end_position;
+        a_source_position saved_end_position;
+        saved_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Make an operand for the function bound to the "this" pointer. */
         make_function_designator_operand(member_func_sym,
                                          (a_boolean)operand->is_qualified_name,
                                          &call_position,
-                                         end_position_or_null(&end_position),
+                                         end_position_or_null(
+                                                          &saved_end_position),
                                          operand->ref_entries_list, operand);
 #if RECORD_FORM_OF_NAME_REFERENCE
         if (rcblock == NULL &&  /* FIXME? */
@@ -2829,9 +2845,6 @@ are expected to be NULL in that case.
                       rcblock,
                       &arg_operand_list, &closing_paren_position);
   error_position = call_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         
 #if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (gnu_sync_function_case) {
@@ -2985,6 +2998,7 @@ are expected to be NULL in that case.
       }  /* if */
     }  /* if */
   }  /* if */
+  result_operand_is_call = FALSE;
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
@@ -3011,9 +3025,7 @@ are expected to be NULL in that case.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
     }  /* if */
     make_expression_operand(call_node, result);
-    record_operator_position_in_rescan_info(result,
-                                            &operator_position,
-                                            opening_paren_tok_seq_number);
+    result_operand_is_call = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -3045,6 +3057,7 @@ are expected to be NULL in that case.
                            arg_dep_lookup_suppressed,
                            found_through_adl, uses_operator_syntax,
                            &call_position, result, &function_call_node);
+    result_operand_is_call = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded && !is_error_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
@@ -3059,16 +3072,23 @@ are expected to be NULL in that case.
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  set_operand_position(result, &start_position, &end_position,
+  set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
+  if (result_operand_is_call) {
+    record_operator_position_in_rescan_info_if_expr(
+                                                  result,
+                                                  &operator_position,
+                                                  opening_paren_tok_seq_number,
+                                                  &closing_paren_position);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand_node = expr_node_from_operand(operand);
   if (function_call_node != NULL && function_call_node != operand_node) {
     /* Some additional operations (e.g., enk_temp_init, eok_ref_indirect)
        were added on top of the call node.  Make sure the call node has
        the correct positions as well. */
-    set_expr_position(function_call_node, &start_position, &end_position,
-                      &operator_position);
+    set_expr_position(function_call_node, &start_position,
+                      &closing_paren_position, &operator_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED
@@ -3362,6 +3382,7 @@ operand, as a way to catch loops.
                                      operand, (an_operand *)NULL,
                                      operator_position,
                                      tsn, depth,
+                                     (a_source_position *)NULL,
                                      &result, &processed);
     }  /* if */
     if (processed) {
@@ -4412,7 +4433,6 @@ nonstatic_member_function:
     set_operand_position(result, &operand_1->position, &end_position,
                          &operator_position);
   }  /* if */
-
   if (allow_constant_selection) {
     /* If we are allowing field selection in a constant expression
        as an extension, check now that the result is constant and has
@@ -4447,7 +4467,10 @@ nonstatic_member_function:
     /* A field selection rules out an integral constant expression. */
     rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   }  /* if */
-
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   db_exit();
 }  /* scan_field_selection_operator */
 
@@ -4490,7 +4513,8 @@ in *result and *bound_function_selector (or an error indication in
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -4539,7 +4563,8 @@ in *result and *bound_function_selector (or an error indication in
     template_binary_operation((an_expr_operator_kind)eok_pm_field,
                               operand_1, &operand_2,
                               result, &operator_position,
-                              operator_tok_seq_number);
+                              operator_tok_seq_number,
+                              (a_source_position *)NULL);
     processed = TRUE;
   } else {
     if (is_arrow_operator &&
@@ -4555,6 +4580,7 @@ in *result and *bound_function_selector (or an error indication in
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -4714,6 +4740,10 @@ in *result and *bound_function_selector (or an error indication in
     set_operand_position(result, &operand_1->position,
                          &operand_2.end_position, &operator_position);
   }  /* if */
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_ptr_to_member_operator */
@@ -4821,6 +4851,7 @@ to get the temporary initialized; otherwise, it is set to NULL.
                                    operator_position,
                                    (a_token_sequence_number)0,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, processed);
   }  /* if */
 }  /* prepare_property_ref_incr_decr */
@@ -4891,7 +4922,7 @@ temporary.  The overall result is placed in *result.
   change_binary_operand_types(result_type, operand, &one_operand, op);
   /* Generate the IL for the operation. */
   do_binary_operation(op, operand, &one_operand, result_type, result,
-                      operator_position);
+                      operator_position, NO_TOKEN_SEQUENCE_NUMBER);
   /* Add a call of the appropriate "put" routine. */
   rewrite_property_field_reference(operand_clone, result);
   copy_operand(operand_clone, result);
@@ -4943,7 +4974,8 @@ case.
     operand = &local_operand;
     make_rescan_operands(rcblock, operand,
                          (an_operand *)NULL, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4999,6 +5031,7 @@ case.
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
       if (!processed && allow_one_arg) {
         /* Try the anachronism that allows a one-argument function to
@@ -5012,6 +5045,7 @@ case.
                                        &operator_position,
                                        operator_tok_seq_number,
                                        (a_nondependent_call_depth)0,
+                                       (a_source_position *)NULL,
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
@@ -5041,6 +5075,7 @@ case.
                                          &operator_position,
                                          operator_tok_seq_number,
                                          (a_nondependent_call_depth)0,
+                                         (a_source_position *)NULL,
                                          result, &processed);
         }  /* if */
       }  /* if */
@@ -5164,6 +5199,10 @@ case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand->position, &end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
@@ -5230,7 +5269,8 @@ and return the result in *result (or an error indication in *rcblock).
     operator_token = rcblock->operator_token;
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -5283,6 +5323,7 @@ and return the result in *result (or an error indication in *rcblock).
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -5406,6 +5447,10 @@ and return the result in *result (or an error indication in *rcblock).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
@@ -5440,7 +5485,8 @@ error indication in *rcblock).
     check_assertion(rcblock->operator_token == tok_ampersand);
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -5526,6 +5572,7 @@ error indication in *rcblock).
                                        &start_position,
                                        operator_tok_seq_number,
                                        (a_nondependent_call_depth)0,
+                                       (a_source_position *)NULL,
                                        result, &processed);
       }  /* if */
       if (!processed) {
@@ -5636,6 +5683,10 @@ error indication in *rcblock).
 
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_ampersand_operator */
@@ -5703,6 +5754,10 @@ current token on entry.
 
   set_operand_position(result, &start_position, &end_pos_curr_token, 
 		       &start_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &start_position,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_address_of_label_expression */
@@ -5827,7 +5882,8 @@ error indication in *rcblock).
     check_assertion(rcblock->operator_token == tok_star);
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -5870,6 +5926,7 @@ error indication in *rcblock).
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -5919,6 +5976,10 @@ error indication in *rcblock).
 
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 
   db_exit();
@@ -5989,7 +6050,8 @@ analysis on a previously-scanned expression, and return the result in
     operator_token = rcblock->operator_token;
     make_rescan_operands(rcblock, &operand,
                          (an_operand *)NULL, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -6012,6 +6074,7 @@ analysis on a previously-scanned expression, and return the result in
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -6119,7 +6182,7 @@ analysis on a previously-scanned expression, and return the result in
     }  /* if */
     /* Build the IL for the operation. */
     do_unary_operation(op, &operand, result_type, result,
-                       &operator_position);
+                       &operator_position, operator_tok_seq_number);
   }  /* if */
 
   set_operand_position(result, &operator_position, &operand.end_position,
@@ -6223,12 +6286,12 @@ previously-scanned sizeof expression, and return the result in *result
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &sizeof_type,
                                       &operator_position,
-                                      &operator_tok_seq_number);
+                                      &operator_tok_seq_number,
+                                      &type_position);
     operand_was_created = !is_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    type_position = operator_position;  /* Don't have real type position. */
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -6295,7 +6358,7 @@ previously-scanned sizeof expression, and return the result in *result
     }  /* if */
 
     if (is_type) {
-      copy_source_position(pos_curr_token, type_position);
+      type_position = pos_curr_token;
       if (is_parenthesized) {
         /* Scan the type-name for a parenthesized type. */
         add_matching_stop_token(tok_rparen);
@@ -6373,7 +6436,7 @@ previously-scanned sizeof expression, and return the result in *result
     }  /* if */
     force_complete_type_if_a_variable(&operand);
     sizeof_type = operand.type;
-    copy_source_position(operand.position, type_position);
+    type_position = operand.position;
   }  /* if */
   orig_sizeof_type = sizeof_type;
 #if UPC_EXTENSIONS_ALLOWED
@@ -6582,7 +6645,7 @@ previously-scanned sizeof expression, and return the result in *result
     copy_operand(result, &mo1);
     do_binary_operation((an_expr_operator_kind)eok_multiply,
                         &mo1, &mo2, integer_type(targ_size_t_int_kind),
-                        result, &operator_position);
+                        result, &operator_position, NO_TOKEN_SEQUENCE_NUMBER);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -6592,6 +6655,9 @@ previously-scanned sizeof expression, and return the result in *result
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  &type_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -6650,12 +6716,12 @@ result in *result (or an error indication in *rcblock).
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &alignof_type,
                                       &operator_position,
-                                      &operator_tok_seq_number);
+                                      &operator_tok_seq_number,
+                                      &type_position);
     operand_was_created = !is_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    type_position = operator_position;  /* Don't have real type position. */
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -6703,7 +6769,7 @@ result in *result (or an error indication in *rcblock).
     }  /* if */
 
     if (is_type) {
-      copy_source_position(pos_curr_token, type_position);
+      type_position = pos_curr_token;
       if (is_parenthesized) {
         /* Scan the type-name for a parenthesized type. */
         add_matching_stop_token(tok_rparen);
@@ -6802,6 +6868,7 @@ result in *result (or an error indication in *rcblock).
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
+    type_position = operand.position;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     if ((gnu_mode && gnu_version >= 30100) || microsoft_mode) {
       /* If the expression is an lvalue for a variable with an explicit
@@ -6892,6 +6959,9 @@ result in *result (or an error indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  &type_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -7377,23 +7447,6 @@ if necessary).
   }  /* if */
   return result;
 }  /* type_of_call */
-
-
-static an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
-                                           a_boolean        parens_also)
-/*
-Strip an eok_ref_indirect node, if any, from the top of the given expression.
-If parens_also is TRUE, skip parentheses also.
-*/
-{
-  if (parens_also) expr = skip_parens(expr);
-  if (is_operation_node(expr) &&
-      node_operator_is(expr, eok_ref_indirect)) {
-    expr = expr->variant.operation.operands;
-    if (parens_also) expr = skip_parens(expr);
-  }  /* if */
-  return expr;
-}  /* strip_ref_indirect */
 
 
 static a_type_ptr decltype_from_operand(an_operand  *operand,
@@ -8553,12 +8606,12 @@ indication in *rcblock).
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &typeid_type,
                                       &operator_position,
-                                      &operator_tok_seq_number);
+                                      &operator_tok_seq_number,
+                                      &operand_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* In the type case, we don't have the actual type position. */
-    operand_position = is_type ? operator_position : operand.position;
+    if (!is_type) operand_position = operand.position;
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -8770,6 +8823,9 @@ indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  &operand_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_typeid_operator */
@@ -9329,14 +9385,14 @@ indication in *rcblock).  after_keyword is ignored in that case.
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &uuidof_type,
                                       &operator_position,
-                                      &operator_tok_seq_number);
+                                      &operator_tok_seq_number,
+                                      &operand_position);
     /* Note that for the __uuidof(0) case uuidof_type is NULL here. */
     operand_was_created = !is_type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* In the type case, we don't have the actual type position. */
-    operand_position = is_type ? operator_position : operand.position;
+    if (!is_type) operand_position = operand.position;
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -9475,6 +9531,9 @@ indication in *rcblock).  after_keyword is ignored in that case.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  &operand_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
@@ -9515,32 +9574,61 @@ Return TRUE for okay, FALSE for an error.
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* <-- end_position is not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_new_style_cast(a_cast_source_form source_form,
-                                     a_type_ptr         *cast_type,
-                                     a_source_position  *type_position,
-                                     a_source_position  *end_position,
-                                     an_operand         *operand)
+static a_boolean scan_new_style_cast(a_cast_source_form     source_form,
+                                     a_rescan_control_block *rcblock,
+                                     a_source_position      *start_position,
+                                     a_type_ptr             *cast_type,
+                                     a_source_position      *type_position,
+                                     a_source_position      *end_position,
+                                     an_operand             *operand)
 /*
-Scan the sequence "< type-id > ( expression )" as part of a new-style cast.
-source_form indicates the kind of cast (static_cast, const_cast, etc).
-Return the type in *cast_type (and its position in *type_position) and
-the expression in *operand.  The position of the final ")" is returned
-in *end_position.  Various error cases are checked for (e.g.,
-the type defines something); FALSE is returned if there is an error.
+As part of scanning a new-style cast, advance past the current token
+(which is the keyword token for the cast, e.g., static_cast), then
+scan the sequence "< type-id > ( expression )".  source_form indicates
+the kind of cast (static_cast, const_cast, etc).  Return the type in
+*cast_type (and its position in *type_position) and the expression in
+*operand.  The position of the initial keyword token is returned in
+*start_position and the position of the final ")" is returned in
+*end_position.  Various error cases are checked for (e.g., the type
+defines something); FALSE is returned if there is an error.  If
+rcblock is non-NULL, redo semantic analysis on a previously-scanned
+new-style cast, and return the result in *operand (or an error
+indication in *rcblock).
 */
 {
   a_boolean err = FALSE, explicit_cv_qualifiers, allow_array = FALSE;
 
-  /* Check for and pass over the "<".  Record that an opening angle bracket
-     has been seen (to correctly handle ">>" in some cases). */
-  (void)required_token(tok_lt, ec_exp_lt);
-  ++scope_stack[depth_scope_stack].pending_templ_arg_lists;
-  add_stop_token(tok_gt);
-  /* Scan the type.  Note that type_name does not allow definition of types
-     in the type-id. */
-  *type_position = pos_curr_token;
-  *cast_type = scan_type_for_cast(curr_expr_kind_is_const(),
-                                  &explicit_cv_qualifiers, (a_boolean*)NULL);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    make_cast_rescan_operands(rcblock, start_position,
+                              cast_type, type_position, operand,
+                              (an_operand *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    *end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    explicit_cv_qualifiers = FALSE;
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Skip over the keyword token, e.g., static_cast */
+    *start_position = pos_curr_token;
+    (void)get_token();
+    /* Check for and pass over the "<".  Record that an opening angle bracket
+       has been seen (to correctly handle ">>" in some cases). */
+    (void)required_token(tok_lt, ec_exp_lt);
+    ++scope_stack[depth_scope_stack].pending_templ_arg_lists;
+    add_stop_token(tok_gt);
+    /* Scan the type.  Note that type_name does not allow definition of types
+       in the type-id. */
+    *type_position = pos_curr_token;
+    *cast_type = scan_type_for_cast(curr_expr_kind_is_const(),
+                                    &explicit_cv_qualifiers, (a_boolean*)NULL);
+  }  /* if */
+  /* New-style casts are outside the "Embedded C++" subset. */
+  feature_is_not_part_of_embedded_cplusplus_subset(
+                                          start_position,
+                                          (source_form == csf_dynamic_cast) ?
+                                            ec_rtti_in_embedded_cplusplus : 
+                                            ec_new_cast_in_embedded_cplusplus);
   /* In Microsoft mode, static_cast allows a cast to an array type if it
      does nothing. */
   if (microsoft_bugs && !C_mode() && source_form == csf_static_cast) {
@@ -9549,25 +9637,29 @@ the type defines something); FALSE is returned if there is an error.
   /* Do initial checking on the type. */
   err = cast_type_pre_check(cast_type, type_position,
                             explicit_cv_qualifiers, allow_array);
-  /* Check for and pass over the ">". */
-  (void)required_token(tok_gt, ec_exp_gt);
-  --scope_stack[depth_scope_stack].pending_templ_arg_lists;
-  remove_stop_token(tok_gt);
-  /* Check for and pass over the "(". */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
-  /* Scan the expression. */
-  scan_expr(operand, PREC_LOWEST, EOPT_OPERAND_OF_CAST);
+  if (rcblock == NULL) {
+    /* Check for and pass over the ">". */
+    (void)required_token(tok_gt, ec_exp_gt);
+    --scope_stack[depth_scope_stack].pending_templ_arg_lists;
+    remove_stop_token(tok_gt);
+    /* Check for and pass over the "(". */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    /* Scan the expression. */
+    scan_expr(operand, PREC_LOWEST, EOPT_OPERAND_OF_CAST);
+  }  /* if */
   if (allow_array && is_array_type(*cast_type)) {
     /* Catch cast-to-error cases allowed by above. */
     if (!check_array_cast(*cast_type, operand, type_position)) err = TRUE;
   }  /* if */
-  /* Check for and pass over the ")". */
+  if (rcblock == NULL) {
+    /* Check for and pass over the ")". */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  *end_position = end_pos_curr_token;
+    *end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
   return !err;
 }  /* scan_new_style_cast */
 
@@ -9629,13 +9721,17 @@ the result expression, if any.
 
 #endif /* CHECKING */
 
-static void scan_dynamic_cast_operator(an_operand *result)
+static void scan_dynamic_cast_operator(a_rescan_control_block *rcblock,
+                                       an_operand             *result)
 /*
 Scan the C++ dynamic_cast operator.  See [expr.dynamic.cast].
 
 Syntax:
 	dynamic_cast < type-id > ( expression )
 
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+dynamic_cast expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_source_position start_position, type_position, end_position;
@@ -9652,29 +9748,21 @@ Syntax:
   an_expr_node_ptr  expr;
 
   db_enter(4, "scan_dynamic_cast_operator");
-  /* Save the position of the dynamic_cast keyword. */
-  start_position = pos_curr_token;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* dynamic_cast not possible for preprocessing expressions. */
     internal_error("scan_dynamic_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* New-style casts are outside the "Embedded C++" subset. */
-  feature_is_not_part_of_embedded_cplusplus_subset(
-                                              &pos_curr_token,
-                                              ec_rtti_in_embedded_cplusplus);
+  /* Scan "< type-id > ( expression )". */
+  if (!scan_new_style_cast(csf_dynamic_cast, rcblock, &start_position,
+                           &cast_type, &type_position, &end_position,
+                           &operand)) {
+    err = TRUE;
+  }  /* if */
   if (curr_expr_kind_is_const()) {
     /* dynamic_cast is not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
-    err = TRUE;
-  }  /* if */
-  /* Advance past dynamic_cast. */
-  (void)get_token();
-  /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(csf_dynamic_cast,
-                           &cast_type, &type_position, &end_position,
-                           &operand)) {
     err = TRUE;
   }  /* if */
   if (!err) {
@@ -10930,8 +11018,10 @@ specification allow a variable-sized array as the top type.
                              turned into a bitwise move if it's doing the
                              allocation. */
                           /*elision_allowed=*/(new_routine != NULL),
+                          (a_rescan_control_block *)NULL,
                           &trivial_ctor,
-                          &dip, (an_expr_node_ptr *)NULL);
+                          &dip, (an_expr_node_ptr *)NULL,
+                          (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -10947,7 +11037,9 @@ specification allow a variable-sized array as the top type.
     } else if (template_case) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(
-                                      &dps.prescanned_auto_initializer, &dip);
+                                              (a_rescan_control_block *)NULL,
+                                              &dps.prescanned_auto_initializer,
+                                              &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12948,13 +13040,17 @@ indicates which.
 }  /* do_cast */
 
 
-static void scan_const_cast_operator(an_operand *result)
+static void scan_const_cast_operator(a_rescan_control_block *rcblock,
+                                     an_operand             *result)
 /*
 Scan the C++ const_cast operator.  See [expr.const.cast].
 
 Syntax:
 	const_cast < type-id > ( expression )
 
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+const_cast expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_source_position start_position, type_position, end_position;
@@ -12971,22 +13067,15 @@ Syntax:
   an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_const_cast_operator");
-  /* Save the position of the const_cast keyword. */
-  start_position = pos_curr_token;
+
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* const_cast not possible for preprocessing expressions. */
     internal_error("scan_const_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* New-style casts are outside the "Embedded C++" subset. */
-  feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
-                                          ec_new_cast_in_embedded_cplusplus);
-  /* Advance past const_cast. */
-  (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(csf_const_cast,
+  if (!scan_new_style_cast(csf_const_cast, rcblock, &start_position,
                            &cast_type, &type_position, &end_position,
                            &operand)) {
     err = TRUE;
@@ -13147,12 +13236,17 @@ Syntax:
       }  /* if */
     }  /* if */
     copy_operand(&operand, result);
-    { an_expr_node_ptr result_expression =
-                               cast_expr_was_added(operand_expression, result);
-      if (result_expression != NULL && is_operation_node(result_expression)) {
-        /* A node was created that can carry the information that this was a
-           const_cast; mark it accordingly. */
-        result_expression->variant.operation.is_const_cast = TRUE;
+    { an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+      if (expr != NULL) {
+        if (is_operation_node(expr)) {
+          /* A node was created that can carry the information that this was a
+             const_cast; mark it accordingly. */
+          expr->variant.operation.is_const_cast = TRUE;
+        }  /* if */
+        record_cast_position_in_expr_rescan_info(expr,
+                                                 &start_position,
+                                                 &type_position,
+                                                 cast_type);
       }  /* if */
     }
   }  /* if */
@@ -13168,13 +13262,17 @@ Syntax:
 }  /* scan_const_cast_operator */
 
 
-static void scan_static_cast_operator(an_operand *result)
+static void scan_static_cast_operator(a_rescan_control_block *rcblock,
+                                      an_operand             *result)
 /*
 Scan the C++ static_cast operator.  See [expr.static.cast].
 
 Syntax:
 	static_cast < type-id > ( expression )
 
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+static_cast expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_source_position start_position, type_position, end_position;
@@ -13190,22 +13288,14 @@ Syntax:
   an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_static_cast_operator");
-  /* Save the position of the static_cast keyword. */
-  start_position = pos_curr_token;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* static_cast not possible for preprocessing expressions. */
     internal_error("scan_static_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* New-style casts are outside the "Embedded C++" subset. */
-  feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
-                                          ec_new_cast_in_embedded_cplusplus);
-  /* Advance past static_cast. */
-  (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(csf_static_cast,
+  if (!scan_new_style_cast(csf_static_cast, rcblock, &start_position,
                            &type_cast_to, &type_position, &end_position,
                            result)) {
     err = TRUE;
@@ -13421,12 +13511,15 @@ Syntax:
   if (err) {
     conv_to_error_operand(result);
   } else if (!ignored) {
-    an_expr_node_ptr result_expression =
-                               cast_expr_was_added(operand_expression, result);
-    if (result_expression != NULL) {
+    an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+    if (expr != NULL) {
       /* An expression node was created that represents this static_cast:
          mark it as resulting from a static_cast operation. */
-      result_expression->is_static_cast = TRUE;
+      expr->is_static_cast = TRUE;
+      record_cast_position_in_expr_rescan_info(expr,
+                                               &start_position,
+                                               &type_position,
+                                               type_cast_to);
     }  /* if */
 #if CHECKING
     if (cast_to_reference && !processed_as_udc) {
@@ -13441,13 +13534,17 @@ Syntax:
 }  /* scan_static_cast_operator */
 
 
-static void scan_reinterpret_cast_operator(an_operand *result)
+static void scan_reinterpret_cast_operator(a_rescan_control_block *rcblock,
+                                           an_operand             *result)
 /*
 Scan the C++ reinterpret_cast operator.  See [expr.reinterpret.cast].
 
 Syntax:
 	reinterpret_cast < type-id > ( expression )
 
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+reinterpret_cast expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_source_position start_position, type_position, end_position;
@@ -13463,22 +13560,14 @@ Syntax:
   an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_reinterpret_cast_operator");
-  /* Save the position of the reinterpret_cast keyword. */
-  start_position = pos_curr_token;
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* reinterpret_cast not possible for preprocessing expressions. */
     internal_error("scan_reinterpret_cast_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* New-style casts are outside the "Embedded C++" subset. */
-  feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
-                                          ec_new_cast_in_embedded_cplusplus);
-  /* Advance past reinterpret_cast. */
-  (void)get_token();
   /* Scan "< type-id > ( expression )". */
-  if (!scan_new_style_cast(csf_reinterpret_cast,
+  if (!scan_new_style_cast(csf_reinterpret_cast, rcblock, &start_position,
                            &type_cast_to, &type_position, &end_position,
                            result)) {
     err = TRUE;
@@ -13615,19 +13704,24 @@ Syntax:
   if (err) {
     conv_to_error_operand(result);
   } else {
-    an_expr_node_ptr result_expression =
-                               cast_expr_was_added(operand_expression, result);
-    if (result_expression != NULL && is_operation_node(result_expression)) {
-      /* A node was created that can carry the information that this was a
-         reinterpret_cast; mark it accordingly. */
-      result_expression->variant.operation.is_reinterpret_cast = TRUE;
+    an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+    if (expr != NULL) {
+      if (is_operation_node(expr)) {
+        /* A node was created that can carry the information that this was a
+           reinterpret_cast; mark it accordingly. */
+        expr->variant.operation.is_reinterpret_cast = TRUE;
 #if CHECKING
-      /* This check is done here instead of at the top level in order not to
-         be confused by the microsoft_ignored_case case. */
-      if (cast_to_reference) {
-        check_reference_cast_flag_is_set(result, type_cast_to);
-      }  /* if */
+        /* This check is done here instead of at the top level in order not to
+           be confused by the microsoft_ignored_case case. */
+        if (cast_to_reference) {
+          check_reference_cast_flag_is_set(result, type_cast_to);
+        }  /* if */
 #endif /* CHECKING */
+      }  /* if */
+      record_cast_position_in_expr_rescan_info(expr,
+                                               &start_position,
+                                               &type_position,
+                                               type_cast_to);
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -13748,7 +13842,8 @@ operators cannot be overloaded.
       result->ref_entries_list = operand.ref_entries_list;
     } else {
       /* The argument is an rvalue: The result too. */
-      do_unary_operation(op, &operand, result_type, result, &start_pos);
+      do_unary_operation(op, &operand, result_type, result, &start_pos,
+                         NO_TOKEN_SEQUENCE_NUMBER);
     }  /* if */
   } else if (is_template_param_type(operand.type)) {
     template_unary_operation(op, &operand, result, &start_pos,
@@ -13758,6 +13853,10 @@ operators cannot be overloaded.
     make_error_operand(result);
   }  /* if */
   set_operand_position(result, &start_pos, &end_pos, &start_pos);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &start_pos,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  (a_source_position *)NULL);
 }  /* scan_complex_projection */
 
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
@@ -14041,7 +14140,7 @@ static void scan_cast_or_expr(
 Scan something after an opening left paren.  This may be a cast operation or
 just an expression in parentheses.  Return the scanned expression in
 *result (and, if it is a C++ bound function, return the object in
-*bound_function_selector).  See section 6.3.4 of the ISO C89 standard.
+*bound_function_selector).
 
 Syntax:
  	( type-name ) expression
@@ -14070,7 +14169,7 @@ Also scans GNU statement expressions:
   /* Save the current source position.  Note that in the parenthesis-trapped
      case we are saving the position of the token after the left parenthesis,
      but that's okay; the caller straightens it out. */
-  copy_source_position(pos_curr_token, start_position);
+  start_position = pos_curr_token;
 
   /* Get past the opening lparen.  If a left parenthesis was trapped,
      we're already past it, so do not advance. */
@@ -14148,6 +14247,10 @@ Also scans GNU statement expressions:
                   csf_old_style, local_options, err,
                   &type_position, &start_position,
                   end_position_or_null(&end_position));
+          record_cast_position_in_rescan_info(result,
+                                              &start_position,
+                                              &type_position,
+                                              type_cast_to);
         }  /* if */
       }  /* if */
       set_operand_position(result, &start_position, &end_position,
@@ -14295,6 +14398,7 @@ one argument, return TRUE; otherwise, return FALSE.
 
 
 static void scan_functional_notation_type_conversion(
+                                      a_rescan_control_block   *rcblock,
                                       a_type_ptr               type_cast_to,
                                       a_source_position        *start_position,
                                       an_operand               *result,
@@ -14304,7 +14408,13 @@ Scan a C++ functional-notation type conversion, e.g., "int(1.5)" or "A(1,2)".
 The type keyword or identifier has been scanned over (the current token is
 the parenthesis following that), and the associated type is passed in as
 type_cast_to.  The starting position of the type is given by *start_position.
-The result is returned in *result.  See _expr.type.conv_ in the WP.
+The result is returned in *result.  If rcblock is non-NULL, redo
+semantic analysis on a previously-scanned cast expression (either
+functional-notation or old-style; they have different syntax but the
+same semantics, at least for the cases they have in common), and
+return the result in *result (or an error indication in *rcblock).  In
+that case, type_cast_to and start_position are ignored, and set from
+the information in rcblock.
 */
 {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -14319,24 +14429,43 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
   a_dynamic_init_ptr            dip;
   an_expr_node_ptr              temp_init_node;
+  a_source_position             local_start_position, type_position;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_typename);
+    check_assertion(type_cast_to == NULL && start_position == NULL);
+    start_position = &local_start_position;
+    make_cast_rescan_operands(rcblock, start_position,
+                              &type_cast_to, &type_position, result,
+                              &local_bound_function_selector);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* Normal, non-rescan, processing. */
+    type_position = *start_position;
+  }  /* if */
   error_position = *start_position;
   /* Check the type to see if it is valid in general terms.  Note that
      this does a worthwhile check even in the class case (abstract class).
      However, cv-qualifiers cannot syntactically appear in this sort of
      explicit conversion. */
-  err = cast_type_pre_check(&type_cast_to, start_position,
+  err = cast_type_pre_check(&type_cast_to, &type_position,
                             /*explicit_cv_qualifiers=*/FALSE, allow_array);
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
+    /* If the class is a template class, instantiate it to make its
+       constructors visible. */
+    instantiate_template_class(type_cast_to);
     cssp = symbol_supplement_for_class(type_cast_to);
     ctor_sym = cssp->constructor;
     if (ctor_sym != NULL) {
       /* The class has a constructor. */
       ctor_case = TRUE;
-      if (any_cfront_mode() && 
+      if (any_cfront_mode() && rcblock == NULL &&
           cssp->target_of_conversion_function &&
           conversion_has_one_argument()) {
         /* Old rules for cfront mode: conversion functions compete with
@@ -14351,8 +14480,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Check for a left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
+  if (rcblock == NULL) {
+    /* Check for a left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+  }  /* if */
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
@@ -14361,12 +14492,11 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                         (an_arg_operand_ptr*)NULL,
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
+                        rcblock,
                         /*trivial_ctor=*/(a_boolean *)NULL,
-                        &dip, &temp_init_node);
+                        &dip, &temp_init_node,
+                        end_position_or_null(&end_position));
     error_position = *start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (err || dip == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
@@ -14390,19 +14520,25 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
        handled specially because it may have more than one argument.
        In a constant expression, a cast to a class type is not allowed,
        so go on to the normal cast code. */
-    scan_dependent_parenthesized_initializer((an_arg_operand_ptr*)NULL, &dip);
+    scan_dependent_parenthesized_initializer(rcblock,
+                                             (an_arg_operand_ptr *)NULL,
+                                             &dip);
     temp_init_node = alloc_temp_init_node(type_cast_to, dip,
                                           /*is_lvalue=*/FALSE,
                                           /*is_explicit_cast=*/TRUE);
     make_expression_operand(temp_init_node, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = curr_construct_end_position;
+    if (rcblock == NULL) {
+      end_position = curr_construct_end_position;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
-    add_matching_stop_token(tok_rparen);
-    if (curr_token == tok_rparen) {
-      /* Empty parentheses. */
+    if (rcblock == NULL) add_matching_stop_token(tok_rparen);
+    if ((rcblock == NULL) ? (curr_token == tok_rparen) :
+                            (rcblock->argument_list == NULL)) {
+      /* Empty parentheses (or no expressions in the argument list, on
+         a rescan). */
       if (err) {
         /* Some previous error. */
         make_error_operand(result);
@@ -14427,7 +14563,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
         make_integer_constant_operand(result, (a_host_large_integer)0L);
         if (!cast_is_valid_in_current_expression_kind(result, type_cast_to,
                                                       local_options,
-                                                      start_position,
+                                                      &type_position,
                                                       &ruled_out_expr_kinds)) {
 
           /* This cast is not valid in this kind of expression. */
@@ -14479,38 +14615,54 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       }  /* if */
     } else {
       /* Non-empty parentheses. */
-      /* Scan the expression inside the parentheses. */
-      /* Since the expression in parentheses is syntactically an
-         expression list, a top-level comma is not allowed. */
-      scan_cast_expression(type_cast_to, /*allow_comma=*/FALSE, PREC_LOWEST,
-                           result, &local_bound_function_selector);
+      if (rcblock != NULL) {
+        /* Rescan the operand expression. */
+        check_assertion(rcblock->argument_list->next == NULL);
+        make_rescan_operand_full(rcblock->argument_list, rcblock,
+                                 EOPT_OPERAND_OF_CAST,
+                                 result, &local_bound_function_selector);
+      } else {
+        /* Scan the expression inside the parentheses. */
+        /* Since the expression in parentheses is syntactically an
+           expression list, a top-level comma is not allowed. */
+        scan_cast_expression(type_cast_to, /*allow_comma=*/FALSE, PREC_LOWEST,
+                             result, &local_bound_function_selector);
+      }  /* if */
       if (is_array_type(type_cast_to)) {
         /* Catch cast-to-error cases allowed by above. */
-        if (!check_array_cast(type_cast_to, result, start_position)) {
+        if (!check_array_cast(type_cast_to, result, &type_position)) {
           /* coverity[returned_pointer] - type_cast_to not used later. */
           type_cast_to = error_type();
           err = TRUE;
         }  /* if */
       } else {
         /* Check compatibility of the types and do the cast. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (rcblock == NULL) end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         do_cast(type_cast_to, result, &local_bound_function_selector,
                 csf_functional, local_options, err,
-                start_position, start_position,
-                end_position_or_null(&end_pos_curr_token));
+                &type_position, start_position,
+                end_position_or_null(&end_position));
       }  /* if */
     }  /* if */
+    if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = end_pos_curr_token;
+      end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Check for the closing parenthesis. */
-    check_closing_paren_after_expr_list();
-    remove_matching_stop_token(tok_rparen);
+      /* Check for the closing parenthesis. */
+      check_closing_paren_after_expr_list();
+      remove_matching_stop_token(tok_rparen);
+    }  /* if */
   }  /* if */
   set_operand_position(result, start_position, &end_position, start_position);
+  record_cast_position_in_rescan_info(result,
+                                      start_position,
+                                      &type_position,
+                                      type_cast_to);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);
   db_exit();
 }  /* scan_functional_notation_type_conversion */
-
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -14597,7 +14749,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -14621,6 +14774,7 @@ that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -14693,7 +14847,8 @@ that case.
                        &operand_2.position);
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2,
-                        result_type, result, &operator_position);
+                        result_type, result, &operator_position,
+                        operator_tok_seq_number);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -14737,7 +14892,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -14761,6 +14917,7 @@ that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -15028,7 +15185,8 @@ that case.
         }  /* if */
       }  /* if */
       do_binary_operation(op, operand_1, &operand_2,
-                          result_type, result, &operator_position);
+                          result_type, result, &operator_position,
+                          operator_tok_seq_number);
       if (pointer_operand_is_second) {
         set_pointer_operand_is_second_flag(result);
       }  /* if */
@@ -15079,7 +15237,8 @@ expression, and return the result in *result (or an error indication in
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -15103,6 +15262,7 @@ expression, and return the result in *result (or an error indication in
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -15153,7 +15313,7 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &error_position);
+                        &error_position, operator_tok_seq_number);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -15272,7 +15432,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -15296,6 +15457,7 @@ that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -15450,7 +15612,7 @@ that case.
       }  /* if */
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position);
+                        &operator_position, operator_tok_seq_number);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -15493,7 +15655,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -15517,6 +15680,7 @@ that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -15615,7 +15779,7 @@ that case.
       }  /* if */
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position);
+                        &operator_position, operator_tok_seq_number);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -15654,7 +15818,8 @@ is expected to be NULL in that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -15679,6 +15844,7 @@ is expected to be NULL in that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -15793,7 +15959,8 @@ is expected to be NULL in that case.
     }  /* if */
     if (!result_is_lvalue) {
       do_binary_operation(op, operand_1, &operand_2,
-                          result_type, result, &operator_position);
+                          result_type, result, &operator_position,
+                          operator_tok_seq_number);
     } else {
       build_binary_result_operand_full(operand_1, &operand_2, op,
                                        result_type, /*result_is_lvalue=*/TRUE,
@@ -15807,6 +15974,10 @@ is expected to be NULL in that case.
   }  /* if */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
 }  /* scan_gnu_min_max_operator */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -15841,7 +16012,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     int prec_level;
@@ -15872,6 +16044,7 @@ that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -15904,7 +16077,7 @@ that case.
       change_binary_operand_types(result_type, operand_1, &operand_2, op);
     }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                        &operator_position);
+                        &operator_position, operator_tok_seq_number);
   }  /* if */
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -15973,7 +16146,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -16067,6 +16241,7 @@ that case.
                                    &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
+                                   (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
@@ -16112,7 +16287,7 @@ that case.
          constant. */
       op = which_binary_operator(operator_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
-                          &operator_position);
+                          &operator_position, operator_tok_seq_number);
     } else {
       /* Reduce the expression to a constant.  The first operand is
          constant and dictates the result, and the second operand is
@@ -16360,9 +16535,7 @@ that case.
 {
   an_operand            local_operand_1, operand_2;
   an_operand            operand_3;
-  a_source_position     operator_position;
-  a_token_sequence_number
-                        operator_tok_seq_number;
+  a_source_position     colon_position;
   a_source_position     question_position;
   a_token_sequence_number
                         question_tok_seq_number;
@@ -16403,7 +16576,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, &operand_3,
-                         &question_position, &question_tok_seq_number);
+                         &question_position, &question_tok_seq_number,
+                         &colon_position);
   } else {
     /* Normal, non-rescan, processing. */
     question_position = pos_curr_token;
@@ -16470,16 +16644,9 @@ that case.
     expr_stack->nested_construct_depth--;
   }  /* if */
 
-  if (rcblock != NULL) {
-    /* Doing only semantic analysis, not syntax. */
-    /* We don't have a position for the ":", so the position for "?" will
-       have to do. */
-    operator_position = question_position;
-    operator_tok_seq_number = question_tok_seq_number;
-  } else {
+  if (rcblock == NULL) {
     /* Save the position of the (expected) colon. */
-    operator_position = pos_curr_token;
-    operator_tok_seq_number = curr_token_sequence_number;
+    colon_position = pos_curr_token;
 
     if (!required_token(tok_colon, ec_exp_colon)) {
       /* The colon is missing. */
@@ -16520,8 +16687,7 @@ that case.
          a generic operator. */
       template_question_operation(operand_1, &operand_2, &operand_3,
                                   is_gnu_two_operand_form,
-                                  &question_position,
-                                  question_tok_seq_number,
+                                  &question_position, &colon_position,
                                   result);
       processed = TRUE;
     } else if (curr_expr_kind_is(ek_template_arg) &&
@@ -16529,7 +16695,7 @@ that case.
                 is_bad_type_for_template_arg_operand(operand_2.type) ||
                 is_bad_type_for_template_arg_operand(operand_3.type))) {
       /* Non-integral operations are not allowed in a template argument. */
-      diagnose_bad_template_arg_operation(&operator_position);
+      diagnose_bad_template_arg_operation(&colon_position);
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(operand_1);
       operand_will_not_be_used_because_of_error(&operand_2);
@@ -16625,7 +16791,7 @@ that case.
         /* Each operand can be converted to the other, so the operation
            is ambiguous. */
         if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_ambiguous_question_operator, &operator_position,
+          pos_ty2_error(ec_ambiguous_question_operator, &colon_position,
                         operand_2.type, operand_3.type);
         }  /* if */
         err = TRUE;
@@ -16676,9 +16842,10 @@ that case.
                                        /*try_conversions=*/TRUE,
                                        /*has_predef_meaning=*/TRUE,
                                        &operand_2, &operand_3,
-                                       &operator_position,
-                                       operator_tok_seq_number,
+                                       &question_position,
+                                       NO_TOKEN_SEQUENCE_NUMBER,
                                        (a_nondependent_call_depth)0,
+                                       &colon_position,
                                        result, &processed);
         /* processed TRUE means an error has been detected. */
         if (processed) {
@@ -16768,7 +16935,7 @@ that case.
       result_type = operand_3.type;
       if (expr_diagnostic_should_be_issued(es_warning,
                                            ec_incompatible_operands)) {
-        pos_ty2_warning(ec_incompatible_operands, &operator_position,
+        pos_ty2_warning(ec_incompatible_operands, &colon_position,
                         operand_2.type, operand_3.type);
       }  /* if */
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_2,
@@ -16784,7 +16951,7 @@ that case.
       /* result_type = operand_2.type; -- already set. */
       if (expr_diagnostic_should_be_issued(es_warning,
                                            ec_incompatible_operands)) {
-        pos_ty2_warning(ec_incompatible_operands, &operator_position,
+        pos_ty2_warning(ec_incompatible_operands, &colon_position,
                         operand_2.type, operand_3.type);
       }  /* if */
       adjust_void_operand_for_microsoft_void_vs_scalar_conditional(&operand_3,
@@ -16867,7 +17034,7 @@ that case.
            or function types), and null pointer constants and "void *" pointers
            are specially handled (ANSI C 3.3.15).  Ditto in C++ (ARM 5.16). */
         if (check_compatibility_of_pointer_operands(
-                           &operand_2, &operand_3, &operator_position,
+                           &operand_2, &operand_3, &colon_position,
                            /*pointer_normalization_standard_in_C=*/TRUE,
                            /*pointers_to_functions_standard_in_C=*/TRUE,
                            /*pointers_to_incomplete_standard_in_C=*/TRUE,
@@ -16920,7 +17087,7 @@ that case.
         /* At least one of the operands is a pointer-to-member.  See if the
            operands are compatible. */
         if (check_ptr_to_member_operands_for_compatibility(
-                                    &operand_2, &operand_3, &operator_position,
+                                    &operand_2, &operand_3, &colon_position,
                                     &operation_type)) {
           /* The operands are compatible.  Determine the result type.  Usually,
              it's the operation type just determined, but it can be a different
@@ -16970,7 +17137,7 @@ that case.
         /* At least one of the operands is of type std::nullptr_t.  See if
            the operands are compatible. */
         err = !check_compatibility_of_nullptr_operands(&operand_2, &operand_3,
-                                                       &operator_position,
+                                                       &colon_position,
                                                        &result_type);
       } else if (is_arithmetic_or_enum_type(operand_2.type)) {
         /* Both operands should be arithmetic or enum. */
@@ -16992,7 +17159,7 @@ that case.
            code deals only with error cases in C++. */
         if (!types_are_compatible(operand_2.type, operand_3.type)) {
           if (expr_error_should_be_issued()) {
-            pos_ty2_error(ec_incompatible_operands, &operator_position,
+            pos_ty2_error(ec_incompatible_operands, &colon_position,
                           operand_2.type, operand_3.type);
           }  /* if */
           err = TRUE;
@@ -17011,7 +17178,7 @@ that case.
       } else {
         /* Incompatible operands. */
         if (expr_error_should_be_issued()) {
-          pos_ty2_error(ec_incompatible_operands, &operator_position,
+          pos_ty2_error(ec_incompatible_operands, &colon_position,
                         operand_2.type, operand_3.type);
         }  /* if */
         err = TRUE;
@@ -17033,7 +17200,9 @@ that case.
     do_question_operation(operand_1, &operand_2, &operand_3, result_type,
                           result_is_an_lvalue, suppress_class_rvalue_temp,
                           /*template_case=*/FALSE,
-                          is_gnu_two_operand_form, result);
+                          is_gnu_two_operand_form,
+                          &question_position, &colon_position,
+                          result);
     if (result_is_an_lvalue) {
       /* The result is an lvalue, so its reference list is the union
          of the operand 2 and operand 3 reference lists. */
@@ -17169,7 +17338,8 @@ that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -17232,6 +17402,7 @@ that case.
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -17280,6 +17451,10 @@ that case.
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_simple_assignment_operator */
@@ -17325,7 +17500,8 @@ is expected to be NULL in that case.
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -17420,6 +17596,7 @@ is expected to be NULL in that case.
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -17719,6 +17896,10 @@ operation_type_determined:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_compound_assignment_operator */
@@ -18097,7 +18278,8 @@ expression, and return the result in *result (or an error indication in
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number);
+                         &operator_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     operator_position = pos_curr_token;
@@ -18138,6 +18320,7 @@ expression, and return the result in *result (or an error indication in
                                      &operator_position,
                                      operator_tok_seq_number,
                                      (a_nondependent_call_depth)0,
+                                     (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -18182,6 +18365,10 @@ expression, and return the result in *result (or an error indication in
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
+  record_operator_position_in_rescan_info_if_expr(result,
+                                                  &operator_position,
+                                                  operator_tok_seq_number,
+                                                  (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_comma_operator */
@@ -19444,7 +19631,8 @@ overloaded_function:
               okay_after_typename = TRUE;
             }  /* if */
             (void)get_token();
-            scan_functional_notation_type_conversion(cast_type,
+            scan_functional_notation_type_conversion(rcblock,
+                                                     cast_type,
                                                      &start_position,
                                                      result,
                                                      local_options);
@@ -21189,22 +21377,24 @@ see expr.h).
 
     case tok_dynamic_cast:
       /* dynamic_cast operation. */
-      scan_dynamic_cast_operator(&local_result);
+      scan_dynamic_cast_operator((a_rescan_control_block *)NULL,
+                                 &local_result);
       break;
 
     case tok_const_cast:
       /* const_cast operation. */
-      scan_const_cast_operator(&local_result);
+      scan_const_cast_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_static_cast:
       /* static_cast operation. */
-      scan_static_cast_operator(&local_result);
+      scan_static_cast_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_reinterpret_cast:
       /* reinterpret_cast operation. */
-      scan_reinterpret_cast_operator(&local_result);
+      scan_reinterpret_cast_operator((a_rescan_control_block *)NULL,
+                                     &local_result);
       break;
 
     case tok_intaddr:
@@ -21324,10 +21514,12 @@ type_start:
           error_and_make_error_operand(ec_type_identifier_not_allowed,
                                        &local_result);
         } else {
-          scan_functional_notation_type_conversion(cast_type,
-                                                   &start_position,
-                                                   &local_result,
-                                                   local_options);
+          scan_functional_notation_type_conversion(
+                                                (a_rescan_control_block *)NULL,
+                                                cast_type,
+                                                &start_position,
+                                                &local_result,
+                                                local_options);
         }  /* if */
       }  /* if */
       break;
@@ -22951,153 +23143,27 @@ operand of an "&" operator.
 }  /* make_operand_for_rescanned_identifier */
 
 
-a_boolean expr_is_rescannable(an_expr_node_ptr expr)
-/*
-Return TRUE if the given expression is rescannable, meaning that it can
-be run through the expression-scanning routines in a special mode that
-redoes semantic analysis.
-*/
-{
-  a_boolean rescannable = FALSE;
-
-  expr = strip_implicit_operations_for_rescan(
-                                        expr,
-                                        (an_expr_rescan_info_entry_ptr *)NULL);
-  if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    /* The list here should match the list in
-       operator_token_for_expr_rescan. */
-    switch (op) {
-      case eok_subscript:
-      case eok_call:
-      case eok_dot_member_call:
-      case eok_points_to_member_call:
-      case eok_dot_pm_call:
-      case eok_points_to_pm_call:
-      case eok_dot_field:
-      case eok_points_to_field:
-      case eok_dot_static:
-      case eok_points_to_static:
-      case eok_dot_vacuous_destructor_call:
-      case eok_points_to_vacuous_destructor_call:
-      case eok_pm_field:
-      case eok_pm_points_to_field:
-      case eok_post_incr:
-      case eok_post_decr:
-      case eok_pre_incr:
-      case eok_pre_decr:
-      case eok_address_of:
-      case eok_indirect:
-      case eok_unary_plus:
-      case eok_negate:
-      case eok_complement:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-      case eok_xconj:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-      case eok_not:
-      case eok_add:
-      case eok_padd:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_fjadd:
-      case eok_jfadd:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_subtract:
-      case eok_psubtract:
-      case eok_pdiff:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_fjsubtract:
-      case eok_jfsubtract:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_multiply:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_jmultiply:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_divide:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_jdivide:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case eok_remainder:
-      case eok_shiftl:
-      case eok_shiftr:
-      case eok_lt:
-      case eok_gt:
-      case eok_le:
-      case eok_ge:
-      case eok_eq:
-      case eok_ne:
-      case eok_gnu_max:
-      case eok_gnu_min:
-      case eok_and:
-      case eok_or:
-      case eok_xor:
-      case eok_land:
-      case eok_lor:
-      case eok_comma:
-      case eok_question:
-      case eok_assign:
-      case eok_add_assign:
-      case eok_padd_assign:
-      case eok_subtract_assign:
-      case eok_psubtract_assign:
-      case eok_multiply_assign:
-      case eok_divide_assign:
-      case eok_remainder_assign:
-      case eok_shiftl_assign:
-      case eok_shiftr_assign:
-      case eok_and_assign:
-      case eok_or_assign:
-      case eok_xor_assign:
-        rescannable = TRUE;
-        break;
-      default:;
-    }  /* switch */
-  } else if (is_constant_node(expr)) {
-    /* Template-dependent constant values can be rescanned. */
-    a_constant_ptr con = expr->variant.constant;
-    /* The list here should match the list in
-       operator_token_for_expr_rescan. */
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
-      switch (con->variant.template_param.kind) {
-        case tpck_member:
-        case tpck_address:
-        case tpck_unknown_function:
-        case tpck_template_ref:
-        case tpck_sizeof:
-        case tpck_alignof:
-        case tpck_typeid:
-          rescannable = TRUE;
-          break;
-        case tpck_uuidof:  /* Not handled at this level; see "*' operator */
-        default:
-          break;
-      }  /* switch */
-    }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
-    rescannable = TRUE;
-  } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
-    rescannable = TRUE;
-  }  /* if */
-  return rescannable;
-}  /* expr_is_rescannable */
-
-
-static a_token_kind operator_token_for_expr_rescan(an_expr_node_ptr expr,
-                                                   a_boolean        *unary,
-                                                   a_boolean        *postfix)
+static a_token_kind operator_token_for_expr_rescan(
+                                              an_expr_node_ptr expr,
+                                              a_boolean        *unary,
+                                              a_boolean        *postfix,
+                                              a_boolean        *is_rescannable)
 /*
 The given expression is about to be rescanned to redo semantic analysis.
 Determine the operator token for it and return it.  That's used to select
 the scan_xxx_operator routine to call to do the rescan.  Also return
 *unary set to TRUE for unary operators, and *postfix set to TRUE for
-postfix operators.
+postfix operators.  When is_rescannable is non-NULL, just determine
+whether the expression is rescannable and return *is_rescannable
+set accordingly.
 */
 {
   a_token_kind operator_token = tok_error;
+  a_boolean    rescannable = TRUE;
 
   *unary = FALSE;
   *postfix = FALSE;
   if (is_operation_node(expr)) {
-    /* The list here should match the list in expr_is_rescannable. */
     switch (expr->variant.operation.kind) {
       case eok_subscript:
         operator_token = tok_lbracket;
@@ -23178,6 +23244,34 @@ postfix operators.
         break;
       case eok_not:
         operator_token = tok_not;
+        *unary = TRUE;
+        break;
+      case eok_cast:
+      case eok_lvalue_cast:
+      case eok_ref_cast:
+      case eok_base_class_cast:
+      case eok_derived_class_cast:
+      case eok_pm_base_class_cast:
+      case eok_pm_derived_class_cast:
+      case eok_bool_cast:
+        /* Casts.  There are additional flags that identify the cast source
+           form. */
+        *unary = TRUE;
+        if (expr->is_static_cast) {
+          operator_token = tok_static_cast;
+        } else if (expr->variant.operation.is_const_cast) {
+          operator_token = tok_const_cast;
+        } else if (expr->variant.operation.is_reinterpret_cast) {
+          operator_token = tok_reinterpret_cast;
+        } else {
+          /* Old-style cast or functional-notation cast; semantically it
+             doesn't matter. */
+          operator_token = tok_typename;  /* Representing a generic cast. */
+        }  /* if */
+        break;
+      case eok_dynamic_cast:
+      case eok_ref_dynamic_cast:
+        operator_token = tok_dynamic_cast;
         *unary = TRUE;
         break;
       case eok_add:
@@ -23299,11 +23393,11 @@ postfix operators.
         operator_token = tok_excl_or_assign;
         break;
       default:
-        unexpected_condition_str("bad operator in expr rescan");
+        rescannable = FALSE;
+        break;
     }  /* switch */
   } else if (is_constant_node(expr)) {
     a_constant_ptr con = expr->variant.constant;
-    /* The list here should match the list in expr_is_rescannable. */
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
       switch (con->variant.template_param.kind) {
         case tpck_member:
@@ -23329,28 +23423,64 @@ postfix operators.
           break;
       }  /* switch */
     }  /* if */
-    check_assertion_str(operator_token != tok_error,
-                        "invalid const in expr rescan");
+    if (operator_token == tok_error) {
+      rescannable = FALSE;
+    }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
     operator_token = tok_sizeof;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
     operator_token = tok_typeid;
     *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+    if (dip->is_explicit_cast) {
+      if (expr->is_static_cast) {
+        operator_token = tok_static_cast;
+      } else {
+        operator_token = tok_typename;  /* Representing a generic cast. */
+      }  /* if */
+      *unary = TRUE;
+    } else {
+      rescannable = FALSE;
+    }  /* if */
   } else {
-    unexpected_condition_str("invalid expr kind in expr rescan");
+    rescannable = FALSE;
+  }  /* if */
+  if (is_rescannable != NULL) {
+    *is_rescannable = rescannable;
+  } else {
+    check_assertion_str(rescannable,
+                        "invalid expr kind in expr rescan");
   }  /* if */
   return operator_token;
 }  /* operator_token_for_expr_rescan */
 
 
+a_boolean expr_is_rescannable(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is rescannable, meaning that it can
+be run through the expression-scanning routines in a special mode that
+redoes semantic analysis.
+*/
+{
+  a_boolean unary, postfix, rescannable;
+
+  expr = strip_implicit_operations_for_rescan(
+                                        expr,
+                                        (an_expr_rescan_info_entry_ptr *)NULL);
+  (void)operator_token_for_expr_rescan(expr, &unary, &postfix, &rescannable);
+  return rescannable;
+}  /* expr_is_rescannable */
+
+
 void rescan_expr_with_substitution_internal(
-                               an_expr_node_ptr       expr,
-                               a_rescan_control_block *rcblock,
-                               a_boolean              is_operand_of_address_of,
-                               a_boolean              force_stack_push,
-                               an_operand             *result,
-                               an_operand             *bound_function_selector)
+                             an_expr_node_ptr         expr,
+                             a_rescan_control_block   *rcblock,
+                             a_local_expr_options_set local_options,
+                             a_boolean                force_stack_push,
+                             an_operand               *result,
+                             an_operand               *bound_function_selector)
 /*
 Redo the semantic analysis on the expression expr as part of doing
 template deduction.  rcblock provides the deduction context, e.g., the
@@ -23361,10 +23491,10 @@ result after substitution.  If bound_function_selector is non-NULL,
 and if the expression results in a bound function, *bound_function_selector
 is set to the selector; if bound_function_selector is NULL and the
 expression results in a bound function, an error is (conceptually)
-issued.  If is_operand_of_address_of is TRUE, the expression is the
-immediate operand of an "&" operator.  If force_stack_push is TRUE, a
-push on the expression stack is always done; otherwise, it is done
-only if needed.  This routine is intended for use within the
+issued.  local_options provides some options, in particular
+information about the immediate parent operator.  If force_stack_push
+is TRUE, a push on the expression stack is always done; otherwise, it
+is done only if needed.  This routine is intended for use within the
 expression-processing routines; for an alternative callable from
 outside, see rescan_expr_with_substitution.
 */
@@ -23411,10 +23541,13 @@ outside, see rescan_expr_with_substitution.
      an extra parameter on each of those routines. */
   rcblock->expr = expr;
   /* Go to the right routine to rescan the operator. */
-  operator_token = operator_token_for_expr_rescan(expr, &unary, &postfix);
+  operator_token = operator_token_for_expr_rescan(expr, &unary, &postfix,
+                                                  (a_boolean *)NULL);
   rcblock->operator_token = operator_token;
   if (operator_token == tok_identifier) {
     /* The expression is essentially an identifier reference. */
+    a_boolean is_operand_of_address_of =
+                             (local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0;
     make_operand_for_rescanned_identifier(expr, rcblock,
                                           is_operand_of_address_of, result);
   } else if (unary) {
@@ -23455,6 +23588,29 @@ outside, see rescan_expr_with_substitution.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_typeid:
         scan_typeid_operator(rcblock, result);
+        break;
+      case tok_const_cast:
+        scan_const_cast_operator(rcblock, result);
+        break;
+      case tok_static_cast:
+        scan_static_cast_operator(rcblock, result);
+        break;
+      case tok_reinterpret_cast:
+        scan_reinterpret_cast_operator(rcblock, result);
+        break;
+      case tok_typename:
+        /* Old-style or functional-notation cast.  The functional-notation
+           processing routine is used for both cases because, although they
+           have different syntax, they have the same semantics for the
+           cases they have in common. */
+        scan_functional_notation_type_conversion(rcblock,
+                                                 (a_type_ptr)NULL,
+                                                 (a_source_position *)NULL,
+                                                 result,
+                                                 local_options);
+        break;
+      case tok_dynamic_cast:
+        scan_dynamic_cast_operator(rcblock, result);
         break;
       default:
         unexpected_condition();
@@ -23582,7 +23738,7 @@ expression-processing routines.
   an_operand result;
 
   rescan_expr_with_substitution_internal(expr, rcblock,
-                                         /*is_operand_of_address_of=*/FALSE,
+                                         EOPT_NO_OPTIONS,
                                          /*force_stack_push=*/TRUE, &result,
                                          (an_operand *)NULL);
   if (rcblock->error_detected) {
@@ -24404,8 +24560,10 @@ overall errors.
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL, &prescanned_args,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
+                      (a_rescan_control_block *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL, p_dip,
-                      (an_expr_node_ptr *)NULL);
+                      (an_expr_node_ptr *)NULL,
+                      (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -24451,7 +24609,9 @@ current token is the one following the closing parenthesis.
   if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
     prescanned_args = get_prescanned_auto_initializer(dps, (an_operand*)NULL);
   }  /* if */
-  scan_dependent_parenthesized_initializer(&prescanned_args, dip);
+  scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
+                                           &prescanned_args,
+                                           dip);
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */
   wrap_up_dynamic_init_full_expression(*dip);
