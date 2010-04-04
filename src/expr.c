@@ -14487,6 +14487,10 @@ the information in rcblock.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
+    a_source_position *end_position_arg = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position_arg = &end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
                         (an_arg_operand_ptr*)NULL,
@@ -14495,7 +14499,7 @@ the information in rcblock.
                         rcblock,
                         /*trivial_ctor=*/(a_boolean *)NULL,
                         &dip, &temp_init_node,
-                        end_position_or_null(&end_position));
+                        end_position_arg);
     error_position = *start_position;
     if (err || dip == NULL) {
       /* Error of some sort. */
