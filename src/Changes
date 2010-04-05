@@ -35,10 +35,14 @@ Microsoft compatibility: Functions depending on types with no linkage
 
 C++0x allows function with external linkage to depend on types with no linkage
 provided the function is defined in the translation unit where the types are
-defined (see Changes entry for EDGcpfe/9627 of 3/17/09).  The same rule
-applies in Microsoft modes with microsoft_version >= 1400, but now the
-definition is no longer required (this is likely to result in a linker error
-later on, but it matches the behavior of Microsoft compilers).  For example:
+defined: This was implemented in version 4.1 (see Changes entry for
+EDGcpfe/9627 of 3/17/09).  Prior to version 4.1, the same rule applied in
+Microsoft modes with microsoft_version >= 1400, but without the requirement
+that the function be defined in the same translation unit.  The implementation
+of the C++0x rule accidentally imposed that constraint in Microsoft modes
+(which is a regression).  That is now fixed: The definition is no longer
+required in Microsoft modes (although a missing definition likely to result in
+a linker error later on).  For example:
 
   typedef struct {} *T;
   void g(T);            // Missing definition of "g" no longer triggers an

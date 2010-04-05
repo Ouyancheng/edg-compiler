@@ -5041,7 +5041,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
          check is done for routines that are referenced but not defined.
          The will_be_instantiated check is used so that a template that could
          be instantiated is considered defined.  (Microsoft compilers do not
-         not impose this restriction.) */
+         impose this restriction.) */
       if (decls_using_types_without_linkage_allowed &&
           sym->referenced && !microsoft_mode &&
           (storage_class == (a_storage_class)sc_extern &&
