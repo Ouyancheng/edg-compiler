@@ -4833,7 +4833,7 @@ for handling virtual bases and functions.
 {
   a_layout_block    lob;
 #if USER_CONTROL_OF_STRUCT_PACKING
-  a_targ_alignment  alignment;
+  a_targ_alignment  alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
   a_boolean         is_POD;
