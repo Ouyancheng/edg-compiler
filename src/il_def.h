@@ -1428,7 +1428,7 @@ typedef struct a_src_seq_secondary_decl {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	is_alias:1;
 			/* TRUE if this declaration is for a typedef declared
-			   using the alias syntax. */
+			   using the alias syntax; e.g., "using T = int;". */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
@@ -7248,9 +7248,10 @@ typedef struct a_type {
 			   attributes. */
       a_bit_field
 		is_alias:1;
-			/* TRUE for typedefs declared using the alias syntax.
-			   (This reflects the primary declaration of a typedef.
-			   For subsequent declarations, see the corresponding
+			/* TRUE for typedefs declared using the alias syntax;
+			   e.g., "using T = int;".  (This reflects the primary
+			   declaration of a typedef.  For subsequent
+			   declarations, see the corresponding
 			   a_src_seq_secondary_decl entry.) */
       a_bit_field
 		is_template_alias:1;
