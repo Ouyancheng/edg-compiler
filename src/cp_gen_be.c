@@ -5334,14 +5334,18 @@ declaration following this one is such a continuation.
   /* Advance past the source sequence entry for the field. */
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
-  gen_member_access_specifier_for_decl_of(&field->source_corresp);
-  gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
+  if (!suppress_specifiers) {
+    /* This is the first (or only) field in the list: put out the
+       per-declaration specifiers and attributes. */
+    gen_member_access_specifier_for_decl_of(&field->source_corresp);
+    gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
-  if (field->source_corresp.marked_as_gnu_extension) {
-    write_tok_str("__extension__ ");
-  }  /* if */
+    if (field->source_corresp.marked_as_gnu_extension) {
+      write_tok_str("__extension__ ");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (field->is_mutable) write_tok_str("mutable ");
+    if (field->is_mutable) write_tok_str("mutable ");
+  }  /* if */
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
   gen_general_declaration_using_type(field->type,

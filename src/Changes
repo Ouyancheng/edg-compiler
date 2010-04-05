@@ -1,5 +1,18 @@
 Version 4.2
 
+4/5/10  [EDGcpfe/10581]
+C++-generating back end: repeated "mutable" specifier
+
+When a class member declaration declares more than one field and includes the
+"mutable" specifier, the C++-generating back end incorrectly repeated the
+"mutable" specifier for each field in the list.  This is now fixed.  For
+example:
+
+  struct S {
+    mutable int i, j;  // Previously generated as "mutable int i, mutable j;"
+  };
+
+
 4/2/10  [EDGcpfe/10575]
 Microsoft compatibility: Functions depending on types with no linkage
 
