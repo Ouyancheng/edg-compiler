@@ -5654,7 +5654,9 @@ for use in generating cross-reference output describing this declaration.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
   *ext_sym = NULL;
-  if (linkage != idl_none && !redeclaration) {
+  if (linkage != idl_none && !redeclaration &&
+      !(scope_stack_top().in_prototype_instantiation &&
+        is_template_dependent_type(type_ptr))) {
     /* The symbol has external or internal linkage.  Find or create an
        external symbol entry for the identifier name, to check that the
        current declaration is compatible with any previous and future

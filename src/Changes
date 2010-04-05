@@ -1,5 +1,22 @@
 Version 4.2
 
+4/5/10  [EDGcpfe/10580]
+Spurious redeclaration error on block-extern variables in templates
+
+In C++ modes that perform prototype instantiations of function templates (such
+as strict mode and GNU C++ mode with gnu_version >= 30400), instantiating a
+function template containing a block-extern variable declaration with a
+template dependent type resulted in a spurious error when the function
+template was instantiated.  For example:
+
+  template<typename T> void g(T) {
+    extern T x[2];  // Block-extern declaration of variable x.  When g is
+  }                 // instantiated, a spurious error was sometimes reported.
+  template void g(double);
+
+This is now fixed.
+
+
 4/5/10  [EDGcpfe/10581]
 C++-generating back end: repeated "mutable" specifier
 
