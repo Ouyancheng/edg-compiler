@@ -13067,6 +13067,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* The template alias name is used in the alias definition. */
       pos_sy_error(ec_alias_used_in_type, &start_position,
                    template_sym);
+      /* Set a flag to prevent the instantiation of this alias. */
+      tssp->variant.class_template.alias_uses_own_type = TRUE;
       template_sym = NULL;
     }  /* if */
   }  /* if */

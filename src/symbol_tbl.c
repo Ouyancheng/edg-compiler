@@ -2658,6 +2658,7 @@ and return a pointer to it.
       tssp->variant.class_template.template_template_param = FALSE;
       tssp->variant.class_template.involves_template_param = FALSE;
       tssp->variant.class_template.any_full_instantiations = FALSE;
+      tssp->variant.class_template.alias_uses_own_type = FALSE;
       tssp->variant.class_template.argument_template = NULL;
       tssp->variant.class_template.substituted_param_template = NULL;
 #if CENTERLINE_CHECKING 

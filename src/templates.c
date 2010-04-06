@@ -5282,6 +5282,10 @@ list template_arg_list.  Return the symbol for the type that was created.
          cases. */
       check_assertion(total_errors != 0);
       type->variant.typeref.type = error_type();
+    } else if (tssp_of_prototype->variant.class_template.alias_uses_own_type) {
+      /* The alias template uses its own type in the definition.  An error
+         will have already been issued.  Use an error type as the result. */
+      type->variant.typeref.type = error_type();
     } else {
       a_decl_parse_state  dps;
       init_decl_parse_state(&dps);

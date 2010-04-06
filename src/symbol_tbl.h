@@ -2159,6 +2159,11 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if any full instantiations have been done of
 			   this class template or any of its partial
 			   specializations. */
+      a_bit_field
+		alias_uses_own_type:1;
+			/* TRUE if an alias template uses its own type in the
+			   type-id referred to by the alias.  This is used to
+			   suppress instantiations of the alias. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
