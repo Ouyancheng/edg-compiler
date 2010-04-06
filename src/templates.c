@@ -5326,12 +5326,15 @@ list template_arg_list.  Return the symbol for the type that was created.
          lowering correctly orders types when promoting nested types that this
          alias instance may depend on (see also promote_type_list). */
       add_placeholder_for_class_instantiation(type);
-      /* Pop the template instantiation scope. */
-      pop_template_instantiation_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
+      if (curr_token != tok_end_of_source) {
+        pos_error(ec_exp_semicolon, &pos_curr_token);
+      }  /* if */
       flush_past_token_cache_terminator();
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
     }  /* if */
     /* Restore the saved position information. */
     error_position = saved_error_position;
@@ -16611,14 +16614,17 @@ can be diagnosed at template definition time.
   prototype_type->variant.typeref.type = tp;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(prototype_sym, (a_statement_ptr)NULL);
+  /* In the normal case the current token should be end_of_source, which was
+     inserted to mark the end of the cached token stream. If necessary, keep
+     flushing until end-of-source is found. */
+  if (curr_token != tok_end_of_source) {
+    pos_error(ec_exp_semicolon, &pos_curr_token);
+  }  /* if */
+  flush_past_token_cache_terminator();
   if (scope_pushed) {
     /* Pop the template instantiation scope. */
     pop_template_instantiation_scope();
   }  /* if */
-  /* In the normal case the current token should be end_of_source, which was
-     inserted to mark the end of the cached token stream. If necessary, keep
-     flushing until end-of-source is found. */
-  flush_past_token_cache_terminator();
   /* Mark the prototype instantiation type as being complete. */
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
 }  /* alias_prototype_instantiation */
