@@ -4583,10 +4583,15 @@ flag when is_declaration is TRUE.
     /* A declaration that involves a local type. */
     if (decls_using_types_without_linkage_allowed) {
       /* C++0x behavior: An error is issued because programs that get this
-         diagnostic would fail at link time. */
-      pos_sy_diagnostic(es_discretionary_error,
-                        ec_decl_with_local_type_but_not_defined,
-                        error_pos, sym);
+         diagnostic would fail at link time.  (Since Microsoft compilers
+         accept such cases, only a warning is issued in Microsoft mode.) */
+      if (microsoft_mode) {
+        pos_sy_warning(ec_undefined_decl_using_local_type, error_pos, sym);
+      } else {
+        pos_sy_diagnostic(es_discretionary_error,
+                          ec_decl_with_local_type_but_not_defined,
+                          error_pos, sym);
+      }  /* if */
     } else {
       /* Pre-C++0x behavior: Issue an error (except in cfront or Microsoft
          compatibility mode). */
@@ -4605,10 +4610,16 @@ flag when is_declaration is TRUE.
        E.g., typedef enum { e1 } *pE; void f(pE); */
     if (decls_using_types_without_linkage_allowed) {
       /* C++0x behavior: An error is issued because programs that get this
-         diagnostic would fail at link time. */
-      pos_sy_diagnostic(es_discretionary_error,
-                        ec_decl_with_no_linkage_type_but_not_defined,
-                        error_pos, sym);
+         diagnostic would fail at link time.  (Since Microsoft compilers
+         accept such cases, only a warning is issued in Microsoft mode.) */
+      if (microsoft_mode) {
+        pos_sy_warning(ec_undefined_decl_using_no_linkage_type, error_pos,
+                       sym);
+      } else {
+        pos_sy_diagnostic(es_discretionary_error,
+                          ec_decl_with_no_linkage_type_but_not_defined,
+                          error_pos, sym);
+      }  /* if */
     } else {
       /* Pre-C++0x behavior: In strict mode, we issue a discretionary error.
          In other modes, we issue a warning for functions and a remark for

@@ -41,8 +41,8 @@ Microsoft modes with microsoft_version >= 1400, but without the requirement
 that the function be defined in the same translation unit.  The implementation
 of the C++0x rule accidentally imposed that constraint in Microsoft modes
 (which is a regression).  That is now fixed: The definition is no longer
-required in Microsoft modes (although a missing definition likely to result in
-a linker error later on).  For example:
+required in Microsoft modes (a warning is issued since a missing definition is
+likely to result in a linker error later on).  For example:
 
   typedef struct {} *T;
   void g(T);            // Missing definition of "g" no longer triggers an

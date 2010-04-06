@@ -1942,6 +1942,8 @@ ec_missing_override_attr_in_base_check_class;;"virtual function of a \"base_chec
 ec_hiding_attr_on_nonhiding_member;;"\"hiding\" attribute specified on a declaration that does not hide a base class declaration"
 ec_hiding_attr_on_unhidden_member;;"\"hiding\" attribute specified on a declaration referred to by the using-declaration %p"
 ec_hiding_attr_required;;"attribute \"hiding\" is required on a declaration (in a \"base_check\" class) that hides %nd"
+ec_undefined_decl_using_local_type;;"%n is not defined in this translation unit but depends on a local type"
+ec_undefined_decl_using_no_linkage_type;;"%n is not defined in this translation unit but depends on a type with no linkage"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

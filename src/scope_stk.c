@@ -5043,7 +5043,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
          be instantiated is considered defined.  (Microsoft compilers do not
          impose this restriction.) */
       if (decls_using_types_without_linkage_allowed &&
-          sym->referenced && !microsoft_mode &&
+          sym->referenced &&
           (storage_class == (a_storage_class)sc_extern &&
            (!rout_ptr->is_template_function || !will_be_instantiated(sym)))) {
         /* Check if this routine was declared using a type with no
