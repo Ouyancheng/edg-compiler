@@ -4946,13 +4946,11 @@ Search the list of instantiations attached to the given template symbol
 supplement for an instantiation that matches inst.
 */
 {
-  a_type_ptr  class_type = type_symbol_type(inst);
+  a_type_ptr  type = type_symbol_type(inst);
   a_symbol_list_entry
               guard;
   a_symbol_list_entry_ptr
               result = NULL, sym_entry, *last_ptr, *guard_ptr;
-  a_class_type_supplement_ptr
-              ctsp = class_type_supp(class_type);
   if (is_type_symbol(inst)) {
     tssp = primary_template_of(symbol_for(tssp->il_template_entry))
                                                       ->variant.template_info;
@@ -4973,7 +4971,6 @@ supplement for an instantiation that matches inst.
   *last_ptr = &guard;
   while (tssp->all_instantiations != &guard) {
     a_type_ptr                    corresp_type;
-    a_class_type_supplement_ptr   corresp_ctsp;
     /* Move the current entry to the end of the all_instantiations list. */
     sym_entry = tssp->all_instantiations;
     while (*last_ptr != NULL) { last_ptr = &(*last_ptr)->next; }
@@ -4982,38 +4979,51 @@ supplement for an instantiation that matches inst.
     sym_entry->next = NULL;
     /* Get the type information associated with sym_entry. */
     corresp_type = type_symbol_type(sym_entry->symbol);
-    if (corresp_type == class_type) {
+    if (corresp_type == type) {
       /* Apparently, we're already trying to find a correspondence for this
          entry.  Sym_entry is the guard entry from another search loop
          (for the same instance). */
       break;
     }  /* if */
-    corresp_ctsp = class_type_supp(corresp_type);
-    /* Check that the template arguments and possibly the partial
-       specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
-       option allows differing length for the argument lists.  Do not confuse
-       a prototype instantiation with a similar nonreal instantiation. */
-    if (class_type->variant.class_struct_union.is_nonreal_class ==
+    if (tssp->variant.class_template.is_alias_template) {
+      /* An alias template: Just check that the template arguments match. */
+      if (equiv_template_arg_lists(
+                  type->variant.typeref.extra_info->template_arg_list,
+                  corresp_type->variant.typeref.extra_info->template_arg_list,
+                  ETA_NO_OPTIONS)) {
+        result = sym_entry;
+        break;
+      }  /* if */
+    } else {
+      /* A class template. */
+      a_class_type_supplement_ptr
+               ctsp = class_type_supp(type),
+               corresp_ctsp = class_type_supp(corresp_type);
+      /* Check that the template arguments and possibly the partial
+         specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
+         option allows differing length for the argument lists.  Do not confuse
+         a prototype instantiation with a similar nonreal instantiation. */
+      if (type->variant.class_struct_union.is_nonreal_class ==
                   corresp_type->variant.class_struct_union.is_nonreal_class &&
-        class_type->variant.class_struct_union.is_prototype_instantiation ==
-           corresp_type
+          type->variant.class_struct_union.is_prototype_instantiation ==
+             corresp_type
                     ->variant.class_struct_union.is_prototype_instantiation &&
-        equiv_template_arg_lists(ctsp->template_arg_list,
-                                 corresp_ctsp->template_arg_list,
-                                 ETA_IS_NONREAL_MEMBER)) {
-      /* Partial specializations should be generated from the same set of
-         partial specialization arguments.  However, those arguments are only
-         determined when the body of the class template is instantiated. */
-      if ((ctsp->partial_spec_template_arg_list == NULL &&
-           corresp_ctsp->partial_spec_template_arg_list == NULL) ||
-          class_type_has_body(class_type) ||
-          class_type_has_body(corresp_type) ||
-          equiv_template_arg_lists(
+          equiv_template_arg_lists(ctsp->template_arg_list,
+                                   corresp_ctsp->template_arg_list,
+                                   ETA_IS_NONREAL_MEMBER)) {
+        /* Partial specializations should be generated from the same set of
+           partial specialization arguments.  However, those arguments are only
+           determined when the body of the class template is instantiated. */
+        if ((ctsp->partial_spec_template_arg_list == NULL &&
+             corresp_ctsp->partial_spec_template_arg_list == NULL) ||
+            class_type_has_body(type) || class_type_has_body(corresp_type) ||
+            equiv_template_arg_lists(
                                  ctsp->partial_spec_template_arg_list,
                                  corresp_ctsp->partial_spec_template_arg_list,
                                  ETA_IS_NONREAL_MEMBER)) {
-        result = sym_entry;
-        break;
+          result = sym_entry;
+          break;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* while */
