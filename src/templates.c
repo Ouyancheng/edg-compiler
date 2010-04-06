@@ -16758,7 +16758,7 @@ alias
     }  /* if */
   }  /* if */
   /* Cache the type-id from the alias. */
-  if (curr_token != tok_end_of_source) {
+  if (curr_token != tok_end_of_source && curr_token != tok_semicolon) {
     a_token_set_array		stop_tokens;
     a_token_sequence_number	split_location;
     split_location = curr_token_sequence_number;
