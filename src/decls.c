@@ -12597,7 +12597,11 @@ current scope.
 }  /* nonmember_using_declaration */
 
 
-static void alias_declaration(a_decl_parse_state  *dps)
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* p_end_of_using_pos is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void alias_declaration(a_decl_parse_state  *dps,
+                              a_source_position   *p_end_of_using_pos)
 /*
 Handle a declaration of the form:
 
@@ -12610,6 +12614,7 @@ token.  The caller is also responsible for checking and consuming the final
 semicolon.
 
 *dps describes the declaration (which can be a class member or not).
+*p_end_of_using_pos is the end position of the "using" token.
 */
 {
   a_symbol_locator  loc;
@@ -12621,7 +12626,7 @@ semicolon.
   decl_pos_block.decl_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block.specifiers_range.start = dps->start_pos;
-  decl_pos_block.specifiers_range.end = curr_construct_end_position;
+  decl_pos_block.specifiers_range.end = *p_end_of_using_pos;
   decl_pos_block.identifier_range.start = pos_curr_token;
   decl_pos_block.identifier_range.end = end_pos_curr_token;
   decl_pos_block.declarator_range.start = pos_curr_token;
@@ -14445,9 +14450,7 @@ indicates how processing should proceed after the call.
       /* An alias-declaration ("using <identifier> = ... ", C++0x only), a
          using-directive (which has the form "using namespace N;"), or a
          using-declaration ("using N::x;" or "using ::x;"). */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      curr_construct_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      a_source_position  end_of_using_pos;
       /* Skip over the "using" token. */
       (void)get_token();
       /* Attributes cannot precede a using-declaration or using-directive. */
@@ -14457,7 +14460,7 @@ indicates how processing should proceed after the call.
       } else {
         if (alias_declarations_enabled &&
             curr_token == tok_identifier && next_token() == tok_assign) {
-          alias_declaration(state);
+          alias_declaration(state, &end_of_using_pos);
         } else {
           nonmember_using_declaration(state);
         }  /* if */
