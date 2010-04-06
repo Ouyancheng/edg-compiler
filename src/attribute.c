@@ -3116,12 +3116,15 @@ return that entity.
         pos_error(ec_function_type_not_allowed, &aap->position);
         apply_value = FALSE;
         make_attr_unrecognized(ap);
-      } else if (is_incomplete_type(tp)) {
-        pos_error(ec_incomplete_type_not_allowed, &aap->position);
-        apply_value = FALSE;
-        make_attr_unrecognized(ap);
       } else {
-        alignment = alignment_of_type(aap->variant.type);
+        complete_type_is_needed(tp);
+        if (is_incomplete_type(tp)) {
+          pos_error(ec_incomplete_type_not_allowed, &aap->position);
+          apply_value = FALSE;
+          make_attr_unrecognized(ap);
+        } else {
+          alignment = alignment_of_type(aap->variant.type);
+        }  /* if */
       }  /* if */
     } else if (aap->kind == (an_attribute_arg_kind)aak_constant) {
       a_host_large_integer  value = 0;
