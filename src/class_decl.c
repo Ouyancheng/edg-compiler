@@ -15949,8 +15949,11 @@ not actually hide a base class member.
         a_source_correspondence  *scp = source_corresp_entry_for_symbol(sym);
         an_attribute_ptr         ap;
         a_symbol_ptr             bsym;
-        if (symbol_is(sym, sk_member_function) &&
-            sym->variant.routine.ptr->compiler_generated) {
+        if (!sym->is_class_member) {
+          /* This can happen in some error cases. */
+          expect_error();
+        } else if (symbol_is(sym, sk_member_function) &&
+                   sym->variant.routine.ptr->compiler_generated) {
           /* Don't check compiler-generated member functions. */
         } else if (symbol_is(sym, sk_type) &&
                    sym->variant.type.is_injected_class_name) {
