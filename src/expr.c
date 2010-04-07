@@ -10015,6 +10015,10 @@ indication in *rcblock).
 #endif /* CHECKING */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  record_cast_position_in_rescan_info(result,
+                                      &start_position,
+                                      &type_position,
+                                      cast_type);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_dynamic_cast_operator */
