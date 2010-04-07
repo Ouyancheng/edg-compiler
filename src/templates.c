@@ -16730,6 +16730,11 @@ alias
   } else {
     /* A valid identifier was scanned. */
     locator = locator_for_curr_id;
+    if (decl_state->decl_scope_err) {
+      /* An error will have already been issued on a template declaration in an
+         invalid scope. */
+      set_to_named_error_locator(locator);
+    }  /* if */
     /* Skip past the identifier. */
     (void)get_token();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16844,9 +16849,11 @@ alias
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Create the symbol for the prototype instantiation. */
-  create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
-                        /*is_partial_specialization=*/FALSE);
+  if (!decl_state->decl_scope_err) {
+    /* Create the symbol for the prototype instantiation. */
+    create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                          /*is_partial_specialization=*/FALSE);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&tssp->variant.class_template.prototype_instantiation->
                                               variant.type.ptr->source_corresp,
@@ -17131,8 +17138,10 @@ any non-empty template parameter lists that were scanned.
   } else if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
     /* An alias template. */
     check_assertion(tssp->variant.class_template.is_alias_template);
-    /* Do the prototype instantiation evaluation of the alias type. */
-    alias_prototype_instantiation(sym);
+    if (!decl_state->decl_scope_err) {
+      /* Do the prototype instantiation evaluation of the alias type. */
+      alias_prototype_instantiation(sym);
+    }  /* if */
   } else if (nonclass_prototype_instantiations && sym != NULL) {
     if (is_function_or_template_symbol(sym)) {
       /* Do the prototype instantiation of the function. */
