@@ -5181,19 +5181,23 @@ is nonreal, a complete nonreal type is returned.
 
 static a_symbol_ptr instantiate_template_alias(
 				a_symbol_ptr		template_sym,
-				a_template_arg_ptr	template_arg_list)
+				a_template_arg_ptr	template_arg_list,
+				a_symbol_ptr		existing_instance_sym)
 /*
 Instantiate the alias template template_sym using the template argument
 list template_arg_list.  Return the symbol for the type that was created.
+If the alias is indirectly used in the type to which the alias refers an
+error should be issued.  existing_instance_sym will point to the template
+alias symbol that is in the process of being instantiated in this case.
+When existing_instance_sym is non-NULL an error is issued here and an
+error type is used.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				trans_unit_pushed;
-  a_symbol_list_entry_ptr		slep;
   a_symbol_ptr				instance_sym;
   a_type_ptr				type;
-  a_typeref_type_supplement_ptr		ttsp;
-  a_type_ptr				parent_class = NULL;
+    a_type_ptr				parent_class = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                             saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -5208,49 +5212,62 @@ list template_arg_list.  Return the symbol for the type that was created.
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(template_sym);
-  /* Create the symbol for the alias instance. */
-  instance_sym = make_template_class_symbol(template_sym);
-  /* Add the new symbol to the head of the instantiation list. */
-  slep = alloc_symbol_list_entry();
-  slep->symbol = instance_sym;
-  slep->next = tssp->variant.class_template.instantiations;
-  tssp->variant.class_template.instantiations = slep;
-  /* Create the type entry for the alias. */
-  type = alloc_type((a_type_kind)tk_typeref);
-  type->variant.typeref.is_alias = TRUE;
-  type->variant.typeref.is_template_alias = TRUE;
-  instance_sym->variant.type.ptr = type;
-  set_source_corresp(&(type->source_corresp), instance_sym);
-  set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
-  if (instance_sym->is_class_member) {
-    parent_class = sym_parent_class(instance_sym);
-    /* If the enclosing class is nonreal, then any instances of the member
-       alias must also be nonreal. */
-    if (parent_class->variant.class_struct_union.is_nonreal_class) {
+  if (existing_instance_sym != NULL) {
+    /* existing_instance_sym is non-NULL in the error case described in the
+       header comment.  Use this symbol instead of creating a new one. */
+    instance_sym = existing_instance_sym;
+    type = instance_sym->variant.type.ptr;
+    if (instance_sym->is_class_member) {
+      parent_class = sym_parent_class(instance_sym);
+    }  /* if */
+  } else {
+    /* This is the normal case.  Create a symbol for the new instance. */
+    a_symbol_list_entry_ptr		slep;
+    a_typeref_type_supplement_ptr	ttsp;
+    /* Create the symbol for the alias instance. */
+    instance_sym = make_template_class_symbol(template_sym);
+    /* Add the new symbol to the head of the instantiation list. */
+    slep = alloc_symbol_list_entry();
+    slep->symbol = instance_sym;
+    slep->next = tssp->variant.class_template.instantiations;
+    tssp->variant.class_template.instantiations = slep;
+    /* Create the type entry for the alias. */
+    type = alloc_type((a_type_kind)tk_typeref);
+    type->variant.typeref.is_alias = TRUE;
+    type->variant.typeref.is_template_alias = TRUE;
+    instance_sym->variant.type.ptr = type;
+    set_source_corresp(&(type->source_corresp), instance_sym);
+    set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
+    if (instance_sym->is_class_member) {
+      parent_class = sym_parent_class(instance_sym);
+      /* If the enclosing class is nonreal, then any instances of the member
+         alias must also be nonreal. */
+      if (parent_class->variant.class_struct_union.is_nonreal_class) {
+        type->variant.typeref.is_nonreal = TRUE;
+      }  /* if */
+    }  /* if */
+    /* See if the template arguments involve any nonreal types. */
+    if (template_arg_list_is_dependent(template_arg_list)) {
       type->variant.typeref.is_nonreal = TRUE;
     }  /* if */
-  }  /* if */
-  /* See if the template arguments involve any nonreal types. */
-  if (template_arg_list_is_dependent(template_arg_list)) {
-    type->variant.typeref.is_nonreal = TRUE;
-  }  /* if */
-  /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(template_arg_list);
-  /* Record the argument list in the type. */
-  ttsp = type->variant.typeref.extra_info;
-  ttsp->template_arg_list = template_arg_list;
-  {
-    /* For certain types (like X<int>::Y<T>) the prototype instantiation
-       must be fetched from the prototype template (e.g., X<T>::Y). */
-    a_symbol_ptr  proto_template = prototype_template_of(template_sym);
-    ttsp->assoc_template =
-                    proto_template->variant.template_info->il_template_entry;
-  }  /* if */
-  if (instance_sym->is_class_member) {
-    /* If this is an instance of a member alias, set the access of
-       the type based on the access stored in the template. */
-    type->source_corresp.access =
-                    (an_access_specifier)tssp->variant.class_template.access;
+    /* Remove any local or nonreal typedefs from the argument list. */
+    strip_types_from_template_arg_list(template_arg_list);
+    /* Record the argument list in the type. */
+    ttsp = type->variant.typeref.extra_info;
+    ttsp->template_arg_list = template_arg_list;
+    {
+      /* For certain types (like X<int>::Y<T>) the prototype instantiation
+         must be fetched from the prototype template (e.g., X<T>::Y). */
+      a_symbol_ptr  proto_template = prototype_template_of(template_sym);
+      ttsp->assoc_template =
+                      proto_template->variant.template_info->il_template_entry;
+    }
+    if (instance_sym->is_class_member) {
+      /* If this is an instance of a member alias, set the access of
+         the type based on the access stored in the template. */
+      type->source_corresp.access =
+                      (an_access_specifier)tssp->variant.class_template.access;
+    }  /* if */
   }  /* if */
   {
     a_template_cache_ptr	body_cache;
@@ -5286,6 +5303,13 @@ list template_arg_list.  Return the symbol for the type that was created.
       /* The alias template uses its own type in the definition.  An error
          will have already been issued.  Use an error type as the result. */
       type->variant.typeref.type = error_type();
+    } else if (existing_instance_sym != NULL) {
+      /* The alias is indirect used in the instantiation of the type to which
+         it refers. */
+      pos_sy_error(ec_alias_used_in_type,
+                   &body_cache->tokens.first_token->source_position,
+                   template_sym);
+      type->variant.typeref.type = error_type();
     } else {
       a_decl_parse_state  dps;
       init_decl_parse_state(&dps);
@@ -5309,7 +5333,14 @@ list template_arg_list.  Return the symbol for the type that was created.
       /* Scan the type. */
       type_name_full(&dps);
       check_type_definition_in_type_name(&dps);
-      type->variant.typeref.type = dps.type;
+      if (type->variant.typeref.type == NULL) {
+        /* The type pointed to by the typeref will normally be NULL except
+           in the case where an existing_instance_sym is being used in
+           error cases.  In that case, the type will have been updated
+           to refer to an error type while the instantiation of this type
+           was underway.  Don't update the type in that case. */
+        type->variant.typeref.type = dps.type;
+      }  /* if */
       if (type->variant.typeref.is_nonreal) {
         /* Discard pragmas on nonreal aliases. */
         discard_curr_construct_pragmas();
@@ -5523,11 +5554,15 @@ prototype instantiation is considered as a potential match.
     }  /* for */
     if (slep == NULL) sym = NULL;
   }  /* if */
-  if (sym == NULL) {
+  if (sym == NULL ||
+      (is_alias_template &&
+       sym->variant.type.ptr->variant.typeref.type == NULL)) {
     /* There is no instantiation for this set of template arguments.  Create
-       an instantiation now. */
+       an instantiation now.  For alias templates, we also call the
+       instantiation routine if the type is already in the process of being
+       instantiated (as determined by the NULL typeref type pointer). */
     if (is_alias_template) {
-      sym = instantiate_template_alias(class_template_sym, *new_list);
+      sym = instantiate_template_alias(class_template_sym, *new_list, sym);
     } else {
       sym = create_partial_instantiation_of_class(class_template_sym,
                                                   *new_list);
