@@ -16812,15 +16812,19 @@ alias
     incr_token_set_array_element(stop_tokens, tok_semicolon);
     cache_token_stream(p_token_cache, stop_tokens);
     if (keep_token_cache) {
+      a_token_cache	dummy_cache;
       terminate_token_cache(p_token_cache);
+      clear_token_cache(&dummy_cache, /*reusable=*/TRUE);
       /* The declaration token cache contains the complete declaration
          including the "= type-id".  Split the cache so that the type-id is
          removed from the declaration cache and placed in the definition
-         cache. */
+         cache.  We already have the definition cached, so just discard the
+         tokens that were removed from the declaration cache. */
       split_token_cache(&decl_state->decl_token_cache,
-                        p_token_cache, split_location,
+                        &dummy_cache, split_location,
                         /*include_prev_token=*/FALSE,
                         /*okay_if_not_found=*/FALSE);
+      discard_token_cache(&dummy_cache);
     } else {
       discard_token_cache(p_token_cache);
       p_token_cache = NULL;
