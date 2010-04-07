@@ -12071,7 +12071,8 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         qualifier_type = skip_typerefs(qualifier_type);
         if (!acceptable_dtor_type(field_sel_type, qualifier_type) &&
             (!is_template_dependent_type(qualifier_type) &&
-             find_base_class_of(field_sel_type, qualifier_type) == NULL)) {
+             (!is_class_struct_union_type(qualifier_type) ||
+              find_base_class_of(field_sel_type, qualifier_type) == NULL))) {
           pos_ty2_error(ec_destructor_qualifier_type_mismatch,
                         &locator_for_curr_id.source_position,
                         qualifier_type,
