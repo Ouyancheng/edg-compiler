@@ -7447,7 +7447,7 @@ Generate code for a new or delete operation.
     if (ndsp->dynamic_init != NULL) {
       /* The allocated entity gets initialized. */
       gen_dynamic_init(ndsp->dynamic_init, type, /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/FALSE,
+                       /*force_parens=*/(a_boolean)ndsp->has_new_initializer,
                        /*obj_expr_of_mfunc_operator=*/FALSE,
                        /*is_static_cast=*/FALSE);
     }  /* if */

@@ -1470,10 +1470,7 @@ by octl.
       break;
     case tk_template_param:
       {
-        if (type->variant.template_param.kind ==
-                                     (a_template_param_type_kind)tptk_param &&
-            type->variant.template_param.extra_info->coordinates.depth ==
-                                                    AUTO_TYPE_NESTING_DEPTH) {
+        if (is_auto_type(type)) {
           /* A type entry representing the "auto" type specifier. */
           octl->output_str("auto", octl);
         } else {

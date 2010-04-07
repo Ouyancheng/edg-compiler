@@ -948,6 +948,25 @@ Return TRUE if the given type is a class type with virtual functions
 }  /* is_polymorphic_class_type */
 
 
+a_boolean is_auto_type(a_type_ptr tp)
+/*
+Return TRUE if the indicated type is the special template parameter type
+used to represent "auto".  No typerefs are stripped before checking for that.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_template_param(tp) &&
+      tp->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+      tp->variant.template_param.extra_info->coordinates.depth ==
+                                                     AUTO_TYPE_NESTING_DEPTH) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_auto_type */
+
+
 a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp)
 /*
 Returns TRUE if the given type is volatile-qualified, is a class/struct/union

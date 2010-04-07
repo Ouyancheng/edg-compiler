@@ -2116,7 +2116,7 @@ values.
   eriep->operator_position = null_source_position;
   eriep->operator_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   eriep->secondary_operator_position = null_source_position;
-  eriep->cast_type = NULL;
+  eriep->type = NULL;
 }  /* clear_expr_rescan_info_entry */
 
 
@@ -2162,7 +2162,7 @@ entry attached to the expression node so it will be available for the rescan.
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
 
-static void record_operator_position_in_expr_rescan_info(
+void record_operator_position_in_expr_rescan_info(
                                an_expr_node_ptr        node,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
@@ -2244,31 +2244,33 @@ not, for example, if it is a constant).
 }  /* record_operator_position_in_rescan_info_if_expr */
 
 
-void record_cast_position_in_expr_rescan_info(
+void record_typed_operator_position_in_expr_rescan_info(
                                              an_expr_node_ptr  expr,
                                              a_source_position *start_position,
                                              a_source_position *type_position,
-                                             a_type_ptr        cast_type)
+                                             a_type_ptr        type)
 /*
 Record the source position of a cast in the rescan information associated with
 that cast, allocating the rescan info if needed.  expr is the cast expression;
 start_position is the source position of the start of the cast;
 type_position is the source position of the type within the cast;
-and cast_type is the type cast to.
+and type is the type cast to.  Also used for other operators with a
+salient type, e.g., "new".
 */
 {
   if (expr_stack->template_deduction_declaration_context) {
     an_expr_rescan_info_entry_ptr eriep;
     check_assertion(is_cast_operation_node(expr) ||
-                    expr->kind == (an_expr_node_kind)enk_temp_init);
+                    expr->kind == (an_expr_node_kind)enk_temp_init ||
+                    expr->kind == (an_expr_node_kind)enk_new_delete);
     record_operator_position_in_expr_rescan_info(expr, start_position,
                                                  NO_TOKEN_SEQUENCE_NUMBER,
                                                  type_position);
     eriep = expr->rescan_info;
     check_assertion(eriep != NULL);
-    eriep->cast_type = cast_type;
+    eriep->type = type;
   }  /* if */
-}  /* record_cast_position_in_expr_rescan_info */
+}  /* record_typed_operator_position_in_expr_rescan_info */
 
 
 void record_cast_position_in_rescan_info(an_operand        *operand,
@@ -2288,10 +2290,10 @@ Do nothing if the operand is not discernibly a cast expression.
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
-      record_cast_position_in_expr_rescan_info(expr,
-                                               start_position,
-                                               type_position,
-                                               cast_type);
+      record_typed_operator_position_in_expr_rescan_info(expr,
+                                                         start_position,
+                                                         type_position,
+                                                         cast_type);
     }  /* if */
   }  /* if */
 }  /* record_cast_position_in_rescan_info */
@@ -2861,6 +2863,40 @@ template argument list being tried.
 }  /* make_sizeof_et_al_rescan_operands */
 
 
+an_expr_node_ptr rescan_arg_list_from_dyn_init(a_dynamic_init_ptr dip)
+/*
+Return the effective argument list of the indicated dynamic initialization,
+to be used for expression rescan purposes.  The effective argument list is
+the initializer expression or the arguments of the constructor call.
+*/
+{
+  an_expr_node_ptr args = NULL;
+
+  switch (dip->kind) {
+    case dik_none:
+    case dik_zero:
+      /* No arguments in these cases. */
+      args = NULL;
+      break;
+    case dik_expression:
+    case dik_call_returning_class_via_cctor:
+      /* The single expression is the argument. */
+      args = dip->variant.expression;
+      break;
+    case dik_constructor:
+      /* The constructor call argument list is the argument list. */
+      args = dip->variant.constructor.args;
+      break;
+    case dik_constant:
+    case dik_nonconstant_aggregate:
+    case dik_bitwise_copy:
+    default:
+      unexpected_condition_str("unexpected dynamic init kind in rescan");
+  }  /* switch */
+  return args;
+}  /* rescan_arg_list_from_dyn_init */
+
+
 void make_cast_rescan_operands(a_rescan_control_block *rcblock,
                                a_source_position      *start_position,
                                a_type_ptr             *cast_type, 
@@ -2892,35 +2928,14 @@ instead.
   /* We pass NULL for the second argument because we want to require
      explicit rescan information on all casts. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-  check_assertion(eriep->cast_type != NULL);
-  *cast_type = do_type_substitution_for_rescan(eriep->cast_type,
-                                               rcblock, eriep);
+  check_assertion(eriep->type != NULL);
+  *cast_type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
   if (rcblock->operator_token == tok_typename) {
     /* Functional-notation cast (or old-style cast).  Return the argument
        list via rcblock->argument_list. */
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      switch (dip->kind) {
-        case dik_none:
-        case dik_zero:
-          /* No arguments in these cases. */
-          rcblock->argument_list = NULL;
-          break;
-        case dik_expression:
-        case dik_call_returning_class_via_cctor:
-          /* The single expression is the argument. */
-          rcblock->argument_list = dip->variant.expression;
-          break;
-        case dik_constructor:
-          /* The constructor call argument list is the argument list. */
-          rcblock->argument_list = dip->variant.constructor.args;
-          break;
-        case dik_constant:
-        case dik_nonconstant_aggregate:
-        case dik_bitwise_copy:
-        default:
-          unexpected_condition_str("unexpected dynamic init kind in rescan");
-      }  /* switch */
+      rcblock->argument_list = rescan_arg_list_from_dyn_init(dip);
     } else {
       /* Cast operation, e.g., eok_cast.  The operand of the cast is
          the argument list. */
@@ -2938,6 +2953,42 @@ instead.
                                 &operator_tok_seq_number,
                                 type_position);
 }  /* make_cast_rescan_operands */
+
+
+void make_new_delete_rescan_operands(
+                                   a_rescan_control_block      *rcblock,
+                                   a_new_delete_supplement_ptr *ndsp,
+                                   a_source_position           *start_position,
+                                   a_type_ptr                  *type, 
+                                   a_source_position           *type_position)
+/*
+As part of redoing semantic analysis on an expression while doing
+template deduction, extract and return information about the "new" or
+"delete" expression given by rcblock->expr.  *ndsp is set to the
+new-delete supplement.  *start_position is set to the starting
+position of the expression.  If type is non-NULL, *type is set to the
+type of entity to be allocated.  If type_position is non-NULL,
+*type_position is set to the position of the type in the expression.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_token_sequence_number       operator_tok_seq_number;
+
+  check_assertion(expr != NULL);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_new_delete);
+  /* We pass NULL for the second argument because we want to require
+     explicit rescan information on all news/deletes. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  *ndsp = expr->variant.new_delete;
+  if (type != NULL) {
+    check_assertion(eriep->type != NULL);
+    *type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
+  }  /* if */
+  get_rescan_operator_positions(eriep, start_position,
+                                &operator_tok_seq_number,
+                                type_position);
+}  /* make_new_delete_rescan_operands */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)

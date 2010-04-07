@@ -493,8 +493,9 @@ typedef struct an_expr_rescan_info_entry {
 			/* Position of a second operator, e.g., the closing
 			   "]" of a subscript or the ":" of a "?" operator.
 			   Also used for the type position for a cast. */
-  a_type_ptr	cast_type;
-			/* For a cast, the type cast to.  Otherwise, NULL. */
+  a_type_ptr	type;
+			/* For a cast, the type cast to.  For a "new", the
+			   type being allocated.  Otherwise, NULL. */
 } an_expr_rescan_info_entry;
 
 /*
@@ -1490,6 +1491,8 @@ void make_sizeof_et_al_rescan_operands(
                               a_token_sequence_number *operator_tok_seq_number,
                               a_source_position       *type_position);
 
+extern an_expr_node_ptr rescan_arg_list_from_dyn_init(a_dynamic_init_ptr dip);
+
 extern void make_cast_rescan_operands(
                               a_rescan_control_block *rcblock,
                               a_source_position      *start_position,
@@ -1497,6 +1500,13 @@ extern void make_cast_rescan_operands(
                               a_source_position      *type_position,
                               an_operand             *operand,
                               an_operand             *bound_function_selector);
+
+extern void make_new_delete_rescan_operands(
+                                   a_rescan_control_block      *rcblock,
+                                   a_new_delete_supplement_ptr *ndsp,
+                                   a_source_position           *start_position,
+                                   a_type_ptr                  *type, 
+                                   a_source_position           *type_position);
 
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
@@ -1530,13 +1540,19 @@ extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
 extern an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
                                            a_boolean        parens_also);
 
+extern void record_operator_position_in_expr_rescan_info(
+                               an_expr_node_ptr        node,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               a_source_position       *operator_position_2);
+
 extern void record_operator_position_in_rescan_info_if_expr(
                                an_operand              *operand,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
 
-extern void record_cast_position_in_expr_rescan_info(
+extern void record_typed_operator_position_in_expr_rescan_info(
                                              an_expr_node_ptr  expr,
                                              a_source_position *start_position,
                                              a_source_position *type_position,

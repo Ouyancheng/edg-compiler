@@ -69,32 +69,36 @@ static void scan_expr_full(an_operand              *result,
                  (local_options))
 
 
-static void set_auto_type_is_template_dependent_flag(a_decl_parse_state  *dps)
+static void deduce_auto_type_if_necessary(a_decl_parse_state *dps)
 /*
 *dps represents a declaration with an "auto" type specifier and a prescanned
-initializer expression.  Determine whether the declared type and/or the
-initializer type are template dependent and record the result in *dps.
-(The "auto" type is not deduced if the result is TRUE.)
-This routine should be called only during prototype instantiations.
+initializer expression.  Deduce the auto type from the initializer and
+store it in dps->type.  Do not do the deduction if the initializer is
+still dependent or the specifiers type is dependent other than
+because of the "auto", since we won't be able to get a result in those
+cases.
 */
 {
-  check_assertion(is_prototype_instantiation_context());
-  if (is_template_dependent_type(
-                            dps->prescanned_auto_initializer->operand.type)) {
-    /* The initializer is dependent. */
-    dps->auto_type_is_template_dependent = TRUE;
-  } else {
-    check_assertion(dps->auto_type != NULL &&
-                    dps->auto_type->kind == (a_type_kind)tk_template_param);
-    /* Temporarily treat the "auto" type as an "unknown" type so it is
-       ignored by "is_template_dependent_type". */
-    dps->auto_type->kind = (a_type_kind)tk_unknown;
-    dps->auto_type_is_template_dependent =
-                               is_template_dependent_type(dps->declared_type);
-    dps->auto_type->kind = (a_type_kind)tk_template_param;
-  }  /* if */
+  a_boolean do_deduction = TRUE;
 
-}  /* set_auto_type_is_template_dependent_flag */
+  if (is_prototype_instantiation_context()) {
+    if (is_template_dependent_type(
+                            dps->prescanned_auto_initializer->operand.type)) {
+      /* The initializer is dependent. */
+      do_deduction = FALSE;
+    } else {
+      check_assertion(dps->auto_type != NULL && is_auto_type(dps->auto_type));
+      /* Temporarily treat the "auto" type as an "unknown" type so it is
+         ignored by "is_template_dependent_type". */
+      dps->auto_type->kind = (a_type_kind)tk_unknown;
+      do_deduction = !is_template_dependent_type(dps->declared_type);
+      dps->auto_type->kind = (a_type_kind)tk_template_param;
+    }  /* if */
+  }  /* if */
+  if (do_deduction) {
+    deduce_auto_type(dps);
+  }  /* if */
+}  /* deduce_auto_type_if_necessary */
 
 
 void prescan_initializer_for_auto_type_deduction(a_decl_parse_state  *dps)
@@ -138,12 +142,7 @@ get_prescanned_auto_initializer.
   dps->prescanned_auto_initializer = alloc_arg_operand();
   scan_expr(&dps->prescanned_auto_initializer->operand, PREC_LOWEST,
             EOPT_DISALLOW_COMMA_OPERATOR);
-  if (is_prototype_instantiation_context()) {
-    set_auto_type_is_template_dependent_flag(dps);
-  }  /* if */
-  if (!dps->auto_type_is_template_dependent) {
-    deduce_auto_type(dps);
-  }  /* if */
+  deduce_auto_type_if_necessary(dps);
   /* Pop the expression stack if needed. */
   if (!dps->is_new_expr_type) {
     if (!dps->in_class_scope) {
@@ -855,23 +854,25 @@ TRUE or when calling through a pointer.  If closing_paren_position is
 non-NULL, *closing_paren_position is set to the source position of the
 closing parenthesis of the call (but it's not set on a rescan).
 
-On entry, *p_arg_operand_list can be non-NULL to point to a pre-scanned
-argument list, which is then checked and processed as if it were scanned
-here.  The closing parenthesis is the current token in that case, and
-that token is bypassed here.  already_after_left_paren is ignored.
+On entry, if p_arg_operand_list is non-NULL and *p_arg_operand_list is
+non-NULL, it points to a pre-scanned argument list, which is then checked
+and processed as if it were scanned here.  The closing parenthesis is
+the current token in that case, and that token is bypassed here.
+already_after_left_paren is ignored.  On return, *p_arg_operand_list will
+have been set to NULL.
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 argument list, given by rcblock->argument_list.  The arguments are
 returned in either *p_argument_list or *p_arg_operand_list, as specified
-by return_raw_arguments.  already_after_left_paren and the input value
-of *p_arg_operand are ignored.  *closing_paren_position is not set or
-altered.
+by return_raw_arguments.  already_after_left_paren is ignored.
+*closing_paren_position is not set or altered.  *p_arg_operand_list
+can still be non-NULL on input to indicate a prescanned argument list
+for a rescan case, which preempts rcblock->argument_list.
 */
 {
   an_arg_operand_ptr arg_operand_list, end_arg_operand_list;
   an_arg_check_block arg_block;
-  a_boolean          arg_list_was_prescanned = (rcblock == NULL &&
-                                                p_arg_operand_list != NULL &&
+  a_boolean          arg_list_was_prescanned = (p_arg_operand_list != NULL &&
                                                 *p_arg_operand_list != NULL);
 
   db_enter(4, "scan_call_arguments");
@@ -958,18 +959,21 @@ static void scan_dependent_parenthesized_initializer(
                                        an_arg_operand_ptr     *prescanned_args,
                                        a_dynamic_init_ptr     *dip)
 /*
-Scan and process a parenthesized list of expressions that is the initializer
-of an entity of a template-dependent type.  If the expression operands were
-prescanned, *prescanned_args points to them (and will be NULL on return);
-otherwise, prescanned_args is NULL.  Build a dynamic initialization entry for
-the initialization and return a pointer to it in *dip.
-On entry, the current token is the one following the opening parenthesis
-(unless the argument was prescanned, in which case the current token is the
-one following the prescanned argument).  On return, the current token is the
-one following the closing parenthesis.
-If rcblock is non-NULL, redo semantic analysis on a previously-scanned
-initializer list (given by rcblock->argument_list) and return the result
-as usual (or an error indication in *rcblock).
+Scan and process a parenthesized list of expressions that is the
+initializer of an entity of a template-dependent type.  If
+prescanned_args is non-NULL and *prescanned_args is non-NULL, the
+expression list has been prescanned and *prescanned_args points to its
+first expression.  Build a dynamic initialization entry for the
+initialization and return a pointer to it in *dip.  On entry, the
+current token is the one following the opening parenthesis (unless the
+argument was prescanned, in which case the current token is the one
+following the prescanned argument).  On return, the current token is
+the one following the closing parenthesis, and in the prescanned case
+*prescanned_args will have been set to NULL.  If rcblock is non-NULL,
+redo semantic analysis on a previously-scanned initializer list (given
+by rcblock->argument_list) and return the result as usual (or an error
+indication in *rcblock).  *prescanned_arg_list can still be non-NULL
+in that case and preempts the rcblock->argument_list expression.
 */
 {
   an_expr_node_ptr  arg_list;
@@ -1022,17 +1026,24 @@ unexpected expressions more gracefully.
 
 
 static an_expr_node_ptr scan_parenthesized_initializer_expression(
-                                          an_operand    *prescanned_expr,
-                                          a_type_ptr    dest_type,
-                                          an_error_code err_code)
+                                       a_rescan_control_block *rcblock,
+                                       an_operand             *prescanned_expr,
+                                       a_type_ptr             dest_type,
+                                       an_error_code          err_code)
 /*
-Scan a single expression in parentheses as an initializer value, and convert
-it to dest_type if necessary.  If the expression has already been prescanned,
-*prescanned_expr holds the associated operand.  Otherwise, the current token
-is the token after the opening left parenthesis and prescanned_expr is NULL.
-On return, the current token is the token following the closing parenthesis.
-If the conversion cannot be done, issue the error err_code.  The entity being
-initialized is assumed not to be a variable.
+Scan a single expression in parentheses as an initializer value, and
+convert it to dest_type if necessary.  If prescanned_expr is non-NULL,
+the expression has already been prescanned, and *prescanned_expr holds
+the associated operand.  Otherwise, the current token is the token
+after the opening left parenthesis.  On return, the current token is
+the token following the closing parenthesis.  If the conversion cannot
+be done, issue the error err_code.  The entity being initialized is
+assumed not to be a variable.  If rcblock is non-NULL, redo semantic
+analysis on a previously-scanned initializer expression given by
+rcblock->argument_list, and return the result as usual (or an error
+indication in *rcblock).  prescanned_expr can still be non-NULL in
+that case, to indicate a prescanned expression that preempts
+rcblock->argument_list.
 */
 {
   an_expr_node_ptr  expr;
@@ -1041,9 +1052,11 @@ initialized is assumed not to be a variable.
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  add_matching_stop_token(tok_rparen);
+  if (rcblock == NULL) add_matching_stop_token(tok_rparen);
   if (prescanned_expr != NULL) {
     result_ptr = prescanned_expr;
+  } else if (rcblock != NULL) {
+    make_rescan_operand(rcblock->argument_list, rcblock, &result);
   } else {
     /* Since the syntax has an expression-list even in the single-expression
        case, a top-level comma is not allowed. */
@@ -1058,16 +1071,18 @@ initialized is assumed not to be a variable.
                            /*is_copy_initialization=*/FALSE,
                            /*nontype_template_arg=*/FALSE,
                            err_code);
-  /* Check for the required closing parenthesis. */
+  if (rcblock == NULL) {
+    /* Check for the required closing parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
+    end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  check_closing_paren_after_expr_list();
-  remove_matching_stop_token(tok_rparen);
+    check_closing_paren_after_expr_list();
+    remove_matching_stop_token(tok_rparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   expr = make_node_from_operand(result_ptr);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return expr;
 }  /* scan_parenthesized_initializer_expression */
 
@@ -1085,38 +1100,40 @@ static void scan_ctor_arguments(a_symbol_ptr           constructor_sym,
                                 an_expr_node_ptr       *p_temp_init_node,
                                 a_source_position      *closing_paren_position)
 /*
-Scan and process the argument list for a C++ constructor call.  If
-prescanned_args is NULL, no arguments were prescanned and the current token
-is the one right after the opening parenthesis of the argument list.
-Otherwise, the current token is the one following the prescanned arguments,
-which are pointed to by *prescanned_args on call (on return, *prescanned_args
-is set to NULL).
-The constructor symbol (possibly overloaded) is constructor_sym.
-Scan the arguments and the closing parenthesis, and return a pointer
-to a dynamic initialization entry for the constructor call in *p_dip
-(*p_dip is set to NULL for an error).  If p_temp_init_node is non-NULL,
-create an enk_temp_init node (for the value of a temporary) pointing
-to that dynamic initialization entry, and return a pointer to it in
-*p_temp_init_node; dest_type must be provided in that case and is the
-type for the node.  An error node is returned for an error.
-*source_pos indicates the source position of the call (often, the
-position of the left parenthesis).  object_class_type is the type of
-the object being constructed, which may be different than the type of
-the constructor being called (e.g., when a base class constructor is
-being called for a derived class object); if it's NULL, the class of
-the constructor is assumed.  If fill_in_dtor is TRUE, appropriate
-destruction is placed in the returned dynamic initialization.
-If elision_allowed is TRUE, a call of a copy constructor can be
-elided or turned into a bitwise move.  If trivial_ctor is non-NULL,
-and the initialization required turns out to be calling a trivial
-default constructor (which does nothing), and there's no destructor
-to be called (either because the class doesn't have one or because
-fill_in_dtor is FALSE), return *trivial_ctor set to TRUE, don't
-construct a dynamic initialization entry, and return *p_dip set
-to NULL.  Otherwise, return *trivial_ctor set to FALSE if
+Scan and process the argument list for a C++ constructor call.
+Normally, the current token is the one right after the opening
+parenthesis of the argument list, and the argument list is scanned.
+However, if prescanned_args is non-NULL and *prescanned_args is
+non-NULL, the argument list has been prescanned and is given by
+*prescanned_args.  In that case, the current token is the one
+following the prescanned arguments.  The argument list will be
+extracted from *prescanned_args, and *prescanned_args will be set to
+NULL on return.  The constructor symbol (possibly overloaded) is
+constructor_sym.  Scan the arguments and the closing parenthesis, and
+return a pointer to a dynamic initialization entry for the constructor
+call in *p_dip (*p_dip is set to NULL for an error).  If
+p_temp_init_node is non-NULL, create an enk_temp_init node (for the
+value of a temporary) pointing to that dynamic initialization entry,
+and return a pointer to it in *p_temp_init_node; dest_type must be
+provided in that case and is the type for the node.  An error node is
+returned for an error.  *source_pos indicates the source position of
+the call (often, the position of the left parenthesis).
+object_class_type is the type of the object being constructed, which
+may be different than the type of the constructor being called (e.g.,
+when a base class constructor is being called for a derived class
+object); if it's NULL, the class of the constructor is assumed.  If
+fill_in_dtor is TRUE, appropriate destruction is placed in the
+returned dynamic initialization.  If elision_allowed is TRUE, a call
+of a copy constructor can be elided or turned into a bitwise move.  If
+trivial_ctor is non-NULL, and the initialization required turns out to
+be calling a trivial default constructor (which does nothing), and
+there's no destructor to be called (either because the class doesn't
+have one or because fill_in_dtor is FALSE), return *trivial_ctor set
+to TRUE, don't construct a dynamic initialization entry, and return
+*p_dip set to NULL.  Otherwise, return *trivial_ctor set to FALSE if
 trivial_ctor is non-NULL.  If closing_paren_position is non-NULL,
-*closing_paren_position is set to the source position of the
-closing parenthesis (but it's not set on a rescan).
+*closing_paren_position is set to the source position of the closing
+parenthesis (but it's not set on a rescan).
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -1130,7 +1147,8 @@ source position is after the closing parenthesis of the argument list.
 
 If rcblock is non-NULL, redo semantic analysis on a previously-scanned
 expression, and return the result as usual (or an error indication in
-*rcblock).
+*rcblock).  *prescanned_args can still be non-NULL to indicate a
+prescanned argument list, which preempts the list in rcblock.
 */
 {
   a_boolean           overloaded_function_case = FALSE;
@@ -1185,10 +1203,10 @@ expression, and return the result as usual (or an error indication in
     routine = NULL;
   }  /* if */
   if (value_initialization_enabled &&
+      !(prescanned_args != NULL && *prescanned_args != NULL) &&
       (rcblock != NULL ?
         (rcblock->argument_list == NULL) :
-        (curr_token == tok_rparen &&
-         (prescanned_args == NULL || *prescanned_args == NULL)))) {
+        (curr_token == tok_rparen))) {
     /* Empty parentheses ("()") indicate value-initialization.  (If an
        argument was prescanned, the parentheses weren't empty even if the
        current token is ")".) */
@@ -8744,12 +8762,7 @@ indication in *rcblock).
           expr = operand.variant.expression;
         }  /* if */
       }  /* if */
-    } else if (typeid_type->kind == (a_type_kind)tk_template_param &&
-               typeid_type->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param &&
-               typeid_type->
-                        variant.template_param.extra_info->coordinates.depth ==
-                                                     AUTO_TYPE_NESTING_DEPTH) {
+    } else if (is_auto_type(typeid_type)) {
       /* The type is the "auto" type-specifier, so we need to keep the
          expression.  (This can only occur in a prototype instantiation;
          otherwise, the type would have been resolved to an actual type.) */
@@ -10383,9 +10396,10 @@ and hence we cannot examine the matching operator delete either.
 }  /* warn_about_missing_delete_if */
 
 
-static void scan_new_operator(an_operand *result)
+static void scan_new_operator(a_rescan_control_block *rcblock,
+                              an_operand             *result)
 /*
-Scan the C++ new operator.  See 5.3.3 in the ARM.
+Scan the C++ new operator.
 
 Syntax:
       allocation-expression:
@@ -10402,6 +10416,9 @@ Syntax:
 new-type-name and the "( type-name )" case are handled by the routine
 new_type_name called from this routine.  Note that both forms of type
 specification allow a variable-sized array as the top type.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+new expression, and return the result in *result (or an error indication
+in *rcblock).
 */
 {
   a_boolean         err = FALSE;
@@ -10420,7 +10437,7 @@ specification allow a variable-sized array as the top type.
   a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
   a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     delete_routine = NULL;
-  a_boolean         needs_initialization, trapped_left_paren;
+  a_boolean         needs_initialization;
   a_boolean         zero_initialization, has_new_initializer = FALSE;
   an_expr_node_ptr  arg_expr_list, init_val_node;
   a_constant        sizeof_constant;
@@ -10442,13 +10459,60 @@ specification allow a variable-sized array as the top type.
   a_boolean         unknown_dependent_new = FALSE;
   a_boolean         template_case = FALSE;
   a_boolean         force_dependent = FALSE;
+  a_boolean         auto_type_specifier_seen = FALSE;
+  a_boolean         empty_parens;
+  a_boolean         trapped_left_paren = FALSE;
+  a_new_delete_supplement_ptr
+                    rescan_ndsp = NULL;
   a_decl_parse_state
                     dps;
 
   db_enter(4, "scan_new_operator");
 
-  /* Save the position of the start. */
-  copy_source_position(pos_curr_token, start_position);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_new);
+    make_new_delete_rescan_operands(rcblock, &rescan_ndsp, &start_position,
+                                    &new_type, &type_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* On the rescan, we can't distinguish start_position and new_position
+       (they differ if there's a leading "::"). */
+    new_position = start_position;
+    use_global_new = rescan_ndsp->global_new_or_delete;
+    placement_new = rescan_ndsp->placement_new;
+    has_new_initializer = rescan_ndsp->has_new_initializer;
+    auto_type_specifier_seen = rescan_ndsp->type_contains_auto_specifier;
+    if (placement_new) {
+      /* Pick up the placement new argument list in arg_operand form. */
+      check_assertion(rescan_ndsp->arg != NULL);
+      rcblock->argument_list = rescan_ndsp->arg->next;
+      scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                          /*already_after_left_paren=*/TRUE,
+                          &dummy, /*return_raw_arguments=*/TRUE,
+                          /*unknown_dependent_function=*/FALSE,
+                          rcblock,
+                          &arg_operand_list, (a_source_position *)NULL);
+    }  /* if */
+    if (has_new_initializer) {
+      /* Set up the argument list for the new initializer. */
+      a_dynamic_init_ptr init_dip = rescan_ndsp->dynamic_init;
+      check_assertion(init_dip != NULL);
+      rcblock->argument_list = arg_expr_list =
+                                       rescan_arg_list_from_dyn_init(init_dip);
+      if (arg_expr_list != NULL &&
+          arg_expr_list->rescan_info != NULL) {
+        init_position = arg_expr_list->rescan_info->saved_operand.position;
+      } else {
+        /* Use the type position as an approximate initializer position. */
+        init_position = type_position;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+  }  /* if */
 
   if (curr_expr_kind_is_const()) {
     /* "new" not allowed in constant expressions. */
@@ -10456,82 +10520,108 @@ specification allow a variable-sized array as the top type.
     err = TRUE;
   }  /* if */
 
-  if (curr_token == tok_colon_colon) {
-    /* "::" appears first, meaning use the global new operator. */
-    use_global_new = TRUE;
-    (void)get_token();
-  }  /* if */
+  if (rcblock == NULL) {
+    if (curr_token == tok_colon_colon) {
+      /* "::" appears first, meaning use the global new operator. */
+      use_global_new = TRUE;
+      (void)get_token();
+    }  /* if */
 #if CHECKING
-  if (curr_token != tok_new) {
-    internal_error("scan_new_operator: expected new");
-  }  /* if */
+    if (curr_token != tok_new) {
+      internal_error("scan_new_operator: expected new");
+    }  /* if */
 #endif /* CHECKING */
-  copy_source_position(pos_curr_token, new_position);
-
-  (void)get_token();
-  /* Check for the presence of the "placement" term, which provides extra
-     arguments for the operator new function.  It is a list of expressions
-     in parentheses. */
-  trapped_left_paren = FALSE;
-  if (curr_token == tok_lparen) {
+    new_position = pos_curr_token;
     (void)get_token();
-    /* Both the placement term and the type can start with a parenthesis.
-       Look inside to tell them apart.  For example:
-         new (int(1.5)) A     // placement
-         new (int(*  ))       // type
-    */
-    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
-      /* This is the type name. */
-      trapped_left_paren = TRUE;
-    } else {
-      /* This is the placement expression list. */
-      placement_new = TRUE;
-      if (curr_token == tok_rparen) {
-        /* An empty list is not allowed. */
-        expr_pos_error(ec_exp_primary_expr, &pos_curr_token);
-        (void)get_token();
+    /* Check for the presence of the "placement" term, which provides extra
+       arguments for the operator new function.  It is a list of expressions
+       in parentheses. */
+    if (curr_token == tok_lparen) {
+      (void)get_token();
+      /* Both the placement term and the type can start with a parenthesis.
+         Look inside to tell them apart.  For example:
+           new (int(1.5)) A     // placement
+           new (int(*  ))       // type
+      */
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED)) {
+        /* This is the type name. */
+        trapped_left_paren = TRUE;
       } else {
-        /* Scan the expression list as an argument list for which we do not yet
-           know the function.  The argument values are returned in a list
-           headed by arg_operand_list. */
-        scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
-                            /*already_after_left_paren=*/TRUE,
-                            &dummy, /*return_raw_arguments=*/TRUE,
-                            /*unknown_dependent_function=*/FALSE,
-                            (a_rescan_control_block *)NULL,
-                            &arg_operand_list, (a_source_position *)NULL);
+        /* This is the placement expression list. */
+        placement_new = TRUE;
+        if (curr_token == tok_rparen) {
+          /* An empty list is not allowed. */
+          expr_pos_error(ec_exp_primary_expr, &pos_curr_token);
+          (void)get_token();
+        } else {
+          /* Scan the expression list as an argument list for which we do
+             not yet know the function.  The argument values are returned
+             in a list headed by arg_operand_list. */
+          scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                              /*already_after_left_paren=*/TRUE,
+                              &dummy, /*return_raw_arguments=*/TRUE,
+                              /*unknown_dependent_function=*/FALSE,
+                              (a_rescan_control_block *)NULL,
+                              &arg_operand_list, (a_source_position *)NULL);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-  copy_source_position(pos_curr_token, type_position);
-  /* Scan the new-type-name or ( type-name ). */
   init_decl_parse_state(&dps);
-  dps.is_new_expr_type = TRUE;
-  dps.auto_type_allowed = auto_type_specifier_enabled;
-  dps.trailing_return_type_allowed = trailing_return_types_enabled;
-  new_type_name(&dps, trapped_left_paren);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (curr_token == tok_lparen) {
-    /* A new-initializer is present. */
-    has_new_initializer = TRUE;
-    init_position = pos_curr_token;
-    /* Advance past the "(". */
-    (void)get_token();
-    if (dps.auto_type_specifier_seen) {
-      /* Prescan the initializer to deduce the type to allocate. */
-      prescan_initializer_for_auto_type_deduction(&dps);
+  /* Next, get the type of entity to be allocated (new_type). */
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned "new". */
+    if (auto_type_specifier_seen) {
+      /* Deduce the type from the initializer.  The initializer expression
+         is "prescanned" by putting it in dps. */
+      dps.is_new_expr_type = TRUE;
+      dps.declared_type = new_type;
+      dps.prescanned_auto_initializer = alloc_arg_operand();
+      make_rescan_operand(rcblock->argument_list, rcblock,
+                          &dps.prescanned_auto_initializer->operand);
+      dps.declarator_pos = dps.auto_pos = type_position;
+      dps.auto_type_specifier_seen = TRUE;
+      /* Find the "auto" in the type. */
+      { a_type_ptr tp = find_bottom_of_type(new_type);
+        tp = skip_typerefs(tp);
+        check_assertion(is_auto_type(tp));
+        dps.auto_type = tp;
+      }
+      deduce_auto_type_if_necessary(&dps);
+      new_type = dps.type;
     }  /* if */
-  } else if (dps.auto_type_specifier_seen && !dps.has_trailing_return_type) {
-    /* An auto type specifier not followed by a new-initializer or a
-       trailing return type is an error. */
-    expr_pos_error(ec_auto_type_requires_initializer, &type_position);
-    dps.type = error_type();
-    dps.auto_type_specifier_seen = FALSE;
+  } else {
+    /* Scan the new-type-name or ( type-name ) from source. */
+    dps.is_new_expr_type = TRUE;
+    dps.auto_type_allowed = auto_type_specifier_enabled;
+    dps.trailing_return_type_allowed = trailing_return_types_enabled;
+    type_position = pos_curr_token;
+    new_type_name(&dps, trapped_left_paren);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    auto_type_specifier_seen = (dps.auto_type_specifier_seen &&
+                                !dps.has_trailing_return_type);
+    if (curr_token == tok_lparen) {
+      /* A new-initializer is present. */
+      has_new_initializer = TRUE;
+      init_position = pos_curr_token;
+      /* Advance past the "(". */
+      (void)get_token();
+      if (auto_type_specifier_seen) {
+        /* Prescan the initializer to deduce the type to allocate. */
+        prescan_initializer_for_auto_type_deduction(&dps);
+      }  /* if */
+    } else if (auto_type_specifier_seen) {
+      /* An auto type specifier not followed by a new-initializer or a
+         trailing return type is an error. */
+      expr_pos_error(ec_auto_type_requires_initializer, &type_position);
+      dps.type = error_type();
+      dps.auto_type_specifier_seen = auto_type_specifier_seen = FALSE;
+    }  /* if */
+    new_type = dps.type;
   }  /* if */
-  new_type = dps.type;
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(new_type);
@@ -10634,7 +10724,7 @@ specification allow a variable-sized array as the top type.
                 /*is_implicit_cast=*/TRUE,
                 /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE,
                 /*within_expr_processing=*/TRUE,
-                &error_position);
+                &type_position);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
         sizeof_node = new_array_dimension;
@@ -10788,6 +10878,12 @@ specification allow a variable-sized array as the top type.
          the initial value. */
     }  /* if */
   }  /* if */
+  /* Determine whether the initializer is an empty set of parentheses, "()". */
+  empty_parens = (has_new_initializer &&
+                  dps.prescanned_auto_initializer == NULL &&
+                  ((rcblock != NULL) ?
+                     (rcblock->argument_list == NULL) :
+                     (curr_token == tok_rparen)));
   /* Set ctor_sym non-NULL if the type is a class that has a constructor
      or an array with elements of such a class. */
   ctor_sym = NULL;
@@ -10850,9 +10946,6 @@ specification allow a variable-sized array as the top type.
            suppress this if the constructor that will be chosen is
            a trivial default constructor (a trivial copy constructor is
            okay; we can generate the body for that and call it). */
-        a_boolean empty_parens = (has_new_initializer &&
-                                  dps.prescanned_auto_initializer == NULL &&
-                                  curr_token == tok_rparen);
         a_boolean value_init = (empty_parens &&
                                 value_initialization_enabled);
         a_boolean trivial_ctor_init = ((empty_parens ||
@@ -10995,9 +11088,10 @@ specification allow a variable-sized array as the top type.
     /* A new-initializer is present. */
     /* No need to add tok_rparen to the stop tokens set: it's done by
        scan_ctor_arguments or scan_parenthesized_initializer_expression. */
-    if (array_new && curr_token != tok_rparen) {
+    if (array_new && !empty_parens) {
       /* No initializer except "()" may be specified for an array type. */
-      expr_pos_error(ec_initializer_not_allowed_on_array_new, &pos_curr_token);
+      expr_pos_error(ec_initializer_not_allowed_on_array_new,
+                     rcblock != NULL ? &init_position : &pos_curr_token);
       err = TRUE;
     }  /* if */
     if (ctor_sym != NULL) {
@@ -11018,7 +11112,7 @@ specification allow a variable-sized array as the top type.
                              turned into a bitwise move if it's doing the
                              allocation. */
                           /*elision_allowed=*/(new_routine != NULL),
-                          (a_rescan_control_block *)NULL,
+                          rcblock,
                           &trivial_ctor,
                           &dip, (an_expr_node_ptr *)NULL,
                           (a_source_position *)NULL);
@@ -11037,7 +11131,7 @@ specification allow a variable-sized array as the top type.
     } else if (template_case) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(
-                                              (a_rescan_control_block *)NULL,
+                                              rcblock,
                                               &dps.prescanned_auto_initializer,
                                               &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11046,8 +11140,7 @@ specification allow a variable-sized array as the top type.
       needs_initialization = TRUE;
     } else {
       /* Not a class with a constructor. */
-      if (curr_token != tok_rparen ||
-          dps.prescanned_auto_initializer != NULL) {
+      if (!empty_parens) {
         /* The new-initializer is not empty.  Scan it unless it has been
            prescanned. */
         an_operand  prescanned_expr, *prescanned_expr_ptr = NULL;
@@ -11061,6 +11154,7 @@ specification allow a variable-sized array as the top type.
            is required, but before the initialization is actually processed. */
         make_dyn_init_for_deletion_for_throw();
         init_val_node = scan_parenthesized_initializer_expression(
+                                                rcblock,
                                                 prescanned_expr_ptr,
                                                 err ? error_type() : new_type,
                                                 ec_bad_initializer_type);
@@ -11075,10 +11169,12 @@ specification allow a variable-sized array as the top type.
            value-initialization.  Note that "()" for class types with
            (nontrivial) constructors is handled above, however, so
            value-initialization here is effectively zero-initialization. */
+        if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        end_position = end_pos_curr_token;
+          end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        (void)get_token();
+          (void)get_token();
+        }  /* if */
         if (microsoft_bugs &&
             emulate_msvc_value_initialization_bugs &&
             (microsoft_version < 1310 ||
@@ -11111,6 +11207,8 @@ specification allow a variable-sized array as the top type.
     ndsp->is_new = TRUE;
     ndsp->placement_new = placement_new;
     ndsp->global_new_or_delete = use_global_new;
+    ndsp->has_new_initializer = has_new_initializer;
+    ndsp->type_contains_auto_specifier = auto_type_specifier_seen;
     ndsp->type = new_type;
     /* Put the routine and argument list into the supplement.  Note that
        the argument list is present even when the routine is NULL -- that's
@@ -11163,6 +11261,10 @@ specification allow a variable-sized array as the top type.
       }  /* if */
 #endif /* DO_IL_LOWERING */
     }  /* if */
+    record_typed_operator_position_in_expr_rescan_info(new_node,
+                                                       &start_position,
+                                                       &type_position,
+                                                       new_type);
     /* Make an operand for the result. */
     make_expression_operand(new_node, result);
   }  /* if */
@@ -11283,9 +11385,10 @@ if the selected delete routine is ambiguous.
 }  /* select_delete_routine */
 
 
-static void scan_delete_operator(an_operand *result)
+static void scan_delete_operator(a_rescan_control_block *rcblock,
+                                 an_operand             *result)
 /*
-Scan the C++ delete operator.  See 5.3.4 in the ARM.
+Scan the C++ delete operator.
 
 Syntax:
       deallocation-expression:
@@ -11295,6 +11398,9 @@ Syntax:
 		  opt
 
 As an anachronism, allow an expression inside the [ ].
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+delete expression, and return the result in *result (or an error indication
+in *rcblock).
 */
 {
   a_source_position  start_position, delete_position;
@@ -11308,12 +11414,26 @@ As an anachronism, allow an expression inside the [ ].
   an_expr_node_ptr   expr;
   a_dynamic_init_ptr dip;
   a_new_delete_supplement_ptr
-                     ndsp;
+                     rescan_ndsp, ndsp;
 
   db_enter(4, "scan_delete_operator");
 
-  /* Save the position of the start. */
-  copy_source_position(pos_curr_token, start_position);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_delete);
+    make_new_delete_rescan_operands(rcblock, &rescan_ndsp, &start_position,
+                                    (a_type_ptr *)NULL,
+                                    (a_source_position *)NULL);
+    use_global_delete = rescan_ndsp->global_new_or_delete;
+    /* On the rescan, we can't distinguish start_position and delete_position
+       (they differ if there's a leading "::"). */
+    delete_position = start_position;
+    array_delete = rescan_ndsp->array_delete;
+    make_rescan_operand(rescan_ndsp->arg, rcblock, &operand);
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+  }  /* if */
 
   if (curr_expr_kind_is_const()) {
     /* "delete" not allowed in constant expressions. */
@@ -11321,45 +11441,48 @@ As an anachronism, allow an expression inside the [ ].
     err = TRUE;
   }  /* if */
 
-  if (curr_token == tok_colon_colon) {
-    /* "::" appears first, meaning use the global delete operator. */
-    use_global_delete = TRUE;
-    (void)get_token();
-  }  /* if */
-#if CHECKING
-  if (curr_token != tok_delete) {
-    internal_error("scan_delete_operator: expected delete");
-  }  /* if */
-#endif /* CHECKING */
-  copy_source_position(pos_curr_token, delete_position);
-  (void)get_token();
-
-  array_delete = FALSE;
-  if (curr_token == tok_lbracket) {
-    /* The [ ] for array deletion is present. */
-    array_delete = TRUE;
-    (void)get_token();
-    add_matching_stop_token(tok_rbracket);
-    if (curr_token != tok_rbracket) {
-      /* Anachronism -- there's an expression between the brackets, presumably
-         indicating the number of elements in the array. */
-      an_error_severity sev = anachronism_error_severity;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* This anachronism is allowed in Microsoft mode. */
-      if (microsoft_mode) sev = (an_error_severity)es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      expr_pos_diagnostic(sev, ec_delete_count_anachronism, &pos_curr_token);
-      scan_nonconstant_dimension_expression(/*is_new_or_delete_bound=*/TRUE,
-                                            /*is_top_level_vla_bound=*/FALSE,
-                                            /*is_evaluated_sizeof_arg=*/FALSE,
-                                            &is_constant, &expr, &constant);
-      /* The expression is ignored. */
+  if (rcblock == NULL) {
+    if (curr_token == tok_colon_colon) {
+      /* "::" appears first, meaning use the global delete operator. */
+      use_global_delete = TRUE;
+      (void)get_token();
     }  /* if */
-    (void)required_token(tok_rbracket, ec_exp_rbracket);
-    remove_matching_stop_token(tok_rbracket);
+#if CHECKING
+    if (curr_token != tok_delete) {
+      internal_error("scan_delete_operator: expected delete");
+    }  /* if */
+#endif /* CHECKING */
+    delete_position = pos_curr_token;
+    (void)get_token();
+
+    array_delete = FALSE;
+    if (curr_token == tok_lbracket) {
+      /* The [ ] for array deletion is present. */
+      array_delete = TRUE;
+      (void)get_token();
+      add_matching_stop_token(tok_rbracket);
+      if (curr_token != tok_rbracket) {
+        /* Anachronism -- there's an expression between the brackets,
+           presumably indicating the number of elements in the array. */
+        an_error_severity sev = anachronism_error_severity;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* This anachronism is allowed in Microsoft mode. */
+        if (microsoft_mode) sev = (an_error_severity)es_warning;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        expr_pos_diagnostic(sev, ec_delete_count_anachronism, &pos_curr_token);
+        scan_nonconstant_dimension_expression(/*is_new_or_delete_bound=*/TRUE,
+                                              /*is_top_level_vla_bound=*/FALSE,
+                                             /*is_evaluated_sizeof_arg=*/FALSE,
+                                              &is_constant, &expr, &constant);
+        /* The expression is ignored. */
+      }  /* if */
+      (void)required_token(tok_rbracket, ec_exp_rbracket);
+      remove_matching_stop_token(tok_rbracket);
+    }  /* if */
+    /* Scan the pointer expression. */
+    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   }  /* if */
-  /* Scan the pointer expression. */
-  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+
   if (is_template_dependent_context() &&
       (is_template_param_or_nonreal_class_type(operand.type) ||
        (is_pointer_type(operand.type) &&
@@ -11553,6 +11676,9 @@ As an anachronism, allow an expression inside the [ ].
       delete_routine->called = TRUE;
     }  /* if */
     ndsp->routine = delete_routine;
+    record_operator_position_in_expr_rescan_info(delete_node, &start_position,
+                                                 NO_TOKEN_SEQUENCE_NUMBER,
+                                                 (a_source_position *)NULL);
     /* Make an operand for the result. */
     make_expression_operand(delete_node, result);
   }  /* if */
@@ -13243,10 +13369,10 @@ indication in *rcblock).
              const_cast; mark it accordingly. */
           expr->variant.operation.is_const_cast = TRUE;
         }  /* if */
-        record_cast_position_in_expr_rescan_info(expr,
-                                                 &start_position,
-                                                 &type_position,
-                                                 cast_type);
+        record_typed_operator_position_in_expr_rescan_info(expr,
+                                                           &start_position,
+                                                           &type_position,
+                                                           cast_type);
       }  /* if */
     }
   }  /* if */
@@ -13516,10 +13642,10 @@ indication in *rcblock).
       /* An expression node was created that represents this static_cast:
          mark it as resulting from a static_cast operation. */
       expr->is_static_cast = TRUE;
-      record_cast_position_in_expr_rescan_info(expr,
-                                               &start_position,
-                                               &type_position,
-                                               type_cast_to);
+      record_typed_operator_position_in_expr_rescan_info(expr,
+                                                         &start_position,
+                                                         &type_position,
+                                                         type_cast_to);
     }  /* if */
 #if CHECKING
     if (cast_to_reference && !processed_as_udc) {
@@ -13718,10 +13844,10 @@ indication in *rcblock).
         }  /* if */
 #endif /* CHECKING */
       }  /* if */
-      record_cast_position_in_expr_rescan_info(expr,
-                                               &start_position,
-                                               &type_position,
-                                               type_cast_to);
+      record_typed_operator_position_in_expr_rescan_info(expr,
+                                                         &start_position,
+                                                         &type_position,
+                                                         type_cast_to);
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -14493,7 +14619,7 @@ the information in rcblock.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     scan_ctor_arguments(ctor_sym, start_position,
                         (a_type_ptr)NULL, type_cast_to,
-                        (an_arg_operand_ptr*)NULL,
+                        (an_arg_operand_ptr *)NULL,
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
                         rcblock,
@@ -21408,7 +21534,7 @@ see expr.h).
     case tok_new:
 scan_new:
       /* C++ "new" operator. */
-      scan_new_operator(&local_result);
+      scan_new_operator((a_rescan_control_block *)NULL, &local_result);
       if (strict_ansi_mode) {
         /* The syntax does not allow a postfix-precedence operator following
            a new, e.g., new (double *)[17].  Give the syntax error only
@@ -21423,7 +21549,7 @@ scan_new:
     case tok_delete:
 scan_delete:
       /* C++ "delete" operator. */
-      scan_delete_operator(&local_result);
+      scan_delete_operator((a_rescan_control_block *)NULL, &local_result);
       break;
     case tok_lparen:
       /* This could be a cast operation or just an expression in
@@ -23448,6 +23574,14 @@ set accordingly.
     } else {
       rescannable = FALSE;
     }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_new_delete) {
+    a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+    if (ndsp->is_new) {
+      operator_token = tok_new;
+    } else {
+      operator_token = tok_delete;
+    } /* if */
+    *unary = TRUE;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -23615,6 +23749,12 @@ outside, see rescan_expr_with_substitution.
         break;
       case tok_dynamic_cast:
         scan_dynamic_cast_operator(rcblock, result);
+        break;
+      case tok_new:
+        scan_new_operator(rcblock, result);
+        break;
+      case tok_delete:
+        scan_delete_operator(rcblock, result);
         break;
       default:
         unexpected_condition();

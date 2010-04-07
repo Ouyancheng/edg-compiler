@@ -3218,6 +3218,9 @@ Display the indicated new/delete supplement to an expression node.
   disp_boolean("placement_new", (a_boolean)ndsp->placement_new);
   disp_boolean("array_delete", (a_boolean)ndsp->array_delete);
   disp_boolean("global_new_or_delete", (a_boolean)ndsp->global_new_or_delete);
+  disp_boolean("has_new_initializer", (a_boolean)ndsp->has_new_initializer);
+  disp_boolean("type_contains_auto_specifier",
+               (a_boolean)ndsp->type_contains_auto_specifier);
   disp_ptr("type", (char *)ndsp->type, iek_type);
   disp_ptr("routine", (char *)ndsp->routine, iek_routine);
   disp_ptr("arg", (char *)ndsp->arg, iek_expr_node);

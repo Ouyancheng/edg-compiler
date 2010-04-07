@@ -12166,18 +12166,21 @@ typedef struct a_condition_supplement {
 
 /* Description of a C++ "new" or "delete" operation. */
 typedef struct a_new_delete_supplement {
-  a_byte_boolean
-		is_new;
+  a_bit_field	is_new:1;
 			/* TRUE for new, FALSE for delete. */
-  a_byte_boolean
-		placement_new;
+  a_bit_field	placement_new:1;
 			/* TRUE for a "placement" new. */
-  a_byte_boolean
-		array_delete;
+  a_bit_field	array_delete:1;
 			/* TRUE if this is an array delete. */
-  a_byte_boolean
-		global_new_or_delete;
+  a_bit_field	global_new_or_delete:1;
 			/* TRUE if the "::" scope qualifier was used. */
+  a_bit_field	has_new_initializer:1;
+			/* For a new, TRUE if the operator has an explicit
+			   initializer. So, for example, TRUE for new int(0)
+			   and new int(), but FALSE for new int. */
+  a_bit_field	type_contains_auto_specifier:1;
+			/* For a new, TRUE if the type to be allocated was
+			   specified by way of the "auto" type specifier. */
   a_type_ptr	type;
 			/* The type of the object being allocated for new;
 			   the type pointed to by the object pointer for

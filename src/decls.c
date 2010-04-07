@@ -115,7 +115,6 @@ reflected in start_secondary_declarator.
   ps->unused_qualifiers = FALSE;
   ps->auto_type_allowed = FALSE;
   ps->auto_type_specifier_seen = FALSE;
-  ps->auto_type_is_template_dependent = FALSE;
   ps->is_asm_function = FALSE;
   ps->function_definition_allowed = FALSE;
   ps->is_old_style_param_decl = FALSE;
