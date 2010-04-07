@@ -8799,6 +8799,56 @@ the given position.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+
+static a_boolean traverse_template_args(
+                             a_template_arg_ptr             template_args,
+                             a_type_predicate_function_ptr  func,
+                             a_type_tree_traversal_flag_set flags)
+/*
+This routine is called by traverse_type_tree to traverse the template argument
+list specified by template_args.  See traverse_type_tree for func, flags,
+and the meaning of the return value.
+*/
+{
+  a_template_arg_ptr	tap;
+  a_boolean		status = FALSE;
+  a_type_ptr		tp;
+
+  for (tap = template_args; tap != NULL; tap = tap->next) {
+    if (is_type_templ_arg(tap)) {
+      tp = tap->variant.type;
+      if (traverse_type_tree(tp, func, flags)) {
+        status = TRUE;
+        break;
+      }  /* if */
+    } else if (is_template_templ_arg(tap)) {
+      /* Template template arguments are not themselves processed, but their
+         parent type may be. */
+      a_template_ptr	templ_ptr = tap->variant.templ.ptr;
+      if (!status && templ_ptr->source_corresp.is_class_member &&
+          (flags & TTT_PARENT_CLASSES) != 0) {
+        /* Check the parent class.  This is only done when considering
+           nondeduced contexts, or when this is a deduced context when
+           nonstandard deduction is enabled. */
+        tp = parent_class_of(templ_ptr);
+        status = traverse_type_tree(tp, func, flags);
+      }  /* if */      
+    } else if (!tap->is_array_bound_of_unknown_type &&
+               tap->variant.constant != NULL) {
+      /* Nontype template argument.  Check the type of the constant. */
+      if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
+        tp = tap->variant.constant->type;
+        if (traverse_type_tree(tp, func, flags)) {
+          status = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return status;
+}  /* traverse_template_args */
+
+
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
                              a_type_tree_traversal_flag_set flags)
@@ -8815,8 +8865,7 @@ its parameters?).
 {
   a_boolean                      force_end_of_traversal = FALSE;
   a_type_ptr                     tp;
-  a_template_arg_ptr             tap;
-  a_boolean                      status;
+  a_boolean                      status = FALSE;
   a_routine_type_supplement_ptr  rtsp;
 
   if (type_ptr == NULL) {
@@ -8930,6 +8979,15 @@ its parameters?).
       case tk_typeref:
         tp = type_ptr->variant.typeref.type;
         status = traverse_type_tree(tp, func, flags);
+        if (!status && flags & TTT_TEMPLATE_ARGS) {
+          /* Traverse the template argument list, if present (for template
+             aliases). */
+          a_template_arg_ptr	tap;
+          tap = type_ptr->variant.typeref.extra_info->template_arg_list;
+          if (tap != NULL) {
+            status = traverse_template_args(tap, func, flags);
+          }  /* if */
+        }  /* if */
 	break;
       case tk_template_param:
         /* "Member" template params (e.g., T::X) should have a pointer to a
@@ -8988,41 +9046,13 @@ its parameters?).
           }  /* if */
           /* Conditional traversal of contained types. */
           if (flags & TTT_TEMPLATE_ARGS) {
-            for (tap = type_ptr->variant.class_struct_union.extra_info->
-                                                          template_arg_list;
-                 tap != NULL;
-                 tap = tap->next) {
-              if (is_type_templ_arg(tap)) {
-                tp = tap->variant.type;
-                if (traverse_type_tree(tp, func, flags)) {
-                  status = TRUE;
-                  break;
-                }  /* if */
-              } else if (is_template_templ_arg(tap)) {
-                /* Template template arguments are not themselves processed,
-                   but their parent type may be. */
-                a_template_ptr	templ_ptr = tap->variant.templ.ptr;
-                if (!status && templ_ptr->source_corresp.is_class_member &&
-                    (flags & TTT_PARENT_CLASSES) != 0) {
-                  /* Check the parent class.  This is only done when
-                     considering nondeduced contexts, or when this is a
-                     deduced context when nonstandard deduction is enabled. */
-                  tp = parent_class_of(templ_ptr);
-                  status = traverse_type_tree(tp, func, flags);
-                }  /* if */      
-              } else if (!tap->is_array_bound_of_unknown_type &&
-                         tap->variant.constant != NULL) {
-                /* Nontype template argument.  Check the type of the
-                   constant. */
-                if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY)) {
-                  tp = tap->variant.constant->type;
-                  if (traverse_type_tree(tp, func, flags)) {
-                    status = TRUE;
-                    break;
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-            }  /* for */
+            /* Traverse the template argument list, if present. */
+            a_template_arg_ptr	tap;
+            tap = type_ptr->
+                      variant.class_struct_union.extra_info->template_arg_list;
+            if (tap != NULL) {
+              status = traverse_template_args(tap, func, flags);
+            }  /* if */
           }  /* if */
           if (!status && type_ptr->source_corresp.is_class_member &&
               in_front_end) {
