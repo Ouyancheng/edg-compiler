@@ -16823,7 +16823,7 @@ alias
       split_token_cache(&decl_state->decl_token_cache,
                         &dummy_cache, split_location,
                         /*include_prev_token=*/FALSE,
-                        /*okay_if_not_found=*/FALSE);
+                        /*okay_if_not_found=*/total_errors != 0);
       discard_token_cache(&dummy_cache);
     } else {
       discard_token_cache(p_token_cache);
