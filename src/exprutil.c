@@ -3025,6 +3025,33 @@ FALSE for a rethrow, in which case *operand is not set.
 }  /* make_throw_rescan_operands */
 
 
+void make_type_operand_rescan_type(a_rescan_control_block *rcblock,
+                                   a_type_ptr             *type,
+                                   a_source_position      *type_position)
+/*
+rcblock->argument_list points to a type-operand argument for a builtin
+operation (like a type trait test).  Get the type, do substitution on
+it (using information from rcblock), and return the substituted type in
+*type.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->argument_list;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_token_sequence_number       operator_tok_seq_number;
+
+  check_assertion(expr != NULL);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_type_operand);
+  /* We pass NULL for the second argument because we want to require
+     explicit rescan information on all type operands. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  *type = do_type_substitution_for_rescan(expr->variant.type_operand.type,
+                                          rcblock, eriep);
+  get_rescan_operator_positions(eriep, type_position,
+                                &operator_tok_seq_number,
+                                (a_source_position *)NULL);
+}  /* make_type_operand_rescan_type */
+
+
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
 /*
 Return an expression node to represent the given operand, creating one
@@ -3055,10 +3082,19 @@ that extra work.
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (expr_stack->template_deduction_declaration_context) {
+    an_expr_node_ptr preexisting_node = expr_node_from_operand(operand);
     /* For an expression that may be rescanned to do semantic analysis
        later for template deduction, save extra information from the
        operand. */
     save_operand_info_in_expr_rescan_info_entry(operand, node);
+    if (preexisting_node != NULL && preexisting_node != node &&
+        preexisting_node->rescan_info == NULL) {
+      /* Record the same rescan info on any other equivalent expression.
+         This is particularly important for a ck_template_param constant
+         that has an expression under it; we'd like the rescan information
+         on that expression also. */
+      preexisting_node->rescan_info = node->rescan_info;
+    }  /* if */
   }  /* if */
   return node;
 }  /* make_node_from_operand */

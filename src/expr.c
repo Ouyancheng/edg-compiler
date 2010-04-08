@@ -7132,22 +7132,47 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
 }  /* scan_offsetof */
 
 
-static an_expr_node_ptr scan_builtin_operation_arg(an_il_entry_kind  arg_kind)
+static an_expr_node_ptr scan_builtin_operation_arg(
+                                               a_rescan_control_block *rcblock,
+                                               an_il_entry_kind       arg_kind)
 /*
 Scan a single argument of a constant-expression of the form
 	operation-name ( <comma-separated-list-of-arguments> )
 The argument kind should be iek_type if the argument is a type name,
 iek_constant if it is a constant-expression, or iek_expr_node if it is an
-arbitrary expression.
+arbitrary expression.  If rcblock is non-NULL, redo semantic analysis
+on a previously-scanned argument given by rcblock->argument_list.
 */
 {
   an_expr_node_ptr  result;
+  a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-  add_stop_token(tok_comma);
+  if (rcblock != NULL) {
+    check_assertion(rcblock->argument_list != NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->argument_list->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    add_stop_token(tok_comma);
+  }  /* if */
   switch (arg_kind) {
     case iek_type:
       { a_type_ptr  type;
-        type_name(&type);
+        if (rcblock != NULL) {
+          /* Get the type by doing substitution on the previously-scanned
+             type. */
+          make_type_operand_rescan_type(rcblock, &type, &start_position);
+        } else {
+          /* Scan the type from source. */
+          start_position = pos_curr_token;
+          type_name(&type);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        }  /* if */
         if (is_error_type(type)) {
           result = alloc_expr_node((an_expr_node_kind)enk_error);
         } else {
@@ -7164,12 +7189,27 @@ arbitrary expression.
     default:
       unexpected_condition();
   }  /* switch */
-  remove_stop_token(tok_comma);
+  if (expr_stack->template_deduction_declaration_context) {
+    /* Get rescan information recorded for this expression by going by way
+       of an operand. */
+    an_operand operand;
+    make_expression_operand(result, &operand);
+    set_operand_position(&operand, &start_position, &end_position,
+                         &start_position);
+    result = make_node_from_operand(&operand);
+  }  /* if */
+  if (rcblock != NULL) {
+    /* Advance to the next argument for the next time around. */
+    rcblock->argument_list = rcblock->argument_list->next;
+  } else {
+    remove_stop_token(tok_comma);
+  }  /* if */
   return result;
 }  /* scan_builtin_operation_arg */
 
 
 static void scan_call_like_builtin_operation(
+                                   a_rescan_control_block         *rcblock,
                                    a_builtin_operation_kind_tag   kind,
                                    a_type_ptr                     type,
                                    an_il_entry_kind               arg1_kind,
@@ -7185,32 +7225,51 @@ the argument should be a type name, iek_constant if it should be a constant-
 expression, and iek_expr_node if it can be any expression.) Produce a constant
 operand of the given type in *result.  (Although an enk_builtin_operation node
 can represent a non-constant operation, this routine is only meant to handle
-the constant cases.)
+the constant cases.)  If rcblock is non-NULL, redo semantic analysis
+on a previously-scanned builtin operation expression, and return the
+result in *result (or an error indication in *rcblock).
 */
 {
   a_boolean          err = FALSE;
   a_source_position  start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_node_ptr   arg1 = NULL, arg2, arg3;
 
   /* Currently, only type arguments are implemented.  I.e., argX_kind must
      be iek_none or iek_type. */
-  copy_source_position(pos_curr_token, start_pos);
-  /* Pass over the operation name. */
-  (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
+  if (rcblock != NULL) {
+    an_expr_node_ptr              expr = rcblock->expr;
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                                               (a_builtin_operation_kind)kind);
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+    start_pos = eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    rcblock->argument_list = expr->variant.builtin_operation.operands;
+  } else {
+    start_pos = pos_curr_token;
+    /* Pass over the operation name. */
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+  }  /* if */
   if (arg1_kind != iek_none) {
-    arg1 = scan_builtin_operation_arg(arg1_kind);
+    arg1 = scan_builtin_operation_arg(rcblock, arg1_kind);
     err |= (int)(arg1->kind == (an_expr_node_kind)enk_error);
     if (arg2_kind != iek_none) {
-      (void)required_token(tok_comma, ec_exp_comma);
-      arg2 = scan_builtin_operation_arg(arg2_kind);
+      if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
+      arg2 = scan_builtin_operation_arg(rcblock, arg2_kind);
       err |= (int)(arg2->kind == (an_expr_node_kind)enk_error);
       arg1->next = arg2;
       if (arg3_kind != iek_none) {
-        (void)required_token(tok_comma, ec_exp_comma);
-        arg3 = scan_builtin_operation_arg(arg3_kind);
+        if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
+        arg3 = scan_builtin_operation_arg(rcblock, arg3_kind);
         err |= (int)(arg3->kind == (an_expr_node_kind)enk_error);
         arg2->next = arg3;
       }  /* if */
@@ -7236,20 +7295,29 @@ the constant cases.)
   } else {
     make_error_operand(result);
   }  /* if */
-  set_operand_position(result, &start_pos, &end_pos_curr_token, &start_pos);
-  remove_matching_stop_token(tok_rparen);
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
+  if (rcblock == NULL) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    remove_matching_stop_token(tok_rparen);
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  set_operand_position(result, &start_pos, &end_position, &start_pos);
 }  /* scan_call_like_builtin_operation */
 
 
-static void scan_is_base_of(an_operand  *result)
+static void scan_is_base_of(a_rescan_control_block *rcblock,
+                            an_operand             *result)
 /*
 Scan a constant-expression of the form
       __is_base_of( <typeB> , <typeD> )
 The result is a boolean of value true if typeD is derived from typeB (where
 a class type is always considered to be derived from itself).  This construct
-is meant to help implement ISO/IEC TR 19768.
+is meant to help implement ISO/IEC TR 19768.  If rcblock is non-NULL,
+redo semantic analysis on a previously-scanned __is_base_of
+expression, and return the result in *result (or an error indication
+in *rcblock).
 */
 {
   a_type_ptr  result_type;
@@ -7257,6 +7325,7 @@ is meant to help implement ISO/IEC TR 19768.
   if (!type_traits_helpers_enabled) {
     /* __is_base_of is not accepted in some modes. */
     if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
       pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                    builtin_operation_names[(int)bok_is_base_of]);
     }  /* if */
@@ -7264,7 +7333,7 @@ is meant to help implement ISO/IEC TR 19768.
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(bok_is_base_of, result_type,
+  scan_call_like_builtin_operation(rcblock, bok_is_base_of, result_type,
                                    iek_type, iek_type, iek_none,
                                    result);
   if (!type_traits_helpers_enabled) {
@@ -7275,12 +7344,16 @@ is meant to help implement ISO/IEC TR 19768.
 }  /* scan_is_base_of */
 
 
-static void scan_is_convertible_to(an_operand  *result)
+static void scan_is_convertible_to(a_rescan_control_block *rcblock,
+                                   an_operand             *result)
 /*
 Scan a constant-expression of the form
       __is_convertible_to( <typeA> , <typeB> )
 The result is a boolean of value true if typeA is "implicitly convertible to"
 typeB.  This construct is meant to help implement ISO/IEC TR 19768.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__is_convertible_to expression, and return the result in *result (or
+an error indication in *rcblock).
 */
 {
   a_type_ptr  result_type;
@@ -7288,6 +7361,7 @@ typeB.  This construct is meant to help implement ISO/IEC TR 19768.
   if (!type_traits_helpers_enabled) {
     /* __is_convertible_to is not accepted in some modes. */
     if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
       pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                    builtin_operation_names[(int)bok_is_convertible_to]);
     }  /* if */
@@ -7295,7 +7369,7 @@ typeB.  This construct is meant to help implement ISO/IEC TR 19768.
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(bok_is_convertible_to, result_type,
+  scan_call_like_builtin_operation(rcblock, bok_is_convertible_to, result_type,
                                    iek_type, iek_type, iek_none, result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -7305,7 +7379,8 @@ typeB.  This construct is meant to help implement ISO/IEC TR 19768.
 }  /* scan_is_convertible_to */
 
 
-static void scan_unary_type_trait_helper(an_operand  *result)
+static void scan_unary_type_trait_helper(a_rescan_control_block *rcblock,
+                                         an_operand             *result)
 /*
 Scan a constant-expression of the form
       __trait_keyword( <type> )
@@ -7313,36 +7388,51 @@ The result is a boolean of value true if <type> satisfies a predicate
 corresponding to the __trait_keyword (the latter is the current token).
 (Example "trait keywords" include "__is_union" and "__has_user_destructor".
 These help implement the type traits suggested in ISO/IEC TR 19768.)
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+trait expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_type_ptr                    result_type;
   a_builtin_operation_kind_tag  bok;
 
-  switch (curr_token) {
-    case tok_has_assign:              bok = bok_has_assign; break;
-    case tok_has_copy:                bok = bok_has_copy; break;
-    case tok_has_nothrow_assign:      bok = bok_has_nothrow_assign; break;
-    case tok_has_nothrow_constructor: bok = bok_has_nothrow_constructor; break;
-    case tok_has_nothrow_copy:        bok = bok_has_nothrow_copy; break;
-    case tok_has_trivial_assign:      bok = bok_has_trivial_assign; break;
-    case tok_has_trivial_constructor: bok = bok_has_trivial_constructor; break;
-    case tok_has_trivial_copy:        bok = bok_has_trivial_copy; break;
-    case tok_has_trivial_destructor:  bok = bok_has_trivial_destructor; break;
-    case tok_has_user_destructor:     bok = bok_has_user_destructor; break;
-    case tok_has_virtual_destructor:  bok = bok_has_virtual_destructor; break;
-    case tok_is_abstract:             bok = bok_is_abstract; break;
-    case tok_is_class:                bok = bok_is_class; break;
-    case tok_is_empty:                bok = bok_is_empty; break;
-    case tok_is_enum:                 bok = bok_is_enum; break;
-    case tok_is_pod:                  bok = bok_is_pod; break;
-    case tok_is_polymorphic:          bok = bok_is_polymorphic; break;
-    case tok_is_union:                bok = bok_is_union; break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+  if (rcblock != NULL) {
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_builtin_operation);
+    bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
+  } else {
+    switch (curr_token) {
+      case tok_has_assign:              bok = bok_has_assign; break;
+      case tok_has_copy:                bok = bok_has_copy; break;
+      case tok_has_nothrow_assign:      bok = bok_has_nothrow_assign; break;
+      case tok_has_nothrow_constructor: bok = bok_has_nothrow_constructor;
+                                        break;
+      case tok_has_nothrow_copy:        bok = bok_has_nothrow_copy; break;
+      case tok_has_trivial_assign:      bok = bok_has_trivial_assign; break;
+      case tok_has_trivial_constructor: bok = bok_has_trivial_constructor;
+                                        break;
+      case tok_has_trivial_copy:        bok = bok_has_trivial_copy; break;
+      case tok_has_trivial_destructor:  bok = bok_has_trivial_destructor;
+                                        break;
+      case tok_has_user_destructor:     bok = bok_has_user_destructor; break;
+      case tok_has_virtual_destructor:  bok = bok_has_virtual_destructor;
+                                        break;
+      case tok_is_abstract:             bok = bok_is_abstract; break;
+      case tok_is_class:                bok = bok_is_class; break;
+      case tok_is_empty:                bok = bok_is_empty; break;
+      case tok_is_enum:                 bok = bok_is_enum; break;
+      case tok_is_pod:                  bok = bok_is_pod; break;
+      case tok_is_polymorphic:          bok = bok_is_polymorphic; break;
+      case tok_is_union:                bok = bok_is_union; break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
   if (!type_traits_helpers_enabled) {
     /* These pseudo-functions are not accepted in this mode. */
     if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
       pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
                    builtin_operation_names[(int)bok]);
     }  /* if */
@@ -7350,7 +7440,7 @@ These help implement the type traits suggested in ISO/IEC TR 19768.)
   } else {
     result_type = bool_type();
   }  /* if */
-  scan_call_like_builtin_operation(bok, result_type,
+  scan_call_like_builtin_operation(rcblock, bok, result_type,
                                    iek_type, iek_none, iek_none,
                                    result);
   if (!type_traits_helpers_enabled) {
@@ -7362,7 +7452,7 @@ These help implement the type traits suggested in ISO/IEC TR 19768.)
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void scan_builtin_types_compatible(an_operand  *result)
+static void scan_builtin_types_compatible(an_operand *result)
 /*
 Scan a GNU C construct of the form
       __builtin_types_compatible_p(<type1>, <type2>)
@@ -7381,9 +7471,15 @@ is returned through *result.
                    builtin_operation_names[(int)bok_types_compatible]);
     }  /* if */
   }  /* if */
-  scan_call_like_builtin_operation(bok_types_compatible, result_type,
+  scan_call_like_builtin_operation((a_rescan_control_block *)NULL,
+                                   bok_types_compatible, result_type,
                                    iek_type, iek_type, iek_none,
                                    result);
+  if (!C_mode()) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -21442,15 +21538,16 @@ see expr.h).
     case tok_is_polymorphic:
     case tok_is_union:
       /* Various single-type unary traits helpers. */
-      scan_unary_type_trait_helper(&local_result);
+      scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
+                                    &local_result);
       break;
     case tok_is_base_of:
       /* __is_base_of construct: */
-      scan_is_base_of(&local_result);
+      scan_is_base_of((a_rescan_control_block *)NULL, &local_result);
       break;
     case tok_is_convertible_to:
       /* __is_convertible_to construct: */
-      scan_is_convertible_to(&local_result);
+      scan_is_convertible_to((a_rescan_control_block *)NULL, &local_result);
       break;
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -23613,6 +23710,27 @@ set accordingly.
   } else if (expr->kind == (an_expr_node_kind)enk_throw) {
     operator_token = tok_throw;
     *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
+    a_builtin_operation_kind kind = expr->variant.builtin_operation.kind;
+    switch (kind) {
+      case bok_offsetof:
+        rescannable = FALSE;
+        break;
+      case bok_is_base_of:
+        operator_token = tok_is_base_of;
+        break;
+      case bok_is_convertible_to:
+        operator_token = tok_is_convertible_to;
+        break;
+      default:
+        operator_token = tok_has_assign;  /* Representing the generic case
+                                             with a single type operand. */
+        break;
+      case bok_types_compatible:
+        /* C only. */
+        unexpected_condition();
+    }  /* switch */
+    *unary = TRUE;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -23789,6 +23907,19 @@ outside, see rescan_expr_with_substitution.
         break;
       case tok_throw:
         scan_throw_operator(rcblock, result);
+        break;
+      case tok_has_assign:
+        /* Various single-type unary traits helpers.  tok_has_assign is chosen
+           to represent all these cases. */
+        scan_unary_type_trait_helper(rcblock, result);
+        break;
+      case tok_is_base_of:
+        /* __is_base_of construct: */
+        scan_is_base_of(rcblock, result);
+        break;
+      case tok_is_convertible_to:
+        /* __is_convertible_to construct: */
+        scan_is_convertible_to(rcblock, result);
         break;
       default:
         unexpected_condition();

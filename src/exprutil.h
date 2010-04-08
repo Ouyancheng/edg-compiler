@@ -1513,6 +1513,11 @@ extern void make_throw_rescan_operands(a_rescan_control_block *rcblock,
                                        an_operand             *operand,
                                        a_boolean              *expr_present);
 
+extern void make_type_operand_rescan_type(
+                                   a_rescan_control_block *rcblock,
+                                   a_type_ptr             *type,
+                                   a_source_position      *type_position);
+
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 
