@@ -7263,7 +7263,7 @@ typedef struct a_type {
 			/* TRUE if the type is an instantiation of a template
 			   alias based on template arguments that include
 			   one or more template parameters.
-                           In addition, types from alias templates that
+			   In addition, types from alias templates that
 			   are nested within nonreal classes are marked as
 			   nonreal. */
       a_bit_field

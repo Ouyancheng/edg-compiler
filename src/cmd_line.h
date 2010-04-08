@@ -1001,8 +1001,8 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		alias_declarations_enabled;
-			/* TRUE if C++0x alias-declarations and template
-			   aliases are allowed. */
+			/* TRUE if C++0x alias-declarations and alias templates
+			   are allowed. */
 
 EXTERN a_boolean
 		std_attributes_enabled;
