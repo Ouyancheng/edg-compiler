@@ -18189,12 +18189,17 @@ Return TRUE if the indicated token is one that could start an expression.
 }  /* is_expr_start_token */
 
 
-static void scan_throw_operator(an_operand *result)
+static void scan_throw_operator(a_rescan_control_block *rcblock,
+                                an_operand             *result)
 /*
-Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
+Scan the C++ throw operator.  The syntax is
 
   throw assignment-expression
                              opt
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+throw expression, and return the result in *result (or an error indication
+in *rcblock).
 */
 {
   an_operand          operand;
@@ -18210,13 +18215,23 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
 
   db_enter(4, "scan_throw_operator");
 
-  /* Save the source position of the operator. */
-  start_position = pos_curr_token;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    check_assertion(rcblock->operator_token == tok_throw);
+    make_throw_rescan_operands(rcblock, &start_position, &operand,
+                               &expr_present);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+  }  /* if */
 
   if (!exceptions_enabled) {
     /* Support for exceptions is suppressed for this compilation.  Note that
        semantic errors will not be issued on this throw expression. */
-    expr_pos_error(ec_no_exception_support, &pos_curr_token);
+    expr_pos_error(ec_no_exception_support, &start_position);
     err = TRUE;
   } else if (curr_expr_kind_is_const()) {
     /* "throw" not allowed in constant expressions. */
@@ -18225,27 +18240,31 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   } else {
     /* Exceptions are outside the "Embedded C++" subset. */
     feature_is_not_part_of_embedded_cplusplus_subset(
-                                          &pos_curr_token,
+                                          &start_position,
                                           ec_exceptions_in_embedded_cplusplus);
   }  /* if */
 
+  if (rcblock == NULL) {
 #if CHECKING
-  if (curr_token != tok_throw) {
-    internal_error("scan_throw_operator: expected throw");
-  }  /* if */
+    if (curr_token != tok_throw) {
+      internal_error("scan_throw_operator: expected throw");
+    }  /* if */
 #endif /* CHECKING */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
+    end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)get_token();
+    (void)get_token();
 
-  /* See if the expression is present. */
-  if (!is_expr_start_token(curr_token)) {
-    /* No. */
-    expr_present = FALSE;
-  } else {
-    /* Yes, an expression is present. */
-    expr_present = TRUE;
+    /* See if the expression is present. */
+    if (!is_expr_start_token(curr_token)) {
+      /* No. */
+      expr_present = FALSE;
+    } else {
+      /* Yes, an expression is present. */
+      expr_present = TRUE;
+    }  /* if */
+  }  /* if */
+  if (expr_present) {
     /* Delay recording a reference to the destructor for a class operand,
        because this is an elision optimization case and the destructor
        call may be optimized away (the recipient does the destruction
@@ -18255,11 +18274,13 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
     expr_stack->in_cctor_elision_initializer = TRUE;
-    /* Scan the expression. */
-    scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+    if (rcblock == NULL) {
+      /* Scan the expression. */
+      scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = operand.end_position;
+      end_position = operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
     incomp_test_type = operand.type;
     if (!is_class_struct_union_type(operand.type)) {
       /* Array decays to pointer, function decays to pointer.  Don't do
@@ -18365,6 +18386,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       make_error_operand(result);
     } else {
       make_expression_operand(throw_node, result);
+      record_operator_position_in_expr_rescan_info(throw_node, &start_position,
+                                                   NO_TOKEN_SEQUENCE_NUMBER,
+                                                   (a_source_position *)NULL);
     }  /* if */
   }  /* if */
 
@@ -21659,7 +21683,7 @@ type_start:
       break;
 
     case tok_throw:
-      scan_throw_operator(&local_result);
+      scan_throw_operator((a_rescan_control_block *)NULL, &local_result);
       break;
      
     case tok_lbracket:
@@ -23586,6 +23610,9 @@ set accordingly.
       operator_token = tok_delete;
     } /* if */
     *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_throw) {
+    operator_token = tok_throw;
+    *unary = TRUE;
   } else {
     rescannable = FALSE;
   }  /* if */
@@ -23759,6 +23786,9 @@ outside, see rescan_expr_with_substitution.
         break;
       case tok_delete:
         scan_delete_operator(rcblock, result);
+        break;
+      case tok_throw:
+        scan_throw_operator(rcblock, result);
         break;
       default:
         unexpected_condition();

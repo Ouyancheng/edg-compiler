@@ -1508,6 +1508,11 @@ extern void make_new_delete_rescan_operands(
                                    a_type_ptr                  *type, 
                                    a_source_position           *type_position);
 
+extern void make_throw_rescan_operands(a_rescan_control_block *rcblock,
+                                       a_source_position      *start_position,
+                                       an_operand             *operand,
+                                       a_boolean              *expr_present);
+
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 

@@ -2991,6 +2991,40 @@ type of entity to be allocated.  If type_position is non-NULL,
 }  /* make_new_delete_rescan_operands */
 
 
+void make_throw_rescan_operands(a_rescan_control_block *rcblock,
+                                a_source_position      *start_position,
+                                an_operand             *operand,
+                                a_boolean              *expr_present)
+/*
+As part of redoing semantic analysis on an expression while doing
+template deduction, extract the operand of the throw expression given
+by rcblock->expr and return it in *operand.  *start_position is set to
+the starting position of the expression.  *expr_present is returned
+FALSE for a rethrow, in which case *operand is not set.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->expr, arg_expr;
+  an_expr_rescan_info_entry_ptr eriep;
+  a_token_sequence_number       operator_tok_seq_number;
+
+  check_assertion(expr != NULL);
+  check_assertion(expr->kind == (an_expr_node_kind)enk_throw);
+  /* We pass NULL for the second argument because we want to require
+     explicit rescan information on all throws. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  *expr_present = (expr->variant.throw_info != NULL);
+  if (*expr_present) {
+    arg_expr =
+         rescan_arg_list_from_dyn_init(expr->variant.throw_info->dynamic_init);
+    check_assertion(arg_expr->next == NULL);
+    make_rescan_operand(arg_expr, rcblock, operand);
+  }  /* if */
+  get_rescan_operator_positions(eriep, start_position,
+                                &operator_tok_seq_number,
+                                (a_source_position *)NULL);
+}  /* make_throw_rescan_operands */
+
+
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
 /*
 Return an expression node to represent the given operand, creating one
