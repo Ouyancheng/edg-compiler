@@ -5412,25 +5412,25 @@ error type is used.
 
 
 a_symbol_ptr find_template_class(
-			     a_symbol_ptr        class_template_sym,
+			     a_symbol_ptr        template_sym,
                              a_template_arg_ptr  *new_list,
 			     a_boolean	         any_prototype_allowed,
 			     a_symbol_ptr        specific_prototype_allowed)
 /*
-Given a symbol for a class template and a template argument list (that is,
-a list of actual arguments), look for an existing class that is the
-corresponding instantiation of the template.  If none is found, create
-such an instantiation (i.e., allocate the type entry and create the
-symbol, adding the latter to the instantiation list for the template).
-Return the symbol that is found or newly created.
+Given a symbol for a class template or alias template and a template argument
+list (that is, a list of actual arguments), look for an existing class or
+alias that is the corresponding instantiation of the template.  If none is
+found, create such an instantiation (i.e., allocate the type entry and
+create the symbol, adding the latter to the instantiation list for the
+template).  Return the symbol that is found or newly created.
 
 *new_list points to the template argument list of the template class
-to be found or created.  If a new template instance is created, the
-template argument list is attached to that new instance.  If an
-existing instance is found, the template argument list passed by
-the caller is discarded.  In either case, the pointer provided by
-the caller is set to NULL to prevent subsequent use of the argument
-list in case it has been freed.
+or alias to be found or created.  If a new template instance is created, the
+template argument list is attached to that new instance.  If an existing
+instance is found, the template argument list passed by the caller is
+discarded.  In either case, the pointer provided by the caller is set
+to NULL to prevent subsequent use of the argument list in case it has
+been freed.
 
 Note that this function does not fully instantiate a class template;
 rather, when it creates a class type entry, it is for an incomplete type.
@@ -5451,6 +5451,9 @@ with the handling of pointers to incomplete non-template classes:
 Note, moreover, that even if class template X were defined there would be
 no need to actually instantiate X<int> in the example above.
 
+Note however, that aliases are always fully instantiated when they are
+created.
+
 If any_prototype_allowed is TRUE then the prototype instantiations of
 the primary template and any partial specializations are checked
 before any of the other instantiations.  If it is FALSE the prototype
@@ -5467,13 +5470,12 @@ prototype instantiation is considered as a potential match.
   a_boolean                         is_alias_template;
 
   db_enter(3, "find_template_class");
-  check_assertion(class_template_sym->kind ==
+  check_assertion(template_sym->kind ==
                                             (a_symbol_kind)sk_class_template);
   /* If this is a template template parameter, replace the template symbol
      with the one referred to by the parameter. */
-  class_template_sym =
-              template_argument_if_template_template_param(class_template_sym);
-  tssp = class_template_sym->variant.template_info;
+  template_sym = template_argument_if_template_template_param(template_sym);
+  tssp = template_sym->variant.template_info;
   is_alias_template = tssp->variant.class_template.is_alias_template;
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
@@ -5562,10 +5564,9 @@ prototype instantiation is considered as a potential match.
        instantiation routine if the type is already in the process of being
        instantiated (as determined by the NULL typeref type pointer). */
     if (is_alias_template) {
-      sym = instantiate_template_alias(class_template_sym, *new_list, sym);
+      sym = instantiate_template_alias(template_sym, *new_list, sym);
     } else {
-      sym = create_partial_instantiation_of_class(class_template_sym,
-                                                  *new_list);
+      sym = create_partial_instantiation_of_class(template_sym, *new_list);
     }  /* if */
   } else {
     /* We are reusing a class type that already exists, so *new_list will not

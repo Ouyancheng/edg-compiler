@@ -1,5 +1,17 @@
 Version 4.2
 
+4/8/10  [EDGcpfe/8404,EDGcpfe/10541]
+C++0x: Alias and alias template declarations
+
+Alias declarations and alias template declarations are now supported in
+C++0x mode.
+
+  using X = int;
+  X x;  // equivalent to "int x"
+  template <typename T> using Y = T*;
+  Y<int> yi;  // equivalent to "int* yi"
+
+
 4/8/10  [EDGcpfe/10595]
 Internal error during mangling done by instantiation wrapup
 
