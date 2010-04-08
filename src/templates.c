@@ -17602,7 +17602,8 @@ that follows.
   dso_flags = dps->dso_flags;
   /* A storage class is not permitted on an explicit specialization, except
      in GNU and Microsoft modes. */
-  check_assertion(dps->storage_class == (a_storage_class)sc_unspecified ||
+  check_assertion(decl_state->decl_scope_err ||
+                  dps->storage_class == (a_storage_class)sc_unspecified ||
 		  microsoft_mode || (gpp_mode && !decl_state->is_member_decl));
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();

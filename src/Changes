@@ -1,5 +1,17 @@
 Version 4.2
 
+4/8/10  [EDGcpfe/10359]
+Internal error in full_specialization on invalid specialization
+
+An internal error (in full_specialization) could occur on certain invalid
+explicit specializations.  Now fixed.
+
+  struct A { 
+    template <class T> void operator delete(void*, T) {}
+    template <> void operator delete<float>(void*, float);
+  };
+
+
 4/5/10  [EDGcpfe/10580]
 Spurious redeclaration error on block-extern variables in templates
 
