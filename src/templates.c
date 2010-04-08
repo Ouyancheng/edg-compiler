@@ -21696,17 +21696,19 @@ translation units.
 */
 {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-  a_master_instance_ptr		mip;
-
-  /* Make sure that names have been created for all master instances
-     for non-specialized entities.  This is done now because the point
-     at which update_auto_instantiation_flags is called is too late to
-     generate certain mangled names. */
-  for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
-    if (!entity_is_specialized_with_new_syntax(mip->instance)) {
-      (void)get_mangled_name_of_instance(mip);
-    }  /* if */
-  }  /* for */
+  /* Don't attempt to mangle names in the presence of errors. */
+  if (total_errors == 0) {
+    a_master_instance_ptr		mip;
+    /* Make sure that names have been created for all master instances
+       for non-specialized entities.  This is done now because the point
+       at which update_auto_instantiation_flags is called is too late to
+       generate certain mangled names. */
+    for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
+      if (!entity_is_specialized_with_new_syntax(mip->instance)) {
+        (void)get_mangled_name_of_instance(mip);
+      }  /* if */
+    }  /* for */
+  }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* finalize_instantiation_wrapup */
 

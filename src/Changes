@@ -1,5 +1,26 @@
 Version 4.2
 
+4/8/10  [EDGcpfe/10595]
+Internal error during mangling done by instantiation wrapup
+
+In certain error cases, an internal error (in various places) could occur
+during the name mangling that is done as part of instantiation wrapup.
+This name mangling is now suppressed if any errors have been issued.  Note
+that the example below requires a mode in which local types can be used as
+template arguments (e.g., C++0x mode).
+
+  template < class T > int h ( T ) {return 0; }
+  template < class T > int f ( T ) { 
+    struct _A1_<int> { 
+      int x(int) { return 1 ; } 
+      int g () { return h(x); } 
+    }; 
+  } 
+  int main () { 
+    f(1);
+  }
+
+
 4/8/10  [EDGcpfe/10359]
 Internal error in full_specialization on invalid specialization
 
