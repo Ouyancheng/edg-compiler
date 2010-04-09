@@ -7017,7 +7017,31 @@ Make a placeholder lvalue operand whose type is "type".
 }  /* make_dummy_lvalue_operand */
 
 
-static void scan_offsetof(an_operand  *result)
+static void record_type_operand_position_for_rescan(
+                                             an_expr_node_ptr  node,
+                                             a_source_position *start_position)
+/*
+Record a source position in a type operand (enk_type_operand node) if
+necessary for use in a later rescan.
+*/
+{
+  check_assertion(node->kind == (an_expr_node_kind)enk_type_operand);
+  if (expr_stack->template_deduction_declaration_context) {
+    /* Get rescan information recorded for this expression by going by way
+       of an operand. */
+    an_operand       operand;
+    an_expr_node_ptr result;
+    make_expression_operand(node, &operand);
+    set_operand_position(&operand, start_position, &null_source_position,
+                         &null_source_position);
+    result = make_node_from_operand(&operand);
+    check_assertion(result == node);
+  }  /* if */
+}  /* record_type_operand_position_for_rescan */
+
+
+static void scan_offsetof(a_rescan_control_block *rcblock,
+                          an_operand             *result)
 /*
 Recent versions of the GNU compilers implement the offsetof macro using the
 __builtin_offsetof construct, which takes the general form:
@@ -7028,107 +7052,150 @@ This routine assumes the current token is __builtin_offsetof, scans the
 construct, and either creates an integer constant operand or an
 enk_builtin_operation node to represent the operation.  Much of the difficult
 work is done by scan_field_selection_operator and scan_subscript_operator.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+offsetof expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
-  a_type_ptr         type;
-  a_source_position  pos_type, start_pos;
-  a_boolean          valid_type;
-  an_operand         operand, local_result;
-  an_expr_node_ptr   node, args;
+  a_type_ptr          type;
+  a_source_position   type_position, start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean           valid_type;
+  an_operand          operand, local_result;
+  an_expr_node_ptr    node, args, rescan_op2;
+  an_expr_stack_entry expr_stack_entry;
 
-  copy_source_position(pos_curr_token, start_pos);
-  /* Pass over the built-in offsetof token. */
-  check_assertion(curr_token == tok_builtin_offsetof);
-  (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  pos_type = pos_curr_token;
-  add_stop_token(tok_rparen);
-  type_name(&type);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_node_ptr              expr = rcblock->expr;
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                                       (a_builtin_operation_kind)bok_offsetof);
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+    start_position = eriep->saved_operand.position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    rcblock->argument_list = expr->variant.builtin_operation.operands;
+    /* Pick up the first operand, the type. */
+    make_type_operand_rescan_type(rcblock, &type, &type_position);
+    rescan_op2 = rcblock->argument_list->next;
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+    /* Pass over the built-in offsetof token. */
+    check_assertion(curr_token == tok_builtin_offsetof);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    type_position = pos_curr_token;
+    add_stop_token(tok_rparen);
+    type_name(&type);
+  }  /* if */
   if (is_class_struct_union_type(type)) {
     if (!C_mode() && !symbol_supplement_for_class(type)->is_POD) {
-      expr_pos_warning(ec_offset_in_non_POD_nonstandard, &pos_type);
+      expr_pos_warning(ec_offset_in_non_POD_nonstandard, &type_position);
     }  /* if */
     valid_type = TRUE;
   } else if (is_template_param_type(type)) {
     valid_type = TRUE;
   } else {
-    expr_pos_error(ec_exp_class_type, &pos_type);
+    expr_pos_error(ec_exp_class_type, &type_position);
     valid_type = FALSE;
   }  /* if */
-  /* Check for the comma. */
-  if (curr_token != tok_comma) {
-    expr_syntax_error(ec_exp_comma);
-    make_error_operand(result);
+  /* Synthesize a null operand representing an lvalue of the scanned type
+     and call scan_field_selection_operator on that (with the comma token
+     replaced by a period token).  The construct may involve multilevel
+     field or array element access (e.g., "__builtin_offsetof(a, x.y[3])"),
+     so we iterate over field selection and/or array subscript operations
+     as needed. */
+  /* The selection operations should be scanned in a "sizeof" context since
+     they are not evaluated. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression.  The
+       second operand contains all the field selections and subscripts and
+       can be processed in a single call without a loop. */
+    make_rescan_operand(rescan_op2, rcblock, &local_result);
   } else {
-    /* Synthesize a null operand representing an lvalue of the scanned type
-       and call scan_field_selection_operator on that (with the comma token
-       replaced by a period token).  The construct may involve multilevel
-       field or array element access (e.g., "__builtin_offsetof(a, x.y[3])"),
-       so we iterate over field selection and/or array subscript operations
-       as needed. */
-    an_expr_stack_entry  expr_stack_entry;
-    /* The selection operations should be scanned in a "sizeof" context since
-       they are not evaluated. */
-    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/TRUE);
-    expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-    /* Make an lvalue of the right type to start the tree. */
-    make_dummy_lvalue_operand(type, &local_result);
-    curr_token = tok_period;
-    do {
-      copy_operand(&local_result, &operand);
-      if (curr_token == tok_period) {
-        scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
-                                      /*offsetof_case=*/TRUE,
-                                      &local_result, (an_operand*)NULL);
-      } else {
-        scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
-                                &local_result);
-      }  /* if */
-    } while (curr_token == tok_period || curr_token == tok_lbracket);
-    if (valid_type && !is_error_operand(&local_result)) {
-      a_constant  offset_constant;
-      a_boolean   nonconstant_offset;
-      /* Build the first operand as a type node. */
-      args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
-      args->type = void_type();
-      args->variant.type_operand.type = type;
-      /* The second operand is the selection expression. */
-      args->next = make_node_from_operand(&local_result);
-      /* Finally, create the node representing the offsetof operation, and
-         fold it into a constant if possible. */
-      node = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
-      node->type = integer_type(targ_size_t_int_kind);
-      node->variant.builtin_operation.kind =
+    /* Scanning from source. */
+    /* Check for the comma. */
+    if (curr_token != tok_comma) {
+      expr_syntax_error(ec_exp_comma);
+      make_error_operand(&local_result);
+    } else {
+      /* Make an lvalue of the right type to start the tree. */
+      make_dummy_lvalue_operand(type, &local_result);
+      curr_token = tok_period;
+      do {
+        /* Loop, picking up a field selection or a subscript operation each
+           time around. */
+        copy_operand(&local_result, &operand);
+        if (curr_token == tok_period) {
+          scan_field_selection_operator(&operand,
+                                        (a_rescan_control_block *)NULL,
+                                        /*offsetof_case=*/TRUE,
+                                        &local_result, (an_operand*)NULL);
+        } else {
+          scan_subscript_operator(&operand, (a_rescan_control_block *)NULL,
+                                  &local_result);
+        }  /* if */
+      } while (curr_token == tok_period || curr_token == tok_lbracket);
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  if (valid_type && !is_error_operand(&local_result)) {
+    a_constant  offset_constant;
+    a_boolean   nonconstant_offset;
+    /* Build the first operand as a type node. */
+    args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+    args->type = void_type();
+    args->variant.type_operand.type = type;
+    record_type_operand_position_for_rescan(args, &type_position);
+    /* The second operand is the selection expression. */
+    args->next = make_node_from_operand(&local_result);
+    /* Finally, create the node representing the offsetof operation, and
+       fold it into a constant if possible. */
+    node = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    node->type = integer_type(targ_size_t_int_kind);
+    node->variant.builtin_operation.kind =
                                        (a_builtin_operation_kind)bok_offsetof;
-      node->variant.builtin_operation.operands = args;
-      fold_builtin_operation_if_possible(
+    node->variant.builtin_operation.operands = args;
+    fold_builtin_operation_if_possible(
                      node, &offset_constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_pos, &nonconstant_offset);
-      if (nonconstant_offset) {
-        /* The offset is not a constant. */
-        make_expression_operand(node, result);
-      } else {
-        /* The offset is a (possibly template-dependent) constant. */
-        make_constant_operand(&offset_constant, result);
-        result->type = result->variant.constant.type;
-      }  /* if */
+                     &start_position, &nonconstant_offset);
+    if (nonconstant_offset) {
+      /* The offset is not a constant. */
+      make_expression_operand(node, result);
     } else {
-      make_error_operand(result);
-      operand_will_not_be_used_because_of_error(&local_result);
+      /* The offset is a (possibly template-dependent) constant. */
+      make_constant_operand(&offset_constant, result);
+      result->type = result->variant.constant.type;
     }  /* if */
-    copy_source_position(start_pos, result->position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    copy_source_position(end_pos_curr_token, result->end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    pop_expr_stack();
+  } else {
+    make_error_operand(result);
+    operand_will_not_be_used_because_of_error(&local_result);
   }  /* if */
-  remove_stop_token(tok_rparen);
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  record_operator_position_in_rescan_info_if_expr(result, &start_position,
+                                                  NO_TOKEN_SEQUENCE_NUMBER,
+                                                  &type_position);
+  pop_expr_stack();
+  if (rcblock == NULL) {
+    remove_stop_token(tok_rparen);
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
 }  /* scan_offsetof */
 
 
@@ -7180,6 +7247,7 @@ on a previously-scanned argument given by rcblock->argument_list.
           result->type = void_type();
           result->variant.type_operand.type = type;
         }  /* if */
+        record_type_operand_position_for_rescan(result, &start_position);
       }
       break;
     case iek_expr_node:
@@ -7189,15 +7257,6 @@ on a previously-scanned argument given by rcblock->argument_list.
     default:
       unexpected_condition();
   }  /* switch */
-  if (expr_stack->template_deduction_declaration_context) {
-    /* Get rescan information recorded for this expression by going by way
-       of an operand. */
-    an_operand operand;
-    make_expression_operand(result, &operand);
-    set_operand_position(&operand, &start_position, &end_position,
-                         &start_position);
-    result = make_node_from_operand(&operand);
-  }  /* if */
   if (rcblock != NULL) {
     /* Advance to the next argument for the next time around. */
     rcblock->argument_list = rcblock->argument_list->next;
@@ -7231,7 +7290,7 @@ result in *result (or an error indication in *rcblock).
 */
 {
   a_boolean          err = FALSE;
-  a_source_position  start_pos;
+  a_source_position  start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7246,13 +7305,13 @@ result in *result (or an error indication in *rcblock).
                     expr->variant.builtin_operation.kind ==
                                                (a_builtin_operation_kind)kind);
     eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-    start_pos = eriep->saved_operand.position;
+    start_position = eriep->saved_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     rcblock->argument_list = expr->variant.builtin_operation.operands;
   } else {
-    start_pos = pos_curr_token;
+    start_position = pos_curr_token;
     /* Pass over the operation name. */
     (void)get_token();
     /* Check for and pass over the left parenthesis. */
@@ -7288,7 +7347,7 @@ result in *result (or an error indication in *rcblock).
     fold_builtin_operation_if_possible(
                      expr, &result->variant.constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_pos, &not_a_constant);
+                     &start_position, &not_a_constant);
     check_assertion(!not_a_constant);
     result->type = result->variant.constant.type;
     result->state = (an_operand_state)os_rvalue;
@@ -7303,7 +7362,8 @@ result in *result (or an error indication in *rcblock).
     /* Check for and pass over the right parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
-  set_operand_position(result, &start_pos, &end_position, &start_pos);
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
 }  /* scan_call_like_builtin_operation */
 
 
@@ -21539,7 +21599,7 @@ see expr.h).
 
     case tok_builtin_offsetof:
       /* __builtin_offsetof construct. */
-      scan_offsetof(&local_result);
+      scan_offsetof((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_has_assign:
@@ -23747,7 +23807,7 @@ set accordingly.
     a_builtin_operation_kind kind = expr->variant.builtin_operation.kind;
     switch (kind) {
       case bok_offsetof:
-        rescannable = FALSE;
+        operator_token = tok_builtin_offsetof;
         break;
       case bok_is_base_of:
         operator_token = tok_is_base_of;
@@ -23900,6 +23960,10 @@ outside, see rescan_expr_with_substitution.
         break;
       case tok_alignof:
         scan_alignof_operator(rcblock, result);
+        break;
+      case tok_builtin_offsetof:
+        /* __builtin_offsetof construct. */
+        scan_offsetof(rcblock, result);
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_uuidof:
