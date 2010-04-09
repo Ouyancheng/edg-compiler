@@ -7266,15 +7266,9 @@ on a previously-scanned argument given by rcblock->argument_list.
 {
   an_expr_node_ptr  result;
   a_source_position start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (rcblock != NULL) {
     check_assertion(rcblock->argument_list != NULL);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = rcblock->argument_list->expr_range.end;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     add_stop_token(tok_comma);
   }  /* if */
@@ -7289,9 +7283,6 @@ on a previously-scanned argument given by rcblock->argument_list.
           /* Scan the type from source. */
           start_position = pos_curr_token;
           type_name(&type);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         }  /* if */
         if (is_error_type(type)) {
           result = alloc_expr_node((an_expr_node_kind)enk_error);
