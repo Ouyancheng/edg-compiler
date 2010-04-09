@@ -13998,35 +13998,57 @@ in *bound_function_selector.
 
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 
-static void scan_complex_projection(an_operand  *result)
+static void scan_complex_projection(a_rescan_control_block *rcblock,
+                                    an_operand             *result)
 /*
-Scan an expression of one of the following two forms:
+Scan one of the GNU complex projection operators:
+
   __real <expr>
   __imag <expr>
-The result is an lvalue if the argument expression is an lvalue.  These
-operators cannot be overloaded.
+
+They extract the real or imaginary part of a complex value.
+The result is an lvalue if the argument expression is an lvalue.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+expression, and return the result in *result (or an error indication
+in *rcblock).
 */
 {
-  a_boolean              real_part = (curr_token == tok_gnu_real);
-  an_expr_operator_kind  op = (an_expr_operator_kind)(real_part ?
-                                                                eok_real_part :
-                                                                eok_imag_part);
-  a_source_position      start_pos;
+  a_boolean              real_part;
+  an_expr_operator_kind  op;
+  a_source_position      start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position      end_pos;
+  a_source_position      end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_token_sequence_number
-                         operator_tok_seq_number;
   an_operand             operand;
 
-  copy_source_position(pos_curr_token, start_pos);
-  operator_tok_seq_number = curr_token_sequence_number;
-  /* Skip over the "__real" or "__imag" operator token. */
-  (void)get_token();
-  scan_expr(&operand, PREC_CAST, EOPT_NO_OPTIONS);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    a_token_sequence_number operator_tok_seq_number;
+    if (rcblock->operator_token == tok_gnu_real) {
+      real_part = TRUE;
+    } else {
+      check_assertion(rcblock->operator_token == tok_gnu_imag);
+      real_part = FALSE;
+    }  /* if */
+    make_rescan_operands(rcblock, &operand,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &start_position, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  copy_source_position(operand.end_position, end_pos);
+    end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_position = pos_curr_token;
+    real_part = (curr_token == tok_gnu_real);
+    /* Skip over the "__real" or "__imag" operator token. */
+    (void)get_token();
+    scan_expr(&operand, PREC_CAST, EOPT_NO_OPTIONS);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  op = (an_expr_operator_kind)(real_part ? eok_real_part : eok_imag_part);
   if (is_error_operand(&operand)) {
     /* A diagnostic will already have been issued. */
     make_error_operand(result);
@@ -14048,7 +14070,7 @@ operators cannot be overloaded.
       make_zero_of_proper_type(operand.type, &zero);
       make_constant_operand(&zero, result);
     }  /* if */
-    expr_pos_warning(ec_real_and_imag_applied_to_real_value, &start_pos);
+    expr_pos_warning(ec_real_and_imag_applied_to_real_value, &start_position);
   } else if (is_complex_type(operand.type)) {
     /* A complex argument: The result type is the corresponding real
        floating-point type. */
@@ -14068,19 +14090,20 @@ operators cannot be overloaded.
       result->ref_entries_list = operand.ref_entries_list;
     } else {
       /* The argument is an rvalue: The result too. */
-      do_unary_operation(op, &operand, result_type, result, &start_pos,
+      do_unary_operation(op, &operand, result_type, result, &start_position,
                          NO_TOKEN_SEQUENCE_NUMBER);
     }  /* if */
   } else if (is_template_param_type(operand.type)) {
-    template_unary_operation(op, &operand, result, &start_pos,
-                             operator_tok_seq_number);
+    template_unary_operation(op, &operand, result, &start_position,
+                             NO_TOKEN_SEQUENCE_NUMBER);
   } else {
     error_in_operand(ec_real_and_imag_require_complex_argument, &operand);
     make_error_operand(result);
   }  /* if */
-  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
   record_operator_position_in_rescan_info_if_expr(result,
-                                                  &start_pos,
+                                                  &start_position,
                                                   NO_TOKEN_SEQUENCE_NUMBER,
                                                   (a_source_position *)NULL);
 }  /* scan_complex_projection */
@@ -21561,7 +21584,7 @@ see expr.h).
     case tok_gnu_real:
     case tok_gnu_imag:
       /* GNU complex projection operators: __real and __imag. */
-      scan_complex_projection(&local_result);
+      scan_complex_projection((a_rescan_control_block *)NULL, &local_result);
       break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
@@ -23529,6 +23552,16 @@ set accordingly.
         operator_token = tok_dynamic_cast;
         *unary = TRUE;
         break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+      case eok_real_part:
+        operator_token = tok_gnu_real;
+        *unary = TRUE;
+        break;
+      case eok_imag_part:
+        operator_token = tok_gnu_imag;
+        *unary = TRUE;
+        break;
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       case eok_add:
       case eok_padd:
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -23921,6 +23954,13 @@ outside, see rescan_expr_with_substitution.
         /* __is_convertible_to construct: */
         scan_is_convertible_to(rcblock, result);
         break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+      case tok_gnu_real:
+      case tok_gnu_imag:
+        /* GNU complex projection operators __real and __imag. */
+        scan_complex_projection(rcblock, result);
+        break;
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
