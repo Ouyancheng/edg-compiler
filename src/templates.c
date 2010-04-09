@@ -5311,7 +5311,13 @@ error type is used.
                    template_sym);
       type->variant.typeref.type = error_type();
     } else {
-      a_decl_parse_state  dps;
+      a_decl_parse_state	dps;
+      a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+      if (type->variant.typeref.is_nonreal) {
+        /* If this is a nonreal alias instantiation, mark the instantiation
+           scope as nonreal. */
+        ps_options |= PS_NONREAL_INSTANTIATION;
+      }  /* if */
       init_decl_parse_state(&dps);
       /* Push the template instantiation scope for the instantiation. */
       (void)push_template_instantiation_scope(body_cache->decl_info,
@@ -5320,7 +5326,7 @@ error type is used.
 					      instance_sym, template_sym,
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
-                                              PS_NO_OPTIONS);
+                                              ps_options);
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -16858,12 +16864,13 @@ alias
     /* Create the symbol for the prototype instantiation. */
     create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
                           /*is_partial_specialization=*/FALSE);
-  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  update_decl_pos_info(&tssp->variant.class_template.prototype_instantiation->
+    update_decl_pos_info(
+           &tssp->variant.class_template.prototype_instantiation->
                                               variant.type.ptr->source_corresp,
                        &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
   return sym;
 }  /* alias_template_declaration */
 
