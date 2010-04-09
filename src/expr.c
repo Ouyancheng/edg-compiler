@@ -3725,6 +3725,53 @@ qualified_name_check:
 }  /* scan_selection_second_operand */
 
 
+static a_symbol_ptr symbol_for_template_param_unknown_entity_rescan(
+                            a_constant_ptr                con,
+                            a_rescan_control_block        *rcblock,
+                            an_expr_rescan_info_entry_ptr eriep,
+                            a_boolean                     *is_template_id,
+                            a_template_arg_ptr            *expl_templ_arg_list)
+/*
+con is a template param constant for an unknown entity (e.g., an overloaded
+function).  Do template substitution on it using the information in rcblock
+and eriep, and produce a symbol for the substituted result.  If the result
+is a template-id (i.e., it has explicit template arguments), return
+*is_template_id TRUE and *expl_templ_arg_list set to the template argument
+list.
+*/
+{
+  a_symbol_ptr sym;
+
+  *is_template_id = FALSE;
+  *expl_templ_arg_list = NULL;
+  check_assertion(con->kind == (a_constant_repr_kind)ck_template_param);
+  if (con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_address) {
+    /* For a tpck_address, process the underlying member. */
+    con = con->variant.template_param.variant.constant;
+  } else if (con->variant.template_param.kind ==
+                           (a_template_param_constant_kind)tpck_template_ref) {
+    /* For a tpck_template_ref, process the underlying tpck_unknown_function,
+       and also return the template argument list to the caller. */
+    *is_template_id = TRUE;
+    *expl_templ_arg_list =
+                     con->variant.template_param.variant.template_ref.arg_list;
+    con = con->variant.template_param.variant.template_ref.con;
+  }  /* if */
+  check_assertion(con->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_member ||
+                  con->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_unknown_function);
+  sym  = symbol_for_template_param_unknown_entity_con_after_substitution(
+                                                con,
+                                                rcblock->template_arg_list,
+                                                rcblock->template_param_list,
+                                                &eriep->saved_operand.position,
+                                                rcblock->options);
+  return sym;
+}  /* symbol_for_template_param_unknown_entity_rescan */
+
+
 static void get_locator_for_rescanned_selection_second_operand(
                                 a_type_ptr             class_struct_union_type,
                                 a_boolean              is_arrow_operator,
@@ -3748,6 +3795,8 @@ the name in the abstract.  Set *err to TRUE if there is an error.
   an_expr_rescan_info_entry     rescan_info;
   a_symbol_ptr                  sym;
   a_boolean                     is_qualified = FALSE;
+  a_boolean                     is_template_id = FALSE;
+  a_template_arg_ptr            expl_templ_arg_list;
   an_expr_operator_kind         op;
 
   check_assertion(expr != NULL && is_operation_node(expr));
@@ -3809,12 +3858,12 @@ the name in the abstract.  Set *err to TRUE if there is an error.
           }  /* if */
         }  /* if */
         /* Do substitution on the constant and produce a symbol. */
-        sym  = symbol_for_template_param_unknown_entity_con_after_substitution(
-                                                con,
-                                                rcblock->template_arg_list,
-                                                rcblock->template_param_list,
-                                                &eriep->saved_operand.position,
-                                                rcblock->options);
+        sym = symbol_for_template_param_unknown_entity_rescan(
+                                                         con,
+                                                         rcblock,
+                                                         eriep,
+                                                         &is_template_id,
+                                                         &expl_templ_arg_list);
       } else if (is_variable_node(op2)) {
         /* Static data member. */
         sym = symbol_for(op2->variant.variable);
@@ -3828,6 +3877,10 @@ have_symbol:
       if (sym != NULL) {
         make_locator_for_symbol(sym, locator);
         locator->is_qualified_name = is_qualified;
+        if (is_template_id) {
+          locator->is_template_id = TRUE;
+          locator->template_arg_list = expl_templ_arg_list;
+        }  /* if */
       } else {
         *err = TRUE;
         rcblock->error_detected = TRUE;
@@ -19366,6 +19419,8 @@ static void scan_identifier(an_operand               *result,
                             a_rescan_control_block   *rcblock,
                             a_symbol_ptr             sym_to_rescan,
                             an_operand               *rescan_operand,
+                            a_boolean                rescan_is_template_id,
+                            a_template_arg_ptr       rescan_templ_arg_list,
                             a_symbol_ptr             *p_sym_ptr,
                             a_boolean                *p_okay_after_typename)
 /*
@@ -19380,8 +19435,10 @@ valid in a typename specifier.  This is used by the caller to diagnose
 invalid uses of typename.  If rcblock is non-NULL, redo semantic
 analysis on a previously-scanned identifier expression whose symbol
 is given by sym_for_rescan, and whose operand is given by rescan_operand,
-and return the result in *operand (or an error indication in *rcblock).
-The other input parameters (except local_options) are ignored in that case.
+and which has explicit template arguments (given by rescan_templ_arg_list)
+if rescan_is_template_id is TRUE, and return the result in *operand
+(or an error indication in *rcblock).  The other input parameters
+(except local_options) are ignored in that case.
 */
 {
   a_symbol_ptr       sym_ptr, projection_sym_ptr = NULL, anon_var_sym;
@@ -19430,8 +19487,13 @@ The other input parameters (except local_options) are ignored in that case.
     locator.is_qualified_name = rescan_operand->is_qualified_name;
     locator.access_control_error_reported =
                                  rescan_operand->access_control_error_reported;
-    locator.is_template_id = rescan_operand->is_template_id;
-    locator.template_arg_list = rescan_operand->template_arg_list;
+    if (rescan_is_template_id) {
+      locator.is_template_id = TRUE;
+      locator.template_arg_list = rescan_templ_arg_list;
+    } else {
+      locator.is_template_id = rescan_operand->is_template_id;
+      locator.template_arg_list = rescan_operand->template_arg_list;
+    }  /* if */
     /* For a qualified name like X::y, the locator position is the position of
        the "y", and start_position is the position of the "X".   The operand
        position is the "X", and the operand id_position is the "y". */
@@ -21350,7 +21412,7 @@ see expr.h).
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
                         (a_rescan_control_block *)NULL, (a_symbol *)NULL,
-                        (an_operand *)NULL,
+                        (an_operand *)NULL, FALSE, (a_template_arg *)NULL,
                         (a_symbol_ptr *)NULL, &okay_after_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If okay_after_typename is TRUE, clear the flag that indicates
@@ -23447,18 +23509,19 @@ operand of an "&" operator.
 {
   an_expr_rescan_info_entry_ptr eriep;
   a_symbol_ptr                  sym;
+  a_boolean                     is_template_id;
+  a_template_arg_ptr            expl_templ_arg_list;
 
   check_assertion(is_constant_node(expr));
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   /* Do substitution and produce a symbol for the substituted result. */
-  sym = symbol_for_template_param_unknown_entity_con_after_substitution(
-                                                expr->variant.constant,
-                                                rcblock->template_arg_list,
-                                                rcblock->template_param_list,
-                                                &eriep->saved_operand.position,
-                                                rcblock->options);
+  sym = symbol_for_template_param_unknown_entity_rescan(expr->variant.constant,
+                                                        rcblock,
+                                                        eriep,
+                                                        &is_template_id,
+                                                        &expl_templ_arg_list);
   if (sym == NULL) {
     rcblock->error_detected = TRUE;
     make_error_operand(result);
@@ -23471,7 +23534,7 @@ operand of an "&" operator.
       options |= EOPT_PTR_TO_MEMBER_CONTEXT;
     }  /* fi */
     scan_identifier(result, options, PREC_LOWEST, rcblock, sym,
-                    &eriep->saved_operand,
+                    &eriep->saved_operand, is_template_id, expl_templ_arg_list,
                     (a_symbol_ptr *)NULL, (a_boolean *)NULL);
     /* Set the proper source position, and any flags like whether the
        identifier reference was qualified. */
@@ -25313,6 +25376,7 @@ this routine is called only when microsoft_mode is TRUE.
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
                   PREC_LOWEST, (a_rescan_control_block *)NULL,
                   (a_symbol *)NULL, (an_operand *)NULL,
+                  FALSE, (a_template_arg *)NULL,
                   &projection_sym_ptr, (a_boolean*)NULL);
   if (is_error_operand(&operand) || projection_sym_ptr == NULL) {
     /* Some previous error. */
