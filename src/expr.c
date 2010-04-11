@@ -7078,17 +7078,20 @@ Record a source position in a type operand (enk_type_operand node) if
 necessary for use in a later rescan.
 */
 {
-  check_assertion(node->kind == (an_expr_node_kind)enk_type_operand);
-  if (expr_stack->template_deduction_declaration_context) {
-    /* Get rescan information recorded for this expression by going by way
-       of an operand. */
-    an_operand       operand;
-    an_expr_node_ptr result;
-    make_expression_operand(node, &operand);
-    set_operand_position(&operand, start_position, &null_source_position,
-                         &null_source_position);
-    result = make_node_from_operand(&operand);
-    check_assertion(result == node);
+  if (node->kind == (an_expr_node_kind)enk_type_operand) {
+    if (expr_stack->template_deduction_declaration_context) {
+      /* Get rescan information recorded for this expression by going by way
+         of an operand. */
+      an_operand       operand;
+      an_expr_node_ptr result;
+      make_expression_operand(node, &operand);
+      set_operand_position(&operand, start_position, &null_source_position,
+                           &null_source_position);
+      result = make_node_from_operand(&operand);
+      check_assertion(result == node);
+    }  /* if */
+  } else {
+    check_assertion(is_error_node(node));
   }  /* if */
 }  /* record_type_operand_position_for_rescan */
 
