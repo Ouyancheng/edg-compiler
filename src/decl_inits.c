@@ -2828,11 +2828,15 @@ function get_initializer does all the hard work.
     /* There is a dynamic component to this literal, so create a dynamic init
        entry of kind dik_expression (for nonaggregates) or
        dik_nonconstant_aggregate depending on the type of the literal. */
-    if (is_aggregate_or_union_type(*type)
+    if (is_aggregate_or_union_type(*type) ||
 #if GNU_VECTOR_TYPES_ALLOWED
-        || is_vector_type(*type)
+        is_vector_type(*type) ||
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                ) {
+        /* A g++-mode compound literal like (T){42, f()} with T a template
+           parameter can result in a ck_aggregate constant with a
+           tk_template_param type. */
+        (is_template_param_type(*type) &&
+         compound_constant->kind == (a_constant_repr_kind)ck_aggregate)) {
       check_assertion(compound_constant->kind ==
                                           (a_constant_repr_kind)ck_aggregate);
       *dip =
