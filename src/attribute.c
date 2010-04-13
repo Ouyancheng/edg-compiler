@@ -1568,8 +1568,8 @@ families need not be equal.
       (ignore_family || ap1->family == ap2->family)) {
     /* If the arguments to the attributes are equal, the attributes are
        equivalent. */
-    result = TRUE;
     an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
+    result = TRUE;
     while (aap1 != NULL && aap2 != NULL && result) {
       if (aap1->kind != aap2->kind) {
         result = FALSE;
