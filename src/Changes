@@ -110,7 +110,7 @@ is now fixed.  For example:
 Assertion failure in set_primary_ctor_or_dtor_kind
 
 Prior to version 4.0, a constructor of an unnamed local class had been given a
-mangled name, however, due to changes in 4.0, such constructors were not given
+mangled name; however, due to changes in 4.0, such constructors were not given
 mangled names in configurations where local entities are not promoted to file
 scope.  This caused an assertion failure on such cases (in
 set_primary_ctor_or_dtor_kind in lower_init.c).  A change has been made to give
