@@ -3587,25 +3587,22 @@ are non-NULL when they should be used for the outermost instantiation scope.
 					      options);
   }  /* if */
   if (is_template) {
-    if (tssp->variant.class_template.prototype_instantiation_complete) {
-      /* Push a template instantiation scope associated with the
-         class in which this template was defined.  Don't do this if
-         the prototype instantiation is already in process. */
-      a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
-      /* If the class is a prototype instantiation, pass the appropriate flag
-         to push_scope. */
-      if (class_type->variant.class_struct_union.is_prototype_instantiation) {
-        ps_options = PS_PROTOTYPE_INSTANTIATION;
-      }  /* if */
-      template_arg_list = templ_arg_list_for_class(class_type);
-      (void)push_scope_full((a_scope_kind)sck_template_instantiation,
+    /* Push a template instantiation scope associated with the
+       class in which this template was defined. */
+    a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+    /* If the class is a prototype instantiation, pass the appropriate flag
+       to push_scope. */
+    if (class_type->variant.class_struct_union.is_prototype_instantiation) {
+      ps_options = PS_PROTOTYPE_INSTANTIATION;
+    }  /* if */
+    template_arg_list = templ_arg_list_for_class(class_type);
+    (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL,
                           instance_sym, template_sym, template_arg_list,
                           decl_info,
                           (an_object_lifetime_ptr)NULL,
                           ps_options);
-    }  /* if */
   }  /* if */
   /* Reactivate the enclosing class scope. */
   push_single_class_reactivation_scope(class_type);
