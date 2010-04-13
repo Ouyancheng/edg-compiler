@@ -5032,6 +5032,8 @@ is nonreal, a complete nonreal type is returned.
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     }  /* if */
   }  /* if */
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(template_arg_list);
   /* If this is a "real instantiation" leave the type incomplete; it will
      become complete when it is instantiated.  However, if it depends in
      some way on a template parameter and is therefore a "nonreal"
@@ -5040,8 +5042,6 @@ is nonreal, a complete nonreal type is returned.
   if (template_arg_list_is_dependent(template_arg_list)) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
   }  /* if */
-  /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(template_arg_list);
   /* Record the argument list in the type.  It should be available in the
      IL at least for name generation and possibly for debuggers, too.  Note,
      however, that the type itself is not added to the scope types list
@@ -5246,12 +5246,12 @@ error type is used.
         type->variant.typeref.is_nonreal = TRUE;
       }  /* if */
     }  /* if */
+    /* Remove any local or nonreal typedefs from the argument list. */
+    strip_types_from_template_arg_list(template_arg_list);
     /* See if the template arguments involve any nonreal types. */
     if (template_arg_list_is_dependent(template_arg_list)) {
       type->variant.typeref.is_nonreal = TRUE;
     }  /* if */
-    /* Remove any local or nonreal typedefs from the argument list. */
-    strip_types_from_template_arg_list(template_arg_list);
     /* Record the argument list in the type. */
     ttsp = type->variant.typeref.extra_info;
     ttsp->template_arg_list = template_arg_list;

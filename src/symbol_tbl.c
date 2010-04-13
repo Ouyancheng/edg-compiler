@@ -1020,7 +1020,8 @@ do_variable:
             default:        put_string("<BAD TYPE KIND>"); break;
           }  /* switch */
           prototype_sym = tssp->variant.class_template.prototype_instantiation;
-          if (prototype_sym != NULL) {
+          if (prototype_sym != NULL &&
+              !tssp->variant.class_template.is_alias_template) {
             /* If the prototype instantiation has a partial specialization
                template argument list (i.e., it is for a partial
                specialization), display the primary template argument list
