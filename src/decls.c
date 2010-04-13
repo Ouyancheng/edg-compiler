@@ -12657,6 +12657,7 @@ semicolon.
       parent_type = scope_stack_top().assoc_type;
     }  /* if */
     type_name_full(dps);
+    check_type_definition_in_type_name(dps);
     decl_typedef(&loc, dps, parent_type, &decl_pos_block);
     if (dps->sym != NULL && dps->sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr  tp = dps->sym->variant.type.ptr;
