@@ -14458,8 +14458,13 @@ indicates how processing should proceed after the call.
       if (curr_token == tok_namespace) {
         using_directive(state);
       } else {
-        if (alias_declarations_enabled &&
-            curr_token == tok_identifier && next_token() == tok_assign) {
+        a_token_kind  next_tok = next_token();
+        if (alias_declarations_enabled && curr_token == tok_identifier &&
+            (next_tok == tok_assign ||
+             (std_attributes_enabled && next_tok == tok_lbracket))) {
+          /* An identifier followed by a "=" or a bracket (presumably the
+             start of C++0x-style attributes): This looks like an alias
+             declaration. */
           alias_declaration(state, &end_of_using_pos);
         } else {
           nonmember_using_declaration(state);
