@@ -797,6 +797,9 @@ extern void decl_typedef(a_symbol_locator             *locator,
                          a_type_ptr                   class_type,
                          a_decl_pos_block_ptr         decl_pos_block);
 
+extern void alias_declaration(a_decl_parse_state  *dps,
+                              a_source_position   *p_end_of_using_pos);
+
 extern void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym);
 
 extern void record_arg_pragma(a_pending_pragma_ptr  ppp,

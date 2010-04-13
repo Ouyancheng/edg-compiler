@@ -13440,14 +13440,18 @@ search_done:
 }  /* check_member_using_visibility */
 
 
-static void member_using_declaration(a_type_ptr           class_type,
-                                     an_access_specifier  access)
+static void member_using_or_alias_declaration(a_type_ptr           class_type,
+                                              an_access_specifier  access)
 /*
-Scan what is either a using-declaration (if tok_using is the current token)
-or a deprecated access-adjustment declaration.  The semantics and
-representation are identical.  class_type is the class in which the
-declaration appears, and access is the current access (explicitly specified
-or implicit) controlling the declaration.
+Scan what is either a using-declaration, an alias declaration, or (if
+tok_using is not the current token) a deprecated access-adjustment
+declaration.  The semantics and representation of using-declarations and
+access-adjustment declarations are identical.  class_type is the class in
+which the declaration appears, and access is the current access (explicitly
+specified or implicit) controlling the declaration.  (The alias declaration
+case is almost entirely handled by a call to alias_declaration.  The latter
+call is made in this routine because the tok_using token must be consumed to
+distinguish an alias declaration from a using-declaration.)
 */
 {
   a_symbol_ptr       sym, declared_sym;
@@ -13457,19 +13461,35 @@ or implicit) controlling the declaration.
   a_boolean          is_overloaded;
   a_symbol_locator   locator;
   a_using_decl_ptr   prev_udp = NULL;
-  a_source_position  decl_pos, using_pos;
+  a_source_position  decl_pos, using_pos, end_of_using_pos;
 
-  db_enter(3, "member_using_declaration");
+  db_enter(3, "member_using_or_alias_declaration");
   add_stop_token(tok_semicolon);
   using_pos = pos_curr_token;
   if (curr_token == tok_using) {
+    a_token_kind  next_tok;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_of_using_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)get_token();
+    next_tok = next_token();
+    if (alias_declarations_enabled && curr_token == tok_identifier &&
+        (next_tok == tok_assign ||
+         (std_attributes_enabled && next_tok == tok_lbracket))) {
+      /* An identifier followed by a "=" or a bracket (presumably the start of
+         C++0x-style attributes): This looks like an alias declaration. */
+      a_decl_parse_state  dps;
+      init_decl_parse_state(&dps);
+      dps.in_class_scope = TRUE;
+      dps.start_pos = using_pos;
+      alias_declaration(&dps, &end_of_using_pos);
+      goto done;
+    }  /* if */
     /* A using-declaration is outside the "Embedded C++" subset. */
     feature_is_not_part_of_embedded_cplusplus_subset(
-                                        &pos_curr_token,
-                                        ec_using_decl_in_embedded_cplusplus);
+                             &using_pos, ec_using_decl_in_embedded_cplusplus);
     /* This is a using declaration.  Bypass "using" and scan the
        identifier. */
-    (void)get_token();
     if (!is_decl_qualified_name_start() && curr_token != tok_typename) {
       syntax_error(ec_exp_identifier);
       discard_curr_construct_pragmas();
@@ -13728,7 +13748,7 @@ done:;
   remove_stop_token(tok_semicolon);
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
-}  /* member_using_declaration */
+}  /* member_using_or_alias_declaration */
 
 
 a_symbol_ptr find_corresp_prototype_tag_sym(a_symbol_ptr  curr_sym)
@@ -16706,9 +16726,10 @@ classes.
             (void)required_token(tok_semicolon, ec_exp_semicolon);
             goto next_declaration;
           }  /* if */
-          /* Check for a using declaration or static_assert declaration. */
+          /* Check for a using declaration, alias declaration, or
+             static_assert declaration. */
           if (curr_token == tok_using) {
-            member_using_declaration(class_type, class_state.access);
+            member_using_or_alias_declaration(class_type, class_state.access);
             goto next_declaration;
           } else if (curr_token == tok_static_assert) {
             static_assert_declaration(/*leave_semicolon=*/FALSE);
@@ -16723,7 +16744,7 @@ classes.
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
-            member_using_declaration(class_type, class_state.access);
+            member_using_or_alias_declaration(class_type, class_state.access);
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */

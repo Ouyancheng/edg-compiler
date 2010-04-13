@@ -12599,8 +12599,8 @@ current scope.
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/  /* p_end_of_using_pos is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void alias_declaration(a_decl_parse_state  *dps,
-                              a_source_position   *p_end_of_using_pos)
+void alias_declaration(a_decl_parse_state  *dps,
+                       a_source_position   *p_end_of_using_pos)
 /*
 Handle a declaration of the form:
 
@@ -14451,6 +14451,9 @@ indicates how processing should proceed after the call.
          using-directive (which has the form "using namespace N;"), or a
          using-declaration ("using N::x;" or "using ::x;"). */
       a_source_position  end_of_using_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_of_using_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Skip over the "using" token. */
       (void)get_token();
       /* Attributes cannot precede a using-declaration or using-directive. */
