@@ -817,7 +817,7 @@ if no function should be called).
     check_assertion(*p_ep != NULL);
     for (ep = *p_ep; ep != NULL; ep = ep->next) {
       if (ep->descr->family != af_last &&
-          ep->descr->family != (an_attribute_kind)ap->family) {
+          ep->descr->family != (an_attribute_family)ap->family) {
         continue;
       } else if (ep->descr->target_kind != iek_last &&
                  ep->descr->target_kind != target_kind) {
