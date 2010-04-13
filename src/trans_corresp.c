@@ -34,6 +34,29 @@ trans_corresp.c -- Routines related to matching entities across
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+/* Forward declarations. */
+static void clear_scope_correspondence(a_scope_ptr  scope,
+                                       a_boolean    visited);
+static void clear_type_correspondence(a_type_ptr  type,
+                                      a_boolean   visited);
+static void establish_trans_unit_correspondences_for_enum(a_type_ptr  type);
+static void establish_trans_unit_correspondences_for_class(a_type_ptr  type);
+static void find_type_correspondence(a_type_ptr  type,
+                                     a_boolean   parent_found);
+static void find_template_correspondence(a_template_ptr  templ,
+                                         a_boolean       parent_found);
+static a_symbol_list_entry_ptr find_class_template_instantiation(
+                                      a_template_symbol_supplement_ptr  tssp,
+                                      a_symbol_ptr                      inst);
+static a_boolean verify_type_correspondence(a_type_ptr  type);
+static a_boolean verify_template_correspondence(a_template_ptr  templ);
+static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
+static void establish_instantiation_correspondences(
+                                               a_template_ptr  templ,
+                                               a_template_ptr  corresp_templ);
+static void process_pending_instantiations(void);
+
+
 /* Pointers to canonical built-in types. */
 static a_type_ptr canonical_int_types[(int)ik_last];
 static a_type_ptr canonical_signed_int_types[(int)ik_last];
@@ -171,29 +194,6 @@ correspondences must be determined at a later time.
   instantiations_to_process = slep;
   slep->symbol = inst;
 }  /* add_pending_instantiation */
-
-
-/* Forward declarations. */
-static void clear_scope_correspondence(a_scope_ptr  scope,
-                                       a_boolean    visited);
-static void clear_type_correspondence(a_type_ptr  type,
-                                      a_boolean   visited);
-static void establish_trans_unit_correspondences_for_enum(a_type_ptr  type);
-static void establish_trans_unit_correspondences_for_class(a_type_ptr  type);
-static void find_type_correspondence(a_type_ptr  type,
-                                     a_boolean   parent_found);
-static void find_template_correspondence(a_template_ptr  templ,
-                                         a_boolean       parent_found);
-static a_symbol_list_entry_ptr find_class_template_instantiation(
-                                      a_template_symbol_supplement_ptr  tssp,
-                                      a_symbol_ptr                      inst);
-static a_boolean verify_type_correspondence(a_type_ptr  type);
-static a_boolean verify_template_correspondence(a_template_ptr  templ);
-static void verify_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
-static void establish_instantiation_correspondences(
-                                               a_template_ptr  templ,
-                                               a_template_ptr  corresp_templ);
-static void process_pending_instantiations(void);
 
 
 static a_boolean type_has_definition(a_type_ptr  type)
@@ -2264,6 +2264,103 @@ also deals with the consequences of type becoming the new canonical entry.
 }  /* set_type_corresp */
 
 
+static void verify_attr_corresp_one_way(char              *entity1,
+                                        char              *entity2,
+                                        an_il_entry_kind  entity_kind)
+/*
+*/
+{
+  an_attribute_ptr  attr1 = *get_attribute_link(entity1, entity_kind), ap1;
+
+  if (attr1 != NULL) {
+    /* For entity2, set up an array that points to the "principal" attribute
+       of each kind (if any) for easy/speedy lookup. */
+    an_attribute_ptr  attr2 = *get_attribute_link(entity2, entity_kind), ap2;
+    an_attribute_ptr  atable2[(int)ak_last];
+    memzero((char*)atable2, sizeof(atable2));
+    for (ap2 = attr2; ap2 != NULL; ap2 = ap2->next) {
+      if (atable2[(int)ap2->kind] == NULL || ap2->on_primary_declaration) {
+        atable2[(int)ap2->kind] = ap2;
+      }  /* if */
+    }  /* for */
+    /* Check each attribute to see if it has a counterpart in the other
+       translation unit. */
+    for (ap1 = attr1; ap1 != NULL; ap1 = ap1->next) {
+      an_attr_corresp_flag_set     acflags, match_mode;
+      an_attr_corresp_checking_fn  *checking_fn;
+      if (is_unapplicable_attr(ap1)) continue;
+      get_attr_corresp_checking_info(ap1, entity_kind, &acflags, &checking_fn);
+      match_mode = acflags & ACF_MATCH_MASK;
+      ap2 = atable2[(int)ap1->kind];
+      if (match_mode == ACF_CUSTOM_MATCH) {
+        check_assertion(checking_fn != 0);
+        (void)checking_fn(entity1, entity2, entity_kind, ap1, ap2);
+      } else if (ap2 == NULL) {
+        if (match_mode == ACF_STRICT_MATCH) {
+          pos_st_start_error(ec_missing_attribute_in_other_translation_unit,
+                             &ap1->position, ap1->name);
+          add_diag_info_with_pos_insert(
+                      ec_corresp_decl_at,
+                      &((a_source_correspondence_ptr)entity2)->decl_position);
+          end_error();
+        } else {
+          /* A valid ("void") match: Mark the attribute as requiring a copy
+             to the primary translation unit entity. */
+          ap1->copy_to_primary_translation_unit = TRUE;
+        }  /* if */
+      } else if (equivalent_attributes(ap1, ap2, /*ignore_family=*/FALSE)) {
+        /* Ordinarily, since the attribute is present in both translation
+           units, no copy is required.  Occasionally, however, it might make
+           sense to "accumulate" all attributes from all translation units. */
+        if (acflags & ACF_ALWAYS_TRANS_COPY) {
+          ap1->copy_to_primary_translation_unit = TRUE;
+        }  /* if */
+      } else if ((acflags & ACF_MATCH_MASK) == ACF_MATCH_OPTIONAL) {
+        /* The attributes don't match, but that is okay.   Mark the attribute
+           as requiring a copy to the primary translation unit entity. */
+        ap1->copy_to_primary_translation_unit = TRUE;
+      } else {
+        /* Conflicting attributes: Issue an error. */
+        pos_st_start_error(ec_conflicting_attribute_in_other_translation_unit,
+                           &ap1->position, ap1->name);
+        add_diag_info_with_pos_insert(ec_corresp_decl_at, &ap2->position);
+        end_error();
+        make_attr_unrecognized(ap1);
+        make_attr_unrecognized(ap2);
+      }  /* if */
+      if (atable2[(int)ap1->kind] == NULL) {
+        /* An attribute (ap1) of the first entity doesn't have a counterpart
+           in entity2. */
+      } else if (equivalent_attributes(ap1, atable2[(int)ap1->kind],
+                                       /*ignore_family=*/FALSE)) {
+      } else {
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* verify_attr_corresp_one_way */
+
+
+static void f_verify_attributes_correspondence(
+                                            char              *entity1,
+                                            char              *entity2,
+                                            an_il_entry_kind  entity_kind)
+/*
+The two given entities (of the given kind) have been found to correspond.  
+Issue diagnostics as appropriate if their attached attributes conflict
+(including cases where an attribute is present in one translation unit but not
+in the other).  This routine also marks attributes if they should be merged to
+the canonical entry.
+*/
+{
+  verify_attr_corresp_one_way(entity1, entity2, entity_kind);
+  verify_attr_corresp_one_way(entity2, entity1, entity_kind);
+}  /* f_verify_attributes_correspondence */
+
+#define verify_attributes_correspondence(e1, e2, kind)                       \
+  (f_verify_attributes_correspondence((char*)(e1), (char*)(e2),              \
+                                      (an_il_entry_kind)kind))
+
+
 static a_boolean verify_field_correspondence(a_field_ptr  field)
 /*
 Check that the recorded translation unit correspondence for the given field
@@ -2282,7 +2379,6 @@ is in fact valid.
          needs to be done. */
       a_field_ptr  prim = (a_field_ptr)trans_unit_corresp_of(field)->primary;
       if (prim != NULL && field != prim) {
-        corresp_field = field;
         field = prim;
       } else {
         goto done;
@@ -2324,6 +2420,7 @@ is in fact valid.
         set_no_trans_unit_corresp(iek_field, field);
       }  /* if */
     }  /* if */
+    verify_attributes_correspondence(field, corresp_field, iek_field);
 #if CHECKING
     if (match &&
         (field->offset != corresp_field->offset ||
@@ -2500,7 +2597,9 @@ declaration modifiers.
   if (!result &&
       routine_does_not_return(rp1) != routine_does_not_return(rp2)) {
     /* The noreturn attribute need not be specified on every declaration, but
-       if it appears on one, it must also appear on the definition. */
+       if it appears on one, it must also appear on the definition.  (The
+       standard C++0x [[noreturn]] attribute has stricter requirements: They
+       are verified in verify_attributes_correspondence. */
     if ((routine_does_not_return(rp1) && rp2->defined) ||
         (routine_does_not_return(rp2) && rp1->defined)) {
       result = TRUE;
@@ -2689,6 +2788,7 @@ is in fact valid.
     } else if (match) {
       verify_corresp_for_default_arg_entities(routine, corresp_routine);
     }  /* if */
+    verify_attributes_correspondence(routine, corresp_routine, iek_routine);
   }  /* if */
 done:
   return match;
@@ -2793,6 +2893,7 @@ is in fact valid.
       /* Two nontentative definitions. */
       report_multiple_definitions(var);
     }  /* if */
+    verify_attributes_correspondence(var, corresp_var, iek_variable);
   }  /* if */
 done:
   return match;
@@ -3506,6 +3607,9 @@ is in fact valid.
        now. */
     report_bad_trans_unit_corresp(type);
   }  /* if */
+  if (match) {
+    verify_attributes_correspondence(type, corresp_type, iek_type);
+  }  /* if */
   return match;
 }  /* verify_type_correspondence */
 
@@ -3685,19 +3789,22 @@ that any other significant attributes also match.  Only namespace aliases
 have such an attribute: the aliased namespace.
 */
 {
-  a_boolean  result = TRUE;
+  a_boolean        match = TRUE;
+  a_namespace_ptr  corresp_nsp = (a_namespace_ptr)canonical_il_entry_of(nsp);
 
   if (nsp->is_namespace_alias) {
     a_namespace_ptr  unaliased_nsp = skip_namespace_aliases(nsp);
-    a_namespace_ptr  other_nsp = (a_namespace_ptr)canonical_il_entry_of(nsp);
-    other_nsp = skip_namespace_aliases(other_nsp);
+    a_namespace_ptr  other_nsp = skip_namespace_aliases(corresp_nsp);
     if (canonical_il_entry_of(unaliased_nsp) !=
                                            canonical_il_entry_of(other_nsp)) {
       report_bad_trans_unit_corresp(nsp);
-      result = FALSE;
+      match = FALSE;
     }  /* if */
   }  /* if */
-  return result;
+  if (match) {
+    verify_attributes_correspondence(nsp, corresp_nsp, iek_namespace);
+  }  /* if */
+  return match;
 }  /* verify_namespace_correspondence */
 
 
@@ -5827,8 +5934,7 @@ unit) on the list of symbols headed by syms.
       /* Don't consider symbols in the same file or in noncorresponding
          scopes. */
     } else if (!may_have_correspondence(sym)) {
-      a_source_correspondence_ptr  scp =
-                                       source_corresp_entry_for_symbol(sym);
+      a_source_correspondence_ptr  scp = source_corresp_entry_for_symbol(sym);
       if (scp != NULL && !in_secondary_trans_unit(scp)) {
         /* The entity corresponding to sym doesn't have linkage, but since
            it appears in the primary translation unit it could cause a

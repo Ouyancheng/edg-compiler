@@ -2046,20 +2046,22 @@ typedef struct an_attribute {
   a_byte_attribute_location
 		syntactic_location;
 			/* The syntactic location of the attribute. */
-  a_bit_field
-		on_primary_declaration:1;
+  a_bit_field	on_primary_declaration:1;
 			/* The attribute appeared on the primary declaration of
 			   an entity.  (Some attributes on a definition take
 			   precedence over the same attribute applied to
 			   another declaration of the same entity.)  For base
 			   class entries, these are the attributes that were
 			   specified on the base class specifier. */
-  a_bit_field
-		transforms_type_specifier:1;
+  a_bit_field	transforms_type_specifier:1;
 			/* TRUE if this attribute appertains to a type
 			   specifier and produces a new type as a result.
 			   Currently, this is only TRUE for GNU mode and
 			   vector_size attributes. */
+  a_bit_field	copy_to_primary_translation_unit:1;
+			/* A front-end-only flag indicating that this attribute
+			   should be copied to the primary translation unit
+			   during the trans_copy process. */
   char		*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   char		*namespace_name;

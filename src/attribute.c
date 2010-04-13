@@ -15,7 +15,7 @@ attribute.c -- Processing of attributes.
 How to Add a New Attribute
 ==========================
 The attribute framework is designed to make it relatively easy to add a new
-attribute.  Typically, adding an attribute involves three or four steps:
+attribute.  Typically, adding an attribute just a few steps:
 
   (1) Add a new ak_... attribute kind constant in il_def.h.
       For example: ak_section.
@@ -40,6 +40,11 @@ attribute.  Typically, adding an attribute involves three or four steps:
       See the definition of struct an_attr_appl_descr for details.
 
   (4) Write the application function specified in step 3 (if any).
+
+  (5) If needed, update the table attr_corresp_table[] below to customize
+      the rules for handling corresponding attributes across translation
+      units (by default corresponding attributes must match exactly; see
+      the definition of an_attr_corresp_descr for details).
 
 Even when none of these steps is taken, an unrecognized attribute will still
 automatically be recorded in the IL when record_unrecognized_attributes is
@@ -623,6 +628,214 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_last, "!!ERROR", NO_APPL_FN }
 };
 
+
+typedef struct an_attr_corresp_descr *an_attr_corresp_descr_ptr;
+typedef struct an_attr_corresp_descr {
+  /* Data structure describing special rules when checking attributes on
+     corresponding entities across translation units.  (If an attribute
+     kind/family/target-entity triple does not appear in this table, it is
+     assumed that that kind of attribute must match exactly across
+     translation units.) */
+  an_attribute_kind
+		kind;	/* The kind of attribute this entry describes. */
+  an_attribute_family
+		family;	/* The attribute family to which this entry applies,
+			   or iek_last if it applies to all families. */
+  an_il_entry_kind
+		target_kind;
+			/* The kind of target entity for which this entry
+			   is meant (e.g., an attribute X may apply to both
+			   variables and types, but the handling of cross-
+			   translation-unit correspondences may be different
+			   for variables and types). */
+  an_attr_corresp_flag_set
+		corresp_flags;
+			/* Flags describing how correspondence checking
+			   should be handled.  See the ACF_... macros in
+			   attribute.h for details. */
+  an_attr_corresp_checking_fn
+		*checking_fn;
+			/* If (corresp_flags & ACF_MATCH_MASK) is
+			   ACF_CUSTOM_MATCH, this is a pointer to a function
+			   to check the correspondence between two
+			   attributes.  Otherwise, NULL (the most common
+			   case). */
+} an_attr_corresp_descr;
+
+
+static an_attr_corresp_descr attr_corresp_table[] = {
+  { ak_align, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_noreturn, af_std, iek_last, ACF_STRICT_MATCH, NO_CHECKING_FN },
+  { ak_noreturn, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_noreturn, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,
+            NO_CHECKING_FN },
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  { ak_deprecated, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_noinline, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_nothrow, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  { ak_constructor, af_gnu, iek_last, ACF_STRICT_MATCH_OR_VOID,
+            NO_CHECKING_FN },
+  { ak_destructor, af_gnu, iek_last, ACF_STRICT_MATCH_OR_VOID,
+            NO_CHECKING_FN },
+  { ak_flatten, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_format_arg, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  { ak_init_priority, af_gnu, iek_last, ACF_STRICT_MATCH_OR_VOID,
+            NO_CHECKING_FN },
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  { ak_mode, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_nocommon, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_unused, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_used, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+#if GNU_VECTOR_TYPES_ALLOWED
+  { ak_vector_size, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  { ak_weak, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_weakref, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  { ak_dllexport, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,
+            NO_CHECKING_FN },
+  { ak_dllimport, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,
+            NO_CHECKING_FN },
+  { ak_implementation_key, af_ms_declspec, iek_last, ACF_STRICT_MATCH_OR_VOID,
+            NO_CHECKING_FN },
+  { ak_naked, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_selectany, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,
+            NO_CHECKING_FN },
+  { ak_uuid, af_ms_declspec, iek_last, ACF_STRICT_MATCH_OR_VOID,
+            NO_CHECKING_FN },
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  { ak_last, af_last, iek_last, ACF_NO_FLAGS, NO_CHECKING_FN }
+};
+
+#define ATTR_CORRESP_TABLE_LENGTH \
+  ((sizeof_t)(sizeof(attr_corresp_table)/sizeof(attr_corresp_table[0])-1))
+
+
+/*
+Pointer to a hash table indexing attr_corresp_table by attribute kind.
+*/
+static a_hash_table_ptr
+	attr_corresp_checking_map;
+
+/*
+Bucket type for attr_corresp_checking_map.
+*/
+typedef struct an_attr_corresp_checking_map_entry
+	*an_attr_corresp_checking_map_entry_ptr;
+typedef struct an_attr_corresp_checking_map_entry {
+  an_attr_corresp_checking_map_entry_ptr
+		next;
+			/* The next map entry for an attribute of the same
+			   kind as this entry. */
+  an_attr_corresp_descr_ptr
+		descr;
+			/* The attribute description entry for this map
+			   entry. */
+} an_attr_corresp_checking_map_entry;
+
+
+static an_attr_corresp_checking_map_entry
+		corresp_checking_map_entries[ATTR_CORRESP_TABLE_LENGTH];
+			/* Since the number of buckets for
+			   attr_corresp_checking_map is fixed, we can store
+			   the buckets in a fixed array. */
+
+
+static a_boolean compare_for_attr_corresp_checking_map(a_void_ptr  entry,
+                                                       a_void_ptr  key)
+/*
+Compare the attribute kind associated with entry (entry is a pointer to an
+object of type an_attr_corresp_checking_map_entry) to the attribute kind
+pointed to by key.  Return TRUE if they are equal.
+*/
+{
+  an_attribute_kind  entry_kind =
+                 ((an_attr_corresp_checking_map_entry_ptr)entry)->descr->kind;
+
+  return entry_kind == *(an_attribute_kind*)key;
+}  /* compare_for_attr_corresp_checking_map */
+
+
+static a_hash_value hash_attribute_kind(a_void_ptr  key)
+/*
+key points to an attribute kind.  Return that value (which is trivially
+suitable as a hash).
+*/
+{
+  return (a_hash_value)*(an_attribute_kind*)key;
+}  /* hash_attribute_kind */
+
+
+static void init_attr_corresp_checking_map(void)
+/*
+Initialize the attribute correspondence checking map.
+*/
+{
+  unsigned int  k;
+
+  attr_corresp_checking_map = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
+                                 (a_hash_table_size)ATTR_CORRESP_TABLE_LENGTH,
+                                 hash_attribute_kind,
+                                 compare_for_attr_corresp_checking_map);
+  for (k = 0; k<ATTR_CORRESP_TABLE_LENGTH; ++k) {
+    an_attr_corresp_checking_map_entry_ptr  *p_ep;
+    an_attribute_kind                       kind = attr_corresp_table[k].kind;
+    p_ep = (an_attr_corresp_checking_map_entry_ptr*)
+                 hash_find(attr_corresp_checking_map, &kind, /*create=*/TRUE);
+    corresp_checking_map_entries[k].next = *p_ep;
+    corresp_checking_map_entries[k].descr = &attr_corresp_table[k];
+    *p_ep = &corresp_checking_map_entries[k];
+  }  /* for */
+}  /* init_attr_corresp_checking_map */
+
+
+void get_attr_corresp_checking_info(an_attribute_ptr             ap,
+                                    an_il_entry_kind             target_kind,
+                                    an_attr_corresp_flag_set     *p_flags,
+                                    an_attr_corresp_checking_fn  **p_fn)
+/*
+Given an attribute (ap) and the kind of entity it applies to (target_kind)
+return a set of flags (*p_flags) describing how checking and copying the
+attribute across translation units should be handled, and return through
+*p_fn a function that should be called for correspondence checking (or NULL
+if no function should be called).
+*/
+{
+  an_attr_corresp_checking_map_entry_ptr  *p_ep, ep = NULL;
+  an_attribute_kind                       key = (an_attribute_kind)ap->kind;
+
+  if (attr_corresp_checking_map == NULL) init_attr_corresp_checking_map();
+  p_ep = (an_attr_corresp_checking_map_entry_ptr*)
+            hash_find(attr_corresp_checking_map, &key, /*create=*/FALSE);
+  if (p_ep != NULL) {
+    /* There are entries associated with ap->kind.  See if they also match
+       family and target entity kind. */
+    check_assertion(*p_ep != NULL);
+    for (ep = *p_ep; ep != NULL; ep = ep->next) {
+      if (ep->descr->family != af_last &&
+          ep->descr->family != (an_attribute_kind)ap->family) {
+        continue;
+      } else if (ep->descr->target_kind != iek_last &&
+                 ep->descr->target_kind != target_kind) {
+        continue;
+      } else {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (ep == NULL) {
+    /* By default, require strict matching. */
+    *p_flags = ACF_STRICT_MATCH;
+    *p_fn = NO_CHECKING_FN;
+  } else {
+    *p_flags = ep->descr->corresp_flags;
+    *p_fn = ep->descr->checking_fn;
+  }  /* if */
+}  /* get_attr_corresp_checking_info */
 
 #if CHECKING
 
@@ -1337,6 +1550,57 @@ ak_unrecognized.
   }  /* if */
   remove_stop_token(tok_rparen);
 }  /* scan_attribute_args */
+
+
+a_boolean equivalent_attributes(an_attribute_ptr  ap1,
+                                an_attribute_ptr  ap2,
+                                a_boolean         ignore_family)
+/*
+Return TRUE if the two given attributes are equivalent.  Two attributes are
+equivalent if they have the same kind, equal arguments (if any), and if they
+are of the same family (af_std, af_gnu, ...).  If ignore_family is TRUE, the
+families need not be equal.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (ap1->kind == ap2->kind &&
+      (ignore_family || ap1->family == ap2->family)) {
+    /* If the arguments to the attributes are equal, the attributes are
+       equivalent. */
+    result = TRUE;
+    an_attribute_arg_ptr  aap1 = ap1->arguments, aap2 = ap2->arguments;
+    while (aap1 != NULL && aap2 != NULL && result) {
+      if (aap1->kind != aap2->kind) {
+        result = FALSE;
+      } else {
+        switch (aap1->kind) {
+          case aak_empty:
+            break;
+          case aak_raw_token:
+          case aak_token:
+            result = (strcmp(aap1->variant.token, aap2->variant.token) == 0);
+            break;
+          case aak_constant:
+            result = eq_constants(aap1->variant.constant,
+                                  aap2->variant.constant);
+            break;
+          case aak_type:
+            result = identical_types(aap1->variant.type, aap2->variant.type);
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }  /* if */
+      aap1 = aap1->next;
+      aap2 = aap2->next;
+    }  /* while */
+    /* If all arguments up to now are equal, but one list has additional
+       arguments, the attributes are not equivalent. */
+    if (result && (aap1 != NULL || aap2 != NULL)) result = FALSE;
+  }  /* if */
+  return result;
+}  /* equivalent_attributes */
 
 
 an_attribute_ptr *f_last_attribute_link(an_attribute_ptr  *attributes)
@@ -2343,8 +2607,8 @@ done:
 }  /* check_target_entity_match */
 
 
-static an_attribute_ptr* get_attribute_link(char              *entity,
-                                            an_il_entry_kind  entity_kind)
+an_attribute_ptr* get_attribute_link(char              *entity,
+                                     an_il_entry_kind  entity_kind)
 /*
 Return a pointer to the field of the given entity that points to the attributes
 list recorded for that entity.  (For entities with a source correspondence scp,

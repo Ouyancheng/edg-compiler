@@ -110,6 +110,9 @@ extern void skip_over_attributes(void);
 extern void report_bad_attribute_target(an_error_severity  sev,
                                         an_attribute_ptr   ap);
 
+extern an_attribute_ptr* get_attribute_link(char              *entity,
+                                            an_il_entry_kind  entity_kind);
+
 extern void attach_attributes(an_attribute_ptr  attributes,
                               char              *entity,
                               an_il_entry_kind  entity_kind);
@@ -124,6 +127,10 @@ extern a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
 extern void attach_type_attributes(a_type_ptr        *p_type,
                                    an_attribute_ptr  attributes,
                                    void              *assoc_info);
+
+extern a_boolean equivalent_attributes(an_attribute_ptr  ap1,
+                                       an_attribute_ptr  ap2,
+                                       a_boolean         ignore_family);
 
 extern an_attribute_ptr *f_last_attribute_link(an_attribute_ptr  *attributes);
 
@@ -170,6 +177,58 @@ extern an_attribute_ptr composite_attributes(an_attribute_ptr  ap1,
                                              an_attribute_ptr  ap2);
 
 extern an_attribute_ptr get_param_variable_attr_copies(a_param_type_ptr  ptp);
+
+typedef unsigned int an_attr_corresp_flag_set;
+/*
+Various flag values that determine how attributes on corresponding entities in
+distinct translation units should be matched up.
+*/
+#define ACF_NO_FLAGS  0x0
+#define ACF_STRICT_MATCH  0x0
+	/* If an attribute appears on an entity in one translation unit, an
+	   equivalent attribute must appear on any corresponding entity in
+	   another translation unit.  (This is the default.) */
+#define ACF_STRICT_MATCH_OR_VOID  0x1
+	/* If an attribute appears on an entity in one translation unit, a
+	   corresponding entity must either carry an equivalent attribute or
+	   not carry that attribute kind at all.  (For attributes with no
+	   arguments this is equivalent to ACF_MATCH_OPTIONAL below.) */
+#define ACF_MATCH_OPTIONAL  0x2
+	/* An attribute appearing on an entity in one translation unit puts
+	   no requirement on attributes for a corresponding entity in another
+	   translation unit.  (However, specialized correspondence code can
+	   impose additional requirements.) */
+#define ACF_CUSTOM_MATCH  0x3
+	/* Attributes are matched using a specific callback function of type
+	   an_attr_corresp_checking_fn (see below). */
+#define ACF_MATCH_MASK 0x3
+	/* Mask value to extract the "attribute matching mode". */
+#define ACF_ALWAYS_TRANS_COPY 0x4
+	/* When merging multiple translation units, always copy this kind of
+	   attribute, even if an exact match was found. */
+
+/*
+Type of a function to check whether two attributes match on two corresponding
+attributes (in different translation units).
+*/
+typedef a_boolean an_attr_corresp_checking_fn(char              *entity1,
+                                              char              *entity2,
+                                              an_il_entry_kind  entity_kind,
+                                              an_attribute_ptr  ap1,
+                                              an_attribute_ptr  ap2);
+
+/*
+A macro notation for the case where no special function should be called to
+check for corresponding attributes across translation units (this is the
+common case).
+*/
+#define NO_CHECKING_FN ((an_attr_corresp_checking_fn*)NULL)
+
+extern void get_attr_corresp_checking_info(
+                                     an_attribute_ptr             ap,
+                                     an_il_entry_kind             target_kind,
+                                     an_attr_corresp_flag_set     *p_flags,
+                                     an_attr_corresp_checking_fn  **p_fn);
 
 extern void attribute_one_time_init(void);
 
