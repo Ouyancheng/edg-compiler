@@ -1,5 +1,19 @@
 Version 4.2
 
+4/13/10  [EDGcpfe/10621]
+Incorrect source positions for eok_parens node in operand of sizeof
+
+In configurations with PARENS_IN_IL and EXTRA_SOURCE_POSITIONS_IN_IL set to
+TRUE, the values of expr_range.start and operator_position in the
+eok_parens expression node for a parenthesized operand of sizeof were
+incorrect, reflecting the position of the token following the left
+parenthesis.  This is now fixed.  For example:
+
+  int f(x) {
+    return sizeof(x);  // start position of eok_parens node was that of "x"
+  }
+
+
 4/8/10  [EDGcpfe/8404,EDGcpfe/10541]
 C++0x: Alias and alias template declarations
 

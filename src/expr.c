@@ -6466,10 +6466,31 @@ previously-scanned sizeof expression, and return the result in *result
       scan_expr(&operand, PREC_PREFIX, local_options);
       operand_was_created = TRUE;
       if (is_parenthesized) {
+        a_source_position orig_pos = operand.position;
         /* When scanning the expression with a trapped left parenthesis, the
            position returned in the operand indicates the token following
            the left parenthesis, which is wrong.  Correct it. */
         copy_source_position(lparen_position, operand.position);
+#if PARENS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
+        /* The eok_parens node in the operand will have an incorrect
+           starting position, as well. */
+        { an_expr_node_ptr expr = expr_node_from_operand(&operand);
+          /* As noted above, the parentheses may not enclose the entire
+             operand, so the eok_parens node may not be at the top of the
+             expression tree.  We descend through the left operands, if
+             necessary, until we find the eok_parens node. */
+          while (expr != NULL && is_operation_node(expr) &&
+                 !node_operator_is(expr, eok_parens)) {
+            expr = expr->variant.operation.operands;
+          }  /* while */
+          check_assertion(expr != NULL && is_operation_node(expr) &&
+                          node_operator_is(expr, eok_parens) &&
+                          expr->operator_position.seq == orig_pos.seq &&
+                          expr->operator_position.column == orig_pos.column);
+          expr->operator_position = lparen_position;
+          expr->expr_range.start = lparen_position;
+        }
+#endif /* PARENS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = operand.end_position;
