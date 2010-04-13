@@ -7510,6 +7510,23 @@ done to add the type to the end of the types list for the enclosing class.
 
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   ssep = scope_stack_entry_for(scope_level);
+  if (ssep->reactivated_class_being_defined) {
+    /* We are adding the type to a class reactivation scope, but the class is
+       still in the process of being defined.  Find the scope stack entry
+       for the class and use that. */
+    a_type_ptr	class_type = ssep->assoc_type;
+    /* Note that previous_scope_of is not used because we want to consider
+       scopes even if they are not visible. */
+    for (ssep = scope_stack_entry_for(scope_level-1);
+         scope_depth_of(ssep) >= DEPTH_OF_FILE_SCOPE; ssep--) {
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+          ssep->assoc_type == class_type) {
+        break;
+      }  /* if */
+    }  /* for */
+    check_assertion(ssep != NULL);
+    scope_level = scope_depth_of(ssep);
+  }  /* if */
   if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
     /* When a lambda appears in a class reactivation scope it must be added
        to the types list of the class that was reactivated. */
