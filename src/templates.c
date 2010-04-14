@@ -5366,7 +5366,9 @@ error type is used.
       /* Record in the file scope where this type was created, so that IL
          lowering correctly orders types when promoting nested types that this
          alias instance may depend on (see also promote_type_list). */
-      add_placeholder_for_class_instantiation(type);
+      if (!type->variant.typeref.is_nonreal) {
+        add_placeholder_for_class_instantiation(type);
+      }  /* if */
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
