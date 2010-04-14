@@ -5335,7 +5335,6 @@ error type is used.
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
-      dps.sym = instance_sym;
       /* Scan the type. */
       type_name_full(&dps);
       if (type->variant.typeref.type == NULL) {
@@ -16654,7 +16653,6 @@ can be diagnosed at template definition time.
                                                                 pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   init_decl_parse_state(&dps);
-  dps.sym = prototype_sym;
   /* Scan the type. */
   type_name_full(&dps);
   tp = dps.type;
@@ -16815,7 +16813,8 @@ alias
     }  /* if */
   }  /* if */
   /* Cache the type-id from the alias. */
-  if (curr_token != tok_end_of_source && curr_token != tok_semicolon) {
+  if (curr_token != tok_end_of_source && curr_token != tok_semicolon &&
+      curr_token != tok_lbrace) {
     a_token_set_array		stop_tokens;
     a_token_sequence_number	split_location;
     split_location = curr_token_sequence_number;
