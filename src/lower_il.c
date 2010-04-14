@@ -8748,7 +8748,10 @@ Do IL lowering of the indicated type and everything under it.
       case tk_template_param:
         /* These shouldn't really get out of the front end, but they do
            sometimes get onto a based types list, so turn them into something
-           mostly harmless. */
+           mostly harmless.  (In addition to setting the type to an error
+           type, also clear the parent scope since it might point to a class
+           template prototype instantiation.) */
+        clear_parent(&type->source_corresp);
         set_type_kind(type, (a_type_kind)tk_error);
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
