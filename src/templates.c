@@ -5197,7 +5197,7 @@ error type is used.
   a_boolean				trans_unit_pushed;
   a_symbol_ptr				instance_sym;
   a_type_ptr				type;
-    a_type_ptr				parent_class = NULL;
+  a_type_ptr				parent_class = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                             saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -5345,6 +5345,7 @@ error type is used.
            was underway.  Don't update the type in that case. */
         type->variant.typeref.type = dps.type;
       }  /* if */
+      dps.sym = instance_sym;
       if (type->variant.typeref.is_nonreal) {
         /* Discard pragmas on nonreal aliases. */
         discard_curr_construct_pragmas();
