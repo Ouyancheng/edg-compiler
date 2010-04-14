@@ -5338,7 +5338,6 @@ error type is used.
       dps.sym = instance_sym;
       /* Scan the type. */
       type_name_full(&dps);
-      check_type_definition_in_type_name(&dps);
       if (type->variant.typeref.type == NULL) {
         /* The type pointed to by the typeref will normally be NULL except
            in the case where an existing_instance_sym is being used in
@@ -16626,6 +16625,7 @@ can be diagnosed at template definition time.
   a_symbol_ptr				prototype_sym;
   a_type_ptr				tp = NULL;
   a_type_ptr				prototype_type;
+  a_decl_parse_state			dps;
 
   tssp = template_supplement_for_symbol(template_sym);
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
@@ -16653,7 +16653,11 @@ can be diagnosed at template definition time.
   prototype_type->variant.typeref.extra_info->type_id_range.start =
                                                                 pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  type_name(&tp);
+  init_decl_parse_state(&dps);
+  dps.sym = prototype_sym;
+  /* Scan the type. */
+  type_name_full(&dps);
+  tp = dps.type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   prototype_type->variant.typeref.extra_info->type_id_range.end =
                                                    curr_construct_end_position;
