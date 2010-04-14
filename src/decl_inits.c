@@ -3530,6 +3530,9 @@ returned set to TRUE.
       prescan_initializer_for_auto_type_deduction(dps);
       vp_type = dps->type;
     }  /* if */
+    if (is_error_type(vp_type)) {
+      cssp = NULL;
+    }  /* if */
   }  /* if */
   dps->type = vp_type;
   /* Now process the initializer.  There are three cases:  parenthesized

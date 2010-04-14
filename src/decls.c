@@ -5333,7 +5333,6 @@ emit an error.
     an_error_severity  severity = es_none;
     a_type_ptr         orig_type = skip_typerefs(dps->prev_type);
     a_type_ptr         redecl_type = skip_typerefs(dps->type);
-
     if (gcc_mode && gnu_version < 30000) {
       if (types_are_redecl_compatible(redecl_type, orig_type)) {
         /* Earlier versions of GNU C (but not GNU C++) accept
@@ -5358,9 +5357,8 @@ emit an error.
          declaration, so adjust dps->type. */
       severity = es_warning;
       dps->type = dps->prev_type;
-    } else
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
     if (severity == es_none) {
       severity = es_error;      
       redecl_okay = FALSE;
@@ -14840,7 +14838,10 @@ a diagnostic if that isn't the case.
 */
 {
   if (dps->prev_type != NULL) {
-    (void)check_variable_redecl_compatible(dps);
+    if (!check_variable_redecl_compatible(dps)) {
+      dps->auto_type_specifier_seen = FALSE;
+      dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
+    }  /* if */
   }  /* if */
 }  /* check_deduced_auto_type */
 

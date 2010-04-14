@@ -1,5 +1,20 @@
 Version 4.2
 
+4/14/10 [EDGcpfe/10599]
+Abort on invalid "auto" variable redeclaration first declared with class type
+
+In C++0x mode, first declaring a variable with a class type and then
+redeclaring it with an "auto" type specifier that is deduced to a non-class
+type previously resulted in an abort (the exact nature of the abort depends on
+the specific case).  For example:
+
+  extern struct S {} x;
+  auto x = 42;  // Previously resulted in an abort (after issuing an
+                // appropriate error message).
+
+This is now fixed.
+
+
 4/8/10  [EDGcpfe/8404,EDGcpfe/10541]
 C++0x: Alias and alias template declarations
 
