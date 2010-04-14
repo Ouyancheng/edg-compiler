@@ -12647,6 +12647,7 @@ semicolon.
     decl_pos_block.declarator_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  dps->auto_type_allowed = FALSE;
   if (required_token(tok_assign, ec_exp_assign)) {
     a_type_ptr  parent_type = NULL;
     if (dps->in_class_scope) {
