@@ -10358,7 +10358,8 @@ indication in *rcblock).
   an_expr_node_ptr  expr;
   a_type_ptr        result_type;
   an_operand        operand;
-  a_boolean         template_case = FALSE;
+  a_boolean         template_constant = FALSE;
+  a_boolean         need_expr;
 
   db_enter(4, "scan_intaddr_operator");
   if (rcblock != NULL) {
@@ -10407,13 +10408,18 @@ indication in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   result_type = integer_type(targ_size_t_int_kind);
-  if (is_template_dependent_type(operand.type)) {
-    /* Template-dependent case.  Build an expression using a bok_intaddr
-       builtin operation. */
-    template_case = TRUE;
-    prep_generic_operand_full(&operand,
-                              /*lvalue_expected=*/FALSE,
-                              /*rvalue_expected=*/TRUE);
+  need_expr = FALSE;
+  if (is_constant_operand(&operand) &&
+      operand.variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+    /* A template-dependent case. */
+    template_constant = TRUE;
+    need_expr = TRUE;
+  } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+    need_expr = TRUE;
+  }  /* if */
+  if (need_expr) {
+    /* Build an expression using a bok_intaddr builtin operation. */
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
     expr->type = result_type;
     expr->variant.builtin_operation.kind =
@@ -10422,11 +10428,20 @@ indication in *rcblock).
     record_position_in_expr_for_rescan(expr, 
                                        &start_position,
                                        end_position_or_null(&end_position));
+  }  /* if */
+  if (template_constant) {
+    /* Template-dependent case.  The result is a tpck_expression constant
+       for the __INTADDR__ expression. */
     make_expression_operand(expr, result);
+    /* More is done below. */
   } else {
     /* Not a template-dependent case.  Cast the constant to type size_t. */
     copy_operand(&operand, result);
     cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
+    if (need_expr && is_constant_operand(result)) {
+      /* Record the backing expression for the constant. */
+      result->variant.constant.expr = expr;
+    }  /* if */
   }  /* if */
   if (rcblock == NULL) {
     /* Check for and pass over the right parenthesis. */
@@ -10435,7 +10450,9 @@ indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
-  if (template_case) {
+  if (template_constant) {
+    /* Turn the expression into a tpck_expression.  Done late so we get
+       the position recorded on the underlying expression. */
     make_template_param_expr_constant_operand(result);
   }  /* if */
   db_exit();
