@@ -1,5 +1,21 @@
 Version 4.2
 
+4/15/10 [EDGcpfe/10633]
+Abort on destructor call using ambiguous name
+
+An abort could occur (in f_is_generalized_identifier_start) if a destructor
+call used an ambiguous name after the tilde.  Now fixed.
+
+  namespace A {
+    int A;
+  }
+  using namespace A; 
+  int main() {
+    int* p = 0;
+    p->A::~A( );
+  }
+
+
 4/14/10 [EDGcpfe/10599]
 Abort on invalid "auto" variable redeclaration first declared with class type
 

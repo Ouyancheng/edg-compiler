@@ -15497,7 +15497,7 @@ selection operator, in which case it points to the type of the left operand.
              set yet.  In such cases, set it now. */
           if (dtor_class_type == NULL) dtor_class_type = dtor_type;
         } else {
-          if (!in_if_exists) {
+          if (!in_if_exists && !is_error_locator(locator_for_curr_id)) {
             pos_st_error(ec_not_a_type_name, &tilde_position,
                          locator_for_curr_id.symbol_header->identifier);
           }  /* if */
