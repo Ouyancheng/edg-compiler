@@ -10421,7 +10421,7 @@ indication in *rcblock).
     expr->variant.builtin_operation.operands= make_node_from_operand(&operand);
     record_position_in_expr_for_rescan(expr, 
                                        &start_position,
-                                       &end_position);
+                                       end_position_or_null(&end_position));
     make_expression_operand(expr, result);
   } else {
     /* Not a template-dependent case.  Cast the constant to type size_t. */
