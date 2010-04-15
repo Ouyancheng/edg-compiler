@@ -12631,8 +12631,9 @@ semicolon.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   loc = locator_for_curr_id;
   if (loc.is_qualified_name || loc.is_operator_name) {
-    /* An error should have been issued earlier on. */
-    expect_error();
+    pos_error(loc.is_operator_name ? ec_operator_name_not_allowed
+                                   : ec_qualified_name_not_allowed,
+              &pos_curr_token);
     set_to_error_locator(loc);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -14462,8 +14463,7 @@ indicates how processing should proceed after the call.
       } else {
         a_token_kind  next_tok;
         if (alias_declarations_enabled &&
-            is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
-                                            GID_DISALLOW_OPERATOR_NAME) &&
+            is_generalized_identifier_start(GID_NO_OPTIONS) &&
             ((next_tok = next_token()) == tok_assign ||
              (std_attributes_enabled && next_tok == tok_lbracket))) {
           /* An identifier followed by a "=" or a bracket (presumably the
