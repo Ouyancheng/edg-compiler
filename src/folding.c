@@ -1696,6 +1696,7 @@ for any diagnostics issued.
   an_error_code     err_code;
   an_error_severity err_severity;
   a_boolean         depends_on_fp_mode = FALSE;
+  a_boolean         template_case;
 
   db_enter(5, "type_change_constant_full");
   *did_not_fold = FALSE;
@@ -1720,16 +1721,18 @@ for any diagnostics issued.
     set_error_constant(&new_constant);
     goto exit;
   }  /* if */
-  if (identical_types(constant_type, new_type)) {
+  template_case = (!C_mode() &&
+                   (constant->kind == (a_constant_repr_kind)ck_template_param||
+                    (in_front_end && is_template_dependent_type(new_type))));
+  if (identical_types(constant_type, new_type) &&
+      (is_implicit_cast || !template_case)) {
     /* The current and new types are the same, so no change is required. */
     copy_constant(constant, &new_constant);
     /* Put in the actual type wanted, as it may have typedefs. */
     new_constant.type = new_type_with_typedefs;
     goto exit;
   }  /* if */
-  if (!C_mode() &&
-      (constant->kind == (a_constant_repr_kind)ck_template_param ||
-       (in_front_end && is_template_dependent_type(new_type)))) {
+  if (template_case) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
     make_template_param_cast_constant(constant, &new_constant, new_type,

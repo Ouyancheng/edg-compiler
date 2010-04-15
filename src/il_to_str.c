@@ -1634,9 +1634,35 @@ in diagnostics the underlying type is more helpful, and in the C-generating
 back end typeof/decltype constructs are either not available or not portable).
 */
 {
-  return typeref_is_decltype_or_typeof(type) && octl->gen_compilable_code &&
-         !octl->c_generating_back_end &&
-         (!type->variant.typeref.is_decltype || decltype_arg(type) != NULL);
+  a_boolean render = FALSE;
+
+  if (typeref_is_decltype_or_typeof(type)) {
+    if (octl->c_generating_back_end) {
+      /* Never render a decltype or typeof in the C-generating back end. */
+      render = FALSE;
+    } else if (!type->variant.typeref.is_decltype &&
+               decltype_arg(type) == NULL) {
+      /* A non-expression case: typeof applied to a type name.  Might as well
+         just generate the type name. */
+      render = FALSE;
+    } else {
+      /* The decltype or typeof is based on an expression. */
+      a_type_ptr underlying_type = type->variant.typeref.type;
+      underlying_type = skip_typerefs(underlying_type);
+      if (underlying_type->kind == (a_type_kind)tk_template_param &&
+          underlying_type->variant.template_param.kind ==
+                                    (a_template_param_type_kind)tptk_unknown) {
+        /* With unknown template cases, you always need the underlying
+           expression to make sense of things. */
+        render = TRUE;
+      } else if (octl->gen_compilable_code) {
+        /* We're generating compilable code, and the decltype or typeof is
+           based on an expression.  Render it. */
+        render = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return render;
 }  /* is_decltype_or_typeof_to_be_rendered */
 
 

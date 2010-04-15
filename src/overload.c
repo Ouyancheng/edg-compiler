@@ -6770,6 +6770,64 @@ intermediate language (operand should be NULL in that case).
 }  /* overloaded_function_catch_up */
 
 
+static a_boolean is_dependent_selection_first_operand(
+                                            a_boolean        is_arrow_operator,
+                                            an_expr_node_ptr left_operand)
+/*
+left_operand is the first operand of a static selection operation.  The
+operation is a "->" if is_arrow_operator is TRUE, or a "." otherwise.
+Return TRUE if the selection is dependent, meaning among other things
+that we can't tell what the selected member is, or even whether it is
+static or nonstatic.
+*/
+{
+  a_boolean is_dependent = FALSE;
+
+  if (is_template_dependent_context()) {
+    a_type_ptr left_type = left_operand->type;
+    if (is_arrow_operator && is_pointer_type(left_type)) {
+      left_type = type_pointed_to(left_type);
+    }  /* if */
+    if (could_be_dependent_class_type(left_type) ||
+        is_error_type(left_type)) {
+      /* The left operand type is unknown, so we don't know what class we
+         would look up the member in. */
+      is_dependent = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_dependent;
+}  /* is_dependent_selection_first_operand */
+
+
+a_boolean is_dependent_static_selection(an_expr_node_ptr sel_expr)
+/*
+Return TRUE if the indicated expression is a static selection operation
+and it is dependent, meaning we can't tell what the selected member is
+or whether it is static or nonstatic.
+*/
+{
+  a_boolean        is_dependent = FALSE, is_selection = FALSE;
+  a_boolean        is_arrow_operator;
+  an_expr_node_ptr op1;
+
+  if (is_operation_node(sel_expr)) {
+    if (node_operator_is(sel_expr, eok_dot_static)) {
+      is_arrow_operator = FALSE;
+      is_selection = TRUE;
+    } else if (node_operator_is(sel_expr, eok_points_to_static)) {
+      is_arrow_operator = TRUE;
+      is_selection = TRUE;
+    }  /* if */
+    if (is_selection) {
+      op1 = sel_expr->variant.operation.operands;
+      is_dependent = is_dependent_selection_first_operand(is_arrow_operator,
+                                                          op1);
+    }  /* if */
+  }  /* if */
+  return is_dependent;
+}  /* is_dependent_static_selection */
+  
+
 void combine_unneeded_selector_with_operand(
                                            an_operand *bound_function_selector,
                                            a_boolean  is_arrow_operator,
@@ -6797,13 +6855,17 @@ TRUE if the operator is "->", FALSE if it is ".".
   stripped_orig_expr = skip_parens(orig_expr);
   if (!stripped_orig_expr->is_lvalue &&
       is_constant_node(stripped_orig_expr) &&
-      (current_mode_allows_dot_static_folding(stripped_selector_expr) ||
-       (is_template_dependent_context() && curr_expr_kind_is_const() &&
-        is_template_dependent_type(selector_expr->type)))) {
+      current_mode_allows_dot_static_folding(stripped_selector_expr) &&
+      !is_dependent_selection_first_operand(is_arrow_operator,
+                                            selector_expr)) {
     /* In certain modes, produce a constant result for an rvalue.
        Note that only things like enumerator values are handled here.  Most
        others stay as lvalues at this point and are converted to the constant
        when lvalue-to-rvalue conversion is done. */
+    /* Don't do this simplification for template-dependent cases, because
+       we're going to need the left operand later to do substitution
+       to find out what we really have.  We might find we have a nonstatic
+       selection. */
     /* The is_constant_node test may seem redundant, but is needed for
        template-dependent constants in prototype instantiations,
        because such constants are considered to have side effects. */

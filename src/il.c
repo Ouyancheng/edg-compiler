@@ -13819,7 +13819,7 @@ for the copy/substitution.
         a_type_ptr	conv_type;
         conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
         if (conv_type != NULL) {
-          /* Substitute the any template parameters in the conversion type. */
+          /* Substitute any template parameters in the conversion type. */
           conv_type = copy_type_with_substitution(conv_type, template_arg_list,
                                                   template_param_list,
                                                   source_pos,

@@ -7070,6 +7070,34 @@ Make a placeholder lvalue operand whose type is "type".
 }  /* make_dummy_lvalue_operand */
 
 
+static void record_position_in_expr_for_rescan(
+                                          an_expr_node_ptr  node,
+                                          a_source_position *start_position,
+                                          a_source_position *end_position)
+/*
+Record the source starting and ending positions in the given expression so
+they will be available in a later rescan.  This is used for unusual
+operations where an operator position is not needed, and forces creation
+of rescan information.
+*/
+{
+  if (expr_stack->template_deduction_declaration_context &&
+      !is_error_node(node)) {
+    /* Get rescan information recorded for this expression by going by way
+       of an operand. */
+    an_operand       operand;
+    an_expr_node_ptr result;
+    make_expression_operand(node, &operand);
+    set_operand_position(&operand, start_position, end_position,
+                         &null_source_position);
+    result = make_node_from_operand(&operand);
+    /* We should get the same expression back when we extract it, because
+       we haven't really done anything. */
+    check_assertion(result == node);
+  }  /* if */
+}  /* record_position_in_expr_for_rescan */
+
+
 static void record_type_operand_position_for_rescan(
                                              an_expr_node_ptr  node,
                                              a_source_position *start_position)
@@ -7078,18 +7106,12 @@ Record a source position in a type operand (enk_type_operand node) if
 necessary for use in a later rescan.
 */
 {
+  /* This is kind of a weird routine in that it does not record an end
+     position.  It didn't seem worth the trouble to maintain it given that
+     positions are basically not used in a rescan. */
   if (node->kind == (an_expr_node_kind)enk_type_operand) {
-    if (expr_stack->template_deduction_declaration_context) {
-      /* Get rescan information recorded for this expression by going by way
-         of an operand. */
-      an_operand       operand;
-      an_expr_node_ptr result;
-      make_expression_operand(node, &operand);
-      set_operand_position(&operand, start_position, &null_source_position,
-                           &null_source_position);
-      result = make_node_from_operand(&operand);
-      check_assertion(result == node);
-    }  /* if */
+    record_position_in_expr_for_rescan(node, start_position,
+                                       &null_source_position);
   } else {
     check_assertion(is_error_node(node));
   }  /* if */
@@ -10240,10 +10262,6 @@ an acceptable result.
   a_boolean okay = FALSE;
 
   if ((con->kind == (a_constant_repr_kind)ck_integer ||
-#if UPC_EXTENSIONS_ALLOWED
-       con->kind == (a_constant_repr_kind)ck_upc_threads ||
-       con->kind == (a_constant_repr_kind)ck_upc_mythread ||
-#endif /* UPC_EXTENSIONS_ALLOWED */
        con->kind == (a_constant_repr_kind)ck_template_param ||
        (will_cast && con->kind == (a_constant_repr_kind)ck_float)) &&
       (will_cast ||
@@ -10315,9 +10333,10 @@ some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
 }  /* scan_extended_integral_constant_expression */
 
 
-static void scan_intaddr_operator(an_operand *result)
+static void scan_intaddr_operator(a_rescan_control_block *rcblock,
+                                  an_operand             *result)
 /*
-Scan the __INTADDR__ operator.  This is an extension that is used
+Scan the __INTADDR__ operator.  This is an EDG extension that is used
 in the offsetof macro to scan a constant address expression and cast
 it to an integer constant.
 
@@ -10327,39 +10346,98 @@ Syntax:
 The parentheses are required.  expr is a constant initializer expression.
 A warning about the use of this nonstandard feature would be inappropriate,
 because the feature is used to implement offsetof, a standard feature.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__INTADDR__ expression, and return the result in *result (or an error
+indication in *rcblock).
 */
 {
   a_source_position start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  an_expr_node_ptr  expr;
+  a_type_ptr        result_type;
+  an_operand        operand;
+  a_boolean         template_case = FALSE;
 
   db_enter(4, "scan_intaddr_operator");
-  /* Save the position of the __INTADDR__ keyword. */
-  start_position = pos_curr_token;
-  /* Check for and pass over the left parenthesis. */
-  (void)get_token();
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_matching_stop_token(tok_rparen);
-  /* Scan the address expression. */
-  scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
-                                             /*will_cast=*/TRUE,
-                                             /*top_level=*/FALSE,
-                                             PREC_LOWEST, result);
-  /* Cast the constant to type size_t. */
-  cast_operand(integer_type(targ_size_t_int_kind), result,
-               /*is_implicit_cast=*/TRUE);
-  /* There is no IL operator for __INTADDR__, so we cannot really record the
-     expression that formed the resulting constant. */
-  result->variant.constant.expr = NULL;
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(rcblock->operator_token == tok_intaddr);
+    expr = rcblock->expr;
+    check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                                        (a_builtin_operation_kind)bok_intaddr);
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+    start_position = eriep->saved_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = end_pos_curr_token;
+    end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_matching_stop_token(tok_rparen);
+    /* Build an operand for the argument. */
+    make_rescan_operand(expr->variant.builtin_operation.operands,
+                        rcblock, &operand);
+    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+    force_operand_to_constant_if_possible(&operand);
+    /* Check that the operand we got has an acceptable type.
+       (scan_extended_integral_constant_expression does this check in the
+       non-rescan case.) */
+    if (is_constant_operand(&operand) &&
+        is_okay_integral_constant_expression_result(&operand.variant.constant,
+                                                   /*will_cast=*/TRUE)) {
+      /* Okay. */
+    } else if (!is_error_operand(&operand)) {
+      error_in_operand(ec_expr_not_integral_constant, &operand);
+    }  /* if */
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Save the position of the __INTADDR__ keyword. */
+    start_position = pos_curr_token;
+    /* Check for and pass over the left parenthesis. */
+    (void)get_token();
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    /* Scan the address expression. */
+    scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
+                                               /*will_cast=*/TRUE,
+                                               /*top_level=*/FALSE,
+                                               PREC_LOWEST, &operand);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  result_type = integer_type(targ_size_t_int_kind);
+  if (is_template_dependent_type(operand.type)) {
+    /* Template-dependent case.  Build an expression using a bok_intaddr
+       builtin operation. */
+    template_case = TRUE;
+    prep_generic_operand_full(&operand,
+                              /*lvalue_expected=*/FALSE,
+                              /*rvalue_expected=*/TRUE);
+    expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    expr->type = result_type;
+    expr->variant.builtin_operation.kind =
+                                       (a_builtin_operation_kind)bok_intaddr;
+    expr->variant.builtin_operation.operands= make_node_from_operand(&operand);
+    record_position_in_expr_for_rescan(expr, 
+                                       &start_position,
+                                       &end_position);
+    make_expression_operand(expr, result);
+  } else {
+    /* Not a template-dependent case.  Cast the constant to type size_t. */
+    copy_operand(&operand, result);
+    cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
+  }  /* if */
+  if (rcblock == NULL) {
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
+  if (template_case) {
+    make_template_param_expr_constant_operand(result);
+  }  /* if */
   db_exit();
 }  /* scan_intaddr_operator */
 
@@ -21793,7 +21871,7 @@ see expr.h).
 
     case tok_intaddr:
       /* __INTADDR__ operation. */
-      scan_intaddr_operator(&local_result);
+      scan_intaddr_operator((a_rescan_control_block *)NULL, &local_result);
       break;
     case tok_new:
 scan_new:
@@ -23872,6 +23950,9 @@ set accordingly.
       case bok_is_convertible_to:
         operator_token = tok_is_convertible_to;
         break;
+      case bok_intaddr:
+        operator_token = tok_intaddr;
+        break;
       default:
         operator_token = tok_has_assign;  /* Representing the generic case
                                              with a single type operand. */
@@ -24038,6 +24119,9 @@ outside, see rescan_expr_with_substitution.
         break;
       case tok_reinterpret_cast:
         scan_reinterpret_cast_operator(rcblock, result);
+        break;
+      case tok_intaddr:
+        scan_intaddr_operator(rcblock, result);
         break;
       case tok_typename:
         /* Old-style or functional-notation cast.  The functional-notation

@@ -12084,6 +12084,9 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_union,		/* __is_union.  One operand: A type. */
   bok_types_compatible,	/* GNU __builtin_types_compatible.  Two operands, both
 			   types. */
+  bok_intaddr,		/* EDG extension __INTADDR__ (used for offsetof).
+			   Effectively, a cast from address constant to
+			   size_t. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14939,6 +14942,7 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__is_polymorphic",
   "__is_union",
   "__builtin_types_compatible",
+  "__INTADDR__",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

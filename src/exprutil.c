@@ -3818,7 +3818,7 @@ symbol is a function, an rvalue otherwise.
 }  /* make_sym_for_member_operand */
 
 
-static void make_template_param_expr_constant_operand(an_operand *operand)
+void make_template_param_expr_constant_operand(an_operand *operand)
 /*
 operand is a template-dependent operand that must eventually have a
 constant value.  Change it to an operand for a ck_template_param constant for
@@ -7170,29 +7170,38 @@ lvalueness, and we have found out that it needs to be an lvalue, so
 we rewrite it as an lvalue.
 */
 {
+  an_expr_node_ptr expr = NULL;
+  a_boolean        is_function;
+
   if (is_an_rvalue(operand)) {
-    a_boolean is_function;
     if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       if (is_nonreal_member_constant(con, &is_function)) {
         change_template_param_constant_operand_to_lvalue(operand);
+      } else if (con->kind == (a_constant_repr_kind)ck_template_param &&
+                 con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        expr = con->variant.template_param.variant.expr;
       }  /* if */
     } else if (is_expression_operand(operand)) {
-      an_expr_node_ptr expr = operand->variant.expression;
-      an_expr_node_ptr rewritten_expr;
-      rewritten_expr = conv_nonreal_member_constant_expr_to_lvalue(expr,
+      expr = operand->variant.expression;
+    }  /* if */
+  }  /* if */
+  if (expr != NULL) {
+    /* Attempt to rewrite the underlying expression "expr". */
+    an_expr_node_ptr rewritten_expr;
+    rewritten_expr = conv_nonreal_member_constant_expr_to_lvalue(expr,
                                                                  &is_function);
-      if (rewritten_expr != NULL) {
-        /* A nonreal member constant was found and rewritten. */
-        an_operand orig_operand;
-        orig_operand = *operand;
-        check_assertion(expr->is_lvalue && rewritten_expr->is_lvalue);
-        make_lvalue_expression_operand(expr, operand);
-        if (is_function) {
-          operand->state = (an_operand_state)os_function_designator;
-        }  /* if */
-        restore_operand_details(operand, &orig_operand);
+    if (rewritten_expr != NULL) {
+      /* A nonreal member constant was found and rewritten. */
+      an_operand orig_operand;
+      orig_operand = *operand;
+      check_assertion(expr->is_lvalue && rewritten_expr->is_lvalue);
+      make_lvalue_expression_operand(expr, operand);
+      if (is_function) {
+        operand->state = (an_operand_state)os_function_designator;
       }  /* if */
+      restore_operand_details(operand, &orig_operand);
     }  /* if */
   }  /* if */
 }  /* change_nonreal_member_constant_operand_to_lvalue */
@@ -11453,6 +11462,54 @@ address in addition to the cases usually covered.
 }  /* microsoft_template_arg_constant_lvalue_address */
 
 
+static a_boolean is_possible_nonstatic_selection_masquerading_as_static(
+                                                         an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is a static selection that might be
+representing a nonstatic selection.  This happens with template-dependent
+selections where we don't know for sure what member is selected (and
+therefore we don't know whether it's a static member).  Also allow a
+reference cast on top of the selection.  The cases we specifically want
+to allow are those that come up as idioms for writing offsetof, so
+we test for a limited set of cases, and only lvalues.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_template_dependent_context()) {
+    expr = skip_parens(expr);
+    /* Ignore a reference cast on top. */
+    if (is_operation_node(expr) &&
+        node_operator_is(expr, eok_ref_cast)) {
+      expr = skip_parens(expr->variant.operation.operands);
+    }  /* if */
+    if (is_dependent_static_selection(expr)) {
+      an_expr_node_ptr op1 = expr->variant.operation.operands;
+      an_expr_node_ptr op2 = op1->next;
+      /* We're looking for a second operand that is an eok_lvalue over
+         a tpck_member constant.  The eok_lvalue is there because the
+         static selection is producing an lvalue for the member, and
+         in the use case we care about (the "&" operator) the static
+         selection is an lvalue. */
+      if (is_constant_node(op1) &&
+          is_operation_node(op2) &&
+          node_operator_is(op2, eok_lvalue)) {
+        an_expr_node_ptr mnode = op2->variant.operation.operands;
+        if (is_constant_node(mnode)) {
+          a_constant_ptr mcon = mnode->variant.constant;
+          if (mcon->kind == (a_constant_repr_kind)ck_template_param &&
+              mcon->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_possible_nonstatic_selection_masquerading_as_static */
+
+
 static void take_address_of_or_reference_to_lvalue(
                                        an_operand        *operand,
                                        a_boolean         reference_case,
@@ -11496,6 +11553,7 @@ explicit "&" operator in the source and *operator_position gives its position.
       /* Error issued by the subroutine. */
     } else {
       a_boolean  did_not_fold = TRUE;
+      a_boolean  template_constant = FALSE;
       an_operand orig_operand;
       orig_operand = *operand;
       if (expr_stack->favor_constant_result) {
@@ -11507,18 +11565,25 @@ explicit "&" operator in the source and *operator_position gives its position.
           an_expr_node_ptr test_expr;
           expr = make_node_from_operand(operand);
           test_expr = skip_parens(expr);
-          if (curr_expr_kind_is_const() &&
-              is_operation_node(test_expr) &&
-              (node_operator_is(test_expr, eok_dot_static) ||
-               node_operator_is(test_expr, eok_points_to_static))) {
-            /* In constant expressions, test the second operand of a static
-               selection to see if its address is constant, e.g., for
-               something like &x.static_member.  The first operand will not
-               have side effects because this is a constant expression. */
-            test_expr = test_expr->variant.operation.operands->next;
-            /* Note that expr remains set to the original expression so
-               that if we do fold to a constant we will record the original
-               static selection as the associated expression. */
+          if (curr_expr_kind_is_const()) {
+            if (is_possible_nonstatic_selection_masquerading_as_static(expr)) {
+              /* This may be a template-dependent nonstatic selection
+                 represented as a static selection because we don't know the
+                 member for sure.  Create a tpck_expression constant for
+                 "&" applied to it. */
+              template_constant = TRUE;
+            } else if (is_operation_node(test_expr) &&
+                       (node_operator_is(test_expr, eok_dot_static) ||
+                        node_operator_is(test_expr, eok_points_to_static))) {
+              /* In constant expressions, test the second operand of a static
+                 selection to see if its address is constant, e.g., for
+                 something like &x.static_member.  The first operand will not
+                 have side effects because this is a constant expression. */
+              test_expr = test_expr->variant.operation.operands->next;
+              /* Note that expr remains set to the original expression so
+                 that if we do fold to a constant we will record the original
+                 static selection as the associated expression. */
+            }  /* if */
           }  /* if */
           if ((microsoft_mode && curr_expr_kind_is(ek_template_arg)) ?
                      microsoft_template_arg_constant_lvalue_address(test_expr,
@@ -11544,7 +11609,7 @@ explicit "&" operator in the source and *operator_position gives its position.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (did_not_fold && curr_expr_kind_is_const() &&
+      if (did_not_fold && !template_constant && curr_expr_kind_is_const() &&
           curr_expr_is_evaluated()) {
         /* The "&" operation must fold to a constant in a constant
            expression. */
@@ -11577,6 +11642,9 @@ explicit "&" operator in the source and *operator_position gives its position.
         }  /* if */
         if (did_not_fold) {
           make_expression_operand(expr, operand);
+          if (template_constant) {
+            make_template_param_expr_constant_operand(operand);
+          }  /* if */
         } else if (need_expr) {
           operand->variant.constant.expr = expr;
         }  /* if */
