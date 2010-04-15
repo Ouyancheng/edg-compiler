@@ -1925,6 +1925,9 @@ by a command line option.
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
+      if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+        cpp0x_sfinae_enabled = FALSE;
+      }  /* if */
 #if CPP0X_IL_EXTENSIONS_SUPPORTED
       /* These options require back end support that may not be available. */
       static_assert_enabled = TRUE;
@@ -3420,6 +3423,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
+  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+    cpp0x_sfinae_enabled = FALSE;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -9046,7 +9052,7 @@ variables declared in cmd_line.h.
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
-  cpp0x_sfinae_enabled = FALSE;
+  cpp0x_sfinae_enabled = DEFAULT_CPP0X_SFINAE_ENABLED;
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
 }  /* cmd_line_static_var_init */

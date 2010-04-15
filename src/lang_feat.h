@@ -1146,6 +1146,17 @@ variable auto_storage_class_specifier_enabled.
 #endif /* !DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED && ... */
 
 /*
+Flag that is TRUE if in C++ mode the C++0x SFINAE rules of N2634
+should be enabled by default.  The feature is implicitly enabled in
+C++0x mode, and implicitly disabled in Microsoft and GNU modes, so
+this macro really sets the default for "default" mode.  This macro is
+used to initialize the global variable cpp0x_sfinae_enabled.
+*/
+#ifndef DEFAULT_CPP0X_SFINAE_ENABLED
+#define DEFAULT_CPP0X_SFINAE_ENABLED FALSE
+#endif /* DEFAULT_CPP0X_SFINAE_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.
