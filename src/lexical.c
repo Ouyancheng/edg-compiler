@@ -15022,6 +15022,7 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type = NULL;
           qualifier_type_is_class = FALSE;
+          qualifier_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
