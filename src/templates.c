@@ -5310,6 +5310,14 @@ error type is used.
                    &body_cache->tokens.first_token->source_position,
                    template_sym);
       type->variant.typeref.type = error_type();
+    } else if (tssp_of_prototype->pending_instantiations >=
+                                                  max_pending_instantiations) {
+      /* This instantiation occurs within the context of other instantiations
+         of the same alias template.  When the number of such instantiations
+         exceeds max_pending_instantiations, we assume this to be runaway
+         recursion. */
+      sym_error(ec_runaway_recursive_instantiation, instance_sym);
+      type->variant.typeref.type = error_type();
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
@@ -5319,6 +5327,7 @@ error type is used.
         ps_options |= PS_NONREAL_INSTANTIATION;
       }  /* if */
       init_decl_parse_state(&dps);
+      ++(tssp_of_prototype->pending_instantiations);
       /* Push the template instantiation scope for the instantiation. */
       (void)push_template_instantiation_scope(body_cache->decl_info,
 					      (a_type_ptr)NULL,
@@ -5375,6 +5384,7 @@ error type is used.
         pos_error(ec_exp_semicolon, &pos_curr_token);
       }  /* if */
       flush_past_token_cache_terminator();
+      --(tssp_of_prototype->pending_instantiations);
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
     }  /* if */
