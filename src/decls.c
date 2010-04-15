@@ -9961,7 +9961,7 @@ common cases.
 }  /* type_name_full */
 
 
-void check_type_definition_in_type_name(a_decl_parse_state  *dps)
+static void check_type_definition_in_type_name(a_decl_parse_state  *dps)
 /*
 dps describes a type-name scanned by type_name_full.  In C++ mode, issue an
 error if the specifiers in the type-name defined a class or enum type.  (Early
