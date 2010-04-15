@@ -12630,8 +12630,9 @@ semicolon.
   decl_pos_block.declarator_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   loc = locator_for_curr_id;
-  if (loc.is_qualified_name) {
-    pos_error(ec_qualified_name_not_allowed, &pos_curr_token);
+  if (loc.is_qualified_name || loc.is_operator_name) {
+    /* An error should have been issued earlier on. */
+    expect_error();
     set_to_error_locator(loc);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -14459,9 +14460,11 @@ indicates how processing should proceed after the call.
       if (curr_token == tok_namespace) {
         using_directive(state);
       } else {
-        a_token_kind  next_tok = next_token();
-        if (alias_declarations_enabled && curr_token == tok_identifier &&
-            (next_tok == tok_assign ||
+        a_token_kind  next_tok;
+        if (alias_declarations_enabled &&
+            is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
+                                            GID_DISALLOW_OPERATOR_NAME) &&
+            ((next_tok = next_token()) == tok_assign ||
              (std_attributes_enabled && next_tok == tok_lbracket))) {
           /* An identifier followed by a "=" or a bracket (presumably the
              start of C++0x-style attributes): This looks like an alias

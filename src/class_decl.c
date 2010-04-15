@@ -13472,9 +13472,10 @@ distinguish an alias declaration from a using-declaration.)
     end_of_using_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
-    next_tok = next_token();
-    if (alias_declarations_enabled && curr_token == tok_identifier &&
-        (next_tok == tok_assign ||
+    if (alias_declarations_enabled &&
+        is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
+                                        GID_DISALLOW_OPERATOR_NAME) &&
+        ((next_tok = next_token()) == tok_assign ||
          (std_attributes_enabled && next_tok == tok_lbracket))) {
       /* An identifier followed by a "=" or a bracket (presumably the start of
          C++0x-style attributes): This looks like an alias declaration. */
