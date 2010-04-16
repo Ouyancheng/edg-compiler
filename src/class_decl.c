@@ -13473,8 +13473,7 @@ distinguish an alias declaration from a using-declaration.)
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     if (alias_declarations_enabled &&
-        is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
-                                        GID_DISALLOW_OPERATOR_NAME) &&
+        is_generalized_identifier_start(GID_NO_OPTIONS) &&
         ((next_tok = next_token()) == tok_assign ||
          (std_attributes_enabled && next_tok == tok_lbracket))) {
       /* An identifier followed by a "=" or a bracket (presumably the start of
