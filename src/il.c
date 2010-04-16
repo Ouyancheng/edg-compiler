@@ -7403,6 +7403,57 @@ instantiations) below that on the scope stack.
   db_exit();
 }  /* add_placeholder_for_class_instantiation */
 
+
+void add_placeholder_for_nested_class_def(a_type_ptr     type_ptr,
+                                          a_scope_depth  decl_level)
+/*
+Allocate a nested-class-definition placeholder typeref to point to type_ptr,
+set its fields, and add it to the types list for the indicated scope depth.
+*/
+{
+  a_type_ptr  placeholder;
+
+  placeholder = alloc_type((a_type_kind)tk_typeref);
+  placeholder->variant.typeref.type = type_ptr;
+  placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
+  if (type_ptr->kind == (a_type_kind)tk_typeref) {
+    type_ptr->variant.typeref.nested_type_defined_outside_of_parent = TRUE;
+  } else {
+    type_ptr->variant.class_struct_union
+                               .nested_class_defined_outside_of_parent = TRUE;
+  }  /* if */
+  /* Add the placeholder type to the types list of the scope active when the
+     original declaration was seen -- before any namespace extension scopes
+     were pushed if the nested class was specified with a namespace-qualified
+     name -- for instance:
+       namespace N { class A { class B; }; }
+       class N::A::B { };
+     Here the namespace-extension scope for N is still on the scope stack, but
+     we want the placeholder typeref to be added to the file scope, which is
+     what decl_level should specify. */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (scope_stack[decl_level].kind == (a_scope_kind)sck_class_struct_union) {
+    /* Microsoft and GNU C++ allow delayed nested class definitions that
+       appear in class scopes.  Make the placeholder a member of the class in
+       which the definition appears. */
+    a_type_ptr  enclosing_class =
+                         scope_stack[decl_level].il_scope->variant.assoc_type;
+    set_class_membership((a_symbol_ptr)NULL,
+                         &placeholder->source_corresp, enclosing_class);
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (scope_stack[decl_level].kind == (a_scope_kind)sck_namespace) {
+    /* The original declaration scope is a namespace scope instead of the file
+       scope.  Make the placeholder a member of the namespace. */
+    a_namespace_ptr nsp =
+                    scope_stack[decl_level].il_scope->variant.assoc_namespace;
+    set_namespace_membership((a_symbol_ptr)NULL, &placeholder->source_corresp,
+                             nsp);
+  }  /* if */
+  add_to_types_list(placeholder, decl_level);
+}  /* add_placeholder_for_nested_class_def */
+
 #if NAMED_REGISTERS_ALLOWED
 
 static a_variable_ptr
@@ -19364,7 +19415,7 @@ part, this means that its keep_in_il flag is TRUE.
 */
 {
   a_boolean  keep;
-  a_type_ptr type = tp, nested_class_ph = NULL;
+  a_type_ptr type = tp, nested_type_ph = NULL;
 
   /* For placeholder typerefs, test the keep_in_il flag on the
      underlying type, thus keeping the placeholder typeref if the
@@ -19373,18 +19424,24 @@ part, this means that its keep_in_il flag is TRUE.
          !typeref_is_typedef(type)) {
     if (type->variant.typeref.is_placeholder_for_nested_class_def) {
       /* Remember that there is a nested class placeholder. */
-      nested_class_ph = type;
+      nested_type_ph = type;
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
   keep = il_entry_prefix_of(type).keep_in_il;
-  if (keep && nested_class_ph != NULL) {
-    check_assertion(is_immediate_class_type(type));
-    if (!type->variant.class_struct_union.
-                                      nested_class_defined_outside_of_parent) {
-      /* If the body of a nested class defined outside of its parent has
-         been removed, the placeholder for the definition gets removed also. */
-      keep = FALSE;
+  if (keep && nested_type_ph != NULL) {
+    /* If the body of a nested type defined outside of its parent has been
+       removed, the placeholder for the definition gets removed also. */
+    if (type->kind == (a_type_kind)tk_typeref) {
+      if (!type->variant.typeref.nested_type_defined_outside_of_parent) {
+        keep = FALSE;
+      }  /* if */
+    } else {
+      check_assertion(is_immediate_class_type(type));
+      if (!type->variant.class_struct_union
+                                    .nested_class_defined_outside_of_parent) {
+        keep = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return keep;

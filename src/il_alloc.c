@@ -1591,6 +1591,7 @@ to default values.
                 .referenced_by_class_instantiation_placeholder_typeref = FALSE;
       pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
       pte->variant.typeref.is_placeholder_for_nested_class_def = FALSE;
+      pte->variant.typeref.nested_type_defined_outside_of_parent = FALSE;
 #if NEAR_AND_FAR_ALLOWED
       pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
 #endif /* NEAR_AND_FAR_ALLOWED */

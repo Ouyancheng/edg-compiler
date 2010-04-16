@@ -16957,51 +16957,10 @@ next_declaration:
            When A<int> is instantiated, the instantiation of A<int>::B is
            delayed but then triggered by the declaration of A<int>::b. */
       } else {
-        a_type_ptr  placeholder;
-
-        /* Enter a typedef entry that points at the nested class just
-           defined.  It will serve to indicate just where (in the sequence
-           of type declarations) the delayed nested type definition
-           appeared. */
-        placeholder = alloc_type((a_type_kind)tk_typeref);
-        placeholder->variant.typeref.type = class_type;
-        placeholder->variant.typeref.
-                               is_placeholder_for_nested_class_def = TRUE;
-        class_type->variant.class_struct_union.
-                               nested_class_defined_outside_of_parent = TRUE;
-        /* Note that we add the placeholder type to the types list of the
-           scope active when the original declaration was seen -- before any
-           namespace extension scopes were pushed if the nested class was
-           specified with a namespace-qualified name -- for instance:
-             namespace N { class A { class B; }; }
-             class N::A::B { };
-           Here the namespace-extension scope for N is still on the scope
-           stack, but we want the placeholder typeref to be added to the file
-           scope, which is what orig_decl_level should specify. */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-        if (scope_stack[orig_decl_level].il_scope->kind ==
-                                       (a_scope_kind)sck_class_struct_union) {
-          /* Microsoft and GNU C++ allow delayed nested class definitions that
-             appear in class scopes.  Make the placeholder a member of the
-             class in which the definition appears. */
-          a_type_ptr  enclosing_class = scope_stack[orig_decl_level].il_scope
-                                                          ->variant.assoc_type;
-          set_class_membership((a_symbol_ptr)NULL,
-                               &placeholder->source_corresp, enclosing_class);
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        if (scope_stack[orig_decl_level].il_scope->kind ==
-                                            (a_scope_kind)sck_namespace) {
-          /* The original declaration scope is a namespace scope instead of
-             the file scope.  Make the placeholder a member of the
-             namespace. */
-          a_namespace_ptr nsp = scope_stack[orig_decl_level].il_scope->
-                                                    variant.assoc_namespace;
-          set_namespace_membership((a_symbol_ptr)NULL,
-                                   &placeholder->source_corresp, nsp);
-        }  /* if */
-        add_to_types_list(placeholder, orig_decl_level);
+        /* Enter a typedef entry that points at the nested class just defined.
+           It will serve to indicate just where (in the sequence of type
+           declarations) the delayed nested type definition appeared. */
+        add_placeholder_for_nested_class_def(class_type, orig_decl_level);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rbrace);

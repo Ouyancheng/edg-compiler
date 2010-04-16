@@ -7204,6 +7204,16 @@ typedef struct a_type {
 			   outside the scope of the parent class; the class
 			   type entry pointed to will be on the types list
 			   of the scope of the parent class. */
+      a_bit_field
+		nested_type_defined_outside_of_parent:1;
+			/* TRUE if the typeref is a nested type defined outside
+			   its parent class (this is only possible with alias
+			   template instances).  It will be pointed to by a
+			   nested-class-def placeholder typeref; the type entry
+			   for the associated typeref will be on the types list
+			   of the file scope or a namespace scope enclosing the
+			   parent class and will have the flag
+			   is_placeholder_for_nested_class_def set to TRUE. */
 #if NEAR_AND_FAR_ALLOWED
       a_bit_field
 		explicit_memory_attribute_made_implicit:1;

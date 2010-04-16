@@ -747,6 +747,9 @@ extern a_type_ptr make_vector_type(a_type_ptr     element_type,
 
 extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
 
+extern void add_placeholder_for_nested_class_def(a_type_ptr     type_ptr,
+                                                 a_scope_depth  decl_level);
+
 #if NAMED_REGISTERS_ALLOWED
 extern void record_named_register_storage_class(
                                              a_variable_ptr       var,

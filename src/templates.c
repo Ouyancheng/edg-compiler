@@ -5321,6 +5321,7 @@ error type is used.
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+      a_scope_depth             decl_level = decl_scope_level;
       if (type->variant.typeref.is_nonreal) {
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */
@@ -5376,6 +5377,18 @@ error type is used.
          alias instance may depend on (see also promote_type_list). */
       if (!type->variant.typeref.is_nonreal) {
         add_placeholder_for_class_instantiation(type);
+        if (parent_class != NULL &&
+            !type->variant.typeref
+                     .referenced_by_class_instantiation_placeholder_typeref &&
+            class_type_supp(parent_class)->assoc_scope->depth_in_scope_stack
+                                                          == NO_SCOPE_DEPTH) {
+          /* If a member alias template is instantiated outside its parent
+             class, issue a placeholder entry so that lowering can correctly
+             place the instantiated type (this is not needed if a different
+             kind of placeholder was already emitted by the call to
+             add_placeholder_for_class_instantiation above). */
+          add_placeholder_for_nested_class_def(type, decl_level);
+        }  /* if */
       }  /* if */
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
