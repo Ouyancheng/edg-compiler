@@ -16747,13 +16747,6 @@ alias
     set_to_error_locator(locator);
     /* Skip past the identifier. */
     (void)get_token();
-  } else if (locator_for_curr_id.is_operator_name ||
-             locator_for_curr_id.is_conversion_name) {
-    /* Operator names are not allowed. */
-    pos_error(ec_operator_name_not_allowed, &pos_curr_token);
-    set_to_error_locator(locator);
-    /* Skip past the identifier. */
-    (void)get_token();
   } else if (locator_for_curr_id.is_error) {
     /* Some error occurred while scanning the identifier (e.g., it might be
        a qualified name).  Se the locator to an error locator. */

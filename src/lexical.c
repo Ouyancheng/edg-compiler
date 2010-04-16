@@ -13723,6 +13723,7 @@ by the options.  Returns TRUE if any errors were diagnosed.
     any_errors = TRUE;
   } else if (operator_name_error) {
     pos_error(ec_operator_name_not_allowed, pos);
+    any_errors = TRUE;
   }  /* if */
   return any_errors;
 }  /* f_check_for_generalized_identifier_errors */

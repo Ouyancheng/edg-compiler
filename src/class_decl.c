@@ -15169,7 +15169,7 @@ passed via template_decl.
                                      decl_state->storage_class !=
                                           (a_storage_class)sc_static));
       }  /* if */
-      if (dso_flags & DSO_VIRTUAL) {
+      if (dso_flags & DSO_VIRTUAL && !locator.is_error) {
         check_for_invalid_use_of_virtual(&locator, class_type, &decl_info);
       }  /* if */
       if (!friend_specified) {
