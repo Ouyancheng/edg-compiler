@@ -10088,15 +10088,20 @@ reference entry, or is NULL if none is needed.
 }  /* make_function_designator_operand */
 
 
-void make_field_operand(a_field_ptr field,
-			an_operand  *result)
+/*ARGSUSED*/  /* <-- end_position is not used in some configurations. */
+void make_field_operand(a_field_ptr       field,
+                        a_source_position *source_position,
+                        a_source_position *end_position,
+                        an_operand        *result)
 /*
-Allocate an expression node to contain a field reference, link it to the
-operand, and set the operand type to the type of the field.  The current
-token position is used as the source position.
+Allocate an expression node to contain a field reference, make an operand
+for it, and set the operand type to the type of the field.  source_position
+and end_position give the starting and ending source positions of the
+field reference (end_position only in configurations with extra source
+positions).
 */
 {
-  register an_expr_node_ptr node;
+  an_expr_node_ptr node;
 
   /* Make the expression node first. */
   node = alloc_expr_node((an_expr_node_kind)enk_field);
@@ -10104,7 +10109,9 @@ token position is used as the source position.
   node->variant.field = field;
   /* Make the operand with the node. */
   make_expression_operand(node, result);
+  result->position = *source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = *end_position;
   /* Set the position in the expression too. */
   set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

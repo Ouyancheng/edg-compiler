@@ -1364,8 +1364,10 @@ extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
 extern a_boolean check_scalar_operand(an_operand *operand);
 
-extern void make_field_operand(a_field_ptr field,
-			       an_operand  *result);
+extern void make_field_operand(a_field_ptr       field,
+                               a_source_position *source_position,
+                               a_source_position *end_position,
+                               an_operand        *result);
 
 extern a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind);
 

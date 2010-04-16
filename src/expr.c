@@ -3182,6 +3182,8 @@ static void make_field_selection_operand(
                                       an_operand            *operand_1,
                                       an_expr_operator_kind op,
                                       a_symbol_ptr          field_sym,
+                                      a_source_position     *member_position,
+                                      a_source_position     *end_position,
                                       a_type_ptr            selection_type,
                                       a_boolean             is_lvalue,
                                       a_boolean             compiler_generated,
@@ -3192,13 +3194,15 @@ op is the selection operator.  field_sym is the right operand (the field).
 selection_type is the result type.  The result is an lvalue if is_lvalue
 is TRUE, an rvalue otherwise.  The field selection is compiler-generated
 if compiler_generated is TRUE.  The operand for the selection is created in
-*result.  The current token must be the (possibly coalesced) field name.
+*result.  member_position and end_position give the starting and
+ending source positions for the field reference (end_position only in
+configurations with extra source positions).
 */
 {
   a_field_ptr field = field_sym->variant.field.ptr;
   an_operand  field_operand;
 
-  make_field_operand(field, &field_operand);
+  make_field_operand(field, member_position, end_position, &field_operand);
   build_binary_result_operand_full(operand_1, &field_operand, op,
                                    selection_type, is_lvalue, result);
   check_assertion(is_expression_operand(result) &&
@@ -3228,6 +3232,8 @@ static void do_field_selection_operation(
                                a_boolean         is_lvalue,
                                a_boolean         compiler_generated,
                                a_symbol_ptr      field_sym,
+                               a_source_position *member_position,
+                               a_source_position *end_position,
                                a_ref_entry_ptr   rep,
                                an_operand        *result)
 /*
@@ -3241,8 +3247,10 @@ result should be an lvalue.  compiler_generated is TRUE if this
 selection is compiler-generated (e.g., an implicit "this->" on a nonstatic
 data member reference).  field_sym points to the symbol for the
 right-side field.  rep points to an associated reference entry, or is NULL
-if none is needed.  The result is placed in *result.  The current token
-must be the (possibly coalesced) field name.
+if none is needed.  The result is placed in *result.  member_position
+and end_position give the starting and ending source positions for the
+field reference (end_position only in configurations with extra source
+positions).
 */
 {
   a_field_ptr           field;
@@ -3310,7 +3318,8 @@ must be the (possibly coalesced) field name.
     op = is_arrow_operator ? (an_expr_operator_kind)eok_points_to_field :
                              (an_expr_operator_kind)eok_dot_field;
     /* Construct the field selection expression tree. */
-    make_field_selection_operand(operand_1, op, field_sym, selection_type,
+    make_field_selection_operand(operand_1, op, field_sym,
+                                 member_position, end_position, selection_type,
                                  is_lvalue, compiler_generated, result);
     /* In C++, a field may have a reference type.  An implicit indirection
        is done to get the thing pointed to. */
@@ -4339,7 +4348,10 @@ routine is also called to parse a __builtin_offsetof field construct
                                        orig_class_struct_union_type,
                                        is_arrow_operator, is_lvalue,
                                        /*compiler_generated=*/FALSE,
-                                       member_sym, rep, result);
+                                       member_sym,
+                                       &member_position,
+                                       end_position_or_null(&end_position),
+                                       rep, result);
           break;
         case sk_static_data_member:
           /* Static data member reference. */
@@ -18862,15 +18874,18 @@ static void make_anonymous_union_field_operand(
                                             a_symbol_ptr      sym_ptr,
                                             a_symbol_ptr      union_sym,
                                             a_source_position *source_position,
+                                            a_source_position *end_position,
                                             a_ref_entry_ptr   rep,
                                             an_operand        *result)
 /*
 Make an operand for a field that is a member of a top-level anonymous union.
 (That is, an anonymous union that is not inside a struct or union.)
 sym_ptr is the field; union_sym is the symbol for the anonymous union;
-source_position indicates the field identifier source position; and rep
-points to a reference entry, or is NULL if none is needed.  The operand
-is built in *operand.  It's an lvalue for the field.
+source_position and end_position indicate the field identifier starting
+and ending source positions (end_position only in configurations that
+have extra source positions); and rep points to a reference entry, or
+is NULL if none is needed.  The operand is built in *operand.  It's an
+lvalue for the field.
 */
 {
   a_variable_ptr union_var;
@@ -18888,7 +18903,9 @@ is built in *operand.  It's an lvalue for the field.
                                /*is_arrow_operator=*/FALSE,
                                /*is_lvalue=*/TRUE,
                                /*compiler_generated=*/TRUE,
-                               sym_ptr, rep, result);
+                               sym_ptr,
+                               source_position, end_position,
+                               rep, result);
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
 
@@ -19904,6 +19921,8 @@ normal_function:
             } else {
               make_anonymous_union_field_operand(sym_ptr, anon_var_sym,
                                                  &locator.source_position,
+                                                 end_position_or_null(
+                                                                &end_position),
                                                  rep, result);
             }  /* if */
           } else {
@@ -19981,6 +20000,9 @@ do_selection:
                                              /*is_lvalue=*/TRUE,
                                              /*compiler_generated=*/TRUE,
                                              sym_ptr,
+                                             &locator.source_position,
+                                             end_position_or_null(
+                                                                &end_position),
                                              rep, result);
                 if (is_objectless_nonstatic_data_mem_ref) {
                   /* Record the fact that this member access was originally
