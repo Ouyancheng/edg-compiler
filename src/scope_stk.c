@@ -2262,6 +2262,7 @@ the scope being pushed.
                                     is_nonspecialized_instantiation_context();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean               new_il_scope = FALSE;
+  a_boolean               is_alias_template_instantiation = FALSE;
 
   db_enter(3, "push_scope_full");
   if (depth_scope_stack+1 == (int)size_scope_stack) {
@@ -2603,18 +2604,27 @@ the scope being pushed.
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
   if (assoc_type != NULL && sp != NULL) sp->variant.assoc_type = assoc_type;
+  /* Determine whether this is an instantiation scope for an alias template. */
+  if (kind == (a_scope_kind)sck_template_instantiation ||
+      (instance_sym != NULL && instance_sym->kind == (a_symbol_kind)sk_type)) {
+    is_alias_template_instantiation = TRUE;
+  }  /* if */
   /* Maintain the current declarative level.  It is the same as 
      depth_scope_stack except when struct/union field scopes are
      active; when they are, it indicates the first non-struct-or-union
      scope.  In C++, struct/union/class scopes are real scopes; however,
      class reactivations are not real scopes. */
-  if (is_scope_kind_that_affects_declarative_level(kind)) {
+  if (is_scope_kind_that_affects_declarative_level(kind) ||
+      (is_alias_template_instantiation &&
+       (options & (PS_PROTOTYPE_INSTANTIATION |
+                   PS_NONREAL_INSTANTIATION)) != 0)) {
     if (decl_scope_level < depth_innermost_instantiation_scope) {
       if (scope_stack[depth_innermost_instantiation_scope].
-		template_sym->kind != (a_symbol_kind)sk_static_data_member) {
+		template_sym->kind != (a_symbol_kind)sk_static_data_member &&
+          !is_alias_template_instantiation) {
         /* Template parameters are considered part of the next scope that
            affects the declarative level -- except for static data member
-           instantiations for which no such scope exists. */
+           and alias template instantiations for which no such scope exists. */
         reactivate_template_params = TRUE;
       }  /* if */
     }  /* if */
@@ -2728,9 +2738,11 @@ the scope being pushed.
                                    (options & PS_PROTOTYPE_INSTANTIATION) != 0;
       ssep->in_nonreal_instantiation =
                                    (options & PS_NONREAL_INSTANTIATION) != 0;
-      if (template_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        /* Static data members don't have their own scope so the
-           template parameters are added at the instantiation scope. */
+      if (template_sym->kind == (a_symbol_kind)sk_static_data_member ||
+          is_alias_template_instantiation) {
+        /* Static data members and template aliases don't have their own
+           scope so the template parameters are added at the instantiation
+           scope. */
         reactivate_template_params = TRUE;
       }  /* if */
       /* Initialize the pointer to the dependent call list for this

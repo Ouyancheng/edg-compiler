@@ -10423,7 +10423,8 @@ represents an explicit cast.
      that's okay, since the expression will be copied in a context that
      will have an IL scope.) */
   if (ssep->kind != (a_scope_kind)sck_func_prototype &&
-      ssep->kind != (a_scope_kind)sck_template_declaration) {
+      ssep->kind != (a_scope_kind)sck_template_declaration &&
+      ssep->kind != (a_scope_kind)sck_template_instantiation) {
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
   temp_init_node->variant.init.dynamic_init = dip;
