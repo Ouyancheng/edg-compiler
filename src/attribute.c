@@ -664,7 +664,8 @@ typedef struct an_attr_corresp_descr {
 
 
 static an_attr_corresp_descr attr_corresp_table[] = {
-  { ak_align, af_last, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_align, af_last, iek_last, ACF_MATCH_OPTIONAL | ACF_ALWAYS_TRANS_COPY,
+    NO_CHECKING_FN },
   { ak_noreturn, af_std, iek_last, ACF_STRICT_MATCH, NO_CHECKING_FN },
   { ak_noreturn, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_noreturn, af_ms_declspec, iek_last, ACF_MATCH_OPTIONAL,

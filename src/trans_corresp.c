@@ -2268,6 +2268,11 @@ static void verify_attr_corresp_one_way(char              *entity1,
                                         char              *entity2,
                                         an_il_entry_kind  entity_kind)
 /*
+Check every attribute attached to entity1 for correspondence with the
+attributes attached to the corresponding entity2 (both entities are of the
+indicated kind).  Report conflicts as needed.  Also, mark any attributes
+of entity1 that would have to be added to those of entity2 if entity2 were
+the canonical entry.
 */
 {
   an_attribute_ptr  attr1 = *get_attribute_link(entity1, entity_kind), ap1;
