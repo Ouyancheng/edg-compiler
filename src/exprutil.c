@@ -9300,6 +9300,9 @@ question_position and colon_position give the position of the "?" and ":".
          the expression will be placed under a ck_template_param constant
          below. */
       do_folding = FALSE;
+    } else if (result_is_an_lvalue) {
+      /* Don't fold when the result is an lvalue. */
+      do_folding = FALSE;
     } else if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
       do_folding = TRUE;
@@ -9307,9 +9310,6 @@ question_position and colon_position give the position of the "?" and ":".
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
-    } else if (result_is_an_lvalue) {
-      /* Don't fold when the result is an lvalue. */
-      do_folding = FALSE;
     } else if (!(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT) &&
                !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.
@@ -9361,6 +9361,7 @@ question_position and colon_position give the position of the "?" and ":".
         build_question_result_operand(operand_1, operand_2, operand_3,
                                       operation_type, is_gnu_two_operand_form,
                                       &result_expr);
+        check_assertion(!result_is_an_lvalue);
         check_assertion(is_expression_operand(&result_expr));
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */

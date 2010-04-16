@@ -1,5 +1,24 @@
 Version 4.2
 
+4/16/10 [EDGcpfe/10623]
+Incorrect lvalueness on backing expression for "?" operation on string literals
+
+The front end produced an incorrect backing expression for a constant
+that results from the folding of a "?" operator to a constant.  The
+expression should have been marked as an lvalue and wasn't.  The
+failure cases were ones where the first operand is constant and the
+second and third operands are string literals with the same length.
+Now fixed: the "?" operator is not folded, following the general rule
+that operators with lvalue results are not folded to constants.  The
+problem was visible in versions that use the backing expressions,
+e.g., C++-generating back ends versions aborted with an internal
+error ("is_lvalue incorrectly set"), whereas versions that use IL
+lowering would generally not have seen this problem.
+
+  const char* test(void) {
+    return 1 ? "" : "";
+  }
+
 4/15/10 [EDGcpfe/10633]
 Abort on destructor call using ambiguous name
 
