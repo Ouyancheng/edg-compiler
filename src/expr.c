@@ -10263,6 +10263,10 @@ an acceptable result.
   a_boolean okay = FALSE;
 
   if ((con->kind == (a_constant_repr_kind)ck_integer ||
+#if UPC_EXTENSIONS_ALLOWED
+       con->kind == (a_constant_repr_kind)ck_upc_threads ||
+       con->kind == (a_constant_repr_kind)ck_upc_mythread ||
+#endif /* UPC_EXTENSIONS_ALLOWED */
        con->kind == (a_constant_repr_kind)ck_template_param ||
        (will_cast && con->kind == (a_constant_repr_kind)ck_float)) &&
       (will_cast ||
