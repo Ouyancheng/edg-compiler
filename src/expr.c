@@ -4318,11 +4318,12 @@ routine is also called to parse a __builtin_offsetof field construct
           /* The result is an rvalue if the operator is "." and the left
              operand is an rvalue. */
           is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
-          if (microsoft_bugs && !is_lvalue &&
+          if (microsoft_bugs && microsoft_version < 1600 && !is_lvalue &&
               is_floating_type(member_sym->variant.field.ptr->type)) {
             /* For some unknown reason, MSVC considers a selection of a
                field of a floating-point type out of a class rvalue to
-               be an lvalue.  Checked in 7.1, 8.0, 10.0 beta. */
+               be an lvalue.  Checked in 7.1, 8.0, 10.0 beta.  Fixed in
+               real 10.0 release. */
             revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
             is_lvalue = is_an_lvalue(operand_1);
           }  /* if */
