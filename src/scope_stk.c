@@ -2605,7 +2605,7 @@ the scope being pushed.
      new_il_region call. */
   if (assoc_type != NULL && sp != NULL) sp->variant.assoc_type = assoc_type;
   /* Determine whether this is an instantiation scope for an alias template. */
-  if (kind == (a_scope_kind)sck_template_instantiation ||
+  if (kind == (a_scope_kind)sck_template_instantiation &&
       (instance_sym != NULL && instance_sym->kind == (a_symbol_kind)sk_type)) {
     is_alias_template_instantiation = TRUE;
   }  /* if */
