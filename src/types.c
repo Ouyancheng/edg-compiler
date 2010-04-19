@@ -894,6 +894,21 @@ array, class, struct, and union types.
 }  /* is_aggregate_or_union_type */
 
 
+a_boolean is_class_type_or_array_thereof(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class type (class/struct/union) or an
+array of such a type.
+*/
+{
+  tp = skip_typerefs(tp);
+  if (tp->kind == (a_type_kind)tk_array) {
+    tp = underlying_array_element_type(tp);
+    tp = skip_typerefs(tp);
+  }  /* if */
+  return is_immediate_class_type(tp);
+}  /* is_class_type_or_array_thereof */
+
+
 a_boolean is_ptr_to_member_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a pointer-to-member type (C++ only).

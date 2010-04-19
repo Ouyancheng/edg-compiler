@@ -11496,7 +11496,7 @@ declarations.
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
     } else if (class_state->is_nonreal_instantiation &&
-               is_class_struct_union_type(field_type) &&
+               is_class_type_or_array_thereof(field_type) &&
                (microsoft_mode ||
                 (gpp_mode &&
                  (gnu_version < 30400 ||
