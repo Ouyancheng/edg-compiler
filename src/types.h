@@ -110,7 +110,6 @@ extern a_boolean is_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_real_class_type(a_type_ptr  tp);
 extern a_boolean is_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
-extern a_boolean is_class_type_or_array_thereof(a_type_ptr  tp);
 extern a_boolean is_ptr_to_member_type(a_type_ptr tp);
 extern a_boolean is_abstract_class_type(a_type_ptr tp);
 extern a_boolean is_template_param_type(a_type_ptr tp);

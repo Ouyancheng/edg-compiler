@@ -11495,30 +11495,35 @@ declarations.
       check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
                                    (a_template_param_type_kind)tptk_member);
       /* Okay. */
-    } else if (class_state->is_nonreal_instantiation &&
-               is_class_type_or_array_thereof(field_type) &&
-               (microsoft_mode ||
-                (gpp_mode &&
-                 (gnu_version < 30400 ||
-                  is_template_param_or_nonreal_class_type(field_type))))) {
-      /* In Microsoft and early g++ modes, a field type can be incomplete in a
-         prototype instantiation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (decl_state->is_property_field) {
       /* A property field doesn't need to have a complete type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      if (!C_mode() && is_error_locator(*locator) &&
-          !decl_info->is_unnamed_field) {
-        /* Don't issue an error since we can't be sure this was intended to
-           be a field -- it could be an ill-formed function declaration with
-           a void return type, such as
-             void operator?:();
-           in which the param list is not processed. */
+      a_type_ptr  el_type = skip_array_types(field_type);
+      el_type = skip_typerefs(el_type);
+      if (class_state->is_nonreal_instantiation &&
+          is_immediate_class_type(el_type) &&
+          (microsoft_mode ||
+           (gpp_mode &&
+            (gnu_version < 30400 ||
+             is_template_param_or_nonreal_class_type(el_type))))) {
+        /* In Microsoft and early g++ modes, a field type can be incomplete in
+           a prototype instantiation.  In later g++ modes incomplete class
+           types are permitted if the are nonreal types. */
       } else {
-        pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
+        if (!C_mode() && is_error_locator(*locator) &&
+            !decl_info->is_unnamed_field) {
+          /* Don't issue an error since we can't be sure this was intended to
+             be a field -- it could be an ill-formed function declaration with
+             a void return type, such as
+               void operator?:();
+             in which the param list is not processed. */
+        } else {
+          pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
+        }  /* if */
+        field_type = error_type();
       }  /* if */
-      field_type = error_type();
     }  /* if */
   } else if (flexible_array_members_allowed &&
              is_class_struct_union_type(field_type) &&
