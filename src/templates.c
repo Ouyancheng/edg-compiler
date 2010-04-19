@@ -5321,7 +5321,6 @@ error type is used.
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
-      a_scope_depth             decl_level = decl_scope_level;
       if (type->variant.typeref.is_nonreal) {
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */
@@ -5387,7 +5386,7 @@ error type is used.
              place the instantiated type (this is not needed if a different
              kind of placeholder was already emitted by the call to
              add_placeholder_for_class_instantiation above). */
-          add_placeholder_for_nested_class_def(type, decl_level);
+          add_placeholder_for_nested_class_def(type, decl_scope_level);
         }  /* if */
       }  /* if */
       /* In the normal case the current token should be end_of_source,
