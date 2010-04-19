@@ -7861,6 +7861,7 @@ a pointer over a reference type or creating an array of references.
   a_class_symbol_supplement_ptr	cssp;
   a_boolean			is_partial_order_check;
   an_expr_node_ptr		expr;
+  a_template_decl_info_ptr	tdip = NULL;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -7870,6 +7871,19 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
+  if ((options & CTWS_NOT_TOP_LEVEL) == 0) {
+    /* When this routine is called at the top level, push a nonreal
+       instantiation scope to establish a context for any expression
+       rescans that may be required. */
+    options |= CTWS_NOT_TOP_LEVEL;
+    tdip = alloc_template_decl_info();
+    (void)push_template_instantiation_scope(
+                              tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                              (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/TRUE,
+                              PS_NONREAL_INSTANTIATION);
+  }  /* if */
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
@@ -8234,6 +8248,11 @@ make_new_type:
   }
   /* Return an error type pointer if a copy error occurred. */
   if (*copy_error) new_type = error_type();
+  if (tdip != NULL) {
+    /* If an instantiation scope was pushed earlier, pop it now. */
+    pop_template_instantiation_scope();
+    free_template_decl_info(tdip);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("ctws")) {
     fputs("out: ", f_debug);

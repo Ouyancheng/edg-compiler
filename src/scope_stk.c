@@ -2619,8 +2619,11 @@ the scope being pushed.
        (options & (PS_PROTOTYPE_INSTANTIATION |
                    PS_NONREAL_INSTANTIATION)) != 0)) {
     if (decl_scope_level < depth_innermost_instantiation_scope) {
-      if (scope_stack[depth_innermost_instantiation_scope].
-		template_sym->kind != (a_symbol_kind)sk_static_data_member &&
+      a_symbol_ptr	inst_template_sym;
+      inst_template_sym =
+                 scope_stack[depth_innermost_instantiation_scope].template_sym;
+      if (inst_template_sym != NULL &&
+          inst_template_sym->kind != (a_symbol_kind)sk_static_data_member &&
           !is_alias_template_instantiation) {
         /* Template parameters are considered part of the next scope that
            affects the declarative level -- except for static data member
@@ -2738,7 +2741,8 @@ the scope being pushed.
                                    (options & PS_PROTOTYPE_INSTANTIATION) != 0;
       ssep->in_nonreal_instantiation =
                                    (options & PS_NONREAL_INSTANTIATION) != 0;
-      if (template_sym->kind == (a_symbol_kind)sk_static_data_member ||
+      if ((template_sym != NULL &&
+           template_sym->kind == (a_symbol_kind)sk_static_data_member) ||
           is_alias_template_instantiation) {
         /* Static data members and template aliases don't have their own
            scope so the template parameters are added at the instantiation
@@ -3448,7 +3452,8 @@ to the namespace and class that must be reactivated.
     parent_namespace = sp->variant.assoc_namespace;
   }  /* if */
   if (instance_sym == NULL &&
-      template_sym->kind == (a_symbol_kind)sk_function_template) {
+      (template_sym == NULL ||
+       template_sym->kind == (a_symbol_kind)sk_function_template)) {
     /* Use the parent information determined above.
 
        When there is no specific instance being instantiated, that indicates
@@ -3848,7 +3853,8 @@ The following fixups need to be performed:
     if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
       primary_instantiation_depth = depth;
       ssep->nested_instantiation = TRUE;
-      ssep->exclude_from_context_output = exclude_from_context_output;
+      ssep->exclude_from_context_output = ssep->template_sym == NULL ||
+                                          exclude_from_context_output;
       exclude_from_context_output = TRUE;
     }  /* if */
     if (is_scope_kind_that_affects_access_control(ssep->kind)) {
@@ -4079,7 +4085,8 @@ class to be defined.
   saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
   /* Make sure we are in the right translation unit. */
-  check_assertion_str2(symbol_is_from_trans_unit(template_sym,
+  check_assertion_str2(template_sym == NULL ||
+                       symbol_is_from_trans_unit(template_sym,
                                                  curr_translation_unit),
                        "push_template_instantiation_scope:",
                        "wrong translation unit");
@@ -4090,8 +4097,9 @@ class to be defined.
      defined within a template.  If this routine will push an instantiation
      scope, get a pointer to the enclosing template declaration information
      to be passed to the routine that pushes the context scopes. */
-  is_template = template_sym->kind == (a_symbol_kind)sk_class_template ||
-                template_sym->kind == (a_symbol_kind)sk_function_template;
+  is_template = template_sym == NULL ||
+                (template_sym->kind == (a_symbol_kind)sk_class_template ||
+                 template_sym->kind == (a_symbol_kind)sk_function_template);
   if (is_template) {
     /* Get a pointer to the enclosing template declaration information.  If
        this pointer is NULL, the template declaration information from the
@@ -4114,7 +4122,8 @@ class to be defined.
   /* Determine whether this instantiation is a prototype instantiation of
      something within another prototype instantiation.  This affects the
      way that the scope stack is manipulated. */
-  if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+  if (template_sym != NULL &&
+      scope_stack[depth_scope_stack].in_prototype_instantiation &&
       ((options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
        (options & PS_NONREAL_INSTANTIATION) != 0)) {
     nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
