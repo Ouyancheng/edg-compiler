@@ -6703,9 +6703,7 @@ function (NULL if none is required).
     derived_bcp = step->base_class;
   }  /* while */
   if (derived_bcp != overriding_bcp) {
-    a_boolean        both_virtual_and_nonvirtual_base = FALSE;
-    a_boolean        non_primary_subobject_without_override = FALSE;
-    a_base_class_ptr bcp;
+    a_boolean can_optimize_to_fixed_offset = FALSE;
     check_assertion(derived_bcp->is_virtual);
     /* There is a virtual step in the derivation.  Check to see if we need to
        use the two-stage thunk (adjust "this" to the beginning of the virtual
@@ -6719,50 +6717,103 @@ function (NULL if none is required).
        ABI does not require to be generated).  The additional conditions
        applied below approximate the cases in which g++ performs this
        optimization, for maximum interoperability. */
-    for (bcp = overridden_bcp->derived_class->
-                           variant.class_struct_union.extra_info->base_classes;
-         bcp != NULL; bcp = bcp->next) {
-      if (identical_types(bcp->type, derived_bcp->type) && !bcp->is_virtual) {
-        both_virtual_and_nonvirtual_base = TRUE;
-        break;
+    if (filling_vtable) {
+      a_targ_ptrdiff_t fixed_offset;
+      /* When we're filling a vtable, we know exactly the layout of the
+         complete object.  We can't always use the fixed offset we compute
+         because the ABI might not require the thunk we would need to use.
+         However, if the computed fixed offset is zero, we can always
+         optimize to using the function directly without a thunk, because
+         in that case there's no possibility of referencing a thunk that
+         doesn't exist. */
+      /* The offset is the one it takes to get from the "this" pointer we
+         have (for subobject_bcp) to the one we need (for overriding_bcp).
+         We use subobject_bcp instead of overridden_bcp to deal with the
+         case where we're building the shared-base-class part of a vtable,
+         but in the actual object the base class object is not allocated
+         at the location of the derived class.  So the base class part is
+         really not shared with a base class; it's just the right values
+         for the derived class functions that are shared with the base
+         class vtable.  In particular, the "this" going in is assumed to
+         point to the derived object (it would also point to the shared base
+         class if it were there, but it's not).  subobject_bcp always works
+         for this because we know that overridden_bcp is a possibly indirect
+         primary base class of subobject_bcp (because we got here by walking
+         down the primary base classes when laying out the vtable).  When
+         subobject_bcp is NULL, the "this" we have is for the complete
+         object, and therefore counted as being at offset 0. */
+      if (overriding_bcp == NULL) {
+        fixed_offset = 0;
+      } else {
+        fixed_offset = overriding_bcp->offset;
       }  /* if */
-    }  /* for */
-    if (subobject_bcp != NULL && subobject_bcp->offset != 0) {
-      an_overriding_virtual_function_ptr ovfp;
-      for (ovfp = subobject_bcp->overriding_virtual_functions; ovfp != NULL;
-           ovfp = ovfp->next) {
-        if (virtual_functions_match(ovfp->primary_function,
-                                    primary_function)) {
-          break;
+      if (subobject_bcp != NULL) {
+        fixed_offset -= subobject_bcp->offset;
+      }  /* if */
+      if (fixed_offset == 0 && adjustment_bcp == NULL) {
+        /* The fixed offset is 0, so we can use the function directly
+           with no thunk.  Note that a covariant return type requires an
+           adjustment even if the offset is 0. */
+        can_optimize_to_fixed_offset = TRUE;
+        /* Offset is that of the sub-object, which may be NULL in this case. */
+        overridden_bcp = subobject_bcp;
+      } else {
+        /* Determine whether the thunk we would need for the fixed offset
+           adjustment would exist. */
+        a_boolean        both_virtual_and_nonvirtual_base = FALSE;
+        a_boolean        non_primary_subobject_without_override = FALSE;
+        a_base_class_ptr bcp;
+        for (bcp = overridden_bcp->derived_class->
+                           variant.class_struct_union.extra_info->base_classes;
+           bcp != NULL; bcp = bcp->next) {
+          if (identical_types(bcp->type, derived_bcp->type) &&
+              !bcp->is_virtual) {
+            both_virtual_and_nonvirtual_base = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        if (subobject_bcp != NULL && subobject_bcp->offset != 0) {
+          an_overriding_virtual_function_ptr ovfp;
+          for (ovfp = subobject_bcp->overriding_virtual_functions;
+               ovfp != NULL;
+               ovfp = ovfp->next) {
+            if (virtual_functions_match(ovfp->primary_function,
+                                      primary_function)) {
+              break;
+            }  /* if */
+          }  /* for */
+          if (ovfp == NULL) {
+            non_primary_subobject_without_override = TRUE;
+          }  /* if */
         }  /* if */
-      }  /* for */
-      if (ovfp == NULL) {
-        non_primary_subobject_without_override = TRUE;
+        if (derived_bcp->shares_virtual_function_info &&
+            !(overridden_bcp->direct && subobject_bcp != NULL) &&
+            !(subobject_bcp != NULL &&
+              (subobject_bcp->is_virtual || !subobject_bcp->direct)) &&
+            !(overriding_bcp != NULL && overriding_bcp->is_virtual) &&
+            !both_virtual_and_nonvirtual_base &&
+            !(non_primary_subobject_without_override &&
+              overriding_bcp != subobject_bcp) &&
+            !(overriding_bcp != NULL && overriding_bcp->offset != 0 &&
+              (subobject_bcp == NULL ||
+               subobject_bcp->offset != overriding_bcp->offset)) &&
+            (adjustment_bcp == NULL ||
+             !any_virtual_steps_in_derivation(adjustment_bcp)) &&
+            (derived_bcp->offset == 0 ||
+             (gnu_abi_version >= 30300 && subobject_bcp != NULL &&
+              derived_bcp->offset == subobject_bcp->offset))) {
+          /* The overridden function's sub-object is at the beginning of the
+             complete object or of the sub-object whose virtual table we are
+             creating, so we can optimize to a more efficient call. */
+          can_optimize_to_fixed_offset = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
-    if (filling_vtable && derived_bcp->shares_virtual_function_info &&
-        !(overridden_bcp->direct && subobject_bcp != NULL) &&
-        (subobject_bcp == overriding_bcp ||
-         (!(subobject_bcp != NULL &&
-            (subobject_bcp->is_virtual || !subobject_bcp->direct)) &&
-          !(overriding_bcp != NULL && overriding_bcp->is_virtual))) &&
-        !both_virtual_and_nonvirtual_base &&
-        !(non_primary_subobject_without_override &&
-          overriding_bcp != subobject_bcp) &&
-        !(overriding_bcp != NULL && overriding_bcp->offset != 0 &&
-          (subobject_bcp == NULL ||
-           subobject_bcp->offset != overriding_bcp->offset)) &&
-        (adjustment_bcp == NULL ||
-         !any_virtual_steps_in_derivation(adjustment_bcp)) &&
-        (derived_bcp->offset == 0 ||
-         (gnu_abi_version >= 30300 && subobject_bcp != NULL &&
-          derived_bcp->offset == subobject_bcp->offset))) {
-      /* The overridden function's sub-object is at the beginning of the
-         complete object or of the sub-object whose virtual table we are
-         creating, so we can optimize to a more efficient call.  The offset
-         will be that of the sub-object, if any.  (Using subobject_bcp instead
-         of overridden_bcp handles cases where the sub-object is not the
-         leftmost node in a diamond inheritance.) */
+    if (can_optimize_to_fixed_offset) {
+      /* We can optimize to a fixed offset.  The offset will be that of the
+         sub-object, if any.  (Using subobject_bcp instead of overridden_bcp
+         handles cases where the sub-object is not the leftmost node in a
+         diamond inheritance.) */
       if (subobject_bcp != NULL) {
         overridden_bcp = subobject_bcp;
       }  /* if */
@@ -6779,8 +6830,8 @@ function (NULL if none is required).
       /* The delta (i.e., the fixed offset) will be the offset required to
          reach the virtual base. */
       overriding_bcp = derived_bcp;
-    }  /* if */
-  } /* if */
+    } /* if */
+  }  /* if */
 #endif /* IA64_ABI */
   if (overriding_bcp == NULL) {
     /* The function is defined in the most-derived class. */
