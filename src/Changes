@@ -1,5 +1,19 @@
 Version 4.2
 
+4/19/10 [EDGcpfe/10639]
+GNU and Microsoft compatibility: Fields with incomplete types
+
+In Microsoft and some GNU modes (those with gnu_version < 30400), the front
+end previously accepted fields (i.e., data members) with incomplete types in
+templates.  Now, it also accepts arrays of incomplete types under those
+circumstances.  For example:
+
+  struct I;
+  template<class T> struct S {
+    I i[3];  // Now accepted in Microsoft mode (and in GNU mode when
+  };         // gnu_version < 30400).
+
+
 4/16/10 [EDGcpfe/10623]
 Incorrect lvalueness on backing expression for "?" operation on string literals
 
