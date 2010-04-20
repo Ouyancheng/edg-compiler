@@ -1,5 +1,30 @@
 Version 4.2
 
+4/19/10 [EDGcpfe/10539]
+Eliminate use of a virtual think in some cases in the IA-64 ABI
+
+When populating virtual function tables in the IA-64 ABI, lowering attempts to
+avoid the use of thunks when possible.  Lowering now checks for the case where
+the offset required is zero in the complete object, and suppresses the use
+of a virtual thunk in this case.  This provides more optimal run-time
+performance and is closer to g++'s behavior.  In the example below, the
+construction vtable for the D-in-A subobject had referred to virtual thunks for
+invoking (complete and subobject) D::~D and now refers directly to (complete
+and subobject) D::~D:
+
+  struct B {
+    virtual void f();
+    virtual ~B() {}
+  };
+  struct D: virtual B {
+    virtual ~D() {}
+  };
+  struct A: virtual D {
+    virtual void g();
+  };
+  void A::g() {}
+
+
 4/19/10 [EDGcpfe/10639]
 GNU and Microsoft compatibility: Fields with incomplete types
 

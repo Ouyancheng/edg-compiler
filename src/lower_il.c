@@ -6668,8 +6668,8 @@ the virtual function table index where an additional dynamic adjustment is
 located.  For the Cfront-like ABI, *vcall_index is not used (it is set to
 zero).  If filling_vtable is TRUE, the result will be used directly for a
 vtable entry and thus can be optimized without affecting the ABI.
-subobject_bcp identifies the subobject whose vtable is being created (if NULL
-it is the same as the class of the overriding function).  adjustment_bcp
+subobject_bcp identifies the subobject whose vtable is being created (NULL
+if it is the same as the class of the overriding function).  adjustment_bcp
 gives the covariant return type adjustment required for the overriding
 function (NULL if none is required).
 */
@@ -6830,7 +6830,7 @@ function (NULL if none is required).
       /* The delta (i.e., the fixed offset) will be the offset required to
          reach the virtual base. */
       overriding_bcp = derived_bcp;
-    } /* if */
+    }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
   if (overriding_bcp == NULL) {
