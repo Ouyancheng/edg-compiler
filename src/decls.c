@@ -9884,6 +9884,58 @@ done:;
 }  /* report_missing_type_specifier */
 
 
+static an_attribute_ptr extract_gnu_attributes(an_attribute_ptr  *p_list)
+/*
+Extract and return the GNU attributes from the list of attributes pointed to
+by *p_list (the list can be empty; i.e., *p_list can be NULL).
+*/
+{
+  an_attribute_ptr  gnu_list = NULL, *p_end = &gnu_list, *p_ap;
+
+  /* Extract GNU attributes. */
+  for (p_ap = p_list; *p_ap != NULL;) {
+    if ((*p_ap)->family == (a_byte_attribute_family)af_gnu) {
+      *p_end = *p_ap;
+      *p_ap = (*p_ap)->next;
+      p_end = &(*p_end)->next;
+      *p_end = NULL;
+    } else {
+      p_ap = &(*p_ap)->next;
+    }  /* if */
+  }  /* for */
+  return gnu_list;
+}  /* extract_gnu_attributes */
+
+
+static void process_type_name_attributes(a_decl_parse_state  *dps)
+/*
+This routine is called from type_name_full to handle non-type-transforming
+attributes that might be recorded in dps->prefix_attributes and
+dps->id_attributes.  GNU attributes may be valid in this context (in
+particular, the "aligned" attribute) and are therefore applied to dps->type.
+Other attributes are invalid and are diagnosed.
+*/
+{
+  an_attribute_ptr  gnu_list, ap;
+
+  gnu_list = extract_gnu_attributes(&dps->id_attributes);
+  *last_attribute_link(&gnu_list) =
+                              extract_gnu_attributes(&dps->prefix_attributes);
+  if (gnu_list != NULL) {
+    for (ap = gnu_list; ap != NULL; ap = ap->next) ap->assoc_info = (void*)dps;
+    /* Create a typeref to attach the attributes to (the attachment is done
+       by the call to attach_attributes). */
+    dps->type = make_typeref_with_attributes(dps->type, NULL);
+    attach_attributes(gnu_list, (char*)dps->type, iek_type);
+    for (ap = gnu_list; ap != NULL; ap = ap->next) ap->assoc_info = NULL;
+  }  /* if */
+  if (dps->prefix_attributes != NULL || dps->id_attributes != NULL) {
+    diagnose_unattached_attributes(dps->prefix_attributes);
+    diagnose_unattached_attributes(dps->id_attributes);
+  }  /* if */
+}  /* process_type_name_attributes */
+
+
 void type_name_full(a_decl_parse_state  *dps)
 /*
 Scan a type-name (a sequence of specifiers optionally followed by an abstract
@@ -9953,8 +10005,9 @@ common cases.
   }  /* if */
   check_pending_qualifiers_used(dps);
   if (dps->prefix_attributes != NULL || dps->id_attributes != NULL) {
-    diagnose_unattached_attributes(dps->prefix_attributes);
-    diagnose_unattached_attributes(dps->id_attributes);
+    if (!is_error_type(dps->type)) {
+      process_type_name_attributes(dps);
+    }  /* if */
   }  /* if */
   copy_source_position(dps->start_pos, error_position);
   db_exit();

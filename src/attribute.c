@@ -2900,12 +2900,11 @@ a_type_ptr make_typeref_with_attributes(a_type_ptr        tp,
                                         an_attribute_ptr  attributes)
 /*
 Return a new tk_typeref entry with the given attributes and whose underlying
-type is tp.  attributes must be non-NULL.
+type is tp.
 */
 {
   a_type_ptr  result = alloc_type((a_type_kind)tk_typeref);
 
-  check_assertion(attributes != NULL);
   result->variant.typeref.type = tp;
   result->variant.typeref.for_type_attributes = TRUE;
   result->source_corresp.attributes = attributes;
@@ -2920,7 +2919,7 @@ void attach_type_attributes(a_type_ptr        *p_type,
 Apply the given attributes to *p_type, which results in a type T.  Attach the
 attributes to the type entry for T directly if T is a routine type, and via a
 typeref pointing to the attributes on top of T otherwise.  Return the type
-entry to which the attributes are attach through *p_type.  If attributes is
+entry to which the attributes are attached through *p_type.  If attributes is
 NULL, do nothing.  assoc_info is the value that should be recorded in the
 assoc_info field of the attribute while it is applied to the type: Normally,
 it is a pointer to the a_decl_parse_state associated with the construct
@@ -3465,9 +3464,11 @@ return that entity.
         } else {
           set_declspec_align(tp, alignment, &ap->position);
         }  /* if */
-      } else {
+      } else if (ap->family == (a_byte_attribute_family)af_gnu) {
         tp->alignment = alignment;
         tp->alignment_set_explicitly = TRUE;
+      } else {
+        unexpected_condition();
       }  /* if */
     } else if (entity_kind == iek_routine) {
       a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);

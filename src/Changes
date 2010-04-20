@@ -1,5 +1,18 @@
 Version 4.2
 
+4/20/10 [EDGcpfe/10531]
+GNU compatibility: Attribute "aligned" on cast types
+
+In GNU modes, the front end now applies the "aligned" attribute when it
+appears on a cast type.  For example:
+
+  int main() {
+    return __alignof((int __attribute((aligned(16))))x);
+  }      // Returns 16.
+
+Previously, such attributes were ignored with a warning.
+
+
 4/19/10 [EDGcpfe/10539]
 Eliminate use of a virtual thunk in some cases in the IA-64 ABI
 
