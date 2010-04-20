@@ -1,7 +1,7 @@
 Version 4.2
 
 4/19/10 [EDGcpfe/10539]
-Eliminate use of a virtual think in some cases in the IA-64 ABI
+Eliminate use of a virtual thunk in some cases in the IA-64 ABI
 
 When populating virtual function tables in the IA-64 ABI, lowering attempts to
 avoid the use of thunks when possible.  Lowering now checks for the case where
