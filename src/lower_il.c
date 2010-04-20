@@ -6757,8 +6757,6 @@ gives the covariant return type adjustment required for the overriding function
            with no thunk.  Note that a covariant return type requires an
            adjustment even if the offset is 0. */
         can_optimize_to_fixed_offset = TRUE;
-        /* Offset is that of the sub-object, which may be NULL in this case. */
-        overridden_bcp = subobject_bcp;
       } else {
         /* Determine whether the thunk we would need for the fixed offset
            adjustment would exist. */
@@ -6816,9 +6814,7 @@ gives the covariant return type adjustment required for the overriding function
          sub-object, if any.  (Using subobject_bcp instead of overridden_bcp
          handles cases where the sub-object is not the leftmost node in a
          diamond inheritance.) */
-      if (subobject_bcp != NULL) {
-        overridden_bcp = subobject_bcp;
-      }  /* if */
+      overridden_bcp = subobject_bcp;
     } else {
       /* Need to use the two-stage thunk (that uses the vcall offset).  Look
          through the derived_bcp to find the overrider on the vcall offset
