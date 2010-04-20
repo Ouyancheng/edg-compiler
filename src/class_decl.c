@@ -11510,7 +11510,7 @@ declarations.
              is_template_param_or_nonreal_class_type(el_type))))) {
         /* In Microsoft and early g++ modes, a field type can be incomplete in
            a prototype instantiation.  In later g++ modes incomplete class
-           types are permitted if the are nonreal types. */
+           types are permitted if they are nonreal types. */
       } else {
         if (!C_mode() && is_error_locator(*locator) &&
             !decl_info->is_unnamed_field) {
