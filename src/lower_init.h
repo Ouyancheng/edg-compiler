@@ -265,8 +265,7 @@ extern void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip);
 extern void lower_file_scope_dynamic_inits(void);
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-extern void add_body_for_covariant_return_type_entry_routine(
-                                                        a_routine_ptr routine);
+extern void add_body_for_wrapper_routine(a_routine_ptr routine);
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

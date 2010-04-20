@@ -17769,8 +17769,7 @@ have been processed.
   /* Likewise for any thunks for the routine. */
   { a_routine_ptr rout;
     for (rout = rp->next;
-         rout != NULL &&
-           rout->overriding_function_for_covariant_return_type == rp;
+         rout != NULL && rout->overriding_function_for_wrapper == rp;
          rout = rout->next) {
       make_routine_externally_linked(rout, count);
     }  /* for */

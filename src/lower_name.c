@@ -8370,7 +8370,7 @@ be embedded in other mangled names.
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
-void mangle_covariant_return_type_entry_name(a_routine_ptr entry_routine)
+void mangle_wrapper_name(a_routine_ptr entry_routine)
 /*
 entry_routine points to a routine that represents an entry point of
 another routine (which is a virtual function with a covariant return type, 
@@ -8385,11 +8385,11 @@ pointer, or performs the "this" adjustments.
   a_type_ptr               overridden_class;
 #endif /* !IA64_ABI */
 
-  prim_routine = entry_routine->overriding_function_for_covariant_return_type;
+  prim_routine = entry_routine->overriding_function_for_wrapper;
   start_mangling(&mctl);
 #if !IA64_ABI
   overridden_class = parent_class_of(
-                entry_routine->overridden_function_for_covariant_return_type);
+                               entry_routine->overridden_function_for_wrapper);
   /* The mangled name has the form
        __VFE__<overridden_class>__<prim_routine>
      where <overridden_class> and <prim_routine> are the mangled names for
@@ -8461,7 +8461,7 @@ pointer, or performs the "this" adjustments.
   }  /* if */
   (void)end_mangling_full(&entry_routine->source_corresp, /*final=*/TRUE,
                           &mctl);
-}  /* mangle_covariant_return_type_entry_name */
+}  /* mangle_wrapper_name */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI

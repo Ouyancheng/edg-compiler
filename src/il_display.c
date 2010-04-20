@@ -2989,12 +2989,12 @@ Display the indicated routine.
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  if (ptr->overriding_function_for_covariant_return_type != NULL) {
-    disp_ptr("overriding_function_for_covariant_return_type",
-             (char *)ptr->overriding_function_for_covariant_return_type,
+  if (ptr->overriding_function_for_wrapper != NULL) {
+    disp_ptr("overriding_function_for_wrapper",
+             (char *)ptr->overriding_function_for_wrapper,
              iek_routine);
-    disp_ptr("overridden_function_for_covariant_return_type",
-             (char *)ptr->overridden_function_for_covariant_return_type,
+    disp_ptr("overridden_function_for_wrapper",
+             (char *)ptr->overridden_function_for_wrapper,
              iek_routine);
   }  /* if */
 #if IA64_ABI

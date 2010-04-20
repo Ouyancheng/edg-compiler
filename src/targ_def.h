@@ -3466,7 +3466,9 @@ This switch controls whether or not ABI changes are made to support
 covariant return types on overriding virtual functions.  If the switch is
 off, compatibility with versions up to 2.33 is preserved, but support for
 covariant return types on overriding virtual functions is disabled (meaning
-errors will be issued when compiling programs using the feature).
+errors will be issued when compiling programs using the feature).  The same
+mechanism is used to create thunks in the IA-64 ABI and therefore this
+switch must be TRUE when using the IA-64 ABI.
 */
 #ifndef ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 /* This feature CAN be turned on when CFRONT_OBJECT_CODE_COMPATIBILITY is on,

@@ -1596,7 +1596,7 @@ except for the Microsoft/Sun extension of an in-class specialization.)
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
          /* Skip covariant routines generated during lowering. */
          (routine->compiler_generated &&
-          routine->overridden_function_for_covariant_return_type != NULL) ||
+          routine->overridden_function_for_wrapper != NULL) ||
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if MICROSOFT_EXTENSIONS_ALLOWED
          /* Interface slots are generated for derived classes, and can
@@ -1625,8 +1625,7 @@ a_routine_list_entry nodes.
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
          /* Skip covariant routines generated during lowering. */
           (rle->routine->compiler_generated &&
-           rle->routine->overridden_function_for_covariant_return_type !=
-                                                                       NULL) ||
+           rle->routine->overridden_function_for_wrapper != NULL) ||
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 

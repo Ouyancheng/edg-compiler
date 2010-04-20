@@ -113,8 +113,7 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
 #endif /* DO_IL_LOWERING */
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-extern void mangle_covariant_return_type_entry_name(
-                                             a_routine_ptr entry_routine);
+extern void mangle_wrapper_name(a_routine_ptr entry_routine);
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI
 extern void mangle_alternate_entry_point_name(a_routine_ptr routine,

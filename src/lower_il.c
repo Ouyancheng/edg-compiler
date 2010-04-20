@@ -6336,7 +6336,7 @@ primary_function is NULL.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- rabcp, delta, and vcall_index are not used in that case. */
 #endif /* !IA64_ABI */
-static a_routine_ptr make_covariant_return_type_entry_routine(
+static a_routine_ptr make_wrapper_routine(
                                      a_routine_ptr         overriding_function,
                                      a_routine_ptr         overridden_function,
                                      a_base_class_ptr      rabcp,
@@ -6398,14 +6398,11 @@ yet.
   /* The entry routines are added after the overriding routine, so look there
      to see if one has already been created. */
   for (rout = overriding_function->next;
-       rout != NULL &&
-         rout->overriding_function_for_covariant_return_type != NULL;
+       rout != NULL && rout->overriding_function_for_wrapper != NULL;
        rout = rout->next) {
-    if (rout->overriding_function_for_covariant_return_type ==
-                                                         overriding_function &&
+    if (rout->overriding_function_for_wrapper == overriding_function &&
 #if !IA64_ABI
-        rout->overridden_function_for_covariant_return_type ==
-                                                         overridden_function
+        rout->overridden_function_for_wrapper == overridden_function
 #else /* IA64_ABI */
         /* In the IA64 ABI, the function that is being overridden does not
            matter; all that matters is the adjustments that have to be made. */
@@ -6474,10 +6471,8 @@ yet.
   entry_routine->instantiation_needed_bit_number =
                           overriding_function->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
-  entry_routine->overriding_function_for_covariant_return_type =
-                                                           overriding_function;
-  entry_routine->overridden_function_for_covariant_return_type =
-                                                           overridden_function;
+  entry_routine->overriding_function_for_wrapper = overriding_function;
+  entry_routine->overridden_function_for_wrapper = overridden_function;
 #if IA64_ABI
   entry_routine->delta = delta;
   entry_routine->vcall_index = vcall_index;
@@ -6514,7 +6509,7 @@ yet.
     ptp->next = NULL;
   }  /* for */
   /* Give the routine a mangled name. */
-  mangle_covariant_return_type_entry_name(entry_routine);
+  mangle_wrapper_name(entry_routine);
   /* Insert the routine right after the overriding routine. */
   entry_routine->next = overriding_function->next;
   overriding_function->next = entry_routine;
@@ -6526,7 +6521,7 @@ yet.
   }  /* if */
 end_of_routine:
   return entry_routine;
-}  /* make_covariant_return_type_entry_routine */
+}  /* make_wrapper_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
@@ -7093,16 +7088,14 @@ table.
             delta != 0 || vcall_index != 0 ||
 #endif /* IA64_ABI */
             any_virtual_steps_in_derivation(rabcp)) {
-          func_to_call = make_covariant_return_type_entry_routine(
-                                             func_to_call,
-                                             override_list->primary_function,
-                                             rabcp, delta, vcall_index);
+          func_to_call = make_wrapper_routine(func_to_call,
+                                              override_list->primary_function,
+                                              rabcp, delta, vcall_index);
 #if IA64_ABI
           if (second_func_to_call != NULL) {
-            second_func_to_call = make_covariant_return_type_entry_routine(
-                                             second_func_to_call,
-                                             override_list->primary_function,
-                                             rabcp, delta, vcall_index);
+            second_func_to_call = make_wrapper_routine(second_func_to_call,
+                                              override_list->primary_function,
+                                              rabcp, delta, vcall_index);
           }  /* if */
           /* The function called adjusts "this" so we do not have to do it. */
           delta = 0;
@@ -9166,8 +9159,7 @@ routine's mangled name.
       }  /* if */
       /* Also mark any thunks that follow the alternate entry point. */
       for (trout = arout->next;
-           trout != NULL &&
-             trout->overriding_function_for_covariant_return_type == arout;
+           trout != NULL && trout->overriding_function_for_wrapper == arout;
            trout = trout->next) {
         if (trout->storage_class == (a_storage_class)sc_unspecified) {
           trout->use_comdat = TRUE;
@@ -9198,8 +9190,7 @@ elsewhere.
   /* Make any associated thunks also static. */
   { a_routine_ptr trout;
     for (trout = routine->next;
-         trout != NULL &&
-           trout->overriding_function_for_covariant_return_type == routine;
+         trout != NULL && trout->overriding_function_for_wrapper == routine;
          trout = trout->next) {
       trout->storage_class = (a_storage_class)sc_static;
       trout->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
@@ -9302,14 +9293,14 @@ not include the function scope memory region, if any.
 #endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
     { a_routine_ptr	overriding_function;
-      overriding_function = routine->
-                                 overriding_function_for_covariant_return_type;
+      overriding_function = routine->overriding_function_for_wrapper;
       if (overriding_function != NULL &&
           !overriding_function->suppress_inline_body &&
           overriding_function->assoc_scope != NULL_region_number) {
         /* Add a definition for an entry/wrapper to handle covariant
-           return types, if the overriding routine is defined. */
-        add_body_for_covariant_return_type_entry_routine(routine);
+           return types or "this" adjustment, if the overriding routine is
+           defined. */
+        add_body_for_wrapper_routine(routine);
       }  /* if */
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
@@ -18162,13 +18153,13 @@ is instantiated in more than one translation unit.
 #endif /* LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   } else if (rout->covariant_return_virtual_override ||
-             rout->overriding_function_for_covariant_return_type != NULL) {
+             rout->overriding_function_for_wrapper != NULL) {
     /* For a covariant overriding virtual function and its wrapper routines,
        promote the local statics in case the implementation technique is
        to replicate the body of the primary function. */
     multiple_copies = TRUE;
   } else if (rout->next != NULL &&
-             rout->next->overriding_function_for_covariant_return_type==rout) {
+             rout->next->overriding_function_for_wrapper == rout) {
     /* Also, if the routine has a thunk the thunk might be implemented by
        replicating the function body. */
     multiple_copies = TRUE;
@@ -18844,16 +18835,23 @@ scope.
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
-static void add_covariant_return_type_entry_routines(a_routine_ptr routine)
+static void add_required_wrapper_routines(a_routine_ptr routine)
 /*
-routine is an overriding virtual function with a covariant return type.
-Generate declarations for the entry/wrapper functions used to call this routine
-when a base class return type is needed.  Definitions will be put out later.
+routine is an overriding virtual function.  routine either has a covariant
+return type (and wrapper functions are required to adjust the return type as
+needed), or (in the IA-64 ABI) may require that adjusting entry points (also
+called "thunks") be emitted.  Such wrappers are used to adjust the "this"
+pointer as necessary from the caller's view to the callee's view.  Generate
+declarations for all necessary entry/wrapper functions used to call this
+routine.  Definitions (if needed) will be put out later.
 */
 {
   a_type_ptr       rout_class = parent_class_of(routine);
   a_base_class_ptr bcp;
 
+#if !IA64_ABI
+  check_assertion(routine->covariant_return_virtual_override);
+#endif /* !IA64_ABI */
   /* Look at each base class (both direct and indirect). */
   for (bcp = rout_class->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
@@ -18873,8 +18871,9 @@ when a base class return type is needed.  Definitions will be put out later.
                                    adjustment_bcp, /*filling_vtable=*/FALSE,
                                    &delta, &vcall_index);
 #endif /* IA64_ABI */
-        /* Ignore this entry if in this case the override is not covariant.
-           (It is covariant for the overrides in other base classes.) */
+        /* Ignore this entry if in this case the override is not covariant
+           (it is covariant for the overrides in other base classes) or
+           no "this" offset adjustment is needed (IA-64 ABI). */
         if ((adjustment_bcp != NULL &&
              (adjustment_bcp->offset != 0 || adjustment_bcp->is_virtual))
 #if IA64_ABI
@@ -18884,11 +18883,10 @@ when a base class return type is needed.  Definitions will be put out later.
           /* The adjustment offset is non-NULL, or the base class is
              virtual, so an entry/wrapper routine is needed. */
 #if IA64_ABI
-          /* Add thunks for any alternate entry points.  Add thunks only for
-             the complete and deleting destructors.  The primary routine might
-             be the complete destructor, or it might be the subobject
-             destructor and require no thunk.  Constructors do not get here
-             because they cannot be virtual. */
+          /* Add thunks for any alternate entry points.  For destructors, the
+             primary routine might be the complete destructor, or it might be
+             the subobject destructor and require no thunk.  Constructors do
+             not get here because they cannot be virtual. */
           if (routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor) {
             a_routine_list_entry_ptr rlep;
@@ -18897,11 +18895,11 @@ when a base class return type is needed.  Definitions will be put out later.
                        alternate_entry_point(ovf->primary_function,
                                              (a_ctor_or_dtor_kind)cdk_complete,
                                              /*define_now=*/FALSE);
-              (void)make_covariant_return_type_entry_routine(routine,
-                                                             arouto,
-                                                             adjustment_bcp,
-                                                             delta,
-                                                             vcall_index);
+              (void)make_wrapper_routine(routine,
+                                         arouto,
+                                         adjustment_bcp,
+                                         delta,
+                                         vcall_index);
             }  /* if */
             for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
                  rlep != NULL;
@@ -18912,29 +18910,28 @@ when a base class return type is needed.  Definitions will be put out later.
                 arouto = alternate_entry_point(ovf->primary_function,
                                                arout->ctor_dtor_kind,
                                                /*define_now=*/FALSE);
-                (void)make_covariant_return_type_entry_routine(arout,
-                                                               arouto,
-                                                               adjustment_bcp,
-                                                               delta,
-                                                               vcall_index);
+                (void)make_wrapper_routine(arout,
+                                           arouto,
+                                           adjustment_bcp,
+                                           delta,
+                                           vcall_index);
               }  /* if */
             }  /* for */
           } else
 #endif /* IA64_ABI */
           /* Do not insert code here. */
           {
-            (void)make_covariant_return_type_entry_routine(
-                                                         routine,
-                                                         ovf->primary_function,
-                                                         adjustment_bcp,
-                                                         delta,
-                                                         vcall_index);
+            (void)make_wrapper_routine(routine,
+                                       ovf->primary_function,
+                                       adjustment_bcp,
+                                       delta,
+                                       vcall_index);
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* for */
-}  /* add_covariant_return_type_entry_routines */
+}  /* add_required_wrapper_routines */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
@@ -19066,9 +19063,11 @@ Do IL lowering of the indicated scope and everything under it.
 #endif /* !IA64_ABI */
                                                   ) {
       /* This routine is an overriding virtual function with a covariant
-         return type, or an IA-64 ABI thunk.  Generate declarations for
-         the entry/wrapper functions used in the virtual function
-         table. */
+         return type (Cfront ABI), or a virtual function (IA-64 ABI).
+         Generate declarations for the entry/wrapper functions used in the
+         virtual function table.  Wrappers are required to handle covariant
+         return types (in both ABIs).  Additionally, any thunks that are
+         required by the IA-64 ABI are also generated here. */
       /* Note that this must be done before the promote-local-entities
          code so that routine_might_exist_in_multiple_copies can know
          whether any thunks are needed. */
@@ -19080,7 +19079,7 @@ Do IL lowering of the indicated scope and everything under it.
         create_alternate_entry_points(routine, /*define_now=*/FALSE);
       }  /* if */
 #endif /* IA64_ABI */
-      add_covariant_return_type_entry_routines(routine);
+      add_required_wrapper_routines(routine);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */

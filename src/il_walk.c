@@ -643,11 +643,10 @@ definition of the routine is needed, and not just the declaration.
       }  /* if */
     }  /* if */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (rout->overriding_function_for_covariant_return_type != NULL) {
+    if (rout->overriding_function_for_wrapper != NULL) {
       /* For a thunk, set the definition needed on the actual routine
          referenced. */
-      set_routine_definition_needed(rout->
-                                overriding_function_for_covariant_return_type);
+      set_routine_definition_needed(rout->overriding_function_for_wrapper);
     }  /* if */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if DO_IL_LOWERING && IA64_ABI
@@ -838,8 +837,7 @@ If the indicated routine has any thunks, mark them as needed.
 
   /* The thunks follow the routine if present. */
   for (trout = rout->next;
-       trout != NULL &&
-         trout->overriding_function_for_covariant_return_type == rout;
+       trout != NULL && trout->overriding_function_for_wrapper == rout;
        trout = trout->next) {
     mark_as_needed((char *)trout, iek_routine);
   }  /* for */
@@ -1473,11 +1471,10 @@ declaration.
       }  /* if */
     }  /* if */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (rout->overriding_function_for_covariant_return_type != NULL) {
+    if (rout->overriding_function_for_wrapper != NULL) {
       /* For a thunk, set the definition needed on the actual routine
          referenced. */
-      set_routine_keep_definition_in_il(rout->
-                                overriding_function_for_covariant_return_type);
+      set_routine_keep_definition_in_il(rout->overriding_function_for_wrapper);
     }  /* if */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if DO_IL_LOWERING && IA64_ABI

@@ -22158,8 +22158,7 @@ associated with the given routine.
   char          *name;
 
   for (trout = rout_ptr->next;
-       trout != NULL &&
-         trout->overriding_function_for_covariant_return_type == rout_ptr;
+       trout != NULL && trout->overriding_function_for_wrapper == rout_ptr;
        trout = trout->next) {
     name = get_mangled_function_name_full(trout,
                                           /*force_primary_name=*/FALSE,
@@ -22229,7 +22228,7 @@ required (somewhere, but not necessarily in the current compilation).
   a_routine_ptr thunk = rout_ptr->next;
 
   while (thunk != NULL &&
-         thunk->overriding_function_for_covariant_return_type == rout_ptr) {
+         thunk->overriding_function_for_wrapper == rout_ptr) {
     if (thunk->address_taken) {
       instance_required = TRUE;
       break;

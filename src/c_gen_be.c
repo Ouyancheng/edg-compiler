@@ -4193,7 +4193,7 @@ and don't reach here.
   a_routine_ptr  curr_routine =
                                innermost_function_scope->variant.routine.ptr;
   a_routine_ptr  underlying_routine =
-                 curr_routine->overriding_function_for_covariant_return_type;
+                               curr_routine->overriding_function_for_wrapper;
   check_assertion(underlying_routine != NULL);
   write_tok_ch('(');
   dump_routine_name(underlying_routine);
@@ -8202,19 +8202,19 @@ by dump_routine_decl.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   /* Note that ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN is always
      TRUE when IA64_ABI is TRUE. */
-  if (rout->overriding_function_for_covariant_return_type != NULL &&
+  if (rout->overriding_function_for_wrapper != NULL &&
       skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
     /* This routine is a wrapper for an overriding virtual function with
-       a covariant return type.  Its body is just a return statement giving
-       the cast that needs to be put over the return from the overriding
-       function to give it the right type.  Expand the overriding function
-       reference (effectively "inlining" it) during the code generation
-       for the wrapper. */
+       a covariant return type or an IA-64 ABI thunk.  Its body is just a
+       return statement giving the cast that needs to be put over the return
+       from the overriding function to give it the right type.  Expand the
+       overriding function reference (effectively "inlining" it) during the
+       code generation for the wrapper. */
     /* We could do this for all thunks, but we choose to do it only
        when it's necessary, i.e., for routines with variable arguments.
        Doing it in all cases causes code bloat, especially for IA-64 ABI
        destructor thunks. */
-    master_routine = rout->overriding_function_for_covariant_return_type;
+    master_routine = rout->overriding_function_for_wrapper;
 #if IA64_ABI
   } else if (rout->primary_ctor_or_dtor != NULL) {
     /* This routine is an alternate entry point for a constructor or

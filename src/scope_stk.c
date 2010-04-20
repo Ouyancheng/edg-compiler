@@ -4573,7 +4573,7 @@ the outermost class was defined in an unnamed namespace.
        give a diagnostic if a member is declared but not used. */
     if ((rp->source_corresp.referenced
 #if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-         && rp->overridden_function_for_covariant_return_type == NULL
+         && rp->overridden_function_for_wrapper == NULL
 #endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
                                                                      ) ||
         (rp->is_virtual && !rp->pure_virtual && !rp->compiler_generated)) {

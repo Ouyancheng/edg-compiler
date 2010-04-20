@@ -3174,8 +3174,8 @@ definition.
     /* If this is an entry point of some other routine, it's needed only
        if the primary routine is needed. */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (rout->overriding_function_for_covariant_return_type != NULL) {
-      assoc_rout = rout->overriding_function_for_covariant_return_type;
+    if (rout->overriding_function_for_wrapper != NULL) {
+      assoc_rout = rout->overriding_function_for_wrapper;
       rout = assoc_rout;  /* Allow both thunk and alternate entry point. */
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
@@ -3278,7 +3278,7 @@ Pop function corresponding to push_generated_routine_context.
   if (exceptions_enabled
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       /* Don't add EH code to thunks. */
-      && rout->overriding_function_for_covariant_return_type == NULL
+      && rout->overriding_function_for_wrapper == NULL
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
       /* Don't add EH code to alternate entry points, unless the complete
@@ -13749,7 +13749,7 @@ code to cause the generated initialization routine to be called at startup.
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
-void add_body_for_covariant_return_type_entry_routine(a_routine_ptr routine)
+void add_body_for_wrapper_routine(a_routine_ptr routine)
 /*
 Add a definition to the indicated function, which is an entry/wrapper
 used to call an overriding virtual function that has a covariant
@@ -13817,8 +13817,8 @@ need to be modified if changes are made here.
     last_param_var = param_var;
     param_var->next = NULL;
   }  /* for */
-  overriding_function = routine->overriding_function_for_covariant_return_type;
-  overridden_function = routine->overridden_function_for_covariant_return_type;
+  overriding_function = routine->overriding_function_for_wrapper;
+  overridden_function = routine->overridden_function_for_wrapper;
   overriding_return_type = lowered_return_type_of(overriding_function->type);
   overridden_return_type = lowered_return_type_of(overridden_function->type);
   /* The overriding function must have a definition in this compilation. */
@@ -13979,7 +13979,7 @@ need to be modified if changes are made here.
     mark_as_needed((char *)routine, iek_routine);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-}  /* add_body_for_covariant_return_type_entry_routine */
+}  /* add_body_for_wrapper_routine */
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if MICROSOFT_EXTENSIONS_ALLOWED

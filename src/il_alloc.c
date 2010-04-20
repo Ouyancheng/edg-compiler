@@ -2382,8 +2382,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-  rp->overriding_function_for_covariant_return_type = NULL;
-  rp->overridden_function_for_covariant_return_type = NULL;
+  rp->overriding_function_for_wrapper = NULL;
+  rp->overridden_function_for_wrapper = NULL;
 #if IA64_ABI
   rp->delta                       = 0;
   rp->vcall_index                 = 0;

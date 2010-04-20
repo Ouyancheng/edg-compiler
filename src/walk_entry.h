@@ -1285,10 +1285,10 @@ the file scope, do not process it (but record an orphan in the latter case).
            needed at all.  The overriding function definition is needed
            only if the thunk definition is needed, and that's handled in
            set_routine_definition_needed. */
-        remap_ptr(ptr->overriding_function_for_covariant_return_type,
+        remap_ptr(ptr->overriding_function_for_wrapper,
                   a_routine_ptr, iek_routine);
         remap_ptr_not_needed(
-                  ptr->overridden_function_for_covariant_return_type,
+                  ptr->overridden_function_for_wrapper,
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED

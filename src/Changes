@@ -1,5 +1,15 @@
 Version 4.2
 
+4/20/10 [EDGcpfe/10206]
+Rename routines and fields associated with covariant return types
+
+Routines and fields whose name had contained "covariant_return_type" have been
+renamed (replacing "covariant_return_type" with "wrapper" in most cases).
+The renaming reflects the fact that these routines/fields are also used to
+create thunks (which adjust the "this" pointer) in the IA-64 ABI, and not just
+the wrapper routines that are necessary to do covariant return type adjustment.
+
+
 4/20/10 [EDGcpfe/10531]
 GNU compatibility: Attribute "aligned" on cast types
 
