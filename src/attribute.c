@@ -3789,9 +3789,12 @@ The given entity must be a variable, routine, type, or field.  Apply the
   if (entity_kind == iek_type) {
     /* Only user-defined types can be deprecated. */
     a_type_ptr  tp = (a_type_ptr)entity;
-    check_assertion(is_tag_type(tp) || type_is_typedef(tp));
-    if (microsoft_mode &&
-        ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+    if (!(is_tag_type(tp) || type_is_typedef(tp))) {
+      check_assertion(gnu_mode);
+      report_bad_attribute_target(es_warning, ap);
+    } else if (microsoft_mode &&
+               ap->syntactic_location ==
+                                     (a_byte_attribute_location)al_tag_name) {
       /* Microsoft compilers ignore the attribute on enum types and on
          unnamed classes. */
       if (is_immediate_enum_type(tp)) {
