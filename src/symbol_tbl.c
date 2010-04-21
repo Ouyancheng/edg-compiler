@@ -2830,6 +2830,7 @@ state.
         cssp->lambda_subject_to_trans_unit_corresp = FALSE;
         cssp->base_check = FALSE;
         cssp->check_hiding_attr = FALSE;
+        cssp->has_field_with_attr_to_merge = FALSE;
 #if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

@@ -1060,6 +1060,10 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	check_hiding_attr:1;
 			/* TRUE if this class includes a member declared with
 			   the C++0x "hiding" attribute. */
+  a_bit_field	has_field_with_attr_to_merge:1;
+			/* TRUE if this class has a field with an attribute
+			   whose copy_to_primary_translation_unit flag is
+			   TRUE. */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 

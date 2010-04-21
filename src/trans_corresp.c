@@ -2300,6 +2300,8 @@ the canonical entry.
         check_assertion(checking_fn != 0);
         (void)checking_fn(entity1, entity2, entity_kind, ap1, ap2);
       } else if (ap2 == NULL) {
+        /* An attribute (ap1) of the first entity doesn't have a counterpart
+           in entity2. */
         if (match_mode == ACF_STRICT_MATCH) {
           pos_st_start_error(ec_missing_attribute_in_other_translation_unit,
                              &ap1->position, ap1->name);
@@ -2332,12 +2334,12 @@ the canonical entry.
         make_attr_unrecognized(ap1);
         make_attr_unrecognized(ap2);
       }  /* if */
-      if (atable2[(int)ap1->kind] == NULL) {
-        /* An attribute (ap1) of the first entity doesn't have a counterpart
-           in entity2. */
-      } else if (equivalent_attributes(ap1, atable2[(int)ap1->kind],
-                                       /*ignore_family=*/FALSE)) {
-      } else {
+      if (ap1->copy_to_primary_translation_unit && entity_kind == iek_field) {
+        /* To improve the performance of the trans_copy process, we mark
+           classes that have a field with an attribute that might have to be
+           copied over to the primary translation unit. */
+        a_type_ptr  pt = parent_class_of((a_field*)entity1);
+        symbol_supplement_for_class(pt)->has_field_with_attr_to_merge = TRUE;
       }  /* if */
     }  /* for */
   }  /* if */
