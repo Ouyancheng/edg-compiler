@@ -5346,6 +5346,7 @@ error type is used.
                                 (a_source_sequence_entry_ptr)NULL);
       /* Scan the type. */
       type_name_full(&dps);
+      check_type_definition_in_type_name(&dps);
       if (type->variant.typeref.type == NULL) {
         /* The type pointed to by the typeref will normally be NULL except
            in the case where an existing_instance_sym is being used in
@@ -16697,6 +16698,7 @@ can be diagnosed at template definition time.
   init_decl_parse_state(&dps);
   /* Scan the type. */
   type_name_full(&dps);
+  check_type_definition_in_type_name(&dps);
   tp = dps.type;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   prototype_type->variant.typeref.extra_info->type_id_range.end =
