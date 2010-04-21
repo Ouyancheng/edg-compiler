@@ -4267,7 +4267,7 @@ Allocate an attribute in file scope memory and return a pointer to it.
   ap->syntactic_location = (a_byte_attribute_location)al_implicit;
   ap->on_primary_declaration = FALSE;
   ap->transforms_type_specifier = FALSE;
-  ap->copy_to_primary_translation_unit = FALSE;
+  ap->must_be_preserved_in_trans_unit_copy = FALSE;
   ap->name = NULL;
   ap->namespace_name = NULL;
   ap->arguments = NULL;

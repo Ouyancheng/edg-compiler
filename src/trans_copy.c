@@ -975,6 +975,106 @@ is called.
 }  /* f_mark_to_merge */
 
 
+static a_boolean f_entry_requires_merge_because_of_attributes(
+                                                  a_source_correspondence *scp)
+/*
+If the indicated entry has attributes that must be merged into the
+canonical entry as part of the copy/merge process, return TRUE.  In
+that case, its attribute list is altered so that only attributes that
+must be merged remain on the list; the rest are duplicates and are
+deleted.  The entry passed in must not be one that will be copied
+instead of merged (i.e., entry_should_be_copied must be FALSE for
+it), nor may it be one that will overwrite a primary IL entry (i.e.,
+entry_should_overwrite_primary_entry must be FALSE for it).  The
+combination of those two means the entry is not the canonical entry
+(all of whose attributes would be preserved), and is instead an entry
+that would otherwise be discarded except if some of its attributes
+must be merged into the canonical entry.
+*/
+{
+  a_boolean requires_merge = FALSE;
+
+  /* Only entries with correspondences require this special processing,
+     because only they can be merged. */
+  if (scp->attributes != NULL &&
+      /* a_type_ptr is arbitrary. */
+      trans_unit_corresp_of((a_type_ptr)scp) != NULL) {
+    an_attribute_ptr ap, ap_next, end_of_list = NULL;
+    check_assertion(trans_unit_corresp_of((a_type_ptr)scp)->canonical !=
+                                                                  (char *)scp);
+    /* Go through the list of attributes and keep only those marked as
+       requiring a merge. */
+    for (ap = scp->attributes, scp->attributes = NULL;
+         ap != NULL;
+         ap = ap_next) {
+      ap_next = ap->next;
+      if (ap->must_be_preserved_in_trans_unit_copy) {
+        requires_merge = TRUE;
+        if (end_of_list == NULL) {
+          scp->attributes = ap;
+        } else {
+          end_of_list->next = ap;
+        }  /* if */
+        end_of_list = ap;
+        ap->next = NULL;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return requires_merge;
+}  /* f_entry_requires_merge_because_of_attributes */
+
+
+/*
+Interface macro for f_entry_requires_merge_because_of_attributes that allows
+passing any entry that has a source correspondence field.
+*/
+#define entry_requires_merge_because_of_attributes(ptr) \
+  f_entry_requires_merge_because_of_attributes(&(ptr)->source_corresp)
+
+
+static void merge_attributes(a_source_correspondence *expiring_scp,
+                             a_source_correspondence *surviving_scp)
+/*
+Transfer from the expiring_scp to the surviving_scp any attributes that
+must be merged in.
+*/
+{
+  an_attribute_ptr ap, last_ap;
+
+  ap = expiring_scp->attributes;
+  if (ap != NULL) {
+    if (in_secondary_trans_unit(ap)) {
+      /* When transfer_xxx_details is called for a case where a non-canonical
+         secondary entry is being deleted because it duplicates information
+         in the primary entry, no attributes should be ones that need to
+         be copied (if there were any, we should have concluded that the
+         entry needed to be merged). */
+#if CHECKING
+      for (; ap != NULL; ap = ap->next) {
+        check_assertion(!ap->must_be_preserved_in_trans_unit_copy);
+      }  /* for */
+#endif /* CHECKING */
+    } else {
+      /* All the attributes on expiring_scp should be ones that need to be
+         merged.  If there were any others, they should have been deleted
+         from the list before the copy. */
+      check_assertion(ap->must_be_preserved_in_trans_unit_copy);
+      expiring_scp->attributes = NULL;
+      /* Move the list of attributes headed by ap onto the list of attributes
+         attached to surviving_scp. */
+      last_ap = surviving_scp->attributes;
+      if (last_ap == NULL) {
+        surviving_scp->attributes = ap;
+      } else {
+        /* Find the last attribute on surviving_scp so we can add after it. */
+        while (last_ap->next != NULL) last_ap = last_ap->next;
+        last_ap->next = ap;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* merge_attributes */
+
+
 static void transfer_type_details(a_type_ptr type,
                                   a_type_ptr corresp_type)
 /*
@@ -1034,6 +1134,8 @@ not being eliminated.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  /* Move any attributes that must be saved to the surviving entry. */
+  merge_attributes(&type->source_corresp, &corresp_type->source_corresp);
 }  /* transfer_type_details */
 
 
@@ -1047,6 +1149,9 @@ eliminated.
 */
 {
   corresp_variable->address_taken |= variable->address_taken;
+  /* Move any attributes that must be saved to the surviving entry. */
+  merge_attributes(&variable->source_corresp,
+                   &corresp_variable->source_corresp);
 }  /* transfer_variable_flags */
 
 
@@ -1126,6 +1231,8 @@ not being eliminated.
       corresp_routine->assoc_scope != NULL_region_number) {
     corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
   }  /* if */
+  /* Move any attributes that must be saved to the surviving entry. */
+  merge_attributes(&routine->source_corresp, &corresp_routine->source_corresp);
 }  /* transfer_routine_flags */
 
 
@@ -1241,6 +1348,11 @@ to the secondary translation unit.
          as we look at the members. */
       keep_on_parent_list = FALSE;
       check_member_merges = TRUE;
+      if (entry_requires_merge_because_of_attributes(class_type)) {
+        /* The class type has some attributes that must be merged into the
+           canonical entry.  Count that like a member needing a merge. */
+        any_members_to_process = TRUE;
+      }  /* if */
     }  /* if */
     pointers_block = NULL;
   }  /* if */
@@ -1295,11 +1407,14 @@ to the secondary translation unit.
       /* The type doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(type)) {
+    } else if (entry_should_overwrite_primary_entry(type) ||
+               entry_requires_merge_because_of_attributes(type)) {
       /* The type overwrites the corresponding type in the primary IL.
          This happens, for example, when the type is an enum with a definition
          in the secondary translation unit but only a declaration in the
          primary IL. */
+      /* Or, the type has some attributes that must be merged into the
+         canonical entry. */
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
       mark_to_merge(type, iek_type);
@@ -1355,11 +1470,14 @@ to the secondary translation unit.
       /* The variable doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(variable)) {
+    } else if (entry_should_overwrite_primary_entry(variable) ||
+               entry_requires_merge_because_of_attributes(variable)) {
       /* The variable overwrites the corresponding variable in the primary IL.
          This happens, for example, when the variable has a definition
          in the secondary translation unit but only a declaration in the
          primary IL. */
+      /* Or, the variable has some attributes that must be merged into the
+         canonical entry. */
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
       mark_to_merge(variable, iek_variable);
@@ -1443,11 +1561,14 @@ to the secondary translation unit.
       /* The routine doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(routine)) {
+    } else if (entry_should_overwrite_primary_entry(routine) ||
+               entry_requires_merge_because_of_attributes(routine)) {
       /* The routine overwrites the corresponding routine in the primary IL.
          This happens, for example, when the routine has a definition
          in the secondary translation unit but only a declaration in the
          primary IL. */
+      /* Or, the routine has some attributes that must be merged into the
+         canonical entry. */
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
       mark_to_merge(routine, iek_routine);

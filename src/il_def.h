@@ -2058,10 +2058,12 @@ typedef struct an_attribute {
 			   specifier and produces a new type as a result.
 			   Currently, this is only TRUE for GNU mode and
 			   vector_size attributes. */
-  a_bit_field	copy_to_primary_translation_unit:1;
+  a_bit_field	must_be_preserved_in_trans_unit_copy:1;
 			/* A front-end-only flag indicating that this attribute
-			   should be copied to the primary translation unit
-			   during the trans_copy process. */
+			   should be preserved in the merged entity produced
+			   by the trans_copy process.  FALSE means it is a
+			   duplicate of something in another translation unit
+			   and will be discarded. */
   char		*name;	/* The attribute name as it appeared in the source.
 			   E.g. "aligned" for __attribute((aligned(8))). */
   char		*namespace_name;

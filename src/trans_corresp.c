@@ -2312,19 +2312,19 @@ the canonical entry.
         } else {
           /* A valid ("void") match: Mark the attribute as requiring a copy
              to the primary translation unit entity. */
-          ap1->copy_to_primary_translation_unit = TRUE;
+          ap1->must_be_preserved_in_trans_unit_copy = TRUE;
         }  /* if */
       } else if (equivalent_attributes(ap1, ap2, /*ignore_family=*/FALSE)) {
         /* Ordinarily, since the attribute is present in both translation
            units, no copy is required.  Occasionally, however, it might make
            sense to "accumulate" all attributes from all translation units. */
         if (acflags & ACF_ALWAYS_TRANS_COPY) {
-          ap1->copy_to_primary_translation_unit = TRUE;
+          ap1->must_be_preserved_in_trans_unit_copy = TRUE;
         }  /* if */
       } else if ((acflags & ACF_MATCH_MASK) == ACF_MATCH_OPTIONAL) {
         /* The attributes don't match, but that is okay.   Mark the attribute
            as requiring a copy to the primary translation unit entity. */
-        ap1->copy_to_primary_translation_unit = TRUE;
+        ap1->must_be_preserved_in_trans_unit_copy = TRUE;
       } else {
         /* Conflicting attributes: Issue an error. */
         pos_st_start_error(ec_conflicting_attribute_in_other_translation_unit,
@@ -2334,7 +2334,8 @@ the canonical entry.
         make_attr_unrecognized(ap1);
         make_attr_unrecognized(ap2);
       }  /* if */
-      if (ap1->copy_to_primary_translation_unit && entity_kind == iek_field) {
+      if (ap1->must_be_preserved_in_trans_unit_copy &&
+          entity_kind == iek_field) {
         /* To improve the performance of the trans_copy process, we mark
            classes that have a field with an attribute that might have to be
            copied over to the primary translation unit. */

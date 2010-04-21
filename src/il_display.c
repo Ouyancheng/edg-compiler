@@ -4436,8 +4436,8 @@ Display the indicated attribute entry.
   if (ap->transforms_type_specifier) {
     disp_boolean("transforms_type_specifier", TRUE);
   }  /* if */
-  if (ap->copy_to_primary_translation_unit) {
-    disp_boolean("copy_to_primary_translation_unit", TRUE);
+  if (ap->must_be_preserved_in_trans_unit_copy) {
+    disp_boolean("must_be_preserved_in_trans_unit_copy", TRUE);
   }  /* if */
   disp_string_ptr("name", ap->name, iek_other_text, (sizeof_t)0);
   if (ap->namespace_name != NULL) {
