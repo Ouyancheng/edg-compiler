@@ -9310,6 +9310,7 @@ it is or contains a tk_template_param type entry or a nonreal class.
                                                  TTT_THIS_PARAM_TYPE |
                                                  TTT_PARAM_TYPES |
                                                  TTT_TEMPLATE_ARGS |
+                                                 TTT_SKIP_TYPEREFS |
                                                  TTT_PARENT_CLASSES);
 
     /* Setting these pointers to NULL indicates that any template param type
