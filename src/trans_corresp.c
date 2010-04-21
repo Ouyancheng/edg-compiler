@@ -2263,15 +2263,17 @@ also deals with the consequences of type becoming the new canonical entry.
 }  /* set_type_corresp */
 
 
-static void verify_attr_corresp_one_way(char              *entity1,
-                                        char              *entity2,
-                                        an_il_entry_kind  entity_kind)
+static void verify_attr_corresp_one_way(char               *entity1,
+                                        char               *entity2,
+                                        an_il_entry_kind   entity_kind,
+                                        a_source_position  *pos2)
 /*
 Check every attribute attached to entity1 for correspondence with the
 attributes attached to the corresponding entity2 (both entities are of the
-indicated kind).  Report conflicts as needed.  Also, mark any attributes
-of entity1 that would have to be added to those of entity2 if entity2 were
-the canonical entry.
+indicated kind).  Report conflicts as needed (pos2 is the position to report
+if entity2 is missing an attribute).  Also, mark any attributes of entity1
+that would have to be added to those of entity2 if entity2 were the canonical
+entry.
 */
 {
   an_attribute_ptr  attr1 = *get_attribute_link(entity1, entity_kind), ap1;
@@ -2305,9 +2307,7 @@ the canonical entry.
         if (match_mode == ACF_STRICT_MATCH) {
           pos_st_start_error(ec_missing_attribute_in_other_translation_unit,
                              &ap1->position, ap1->name);
-          add_diag_info_with_pos_insert(
-                      ec_corresp_decl_at,
-                      &((a_source_correspondence_ptr)entity2)->decl_position);
+          add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
           end_error();
         } else {
           /* A valid ("void") match: Mark the attribute as requiring a copy
@@ -2356,11 +2356,17 @@ The two given entities (of the given kind) have been found to correspond.
 Issue diagnostics as appropriate if their attached attributes conflict
 (including cases where an attribute is present in one translation unit but not
 in the other).  This routine also marks attributes if they should be merged to
-the canonical entry.
+the canonical entry.  entity1 and entity2 must have a source correspondence
+(for other entity kinds, such as a_param_type entries, two calls to
+verify_attr_corresp_one_way should be made instead).
 */
 {
-  verify_attr_corresp_one_way(entity1, entity2, entity_kind);
-  verify_attr_corresp_one_way(entity2, entity1, entity_kind);
+  a_source_position  *pos1, *pos2;
+
+  pos1 = &((a_source_correspondence_ptr)entity1)->decl_position;
+  pos2 = &((a_source_correspondence_ptr)entity2)->decl_position;
+  verify_attr_corresp_one_way(entity1, entity2, entity_kind, pos2);
+  verify_attr_corresp_one_way(entity2, entity1, entity_kind, pos1);
 }  /* f_verify_attributes_correspondence */
 
 #define verify_attributes_correspondence(e1, e2, kind)                       \
@@ -2704,7 +2710,7 @@ is in fact valid.
                                 (a_routine_ptr)canonical_il_entry_of(routine);
     a_source_correspondence_ptr
                    scp, corresp_scp;
-
+    a_type_ptr     type, corresp_type;
     if (routine == corresp_routine) {
       /* This is the canonical entry.  If applicable, verify the entry in
          the primary translation unit against this one.  Otherwise, nothing
@@ -2721,8 +2727,10 @@ is in fact valid.
     scp = &routine->source_corresp,
     corresp_scp = &corresp_routine->source_corresp;
     match = verify_name_correspondence(routine);
+    type = skip_typerefs(routine->type);
+    corresp_type = skip_typerefs(corresp_routine->type);
     if (match &&
-        (!f_types_are_compatible(routine->type, corresp_routine->type,
+        (!f_types_are_compatible(type, corresp_type,
                                  TCF_SEEK_CORRESP |
                                  TCF_REDECLARATION |
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
@@ -2795,7 +2803,22 @@ is in fact valid.
     } else if (match) {
       verify_corresp_for_default_arg_entities(routine, corresp_routine);
     }  /* if */
-    verify_attributes_correspondence(routine, corresp_routine, iek_routine);
+    if (match) {
+      /* Verify that attributes on the routine and on its parameters match
+         across translation units. */
+      a_param_type_ptr   ptp1 = function_type_params(type),
+                         ptp2 = function_type_params(corresp_type);
+      a_source_position  *pos1, *pos2;
+      verify_attributes_correspondence(routine, corresp_routine, iek_routine);
+      pos1 = &routine->source_corresp.decl_position;
+      pos2 = &corresp_routine->source_corresp.decl_position;
+      for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
+        verify_attr_corresp_one_way((char*)ptp1, (char*)ptp2, iek_param_type,
+                                    pos2);
+        verify_attr_corresp_one_way((char*)ptp2, (char*)ptp1, iek_param_type,
+                                    pos1);
+      }  /* for */
+    }  /* if */
   }  /* if */
 done:
   return match;
