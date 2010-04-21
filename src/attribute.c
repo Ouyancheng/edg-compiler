@@ -3464,11 +3464,9 @@ return that entity.
         } else {
           set_declspec_align(tp, alignment, &ap->position);
         }  /* if */
-      } else if (ap->family == (a_byte_attribute_family)af_gnu) {
+      } else {
         tp->alignment = alignment;
         tp->alignment_set_explicitly = TRUE;
-      } else {
-        unexpected_condition();
       }  /* if */
     } else if (entity_kind == iek_routine) {
       a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
