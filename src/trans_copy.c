@@ -975,6 +975,38 @@ is called.
 }  /* f_mark_to_merge */
 
 
+static a_boolean strip_non_merged_attributes(a_source_correspondence *scp)
+/*
+Remove from the list of attributes attached to scp any that are not
+marked to be merged.  This is so we don't have to copy the non-merged
+attributes only to discard them later.  Return TRUE if the list
+contained at least one attribute to be merged.
+*/
+{
+  a_boolean        requires_merge = FALSE;
+  an_attribute_ptr ap, ap_next, end_of_list = NULL;
+
+  check_assertion(trans_unit_corresp_of((a_type_ptr)scp)->canonical !=
+                                                                  (char *)scp);
+  for (ap = scp->attributes, scp->attributes = NULL;
+       ap != NULL;
+       ap = ap_next) {
+    ap_next = ap->next;
+    if (ap->must_be_preserved_in_trans_unit_copy) {
+      requires_merge = TRUE;
+      if (end_of_list == NULL) {
+        scp->attributes = ap;
+      } else {
+        end_of_list->next = ap;
+      }  /* if */
+      end_of_list = ap;
+      ap->next = NULL;
+    }  /* if */
+  }  /* for */
+  return requires_merge;
+}  /* strip_non_merged_attributes */
+
+
 static a_boolean f_entry_requires_merge_because_of_attributes(
                                                   a_source_correspondence *scp)
 /*
@@ -999,26 +1031,9 @@ must be merged into the canonical entry.
   if (scp->attributes != NULL &&
       /* a_type_ptr is arbitrary. */
       trans_unit_corresp_of((a_type_ptr)scp) != NULL) {
-    an_attribute_ptr ap, ap_next, end_of_list = NULL;
-    check_assertion(trans_unit_corresp_of((a_type_ptr)scp)->canonical !=
-                                                                  (char *)scp);
     /* Go through the list of attributes and keep only those marked as
-       requiring a merge. */
-    for (ap = scp->attributes, scp->attributes = NULL;
-         ap != NULL;
-         ap = ap_next) {
-      ap_next = ap->next;
-      if (ap->must_be_preserved_in_trans_unit_copy) {
-        requires_merge = TRUE;
-        if (end_of_list == NULL) {
-          scp->attributes = ap;
-        } else {
-          end_of_list->next = ap;
-        }  /* if */
-        end_of_list = ap;
-        ap->next = NULL;
-      }  /* if */
-    }  /* for */
+       requiring a merge.  Note whether we found any. */
+    if (strip_non_merged_attributes(scp)) requires_merge = TRUE;
   }  /* if */
   return requires_merge;
 }  /* f_entry_requires_merge_because_of_attributes */
@@ -1351,6 +1366,21 @@ to the secondary translation unit.
       if (entry_requires_merge_because_of_attributes(class_type)) {
         /* The class type has some attributes that must be merged into the
            canonical entry.  Count that like a member needing a merge. */
+        any_members_to_process = TRUE;
+      }  /* if */
+      if (symbol_supplement_for_class(class_type)->
+                                                has_field_with_attr_to_merge) {
+        /* The class has at least one field that has an attribute that must be
+           merged.  Walk through all fields and strip the attributes except for
+           those that must be merged. */
+        a_field_ptr fp;
+        for (fp = class_type->variant.class_struct_union.field_list;
+             fp != NULL;
+             fp = fp->next) {
+          if (strip_non_merged_attributes(&fp->source_corresp)) {
+            mark_to_merge(fp, iek_field);
+          }  /* if */
+        }  /* for */
         any_members_to_process = TRUE;
       }  /* if */
     }  /* if */
@@ -2180,6 +2210,26 @@ unit set to the primary translation unit.
         if (pointers_block != NULL) pointers_block->last_type = last_type;
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (is_class_scope) {
+    a_type_ptr class_type = scope->variant.assoc_type;
+    if (symbol_supplement_for_class(class_type)->has_field_with_attr_to_merge){
+      /* There is at least one field with an attribute that must be merged.
+         Go through the fields and merge attributes. */
+      a_field_ptr field;
+      for (field = class_type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
+       if (entry_to_be_merged(field)) {
+          a_field_ptr corresp_field =
+                        (a_field_ptr)checked_trans_unit_copy_address_of(field);
+          a_field_ptr primary_field =
+                (a_field_ptr)checked_trans_unit_copy_address_of(corresp_field);
+          merge_attributes(&corresp_field->source_corresp,
+                           &primary_field->source_corresp);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   if (scope->variables != NULL) {
     a_variable_ptr variable, last_variable;
