@@ -1,5 +1,22 @@
 Version 4.2
 
+4/20/10 [EDGcpfe/10574]
+Microsoft compatibility: incorrect disambiguation with multiple type keywords
+
+In Microsoft mode, disambiguation must handle nonstandard casts containing
+multiple keywords (such as "unsigned int(5)").  A problem in the way such
+cases were handled caused disambiguation to be attempted in cases in which
+it was not needed and to sometimes produce an incorrect result.  Now fixed.
+
+  struct A {
+    template <int I, int J> unsigned long f();
+  };
+  int main() {
+    A a;
+    unsigned long l = a.f<1, 2>();
+  };
+
+
 4/20/10 [EDGcpfe/10206]
 Rename routines and fields associated with covariant return types
 

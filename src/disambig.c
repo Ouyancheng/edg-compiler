@@ -1269,6 +1269,7 @@ types separated by commas (when single_type_required is FALSE).
   a_boolean	      is_implicit_template_type;
   a_symbol_ptr	      specific_sym = locator_for_curr_id.specific_symbol;
   a_token_kind	      next_tok;
+  a_boolean	      is_start_of_type;
 
   db_enter(3, "is_decl_not_expr_full");
   /* Determine whether the current identifier is a synthesized template
@@ -1283,31 +1284,60 @@ types separated by commas (when single_type_required is FALSE).
                                        (a_type_kind)tk_template_param &&
         specific_sym->variant.type.ptr->variant.template_param.kind ==
                                        (a_template_param_type_kind)tptk_member;
+  /* In Microsoft mode, function-style cases like (unsigned int(x)) are
+     allowed so we may need to scan past several tokens in order to look
+     for the left parenthesis below. */
+  next_tok = next_token();
+  is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
+  if (microsoft_mode && is_start_of_type && next_tok != tok_lparen) {
+    a_token_cache	cache;
+    a_token_kind	next_2_tok;
+    a_boolean		any_tokens_fetched = FALSE;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    (void)next_two_tokens(next_tok, &next_2_tok);
+    while ((is_type_keyword(next_tok) ||
+            is_type_qualifier_token(next_tok)) && next_2_tok != tok_lparen) {
+      cache_curr_token(&cache);
+      (void)get_token();
+      any_tokens_fetched = TRUE;
+      next_tok = next_token();
+      (void)next_two_tokens(next_tok, &next_2_tok);
+    }  /* while */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* The __based keyword can appear after a type in some contexts. */
+    if (next_tok == tok_based) {
+      is_start_of_type = TRUE;
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (any_tokens_fetched) {
+      /* If we get here we a type token followed by a token that may or
+         may not be a type.  Use is_type_start to determine if it is
+         something like a type identifier. */
+      is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
+    }  /* if */
+    next_tok = next_2_tok;
+    if (any_tokens_fetched) rescan_cached_tokens(&cache);
+  }  /* if */
   /* The ambiguous cases all begin a type name followed by a left
      parenthesis.   Check for this case first to quickly discard most
      cases.  If the current token is "typename" we don't have enough
      information at this point to discard the easy cases, so we need to
      do the full processing.
-     Note 1: Casts require special treatment in two cases.  When using
+     Note: Casts require special treatment in two cases.  When using
      implicit typename we need to verify that this would be a valid cast
      to make sure we didn't guess incorrectly about this being a type.
-     In Microsoft mode, function-style cases like (unsigned int(x)) are
-     allowed.  In normal mode, we assume this to be a cast when the
-     type start is not followed by a "(".  Note 2: Function-style casts can
-     also appear in contexts in which is_cast is not TRUE.  In Microsoft
-     mode we have to check for multi-keyword casts in such cases. */
-  next_tok = next_token();
+     In normal mode, we assume this to be a cast when the type start is
+     not followed by a "(". */
   if (curr_token == tok_auto) {
     /* "auto" is a type specifier, but it cannot be part of a function-style
        cast; "auto(" is only valid as part of a declarative construct
        involving a trailing return type (e.g., "auto(*)()->int"). */
   } else if (curr_token == tok_typename ||
              ((next_tok == tok_lparen ||
-               (microsoft_mode &&
-                is_type_keyword(next_tok)) || /* See note 2 above. */
-               (is_cast(flags) && /* See note 1 above */
-                (is_implicit_template_type || microsoft_mode))) &&
-              is_type_start(/*is_expr_context=*/TRUE))) {
+               (is_cast(flags) && /* See note above */
+                is_implicit_template_type)) &&
+              is_start_of_type)) {
     /* Initialize the token cache. */
     init_disambig_state(&state);
     if (curr_token == tok_identifier) {
