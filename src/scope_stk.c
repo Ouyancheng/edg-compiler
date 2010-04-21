@@ -4575,7 +4575,7 @@ the outermost class was defined in an unnamed namespace.
 #if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
          && rp->overridden_function_for_wrapper == NULL
 #endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
-                                                                     ) ||
+                                                       ) ||
         (rp->is_virtual && !rp->pure_virtual && !rp->compiler_generated)) {
       /* A referenced function or a virtual function.  Virtual
          functions are in some way always "referenced" by the virtual

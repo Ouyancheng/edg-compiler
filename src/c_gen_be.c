@@ -8204,13 +8204,13 @@ by dump_routine_decl.
      TRUE when IA64_ABI is TRUE. */
   if (rout->overriding_function_for_wrapper != NULL &&
       skip_typerefs(rout->type)->variant.routine.extra_info->has_ellipsis) {
-    /* This routine is a wrapper for an overriding virtual function with
-       a covariant return type or an IA-64 ABI thunk.  Its body is just a
-       return statement giving the cast that needs to be put over the return
-       from the overriding function to give it the right type.  Expand the
+    /* This routine is a wrapper with a variable number of arguments.
+       Wrapper functions are used (in the IA-64 ABI) as thunks to adjust
+       the "this" pointer or, in the case of an overriding virtual function
+       with a covariant return type, to adjust the return type.  Expand the
        overriding function reference (effectively "inlining" it) during the
        code generation for the wrapper. */
-    /* We could do this for all thunks, but we choose to do it only
+    /* We could do this for all wrappers, but we choose to do it only
        when it's necessary, i.e., for routines with variable arguments.
        Doing it in all cases causes code bloat, especially for IA-64 ABI
        destructor thunks. */

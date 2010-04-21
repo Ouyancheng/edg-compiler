@@ -18838,12 +18838,12 @@ scope.
 static void add_required_wrapper_routines(a_routine_ptr routine)
 /*
 routine is an overriding virtual function.  routine either has a covariant
-return type (and wrapper functions are required to adjust the return type as
-needed), or (in the IA-64 ABI) may require that adjusting entry points (also
-called "thunks") be emitted.  Such wrappers are used to adjust the "this"
-pointer as necessary from the caller's view to the callee's view.  Generate
-declarations for all necessary entry/wrapper functions used to call this
-routine.  Definitions (if needed) will be put out later.
+return type (in which case a wrapper function is required to adjust the return
+type as needed), or (in the IA-64 ABI) to implement "adjusting entry points"
+(also called "thunks") which are used to adjust the "this" pointer as necessary
+from the caller's view to the callee's view.  Generate declarations for all
+necessary wrapper functions used to call this routine.  Definitions (if needed)
+will be put out later.
 */
 {
   a_type_ptr       rout_class = parent_class_of(routine);
@@ -19062,12 +19062,10 @@ Do IL lowering of the indicated scope and everything under it.
                  covariant_return_virtual_override
 #endif /* !IA64_ABI */
                                                   ) {
-      /* This routine is an overriding virtual function with a covariant
-         return type (Cfront ABI), or a virtual function (IA-64 ABI).
-         Generate declarations for the entry/wrapper functions used in the
-         virtual function table.  Wrappers are required to handle covariant
-         return types (in both ABIs).  Additionally, any thunks that are
-         required by the IA-64 ABI are also generated here. */
+      /* Generate any wrapper routine declarations that may be needed for
+         overriding virtual functions.  Wrappers are required for handling
+         covariant return types (in both ABIs) as well as adjusting the
+         "this" pointer in IA-64 ABI thunks. */
       /* Note that this must be done before the promote-local-entities
          code so that routine_might_exist_in_multiple_copies can know
          whether any thunks are needed. */

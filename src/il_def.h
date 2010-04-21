@@ -11366,21 +11366,17 @@ typedef struct a_routine {
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
   a_routine_ptr	overriding_function_for_wrapper,
 		overridden_function_for_wrapper;
-			/* If non-NULL, this routine is an entry wrapper that
+			/* If non-NULL, this routine is a wrapper that
 			   implements a version of the overriding virtual
 			   function that works in place of the overridden
-			   function, where the return types are covariant or
-			   an adjustment is needed in the "this" pointer 
-			   (i.e., a thunk in the IA-64 ABI).
-			   The entry point calls the overriding routine,
-			   then (in the covariant return case) does a
-			   derived-to-base adjustment on the
-			   returned pointer value to get a result with the
-			   right type for the overridden function.
-			   The body of this routine will be simply a return
-			   statement with an expression that is the proper
-			   cast on top of an enk_result_of_overriding_function
-			   node. */
+			   function.  Wrappers are used in two situations:
+			   to implement IA-64 ABI thunks (where an adjustment
+			   is needed to the "this" pointer), and when the
+			   return types are covariant (in which case the
+			   wrapper calls the overriding routine, then does a
+			   derived-to-base adjustment on the returned pointer
+			   value to get a result with the right type for the
+			   overridden function). */
 #if IA64_ABI
   a_targ_ptrdiff_t
 		delta;	/* The offset that must be added to the "this" pointer

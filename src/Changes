@@ -25,6 +25,12 @@ renamed (replacing "covariant_return_type" with "wrapper" in most cases).
 The renaming reflects the fact that these routines/fields are also used to
 create thunks (which adjust the "this" pointer) in the IA-64 ABI, and not just
 the wrapper routines that are necessary to do covariant return type adjustment.
+Customers whose code makes use of the
+overriding_function_for_covariant_return_type and/or
+overridden_function_for_covariant_return_type fields in a_routine will need to
+change their code to use overriding_function_for_wrapper and
+overridden_function_for_wrapper, respectively.  Although nothing functionally
+has changed, this still represents an IL CHANGE.
 
 
 4/20/10 [EDGcpfe/10531]
