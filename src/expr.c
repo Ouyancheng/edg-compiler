@@ -7892,8 +7892,8 @@ outside of the expression-processing routines.
        the decltype, not the decltype itself, because there is no
        expression for that. */
     check_assertion(decl_pos_block == NULL);
-    make_rescan_operand(rcblock->expr, rcblock, &operand);
-    leading_paren_seen = !operand.is_id_expression;  /* FIXME */
+    /* The operand is picked up later after the expression stack has been
+       pushed. */
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the decltype token. */
@@ -7930,7 +7930,12 @@ outside of the expression-processing routines.
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
-  if (rcblock == NULL) {
+  if (rcblock != NULL) {
+    /* This call is done late because we need the expression stack to be pushed
+       already. */
+    make_rescan_operand(rcblock->expr, rcblock, &operand);
+    leading_paren_seen = !operand.is_id_expression;  /* FIXME */
+  } else {
     /* This call is done late because we need the expression stack to be pushed
        already. */
     add_matching_stop_token(tok_rparen);
@@ -24081,7 +24086,7 @@ outside, see rescan_expr_with_substitution.
   if (eriep == NULL) {
     eriep = get_expr_rescan_info(expr, &rescan_info);
   }  /* if */
-  if (force_stack_push ||
+  if (force_stack_push || expr_stack == NULL ||
       eriep->expression_kind != expr_stack->expression_kind ||
       !expr_stack->template_deduction_context) {
     push_expr_stack(eriep->expression_kind, &expr_stack_entry,

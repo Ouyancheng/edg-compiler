@@ -3423,7 +3423,8 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+  if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+      !option_kind_used[(int)optk_cpp0x_mode]) {
     cpp0x_sfinae_enabled = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */

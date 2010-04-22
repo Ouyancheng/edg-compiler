@@ -3081,7 +3081,8 @@ that extra work.
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  if (expr_stack->template_deduction_declaration_context) {
+  if (expr_stack != NULL &&
+      expr_stack->template_deduction_declaration_context) {
     an_expr_node_ptr preexisting_node = expr_node_from_operand(operand);
     /* For an expression that may be rescanned to do semantic analysis
        later for template deduction, save extra information from the
