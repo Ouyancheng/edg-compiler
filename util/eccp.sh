@@ -708,6 +708,7 @@ check_abbreviation()
 --no_namespaces
 --no_nonconst_ref_anachronism
 --no_nonstd_default_arg_deduction
+--no_nonstd_gnu_keywords
 --no_nonstd_instantiation_lookup
 --no_nonstd_qualifier_deduction
 --no_nonstd_using_decl
@@ -746,6 +747,7 @@ check_abbreviation()
 --no_wrap_diagnostics
 --nonconst_ref_anachronism
 --nonstd_default_arg_deduction
+--nonstd_gnu_keywords
 --nonstd_instantiation_lookup
 --nonstd_qualifier_deduction
 --nonstd_using_decl
@@ -1195,6 +1197,8 @@ process_option()
          --no_wchar_t_keyword | \
          --alternative_tokens | \
          --no_alternative_tokens | \
+         --nonstd_gnu_keywords | \
+         --no_nonstd_gnu_keywords | \
          --inlining | \
          --no_inlining | \
          --gcc89_inlining | \
