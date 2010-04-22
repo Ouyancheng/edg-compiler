@@ -7425,6 +7425,9 @@ result in *result (or an error indication in *rcblock).
     expr->type = type;
     expr->variant.builtin_operation.kind = (a_builtin_operation_kind)kind;
     expr->variant.builtin_operation.operands = arg1;
+    record_operator_position_in_expr_rescan_info(expr, &start_position,
+                                                 NO_TOKEN_SEQUENCE_NUMBER,
+                                                 (a_source_position *)NULL);
     clear_operand((an_operand_kind)ok_constant, result);
     fold_builtin_operation_if_possible(
                      expr, &result->variant.constant,
