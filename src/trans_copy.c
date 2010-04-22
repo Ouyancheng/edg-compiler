@@ -1054,7 +1054,7 @@ Transfer from the expiring_scp to the surviving_scp any attributes that
 must be merged in.
 */
 {
-  an_attribute_ptr ap, last_ap;
+  an_attribute_ptr ap, last_ap, ap_next;
 
   ap = expiring_scp->attributes;
   if (ap != NULL) {
@@ -1070,21 +1070,32 @@ must be merged in.
       }  /* for */
 #endif /* CHECKING */
     } else {
-      /* All the attributes on expiring_scp should be ones that need to be
-         merged.  If there were any others, they should have been deleted
-         from the list before the copy. */
-      check_assertion(ap->must_be_preserved_in_trans_unit_copy);
       expiring_scp->attributes = NULL;
       /* Move the list of attributes headed by ap onto the list of attributes
-         attached to surviving_scp. */
+         attached to surviving_scp.  Copy only the ones marked to be merged;
+         when the expiring_scp is the original non-canonical primary entry,
+         and it's being merged into the copy of the canonical secondary
+         entry, the list hasn't been pruned of entries that shouldn't be
+         merged.  In other cases, the list should have only the entries
+         to be merged. */
       last_ap = surviving_scp->attributes;
-      if (last_ap == NULL) {
-        surviving_scp->attributes = ap;
-      } else {
+      if (last_ap != NULL) {
         /* Find the last attribute on surviving_scp so we can add after it. */
         while (last_ap->next != NULL) last_ap = last_ap->next;
-        last_ap->next = ap;
       }  /* if */
+      for (; ap != NULL; ap = ap_next) {
+        ap_next = ap->next;
+        if (ap->must_be_preserved_in_trans_unit_copy) {
+          /* Keep this attribute on the merged list. */
+          if (last_ap == NULL) {
+            surviving_scp->attributes = ap;
+          } else {
+            last_ap->next = ap;
+          }  /* if */
+          last_ap = ap;
+          ap->next = NULL;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
 }  /* merge_attributes */
