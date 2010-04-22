@@ -5030,7 +5030,6 @@ The syntax is:
         unscan_attributes(prescanned_attributes);
       }  /* if */
     }
-    state->in_nested_declarator = TRUE;
     if (abstract_declarator_allowed) {
       if (curr_token == tok_rparen ||
           is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
@@ -5041,6 +5040,7 @@ The syntax is:
       }  /* if */
     }  /* if */
     /* This parenthesis begins a nested declarator. */
+    state->in_nested_declarator = TRUE;
     /* Attributes may appear as the first construct of a parenthesized
        declarator.  If valid (GNU attributes only), they are treated as if
        they appeared before the parentheses. */
