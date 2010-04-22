@@ -68,10 +68,6 @@ to the given entity (in most cases the returned entity is the given entity,
 since attributes usually do not create new entries).
 */
 
-/*
-
-*/
-
 /* Header files common to all files. */
 #include "fe_common.h"
 
