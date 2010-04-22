@@ -6924,12 +6924,15 @@ is set to TRUE if an error is issued.
     /* "auto" can be a type specifier in this mode.  It cannot be a storage
        class specifier either because this mode doesn't allow it or because
        no other type specifier was seen. */
-    *decl_specifiers_seen |= DS_TYPE;
-    if (!auto_type_allowed) {
-      /* The current mode supports "auto" as a type specifier, but the current
-         context does not.  Issue an error that is specific for "auto" but
-         does not imply whether it is a type specifier or a storage class. */
-      pos_error(ec_auto_not_allowed_here, &state->auto_pos);
+    if (!auto_type_allowed || (*decl_specifiers_seen & DS_TYPE) != 0) {
+      /* If the current mode supports "auto" as a type specifier, but the
+         current context does not (e.g., a typedef declaration), issue an
+         error that is specific for "auto" but does not imply whether it is a
+         type specifier or a storage class.  Otherwise, if a type specifier
+         has already been seen, report a bad combination of type specifiers. */
+      pos_error(!auto_type_allowed ? ec_auto_not_allowed_here
+                                   : ec_bad_combination_of_type_specifiers,
+                &state->auto_pos);
       *basic_type = bt_error;
       *type_ptr = error_type();
       *err = TRUE;
@@ -6939,6 +6942,7 @@ is set to TRUE if an error is issued.
       make_auto_type(state);
       *type_ptr = state->auto_type;
     }  /* if */
+    *decl_specifiers_seen |= DS_TYPE;
   } else {
     /* "auto" must be a storage class specifier. */
     state->auto_type_specifier_seen = FALSE;

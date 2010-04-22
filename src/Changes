@@ -1,5 +1,17 @@
 Version 4.2
 
+4/22/10 [EDGcpfe/10643]
+Missing diagnostic when the "auto" type specifier follows another type name
+
+In C++0x mode, the front end failed to issue diagnostic when the "auto" type
+specifier follows another type specifier.  For example:
+
+  double auto x = 3.0;  // Previously treated like "double x = 3.0;".
+                        // Now an error.
+
+Now such cases trigger an error.
+
+
 4/22/10 [EDGcpfe/9266]
 Option to disable nonstandard GNU keywords
 
