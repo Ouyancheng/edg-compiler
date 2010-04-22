@@ -2479,11 +2479,9 @@ not always enabled in default mode (e.g., exception handling).
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
-#ifdef FIXME_JSA_TEST_MODE
   if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
     cpp0x_sfinae_enabled = TRUE;
   }  /* if */
-#endif /* FIXME_JSA_TEST_MODE */
 }  /* check_and_set_cpp0x_mode_options */
 
 
