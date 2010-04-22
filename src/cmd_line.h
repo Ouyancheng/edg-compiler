@@ -273,6 +273,7 @@ typedef enum /*an_option_kind*/ {
   optk_nullptr,
 #if GNU_EXTENSIONS_ALLOWED
   optk_gnu_c89_inlining,
+  optk_nonstd_gnu_keywords,
 #endif /* GNU_EXTENSIONS_ALLOWED */
   optk_token_separators_in_pp_output,
   optk_cpp0x_sfinae,
@@ -918,6 +919,12 @@ EXTERN a_boolean
 			/* TRUE if the GNU __restrict variant of the restrict
 			   keyword is recognized (this is also TRUE in some
 			   Microsoft modes). */
+
+EXTERN a_boolean
+		nonstd_gnu_keywords_enabled;
+			/* TRUE if GNU keywords matching identifiers otherwise
+			   available to user programs (e.g., "typeof" but not
+			   "__typeof") should be enabled. */
 
 EXTERN a_boolean
 		gnu_namespace_and_class_in_same_scope;

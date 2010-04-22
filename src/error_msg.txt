@@ -1946,6 +1946,7 @@ ec_undefined_decl_using_local_type;;"%n is not defined in this translation unit 
 ec_undefined_decl_using_no_linkage_type;;"%n is not defined in this translation unit but depends on a type with no linkage"
 ec_missing_attribute_in_other_translation_unit;;"attribute %sq is missing in another translation unit"
 ec_conflicting_attribute_in_other_translation_unit;;"attribute %sq conflicts with another translation unit"
+ec_cl_nonstd_gnu_keywords_requires_gnu_mode;;"the \"nonstd_gnu_keywords\" option is only valid in GNU C and GNU C++ modes"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

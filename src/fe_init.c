@@ -216,8 +216,13 @@ name with two underscores appended.
   char     buffer[50];
   sizeof_t length;
 
-  /* Enter the keyword as provided. */
-  enter_keyword(token, keyword);
+  if (keyword[0] != '_' && !nonstd_gnu_keywords_enabled) {
+    /* When nonstd_gnu_keywords_enabled is FALSE, do not enter a GNU keyword
+       that doesn't start with an underscore. */
+  } else {
+    /* Enter the keyword as provided. */
+    enter_keyword(token, keyword);
+  }  /* if */
   if (keyword[0] != '_') {
     /* A plain name was provided -- add the leading underscores. */
     /* We need room for five extra characters: four for the underscores

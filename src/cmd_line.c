@@ -1242,6 +1242,12 @@ Initialize the option information table.
   add_option_description(optk_gnu_c89_inlining, "gcc89_inlining", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nonstd_gnu_keywords, "nonstd_gnu_keywords", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonstd_gnu_keywords, "no_nonstd_gnu_keywords",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_option_description(optk_token_separators_in_pp_output,
                          "no_token_separators_in_pp_output", '\0',
@@ -3279,6 +3285,9 @@ exclude the GNU modes already.  Hence those are not checked again here.)
                                                gnu_version < 40300);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   gnu_attributes_enabled = TRUE;
+  if (!option_kind_used[(int)optk_nonstd_gnu_keywords]) {
+    nonstd_gnu_keywords_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -3445,6 +3454,10 @@ selected either.
       command_line_error(ec_cl_report_gnu_extensions_requires_gnu_mode);
     }  /* if */
     report_gnu_extensions = FALSE;
+  }  /* if */
+  if (nonstd_gnu_keywords_enabled &&
+      option_kind_used[(int)optk_nonstd_gnu_keywords]) {
+    command_line_error(ec_cl_nonstd_gnu_keywords_requires_gnu_mode);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* exclude_gnu_specific_options */
@@ -8047,6 +8060,9 @@ enable_microsoft_mode:
         std_c99_inlining = FALSE;
         gnu_c89_inlining = TRUE;
         break;
+      case optk_nonstd_gnu_keywords:
+        nonstd_gnu_keywords_enabled = opt_value;
+        break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case optk_token_separators_in_pp_output:
         check_assertion(opt_value == TRUE);
@@ -8833,6 +8849,7 @@ variables declared in cmd_line.h.
   restrict_enabled = FALSE;
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
   gnu_restrict_keyword_enabled = FALSE;
+  nonstd_gnu_keywords_enabled = FALSE;
   long_lifetime_temps = FALSE;
   explicit_enum_base_enabled = FALSE;
   enum_qualifiers_enabled = FALSE;

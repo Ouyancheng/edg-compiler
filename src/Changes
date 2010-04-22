@@ -1,5 +1,16 @@
 Version 4.2
 
+4/22/10 [EDGcpfe/9266]
+Option to disable nonstandard GNU keywords
+
+A new command-line option "--no_nonstd_gnu_keywords" has been added to the
+front end.  In non-GNU modes, the option has no effect.   In GNU modes the
+option disables GNU-specific keywords that do not start with underscores
+(notably: typeof).  The converse option "--nonstd_gnu_keywords" is available
+in GNU modes only and enables those GNU-specific keywords if the were disabled
+by a prior occurrence of the "--no_nonstd_gnu_keywords" option.
+
+
 4/20/10 [EDGcpfe/10574]
 Microsoft compatibility: incorrect disambiguation with multiple type keywords
 
