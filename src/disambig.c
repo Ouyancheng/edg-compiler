@@ -1311,7 +1311,7 @@ types separated by commas (when single_type_required is FALSE).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (any_tokens_fetched) {
-      /* If we get here we a type token followed by a token that may or
+      /* If we get here we have a type token followed by a token that may or
          may not be a type.  Use is_type_start to determine if it is
          something like a type identifier. */
       is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
