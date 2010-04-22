@@ -1931,7 +1931,8 @@ by a command line option.
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
-      if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+      if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+          !option_kind_used[(int)optk_cpp0x_mode]) {
         cpp0x_sfinae_enabled = FALSE;
       }  /* if */
 #if CPP0X_IL_EXTENSIONS_SUPPORTED
