@@ -334,6 +334,11 @@ top_of_routine:
           case iek_object_lifetime:
             ptr = (char *)((an_object_lifetime_ptr)ptr)->next;
             break;
+          case iek_field:
+            /* Merged fields come up when attributes on those fields need
+               to be merged. */
+            ptr = (char *)((a_field_ptr)ptr)->next;
+            break;
           default:
             unexpected_condition_str(
                       "remap_secondary_ptr_to_primary_full: bad merged entry");
