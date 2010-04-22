@@ -1715,6 +1715,7 @@ extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
 extern a_type_ptr type_after_bit_field_integral_promotion(
                                                        an_expr_node_ptr node);
+extern void record_non_access_error_detected(void);
 
 extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
                                                   an_error_code     err_code);

@@ -3294,7 +3294,7 @@ modification.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 
-static void record_non_access_error_detected(void)
+void record_non_access_error_detected(void)
 /*
 Record that a non-access-checking error has been detected in a context
 in which we're suppressing errors.

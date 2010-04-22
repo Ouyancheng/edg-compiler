@@ -3783,7 +3783,6 @@ list.
 
 static void get_locator_for_rescanned_selection_second_operand(
                                 a_type_ptr             class_struct_union_type,
-                                a_boolean              is_arrow_operator,
                                 a_rescan_control_block *rcblock,
                                 a_symbol_locator       *locator,
                                 a_boolean              *err)
@@ -3792,8 +3791,7 @@ A selection operator is being rescanned to redo semantic analysis.
 rcblock->expr is the selection expression.  The first operand has
 already been retrieved, and its underlying class type is given by
 class_struct_union_type (NULL if there is an error in the first
-operand).  is_arrow_operator is TRUE if the operator is "->" rather
-than ".".  Produce a symbol locator for the second operand, which is
+operand).  Produce a symbol locator for the second operand, which is
 basically a name, and put that in *locator.  The locator describes the
 result of looking up the name in the first operand's class, not just
 the name in the abstract.  Set *err to TRUE if there is an error.
@@ -3849,12 +3847,8 @@ the name in the abstract.  Set *err to TRUE if there is an error.
               parent_type = parent_cssp->template_param_for_proxy_class;
             }  /* if */
             /* For a member of an unknown class, look up the member name
-               in the actual class of the first operand.  This comes up
-               for p->x where p has a template parameter type (and therefore
-               there's no way to name the class of x when it's looked up
-               in the prototype instantiation). */
-            if (parent_type == type_of_unknown_templ_param_nontype &&
-                is_arrow_operator) {
+               in the actual class of the first operand. */
+            if (parent_type == type_of_unknown_templ_param_nontype) {
               if (class_struct_union_type != NULL &&
                   !is_incomplete_type(class_struct_union_type) &&
                   symbol_for(con) != NULL) {
@@ -4166,7 +4160,6 @@ routine is also called to parse a __builtin_offsetof field construct
   } else {
     /* Redoing semantic analysis on a previously-scanned selection. */
     get_locator_for_rescanned_selection_second_operand(class_struct_union_type,
-                                                       is_arrow_operator,
                                                        rcblock,
                                                        &locator,
                                                        &err);
@@ -19603,16 +19596,6 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Make a locator for the symbol. */
     make_locator_for_symbol(sym_ptr, &locator);
-    locator.is_qualified_name = rescan_operand->is_qualified_name;
-    locator.access_control_error_reported =
-                                 rescan_operand->access_control_error_reported;
-    if (rescan_is_template_id) {
-      locator.is_template_id = TRUE;
-      locator.template_arg_list = rescan_templ_arg_list;
-    } else {
-      locator.is_template_id = rescan_operand->is_template_id;
-      locator.template_arg_list = rescan_operand->template_arg_list;
-    }  /* if */
     /* For a qualified name like X::y, the locator position is the position of
        the "y", and start_position is the position of the "X".   The operand
        position is the "X", and the operand id_position is the "y". */
@@ -19620,6 +19603,34 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       locator.source_position = rescan_operand->id_position;
     } else {
       locator.source_position = start_position;
+    }  /* if */
+    locator.is_qualified_name = rescan_operand->is_qualified_name;
+    locator.access_control_error_reported =
+                                 rescan_operand->access_control_error_reported;
+    if (rescan_is_template_id) {
+      locator.is_template_id = TRUE;
+      locator.template_arg_list = rescan_templ_arg_list;
+      check_assertion(!rescan_operand->is_template_id);
+    } else {
+      locator.is_template_id = rescan_operand->is_template_id;
+      locator.template_arg_list = rescan_operand->template_arg_list;
+    }  /* if */
+    if (locator.template_arg_list != NULL) {
+      /* Do substitution on the explicit template argument list. */
+      a_boolean copy_error = FALSE;
+      locator.template_arg_list = copy_template_arg_list_with_substitution(
+                                             locator.template_arg_list,
+                                             (a_template_param_ptr)NULL,
+                                             rcblock->template_arg_list,
+                                             rcblock->template_param_list,
+                                             &locator.source_position,
+                                             rcblock->options,
+                                             /*orig_is_nonreal_template=*/TRUE,
+                                             &copy_error);
+      if (copy_error) {
+        locator.is_error = TRUE;
+        record_non_access_error_detected();
+      }  /* if */
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
