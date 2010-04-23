@@ -1,5 +1,25 @@
 Version 4.2
 
+4/23/10 [EDGcpfe/7875]
+Use one-step thunk when possible in IA-64 ABI
+
+When a virtual function in a virtual base class is overridden, the IA-64
+ABI specifies that a thunk must be generated that adjusts the "this" pointer
+in two steps, first to the beginning of the virtual base class subobject and
+then, using the function's vcall offset, to the subobject of the overriding
+function's class.  In cases where an existing one-step thunk with the correct
+adjustment already exists, the front end now uses that one-step thunk rather
+than a two-step thunk.  This behavior now more closely emulates g++'s
+behavior in this area.  In this example, two-step thunks had been used in the
+vtable entries for the C-in-D destructors, but one-step thunks are now used:
+
+  struct A { virtual ~A(); };
+  struct B : A {};
+  struct C : virtual A {};
+  struct D : B, C {};
+  D d;
+
+
 4/22/10 [EDGcpfe/10573]
 Microsoft compatibility: specialization of base class member from derived class
 

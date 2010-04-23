@@ -6643,16 +6643,20 @@ overrides both of them.
 #endif /* IA64_ABI */
 
 #if !IA64_ABI
-/*ARGSUSED*/ /* <-- primary_function, subobject_bcp not used in that case. */
+/*ARGSUSED*/ /* <-- primary_function, subobject_bcp, adjustment_bcp,
+                    overriding_function, thunk, not used in that case. */
 #endif /* !IA64_ABI */
-static void find_delta_and_vcall_index(a_routine_ptr         primary_function,
-                                       a_base_class_ptr      overriding_bcp,
-                                       a_base_class_ptr      overridden_bcp,
-                                       a_base_class_ptr      subobject_bcp,
-                                       a_base_class_ptr      adjustment_bcp,
-                                       a_boolean             filling_vtable,
-                                       a_targ_ptrdiff_t      *delta,
-                                       a_virtual_table_index *vcall_index)
+static void find_delta_and_vcall_index(
+                                     a_routine_ptr         primary_function,
+                                     a_base_class_ptr      overriding_bcp,
+                                     a_base_class_ptr      overridden_bcp,
+                                     a_base_class_ptr      subobject_bcp,
+                                     a_base_class_ptr      adjustment_bcp,
+                                     a_boolean             filling_vtable,
+                                     a_routine_ptr         overriding_function,
+                                     a_targ_ptrdiff_t      *delta,
+                                     a_virtual_table_index *vcall_index,
+                                     a_routine_ptr         *thunk)
 /*
 The primary_function (declared in the overridden_bcp) has been overridden
 in the overriding_bcp, or in the overridden_bcp->derived_class if
@@ -6668,13 +6672,19 @@ if NULL it means the vtable for the complete object is being constructed, and
 the class of that object is overridden_bcp->derived_class (it's also
 overriding_bcp->derived_class, but overriding_bcp can be NULL).  adjustment_bcp
 gives the covariant return type adjustment required for the overriding function
-(NULL if none is required).
+(NULL if none is required).  overriding_function specifies the overriding
+function of primary_function for this vtable entry; it is used only when
+filling_vtable is TRUE, and then only when non-NULL for an optimization in the
+IA-64 ABI.  In cases (in the IA-64 ABI) where a one-step thunk has been
+identified as an optimization, return it in *thunk (if thunk is non-NULL) to
+save the caller from searching for this routine.
 */
 {
 #if IA64_ABI
   a_base_class_ptr                   derived_bcp;
   a_derivation_step_ptr              step;
   a_vcall_offset_entry_ptr           voep;
+  a_targ_ptrdiff_t                   fixed_offset;
 #endif /* IA64_ABI */
 
   *vcall_index = 0;
@@ -6715,7 +6725,6 @@ gives the covariant return type adjustment required for the overriding function
        applied below approximate the cases in which g++ performs this
        optimization, for maximum interoperability. */
     if (filling_vtable) {
-      a_targ_ptrdiff_t fixed_offset;
       /* When we're filling a vtable, we know exactly the layout of the
          complete object.  We can't always use the fixed offset we compute
          because the ABI might not require the thunk we would need to use.
@@ -6752,56 +6761,6 @@ gives the covariant return type adjustment required for the overriding function
            with no thunk.  Note that a covariant return type requires an
            adjustment even if the offset is 0. */
         can_optimize_to_fixed_offset = TRUE;
-      } else {
-        /* Determine whether the thunk we would need for the fixed offset
-           adjustment would exist. */
-        a_boolean        both_virtual_and_nonvirtual_base = FALSE;
-        a_boolean        non_primary_subobject_without_override = FALSE;
-        a_base_class_ptr bcp;
-        for (bcp = overridden_bcp->derived_class->
-                           variant.class_struct_union.extra_info->base_classes;
-           bcp != NULL; bcp = bcp->next) {
-          if (identical_types(bcp->type, derived_bcp->type) &&
-              !bcp->is_virtual) {
-            both_virtual_and_nonvirtual_base = TRUE;
-            break;
-          }  /* if */
-        }  /* for */
-        if (subobject_bcp != NULL && subobject_bcp->offset != 0) {
-          an_overriding_virtual_function_ptr ovfp;
-          for (ovfp = subobject_bcp->overriding_virtual_functions;
-               ovfp != NULL;
-               ovfp = ovfp->next) {
-            if (virtual_functions_match(ovfp->primary_function,
-                                      primary_function)) {
-              break;
-            }  /* if */
-          }  /* for */
-          if (ovfp == NULL) {
-            non_primary_subobject_without_override = TRUE;
-          }  /* if */
-        }  /* if */
-        if (derived_bcp->shares_virtual_function_info &&
-            !(overridden_bcp->direct && subobject_bcp != NULL) &&
-            !(subobject_bcp != NULL &&
-              (subobject_bcp->is_virtual || !subobject_bcp->direct)) &&
-            !(overriding_bcp != NULL && overriding_bcp->is_virtual) &&
-            !both_virtual_and_nonvirtual_base &&
-            !(non_primary_subobject_without_override &&
-              overriding_bcp != subobject_bcp) &&
-            !(overriding_bcp != NULL && overriding_bcp->offset != 0 &&
-              (subobject_bcp == NULL ||
-               subobject_bcp->offset != overriding_bcp->offset)) &&
-            (adjustment_bcp == NULL ||
-             !any_virtual_steps_in_derivation(adjustment_bcp)) &&
-            (derived_bcp->offset == 0 ||
-             (gnu_abi_version >= 30300 && subobject_bcp != NULL &&
-              derived_bcp->offset == subobject_bcp->offset))) {
-          /* The overridden function's sub-object is at the beginning of the
-             complete object or of the sub-object whose virtual table we are
-             creating, so we can optimize to a more efficient call. */
-          can_optimize_to_fixed_offset = TRUE;
-        }  /* if */
       }  /* if */
     }  /* if */
     if (can_optimize_to_fixed_offset) {
@@ -6836,6 +6795,36 @@ gives the covariant return type adjustment required for the overriding function
     /* Subtract the offset of the class whose vtbl we are building. */
     *delta -= overridden_bcp->offset;
   }  /* if */
+#if IA64_ABI
+  /* If we're filling the vtable and we're about to return a two-step thunk
+     (*vcall_index != 0), check to see if there is a one-step thunk that has
+     already been defined that will have the same adjustment to the "this"
+     pointer (i.e., find an overriding function whose vcall_index is zero and
+     whose delta is the sum of *delta and vptr[*vcall_index]).  This is purely
+     an optimization (for faster virtual call runtime performance, and
+     potentially fewer thunks), but seems to also match what g++ does. */
+  if (filling_vtable &&
+      *vcall_index != 0 &&
+      adjustment_bcp == NULL &&
+      overriding_function != NULL) {
+    /* Compute the total adjustment necessary for the "this" pointer. */
+    a_routine_ptr rout;
+    for (rout = overriding_function->next;
+         rout != NULL &&
+           rout->overriding_function_for_wrapper == overriding_function;
+         rout = rout->next) {
+      if (rout->vcall_index == 0 &&
+          rout->delta == fixed_offset &&
+          rout->return_delta == 0) {
+        /* Found an existing routine that is a one-step thunk. */
+        *delta = fixed_offset;
+        *vcall_index = 0;
+        if (thunk != NULL) *thunk = rout;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* IA64_ABI */
 }  /* find_delta_and_vcall_index */
 
 
@@ -6873,6 +6862,7 @@ table.
   a_virtual_function_number          entry_number, highest_entry_number;
   a_targ_ptrdiff_t                   delta;
   a_routine_ptr                      func_to_call;
+  a_routine_ptr                      thunk_to_call;
   a_base_class_ptr                   sharing_bcp, imm_bcp;
   a_virtual_table_index              vcall_index;
 #if IA64_ABI
@@ -7045,11 +7035,6 @@ table.
           overridden_bcp = corresp_base_class(overridden_bcp, ctor_bcp);
         }  /* if */
       }  /* if */
-      find_delta_and_vcall_index(primary_function, overriding_bcp,
-                                 overridden_bcp, derived_bcp,
-                                 override_list->return_adjustment_base_class,
-                                 /* filling_vtable=*/TRUE, &delta,
-                                 &vcall_index);
       func_to_call = override_list->overriding_function;
 #if IA64_ABI
       if (func_to_call->special_kind ==
@@ -7068,6 +7053,12 @@ table.
         second_func_to_call = NULL;
       }  /* if */
 #endif /* IA64_ABI */
+      thunk_to_call = NULL;
+      find_delta_and_vcall_index(primary_function, overriding_bcp,
+                                 overridden_bcp, derived_bcp,
+                                 override_list->return_adjustment_base_class,
+                                 /*filling_vtable=*/TRUE, func_to_call,
+                                 &delta, &vcall_index, &thunk_to_call);
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       if (override_list->return_adjustment_base_class != NULL
 #if IA64_ABI
@@ -7088,9 +7079,18 @@ table.
             delta != 0 || vcall_index != 0 ||
 #endif /* IA64_ABI */
             any_virtual_steps_in_derivation(rabcp)) {
-          func_to_call = make_wrapper_routine(func_to_call,
-                                              override_list->primary_function,
-                                              rabcp, delta, vcall_index);
+#if IA64_ABI
+          if (thunk_to_call != NULL) {
+            /* We already know which wrapper is being called, so use it. */
+            func_to_call = thunk_to_call;
+          } else
+#endif /* IA64_ABI */
+          /* Do not insert code here. */
+          {
+            func_to_call = make_wrapper_routine(func_to_call,
+                                               override_list->primary_function,
+                                               rabcp, delta, vcall_index);
+          }  /* if */
 #if IA64_ABI
           if (second_func_to_call != NULL) {
             second_func_to_call = make_wrapper_routine(second_func_to_call,
@@ -18869,7 +18869,8 @@ will be put out later.
         find_delta_and_vcall_index(ovf->primary_function, ovf->base_class,
                                    bcp, /*subobject_bcp=*/NULL,
                                    adjustment_bcp, /*filling_vtable=*/FALSE,
-                                   &delta, &vcall_index);
+                                   /*overriding_function=*/NULL,
+                                   &delta, &vcall_index, /*thunk=*/NULL);
 #endif /* IA64_ABI */
         /* Ignore this entry if in this case the override is not covariant
            (it is covariant for the overrides in other base classes) or
