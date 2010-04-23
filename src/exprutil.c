@@ -845,8 +845,9 @@ is pushed regardless of any of the other factors.
   new_entry->suppress_diagnostics = FALSE;
   new_entry->any_non_access_error_detected = FALSE;
   new_entry->template_deduction_declaration_context =
-                                               cpp0x_sfinae_enabled &&
-                                               is_template_deduction_context();
+                              cpp0x_sfinae_enabled &&
+                              (expression_kind != (an_expression_kind)ek_pp) &&
+                              is_template_deduction_context();
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
