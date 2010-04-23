@@ -2624,6 +2624,49 @@ issue an error and reclassify those attributes as ak_unrecognized.
   }  /* if */
 }  /* diagnose_std_attribute_on_explicit_instantiation */
 
+
+static a_boolean is_allowed_ms_spec_of_base_template(a_symbol_ptr	sym)
+/*
+We are processing the declaration, in Microsoft mode, of an explicit
+specialization of the class specified by sym.  Return TRUE if we are in
+the definition of a class and sym is a specialization of a template from
+a base class of the current class, and the base class and current class
+are both instantiations of the same template.
+*/
+{
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep;
+
+  ssep = scope_stack_entry_for(depth_scope_stack);
+  if (sym->is_class_member &&
+      ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    a_type_ptr	curr_type = ssep->assoc_type;
+    /* The check is only needed for template classes. */
+    if (curr_type->variant.class_struct_union.is_template_class) {
+      a_type_ptr	parent_type = sym_parent_class(sym);
+      if (parent_type->variant.class_struct_union.is_template_class) {
+        /* Get the primary template from which both types are based. */
+        a_symbol_ptr	curr_sym = symbol_for(curr_type);
+        a_symbol_ptr	curr_template_sym = template_for_instance(curr_sym);
+        a_symbol_ptr	parent_sym = symbol_for(parent_type);
+        a_symbol_ptr	parent_template_sym =
+                                             template_for_instance(parent_sym);
+        curr_template_sym = primary_template_of(curr_template_sym);
+        parent_template_sym = primary_template_of(parent_template_sym);
+        if (curr_template_sym == parent_template_sym) {
+          /* The templates are the same.  Make sure that the class being
+             defined is a base class of the parent of the member that is
+             being specialized. */
+          if (find_base_class_of(ssep->assoc_type, parent_type) != NULL) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_allowed_ms_spec_of_base_template */
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
     (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS)
 /*ARGSUSED*/ /* decl_pos_block and marked_as_gnu_extension are not used in
@@ -3047,6 +3090,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                  a namespace made visible by a GNU strong using-directive. */
               if (tag_sym->decl_scope !=
                                        scope_stack[depth_scope_stack].number &&
+                  !(microsoft_mode &&
+                    is_allowed_ms_spec_of_base_template(tag_sym)) &&
                   (!sym_is_class_or_namespace_member(tag_sym) ||
                    !(namespace_is_enclosed_by_curr_scope(tag_sym) ||
                      is_symbol_from_strong_using_namespace(tag_sym)))) {
@@ -3262,9 +3307,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
             delayed_nested_class_def = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
           } else {
-            pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-            tag_sym = NULL;
-            set_to_error_locator(locator);
+            /* Template specializations will have been checked above. */
+            if (!is_template_specialization) {
+              pos_sy_error(ec_bad_scope_for_definition,
+                           &tag_position, tag_sym);
+              tag_sym = NULL;
+              set_to_error_locator(locator);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */

@@ -1267,7 +1267,7 @@ pointer.
 }  /* primary_template_of */
 
 
-static a_symbol_ptr template_for_instance(a_symbol_ptr sym)
+a_symbol_ptr template_for_instance(a_symbol_ptr sym)
 /*
 sym is a pointer to an instance of a template.  Return a pointer to the
 template symbol from which the instance was generated.

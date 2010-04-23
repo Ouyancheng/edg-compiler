@@ -1,5 +1,24 @@
 Version 4.2
 
+4/22/10 [EDGcpfe/10573]
+Microsoft compatibility: specialization of base class member from derived class
+
+The Microsoft compiler allows an explicit specialization of a template from
+a base class to be defined in a derived class.  This is only allowed when
+the base class and derived classes are both instances of the same template
+(e.g., a one or both are partial or full specializations).  We now emulate
+this behavior in Microsoft mode.  This feature is needed for certain
+versions of the Boost typeof library for the Microsoft compiler. 
+
+  template <class T> struct A {
+    template <class U> struct B;
+  };
+  template <class T> struct A<T*> : public A<T> {
+    template <> struct B<int> {};
+  };
+  A<int*>::B<int> ab;
+
+
 4/22/10 [EDGcpfe/10643]
 Missing diagnostic when the "auto" type specifier follows another type name
 

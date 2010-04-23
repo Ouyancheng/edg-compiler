@@ -17024,7 +17024,8 @@ next_declaration:
           tssp->variant.class_template.not_standalone_nested_class = TRUE;
         }  /* if */
       }  /* if */
-      if (is_template_specialization && microsoft_mode) {
+      if (is_template_specialization && microsoft_mode &&
+          !class_state.is_nonreal_instantiation) {
         /* The Microsoft compiler allows a template friend declaration to
            also affect members of explicit specializations. */
         update_friend_info_for_specialization(class_type);

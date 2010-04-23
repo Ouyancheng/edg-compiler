@@ -735,9 +735,14 @@ a typename, like a destructor).
 Implicit typename mode is used to compile code that was not written
 using "typename".  If the symbol is not considered to be a class
 template or a type, then it is created as a constant.
+
+In Microsoft mode, a tentative template lookup for a member of an unknown
+base results in the creations of a class template symbol.
 */
 #define nonreal_member_symbol_kind(locator, options)		\
-  ((a_symbol_kind)((options & IDL_TREAT_AS_TEMPLATE_ID)		\
+  ((a_symbol_kind)(((options & IDL_TREAT_AS_TEMPLATE_ID) ||	\
+    (microsoft_mode && (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) && \
+     (options & IDL_MEMBER_OF_UNKNOWN_BASE)))			\
     ? sk_class_template						\
     : 								\
       (options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||		\
