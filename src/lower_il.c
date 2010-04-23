@@ -6684,7 +6684,6 @@ save the caller from searching for this routine.
   a_base_class_ptr                   derived_bcp;
   a_derivation_step_ptr              step;
   a_vcall_offset_entry_ptr           voep;
-  a_targ_ptrdiff_t                   fixed_offset;
 #endif /* IA64_ABI */
 
   *vcall_index = 0;
@@ -6725,6 +6724,7 @@ save the caller from searching for this routine.
        applied below approximate the cases in which g++ performs this
        optimization, for maximum interoperability. */
     if (filling_vtable) {
+      a_targ_ptrdiff_t fixed_offset;
       /* When we're filling a vtable, we know exactly the layout of the
          complete object.  We can't always use the fixed offset we compute
          because the ABI might not require the thunk we would need to use.
@@ -6761,6 +6761,30 @@ save the caller from searching for this routine.
            with no thunk.  Note that a covariant return type requires an
            adjustment even if the offset is 0. */
         can_optimize_to_fixed_offset = TRUE;
+      } else if (overriding_function != NULL && adjustment_bcp == NULL) {
+        /* See if there is a one-step thunk that has already been defined that
+           will have the same adjustment to the "this" pointer (i.e., find an
+           overriding function whose vcall_index is zero and whose delta is
+           fixed_offset).  This is purely an optimization (for faster virtual
+           call runtime performance, and potentially fewer thunks), but seems
+           to also match what g++ does.  Note that we don't try to perform
+           this optimization on routines with covariant returns (g++ appears
+           not to do this either). */
+        a_routine_ptr rout;
+        for (rout = overriding_function->next;
+             rout != NULL &&
+                  rout->overriding_function_for_wrapper == overriding_function;
+             rout = rout->next) {
+          if (rout->vcall_index == 0 &&
+              rout->delta == fixed_offset &&
+              rout->return_delta == 0) {
+            /* Found an existing routine that is a one-step thunk. */
+            *delta = fixed_offset;
+            *vcall_index = 0;
+            if (thunk != NULL) *thunk = rout;
+            goto end_of_routine;
+          }  /* if */
+        }  /* for */
       }  /* if */
     }  /* if */
     if (can_optimize_to_fixed_offset) {
@@ -6796,34 +6820,7 @@ save the caller from searching for this routine.
     *delta -= overridden_bcp->offset;
   }  /* if */
 #if IA64_ABI
-  /* If we're filling the vtable and we're about to return a two-step thunk
-     (*vcall_index != 0), check to see if there is a one-step thunk that has
-     already been defined that will have the same adjustment to the "this"
-     pointer (i.e., find an overriding function whose vcall_index is zero and
-     whose delta is the sum of *delta and vptr[*vcall_index]).  This is purely
-     an optimization (for faster virtual call runtime performance, and
-     potentially fewer thunks), but seems to also match what g++ does. */
-  if (filling_vtable &&
-      *vcall_index != 0 &&
-      adjustment_bcp == NULL &&
-      overriding_function != NULL) {
-    /* Compute the total adjustment necessary for the "this" pointer. */
-    a_routine_ptr rout;
-    for (rout = overriding_function->next;
-         rout != NULL &&
-           rout->overriding_function_for_wrapper == overriding_function;
-         rout = rout->next) {
-      if (rout->vcall_index == 0 &&
-          rout->delta == fixed_offset &&
-          rout->return_delta == 0) {
-        /* Found an existing routine that is a one-step thunk. */
-        *delta = fixed_offset;
-        *vcall_index = 0;
-        if (thunk != NULL) *thunk = rout;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
+end_of_routine:;
 #endif /* IA64_ABI */
 }  /* find_delta_and_vcall_index */
 
