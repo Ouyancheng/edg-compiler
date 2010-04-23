@@ -798,8 +798,7 @@ as in a decltype.
     new_entry->template_deduction_context |=
                                          old_entry->template_deduction_context;
     new_entry->suppress_diagnostics |= old_entry->suppress_diagnostics;
-    new_entry->template_deduction_declaration_context |=
-                             old_entry->template_deduction_declaration_context;
+    new_entry->possible_rescan_context |= old_entry->possible_rescan_context;
   }  /* if */
 }  /* transfer_context_from_enclosing_expr_stack_entry */
 
@@ -844,7 +843,7 @@ is pushed regardless of any of the other factors.
   new_entry->template_deduction_context = FALSE;
   new_entry->suppress_diagnostics = FALSE;
   new_entry->any_non_access_error_detected = FALSE;
-  new_entry->template_deduction_declaration_context =
+  new_entry->possible_rescan_context =
                               cpp0x_sfinae_enabled &&
                               (expression_kind != (an_expression_kind)ek_pp) &&
                               is_template_deduction_context();
@@ -2174,10 +2173,11 @@ attached to "node".  Allocate the rescan info if necessary (that's the
 usual case).  operator_position and operator_tok_seq_number give the
 operator's source position and token sequence number.
 If operator_position_2 is non-NULL, it gives a secondary operator position
-to be recorded.
+to be recorded.  Do nothing if we're not currently in a possible rescan
+context.
 */
 {
-  if (expr_stack->template_deduction_declaration_context) {
+  if (expr_stack->possible_rescan_context) {
     an_expr_rescan_info_entry_ptr eriep = node->rescan_info;
     if (eriep == NULL) {
       node->rescan_info = eriep = alloc_expr_rescan_info_entry();
@@ -2191,48 +2191,24 @@ to be recorded.
 }  /* record_operator_position_in_expr_rescan_info */
 
 
-static void record_operator_position_in_rescan_info(
+void record_operator_position_in_rescan_info(
                                an_operand              *operand,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2)
 /*
-Record the operator position and operator token sequence number in the rescan
-information associated with the expression attached to operand.  Allocate the
-rescan info if necessary (the usual case is that the rescan information will
-need to be allocated).  operator_position_2 can be used for a secondary
-operator position or type position.  If no secondary position is needed,
-it should be NULL.  The operand must have an associated expression.
-For a version of this routine that can be called for operands that might
-not have an expression, see record_operator_position_in_rescan_info_if_expr.
+Record the operator position and operator token sequence number in the
+rescan information associated with the expression attached to operand.
+Allocate the rescan info if necessary (the usual case is that the rescan
+information will need to be allocated).  operator_position_2 can be used
+for a secondary operator position or type position.  If no secondary
+position is needed, it should be NULL.  If the operand does not have
+an associated expression (e.g., if it is a constant without a backing
+expression), do nothing.  Also do nothing if we're not currently in
+a possible rescan context.
 */
 {
-  if (expr_stack->template_deduction_declaration_context &&
-      !is_error_operand(operand)) {
-    /* Note that the extraction routine used here does not create an
-       expression; it only finds an existing one associated with the
-       operand. */
-    an_expr_node_ptr expr = expr_node_from_operand(operand);
-    check_assertion_str(expr != NULL, "recording operator pos, missing expr");
-    record_operator_position_in_expr_rescan_info(expr, operator_position,
-                                                 operator_tok_seq_number,
-                                                 operator_position_2);
-  }  /* if */
-}  /* record_operator_position_in_rescan_info */
-
-
-void record_operator_position_in_rescan_info_if_expr(
-                               an_operand              *operand,
-                               a_source_position       *operator_position,
-                               a_token_sequence_number operator_tok_seq_number,
-                               a_source_position       *operator_position_2)
-/*
-Version of record_operator_position_in_rescan_info that records the
-position information only if the operand represents an expression (and
-not, for example, if it is a constant).
-*/
-{
-  if (expr_stack->template_deduction_declaration_context) {
+  if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
@@ -2242,7 +2218,7 @@ not, for example, if it is a constant).
                                                    operator_position_2);
     }  /* if */
   }  /* if */
-}  /* record_operator_position_in_rescan_info_if_expr */
+}  /* record_operator_position_in_rescan_info */
 
 
 void record_typed_operator_position_in_expr_rescan_info(
@@ -2259,7 +2235,7 @@ and type is the type cast to.  Also used for other operators with a
 salient type, e.g., "new".
 */
 {
-  if (expr_stack->template_deduction_declaration_context) {
+  if (expr_stack->possible_rescan_context) {
     an_expr_rescan_info_entry_ptr eriep;
     check_assertion(is_cast_operation_node(expr) ||
                     expr->kind == (an_expr_node_kind)enk_temp_init ||
@@ -2287,7 +2263,7 @@ type within the cast; and cast_type is the type cast to.
 Do nothing if the operand is not discernibly a cast expression.
 */
 {
-  if (expr_stack->template_deduction_declaration_context) {
+  if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
@@ -3082,8 +3058,7 @@ that extra work.
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  if (expr_stack != NULL &&
-      expr_stack->template_deduction_declaration_context) {
+  if (expr_stack != NULL && expr_stack->possible_rescan_context) {
     an_expr_node_ptr preexisting_node = expr_node_from_operand(operand);
     /* For an expression that may be rescanned to do semantic analysis
        later for template deduction, save extra information from the

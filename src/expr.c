@@ -3093,11 +3093,10 @@ are expected to be NULL in that case.
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
   if (result_operand_is_call) {
-    record_operator_position_in_rescan_info_if_expr(
-                                                  result,
-                                                  &operator_position,
-                                                  opening_paren_tok_seq_number,
-                                                  &closing_paren_position);
+    record_operator_position_in_rescan_info(result,
+                                            &operator_position,
+                                            opening_paren_tok_seq_number,
+                                            &closing_paren_position);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand_node = expr_node_from_operand(operand);
@@ -4544,10 +4543,10 @@ nonstatic_member_function:
     /* A field selection rules out an integral constant expression. */
     rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   }  /* if */
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   db_exit();
 }  /* scan_field_selection_operator */
 
@@ -4817,10 +4816,10 @@ in *result and *bound_function_selector (or an error indication in
     set_operand_position(result, &operand_1->position,
                          &operand_2.end_position, &operator_position);
   }  /* if */
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_ptr_to_member_operator */
@@ -5276,10 +5275,10 @@ case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand->position, &end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
@@ -5524,10 +5523,10 @@ and return the result in *result (or an error indication in *rcblock).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 
   db_exit();
@@ -5760,10 +5759,10 @@ error indication in *rcblock).
 
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_ampersand_operator */
@@ -5831,10 +5830,10 @@ current token on entry.
 
   set_operand_position(result, &start_position, &end_pos_curr_token, 
 		       &start_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &start_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &start_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_address_of_label_expression */
@@ -6053,10 +6052,10 @@ error indication in *rcblock).
 
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 
   db_exit();
@@ -6732,9 +6731,9 @@ previously-scanned sizeof expression, and return the result in *result
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  &type_position);
+  record_operator_position_in_rescan_info(result, &operator_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          &type_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -7036,9 +7035,9 @@ result in *result (or an error indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  &type_position);
+  record_operator_position_in_rescan_info(result, &operator_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          &type_position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -7087,8 +7086,7 @@ operations where an operator position is not needed, and forces creation
 of rescan information.
 */
 {
-  if (expr_stack->template_deduction_declaration_context &&
-      !is_error_node(node)) {
+  if (expr_stack->possible_rescan_context && !is_error_node(node)) {
     /* Get rescan information recorded for this expression by going by way
        of an operand. */
     an_operand       operand;
@@ -7271,9 +7269,9 @@ indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
-  record_operator_position_in_rescan_info_if_expr(result, &start_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  &type_position);
+  record_operator_position_in_rescan_info(result, &start_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          &type_position);
   pop_expr_stack();
   if (rcblock == NULL) {
     remove_stop_token(tok_rparen);
@@ -9075,9 +9073,9 @@ indication in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  &operand_position);
+  record_operator_position_in_rescan_info(result, &operator_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          &operand_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_typeid_operator */
@@ -9783,9 +9781,9 @@ indication in *rcblock).  after_keyword is ignored in that case.
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result, &operator_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  &operand_position);
+  record_operator_position_in_rescan_info(result, &operator_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          &operand_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
@@ -14322,10 +14320,10 @@ in *rcblock).
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &start_position,
-                                                  NO_TOKEN_SEQUENCE_NUMBER,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &start_position,
+                                          NO_TOKEN_SEQUENCE_NUMBER,
+                                          (a_source_position *)NULL);
 }  /* scan_complex_projection */
 
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
@@ -16447,10 +16445,10 @@ is expected to be NULL in that case.
   }  /* if */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
 }  /* scan_gnu_min_max_operator */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -17924,10 +17922,10 @@ that case.
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_simple_assignment_operator */
@@ -18369,10 +18367,10 @@ operation_type_determined:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_compound_assignment_operator */
@@ -18862,10 +18860,10 @@ expression, and return the result in *result (or an error indication in
 
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
                        &operator_position);
-  record_operator_position_in_rescan_info_if_expr(result,
-                                                  &operator_position,
-                                                  operator_tok_seq_number,
-                                                  (a_source_position *)NULL);
+  record_operator_position_in_rescan_info(result,
+                                          &operator_position,
+                                          operator_tok_seq_number,
+                                          (a_source_position *)NULL);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_comma_operator */
@@ -24108,6 +24106,7 @@ outside, see rescan_expr_with_substitution.
                     /*suppress_object_lifetime=*/FALSE);
     expr_stack_entry.template_deduction_context = TRUE;
     expr_stack_entry.suppress_diagnostics = TRUE;
+    expr_stack_entry.possible_rescan_context = TRUE;
     stack_pop_needed = TRUE;
   }  /* if */
   saved_default_rescan_info = expr_stack->default_rescan_info;

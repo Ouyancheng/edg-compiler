@@ -722,12 +722,12 @@ typedef struct an_expr_stack_entry {
 			   errors do not set this flag because that's
 			   the way SFINAE errors are defined (see N2634). */
   a_byte_boolean
-		template_deduction_declaration_context;
+		possible_rescan_context;
 			/* TRUE if the expression being scanned is in a context
-			   where template deduction might be done later.
-			   Extra information is saved that will be needed if
-			   the semantic analysis on the expression is redone
-			   during template deduction.  Only set when
+			   where it might have to be rescanned later, e.g.,
+			   for template deduction.  Extra information is saved
+			   that will be needed to redo the semantic analysis
+			   on the expression.  Only set when
 			   cpp0x_sfinae_enabled is TRUE. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
@@ -1560,7 +1560,7 @@ extern void record_operator_position_in_expr_rescan_info(
                                a_token_sequence_number operator_tok_seq_number,
                                a_source_position       *operator_position_2);
 
-extern void record_operator_position_in_rescan_info_if_expr(
+extern void record_operator_position_in_rescan_info(
                                an_operand              *operand,
                                a_source_position       *operator_position,
                                a_token_sequence_number operator_tok_seq_number,
