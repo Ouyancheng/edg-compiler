@@ -97,7 +97,7 @@ versions of the Boost typeof library for the Microsoft compiler.
 4/22/10 [EDGcpfe/10643]
 Missing diagnostic when the "auto" type specifier follows another type name
 
-In C++0x mode, the front end failed to issue diagnostic when the "auto" type
+In C++0x mode, the front end failed to issue a diagnostic when the "auto" type
 specifier follows another type specifier.  For example:
 
   double auto x = 3.0;  // Previously treated like "double x = 3.0;".
