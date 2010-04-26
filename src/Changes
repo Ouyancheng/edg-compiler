@@ -1,5 +1,60 @@
 Version 4.2
 
+4/26/10  [EDGcpfe/9169]
+C++0X SFINAE implementation
+
+The C++0X standard introduced some new rules for template deduction
+(see WG21 paper N2634).  When a function template is considered in
+overload resolution, part of the process is "template deduction,"
+which is an attempt to find values for the template parameters of that
+template that will specify a template instance that is a viable
+function for the call.  The deduction rules require that any
+expressions that appear in the template type be valid after
+substitution of the deduced template arguments for the template
+parameters.  Whereas in older versions of the standard "valid" was
+defined by a specific list of requirements, and only relatively simple
+expressions were allowed, the C++0X rules now allow arbitrarily
+complex expressions inside unevaluated contexts (e.g., sizeof and
+decltype), and "valid" is defined by the normal semantic rules of the
+language, except that access checking is not done.  So, for example:
+
+  template <class T> auto f(T p1, T p2) -> decltype(p1 + p2) {
+    return p1 + p2;
+  };
+  struct A {
+    const A & operator +(const A&);
+  };
+  A a1, a2;
+  int main() {
+    f(a1, a2);
+  }
+
+Here, the call is valid only if the expression "p1+p2" is valid, which
+is true only if there is a valid meaning for the "+" operator,
+possibly found by doing overload resolution as in this case.  Any error
+detected during this process should cause only a failure of deduction
+for that template, and not a hard error.  (This idea is summarized in
+the acronym that is often used to refer to this non-error-producing
+deduction process, SFINAE, which stands for Substitution Failure Is
+Not An Error.)
+
+This is now implemented in the Front End.  The new-style SFINAE is
+enabled by default in C++0X mode, and can be enabled manually via
+--c++0x_sfinae.  DEFAULT_CPP0X_SFINAE_ENABLED can be used to enable
+it by default in non-C++0x mode, but it will still be disabled by
+default in Microsoft and GNU modes (because those compilers don't
+yet do SFINAE according to the new rules).
+
+Note that this involved a rather large set of changes in the
+expression-processing routines (expr.c, exprutil.c, and overload.c),
+and an added set of coding rules in those routines (for example,
+the normal error-reporting routines cannot be called directly,
+because errors must be trapped in deduction contexts).  Customer
+additions in those files may have to be reworked to follow the
+new conventions.  See the section titled "Rescanning Expressions"
+in the internal documentation for details.
+
+
 4/23/10 [EDGcpfe/7875]
 Use one-step thunk when possible in IA-64 ABI
 
