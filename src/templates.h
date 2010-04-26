@@ -229,6 +229,11 @@ typedef int an_equiv_templ_arg_options_set;
 			   the argument list for a prototype instantiation of
 			   a class template or a prototype instantiation of
 			   a partial specialization. */
+#define ETA_EXACT_MATCH_REQUIRED	0x20
+			/* TRUE if the values of the templates arguments must
+			   match exactly (e.g., point to the same type or
+			   constant).  FALSE if only equivalence is
+			   required. */
 
 /*
 Flags used to specify options to equiv_template_param_lists.

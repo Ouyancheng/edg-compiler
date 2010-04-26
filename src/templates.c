@@ -4761,6 +4761,9 @@ Return TRUE if the constants should be considered to match.
   return result;
 }  /* equiv_nontype_template_param_names */
 
+/* Forward declaration. */
+static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
+
 
 a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,
@@ -4780,6 +4783,7 @@ the same constant.
   a_boolean		ignore_unknown_arg_values;
   a_boolean		ignore_qualifiers;
   a_boolean		is_prototype;
+  a_boolean		exact_match_required;
 
   db_enter(4, "equiv_template_arg_lists");
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
@@ -4787,6 +4791,7 @@ the same constant.
   ignore_unknown_arg_values = (options & ETA_IGNORE_UNKNOWN_ARG_VALUES) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
   is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
+  exact_match_required = (options & ETA_EXACT_MATCH_REQUIRED) != 0;
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
   check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),
@@ -4797,6 +4802,9 @@ the same constant.
   while (arg1 != NULL && arg2 != NULL) {
     /* For a given class, argument lists should always have the same sequence
        of type, constant, and template arguments. */
+    a_boolean	exact_match_required_for_arg;
+    exact_match_required_for_arg = exact_match_required &&
+                                   template_arg_is_dependent(arg1);
     if (arg1->kind != arg2->kind) {
       equiv = FALSE;
       check_assertion_str(is_nonreal_member,
@@ -4818,7 +4826,10 @@ the same constant.
       } else if (con1 == NULL || con2 == NULL) {
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
-      } else if (eq_constants(con1, con2)) {
+      } else if (con1 == con2) {
+        /* Okay. */
+      } else if (!exact_match_required_for_arg &&
+                 eq_constants(con1, con2)) {
         /* Okay. */
       } else if (is_prototype && 
                  equiv_nontype_template_param_names(con1, con2)) {
@@ -4846,9 +4857,10 @@ the same constant.
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
       } else if (type1 == type2 ||
-                 f_identical_types(type1, type2,
-                                   ITF_SEEK_CORRESP |
-                                   ITF_EXACT_NESTING_DEPTHS_REQUIRED)) {
+                 (!exact_match_required_for_arg &&
+                  f_identical_types(type1, type2,
+                                    ITF_SEEK_CORRESP |
+                                    ITF_EXACT_NESTING_DEPTHS_REQUIRED))) {
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_type(type1) || is_error_type(type2))) {
@@ -4867,7 +4879,11 @@ the same constant.
       if (!equiv) break;
     } else {
       /* A template template argument. */
-      if (equiv_templates(arg1->variant.templ.ptr, arg2->variant.templ.ptr)) {
+      if (arg1->variant.templ.ptr == arg2->variant.templ.ptr) {
+        /* Okay. */
+      } else if (!exact_match_required_for_arg &&
+                 equiv_templates(arg1->variant.templ.ptr,
+                                 arg2->variant.templ.ptr)) {
         /* Okay. */
       } else {
         equiv = FALSE;
@@ -5576,7 +5592,8 @@ prototype instantiation is considered as a potential match.
          already been created.  See if the list passed in matches it. */
       sym = slep->symbol;
       old_list = template_arg_list_for_symbol(sym);
-      if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
+      if (equiv_template_arg_lists(old_list, *new_list,
+                                   eta_options | ETA_EXACT_MATCH_REQUIRED)) {
         /* We've found a match. */
 #if DEBUG
         if (debug_level >= 3) db_symbol(sym, "found: ", 2);

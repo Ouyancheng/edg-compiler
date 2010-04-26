@@ -1828,10 +1828,12 @@ class will be instantiated if necessary so that its base classes are known.
 */
 {
   a_base_class_ptr bcp = NULL;
+  a_boolean        is_nonreal;
 
   if (C_dialect == C_dialect_cplusplus) {
     derived_class = skip_typerefs(derived_class);
     base_class = skip_typerefs(base_class);
+    is_nonreal = base_class->variant.class_struct_union.is_nonreal_class;
     if (instantiate_if_necessary) {
 #if !STANDALONE_UTILITY_PROGRAM
       /* Force instantiation of the derived type if it is an uninstantiated
@@ -1856,7 +1858,11 @@ class will be instantiated if necessary so that its base classes are known.
                                                                   base_classes;
            bcp != NULL;
            bcp = bcp->next) {
-        if (same_entities(bcp->type, base_class)) break;
+        /* For nonreal classes we must check for equivalent nonreal classes. */
+        if (same_entities(bcp->type, base_class) ||
+            (is_nonreal && identical_types(bcp->type, base_class))) {
+          break;
+        }  /* if */
       }  /* for */
       if (microsoft_bugs && bcp != NULL && bcp->ambiguous && !bcp->direct) {
         /* The Microsoft compiler allows a cast or conversion to an ambiguous

@@ -5333,19 +5333,27 @@ template.
       }  /* if */
     }  /* if */
     goto done;
-  } else if (is_tag_symbol(inst) && inst->is_class_member) {
+  } else if (is_tag_symbol(inst)) {
     a_type_ptr  class_type = type_symbol_type(inst);
-    a_type_ptr  parent_type = sym_parent_class(inst);
-    if (class_type->variant.class_struct_union.is_prototype_instantiation &&
-        parent_type->variant.class_struct_union.is_template_class &&
-        !parent_type->variant.class_struct_union.is_nonreal_class) {
-      /* inst represents a prototype instantiation of a member template of
-         a real instantiation.  The a_template entry for such member templates
-         does not have a parent class pointer in some configurations, which
-         makes determining the correspondence difficult at this point.
-         However, their correspondence will be set when the enclosing class
-         is processed. */
+    if (class_type->variant.class_struct_union.is_nonreal_class &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
+      /* Every nonreal nonprototype instance of a template is considered a
+         distinct entry that does not correspond to another entry. */
+      set_no_trans_unit_corresp(iek_type, (char*)class_type);
       goto done;
+    } else if (inst->is_class_member) {
+      a_type_ptr  parent_type = sym_parent_class(inst);
+      if (class_type->variant.class_struct_union.is_prototype_instantiation &&
+          parent_type->variant.class_struct_union.is_template_class &&
+          !parent_type->variant.class_struct_union.is_nonreal_class) {
+        /* inst represents a prototype instantiation of a member template of a
+           real instantiation.  The a_template entry for such member templates
+           does not have a parent class pointer in some configurations, which
+           makes determining the correspondence difficult at this point.
+           However, their correspondence will be set when the enclosing class
+           is processed. */
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_primary_translation_unit) {

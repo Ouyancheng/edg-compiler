@@ -11868,19 +11868,25 @@ with the matching base class.
   a_symbol_ptr		result_sym = NULL;
   a_symbol_ptr		sym_to_find = locator_for_curr_id.specific_symbol;
   a_type_ptr		type_to_find = NULL;
+  a_boolean		is_nonreal = FALSE;
 
-  if (sym_to_find != NULL) type_to_find = type_symbol_type(sym_to_find);
+  if (sym_to_find != NULL) {
+    type_to_find = type_symbol_type(sym_to_find);
+    is_nonreal = type_to_find->variant.class_struct_union.is_nonreal_class;
+  }  /* if */
   bcp = base_classes_of(tp);
   for (; bcp != NULL; bcp = bcp->next) {
     /* Get the symbol pointer associated with the base class. */
     a_symbol_ptr	sym;
-    a_type_ptr		base_type = bcp->type;
+    a_type_ptr	base_type = bcp->type;
     sym = (a_symbol_ptr)base_type->source_corresp.assoc_info;
     /* If the locator contains a specific symbol, the base class type must
        match the type specified by the symbol.  This is used when the
        locator refers to a template-id. */
     if (type_to_find != NULL) {
-      if (same_entities(type_to_find, bcp->type)) {
+      /* For nonreal classes we must check for equivalent nonreal classes. */
+      if (same_entities(type_to_find, bcp->type) ||
+          (is_nonreal && identical_types(type_to_find, bcp->type))) {
         result_sym = sym;
         break;
       }  /* if */
