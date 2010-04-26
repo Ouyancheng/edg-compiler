@@ -5246,6 +5246,18 @@ typedef struct a_template_arg {
 			   parameter list of the argument template has already
 			   been compared with that of the parameter
                            template.  Used only in the front end. */
+  a_bit_field	is_dependent:1;
+			/* TRUE for template arguments that have been
+			   determined to be dependent.  FALSE for template
+			   arguments that are not dependent and also for
+			   arguments that have not been checked for
+			   dependency.  This field and dependency_checked are
+			   used to avoid reevaluating the dependency of
+			   template arguments and are only intended for use
+			   within the front end. */
+  a_bit_field	dependency_checked:1;
+			/* TRUE if this argument has been checked to determine
+			   whether it is dependent. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */

@@ -4761,8 +4761,18 @@ Return TRUE if the constants should be considered to match.
   return result;
 }  /* equiv_nontype_template_param_names */
 
+
 /* Forward declaration. */
-static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
+static a_boolean f_template_arg_is_dependent(a_template_arg_ptr tap);
+
+
+/*
+Interface to f_template_arg_is_dependent that reuses a previously
+computed value when possible.
+*/
+#define template_arg_is_dependent(tap)					\
+((tap)->dependency_checked ? (tap)->is_dependent			\
+                           : f_template_arg_is_dependent(tap));
 
 
 a_boolean equiv_template_arg_lists(
@@ -4907,7 +4917,7 @@ the same constant.
 }  /* equiv_template_arg_lists */
 
 
-static a_boolean template_arg_is_dependent(a_template_arg_ptr tap)
+static a_boolean f_template_arg_is_dependent(a_template_arg_ptr tap)
 /*
 Return TRUE if the template argument entry pointed to by tap is dependent.
 */
@@ -4951,8 +4961,10 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
                    is_or_contains_template_param(sym_parent_class(templ_sym));
     }  /* if */
   }  /* if */
+  tap->is_dependent = template_param_found;
+  tap->dependency_checked = TRUE;
   return template_param_found;
-}  /* template_arg_is_dependent */
+}  /* f_template_arg_is_dependent */
 
 
 a_boolean template_arg_list_is_dependent(a_template_arg_ptr	tap)

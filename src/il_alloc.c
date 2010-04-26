@@ -1028,6 +1028,8 @@ allocated.
   tap->is_array_bound_of_unknown_type = FALSE;
   tap->explicitly_specified = FALSE;
   tap->template_template_param_checked = FALSE;
+  tap->is_dependent = FALSE;
+  tap->dependency_checked = FALSE;
 #if CENTERLINE_CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
