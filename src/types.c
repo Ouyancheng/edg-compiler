@@ -3549,6 +3549,83 @@ through the symbol table:  Establish that correspondence now if appropriate.
    f_change_to_canonical_types(type_1, type_2, seek_corresp))
 
 
+static a_boolean distinct_dependent_decltypes(a_type_ptr  type_1,
+                                              a_type_ptr  type_2)
+/*
+If type_1 and/or type_2 are expressed using decltype (or typeof) constructs
+with dependent arguments, return TRUE if those constructs can be considered
+to be distinct.  The C++ standard defines notions of "equivalent" and
+"functionally equivalent" expressions.  When decltype is applied to
+"equivalent expressions" (which implies identical syntax), the resulting types
+are also equivalent (and this routine returns FALSE).  When decltype is
+applied to "expressions that are not functionally equivalent", the resulting
+types are distinct (and this routine returns TRUE).  In between there is a
+gray area of expressions that are functionally equivalent but not equivalent:
+This routine may return TRUE or FALSE for such cases.
+*/
+{ 
+  a_boolean  result = FALSE;
+
+  if (!C_mode() && in_front_end) {
+    /* Peel off tk_typeref layers looking for template-dependent decltype or
+       typeof nodes. */
+    while (type_1->kind == (a_type_kind)tk_typeref) {
+      if (typeref_is_decltype_or_typeof(type_1) &&
+          is_template_dependent_type(type_1)) {
+        break;
+      }  /* if */
+      type_1 = type_1->variant.typeref.type;
+    }  /* while */
+    while (type_2->kind == (a_type_kind)tk_typeref) {
+      if (typeref_is_decltype_or_typeof(type_2) &&
+          is_template_dependent_type(type_2)) {
+        break;
+      }  /* if */
+      type_2 = type_2->variant.typeref.type;
+    }  /* while */
+    if (type_1->kind == (a_type_kind)tk_typeref ||
+        type_2->kind == (a_type_kind)tk_typeref) {
+      /* Some dependent decltype/typeof type was encountered. */
+      if (type_1->kind != type_2->kind ||
+#if GNU_EXTENSIONS_ALLOWED
+          type_1->variant.typeref.is_typeof !=
+                                        type_2->variant.typeref.is_typeof ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          type_1->variant.typeref.is_decltype !=
+                                      type_2->variant.typeref.is_decltype ||
+          type_1->variant.typeref.decltype_expr_not_parenthesized !=
+                  type_2->variant.typeref.decltype_expr_not_parenthesized) {
+        /* The two types were obtained with different constructs and are
+           therefore different. */
+        result = TRUE;
+      } else {
+        /* Two types obtained with the decltype(<expr>) or typeof(<expr>)
+           construct, where the expression has a template-dependent type.
+           Compare the expression trees.  (No expression trees are available
+           if the decltype was constructed inside a function whose body
+           is complete.  Such types are always considered non-identical to
+           other types.) */
+        an_expr_node_ptr  expr1 = type_1->variant.typeref.extra_info->expr;
+        an_expr_node_ptr  expr2 = type_2->variant.typeref.extra_info->expr;
+        a_local_expr_node_ref_kind
+                          lerk = type_1->variant.typeref.is_decltype ?
+                                (a_local_expr_node_ref_kind)lerk_decltype :
+                                (a_local_expr_node_ref_kind)lerk_typeof;
+        if (expr1 == NULL) {
+          expr1 = find_local_expr_node((char*)type_1, lerk);
+        }  /* if */
+        if (expr2 == NULL) {
+          expr2 = find_local_expr_node((char*)type_2, lerk);
+        }  /* if */
+        result = expr1 == NULL || expr2 == NULL ||
+                 !compare_template_param_constant_expressions(expr1, expr2);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* distinct_dependent_decltypes */
+
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -3576,63 +3653,11 @@ for more information.
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
-    } else if (!C_mode() && in_front_end) {
-      /* Peel off tk_typeref layers looking for template-dependent decltype or
-         typeof nodes. */
-      while (type_1->kind == (a_type_kind)tk_typeref) {
-        if (typeref_is_decltype_or_typeof(type_1) &&
-            is_template_dependent_type(type_1)) {
-          break;
-        }  /* if */
-        type_1 = type_1->variant.typeref.type;
-      }  /* while */
-      while (type_2->kind == (a_type_kind)tk_typeref) {
-        if (typeref_is_decltype_or_typeof(type_2) &&
-            is_template_dependent_type(type_2)) {
-          break;
-        }  /* if */
-        type_2 = type_2->variant.typeref.type;
-      }  /* while */
-      if (type_1->kind == (a_type_kind)tk_typeref ||
-          type_2->kind == (a_type_kind)tk_typeref) {
-        /* Some dependent decltype/typeof type was encountered. */
-        if (type_1->kind != type_2->kind ||
-#if GNU_EXTENSIONS_ALLOWED
-            type_1->variant.typeref.is_typeof !=
-                                          type_2->variant.typeref.is_typeof ||
-#endif /* GNU_EXTENSIONS_ALLOWED */
-            type_1->variant.typeref.is_decltype !=
-                                        type_2->variant.typeref.is_decltype ||
-            type_1->variant.typeref.decltype_expr_not_parenthesized !=
-                    type_2->variant.typeref.decltype_expr_not_parenthesized) {
-          /* The two types were obtained with different constructs and are
-             therefore different. */
-          goto done;
-        } else {
-          /* Two types obtained with the decltype(<expr>) or typeof(<expr>)
-             construct, where the expression has a template-dependent type.
-             Compare the expression trees.  (No expression trees are available
-             if the decltype was constructed inside a function whose body
-             is complete.  Such types are always considered non-identical to
-             other types.) */
-          an_expr_node_ptr  expr1 = type_1->variant.typeref.extra_info->expr;
-          an_expr_node_ptr  expr2 = type_2->variant.typeref.extra_info->expr;
-          a_local_expr_node_ref_kind
-                            lerk = type_1->variant.typeref.is_decltype ?
-                                  (a_local_expr_node_ref_kind)lerk_decltype :
-                                  (a_local_expr_node_ref_kind)lerk_typeof;
-          if (expr1 == NULL) {
-            expr1 = find_local_expr_node((char*)type_1, lerk);
-          }  /* if */
-          if (expr2 == NULL) {
-            expr2 = find_local_expr_node((char*)type_2, lerk);
-          }  /* if */
-          identical =
-                   expr1 != NULL && expr2 != NULL &&
-                   compare_template_param_constant_expressions(expr1, expr2);
-          goto done;
-        }  /* if */
-      }  /* if */
+    } else if (distinct_dependent_decltypes(type_1, type_2)) {
+      /* type_1 and type_2 are built from decltype (or typeof) constructs
+         with distinct template-dependent arguments.  Such types are assumed
+         to be different. */
+      goto done;
     }  /* if */
   }  /* if */
   /* Now that type qualifiers are no longer an issue, strip them and other
@@ -4243,18 +4268,24 @@ for exact pointer equality.
         !type_qualifiers_match(type_1, type_2)) {
       qualifier_mismatch = TRUE;
     }  /* if */
-    if (flags & TCF_CHECKING_DEDUCTION_RESULT) {
-      /* When checking a deduction result, we have to allow some slight
-         differences around a typeref for a decltype.  The decltype might
-         have been applied to an lvalue in one case and an rvalue in the
-         other, and therefore have an extra "reference to" on it. */
-      if (type_1->kind == (a_type_kind)tk_typeref ||
-          type_2->kind == (a_type_kind)tk_typeref) {
+    if (type_1->kind == (a_type_kind)tk_typeref ||
+        type_2->kind == (a_type_kind)tk_typeref) {
+      /* Except for potential qualifier mismatches, typeref entries can
+         usually be skipped, but some care must be taken with decltype/typeof
+         entries. */
+      if (flags & TCF_CHECKING_DEDUCTION_RESULT) {
+        /* When checking a deduction result, we have to allow some slight
+           differences around a typeref for a decltype.  The decltype might
+           have been applied to an lvalue in one case and an rvalue in the
+           other, and therefore have an extra "reference to" on it. */
         adjust_comparison_types_for_decltype(&type_1, &type_2);
       }  /* if */
+      if (distinct_dependent_decltypes(type_1, type_2)) {
+        goto done;
+      }  /* if */
+      type_1 = skip_typerefs(type_1);
+      type_2 = skip_typerefs(type_2);
     }  /* if */
-    type_1 = skip_typerefs(type_1);
-    type_2 = skip_typerefs(type_2);
     if (error_matches_anything && (is_error(type_1) || is_error(type_2))) {
       /* An error type is compatible with anything under the right setting
          of the input flags. */
@@ -4539,14 +4570,14 @@ for exact pointer equality.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
-
+done:
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "f_types_are_compatible: %s\n", compat ? "TRUE":"FALSE");
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return(compat);
+  return compat;
 }  /* f_types_are_compatible */
 
 
