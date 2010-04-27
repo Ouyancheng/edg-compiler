@@ -2071,7 +2071,7 @@ of anonymous unions by adding the necessary intermediate field selections.
       }  /* if */
     }
 #else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-   adjust_field_selection_for_anonymous_union_references(node);
+    adjust_field_selection_for_anonymous_union_references(node);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
   return node;
