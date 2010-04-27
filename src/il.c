@@ -13778,24 +13778,27 @@ end_of_routine:
 
 
 a_type_ptr type_of_decltype_expr_with_substitution(
+                                  a_type_ptr               type,
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error)
 /*
-expr is the expression that underlies a decltype operator.  Make a copy of
-it, doing template substitution according to template_arg_list,
-template_param_list, and options, with an associated source position of
-source_pos.  Return the decltype type after substitution, or *copy_error
-set to TRUE for an error.
+type is a decltype type, and expr is the expression that underlies it. 
+Make a copy of the expression, doing template substitution according
+to template_arg_list, template_param_list, and options, with an
+associated source position of source_pos.  Return the decltype type
+after substitution, or *copy_error set to TRUE for an error.
+Also used for typeof cases; "type" can be consulted to tell the difference.
 */
 {
   a_type_ptr new_type = NULL;
 
   if (cpp0x_sfinae_enabled) {
     /* C++0X SFINAE rules: do the substitution by rescanning. */
-    new_type = decltype_of_expr_with_substitution(expr,
+    new_type = decltype_of_expr_with_substitution(type,
+                                                  expr,
                                                   template_arg_list,
                                                   template_param_list,
                                                   options,

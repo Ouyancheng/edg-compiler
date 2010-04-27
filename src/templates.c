@@ -7989,8 +7989,10 @@ a pointer over a reference type or creating an array of references.
         if (typeref_is_decltype_or_typeof(type) &&
             (expr = decltype_arg(type)) != NULL) {
           /* decltype or typeof based on an expression: do substitution on the
-             expression and see what its type is. */
+             expression and see what its type is.  For typeof(type), fall into
+             the code below to do substitution. */
           new_type = type_of_decltype_expr_with_substitution(
+                                            type,
                                             expr,
                                             templ_arg_list,
                                             templ_param_list,

@@ -8087,18 +8087,20 @@ points to the space to be used for the stack entry to be pushed.
 
 
 a_type_ptr decltype_of_expr_with_substitution(
+                                  a_type_ptr               type,
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error)
 /*
-expr is the previously-scanned operand expression of a decltype.  Do
-template deduction substitution on it using template_arg_list,
-template_param_list, and options.  Return the type of decltype applied
-to the resulting expression, or *copy_error set to TRUE if there was
-an error.  This routine is intended to be called from outside of the
-expression-processing routines.
+type is a decltype type, and expr is the previously-scanned operand
+expression of the decltype.  Do template deduction substitution on it
+using template_arg_list, template_param_list, and options.  Return the
+type of decltype applied to the resulting expression, or *copy_error
+set to TRUE if there was an error.  Also used for typeof cases; "type"
+can be consulted to tell the difference.  This routine is intended to be
+called from outside of the expression-processing routines.
 */
 {
   a_type_ptr               new_type;
@@ -8106,7 +8108,12 @@ expression-processing routines.
   a_template_decl_info_ptr tdip;
   an_expr_stack_entry_ptr  saved_expr_stack;
   an_expr_stack_entry      expr_stack_entry;
+  a_boolean                is_typeof = FALSE;
 
+  check_assertion(type->kind == (a_type_kind)tk_typeref);
+#if GNU_EXTENSIONS_ALLOWED
+  if (type->variant.typeref.is_typeof) is_typeof = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   clear_rescan_control_block(&rcblock);
   rcblock.template_arg_list = template_arg_list;
   rcblock.template_param_list = template_param_list;
@@ -8115,7 +8122,15 @@ expression-processing routines.
   push_expr_rescan_context_if_necessary(&rcblock, &tdip, &saved_expr_stack);
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
                                   &expr_stack_entry);
-  new_type = scan_decltype_operator(&rcblock, (a_decl_pos_block *)NULL);
+  if (!is_typeof) {
+    new_type = scan_decltype_operator(&rcblock, (a_decl_pos_block *)NULL);
+  } else {
+#if GNU_EXTENSIONS_ALLOWED
+    new_type = scan_typeof_operator(&rcblock, (a_decl_pos_block *)NULL);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+    unexpected_condition();
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (rcblock.error_detected) *copy_error = TRUE;
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
@@ -8127,7 +8142,8 @@ expression-processing routines.
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-a_type_ptr scan_typeof_operator(a_decl_pos_block  *decl_pos_block)
+a_type_ptr scan_typeof_operator(a_rescan_control_block *rcblock,
+                                a_decl_pos_block       *decl_pos_block)
 /*
 Scan the typeof operator.  This is a GNU C/C++ extension that is similar
 to sizeof, but returns the type rather than the size.  It is used
@@ -8138,9 +8154,11 @@ Syntax:
         typeof ( expression )   or   __typeof__ ( expression )
 
 The parentheses are required, unlike for sizeof.  If decl_pos_block is
-not NULL, the end position in its specifiers_range is updated.  This
-routine is intended to be called from outside of the
-expression-processing routines.
+not NULL, the end position in its specifiers_range is updated.  If
+rcblock is non-NULL, redo semantic analysis on a previously-scanned
+typeof expression, and return the result type (or an error indication
+in *rcblock).  This routine is intended to be called from outside of
+the expression-processing routines.
 */
 {
   a_type_ptr                  result;
@@ -8152,43 +8170,63 @@ expression-processing routines.
   a_scope_depth               expr_scope_depth;
   a_memory_region_number      region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr  ssep;
+  a_source_sequence_entry_ptr ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
 
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
      stack should therefore not be pushed until we know that the argument is
      indeed an expression.  Otherwise, "in_expression_context()" may return
      the wrong answer. */
-  /* Skip the typeof or __typeof__ token. */
-  check_assertion(gnu_mode && curr_token == tok_typeof);
-  report_gnu_extension_if_needed(&pos_curr_token, ec_typeof_is_gnu_extension);
-  (void)get_token();
-  /* Check for and pass over the left parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* A typeof construct may include embedded statements and declarations if it
-     contains a statement expression.  To allow e.g. the C++-generating back
-     end to associate the resulting source sequence entries with the typeof
-     type, we delimit them by a (iek_type, iek_src_seq_end_of_construct) pair
-     of source sequence entries. */
-  { switch_to_file_scope_region(&region_to_switch_back_to);
-    ssep = add_empty_source_sequence_entry();
-    switch_back_to_original_region(region_to_switch_back_to);
-  }
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Distinguish between the type-name and expression case. */
-  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                       DFS_SINGLE_TYPE_REQUIRED)) {
-    /* Scan a type name. */
-    is_type = TRUE;
-    add_stop_token(tok_rparen);
-    type_name(&result);
-    remove_stop_token(tok_rparen);
-  } else {
-    /* Scan an expression. */
+  check_assertion(gnu_mode);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression.
+       Note that rcblock->expr is the expression that is the operand of
+       the typeof, not the typeof itself, because there is no expression
+       for that. */
+    check_assertion(!C_mode());
+    check_assertion(decl_pos_block == NULL);
+    /* The typeof(type) case doesn't come here (it doesn't require a
+       rescan). */
     is_type = FALSE;
+    ssep = NULL;
+    /* The operand is picked up later after the expression stack has been
+       pushed. */
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Skip the typeof or __typeof__ token. */
+    check_assertion(curr_token == tok_typeof);
+    report_gnu_extension_if_needed(&pos_curr_token,
+                                   ec_typeof_is_gnu_extension);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* A typeof construct may include embedded statements and declarations if
+       it contains a statement expression.  To allow e.g. the C++-generating
+       back end to associate the resulting source sequence entries with the
+       typeof type, we delimit them by a (iek_type,
+       iek_src_seq_end_of_construct) pair of source sequence entries. */
+    { switch_to_file_scope_region(&region_to_switch_back_to);
+      ssep = add_empty_source_sequence_entry();
+      switch_back_to_original_region(region_to_switch_back_to);
+    }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    /* Distinguish between the type-name and expression case. */
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      /* typeof(typename) case. */
+      is_type = TRUE;
+      add_stop_token(tok_rparen);
+      type_name(&result);
+      remove_stop_token(tok_rparen);
+    } else {
+      /* typeof(expression) case. */
+      is_type = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!is_type) {
+    /* typeof(expression) case. */
     /* If we're in the file-scope memory region instead of a function-scope
        memory region because we're scanning something like a template argument,
        switch back.  If we're in a function, any expression nodes allocated
@@ -8203,8 +8241,18 @@ expression-processing routines.
     transfer_expr_context_if_applicable(saved_expr_stack);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
-    add_matching_stop_token(tok_rparen);
-    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    if (rcblock != NULL) {
+      /* This call is done late because we need the expression stack to be
+         pushed already. */
+      make_rescan_operand(rcblock->expr, rcblock, &operand);
+    } else {
+      /* Scan the expression from source. */
+      /* This call is done late because we need the expression stack to be
+         pushed already. */
+      add_matching_stop_token(tok_rparen);
+      scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+      remove_matching_stop_token(tok_rparen);
+    }  /* if */
     error_if_indefinite_function(&operand);
     force_complete_type_if_a_variable(&operand);
     result = operand.type;
@@ -8217,7 +8265,6 @@ expression-processing routines.
         result = make_unqualified_type(result);
       }  /* if */
     }  /* if */
-    remove_matching_stop_token(tok_rparen);
   }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
@@ -8277,8 +8324,10 @@ expression-processing routines.
     decl_pos_block->specifiers_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Check for and pass over the right parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
+  if (rcblock == NULL) {
+    /* Check for and pass over the right parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
   return result;
 }  /* scan_typeof_operator */
 
@@ -22101,7 +22150,8 @@ type_start:
                              (a_decl_pos_block_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (curr_token == tok_typeof) {
-          cast_type = scan_typeof_operator((a_decl_pos_block*)NULL);
+          cast_type = scan_typeof_operator((a_rescan_control_block *)NULL,
+                                           (a_decl_pos_block*)NULL);
         } else if (gpp_mode && gnu_version < 30400 &&
                    (is_class_type_keyword(curr_token) ||
                     curr_token == tok_enum)) {

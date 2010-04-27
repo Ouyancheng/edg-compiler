@@ -290,7 +290,8 @@ a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
                                   a_decl_pos_block       *decl_pos_block);
 
 extern a_type_ptr decltype_of_expr_with_substitution(
-                                  an_expr_node_ptr expr,
+                                  a_type_ptr               type,
+                                  an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_ctws_options_set       options,
@@ -298,7 +299,8 @@ extern a_type_ptr decltype_of_expr_with_substitution(
 
 #if GNU_EXTENSIONS_ALLOWED 
 
-extern a_type_ptr scan_typeof_operator(a_decl_pos_block  *decl_pos_block);
+extern a_type_ptr scan_typeof_operator(a_rescan_control_block *rcblock,
+                                       a_decl_pos_block       *decl_pos_block);
 
 extern void typedef_initializer(a_symbol_ptr  symbol_ptr);
 
