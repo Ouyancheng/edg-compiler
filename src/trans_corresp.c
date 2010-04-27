@@ -2299,6 +2299,9 @@ entry.
       match_mode = acflags & ACF_MATCH_MASK;
       ap2 = atable2[(int)ap1->kind];
       if (match_mode == ACF_CUSTOM_MATCH) {
+        /* Call a custom function to check whether the attributes match.
+           (Such a function can be specified in the attr_corresp_table array
+           defined in attribute.c.) */
         check_assertion(checking_fn != 0);
         (void)checking_fn(entity1, entity2, entity_kind, ap1, ap2);
       } else if (ap2 == NULL) {
@@ -2612,7 +2615,7 @@ declaration modifiers.
     /* The noreturn attribute need not be specified on every declaration, but
        if it appears on one, it must also appear on the definition.  (The
        standard C++0x [[noreturn]] attribute has stricter requirements: They
-       are verified in verify_attributes_correspondence. */
+       are verified in verify_attributes_correspondence.) */
     if ((routine_does_not_return(rp1) && rp2->defined) ||
         (routine_does_not_return(rp2) && rp1->defined)) {
       result = TRUE;
@@ -2813,11 +2816,13 @@ is in fact valid.
       pos1 = &routine->source_corresp.decl_position;
       pos2 = &corresp_routine->source_corresp.decl_position;
       for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
+        check_assertion(ptp2 != NULL);
         verify_attr_corresp_one_way((char*)ptp1, (char*)ptp2, iek_param_type,
                                     pos2);
         verify_attr_corresp_one_way((char*)ptp2, (char*)ptp1, iek_param_type,
                                     pos1);
       }  /* for */
+      check_assertion(ptp2 != NULL);
     }  /* if */
   }  /* if */
 done:
