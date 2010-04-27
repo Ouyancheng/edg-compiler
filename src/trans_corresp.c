@@ -2819,7 +2819,9 @@ is in fact valid.
     } else if (match) {
       verify_corresp_for_default_arg_entities(routine, corresp_routine);
     }  /* if */
-    if (match) {
+    if (match &&
+        type->variant.routine.extra_info->prototyped &&
+        corresp_type->variant.routine.extra_info->prototyped) {
       /* Verify that attributes on the routine and on its parameters match
          across translation units. */
       a_param_type_ptr   ptp1 = function_type_params(type),
