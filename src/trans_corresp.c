@@ -93,6 +93,14 @@ static unsigned long corresp_errors;
 
 #define any_noncorresp_errors() ((total_errors - corresp_errors) != 0)
 
+#if CHECKING
+/*
+For consistency checking we also keep track of the total number of
+correspondence errors across all translation units.
+*/
+static unsigned long total_corresp_errors;
+#endif /* CHECKING */
+
 /*
 Whenever the canonical entry of a correspondence set changes from an entry
 in a translation unit that is already processed to an entry in the current
@@ -842,9 +850,11 @@ has not yet been examined for a matching entry in another translation unit.
 #endif /* CHECKING */
   } else {
     /* Reuse the correspondence entry.  (Normally, the entry shouldn't be
-       shared.  However, an exception is the sharing by two template
-       entries that are in the same translation unit.) */
-    check_assertion_str((*tcp)->count == 1 || kind == iek_template,
+       shared.  An exception is the sharing by two template entries that are
+       in the same translation unit.  Correspondence errors can also lead
+       to unexpected sharing.) */
+    check_assertion_str((*tcp)->count == 1 || kind == iek_template ||
+                        total_corresp_errors != 0,
                         "f_set_no_trans_unit_corresp: correspondence busy");
   }  /* if */
   change_canonical_entry(*tcp, entity);
@@ -948,6 +958,9 @@ with same_src_error; otherwise, use distinct_src_error.
     }  /* if */
   }  /* if */
   corresp_errors += (total_errors - saved_total_errors);
+#if CHECKING
+  total_corresp_errors += (total_errors - saved_total_errors);
+#endif /* CHECKING */
 }  /* report_corresp_error */
 
 
@@ -7150,6 +7163,7 @@ for each compilation.
   verification_list = NULL;
   avail_verification_entries = NULL;
   instantiations_to_process = NULL;
+  total_corresp_errors = 0;
 }  /* corresp_init */
 
 
