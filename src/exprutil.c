@@ -2443,7 +2443,6 @@ in *bound_function_selector.
        and then back again. */
     rescan_expr_with_substitution_internal(expr, rcblock,
                                            local_options,
-                                           /*force_stack_push=*/FALSE,
                                            operand, bound_function_selector);
     rescanned_case = TRUE;
   } else {
@@ -3058,7 +3057,8 @@ that extra work.
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+  check_assertion(expr_stack != NULL);
+  if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr preexisting_node = expr_node_from_operand(operand);
     /* For an expression that may be rescanned to do semantic analysis
        later for template deduction, save extra information from the

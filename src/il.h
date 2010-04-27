@@ -1348,9 +1348,11 @@ typedef int a_ctws_options_set;
 #define CTWS_IS_PARTIAL_ORDER_CHECK	0x8
 			/* TRUE when creating the substituted routine type
 			   as part of the partial ordering process. */
-#define CTWS_NOT_TOP_LEVEL		0x10
-			/* TRUE when copy_type_with_substitution is called
-			   recursively. */
+#define CTWS_INSIDE_EXPR_RESCAN		0x10
+			/* TRUE when we're inside a rescan of an expression.
+			   Used to control pushing a template instantiation
+			   scope when we first enter an expression rescan,
+			   and not again in any nested processing. */
 
 
 extern an_expr_node_ptr copy_template_param_expr(

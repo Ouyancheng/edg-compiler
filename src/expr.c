@@ -8014,6 +8014,78 @@ outside of the expression-processing routines.
 }  /* scan_decltype_operator */
 
 
+static void push_expr_rescan_context_if_necessary(
+                                    a_rescan_control_block   *rcblock,
+                                    a_template_decl_info_ptr *tdip,
+                                    an_expr_stack_entry_ptr  *saved_expr_stack)
+/*
+We're starting on processing the rescanning of an expression.  If we're
+at the top level, push a template instantiation scope and restart the
+expression stack.  rcblock gives the rescan information, including a
+flag that can tell us whether we're at the top level.  *tdip is returned
+non-NULL if a context was pushed; it can be passed later to
+pop_expr_rescan_context_if_necessary.  *saved_expr_stack provides a
+place to save the current expression stack pointer, for restoration
+when the context pop is done.
+*/
+{
+  *tdip = NULL;
+  *saved_expr_stack = NULL;
+  if (!(rcblock->options & CTWS_INSIDE_EXPR_RESCAN)) {
+    rcblock->options |= CTWS_INSIDE_EXPR_RESCAN;
+    save_expr_stack(saved_expr_stack);
+    *tdip = alloc_template_decl_info();
+    (void)push_template_instantiation_scope(
+                              *tdip, (a_type_ptr)NULL, (a_routine_ptr)NULL,
+                              (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                              (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/TRUE,
+                              PS_NONREAL_INSTANTIATION);
+  } else {
+    /* We're already inside an expression rescan, so there should be an
+       expression stack already. */
+    check_assertion(expr_stack != NULL);
+  }  /* if */
+}  /* push_expr_rescan_context_if_necessary */
+
+
+static void pop_expr_rescan_context_if_necessary(
+                                     a_template_decl_info_ptr tdip,
+                                     an_expr_stack_entry_ptr  saved_expr_stack)
+/*
+Pop a context for an expression rescan if one was pushed by
+push_expr_rescan_context_if_necessary.  tdip and saved_expr_stack are the
+values returned from the push.
+*/
+{
+  if (tdip != NULL) {
+    pop_template_instantiation_scope();
+    free_template_decl_info(tdip);
+    restore_expr_stack(saved_expr_stack);
+  }  /* if */
+}  /* pop_expr_rescan_context_if_necessary */
+
+
+static void push_expr_stack_for_expr_rescan(
+                                         an_expression_kind  kind,
+                                         an_expr_stack_entry *expr_stack_entry)
+/*
+Push an entry on the expression stack as the context for an expression
+rescan.  kind indicates the kind of entry to push.  expr_stack_entry
+points to the space to be used for the stack entry to be pushed.
+*/
+{
+  push_expr_stack(kind, expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry->template_deduction_context = TRUE;
+  expr_stack_entry->suppress_diagnostics = TRUE;
+  /* Following allows rescans that substitute some template arguments,
+     and a later rescan that substitutes more of them. */
+  expr_stack_entry->possible_rescan_context = TRUE;
+}  /* push_expr_stack_for_expr_rescan */
+
+
 a_type_ptr decltype_of_expr_with_substitution(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
@@ -8029,16 +8101,24 @@ an error.  This routine is intended to be called from outside of the
 expression-processing routines.
 */
 {
-  a_type_ptr             new_type;
-  a_rescan_control_block rcblock;
+  a_type_ptr               new_type;
+  a_rescan_control_block   rcblock;
+  a_template_decl_info_ptr tdip;
+  an_expr_stack_entry_ptr  saved_expr_stack;
+  an_expr_stack_entry      expr_stack_entry;
 
   clear_rescan_control_block(&rcblock);
   rcblock.template_arg_list = template_arg_list;
   rcblock.template_param_list = template_param_list;
   rcblock.options = options;
   rcblock.expr = expr;
+  push_expr_rescan_context_if_necessary(&rcblock, &tdip, &saved_expr_stack);
+  push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
+                                  &expr_stack_entry);
   new_type = scan_decltype_operator(&rcblock, (a_decl_pos_block *)NULL);
   if (rcblock.error_detected) *copy_error = TRUE;
+  pop_expr_stack();
+  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
   return new_type;
 }  /* decltype_of_expr_with_substitution */
 
@@ -24057,7 +24137,6 @@ void rescan_expr_with_substitution_internal(
                              an_expr_node_ptr         expr,
                              a_rescan_control_block   *rcblock,
                              a_local_expr_options_set local_options,
-                             a_boolean                force_stack_push,
                              an_operand               *result,
                              an_operand               *bound_function_selector)
 /*
@@ -24071,11 +24150,9 @@ and if the expression results in a bound function, *bound_function_selector
 is set to the selector; if bound_function_selector is NULL and the
 expression results in a bound function, an error is (conceptually)
 issued.  local_options provides some options, in particular
-information about the immediate parent operator.  If force_stack_push
-is TRUE, a push on the expression stack is always done; otherwise, it
-is done only if needed.  This routine is intended for use within the
-expression-processing routines; for an alternative callable from
-outside, see rescan_expr_with_substitution.
+information about the immediate parent operator.  This routine is
+intended for use within the expression-processing routines; for an
+alternative callable from outside, see rescan_expr_with_substitution.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -24087,6 +24164,8 @@ outside, see rescan_expr_with_substitution.
   a_boolean                     stack_pop_needed = FALSE;
   an_expr_node_ptr              saved_expr = rcblock->expr;
   an_operand                    local_bound_function_selector;
+  a_template_decl_info_ptr      tdip;
+  an_expr_stack_entry_ptr       saved_expr_stack;
 
   if (bound_function_selector == NULL) {
     bound_function_selector = &local_bound_function_selector;
@@ -24098,15 +24177,13 @@ outside, see rescan_expr_with_substitution.
   if (eriep == NULL) {
     eriep = get_expr_rescan_info(expr, &rescan_info);
   }  /* if */
-  if (force_stack_push || expr_stack == NULL ||
+  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack);
+  /* Push an expression stack entry if the stack is empty or if the kind of
+     top stack entry we have is not what we need. */
+  if (expr_stack == NULL ||
       eriep->expression_kind != expr_stack->expression_kind ||
       !expr_stack->template_deduction_context) {
-    push_expr_stack(eriep->expression_kind, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
-    expr_stack_entry.template_deduction_context = TRUE;
-    expr_stack_entry.suppress_diagnostics = TRUE;
-    expr_stack_entry.possible_rescan_context = TRUE;
+    push_expr_stack_for_expr_rescan(eriep->expression_kind, &expr_stack_entry);
     stack_pop_needed = TRUE;
   }  /* if */
   saved_default_rescan_info = expr_stack->default_rescan_info;
@@ -24331,6 +24408,7 @@ outside, see rescan_expr_with_substitution.
   }  /* if */
   expr_stack->default_rescan_info = saved_default_rescan_info;
   if (stack_pop_needed) pop_expr_stack();
+  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
   rcblock->expr = saved_expr;
 }  /* rescan_expr_with_substitution_internal */
 
@@ -24351,11 +24429,21 @@ NULL is returned.  This is intended for calls from outside of the
 expression-processing routines.
 */
 {
-  an_operand result;
+  an_operand               result;
+  a_template_decl_info_ptr tdip;
+  an_expr_stack_entry_ptr  saved_expr_stack;
+  an_expr_stack_entry      expr_stack_entry;
 
+  push_expr_rescan_context_if_necessary(rcblock, &tdip, &saved_expr_stack);
+  /* We push our own stack entry at this level, instead of just letting
+     rescan_expr_with_substitution_internal handle it, because we
+     want to have the entry on the stack still at the end of this
+     routine when we extract the expression from the operand. */
+  push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
+                                  &expr_stack_entry);
   rescan_expr_with_substitution_internal(expr, rcblock,
                                          EOPT_NO_OPTIONS,
-                                         /*force_stack_push=*/TRUE, &result,
+                                         &result,
                                          (an_operand *)NULL);
   if (rcblock->error_detected) {
     set_error_constant(constant);
@@ -24367,6 +24455,8 @@ expression-processing routines.
   } else {
     expr = make_node_from_operand(&result);
   }  /* if */
+  pop_expr_stack();
+  pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
   return expr;
 }  /* rescan_expr_with_substitution */
 

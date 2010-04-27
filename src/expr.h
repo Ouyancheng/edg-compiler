@@ -252,7 +252,6 @@ extern void rescan_expr_with_substitution_internal(
                             an_expr_node_ptr         expr,
                             a_rescan_control_block   *rcblock,
                             a_local_expr_options_set local_options,
-                            a_boolean                force_stack_push,
                             an_operand_ptr           result,
                             an_operand_ptr           bound_function_selector);
 
