@@ -2822,7 +2822,7 @@ is in fact valid.
         verify_attr_corresp_one_way((char*)ptp2, (char*)ptp1, iek_param_type,
                                     pos1);
       }  /* for */
-      check_assertion(ptp2 != NULL);
+      check_assertion(ptp2 == NULL);
     }  /* if */
   }  /* if */
 done:
