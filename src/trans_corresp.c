@@ -3760,17 +3760,16 @@ is in fact valid.
       if (symbol_is(proto_sym, sk_type)) {
         /* An alias template. */
         /* First process the prototype instantiation. */
-          match = verify_type_correspondence(proto_sym->variant.type.ptr);
-          if (match) {
-            /* Only check real instantiations if the prototype instantiation
-               matched. */
-            for (slep = tssp->variant.class_template.instantiations;
-                 slep != NULL; slep = slep->next) {
-              a_symbol_ptr inst = slep->symbol;
-              a_type_ptr   inst_type = type_symbol_type(inst);
-              (void)verify_type_correspondence(inst_type);
-            }  /* for */
-          }  /* if */
+        match = verify_type_correspondence(proto_sym->variant.type.ptr);
+        if (match) {
+          /* Only check real instantiations if the prototype instantiation
+             matched. */
+          for (slep = tssp->variant.class_template.instantiations;
+               slep != NULL; slep = slep->next) {
+            a_type_ptr  inst_type = slep->symbol->variant.type.ptr;
+            (void)verify_type_correspondence(inst_type);
+          }  /* for */
+        }  /* if */
       } else {
         /* An ordinary class template. */
         a_type_ptr  proto = proto_sym->variant.class_struct_union.type,
@@ -5360,6 +5359,16 @@ template.
         goto done;
       }  /* if */
     }  /* if */
+  } else if (symbol_is(inst, sk_type)) {
+    /* An alias template. */
+    a_type_ptr  inst_type = inst->variant.type.ptr;
+    if (inst_type->variant.typeref.is_nonreal &&
+        !inst_type->variant.typeref.is_prototype_instantiation) {
+      /* Every nonreal nonprototype instance of a template is considered a
+         distinct entry that does not correspond to another entry. */
+      set_no_trans_unit_corresp(iek_type, (char*)inst_type);
+      goto done;
+    }  /* if */
   }  /* if */
   if (is_primary_translation_unit) {
     a_template_ptr  templ;
@@ -5515,40 +5524,48 @@ be templ itself and therefore unusable).
   } else if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
     /* Record the instantiations for later processing to avoid infinite
        recursion. */
-    a_symbol_list_entry_ptr slep;
-    a_symbol_ptr            inst;
+    a_symbol_ptr  inst, corresp_inst;
+    a_type_ptr    inst_type, corresp_inst_type;
+    a_boolean     is_alias = tssp->variant.class_template.is_alias_template;
+    a_symbol_list_entry_ptr
+                  slep;
     for (slep = tssp->variant.class_template.instantiations;
          slep != NULL; slep = slep->next) {
       inst = slep->symbol;
-      if (!has_correspondence(inst->variant.class_struct_union.type)) {
+      inst_type = is_alias ? inst->variant.type.ptr :
+                             inst->variant.class_struct_union.type;
+      if (!has_correspondence(inst_type)) {
         add_pending_instantiation(inst);
       }  /* if */
     }  /* for */
     for (slep = corresp_tssp->variant.class_template.instantiations;
          slep != NULL; slep = slep->next) {
       inst = slep->symbol;
-      if (!has_correspondence(inst->variant.class_struct_union.type)) {
+      inst_type = is_alias ? inst->variant.type.ptr :
+                             inst->variant.class_struct_union.type;
+      if (!has_correspondence(inst_type)) {
         add_pending_instantiation(inst);
       }  /* if */
     }  /* for */
     /* Also process the prototype instantiations. */
     if (tssp->variant.class_template.prototype_instantiation != NULL) {
-      a_type_ptr    class_type = tssp
-                              ->variant.class_template.prototype_instantiation
-                              ->variant.class_struct_union.type;
-      a_symbol_ptr  corresp_proto;
-      corresp_proto = corresp_tssp
+      inst = tssp->variant.class_template.prototype_instantiation;
+      inst_type = is_alias ? inst->variant.type.ptr :
+                             inst->variant.class_struct_union.type;
+      corresp_inst = corresp_tssp
                              ->variant.class_template.prototype_instantiation;
-      /* For instantiations from template template parameters corresp_proto
+      /* For instantiations from template template parameters corresp_inst
          will be NULL.  It will also be NULL for nonprototype templates (the
          prototype instantiation is attached to the corresponding prototype
          template). */
-      if (corresp_proto != NULL &&
+      if (corresp_inst != NULL &&
           corresp_templ->canonical_template != templ->canonical_template) {
-        set_type_corresp(class_type,
-                         corresp_proto->variant.class_struct_union.type);
+        corresp_inst_type = is_alias ?
+                                corresp_inst->variant.type.ptr :
+                                corresp_inst->variant.class_struct_union.type;
+        set_type_corresp(inst_type, corresp_inst_type);
       } else {
-        clear_type_correspondence(class_type, /*visited=*/TRUE);
+        clear_type_correspondence(inst_type, /*visited=*/TRUE);
       }  /* if */
     }  /* if */
   } else {
@@ -6775,8 +6792,8 @@ corresponding instance, or NULL if no corresponding instance is found.
       if (result_sym == NULL) {
         /* We still haven't found a match.  Go through the instantiations
            list. */
-        a_symbol_list_entry_ptr	slep;
-        a_symbol_ptr            inst_sym;
+        a_symbol_list_entry_ptr	 slep;
+        a_symbol_ptr             inst_sym;
         for (slep = tssp->variant.class_template.instantiations;
              slep != NULL; slep = slep->next) {
           inst_sym = slep->symbol;
@@ -6791,9 +6808,9 @@ corresponding instance, or NULL if no corresponding instance is found.
     if (result_sym == NULL) {
       /* No symbol was found.  Instantiate the class in the other translation
          unit. */
-      a_template_arg_ptr		templ_arg_list;
-      a_type_ptr			class_type;
-      a_class_type_supplement_ptr	ctsp;
+      a_template_arg_ptr           templ_arg_list;
+      a_type_ptr                   class_type;
+      a_class_type_supplement_ptr  ctsp;
       class_type = sym_to_find->variant.class_struct_union.type;
       ctsp = class_type_supp(class_type);
       /* This routine cannot create a new prototype instantiation in the other
