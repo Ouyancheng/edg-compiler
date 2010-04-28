@@ -2430,6 +2430,7 @@ the scope being pushed.
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_class_specialization  = FALSE;
+  ssep->in_template_deduction_context = FALSE;
   ssep->defer_access_checks      = FALSE;
   ssep->nested_instantiation     = FALSE;
   ssep->is_try_block             = FALSE;
@@ -2892,6 +2893,15 @@ the scope being pushed.
         ssep->depth_template_declaration_scope =
           depth_template_declaration_scope = NO_SCOPE_DEPTH;
       }  /* if */
+    }  /* if */
+    /* The in_template_deduction_context field should be TRUE for
+       template declaration scopes and function prototype scopes directly
+       within a template declaration scope. */
+    if (kind == (a_scope_kind)sck_template_declaration) {
+      ssep->in_template_deduction_context = TRUE;
+    } else if (kind == (a_scope_kind)sck_func_prototype) {
+      ssep->in_template_deduction_context =
+                                       (ssep-1)->in_template_deduction_context;
     }  /* if */
     if (kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_namespace_extension ||

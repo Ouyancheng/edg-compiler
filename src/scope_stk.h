@@ -372,6 +372,12 @@ typedef struct a_scope_stack_entry {
 			   contexts within prototype instantiations that
 			   represent explicit instantiations (which must be
 			   handled specially in certain contexts). */
+  a_bit_field	in_template_deduction_context:1;
+			/* TRUE if we are in a context in which an expression
+			   is being scanned that could later potentially
+			   participate in template argument deduction
+			   and/or template argument substitution into an
+			   expression. */
   a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
@@ -1059,10 +1065,8 @@ that could later potentially participate in template argument deduction
 and/or template argument substitution into an expression.
 */
 #define is_template_deduction_context()					\
-  (depth_template_declaration_scope != NO_SCOPE_DEPTH &&		\
-   ( depth_scope_stack == depth_template_declaration_scope ||           \
-    (depth_scope_stack == depth_template_declaration_scope+1 &&         \
-     scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_func_prototype)))
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH ?			\
+   scope_stack[depth_scope_stack].in_template_deduction_context : FALSE)
 
 
 /*
