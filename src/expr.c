@@ -8189,7 +8189,9 @@ the expression-processing routines.
     /* The typeof(type) case doesn't come here (it doesn't require a
        rescan). */
     is_type = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* The operand is picked up later after the expression stack has been
        pushed. */
   } else {
