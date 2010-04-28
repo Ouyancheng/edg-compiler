@@ -4130,7 +4130,9 @@ Do C99 lowering on the indicated variable and its subtree.
   lower_c99_source_correspondence(&var->source_corresp);
   lower_c99_initializer(var->init_kind, &var->initializer, var);
 #if GNU_EXTENSIONS_ALLOWED
-  if (force_variable_definition_via_zeroing && var->is_not_common &&
+  if (force_variable_definition_via_zeroing &&
+      (var->is_not_common ||
+       (il_header.default_nocommon && !var->is_common)) &&
       var->storage_class == (a_storage_class)sc_unspecified &&
       var->init_kind == (an_init_kind)initk_none) {
     /* GNU C allows variables without initializers to be marked as "nocommon",

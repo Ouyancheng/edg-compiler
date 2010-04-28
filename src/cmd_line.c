@@ -1248,6 +1248,14 @@ Initialize the option information table.
   add_option_description(optk_nonstd_gnu_keywords, "no_nonstd_gnu_keywords",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_default_nocommon,
+                         "default_nocommon_tentative_definitions", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_default_nocommon,
+                         "default_common_tentative_definitions", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_option_description(optk_token_separators_in_pp_output,
                          "no_token_separators_in_pp_output", '\0',
@@ -8061,6 +8069,9 @@ enable_microsoft_mode:
         break;
       case optk_nonstd_gnu_keywords:
         nonstd_gnu_keywords_enabled = opt_value;
+        break;
+      case optk_default_nocommon:
+        il_header.default_nocommon = opt_value;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case optk_token_separators_in_pp_output:

@@ -1,5 +1,46 @@
 Version 4.2
 
+4/28/10  [EDGcpfe/8984]
+GNU compatibility: common/nocommon variables
+
+In GNU C mode, the front end already accepted the "nocommon" attribute: The
+intent of the attribute is to indicate that a "tentatively defined" variable
+should not be placed in "common" storage (implying that it is treated like an
+ordinary definition: duplicate tentative definitions should then result in
+linker errors).
+
+A new command-line option "--default_nocommon_tentative_definitions" now
+indicates that all tentative definitions should be treated by default as if
+they were declared with the "nocommon" attribute (this matches the GCC option
+"-fno-common").  The front end now also accepts the GNU "common" attribute to
+override the behavior implied by this new command-line option for a specific
+variable.  For example:
+
+  __attribute((common)) int x;  /* Tentative definition is always placed in
+                                   "common" storage -- even if the option
+                                   --default_nocommon_tentative_definitions
+                                   is specified. */
+
+The command-line option "--default_common_tentative_definitions" (matching
+GCC's "-fcommon") is also accepted.  Its only effect is to cancel out a prior
+occurrence of "--default_nocommon_tentative_definitions".
+
+Finally, the "common" and "nocommon" attributes are now accepted in GNU C++
+mode (even though they presumably have no effect in that mode since C++ has no
+notion of "tentatively defined" variables).
+
+Note: The new is_common flag in a_variable, like the existing is_not_common
+flag, only reflects the presence of the corresponding GNU attribute.  Back
+ends are responsible for determining the appropriate storage for various
+variables.  For example, it appears that GCC will avoid placing a tentatively
+defined variable in "common" storage if that variable is declared with the
+"section" attribute; such a variable will not have its is_not_common flag set
+to TRUE if it was not declared with the "nocommon" attribute.  Similarly, a
+variable definition with an initializer can include the "nocommon" attribute
+(and hence have its is_common flag set to TRUE), but it should not be placed
+in "common" storage.
+
+
 4/28/10  [EDGcpfe/10649]
 C++-generating back end: incorrect qualified names with MANGLE_ALL_NAMES
 

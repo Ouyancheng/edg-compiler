@@ -2250,6 +2250,9 @@ Display the indicated variable.
   if (ptr->is_not_common) {
     disp_boolean("is_not_common", TRUE);
   }  /* if */
+  if (ptr->is_common) {
+    disp_boolean("is_common", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (ptr->asm_name_is_valid) {
@@ -6045,6 +6048,7 @@ Display the IL for the file scope in human-readable form.
   disp_boolean("gpp_mode", (a_boolean)il_header.gpp_mode);
   disp_unsigned_long("gnu_version", il_header.gnu_version);
   disp_boolean("short_enums", (a_boolean)il_header.short_enums);
+  disp_boolean("default_nocommon", (a_boolean)il_header.default_nocommon);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   disp_boolean("near_and_far_are_enabled",

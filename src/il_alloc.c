@@ -1956,6 +1956,7 @@ Clear the fields of the given variable to default values.
   vp->has_gnu_unused_attribute    = FALSE;
   vp->has_gnu_used_attribute      = FALSE;
   vp->is_not_common               = FALSE;
+  vp->is_common                   = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   vp->asm_name_is_valid           = TRUE;

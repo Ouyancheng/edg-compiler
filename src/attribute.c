@@ -209,6 +209,7 @@ static an_attr_descr known_attr_table[] = {
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { "cleanup", "(n)", "gc", ak_cleanup },
   { "cold", "", "gx(40300-)", ak_cold },
+  { "common", "", "gx", ak_common },
   { "const", "", "gx", ak_const },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "constructor", "?(ci)", "gx", ak_constructor },
@@ -238,7 +239,7 @@ static an_attr_descr known_attr_table[] = {
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
   { "naked", "", "gx", ak_naked },
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
-  { "nocommon", "", "gc", ak_nocommon },
+  { "nocommon", "", "gx", ak_nocommon },
   { "noinline", "", "gx", ak_noinline },
   { "nonnull", "?(?ci+)", "gx", ak_nonnull },
   { "noreturn", "", "gx", ak_noreturn },
@@ -455,6 +456,7 @@ static an_attr_application_fn apply_always_inline_attr;
 static an_attr_application_fn apply_cdecl_attr;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 static an_attr_application_fn apply_cleanup_attr;
+static an_attr_application_fn apply_common_attr;
 static an_attr_application_fn apply_const_attr;
 static an_attr_application_fn apply_constructor_attr;
 static an_attr_application_fn apply_destructor_attr;
@@ -557,6 +559,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { ak_cleanup, "v|Wp", apply_cleanup_attr },
   { ak_cold, "r", NO_APPL_FN },
+  { ak_common, "v:-a|Wr", apply_common_attr },
   { ak_const, "t|r|v|d", apply_const_attr },
   { ak_constructor, "r", apply_constructor_attr },
   { ak_destructor, "r", apply_destructor_attr },
@@ -4210,6 +4213,21 @@ attribute to it and return the entity.
 }  /* apply_cleanup_attr */
 
 
+/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
+static char* apply_common_attr(an_attribute_ptr  ap,
+                                 char              *entity,
+                                 an_il_entry_kind  entity_kind)
+/*
+Apply the given "common" attribute to the given entity (which must be a
+variable) and return the entity.
+*/
+{
+  check_assertion(entity_kind == iek_variable);
+  ((a_variable_ptr)entity)->is_common = TRUE;
+  return entity;
+}  /* apply_common_attr */
+
+
 static char* apply_const_attr(an_attribute_ptr  ap,
                               char              *entity,
                               an_il_entry_kind  entity_kind)
@@ -4829,10 +4847,8 @@ static char* apply_nocommon_attr(an_attribute_ptr  ap,
                                  char              *entity,
                                  an_il_entry_kind  entity_kind)
 /*
-The given entity must be a variable or routine.  If it is a variable, the GNU
-"nocommon" attribute is applied to it.  If it is a routine, the attribute has
-no effect and a warning is issued.  In either case, the given entity is
-returned.
+Apply the given "nocommon" attribute to the given entity (which must be a
+variable) and return the entity.
 */
 {
   check_assertion(entity_kind == iek_variable);

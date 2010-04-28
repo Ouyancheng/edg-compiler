@@ -1948,6 +1948,7 @@ typedef enum an_attribute_kind_tag {
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   ak_cleanup,		/* "cleanup" (gnu). */
   ak_cold,		/* "cold" (gnu). */
+  ak_common,		/* "common" (gnu). */
   ak_const,		/* "const" (gnu). */
   ak_constructor,	/* "constructor" (gnu). */
   ak_destructor,	/* "destructor" (gnu). */
@@ -7656,9 +7657,17 @@ typedef struct a_variable {
 			/* TRUE if this variable was declared with the
 			   GNU "used" attribute. */
   a_bit_field   is_not_common:1;
-			/* TRUE if this variable should not be placed in
-			   COMMON (or an equivalent) even if it is
-			   zero-initialized. */
+			/* TRUE if this variable was marked with the GNU
+			   "nocommon" attribute, which indicates is should not
+			   be placed in "COMMON" (or an equivalent) storage
+			   (even if it has a "tentative definition").
+			   Note that GCC appears to ignore the attribute in
+			   many cases (e.g., in C++): This flag is TRUE even
+			   in those cases -- it only indicates that the
+			   attribute appeared. */
+  a_bit_field	is_common:1;
+			/* TRUE if this variable was marked with the GNU
+			   "common" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   a_bit_field   asm_name_is_valid:1;
@@ -14780,6 +14789,13 @@ typedef struct an_il_header {
 		short_enums;
 			/* TRUE if all enumeration types should be considered
 			   to be "packed". */
+  a_byte_boolean
+		default_nocommon;
+			/* TRUE if by default tentatively defined variables
+			   should be treated like zero-initialized variables
+			   (and hence not be placed in "COMMON" storage).
+			   This default behavior may be overridden with the
+			   GNU "common" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   a_byte_boolean
