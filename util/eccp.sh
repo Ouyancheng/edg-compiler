@@ -581,6 +581,8 @@ check_abbreviation()
 --db_name
 --debug
 --default_calling_convention
+--default_common_tentative_definitions
+--default_nocommon_tentative_definitions
 --defer_parse_function_templates
 --define_macro
 --definition_list_file
@@ -1199,6 +1201,8 @@ process_option()
          --no_alternative_tokens | \
          --nonstd_gnu_keywords | \
          --no_nonstd_gnu_keywords | \
+         --default_nocommon_tentative_definitions | \
+         --default_common_tentative_definitions | \
          --inlining | \
          --no_inlining | \
          --gcc89_inlining | \
