@@ -2433,7 +2433,7 @@ the meaning of need_closing_paren.
 {
   check_assertion(is_immediate_enum_type(enum_type) &&
                   integer_type_is_scoped_enum(enum_type));
-  if (has_name(enum_type)) {
+  if (has_name_before_mangling(enum_type)) {
     gen_name(&enum_type->source_corresp, iek_type, options | GN_QUALIFIER,
              need_closing_paren);
     write_tok_str("::");
@@ -2723,7 +2723,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             !(options & GN_QUALIFIER))) &&
           (scp->visible_as_unqualified_name ||
            (class_type->variant.class_struct_union.is_nonreal_class &&
-            !has_name(class_type)) ||
+            !has_name_before_mangling(class_type)) ||
            class_is_in_name_context_stack(class_type, include_base_classes))) {
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
@@ -4962,7 +4962,8 @@ is the one associated with the definition of the enum.
   gen_attributes(type->source_corresp.attributes, al_tag_name,
                  /*primary_only=*/TRUE);
   /* Put out the name if the enum is named. */
-  if (has_name(type) && !type->variant.integer.originally_unnamed) {
+  if (has_name_before_mangling(type) &&
+      !type->variant.integer.originally_unnamed) {
     write_space();
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
@@ -5512,8 +5513,8 @@ is the one associated with the definition of the class.
   /* Advance past the source sequence entry for the class itself. */
   check_and_take_source_seq_entry_for_type(type);
   if (msvc_is_generated_code_target &&
-      has_name(type) &&
-      strcmp(type->source_corresp.name, "_GUID") == 0) {
+      has_name_before_mangling(type) &&
+      strcmp(unmangled_name_of(&type->source_corresp), "_GUID") == 0) {
     /* When _GUID is defined, put out a #define for GUID_DEFINED.  This
        is needed because some attributes check for GUID_DEFINED as
        a way of knowing whether a definition of _GUID needs to be
@@ -6705,11 +6706,9 @@ generated as an expression and the expression is a named variable.
   a_boolean has_effective_name;
   if (constant_should_be_put_out_as_expr(con) &&
       con->expr->kind == (an_expr_node_kind)enk_variable) {
-    has_effective_name = has_name(con->expr->variant.variable);
-  } else
-  /* Do not insert code here. */
-  {
-    has_effective_name = has_name(con);
+    has_effective_name = has_name_before_mangling(con->expr->variant.variable);
+  } else {
+    has_effective_name = has_name_before_mangling(con);
   }  /* if */
   return has_effective_name;
 }  /* constant_has_effective_name */
@@ -8989,7 +8988,7 @@ gen_expr that might end up generating this expr as a temporary.
                 type->typedef_for_vacuous_dtor_call_put_out) {
               /* Use the generated temporary typedef to name the type. */
               gen_temp_name((char *)type);
-            } else if (has_name(type)) {
+            } else if (has_name_before_mangling(type)) {
               /* Don't use gen_type here, because we don't want the template
                  arguments, if any, listed, and we don't want a qualified
                  name. */
@@ -9100,7 +9099,7 @@ done_with_operation_after_parens:
     case enk_constant:
       { a_constant_ptr constant = expr->variant.constant;
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (is_enum_constant(constant) && has_name(constant) &&
+        if (is_enum_constant(constant) && has_name_before_mangling(constant) &&
             gen_name_from_name_reference(expr->name_reference,
                                          &constant->source_corresp,
                                          iek_constant,
@@ -9792,7 +9791,7 @@ recorded with this particular header.
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       /* Write the name. */
-      if (has_name(cp)) {
+      if (has_name_before_mangling(cp)) {
         gen_unqualified_name(&cp->source_corresp, iek_constant);
       }  /* if */
       /* Write the second part of the declarator. */
@@ -11862,7 +11861,8 @@ declaration following this one is such a continuation.
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
-                                     has_name(var) ? &var->source_corresp :
+                                     has_name_before_mangling(var) ?
+                                                     &var->source_corresp :
                                                      NULL,
                                      iek_variable,
                                      sec_decl,
@@ -12307,7 +12307,7 @@ which are nonstandard and rejected by many compilers.)
     if (node_operator_is(expr, eok_points_to_vacuous_destructor_call)) {
       type = type_pointed_to(type);
     }  /* if */
-    if (!has_name(type) &&
+    if (!has_name_before_mangling(type) &&
         !type->typedef_for_vacuous_dtor_call_put_out) {
       /* Generate a typedef using a temporary name. */
       write_tok_str("typedef ");

@@ -1,5 +1,27 @@
 Version 4.2
 
+4/28/10  [EDGcpfe/10649]
+C++-generating back end: incorrect qualified names with MANGLE_ALL_NAMES
+
+In configurations in which names in the IL are mangled, such as with
+MANGLE_ALL_NAMES set to TRUE, the C++-generating back end sometimes
+generated names that should have been unqualified as qualified names using
+an undeclared temporary name ("__Txxxxxxxx" notation) as the qualifier.
+This is now fixed.  For example, in a MANGLE_ALL_NAMES configuration in
+which functin template definitions are generated from the prototype
+instantiation, the following call to A<T>::f() was incorrectly generated:
+
+  template<typename T> struct A {
+    void f();
+  };
+  template<typename T> struct B {
+    A<T>* g();
+  };
+  template<typename T> void h(B<T> b) {
+    b.g()->f();  // Previously generated as (b.B<T>::g())->__T22750416::f()
+  }
+
+
 4/27/10  [EDGcpfe/10648]
 Abort in some decltype/typeof cases involving multiple translation units
 
