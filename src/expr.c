@@ -14629,10 +14629,14 @@ set appropriately; the caller should set them on return.
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp));
-  /* Note: the following doesn't test innermost_function_scope or
-     curr_il_region_number because it has to consider compound literals in
-     function parameter lists as non-static. */
-  is_static = curr_expr_kind_is_const();
+  /* The C99 standard says that compound literals outside of function bodies
+     are static, but that isn't right for initializers of local static
+     variables (which have to be constant), and it's probably not right for
+     compound literals in VLA bound expressions, which though they aren't
+     in function bodies are nevertheless in functions. */
+  is_static = (curr_expr_kind_is_const() ||
+               (innermost_function_scope == NULL &&
+                !expr_stack->is_vla_dimension_expression));
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* A compound literal is not allowed in an integral constant expression. */
     expr_pos_error(ec_bad_integral_compound_literal, type_position);

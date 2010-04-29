@@ -1,5 +1,15 @@
 Version 4.2
 
+4/29/10  [EDGcpfe/10353,EDGcpfe/10664]
+GNU C++ mode compound literals outside of functions now static
+
+In g++ mode, compound literals written outside of functions are now
+considered static.  Formerly, they had lifetime that ended at the
+end of the full expression.
+
+  int *x = (int[]){100,200};  // Now works at file scope
+
+
 4/28/10  [EDGcpfe/8984]
 GNU compatibility: common/nocommon variables
 
