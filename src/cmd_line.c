@@ -1939,10 +1939,6 @@ by a command line option.
         rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
-      if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-          !option_kind_used[(int)optk_cpp0x_mode]) {
-        cpp0x_sfinae_enabled = FALSE;
-      }  /* if */
 #if CPP0X_IL_EXTENSIONS_SUPPORTED
       /* These options require back end support that may not be available. */
       static_assert_enabled = TRUE;
@@ -1956,6 +1952,9 @@ by a command line option.
         nullptr_enabled = TRUE;
       }  /* if */
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
+    }  /* if */
+    if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+      cpp0x_sfinae_enabled = (microsoft_version >= 1600);
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -3439,9 +3438,8 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-      !option_kind_used[(int)optk_cpp0x_mode]) {
-    cpp0x_sfinae_enabled = FALSE;
+  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+    cpp0x_sfinae_enabled = (gnu_version >= 30400);
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
