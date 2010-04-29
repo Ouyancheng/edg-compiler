@@ -51,7 +51,7 @@ MANGLE_ALL_NAMES set to TRUE, the C++-generating back end sometimes
 generated names that should have been unqualified as qualified names using
 an undeclared temporary name ("__Txxxxxxxx" notation) as the qualifier.
 This is now fixed.  For example, in a MANGLE_ALL_NAMES configuration in
-which functin template definitions are generated from the prototype
+which function template definitions are generated from the prototype
 instantiation, the following call to A<T>::f() was incorrectly generated:
 
   template<typename T> struct A {
