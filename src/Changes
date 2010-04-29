@@ -29,7 +29,7 @@ Finally, the "common" and "nocommon" attributes are now accepted in GNU C++
 mode (even though they presumably have no effect in that mode since C++ has no
 notion of "tentatively defined" variables).  This matches the behavior of GCC
 (and makes it easier to use the attributes in code that may be compiled both
-a C and C++).
+as C and C++).
 
 Note: The new is_common flag in a_variable, like the existing is_not_common
 flag, only reflects the presence of the corresponding GNU attribute.  Back
