@@ -9094,6 +9094,11 @@ This is done before command line processing.
 {
   cmd_line_static_var_init();
   memzero((char*)predef_macro_mode_values, sizeof(predef_macro_mode_values));
+  /* Most il_header fields are initialized in fe_init.c after command-line
+     processing, but a few are initialized here and potentially changed
+     directly by command-line options. */
+  il_header.short_enums = FALSE;
+  il_header.default_nocommon = FALSE;
 }  /* cmd_line_early_init */
 
 #if MAKE_FRONT_END_CALLABLE
