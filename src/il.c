@@ -5253,7 +5253,6 @@ and hashing the resulting string.
   }  /* if */
   reset_text_buffer(hash_text_buffer);
   octl.text_buffer = hash_text_buffer;
-  octl.debug_output = TRUE;
   /* Generate the name of this entity. */
   form_name(&type->source_corresp, iek_type, &octl);
   add_char_to_text_buffer(hash_text_buffer, '\0');
