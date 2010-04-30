@@ -14018,7 +14018,8 @@ name lookup options.
          the data member can be used as a constant. */
       con_copy = var_constant_value_full(var,
                                          /*copy_for_reuse=*/TRUE,
-                                         /*clear_backing_expr=*/TRUE);
+                                         /*clear_backing_expr=*/TRUE,
+                                         /*allow_C_mode_const_var=*/FALSE);
       if (con_copy == NULL) err = TRUE;
     } else {
       /* Address of a static data member. */

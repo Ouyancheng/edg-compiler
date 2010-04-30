@@ -1,5 +1,27 @@
 Version 4.2
 
+4/30/10  [EDGcpfe/10651]
+const variable accepted in constant expressions in GNU C mode
+
+gcc, when run with -O1 or higher, accepts const variables in constant
+expressions, presumably because value propagation done in optimization
+replaces the variables by their constant values.  It's kind of
+inconsistent about where and how it allows this.  For example:
+
+  const int i = 2;
+  void f(int x) {
+    switch (x) {
+      case i:      // Error from gcc (now accepted by EDG)
+      case i + 3:; // Okay from gcc (now accepted by EDG)
+    }
+  }
+
+The front end now accepts all uses of initialized integral const variables
+in constant expressions in gcc mode, with a warning.  That's more cases
+than gcc allows, but we found it hard to try to limit our emulation to
+just what gcc accepts.
+
+
 4/30/10  [EDGcpfe/10655]
 GNU C compatibility: __builtin_pow and constant-expressions
 

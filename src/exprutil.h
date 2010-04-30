@@ -1081,7 +1081,8 @@ extern void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip);
 extern
 a_constant_ptr var_constant_value_full(a_variable_ptr var,
                                        a_boolean      copy_for_reuse,
-                                       a_boolean      clear_backing_expr);
+                                       a_boolean      clear_backing_expr,
+                                       a_boolean      allow_C_mode_const_var);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 

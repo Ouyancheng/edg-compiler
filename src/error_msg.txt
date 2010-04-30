@@ -1947,6 +1947,7 @@ ec_undefined_decl_using_no_linkage_type;;"%n is not defined in this translation 
 ec_missing_attribute_in_other_translation_unit;;"attribute %sq is missing in another translation unit"
 ec_conflicting_attribute_in_other_translation_unit;;"attribute %sq conflicts with another translation unit"
 ec_cl_nonstd_gnu_keywords_requires_gnu_mode;;"the \"nonstd_gnu_keywords\" option is only valid in GNU C and GNU C++ modes"
+ec_const_var_in_C_const_expr;;"use of a const variable in a constant expression is nonstandard in C"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -9743,7 +9743,7 @@ Return TRUE if var is a constant variable usable in constant expressions.
 Such a variable has const integral or enum type.  In a prototype
 instantiation, it could instead have a template parameter type.
 The other half of this check, that the variable has an initializer,
-is done in var_constant_value.
+is done in var_constant_value[_full].
 */
 {
   a_boolean  is_const = FALSE;
@@ -9767,7 +9767,8 @@ is done in var_constant_value.
 
 a_constant_ptr var_constant_value_full(a_variable_ptr var,
                                        a_boolean      copy_for_reuse,
-                                       a_boolean      clear_backing_expr)
+                                       a_boolean      clear_backing_expr,
+                                       a_boolean      allow_C_mode_const_var)
 /*
 If the variable var has a constant initial value, return a pointer to it;
 otherwise, return NULL.  A variable with an aggregate initial value is
@@ -9780,7 +9781,8 @@ it should be considered read-only and shouldn't be allowed to survive
 beyond the short term.  If copy_for_reuse is TRUE and clear_backing_expr
 is also TRUE, the backing expression pointer will be cleared, if necessary,
 by copying the constant (otherwise, a copy will not be done merely to clear
-the backing expression).
+the backing expression).  If allow_C_mode_const_var is TRUE, a value will
+be returned for a C mode const variable.
 */
 {
   a_constant_ptr     con_val = NULL;
@@ -9804,7 +9806,7 @@ the backing expression).
        a constant.  The standard puts this requirement on all static data
        members, but many compilers relax that for non-template static data
        members. */
-  } else if (C_dialect == C_dialect_cplusplus &&
+  } else if ((!C_mode() || allow_C_mode_const_var) &&
              is_const_variable(var) &&
              !is_volatile_qualified_type(var->type)) {
     /* initk_function_local initialization can come up with local static
@@ -9867,9 +9869,11 @@ Interface to var_constant_value_full for the usual case.  The constant
 returned should only be used locally and not linked into the IL tree.
 */
 {
-  a_constant_ptr con_val = var_constant_value_full(var,
-                                                 /*copy_for_reuse=*/FALSE,
-                                                 /*clear_backing_expr=*/FALSE);
+  a_constant_ptr con_val = var_constant_value_full(
+                                             var,
+                                             /*copy_for_reuse=*/FALSE,
+                                             /*clear_backing_expr=*/FALSE,
+                                             /*allow_C_mode_const_var=*/FALSE);
   return con_val;
 }  /* var_constant_value */
 
@@ -12515,7 +12519,8 @@ If p_var is non-NULL and the expression is an lvalue for a variable,
     /* See if the variable has a constant value known at compile time. */
     con_var_value = var_constant_value_full(var,
                                             copy_for_reuse,
-                                            /*clear_backing_expr=*/FALSE);
+                                            /*clear_backing_expr=*/FALSE,
+                                            /*allow_C_mode_const_var=*/FALSE);
   }  /* if */
   return con_var_value;
 }  /* value_of_constant_var_lvalue_expr */
@@ -12691,9 +12696,10 @@ it might produce an error).
     if (constant_case != NULL && !C_mode()) {
       /* Look for constant-valued variables in C++. */
       a_variable_ptr variable;
-      con_expr_value = value_of_constant_var_lvalue_expr(node,
+      con_expr_value = value_of_constant_var_lvalue_expr(
+                                                       node,
                                                        /*copy_for_reuse=*/TRUE,
-                                                         &variable);
+                                                       &variable);
       if (con_expr_value != NULL) {
         /* Below, we'll record the expression for the constant, so make the
            rvalue version of the expression. */
@@ -13126,9 +13132,31 @@ cases so we don't do it here.
       check_assertion(is_expression_operand(operand));
       node = operand->variant.expression;
       check_assertion(node->is_lvalue);
-      /* Convert the expression to an rvalue. */
-      node = conv_lvalue_expr_to_rvalue(node, &constant_case, &con_value,
-                                        &operand->position);
+      if (gcc_mode && curr_expr_kind_is_const()) {
+        /* gcc allows const variables to be used in constant expressions in
+           some cases.  We allow it but report it as a warning.  gcc allows
+           these cases only with -O1 and above, and only in foldable
+           constant expressions. */
+        a_variable_ptr var;
+        if (operand_is_lvalue_for_variable(operand, &var) &&
+            is_const_variable(var) &&
+            (con_value = var_constant_value_full(
+                                   var,
+                                   /*copy_for_reuse=*/TRUE,
+                                   /*clear_backing_expr=*/TRUE,
+                                   /*allow_C_mode_const_var=*/TRUE)) != NULL) {
+          expr_pos_warning(ec_const_var_in_C_const_expr,
+                           &operand->position);
+          constant_case = TRUE;
+          /* We aren't recording the backing expression here.  We probably
+             should, but this is a pretty odd case. */
+        }  /* if */
+      }  /* if */
+      if (!constant_case) {
+        /* Convert the expression to an rvalue. */
+        node = conv_lvalue_expr_to_rvalue(node, &constant_case, &con_value,
+                                          &operand->position);
+      }  /* if */
       if (constant_case) {
         /* The value of the expression is a constant, e.g., a
            constant-valued variable in C++ has been replaced by its value.
