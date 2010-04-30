@@ -221,6 +221,16 @@ static unsigned long
 #endif /* DEBUG */
 
 
+static
+void put_str_into_text_buffer(char                                  *str,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Output a string into the db_name_str buffer.
+*/
+{
+  (void)add_string_to_text_buffer(octl->text_buffer, str);
+}  /* put_str_into_text_buffer */
+
 #if DEBUG
 
 void db_template_arg_list(a_template_arg_ptr tap)
@@ -319,17 +329,6 @@ static a_text_buffer_ptr
 		db_qualifiers_str_buffer;
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-
-static
-void put_str_into_text_buffer(char                                  *str,
-                              an_il_to_str_output_control_block_ptr octl)
-/*
-Output a string into the db_name_str buffer.
-*/
-{
-  (void)add_string_to_text_buffer(octl->text_buffer, str);
-}  /* put_str_into_text_buffer */
-
 
 char *db_name_str_full(a_source_correspondence *scp,
                        an_il_entry_kind        kind,
