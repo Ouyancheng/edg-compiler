@@ -5166,14 +5166,29 @@ Simple interface to copy_constant_full for the usual case.
 }  /* copy_unshared_constant */
 
 
-static a_constant_hash_value hash_name(a_source_correspondence *scp)
+static a_hash_value hash_string(char *ptr)
+/*
+Return a hash value developed from the string pointed to by ptr.
+*/
+{
+  a_hash_value hash_value = 0;
+  char                  *cptr;
+
+  for (cptr = ptr; *cptr != '\0'; cptr++) {
+    hash_value = (hash_value << 5) + hash_value + *cptr;
+  }  /* for */
+  return hash_value;
+}  /* hash_string */
+
+
+static a_hash_value hash_name(a_source_correspondence *scp)
 /*
 Return a hash value developed from the name in the indicated source
 correspondence entry.
 */
 {
-  a_constant_hash_value hash_value = 0;
-  char                  *cptr = scp->name;
+  a_hash_value hash_value = 0;
+  char         *cptr = scp->name;
 
   if (cptr != NULL) {
     for (; *cptr != '\0'; cptr++) {
@@ -5184,19 +5199,91 @@ correspondence entry.
 }  /* hash_name */
 
 
-static a_constant_hash_value hash_type(a_type_ptr type)
+/* Forward declarations. */
+static a_hash_value hash_type(a_type_ptr type);
+
+
+a_hash_value hash_template_arg_list(a_template_arg_ptr	tap)
+/*
+Return a hash value for the indicated template argument list.
+*/
+{
+  a_hash_value hash_value = 0;
+
+  for (; tap != NULL; tap = tap->next) {
+    switch (tap->kind) {
+      case tak_type:
+        hash_value += hash_type(tap->variant.type) + 37;
+        break;
+      case tak_nontype:
+        hash_value += hash_constant(tap->variant.constant) + 43;
+        break;
+      case tak_template:
+        hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
+        break;
+      default: unexpected_condition(); break;
+    }  /* switch */
+  }  /* for */
+  return hash_value;
+}  /* hash_template_arg_list */
+
+
+static a_text_buffer_ptr
+		hash_text_buffer;
+			/* A text buffer used by hash_class_type */
+
+
+static a_hash_value hash_class_type(a_type_ptr	type)
+/*
+Return a hash value for the indicated class type.   Store the hash value in
+the class type supplement so that it does not have to be recomputed
+again.  The hash is computed by generating the full name of the class
+and hashing the resulting string.
+*/
+{
+  a_class_type_supplement_ptr		ctsp;
+  an_il_to_str_output_control_block	octl;
+  a_hash_value				hash_value = 0;
+
+  /* Set up for use of form_name. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_into_text_buffer;
+  if (hash_text_buffer == NULL) {
+    hash_text_buffer = alloc_text_buffer(256);
+  }  /* if */
+  reset_text_buffer(hash_text_buffer);
+  octl.text_buffer = hash_text_buffer;
+  octl.debug_output = TRUE;
+  /* Generate the name of this entity. */
+  form_name(&type->source_corresp, iek_type, &octl);
+  add_char_to_text_buffer(hash_text_buffer, '\0');
+  hash_value = hash_string(hash_text_buffer->buffer);
+  ctsp = type->variant.class_struct_union.extra_info;
+  /* Include the template arguments if there are any. */
+  if (ctsp->template_arg_list != NULL) {
+    hash_value += hash_template_arg_list(ctsp->template_arg_list);
+  }  /* if */
+  /* A zero value is used to indicate that the hash has not been computed
+     yet, so make sure the value is not zero. */
+  if (hash_value == 0) hash_value++;
+  /* Save the computed hash value. */
+  ctsp->hash_value = hash_value;
+  return hash_value;
+}  /* hash_class_type */
+
+
+static a_hash_value hash_type(a_type_ptr type)
 /*
 Return a hash value for the indicated type.  This is used in some cases
 to refine the hash value developed in hash_constant.
 */
 {
-  a_constant_hash_value       hash_value;
-  a_class_type_supplement_ptr ctsp;
-  a_template_arg_ptr          tap;
+  a_hash_value       hash_value;
 
   /* Only pointers to class types are particularly important here. */
   /* Note that the address of the type or its subtypes should not be
      used in determining the hash value (see comment in hash_constant). */
+  type = skip_typerefs(type);
   switch (type->kind) {
     case tk_integer:
       hash_value = type->variant.integer.int_kind + 53;
@@ -5225,40 +5312,24 @@ to refine the hash value developed in hash_constant.
     case tk_array:
       hash_value = hash_type(type->variant.array.element_type) + 307;
       if (!has_unknown_specified_bound(type)) {
-        hash_value += (a_constant_hash_value)
+        hash_value += (a_hash_value)
                             (type->variant.array.variant.number_of_elements);
       }  /* if */
       break;
     case tk_struct:
     case tk_class:
     case tk_union:
-      hash_value = (a_constant_hash_value)type->kind;
-      ctsp = type->variant.class_struct_union.extra_info;
-      if (ctsp->assoc_scope != NULL) {
-        /* Use the scope number as the hash value. */
-        hash_value = ctsp->assoc_scope->number;
-      } else {
-        /* No definition for the class. */
-        /* Work in the template arguments if there are any. */
-        for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
-          switch (tap->kind) {
-            case tak_type:
-              hash_value += hash_type(tap->variant.type) + 37;
-              break;
-            case tak_nontype:
-              hash_value += hash_constant(tap->variant.constant) + 43;
-              break;
-            case tak_template:
-              hash_value += hash_name(&tap->
-                                          variant.templ.ptr->source_corresp);
-              break;
-            default: unexpected_condition(); break;
-          }  /* switch */
-        }  /* for */
-      }  /* if */
+      {
+        a_class_type_supplement_ptr ctsp = class_type_supp(type);
+        if (ctsp->hash_value == 0) {
+          hash_value = hash_class_type(type);
+        } else {
+          hash_value = ctsp->hash_value;
+        }  /* if */
+      }
       break;
     case tk_typeref:
-      hash_value = hash_type(type->variant.typeref.type) + 17;
+      unexpected_condition();
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
@@ -5269,21 +5340,21 @@ to refine the hash value developed in hash_constant.
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
-      hash_value = (a_constant_hash_value)type->kind;
+      hash_value = (a_hash_value)type->kind;
   }  /* switch */
   return hash_value;
 }  /* hash_type */
 
 
-a_constant_hash_value hash_constant(a_constant *cp)
+a_hash_value hash_constant(a_constant *cp)
 /*
 Return the hash value for the indicated constant.
 */
 {
-  a_constant_hash_value hash_value;
-  a_targ_size_t         length;
-  a_boolean             ovflo;
-  char                  *p;
+  a_hash_value    hash_value;
+  a_targ_size_t   length;
+  a_boolean       ovflo;
+  char            *p;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
      be perfect, but it should spread the expected constants fairly widely.
@@ -5303,7 +5374,7 @@ Return the hash value for the indicated constant.
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case ck_integer:
       /* Integer.  Use the constant itself as the hash value. */
-      hash_value = (a_constant_hash_value)value_of_integer_constant(cp,&ovflo);
+      hash_value = (a_hash_value)value_of_integer_constant(cp,&ovflo);
       break;
 #if FIXED_POINT_ALLOWED
     case ck_fixed_point:
@@ -5383,7 +5454,7 @@ Return the hash value for the indicated constant.
 #endif /* CHECKING */
       }  /* switch */
       /* Add the offset in the address constant into the hash value. */
-      hash_value += (a_constant_hash_value)(cp->variant.address.offset + 1000);
+      hash_value += (a_hash_value)(cp->variant.address.offset + 1000);
       break;
     case ck_ptr_to_member:
       /* Hash the name of the member in a pointer-to-member constant. */
@@ -5413,7 +5484,7 @@ Return the hash value for the indicated constant.
       break;
 #endif /* DO_IL_LOWERING && ... */
     default:
-      hash_value = (a_constant_hash_value)(200 + cp->kind);
+      hash_value = (a_hash_value)(200 + cp->kind);
       break;
   }  /* switch */
   if (cp->implicit_cast ||
@@ -6276,7 +6347,7 @@ put it on a list of constants).
 {
   a_constant_ptr        scp, prev_scp;
   a_symbol_ptr          assoc_symbol;
-  a_constant_hash_value hash_value;
+  a_hash_value          hash_value;
   a_boolean             alloc_in_function_scope;
   a_constant_ptr        *list_ptr;
 
@@ -6466,7 +6537,7 @@ there are separate variables that are set already.
 */
 {
   a_constant_ptr        scp, next_scp;
-  a_constant_hash_value hash_value;
+  a_hash_value          hash_value;
 
   /* For each bucket of the hash table ... */
   for (hash_value = 0;
@@ -21534,6 +21605,7 @@ in il_init.)
   seq_number_lookup_table_size = 0;
   seq_number_lookup_table = NULL;
   okay_to_use_seq_number_lookup_table = TRUE;
+  hash_text_buffer = NULL;
 
   /* Initialize certain global variables declared in il.h. */
 #if DEBUG

@@ -210,26 +210,16 @@ typedef int an_equiv_templ_arg_options_set;
 			   class and has no template parameter list.  In such
 			   cases, a NULL argument list, and argument lists of
 			   different lengths are permitted.  */
-#define ETA_IGNORE_UNKNOWN_ARG_VALUES	0x4
-			/* TRUE if some of the arguments may have NULL type
-			   or constant pointers and should be ignored
-			   (i.e., be considered to match) for purposes
-			   of this comparison.  This is used when
-			   comparing an incomplete argument list specified
-			   as an explicit function template argument list
-			   with a complete list.  The unspecified arguments
-			   will be represented in the list with NULL type
-			   or constant pointers. */
-#define ETA_MS_IGNORE_QUALIFIERS	0x8
+#define ETA_MS_IGNORE_QUALIFIERS	0x4
 			/* TRUE if, in Microsoft bugs mode, top level
 			   qualifiers should be ignored when comparing two
 			   argument lists. */
-#define ETA_IS_PROTOTYPE		0x10
+#define ETA_IS_PROTOTYPE		0x8
 			/* TRUE if the first template argument list is
 			   the argument list for a prototype instantiation of
 			   a class template or a prototype instantiation of
 			   a partial specialization. */
-#define ETA_EXACT_MATCH_REQUIRED	0x20
+#define ETA_EXACT_MATCH_REQUIRED	0x10
 			/* TRUE if the values of the templates arguments must
 			   match exactly (e.g., point to the same type or
 			   constant).  FALSE if only equivalence is

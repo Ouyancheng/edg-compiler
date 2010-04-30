@@ -1360,6 +1360,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if NEED_NAME_MANGLING
   ctsp->lambda_parent.routine             = NULL;
 #endif /* NEED_NAME_MANGLING */
+  ctsp->hash_value = 0;
 }  /* clear_class_type_supplement */
 
 

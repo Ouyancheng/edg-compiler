@@ -41,6 +41,7 @@ typedef struct an_exception_spec_error_descr
                                           *an_exception_spec_error_descr_ptr;
 typedef struct a_gnu_attribute  a_gnu_attribute_dummy_typedef;
 typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
+typedef struct a_hash_table *a_hash_table_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -2176,6 +2177,11 @@ typedef struct a_template_symbol_supplement {
 			   prototype instantiation of the class template;
 			   May be NULL. */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      a_hash_table_ptr
+		instantiation_hash_table;
+			/* A hash table used to locate previously created
+			   instantiations of class or alias template.
+			   NULL if so instances have been created. */
     } class_template;
     /* When symbol kind = sk_function_template: */
     struct {
@@ -4626,6 +4632,13 @@ extern void symbol_tbl_trans_unit_init(void);
 extern void symbol_tbl_init(void);
 
 /*
+Type used to represent the size of a hash table.  This must not be larger
+than the size of a_hash_value.
+*/
+typedef uint32_t
+		a_hash_table_size;
+
+/*
 Entry used to represent an entry in a hash table.
 */
 typedef struct a_hash_table_entry *a_hash_table_entry_ptr;
@@ -4635,18 +4648,9 @@ typedef struct a_hash_table_entry {
 			   entry in the bucket. */
   a_void_ptr	data;	/* Opaque pointer to the entity represented by this
 			   entry. */
+  a_hash_value	hash_value;
+			/* The hash value of this entry. */
 } a_hash_table_entry;
-
-/*
-Type of the hash value returned by the hash function.  This must be the
-same size or larger than a_hash_table_size.
-*/
-typedef unsigned long a_hash_value;
-
-/*
-Type used to represent the size of a hash table.
-*/
-typedef unsigned long a_hash_table_size;
 
 /*
 The type of a function used to produce a hash value for a given key.
@@ -4676,7 +4680,6 @@ typedef a_void_ptr
 /*
 A general-purpose hash table.
 */
-typedef struct a_hash_table *a_hash_table_ptr;
 typedef struct a_hash_table {
   a_hash_function_ptr
 		hash_function;

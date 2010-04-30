@@ -2668,6 +2668,7 @@ and return a pointer to it.
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       tssp->variant.class_template.source_sequence_list = NULL;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      tssp->variant.class_template.instantiation_hash_table = NULL;
       break;
     case sk_function_template:
     case sk_member_function:
@@ -12075,12 +12076,17 @@ appropriate user-defined entry.
   a_hash_table_size		bucket;
   a_hash_table_entry_ptr	htep;
   a_void_ptr			result;
+  a_hash_value			hash_value;
 
-  bucket = table->hash_function(key) % (a_hash_value)table->num_buckets;
+  hash_value = table->hash_function(key);
+  bucket = hash_value % (a_hash_value)table->num_buckets;
   /* Look for a matching entry in this bucket. */
   for (htep = table->table[bucket]; htep != NULL; htep = htep->next) {
     check_assertion(htep->data != NULL);
-    if (table->compare_function(htep->data, key)) break;
+    if (htep->hash_value == hash_value &&
+        table->compare_function(htep->data, key)) {
+      break;
+    }  /* if */
   }  /* for */
   if (htep == NULL && create) {
     /* No entry was found.  Create one now. */
@@ -12088,6 +12094,7 @@ appropriate user-defined entry.
     /* Link it at the start of the bucket. */
     htep->next = table->table[bucket];
     table->table[bucket] = htep;
+    htep->hash_value = hash_value;
   }  /* if */
   /* If an entry was found or created, return the address of the pointer.
      This allows the caller to fill in the data pointer for a new entry. */

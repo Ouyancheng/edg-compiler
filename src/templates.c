@@ -4790,7 +4790,6 @@ the same constant.
   a_template_arg_ptr	arg1 = list1, arg2 = list2;
   a_boolean		is_nonreal_member;
   a_boolean		error_matches_anything;
-  a_boolean		ignore_unknown_arg_values;
   a_boolean		ignore_qualifiers;
   a_boolean		is_prototype;
   a_boolean		exact_match_required;
@@ -4798,7 +4797,6 @@ the same constant.
   db_enter(4, "equiv_template_arg_lists");
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
-  ignore_unknown_arg_values = (options & ETA_IGNORE_UNKNOWN_ARG_VALUES) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
   is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
   exact_match_required = (options & ETA_EXACT_MATCH_REQUIRED) != 0;
@@ -4828,10 +4826,7 @@ the same constant.
       /* Unknown array bounds should not escape the type deduction process. */
       check_assertion(!arg1->is_array_bound_of_unknown_type &&
                       !arg2->is_array_bound_of_unknown_type);
-      if (ignore_unknown_arg_values &&
-          (con1 == NULL || con2 == NULL)) {
-        /* An argument with no specified value.  Treat this as a match. */
-      } else if (con1 == NULL && con2 == NULL) {
+      if (con1 == NULL && con2 == NULL) {
         /* Both argument values are unspecified.  Treat this as a match. */
       } else if (con1 == NULL || con2 == NULL) {
         /* Only one is unspecified -- this is a mismatch. */
@@ -4858,10 +4853,7 @@ the same constant.
          mismatch. */
       a_type_ptr type1 = arg1->variant.type;
       a_type_ptr type2 = arg2->variant.type;
-      if (ignore_unknown_arg_values &&
-          (type1 == NULL || type2 == NULL)) {
-        /* An argument with no specified value.  Treat this as a match. */
-      } else if (type1 == NULL && type2 == NULL) {
+      if (type1 == NULL && type2 == NULL) {
         /* Both argument values are unspecified.  Treat this as a match. */
       } else if (type1 == NULL || type2 == NULL) {
         /* Only one is unspecified -- this is a mismatch. */
@@ -4999,6 +4991,170 @@ list specified by tap.
 }  /* strip_types_from_template_arg_list */
 
 
+static an_equiv_templ_arg_options_set eta_options_for_template(
+				a_template_symbol_supplement_ptr	tssp)
+/*
+Return the options to be used when calling equiv_template_arg_lists based
+on the current compilation options and the properties of the template
+specified by tssp.
+*/
+{
+  an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+
+  if (tssp->is_nonreal_member || tssp->is_error) {
+    eta_options |= ETA_IS_NONREAL_MEMBER;
+  }  /* if */
+  if (microsoft_bugs && microsoft_version <= 1100) {
+    eta_options |= ETA_MS_IGNORE_QUALIFIERS;
+  }  /* if */
+  return eta_options;
+}  /* eta_options_for_template */
+
+
+/*
+Structure used to pass lookup key information into the hash routines
+for class instantiations.
+*/
+typedef struct an_instantiation_key *an_instantiation_key_ptr;
+typedef struct an_instantiation_key {
+  a_symbol_ptr	template_sym;
+			/* The symbol of the class or alias template
+			   for which we are looking for an instance. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* The template argument list of the instance to
+			   be found. */
+} an_instantiation_key;
+
+
+
+static a_hash_value hash_instantiation(a_void_ptr	key)
+/*
+Produce a hash value for a instantiation of a class or alias template.
+The key is an_instantiation_key_ptr that is used to fetch the template
+argument list for the instantiation to be found.
+*/
+{
+  a_hash_value			value;
+  an_instantiation_key_ptr	ikp;
+
+  ikp = (an_instantiation_key_ptr)key;
+  value = (a_hash_value)hash_template_arg_list(ikp->template_arg_list);
+  return value;
+}  /* hash_instantiation */
+
+
+static a_boolean compare_instantiation(a_void_ptr	entry,
+				       a_void_ptr	key)
+/*
+Compare an entry in an instantiation hash table with an entry to be
+found.  "entry" is a symbol pointer and "key" is an_instantiation_key
+entry pointer.  Return TRUE if the key matches the entry.
+*/
+{
+  a_symbol_ptr				entry_sym;
+  a_template_arg_ptr			entry_tap;
+  an_instantiation_key_ptr		key_ikp;
+  a_template_arg_ptr			key_tap;
+  a_boolean				result;
+  an_equiv_templ_arg_options_set	eta_options;
+  a_symbol_ptr				template_sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+  key_ikp = (an_instantiation_key_ptr)key;
+  template_sym = key_ikp->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
+  /* Get the options to be passed to equiv_template_arg_lists. */
+  eta_options = eta_options_for_template(tssp);
+  entry_sym = (a_symbol_ptr)entry;
+  entry_tap = template_arg_list_for_symbol(entry_sym);
+  key_tap = key_ikp->template_arg_list;
+  result = equiv_template_arg_lists(entry_tap, key_tap,
+                                    eta_options | ETA_EXACT_MATCH_REQUIRED);
+  return result;
+}  /* compare_instantiation */
+
+
+static a_symbol_ptr find_class_instantiation(
+		a_symbol_ptr				template_sym,
+		a_template_symbol_supplement_ptr	tssp,
+		a_template_arg_ptr			template_arg_list)
+/*
+Find an existing instantiation of the class or alias template specified by
+template_sym and tssp with the argument list specified by template_arg_list.
+Return the symbol if an instantiation is found, or NULL if no instantiation
+exists.
+*/
+{
+  a_symbol_ptr		*sym_in_table;
+  an_instantiation_key	key;
+
+  /* Construct the key value to be passed to the comparison routine. */
+  key.template_sym = template_sym;
+  key.template_arg_list = template_arg_list;
+  /* If no hash table exists for this template, create one now. */
+  if (tssp->variant.class_template.instantiation_hash_table == NULL) {
+    tssp->variant.class_template.instantiation_hash_table =
+				alloc_hash_table(FRONT_END_REGION_NUMBER,
+					         (a_hash_table_size)19,
+					         hash_instantiation,
+					         compare_instantiation);
+  }  /* if */
+  sym_in_table = (a_symbol_ptr*)hash_find(
+                         tssp->variant.class_template.instantiation_hash_table,
+                         (a_void_ptr)&key, /*create=*/FALSE);
+  return sym_in_table != NULL ? *sym_in_table : NULL;
+}  /* find_class_instantiation */
+
+
+static void add_class_instantiation(
+		a_symbol_ptr				template_sym,
+		a_template_symbol_supplement_ptr	tssp,
+		a_symbol_ptr				instance_sym,
+		a_template_arg_ptr			template_arg_list)
+/*
+Add the instantiation specified by instance_sym and template_arg_list to the
+instantiation list of the template specified by template_sym and tssp.
+*/
+{
+  a_symbol_ptr			*sym_in_table;
+  an_instantiation_key		key;
+  a_symbol_list_entry_ptr	slep;
+
+#if EXPENSIVE_CHECKING
+  /* Make sure this instantiation is not already on the list.  This is
+     used to make sure the hash algorithm is working properly. */
+  {
+    an_equiv_templ_arg_options_set    eta_options;
+    eta_options = eta_options_for_template(tssp);
+    for (slep = tssp->variant.class_template.instantiations;
+         slep != NULL; slep = slep->next) {
+      a_template_arg_ptr	old_list;
+      a_symbol_ptr	sym;
+      sym = slep->symbol;
+      old_list = template_arg_list_for_symbol(sym);
+      if (equiv_template_arg_lists(old_list, template_arg_list,
+                                   eta_options | ETA_EXACT_MATCH_REQUIRED)) {
+        /* We've found a match. */
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+  }
+#endif /* EXPENSIVE_CHECKING */
+  slep = alloc_symbol_list_entry();
+  slep->symbol = instance_sym;
+  slep->next = tssp->variant.class_template.instantiations;
+  tssp->variant.class_template.instantiations = slep;
+  /* Construct the key value to be passed to the comparison routine. */
+  key.template_sym = template_sym;
+  key.template_arg_list = template_arg_list;
+  sym_in_table = (a_symbol_ptr*)hash_find(
+                         tssp->variant.class_template.instantiation_hash_table,
+                         (a_void_ptr)&key, /*create=*/TRUE);
+  *sym_in_table = instance_sym;
+}  /* add_class_instantiation */
+
+
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
 				a_template_arg_ptr	template_arg_list)
@@ -5015,7 +5171,6 @@ is nonreal, a complete nonreal type is returned.
   a_symbol_ptr				primary_template_sym;
   a_template_symbol_supplement_ptr	primary_tssp;
   a_boolean				trans_unit_pushed;
-  a_symbol_list_entry_ptr		slep;
   a_symbol_ptr				sym;
   a_type_ptr				class_type;
   a_class_type_supplement_ptr		ctsp;
@@ -5029,10 +5184,9 @@ is nonreal, a complete nonreal type is returned.
      not the list of a partial specialization). */
   primary_template_sym = primary_template_of(class_template_sym);
   primary_tssp = primary_template_sym->variant.template_info;
-  slep = alloc_symbol_list_entry();
-  slep->symbol = sym;
-  slep->next = primary_tssp->variant.class_template.instantiations;
-  primary_tssp->variant.class_template.instantiations = slep;
+  /* Add the instantiation to the instantiations list for the template. */
+  add_class_instantiation(primary_template_sym, primary_tssp, sym,
+                          template_arg_list);
   /* Now create a new type entry. */
   class_type = alloc_type(tssp->variant.class_template.type_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5060,8 +5214,6 @@ is nonreal, a complete nonreal type is returned.
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     }  /* if */
   }  /* if */
-  /* Remove any local or nonreal typedefs from the argument list. */
-  strip_types_from_template_arg_list(template_arg_list);
   /* If this is a "real instantiation" leave the type incomplete; it will
      become complete when it is instantiated.  However, if it depends in
      some way on a template parameter and is therefore a "nonreal"
@@ -5250,15 +5402,12 @@ error type is used.
     }  /* if */
   } else {
     /* This is the normal case.  Create a symbol for the new instance. */
-    a_symbol_list_entry_ptr		slep;
     a_typeref_type_supplement_ptr	ttsp;
     /* Create the symbol for the alias instance. */
     instance_sym = make_template_class_symbol(template_sym);
-    /* Add the new symbol to the head of the instantiation list. */
-    slep = alloc_symbol_list_entry();
-    slep->symbol = instance_sym;
-    slep->next = tssp->variant.class_template.instantiations;
-    tssp->variant.class_template.instantiations = slep;
+    /* Add the instantiation to the instantiations list for the template. */
+    add_class_instantiation(template_sym, tssp, instance_sym,
+                            template_arg_list);
     /* Create the type entry for the alias. */
     type = alloc_type((a_type_kind)tk_typeref);
     type->variant.typeref.is_alias = TRUE;
@@ -5274,8 +5423,6 @@ error type is used.
         type->variant.typeref.is_nonreal = TRUE;
       }  /* if */
     }  /* if */
-    /* Remove any local or nonreal typedefs from the argument list. */
-    strip_types_from_template_arg_list(template_arg_list);
     /* See if the template arguments involve any nonreal types. */
     if (template_arg_list_is_dependent(template_arg_list)) {
       type->variant.typeref.is_nonreal = TRUE;
@@ -5524,7 +5671,7 @@ prototype instantiation is considered as a potential match.
   a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
   a_template_symbol_supplement_ptr  tssp;
-  an_equiv_templ_arg_options_set    eta_options = ETA_NO_OPTIONS;
+  an_equiv_templ_arg_options_set    eta_options;
   a_boolean                         is_alias_template;
 
   db_enter(3, "find_template_class");
@@ -5537,12 +5684,9 @@ prototype instantiation is considered as a potential match.
   is_alias_template = tssp->variant.class_template.is_alias_template;
   /* The template symbol must be for the primary template. */
   check_assertion(!tssp->variant.class_template.primary_template_sym);
-  if (tssp->is_nonreal_member || tssp->is_error) {
-    eta_options |= ETA_IS_NONREAL_MEMBER;
-  }  /* if */
-  if (microsoft_bugs && microsoft_version <= 1100) {
-    eta_options |= ETA_MS_IGNORE_QUALIFIERS;
-  }  /* if */
+  eta_options = eta_options_for_template(tssp);
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(*new_list);
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (any_prototype_allowed || specific_prototype_allowed != NULL) {
@@ -5592,28 +5736,11 @@ prototype instantiation is considered as a potential match.
     }  /* if */
   }  /* if */
   if (sym == NULL) {
-    /* Make a pass over the symbols representing instantiations of the class
-       template. */
-    a_symbol_list_entry_ptr	slep;
-    slep = tssp->variant.class_template.instantiations;
-    for (; slep != NULL; slep = slep->next) {
-      /* Note that we consider prototype instantiations at this point too.
-         This is needed to find prototype instantiations of Microsoft
-         in-class specializations. */
-      /* Old list is the template argument list from a template class that has
-         already been created.  See if the list passed in matches it. */
-      sym = slep->symbol;
-      old_list = template_arg_list_for_symbol(sym);
-      if (equiv_template_arg_lists(old_list, *new_list,
-                                   eta_options | ETA_EXACT_MATCH_REQUIRED)) {
-        /* We've found a match. */
+    /* Look for a previously created instantiation. */
+    sym = find_class_instantiation(template_sym, tssp, *new_list);
 #if DEBUG
-        if (debug_level >= 3) db_symbol(sym, "found: ", 2);
+    if (sym != NULL && debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
-        break;
-      }  /* if */
-    }  /* for */
-    if (slep == NULL) sym = NULL;
   }  /* if */
   if (sym == NULL ||
       (is_alias_template &&
@@ -14029,6 +14156,9 @@ parameter entry for the parameter.
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done. */
       def_arg_involves_template_param = TRUE;
+      /* Assign a dummy type.  This can be used if the default argument value
+         is needed within the prototype instantiation. */
+      template_param->default_arg.type = type_of_unknown_templ_param_nontype;
     } else {
       rescan_copy_of_cache(&def_arg_cache);
       default_arg_type = scan_template_type_argument();

@@ -2041,6 +2041,8 @@ typedef unsigned int a_constant_hash_value;
 
 extern a_constant_hash_value hash_constant(a_constant *cp);
 
+extern a_constant_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
+
 extern a_boolean compare_template_param_constant_expressions(
                                                      an_expr_node_ptr  node1,
                                                      an_expr_node_ptr  node2);
