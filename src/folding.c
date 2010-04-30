@@ -6872,6 +6872,92 @@ Otherwise, return FALSE.
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
+a_boolean fold_pow_if_possible(a_constant_ptr  base,
+                               a_constant_ptr  exp,
+                               a_constant_ptr  result,
+                               a_type_ptr      result_type)
+/*
+base and exp are floating-point constants.  If exp represents a small
+nonnegative integer value, store the value of base raised to the power
+indicated by exp in result and return TRUE (the final result is a
+floating-point value of the given type).  Otherwise, return FALSE.
+*/
+{
+  a_boolean   folded = FALSE, err = FALSE, mode_dep;
+  a_host_large_integer
+              e;
+  an_internal_float_value
+              b, acc, v;
+  a_type_ptr  exp_type = skip_typerefs(exp->type),
+              base_type = skip_typerefs(base->type);
+  
+  check_assertion(base->kind == (a_constant_repr_kind)ck_float &&
+                  is_real_floating_type(base_type) &&
+                  exp->kind == (a_constant_repr_kind)ck_float &&
+                  is_real_floating_type(exp_type) &&
+                  is_real_floating_type(result_type));
+  /* First check whether exp represents a small integer. */
+  fp_to_host_large_integer(exp_type->variant.float_kind,
+                           &exp->variant.float_value, &e, &err, &mode_dep);
+  if (!err && e >= 0 && e < 256) {
+    /* Check whether exp represents an integer by converting e back to a
+       floating-point value a testing if it remains unmodified. */
+    fp_host_large_integer_to_float(exp_type->variant.float_kind, e, &v, &err);
+    if (fp_compare(exp_type->variant.float_kind,
+                   &exp->variant.float_value, &v, &err) == 0 && !err) {
+      folded = TRUE;
+    }  /* if */
+  }  /* if */
+  if (folded) {
+    /* The actual computation will be done with "long double" precision. */
+    fp_change_kind(&base->variant.float_value, base_type->variant.float_kind,
+                   &b, (a_float_kind)fk_long_double,
+                   &err, &mode_dep);
+    if (err) folded = FALSE;
+  }  /* if */
+  if (folded) {
+    a_boolean                err = FALSE;
+    fp_host_large_integer_to_float((a_float_kind)fk_long_double,
+                                   (a_host_large_integer)1, &acc, &err);
+    check_assertion(!err);
+    /* The initial value b0 of b is the "base" value.  It is subsequently
+       squared to compute powers b1 = b0^2, b2 = b1^2 = b0^4, etc.  Every
+       time bit n is set in e (n = 0 for the least significant bit), an
+       accumulator (starting with value 1) is multiplied by bn =  b0^(2^n). */
+    while (e != 0) {
+      if (e & 1) {
+        /* Update the accumulator. */
+        fp_multiply((a_float_kind)fk_long_double,
+                    &b, &acc, &acc, &err, &mode_dep);
+        if (err) {
+          folded = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      e = e/2;
+      if (e != 0) {
+        /* Compute the next value of b: b <- b*b. */
+        fp_multiply((a_float_kind)fk_long_double, &b, &b, &b, &err, &mode_dep);
+        if (err) {
+          folded = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* while */
+    if (folded) {
+      /* Store the final result with the required precision. */
+      clear_constant(result, (a_constant_repr_kind)ck_float);
+      result->type = result_type;
+      fp_change_kind(&acc, (a_float_kind)fk_long_double,
+                     &result->variant.float_value,
+                     skip_typerefs(result_type)->variant.float_kind,
+                     &err, &mode_dep);
+      folded = !err;
+    }  /* if */
+  }  /* if */
+  return folded;
+}  /* fold_pow_if_possible */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 

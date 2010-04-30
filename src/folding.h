@@ -154,6 +154,11 @@ extern a_boolean fold_bit_count_operation_if_possible(
 extern a_boolean fold_fptest_if_possible(a_routine_ptr     rp,
                                          an_expr_node_ptr  arg,
                                          a_constant        *result_con);
+
+extern a_boolean fold_pow_if_possible(a_constant_ptr  base,
+                                      a_constant_ptr  exp,
+                                      a_constant_ptr  result,
+                                      a_type_ptr      result_type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef FOLDING_H */

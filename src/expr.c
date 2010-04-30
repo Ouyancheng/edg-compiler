@@ -1550,6 +1550,9 @@ pseudo_call can be NULL if that information is not needed.
 #endif /* LONG_LONG_ALLOWED */
       case bfk_strlen:
       case bfk_abs:
+      case bfk_pow:
+      case bfk_powf:
+      case bfk_powl:
         result = TRUE;
         break;
       default:
@@ -1931,6 +1934,29 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
                 }  /* if */
               }  /* if */
               if (!err) folded = TRUE;
+            }  /* if */
+          }
+          break;
+        case bfk_pow:
+        case bfk_powf:
+        case bfk_powl:
+          /* pow(x, y) can sometimes be folded in gcc mode. */
+          { check_assertion(is_real_floating_type(result_type));
+            if (gcc_mode && gnu_version >= 30400 &&
+                args != NULL && args2 != NULL && args2->next == NULL) {
+              args2 = skip_parens(args2);
+              if (is_constant_node(args) && is_constant_node(args2)) {
+                /* GCC folds only certain combinations of values.  E.g., if the
+                   base is not an integer, it would appear that only raising to
+                   the power of -1, 0, 1, 2, and 3 is folded.  If the base is a
+                   power of 2, many more powers are folded.  The call to
+                   fold_pow_if_possible folds a different set of combinations,
+                   but the cases somewhat likely to show up in real code should
+                   be covered. */
+                folded = fold_pow_if_possible(args->variant.constant,
+                                              args2->variant.constant,
+                                              &result, result_type);
+              }  /* if */
             }  /* if */
           }
           break;
