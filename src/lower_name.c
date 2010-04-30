@@ -220,8 +220,6 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_DESTRUCTOR "dt"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "op"
 #define MANGLING_STRING_FOR_NULLPTR "n"
-#define MANGLING_STRING_FOR_DECLTYPE_TYPE "FIXME" /* FIXME */
-#define MANGLING_STRING_FOR_DECLTYPE_EXPR "FIXME" /* FIXME */
 
 #endif /* IA64_ABI */
 
@@ -650,6 +648,11 @@ Add the indicated null-terminated string to the mangled name.
                                                    mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
 
+/*
+FIXME: In cases that have yet to be implemented, simply add a marker into
+the mangled name indicating that work needs to be done.
+*/
+#define add_FIXME_to_mangled_name(mctl) add_str_to_mangled_name("FIXME", mctl)
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- mctl is not used in that case. */
@@ -3115,6 +3118,7 @@ part of a template-dependent expression.
         if (bad_operator) {
           /* Unexpected operator.  These are allowed in some cases for
              expressions under sizeof in the IA-64 ABI. */
+#if 0
 #if CHECKING
 #if IA64_ABI
           if (!mctl->mangling_sizeof_expression)
@@ -3124,6 +3128,11 @@ part of a template-dependent expression.
             internal_error("mangled_encoding_for_expression: bad operator");
           }  /* if */
 #endif /* CHECKING */
+#else /* !0 */
+          /* FIXME: Temporarily allow compilation to continue. */
+          add_FIXME_to_mangled_name(mctl);
+          return;
+#endif /* 0 */
 #if IA64_ABI
           operation_name = bad_mangled_expr_operator_name(expr);
 #endif /* IA64_ABI */
@@ -3221,6 +3230,7 @@ part of a template-dependent expression.
     default:;
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */
+#if 0
 #if CHECKING
 #if IA64_ABI
       if (!mctl->mangling_sizeof_expression)
@@ -3230,6 +3240,11 @@ part of a template-dependent expression.
         internal_error("mangled_encoding_for_expression: bad kind");
       }  /* if */
 #endif /* CHECKING */
+#else /* !0 */
+      /* FIXME: Temporarily allow compilation to continue. */
+      add_FIXME_to_mangled_name(mctl);
+      break;
+#endif /* 0 */
 #if IA64_ABI
       /* Generate a zero constant instead of the unexpected expression.
          We expect this in cases where the mangling doesn't matter.
@@ -5609,7 +5624,7 @@ Add to the mangled name the encoding for the type "type".
         add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
         /* FIXME: implement Cfront case */
-        add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_EXPR, mctl);
+        add_FIXME_to_mangled_name(mctl);
 #endif /* IA64_ABI */
         goto have_whole_mangled_name;
       }  /* if */
