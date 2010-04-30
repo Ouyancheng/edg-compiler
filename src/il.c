@@ -5252,6 +5252,7 @@ and hashing the resulting string.
   }  /* if */
   reset_text_buffer(hash_text_buffer);
   octl.text_buffer = hash_text_buffer;
+  octl.suppress_template_args = TRUE;
   /* Generate the name of this entity. */
   form_name(&type->source_corresp, iek_type, &octl);
   add_char_to_text_buffer(hash_text_buffer, '\0');
@@ -5485,7 +5486,8 @@ Return the hash value for the indicated constant.
       hash_value = (a_hash_value)(200 + cp->kind);
       break;
   }  /* switch */
-  if (cp->implicit_cast ||
+  if (cp->kind == (a_constant_repr_kind)ck_integer ||
+      cp->kind == (a_constant_repr_kind)ck_address ||
       cp->kind == (a_constant_repr_kind)ck_ptr_to_member ||
       cp->kind == (a_constant_repr_kind)ck_template_param) {
     /* Work the type into the hash.  This is important when you have lots of

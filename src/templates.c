@@ -5075,15 +5075,17 @@ entry pointer.  Return TRUE if the key matches the entry.
 }  /* compare_instantiation */
 
 
-static a_symbol_ptr find_class_instantiation(
+static a_symbol_ptr *find_class_instantiation(
 		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
 		a_template_arg_ptr			template_arg_list)
 /*
 Find an existing instantiation of the class or alias template specified by
 template_sym and tssp with the argument list specified by template_arg_list.
-Return the symbol if an instantiation is found, or NULL if no instantiation
-exists.
+If no instantiation is found an entry is created in the hash table that can
+be filled in later.  A pointer to the symbol entry field of the hash table
+is returned.  This will either point to the symbol of the instantiation,
+or to the NULL pointer to be filled in when the instance is created.
 */
 {
   a_symbol_ptr		*sym_in_table;
@@ -5102,69 +5104,77 @@ exists.
   }  /* if */
   sym_in_table = (a_symbol_ptr*)hash_find(
                          tssp->variant.class_template.instantiation_hash_table,
-                         (a_void_ptr)&key, /*create=*/FALSE);
-  return sym_in_table != NULL ? *sym_in_table : NULL;
+                         (a_void_ptr)&key, /*create=*/TRUE);
+  return sym_in_table;
 }  /* find_class_instantiation */
 
 
 static void add_class_instantiation(
-		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
 		a_symbol_ptr				instance_sym,
-		a_template_arg_ptr			template_arg_list)
+		a_symbol_ptr				*hash_table_sym)
 /*
-Add the instantiation specified by instance_sym and template_arg_list to the
-instantiation list of the template specified by template_sym and tssp.
+Add the instantiation specified by instance_sym to the instantiation list
+and hash table of the template specified by tssp.  hash_table_sym points
+to the hash table entry that is to be updated when a new instance is created.
 */
 {
-  a_symbol_ptr			*sym_in_table;
-  an_instantiation_key		key;
   a_symbol_list_entry_ptr	slep;
 
-#if EXPENSIVE_CHECKING
-  /* Make sure this instantiation is not already on the list.  This is
-     used to make sure the hash algorithm is working properly. */
-  {
-    an_equiv_templ_arg_options_set    eta_options;
-    eta_options = eta_options_for_template(tssp);
-    for (slep = tssp->variant.class_template.instantiations;
-         slep != NULL; slep = slep->next) {
-      a_template_arg_ptr	old_list;
-      a_symbol_ptr	sym;
-      sym = slep->symbol;
-      old_list = template_arg_list_for_symbol(sym);
-      if (equiv_template_arg_lists(old_list, template_arg_list,
-                                   eta_options | ETA_EXACT_MATCH_REQUIRED)) {
-        /* We've found a match. */
-        unexpected_condition();
-      }  /* if */
-    }  /* for */
-  }
-#endif /* EXPENSIVE_CHECKING */
   slep = alloc_symbol_list_entry();
   slep->symbol = instance_sym;
   slep->next = tssp->variant.class_template.instantiations;
   tssp->variant.class_template.instantiations = slep;
-  /* Construct the key value to be passed to the comparison routine. */
-  key.template_sym = template_sym;
-  key.template_arg_list = template_arg_list;
-  sym_in_table = (a_symbol_ptr*)hash_find(
-                         tssp->variant.class_template.instantiation_hash_table,
-                         (a_void_ptr)&key, /*create=*/TRUE);
-  *sym_in_table = instance_sym;
+  *hash_table_sym = instance_sym;
 }  /* add_class_instantiation */
 
+#if EXPENSIVE_CHECKING
+
+static void check_new_class_instantiation(
+		a_symbol_ptr				template_sym,
+		a_template_symbol_supplement_ptr	tssp,
+		a_template_arg_ptr			template_arg_list)
+/*
+Make sure that the instantiation specified by template_arg_list is not
+already on the instantiation list of the template specified by
+template_sym and tssp.  This is used to make sure the algorithm that
+hashes template argument lists works properly.
+
+*/
+{
+  a_symbol_list_entry_ptr		slep;
+  an_equiv_templ_arg_options_set	eta_options;
+
+  eta_options = eta_options_for_template(tssp);
+  for (slep = tssp->variant.class_template.instantiations;
+       slep != NULL; slep = slep->next) {
+    a_template_arg_ptr	old_list;
+    a_symbol_ptr	sym;
+    sym = slep->symbol;
+    old_list = template_arg_list_for_symbol(sym);
+    if (equiv_template_arg_lists(old_list, template_arg_list,
+                                 eta_options | ETA_EXACT_MATCH_REQUIRED)) {
+      /* We've found a match. */
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+}  /* check_new_class_instantiation */
+
+#endif /* EXPENSIVE_CHECKING */
 
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
-				a_template_arg_ptr	template_arg_list)
+				a_template_arg_ptr	template_arg_list,
+				a_symbol_ptr		*hash_table_sym)
 /*
 Do a partial instantiation of class_template_sym based on the template
-arguments specified by template_arg_list.  Return the symbol for the class
-that was created.  The partial instantiation is usually an incomplete
-type that can be completed later by doing a full instantiation, but if the
-template argument list contains nonreal types, or if the template itself
-is nonreal, a complete nonreal type is returned.
+arguments specified by template_arg_list.  hash_table_sym points to the
+hash table entry that is to be updated when a new instance is created.
+Return the symbol for the class that was created.  The partial
+instantiation is usually an incomplete type that can be completed
+later by doing a full instantiation, but if the template argument list
+contains nonreal types, or if the template itself is nonreal, a
+complete nonreal type is returned.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -5184,9 +5194,13 @@ is nonreal, a complete nonreal type is returned.
      not the list of a partial specialization). */
   primary_template_sym = primary_template_of(class_template_sym);
   primary_tssp = primary_template_sym->variant.template_info;
+#if EXPENSIVE_CHECKING
+  /* Check that the class is not already on the instantiation list. */
+  check_new_class_instantiation(primary_template_sym, primary_tssp,
+                                template_arg_list);
+#endif /* EXPENSIVE_CHECKING */
   /* Add the instantiation to the instantiations list for the template. */
-  add_class_instantiation(primary_template_sym, primary_tssp, sym,
-                          template_arg_list);
+  add_class_instantiation(primary_tssp, sym, hash_table_sym);
   /* Now create a new type entry. */
   class_type = alloc_type(tssp->variant.class_template.type_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5362,7 +5376,8 @@ is nonreal, a complete nonreal type is returned.
 static a_symbol_ptr instantiate_template_alias(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	template_arg_list,
-				a_symbol_ptr		existing_instance_sym)
+				a_symbol_ptr		existing_instance_sym,
+				a_symbol_ptr		*hash_table_sym)
 /*
 Instantiate the alias template template_sym using the template argument
 list template_arg_list.  Return the symbol for the type that was created.
@@ -5370,7 +5385,8 @@ If the alias is indirectly used in the type to which the alias refers an
 error should be issued.  existing_instance_sym will point to the template
 alias symbol that is in the process of being instantiated in this case.
 When existing_instance_sym is non-NULL an error is issued here and an
-error type is used.
+error type is used.  hash_table_sym points to the hash table entry that
+is to be updated when a new instance is created.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -5405,9 +5421,12 @@ error type is used.
     a_typeref_type_supplement_ptr	ttsp;
     /* Create the symbol for the alias instance. */
     instance_sym = make_template_class_symbol(template_sym);
+#if EXPENSIVE_CHECKING
+    /* Check that the type is not already on the instantiation list. */
+    check_new_class_instantiation(template_sym, tssp, template_arg_list);
+#endif /* EXPENSIVE_CHECKING */
     /* Add the instantiation to the instantiations list for the template. */
-    add_class_instantiation(template_sym, tssp, instance_sym,
-                            template_arg_list);
+    add_class_instantiation(tssp, instance_sym, hash_table_sym);
     /* Create the type entry for the alias. */
     type = alloc_type((a_type_kind)tk_typeref);
     type->variant.typeref.is_alias = TRUE;
@@ -5668,6 +5687,7 @@ prototype instantiation is considered as a potential match.
 */
 {
   a_symbol_ptr                      sym;
+  a_symbol_ptr                      *hash_table_sym = NULL;
   a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
   a_template_symbol_supplement_ptr  tssp;
@@ -5737,7 +5757,8 @@ prototype instantiation is considered as a potential match.
   }  /* if */
   if (sym == NULL) {
     /* Look for a previously created instantiation. */
-    sym = find_class_instantiation(template_sym, tssp, *new_list);
+    hash_table_sym = find_class_instantiation(template_sym, tssp, *new_list);
+    sym = *hash_table_sym;
 #if DEBUG
     if (sym != NULL && debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
@@ -5750,9 +5771,11 @@ prototype instantiation is considered as a potential match.
        instantiation routine if the type is already in the process of being
        instantiated (as determined by the NULL typeref type pointer). */
     if (is_alias_template) {
-      sym = instantiate_template_alias(template_sym, *new_list, sym);
+      sym = instantiate_template_alias(template_sym, *new_list, sym,
+                                       hash_table_sym);
     } else {
-      sym = create_partial_instantiation_of_class(template_sym, *new_list);
+      sym = create_partial_instantiation_of_class(template_sym, *new_list,
+                                                  hash_table_sym);
     }  /* if */
   } else {
     /* We are reusing a class type that already exists, so *new_list will not

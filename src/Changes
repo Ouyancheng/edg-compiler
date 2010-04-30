@@ -1,5 +1,13 @@
 Version 4.2
 
+4/30/10  [EDGcpfe/10642]
+Performance improvement in finding class template instantiations
+
+A hash table is now used to look for a previously created instantiation
+of a class.  This improves the performance when there are a large number
+of instantiations of a given class template.
+
+
 4/30/10  [EDGcpfe/10651]
 const variable accepted in constant expressions in GNU C mode
 

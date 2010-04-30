@@ -216,6 +216,10 @@ typedef struct an_il_to_str_output_control_block {
 			   normal location for attributes following the
 			   typedef name. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  a_byte_boolean
+	suppress_template_args;
+			/* Suppress the output of template arguments in
+			   type names. */
 } an_il_to_str_output_control_block;
 
 /*

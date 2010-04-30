@@ -106,6 +106,7 @@ Clear an output control block to default values.
 #if GNU_VECTOR_TYPES_ALLOWED
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  octl->suppress_template_args    = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -481,7 +482,8 @@ The output includes template arguments on template classes.
     octl->output_str(name, octl);
   }  /* if */
   /* Check for template arguments on a class name. */
-  if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type) {
+  if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type &&
+      !octl->suppress_template_args) {
     a_type_ptr		type = (a_type_ptr)scp;
     a_template_arg_ptr	tap = NULL;
     /* Ignore template parameters and classes whose bodies have been
