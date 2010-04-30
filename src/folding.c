@@ -6916,7 +6916,6 @@ floating-point value of the given type).  Otherwise, return FALSE.
     if (err) folded = FALSE;
   }  /* if */
   if (folded) {
-    a_boolean                err = FALSE;
     fp_host_large_integer_to_float((a_float_kind)fk_long_double,
                                    (a_host_large_integer)1, &acc, &err);
     check_assertion(!err);
