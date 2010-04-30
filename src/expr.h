@@ -66,6 +66,9 @@ expr.h -- Declarations related to expression parsing.
 			   unary "&" operator where a pointer-to-member
 			   constant would be valid (presumably without
 			   intervening parentheses). */
+#define EOPT_OPERAND_OF_OFFSETOF 0x100
+			/* This expression is in the top-level chain of the
+			   second operand of __builtin_offsetof. */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;

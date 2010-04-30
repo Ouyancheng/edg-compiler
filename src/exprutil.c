@@ -2647,6 +2647,7 @@ the call, to be converted to operand form later.
 void make_selection_rescan_operands(
                               a_rescan_control_block  *rcblock,
                               an_operand              *operand_1,
+                              a_boolean               offsetof_case,
                               a_source_position       *operator_position,
                               a_token_sequence_number *operator_tok_seq_number)
 /*
@@ -2657,17 +2658,21 @@ rcblock->expr (a selection node) and return the first as operand_1.
 position and operator token sequence number in *operator_position and
 *operator_tok_seq_number.  rcblock also gives context information for
 the template deduction being done, e.g., the template argument list
-being tried.
+being tried.  offsetof_case is TRUE if we are handling a field selection
+in a __builtin_offsetof.
 */
 {
   an_expr_node_ptr              expr = rcblock->expr, op1;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
+  a_local_expr_options_set      local_options = EOPT_NO_OPTIONS;
 
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
-  make_rescan_operand(op1, rcblock, operand_1);
+  if (offsetof_case) local_options |= EOPT_OPERAND_OF_OFFSETOF;
+  make_rescan_operand_full(op1, rcblock, local_options, operand_1,
+                           (an_operand *)NULL);
   get_rescan_operator_positions(eriep, operator_position,
                                 operator_tok_seq_number,
                                 (a_source_position *)NULL);

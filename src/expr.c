@@ -3999,10 +3999,9 @@ routine is also called to parse a __builtin_offsetof field construct
     operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    check_assertion(!offsetof_case);
     /* Pick up the first operand now.  The second (basically a name) will
        be deciphered a bit later. */
-    make_selection_rescan_operands(rcblock, operand_1,
+    make_selection_rescan_operands(rcblock, operand_1, offsetof_case,
                                    &operator_position,
                                    &operator_tok_seq_number);
   } else {
@@ -7230,7 +7229,8 @@ indication in *rcblock).
     /* Redoing semantic analysis on a previously-scanned expression.  The
        second operand contains all the field selections and subscripts and
        can be processed in a single call without a loop. */
-    make_rescan_operand(rescan_op2, rcblock, &local_result);
+    make_rescan_operand_full(rescan_op2, rcblock, EOPT_OPERAND_OF_OFFSETOF,
+                             &local_result, (an_operand *)NULL);
   } else {
     /* Scanning from source. */
     /* Check for the comma. */
@@ -24404,9 +24404,12 @@ alternative callable from outside, see rescan_expr_with_substitution.
         break;
       case tok_period:
       case tok_arrow:
-        scan_field_selection_operator((an_operand *)NULL, rcblock,
-                                      /*offsetof_case=*/FALSE, result,
-                                      bound_function_selector);
+        { a_boolean offsetof_case =
+                               (local_options & EOPT_OPERAND_OF_OFFSETOF) != 0;
+          scan_field_selection_operator((an_operand *)NULL, rcblock,
+                                        offsetof_case, result,
+                                        bound_function_selector);
+        }
         break;
       case tok_period_star:
       case tok_arrow_star:
