@@ -5631,8 +5631,25 @@ Add to the mangled name the encoding for the type "type".
         goto have_whole_mangled_name;
       }  /* if */
     }  /* if */
-  }  /* for */
 #if GNU_EXTENSIONS_ALLOWED
+    /* Mangle a typeof expression here. */
+    if (type->kind == (a_type_kind)tk_typeref &&
+        type->variant.typeref.is_typeof) {
+      an_expr_node_ptr typeof_expr = decltype_arg(type);
+      check_assertion(typeof_expr != NULL);
+#if IA64_ABI
+      /* FIXME: need to invent a mangling for typeof */
+      add_FIXME_to_mangled_name(mctl);
+      mangled_encoding_for_expression(typeof_expr,
+                                      /*in_dependent_expr=*/TRUE, mctl);
+      add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+      /* FIXME: implement Cfront case */
+      add_FIXME_to_mangled_name(mctl);
+#endif /* IA64_ABI */
+      goto have_whole_mangled_name;
+    }  /* if */
+  }  /* for */
   if (gpp_mode && is_function_type(type)) {
     /* In g++ versions, function types with the "noreturn" or "volatile"
        attributes are mangled as though declared with the volatile keyword. */
