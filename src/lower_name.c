@@ -3132,6 +3132,7 @@ part of a template-dependent expression.
           /* FIXME: Temporarily allow compilation to continue. */
           add_FIXME_to_mangled_name(mctl);
           return;
+          /*NOTREACHED*/
 #endif /* 0 */
 #if IA64_ABI
           operation_name = bad_mangled_expr_operator_name(expr);
@@ -3244,6 +3245,7 @@ part of a template-dependent expression.
       /* FIXME: Temporarily allow compilation to continue. */
       add_FIXME_to_mangled_name(mctl);
       break;
+      /*NOTREACHED*/
 #endif /* 0 */
 #if IA64_ABI
       /* Generate a zero constant instead of the unexpected expression.
