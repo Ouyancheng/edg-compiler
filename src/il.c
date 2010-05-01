@@ -220,17 +220,6 @@ static unsigned long
 		num_based_type_fixups_allocated;
 #endif /* DEBUG */
 
-
-static
-void put_str_into_text_buffer(char                                  *str,
-                              an_il_to_str_output_control_block_ptr octl)
-/*
-Output a string into the db_name_str buffer.
-*/
-{
-  (void)add_string_to_text_buffer(octl->text_buffer, str);
-}  /* put_str_into_text_buffer */
-
 #if DEBUG
 
 void db_template_arg_list(a_template_arg_ptr tap)
@@ -312,6 +301,17 @@ template arguments on template classes.
 
 #endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static
+void put_str_into_text_buffer(char                                  *str,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Output a string into the db_name_str buffer.
+*/
+{
+  (void)add_string_to_text_buffer(octl->text_buffer, str);
+}  /* put_str_into_text_buffer */
+
 #if DEBUG
 
 /*
