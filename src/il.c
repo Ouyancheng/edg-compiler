@@ -4034,12 +4034,10 @@ to the parent scope), delete it.
 {
   if (scp->parent_via_local_scope_ref) {
     /* Find and remove the associated a_local_scope_ref entry. */
-    check_assertion(scp->enclosing_routine != NULL &&
-                    scp->enclosing_routine->assoc_scope != NULL_region_number);
-    { a_scope_ptr  enclosing_fn_scope = il_header.region_scope_entry[
-                                         scp->enclosing_routine->assoc_scope];
+    check_assertion(scp->enclosing_routine != NULL);
+    { a_scope_ptr  enclosing_fn_scope =
+                                     scope_for_routine(scp->enclosing_routine);
       a_local_scope_ref_ptr ref, prev_ref;
-      check_assertion(enclosing_fn_scope != NULL);
       for (prev_ref = NULL, ref = enclosing_fn_scope->scope_refs;
            ; prev_ref = ref, ref = ref->next) {
         check_assertion_str(ref != NULL,
@@ -7177,6 +7175,7 @@ correspondence.  The entity must have an associated symbol.
   return tup;
 }  /* trans_unit_for_source_corresp */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_routine_ptr enclosing_routine_for_local_type_or_null(a_type_ptr type)
 /*
@@ -7206,6 +7205,36 @@ scope.
   return result;
 }  /* enclosing_routine_for_local_type */
 
+
+a_scope_ptr scope_for_routine(a_routine_ptr rout)
+/*
+Return the function scope for the given (defined) routine.
+*/
+{
+  a_scope_ptr scope;
+
+  check_assertion(rout != NULL && rout->assoc_scope != NULL_region_number);
+  scope = il_header.region_scope_entry[rout->assoc_scope];
+  check_assertion_str(scope != NULL, "scope for routine is NULL");
+  check_assertion(scope->kind == (a_scope_kind)sck_function);
+  return scope;
+}  /* scope_for_routine */
+
+
+a_scope_ptr function_scope_for_local_type(a_type_ptr type)
+/*
+Return the function scope in which the given local type is declared.  The
+type might be declared in a block scope or local class inside that function
+scope.
+*/
+{
+  a_routine_ptr rout = enclosing_routine_for_local_type(type);
+  a_scope_ptr   scope = scope_for_routine(rout);
+
+  return scope;
+}  /* function_scope_for_local_type */
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 static a_scope_ptr get_scope_for_list(
                                  a_scope_depth               scope_level,
@@ -9840,7 +9869,9 @@ a_scope_ptr f_get_parent_scope_of(a_source_correspondence_ptr  scp)
 /*
 Determine and return the parent scope of the entity associated with scp.
 This may involve searching a list of a_local_scope_ref entries.  This routine
-is best called through the macro get_parent_scope_of.
+is best called through the macro get_parent_scope_of.  Returns NULL if the
+scope cannot be found (e.g., because it's a function scope that's no longer in
+memory).
 */
 {
   a_scope_ptr  result = scp->parent_scope;
@@ -9848,6 +9879,8 @@ is best called through the macro get_parent_scope_of.
   if (scp->parent_via_local_scope_ref) {
     check_assertion(result == NULL && scp->enclosing_routine != NULL);
     if (scp->enclosing_routine->assoc_scope != NULL_region_number) {
+      /* Not using scope_for_routine on purpose because the scope might
+         not be there. */
       a_scope_ptr  enclosing_fn_scope = il_header.region_scope_entry[
                                          scp->enclosing_routine->assoc_scope];
       result = find_local_scope_in_function_scope((char*)scp,

@@ -3998,7 +3998,7 @@ return the routine or variable.  This function may also be called for the
         a_symbol_ptr  sym = symbol_for(rp);
         pos_warning(ec_ignoring_inline_definition_because_of_alias,
                     &rp->source_corresp.decl_position);
-        clear_function_body(il_header.region_scope_entry[rp->assoc_scope]);
+        clear_function_body(scope_for_routine(rp));
         /* clear_function_body clears rp->defined, but not the defined flag
            on the associated symbol. */
         sym->defined = FALSE;

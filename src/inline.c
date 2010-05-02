@@ -308,7 +308,7 @@ body has any side effects that can affect the values of argument expressions.
 */
 {
   a_boolean       has_side_effects = TRUE;
-  a_scope_ptr     scope = il_header.region_scope_entry[routine->assoc_scope];
+  a_scope_ptr     scope = scope_for_routine(routine);
   a_statement_ptr stmt = scope->assoc_block;
 
   /* Only consider functions where the top block contains only a return
@@ -1589,7 +1589,7 @@ is the top node of the indicated statement (which is an expression statement).
           fprintf(f_debug, ":\n");
         }  /* if */
 #endif /* DEBUG */
-        scope = il_header.region_scope_entry[routine->assoc_scope];
+        scope = scope_for_routine(routine);
         routine_scope_being_inlined = scope;
         /* Set the insert location.  Use a location unattached to the IL
            tree, because we may discover we can't inline the function.

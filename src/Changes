@@ -1,5 +1,32 @@
 Version 4.2
 
+5/2/10   [EDGcpfe/10666]
+Abort in find_parent_var_of_anon_union_type
+
+The front end aborted in find_parent_var_of_anon_union_type with
+the message "var not found" in some obscure cases.  The most common
+cause is a side effect of setting EXPENSIVE_CHECKING to TRUE and
+compiling a function-local anonymous union that contains a nested
+type definition.  Now fixed.
+
+  typedef class A q;
+  struct B {
+     B(q *);
+  };
+  struct C {
+    inline int f(void);
+  };
+  int C::f(void) {
+    union {
+      struct {
+        unsigned x;
+      } y;
+    };
+   return 0;
+  }
+  B::B(q *) {}
+
+
 4/30/10  [EDGcpfe/10642]
 Performance improvement in finding class template instantiations
 

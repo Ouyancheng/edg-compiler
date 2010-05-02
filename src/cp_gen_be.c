@@ -8250,7 +8250,7 @@ Render code for the given expression node, which represents a lambda.
      names. */
   read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  scope = il_header.region_scope_entry[scope_region_number];
+  scope = scope_for_routine(rp);
   save_source_sequence_scan_state(&saved_state);
   curr_source_sequence_entry = scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
@@ -12544,7 +12544,7 @@ handle_as_definition:
        names. */
     read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    scope = il_header.region_scope_entry[scope_region_number];
+    scope = scope_for_routine(rout);
     if (in_generated_instance) {
       /* Scan the body of the function for any pseudo-destructors (e.g.,
          int::~int()) and create temporary typedefs that can be used in

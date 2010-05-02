@@ -726,7 +726,7 @@ Complete the file scope of each of the translation units.
           free_memory_region(n);
       }  /* if */
     }  /* for */
-  }
+  }  /* if */
 }  /* wrap_up_file_scopes */
 
 

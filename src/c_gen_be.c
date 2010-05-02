@@ -8038,9 +8038,7 @@ Set *region_number to the function memory region number.
      names. */
   read_memory_region(*region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  scope = il_header.region_scope_entry[*region_number];
-  check_assertion_str(scope != NULL,
-                      "get_scope_for_routine_definition: scope is NULL");
+  scope = scope_for_routine(rout);
   return scope;
 }  /* get_scope_for_routine_definition */
 

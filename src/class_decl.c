@@ -17374,8 +17374,7 @@ and issue a diagnostic if that was not the case.
        check is not done for prototype instantiations, because (a) they
        might not be recorded in the IL, and (b) even if they were, it's
        not always known whether the deduced return type is void or not. */
-    a_statement_ptr  sp = il_header.region_scope_entry[rp->assoc_scope]
-                                                                ->assoc_block;
+    a_statement_ptr  sp = scope_for_routine(rp)->assoc_block;
     check_assertion(sp->kind == (a_statement_kind)stmk_block &&
                     sp->next == NULL);
     sp = sp->variant.block.statements;

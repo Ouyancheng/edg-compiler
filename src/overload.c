@@ -7136,12 +7136,7 @@ available, e.g., during overload resolution.
         if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
           /* It is, so it has a "this".  We delay until later checking whether
              the "this" is or can be captured. */
-          a_scope_ptr            scope;
-          a_memory_region_number region_number = encl_rout->assoc_scope;
-          check_assertion(region_number != NULL_region_number);
-          scope = il_header.region_scope_entry[region_number];
-          check_assertion(scope != NULL &&
-                          scope->kind == (a_scope_kind)sck_function);
+          a_scope_ptr scope = scope_for_routine(encl_rout);
           *this_var = scope->variant.routine.this_param_variable;
           check_assertion(*this_var != NULL);
           this_exists = TRUE;

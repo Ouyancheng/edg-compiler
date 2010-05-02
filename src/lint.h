@@ -509,6 +509,9 @@ extern int fileno(FILE *);
 /*lint -esym(759, make_lvalue_reusable_copy_full)*/
 /*lint -esym(765, make_lvalue_reusable_copy_full)*/
 #endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
+/*lint -esym(714,function_scope_for_local_type)*/
+/*lint -esym(759,function_scope_for_local_type)*/
+/*lint -esym(765,function_scope_for_local_type)*/
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE && \
     !(MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED)

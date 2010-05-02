@@ -8417,8 +8417,7 @@ be embedded in other mangled names.
            inline function) is compiled in more than one compilation unit
            the scope number -- and therefore the mangled name -- will be
            the same in each compilation. */
-        a_scope_ptr rout_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
+        a_scope_ptr rout_scope = scope_for_routine(routine);
         a_boolean   found = FALSE;
         unique_number = search_scope_list(scope, rout_scope, &found);
         check_assertion_str(found,

@@ -611,10 +611,8 @@ it and remapping pointers.
 {
   a_scope_ptr scope;
 
-  check_assertion(in_secondary_trans_unit(routine) &&
-                  routine->assoc_scope != NULL_region_number);
-  scope = il_header.region_scope_entry[routine->assoc_scope];
-  check_assertion(scope != NULL);
+  check_assertion(in_secondary_trans_unit(routine));
+  scope = scope_for_routine(routine);
   /* Note that the "copy" routines called here simply remap pointers
      when given an entry in a function scope memory region. */
   walk_routine_scope_il(routine->assoc_scope,
@@ -746,9 +744,7 @@ static void clear_body_for_routine(a_routine_ptr routine)
 Eliminate the body of the indicated routine.
 */
 {
-  a_scope_ptr routine_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-  check_assertion(routine_scope != NULL);
+  a_scope_ptr routine_scope = scope_for_routine(routine);
   clear_function_body(routine_scope);
   if (!routine->is_specialized) {
     switch_canonical_for_deleted_definition(&routine->source_corresp);

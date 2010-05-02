@@ -472,7 +472,8 @@ cases (anonymous unions containing types).
   } else if (type->source_corresp.is_local_to_function) {
     /* The type is local to a function.  Search the function and block
        scopes. */
-    var = find_var_in_function_scope_with_type(type, innermost_function_scope);
+    var = find_var_in_function_scope_with_type(type,
+                                          function_scope_for_local_type(type));
   } else {
     /* This type must be in the file scope. */
     var = find_var_in_scope_with_type(type, il_header.primary_scope);
@@ -593,10 +594,7 @@ definition of the routine is needed, and not just the declaration.
     if (rout->defined && rout->assoc_scope != NULL_region_number) {
       a_scope_ptr            saved_innermost_function_scope;
       a_memory_region_number saved_curr_il_region_number=curr_il_region_number;
-      a_scope_ptr scope;
-      check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
-                          "set_routine_definition_needed: memory region gone");
-      scope = il_header.region_scope_entry[rout->assoc_scope];
+      a_scope_ptr            scope = scope_for_routine(rout);
       /* Don't sweep functions until the bodies have been completely processed.
          In particular, don't sweep bodies in the primary IL until they
          have been lowered.  This comes up when lowering is delayed, e.g., to
@@ -1451,10 +1449,7 @@ declaration.
        care of calling this again later when the routine is defined
        if it is not defined now. */
     if (rout->defined && rout->assoc_scope != NULL_region_number) {
-      a_scope_ptr scope;
-      check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
-                      "set_routine_keep_definition_in_il: memory region gone");
-      scope = il_header.region_scope_entry[rout->assoc_scope];
+      a_scope_ptr scope = scope_for_routine(rout);
       /* Don't walk the body if it hasn't been lowered yet. */
       if (scope->function_body_processing_finished) {
         /* Set the innermost function scope.  This is needed for finding the
@@ -2443,7 +2438,9 @@ in cases where the orphan lists have not been generated yet.
       saved_innermost_function_scope = innermost_function_scope;
       check_assertion(solhp->assoc_routine != NULL);
       if (solhp->assoc_routine->assoc_scope != NULL_region_number) {
-        innermost_function_scope = 
+        /* Not using scope_for_routine on purpose here because it's okay for
+           the scope to be gone by now. */
+        innermost_function_scope =
                il_header.region_scope_entry[solhp->assoc_routine->assoc_scope];
       } else {
         innermost_function_scope = NULL;
@@ -2474,7 +2471,8 @@ in cases where the orphan lists have not been generated yet.
       a_scope_ptr func_scope =
                             il_header.region_scope_entry[routine->assoc_scope];
       /* Process a function's scope if its orphan lists have not yet
-         been generated. */
+         been generated.  Note that we don't use scope_for_routine here
+         because the scope might be gone by now. */
       if (func_scope != NULL &&
           !func_scope->function_body_processing_finished) {
         saved_innermost_function_scope = innermost_function_scope;

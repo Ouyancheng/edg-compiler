@@ -3497,11 +3497,8 @@ scope into the complete object ctor/dtor scope.
       break;
     }  /* if */
   }  /* for */
-  check_assertion(complete_routine != NULL &&
-                  complete_routine->assoc_scope != NULL_region_number);
-  complete_scope = il_header.region_scope_entry[complete_routine->assoc_scope];
-  check_assertion(complete_scope != NULL &&
-                  complete_scope->variant.routine.constructor_inits == NULL);
+  complete_scope = scope_for_routine(complete_routine);
+  check_assertion(complete_scope->variant.routine.constructor_inits == NULL);
   for (ctor_init = subobj_scope->variant.routine.constructor_inits;
        ctor_init != NULL;
        ctor_init = ctor_init->next) {
@@ -3882,8 +3879,7 @@ action is necessary (since the routine has already been defined).
     }  /* if */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
     if (construct_virtual_bases || destroy_virtual_bases) {
-      a_scope_ptr  subobj_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
+      a_scope_ptr  subobj_scope = scope_for_routine(routine);
       /* Move (or copy) virtual base ctor_inits from the subobject ctor/dtor
          into the complete object ctor/dtor so the construction/destruction
          of the virtual bases will take place in the complete object
@@ -4322,7 +4318,7 @@ routine will be the same as the one passed in.
                          variant.class_struct_union.any_virtual_base_classes &&
           kind == (a_ctor_or_dtor_kind)cdk_complete &&
           (routine->assoc_scope != NULL_region_number &&
-           il_header.region_scope_entry[routine->assoc_scope]->
+           scope_for_routine(routine)->
                                   variant.routine.constructor_inits != NULL) &&
           (new_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor ||

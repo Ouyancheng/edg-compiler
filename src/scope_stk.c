@@ -6638,7 +6638,7 @@ encoding that depends on the (as yet) un-computed discriminator.
 {
   a_symbol_ptr  sym;
   a_type_ptr    type;
-  a_scope_ptr   sp = il_header.region_scope_entry[routine->assoc_scope];
+  a_scope_ptr   sp = scope_for_routine(routine);
   a_boolean     result = FALSE;
   a_boolean     requires_early_mangling = FALSE;
   a_boolean     has_base_classes = FALSE;
@@ -6729,7 +6729,7 @@ a safe return (but may cause excess memory usage).
   a_boolean result = FALSE;
 
   if (!C_mode() && get_module_id() == NULL) {
-    a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
+    a_scope_ptr scope = scope_for_routine(routine);
     if (export_template_allowed &&
         routine->storage_class == (a_storage_class)sc_static &&
         (scope->variables != NULL || scope->types != NULL ||
