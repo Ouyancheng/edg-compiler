@@ -799,6 +799,7 @@ as in a decltype.
                                          old_entry->template_deduction_context;
     new_entry->suppress_diagnostics |= old_entry->suppress_diagnostics;
     new_entry->possible_rescan_context |= old_entry->possible_rescan_context;
+    new_entry->in_static_initializer |= old_entry->in_static_initializer;
   }  /* if */
 }  /* transfer_context_from_enclosing_expr_stack_entry */
 
@@ -847,6 +848,7 @@ is pushed regardless of any of the other factors.
                               cpp0x_sfinae_enabled &&
                               (expression_kind != (an_expression_kind)ek_pp) &&
                               is_template_deduction_context();
+  new_entry->in_static_initializer = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;

@@ -729,6 +729,10 @@ typedef struct an_expr_stack_entry {
 			   that will be needed to redo the semantic analysis
 			   on the expression.  Only set when
 			   cpp0x_sfinae_enabled is TRUE. */
+  a_byte_boolean
+		in_static_initializer;
+			/* TRUE if we're inside the initializer of an entity
+			   with static storage duration. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

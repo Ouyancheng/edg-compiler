@@ -14651,20 +14651,13 @@ set appropriately; the caller should set them on return.
   a_boolean               err = FALSE;
   a_type_ptr              literal_type = *p_literal_type;
   a_dynamic_init_ptr      dip;
-  a_boolean               is_static;
+  a_boolean               is_static = (expr_stack->in_static_initializer ||
+                                       curr_expr_kind_is_const());
   an_expr_stack_entry_ptr saved_expr_stack;
   a_routine_ptr           dtor = NULL;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp));
-  /* The C99 standard says that compound literals outside of function bodies
-     are static, but that isn't right for initializers of local static
-     variables (which have to be constant), and it's probably not right for
-     compound literals in VLA bound expressions, which though they aren't
-     in function bodies are nevertheless in functions. */
-  is_static = (curr_expr_kind_is_const() ||
-               (innermost_function_scope == NULL &&
-                !expr_stack->is_vla_dimension_expression));
   if (curr_expr_kind_is(ek_integral_constant)) {
     /* A compound literal is not allowed in an integral constant expression. */
     expr_pos_error(ec_bad_integral_compound_literal, type_position);
@@ -24760,6 +24753,7 @@ scan_aggregate_initializer_expression.
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   force_object_lifetime, suppress_object_lifetime);
+  if (static_lifetime) expr_stack->in_static_initializer = TRUE;
   if (static_lifetime || favor_constant_result_for_nonstatic_init) {
     /* Fold constant addressing expressions to constants so that constant
        initialization can be more easily discerned.  This is necessary for
@@ -25116,6 +25110,7 @@ string initializers.
   push_expr_stack(expr_kind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   suppress_object_lifetime);
+  if (static_lifetime) expr_stack->in_static_initializer = TRUE;
   if (static_lifetime || favor_constant_result_for_nonstatic_init) {
     /* Fold constant addressing expressions to constants so that constant
        initialization can be more easily discerned.  This is necessary for
