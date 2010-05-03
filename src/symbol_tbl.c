@@ -11987,16 +11987,21 @@ table entries.  Return the value to be used.
 	251,	353,	499,	701,	983,	1381,	1949,	2729,
 	3821,	5351,	7499,	10499,	14699,	20593,	28837,	40387,
 	56543,	79181,	110863,	155209,	217307,	304253,	425959,	596363,
-	834913,	1168879
+	834913,		1168879,	1636457,	2291041,
+	3207461,	4490459,	6286661,	8801327,
+	12321863,	17250641,	24150901,	33811277,
+	47335793,	66270121,	92778187,	129889477,
+	181845299,	254583437,	356416861,	498983623,
+	698577083,	978007931,	1369211111,	1916895569,
+	0 /* Must be last entry */
   };
   unsigned int	i;
 
-  /* Select a size that is greater than the number of elements.  In the
-     unlikely event that the number of elements exceeds the largest entry
-     in the table, the largest value is used. */
+  /* Select a size that is greater than or equal to the number of elements. */
   for (i = 0; i < ((sizeof(sizes) / sizeof(a_hash_table_size)) - 1); i++) {
-    if (num_of_entries < sizes[i]) break;
+    if (num_of_entries <= sizes[i]) break;
   }  /* for */
+  check_assertion(sizes[i] != 0);
   return sizes[i];
 }  /* select_hash_table_size */
 
@@ -12049,6 +12054,7 @@ table.
   /* Select a table size based on the number of elements. */
   buckets = select_hash_table_size(num_elements);
   htp->num_buckets = buckets;
+  htp->entry_count = 0;
   table_size_in_bytes = sizeof(a_hash_table_entry_ptr) * buckets;
   htp->table = (a_hash_table_entry_ptr*)
                 alloc_general_or_in_region(memory_region, table_size_in_bytes);
@@ -12059,6 +12065,64 @@ table.
 #endif /* DEBUG */
   return htp;
 }  /* alloc_hash_table */
+
+
+static void resize_hash_table(a_hash_table_ptr	htp)
+/*
+The hash table "htp" is not large enough for the number of entries it
+holds.  Allocate a larger table and rehash the existing entries.
+*/
+{
+  sizeof_t			table_size_in_bytes;
+  sizeof_t			old_table_size_in_bytes;
+  a_hash_table_size		new_buckets;
+  a_hash_table_entry_ptr	*new_table;
+  a_hash_table_size		bucket;
+
+  /* Allocate a table large enough to handle four times as many entries as
+     we currently have. */
+  new_buckets = select_hash_table_size(htp->num_buckets * 4);
+  table_size_in_bytes = sizeof(a_hash_table_entry_ptr) * new_buckets;
+  new_table = (a_hash_table_entry_ptr*)
+                               alloc_general_or_in_region(htp->memory_region,
+                                                          table_size_in_bytes);
+#if DEBUG
+  if (db_flag_is_set("hash")) {
+    fprintf(f_debug, "Resizing hash table at %p, old_size=%lu, new_size=%lu\n",
+            htp, (unsigned long)htp->num_buckets, (unsigned long)new_buckets);
+  }  /* if */
+#endif /* DEBUG */
+  memzero((a_void_ptr)new_table, size_t_arg(table_size_in_bytes));
+  old_table_size_in_bytes = sizeof(a_hash_table_entry_ptr) *
+                            htp->num_buckets;
+  /* Go through the old table and rehash them into the new one. */
+  for (bucket = 0; bucket < htp->num_buckets; bucket++) {
+    a_hash_table_entry_ptr	htep;
+    a_hash_table_entry_ptr	next_htep = NULL;
+    a_hash_table_size		new_bucket;
+    for (htep = htp->table[bucket]; htep != NULL;  htep = next_htep) {
+      next_htep = htep->next;
+      new_bucket = htep->hash_value % (a_hash_value)new_buckets;
+      /* Link it at the start of the bucket. */
+      htep->next = new_table[new_bucket];
+      new_table[new_bucket] = htep;
+    }  /* for */
+  }  /* for */
+  htp->num_buckets = new_buckets;
+  if (htp->memory_region == NO_MEMORY_REGION_NUMBER)  {
+    /* Tables in IL memory cannot be freed, so are just discarded. */
+    free_general(htp->table, old_table_size_in_bytes);
+  }  /* if */
+  htp->table = new_table;
+#if DEBUG
+  total_hash_table_size += (table_size_in_bytes - old_table_size_in_bytes);
+#endif /* DEBUG */
+}  /* resize_hash_table */
+
+
+#define HASH_LOAD_FACTOR	1.0
+			/* The number of entries per bucket at which we should
+			   reallocate the hash table. */
 
 
 a_hash_data_ptr *hash_find(a_hash_table_ptr	table,
@@ -12089,6 +12153,14 @@ appropriate user-defined entry.
     }  /* if */
   }  /* for */
   if (htep == NULL && create) {
+    /* Increment the number of entries in the table. */
+    table->entry_count++;
+    if ((double)table->entry_count / (double)table->num_buckets >
+                                                            HASH_LOAD_FACTOR) {
+      /* The hash table is too small.  Reallocate it. */
+      resize_hash_table(table);
+      bucket = hash_value % (a_hash_value)table->num_buckets;
+    }  /* if */
     /* No entry was found.  Create one now. */
     htep = alloc_hash_table_entry(table->memory_region);
     /* Link it at the start of the bucket. */

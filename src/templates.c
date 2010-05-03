@@ -5098,7 +5098,7 @@ or to the NULL pointer to be filled in when the instance is created.
   if (tssp->variant.class_template.instantiation_hash_table == NULL) {
     tssp->variant.class_template.instantiation_hash_table =
 				alloc_hash_table(FRONT_END_REGION_NUMBER,
-					         (a_hash_table_size)19,
+					         (a_hash_table_size)11,
 					         hash_instantiation,
 					         compare_instantiation);
   }  /* if */

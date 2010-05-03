@@ -4698,6 +4698,8 @@ typedef struct a_hash_table {
   a_hash_table_size
 		num_buckets;
 			/* The number of buckets in the hash table. */
+  int32_t	entry_count;
+			/* The number of entries in the hash table. */
   a_hash_table_entry_ptr
 		*table;
 			/* Pointer to the hash table array.  The size is
