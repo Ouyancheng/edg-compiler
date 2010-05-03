@@ -18744,6 +18744,7 @@ or local classes.
 */
 {
   unsigned long count = num_file_scope_entities_with_assoc_pragmas(scope);
+
   if (count > 0) {
     a_translation_unit_ptr tup = trans_unit_for_scope[scope->number];
     a_scope_ptr            primary_scope = tup->primary_scope;

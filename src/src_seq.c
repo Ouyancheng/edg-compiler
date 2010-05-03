@@ -2505,8 +2505,23 @@ entries.
       a_src_seq_secondary_decl_ptr  sssdp;
       next_sublist_ssep = sublist_ssep->next;
       if (ss_entry_kind(sublist_ssep) == (an_il_entry_kind)iek_pragma) {
-        /* Ignore entries representing pragmas. */
-        continue;
+        /* If scope orphaned lists are maintained, pragma entries for local
+           entries stored in the file scope are preserved.  The associated
+           source sequence entries must therefore be preserved (and promoted)
+           as well. */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+        a_pragma_ptr  pp = ss_entry_ptr(sublist_ssep, a_pragma_ptr);
+        if (in_file_scope(pp->entity.ptr)) {
+          promote = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+          il_entry_prefix_of(sublist_ssep).keep_in_il = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
+        } else
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+        /* Do not insert code here. */
+        {
+          continue;
+        }  /* if */
 #if RECORD_MACROS_IN_IL
       } else if (ss_entry_kind(sublist_ssep) == (an_il_entry_kind)iek_macro) {
         /* Macro definitions should be preserved since their effect may
