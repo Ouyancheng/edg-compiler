@@ -1435,7 +1435,9 @@ TRUE) or invisible (if visible is FALSE).
   a_param_id_ptr  param_id = func_info->param_id_list;
 
   for (; param_id != NULL; param_id = param_id->next) {
-    param_id->symbol->is_invisible = !visible;
+    if (param_id->symbol != NULL) {
+      param_id->symbol->is_invisible = !visible;
+    }  /* if */
   }  /* for */
 }  /* set_param_syms_visibility */
 
