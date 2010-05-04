@@ -1,5 +1,24 @@
 Version 4.2
 
+5/4/10   [EDGcpfe/10653]
+Microsoft mode: old-style cast forming pointer-to-member of overloaded function 
+
+The Microsoft compiler allows an old-style cast applied to a pointer-to-member
+for an overloaded function to select a function from the overload set even
+if the classes of the pointer-to-members are not related (the member types
+must still be identical).  The effect is like a reinterpret_cast applied
+to the pointer to member for the selected function.
+
+  struct B {
+    void foo(short*);
+    void foo(int*);
+  };
+  struct C {};
+  int main() {
+    (void (C::*)(short *))&B::foo;
+  }
+
+
 5/4/10   [EDGcpfe/10659]
 Nonreal types based on template parameters no longer shared
 

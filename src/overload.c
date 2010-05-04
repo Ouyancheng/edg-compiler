@@ -106,8 +106,10 @@ a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_boolean          source_is_lvalue,
                                 a_type_ptr         dest_type,
                                 a_boolean          is_cast,
+                                a_boolean          is_static_cast,
                                 an_arg_match_level *match_level,
                                 a_std_conv_descr   *std_conv,
+                                a_boolean          *reinterpret_semantics,
                                 a_boolean          *unknown_dependent_function,
                                 a_boolean          *ambiguous)
 /*
@@ -131,7 +133,11 @@ instantiation), return NULL and *unknown_dependent_function TRUE.
 If more than one function matches, return NULL and *ambiguous TRUE.
 See WP [over.over], and ARM 13.3, "Address of Overloaded Function".  If
 is_cast is TRUE, this disambiguation is being done via an explicit
-cast.
+cast; if so, then is_static_cast indicates whether the cast is a
+static_cast (TRUE) or an old-style or functional-notation cast (FALSE).
+If reinterpret_semantics is non-NULL, *reinterpret_semantics is returned
+TRUE if a reinterpret_cast is needed to convert the function to the
+destination type (this comes up in a Microsoft-mode extension).
 */
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
@@ -150,6 +156,7 @@ cast.
   if (std_conv != NULL) clear_std_conv_descr(std_conv);
   *ambiguous = FALSE;
   *unknown_dependent_function = FALSE;
+  if (reinterpret_semantics != NULL) *reinterpret_semantics = FALSE;
   if (is_template_dependent_context() &&
       (is_template_dependent_type(dest_type) ||
        (is_template_id &&
@@ -383,10 +390,22 @@ cast.
              pointer-to-member of a derived class cast to a pointer-to-member
              of a base class.  expl_conversion_possible would be too broad
              because it would also allow changing the member type. */
-          if (ptr_routine_type != NULL &&
-              (is_cast ?
-                (clear_std_conv_descr(&std_conversion),
-                 static_cast_conversion_possible(
+          if (ptr_routine_type != NULL) {
+            a_boolean is_match = FALSE;
+            clear_std_conv_descr(&std_conversion);
+            if (!is_cast) {
+              if (impl_conversion_possible(ptr_routine_type,
+                                           /*source_is_constant=*/FALSE,
+                                           /*source_is_string_literal=*/FALSE,
+                                           (a_constant_ptr)NULL,
+                                           eff_dest_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                           /*suppress_extensions=*/FALSE,
+                                           ec_no_error,
+                                           &std_conversion)) {
+                is_match = TRUE;
+              }  /* if */
+            } else if (static_cast_conversion_possible(
                                      ptr_routine_type,
                                      /*source_is_constant=*/FALSE,
                                      /*source_is_string_literal=*/FALSE,
@@ -394,24 +413,38 @@ cast.
                                      eff_dest_type,
                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                      ec_no_error,
-                                     &std_conversion.warning_suggested)) :
-                impl_conversion_possible(ptr_routine_type,
-                                         /*source_is_constant=*/FALSE,
-                                         /*source_is_string_literal=*/FALSE,
-                                         (a_constant_ptr)NULL,
-                                         eff_dest_type,
-                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                         /*suppress_extensions=*/FALSE,
-                                         ec_no_error,
-                                         &std_conversion))) {
-            /* A match. */
-            match_sym = proj_sym;
-            match_routine_type = routine_type;
-            match_template_arg_list = template_arg_list;
-            *match_level = aml_std_conversion;
-            *std_conv = std_conversion;
-            number_of_matches++;
-            exception_spec_checked = TRUE;
+                                     &std_conversion.warning_suggested)) {
+              is_match = TRUE;
+            } else if (microsoft_mode && !is_static_cast) {
+              /* Microsoft allows a conversion that changes the implicit this
+                 class type but not the parameter types of a pointer-to-member
+                 function if the cast used is old-style or
+                 functional-notation. */
+              a_boolean qualifiers_added;
+              if (is_ptr_to_member_type(ptr_routine_type) &&
+                  is_ptr_to_member_type(eff_dest_type) &&
+                  member_types_correspond(pm_member_type(eff_dest_type),
+                                          pm_member_type(ptr_routine_type),
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                          &qualifiers_added) &&
+                  !qualifiers_added) {
+                is_match = TRUE;
+                std_conversion.nontrivial_conversion = TRUE;
+                if (reinterpret_semantics != NULL) {
+                  *reinterpret_semantics = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            if (is_match) {
+              /* A match. */
+              match_sym = proj_sym;
+              match_routine_type = routine_type;
+              match_template_arg_list = template_arg_list;
+              *match_level = aml_std_conversion;
+              *std_conv = std_conversion;
+              number_of_matches++;
+              exception_spec_checked = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
@@ -493,8 +526,10 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
                                                    /*source_is_lvalue=*/TRUE,
                                                    guide_type,
                                                    /*is_cast=*/FALSE,
+                                                   /*is_static_cast=*/FALSE,
                                                    &match_level,
                                                    &std_conversion,
+                                                   (a_boolean *)NULL,
                                                    &unknown_dependent_function,
                                                    &ambiguous);
   if (func_sym == NULL ||
@@ -1995,8 +2030,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                                                   arg_operand),
                                                   orig_param_type,
                                                   /*is_cast=*/FALSE,
+                                                  /*is_static_cast=*/FALSE,
                                                   &arg_summary->match_level,
                                                   &std_conversion,
+                                                  (a_boolean *)NULL,
                                                   &unknown_dependent_function,
                                                   &ambiguous)) != NULL ||
           unknown_dependent_function ||
@@ -12635,8 +12672,10 @@ NULL, the operand is not a parameter.
                                                                source_operand),
                                            dest_type,
                                            /*is_cast=*/FALSE,
+                                           /*is_static_cast=*/FALSE,
                                            &match_level,
                                            &conversion->std,
+                                           (a_boolean *)NULL,
                                            &unknown_dependent_function,
                                            &ambiguous) != NULL) {
         okay = TRUE;
@@ -14351,8 +14390,10 @@ direct binding is "possible" and not whether it is "valid".
                                                /*source_is_lvalue=*/TRUE,
                                                dest_type,
                                                /*is_cast=*/FALSE,
+                                               /*is_static_cast=*/FALSE,
                                                &match_level,
                                                (a_std_conv_descr *)NULL,
+                                               (a_boolean *)NULL,
                                                &unknown_dependent_function,
                                                &ambiguous);
     if (ambiguous) {

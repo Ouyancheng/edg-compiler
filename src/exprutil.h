@@ -1659,7 +1659,8 @@ extern void conv_indefinite_function_operand_to_unknown_dependent_function(
 
 extern void cast_overloaded_function(a_type_ptr type_cast_to,
                                      an_operand *operand,
-                                     a_boolean  is_cast);
+                                     a_boolean  is_cast,
+                                     a_boolean  is_static_cast);
 
 extern
 void cast_operand_full(a_type_ptr        new_type,

@@ -6004,11 +6004,10 @@ operands of an operation).
 }  /* function_types_correspond */
 
 
-static a_boolean member_types_correspond(
-                                   a_type_ptr dest_type,
-                                   a_type_ptr source_type,
-                                   a_boolean  allow_qualifier_or_eh_mismatch,
-				   a_boolean  *qualifiers_added)
+a_boolean member_types_correspond(a_type_ptr dest_type,
+                                  a_type_ptr source_type,
+                                  a_boolean  allow_qualifier_or_eh_mismatch,
+                                  a_boolean  *qualifiers_added)
 /*
 Return TRUE if the member types from two pointer-to-member types match
 allowing for a possible difference due to the associated class type.

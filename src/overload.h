@@ -495,8 +495,10 @@ extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_boolean          source_is_lvalue,
                                 a_type_ptr         dest_type,
                                 a_boolean          is_cast,
+                                a_boolean          is_static_cast,
                                 an_arg_match_level *match_level,
                                 a_std_conv_descr   *std_conv,
+                                a_boolean          *reinterpret_semantics,
                                 a_boolean          *unknown_dependent_function,
                                 a_boolean          *ambiguous);
 

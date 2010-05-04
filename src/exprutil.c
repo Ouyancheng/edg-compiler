@@ -4602,13 +4602,16 @@ function to be selected is not known.
 
 void cast_overloaded_function(a_type_ptr type_cast_to,
                               an_operand *operand,
-                              a_boolean  is_cast)
+                              a_boolean  is_cast,
+                              a_boolean  is_static_cast)
 /*
 Cast an operand for an overloaded function (*operand) to type_cast_to.
 If type_cast_to is a pointer, reference, or pointer-to-member type, the cast
 can serve to select one of the functions in the overload set.  See [over.over].
 If it doesn't, an error is issued.  If is_cast is TRUE, the disambiguation
-is being done via an explicit cast; otherwise, it's implicit by context.
+is being done via an explicit cast (a static_cast if is_static_cast is
+TRUE, otherwise an old-style or functional-notation cast); otherwise, it's
+implicit by context.
 */
 {
   an_arg_match_level match_level;
@@ -4616,6 +4619,7 @@ is being done via an explicit cast; otherwise, it's implicit by context.
   a_std_conv_descr   std_conversion;
   a_boolean          ambiguous, unknown_dependent_function;
   a_boolean          reference_case = is_reference_type(type_cast_to);
+  a_boolean          reinterpret_semantics;
 
   overloaded_function_symbol = operand->variant.symbol;
   function_symbol =
@@ -4626,8 +4630,10 @@ is being done via an explicit cast; otherwise, it's implicit by context.
                                              is_a_function_designator(operand),
                                              type_cast_to,
                                              is_cast,
+                                             is_static_cast,
                                              &match_level,
                                              &std_conversion,
+                                             &reinterpret_semantics,
                                              &unknown_dependent_function,
                                              &ambiguous);
   if (function_symbol != NULL) {
@@ -4670,7 +4676,13 @@ is being done via an explicit cast; otherwise, it's implicit by context.
   if (!reference_case) {
     /* This also takes care of recording the cast as part of the
        expression representation of the constant. */
-    cast_operand(type_cast_to, operand, /*is_implicit_cast=*/!is_cast);
+    cast_operand_full(type_cast_to, operand,
+                      (a_source_position *)NULL,
+                      /*check_cast_access=*/!(is_cast && !is_static_cast),
+                      /*check_ambiguity=*/TRUE,
+                      /*is_implicit_cast=*/!is_cast,
+                      /*is_reinterpret_cast=*/FALSE,
+                      reinterpret_semantics);
   } else {
     /* Explicit cast to reference. */
     check_assertion(is_cast);
@@ -4865,7 +4877,8 @@ user-defined conversions.
         /* Cast of overloaded function to a pointer type.  Note that
            the legality of such casts is checked by conversion_possible.
            A cast cannot get here unless allowed by that routine. */
-        cast_overloaded_function(new_type, operand, !is_implicit_cast);
+        cast_overloaded_function(new_type, operand, !is_implicit_cast,
+                                 /*is_static_cast=*/FALSE);
         break;
 #if CHECKING
       default:

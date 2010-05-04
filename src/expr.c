@@ -13443,7 +13443,8 @@ indicates which.
         if (is_indefinite_function_operand(operand)) {
           /* An overloaded function can be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
-          cast_overloaded_function(type_cast_to, operand, /*is_cast=*/TRUE);
+          cast_overloaded_function(type_cast_to, operand, /*is_cast=*/TRUE,
+                                   /*is_static_cast=*/FALSE);
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
@@ -14000,7 +14001,8 @@ indication in *rcblock).
         if (is_indefinite_function_operand(result)) {
           /* An overloaded function may be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
-          cast_overloaded_function(type_cast_to, result, /*is_cast=*/TRUE);
+          cast_overloaded_function(type_cast_to, result, /*is_cast=*/TRUE,
+                                   /*is_static_cast=*/TRUE);
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(result, type_cast_to);

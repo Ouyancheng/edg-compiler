@@ -551,6 +551,12 @@ extern a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
                                              a_type_ptr rout_type_2,
                                              a_boolean  check_as_conversion,
                                              a_boolean  check_as_operands);
+extern
+a_boolean member_types_correspond(a_type_ptr dest_type,
+                                  a_type_ptr source_type,
+                                  a_boolean  allow_qualifier_or_eh_mismatch,
+                                  a_boolean  *qualifiers_added);
+
 /*
 Bit flags for calls of f_types_are_compatible et al.
 */
