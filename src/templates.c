@@ -5053,6 +5053,12 @@ argument list for the instantiation to be found.
 
   ikp = (an_instantiation_key_ptr)key;
   value = (a_hash_value)hash_template_arg_list(ikp->template_arg_list);
+#if DEBUG
+  if (db_flag_is_set("hash_instantiation")) {
+    db_template_arg_list(ikp->template_arg_list);
+    fprintf(f_debug, ": %lu\n", (unsigned long)value);
+  }  /* if */
+#endif /* DEBUG */
   return value;
 }  /* hash_instantiation */
 
