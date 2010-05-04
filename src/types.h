@@ -520,6 +520,10 @@ typedef unsigned int an_itf_flag_set;
 			/* TRUE if top-level qualifiers do not have to
 			   match.  (In the case of arrays in C++, the top-level
 			   qualifiers are those on the element type.) */
+#define ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x40
+			/* TRUE if, when comparing template parameters of
+			   tptk_param kind, that the type pointers must match,
+			   not just the coordinates. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))

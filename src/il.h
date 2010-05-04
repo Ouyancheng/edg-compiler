@@ -1126,6 +1126,26 @@ a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
                                   an_expr_copy_options_set options);
 
+/*
+Flags used to specify options to compare_constants.
+*/
+typedef int a_compare_constants_options_set;
+
+#define CC_NO_OPTIONS		0x0
+#define CC_STRICTLY_IDENTICAL	0x1
+			/* When this flag is not set the qualifiers are
+			   stripped from the constant type before they
+			   are compared; otherwise, a "const int 5" and
+			   an "int 5" are treated as nonidentical. */
+#define CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x2
+			/* TRUE if, when comparing template parameters of
+			   tpck_param kind, that the constant pointers must
+			   match, not just the coordinates. */
+
+extern a_boolean compare_constants(a_constant_ptr                   cp1,
+                                   a_constant_ptr                   cp2,
+                                   a_compare_constants_options_set  options);
+
 extern a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant);
 
 extern a_boolean eq_constants(a_constant *cp1,

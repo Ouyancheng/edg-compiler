@@ -3271,7 +3271,8 @@ equivalent templates, such as T in "T<int>" and "T<int>".
     /* They are both template template parameters.  Compare the
        underlying templates. */
     if (equiv_templates_given_supplement(sym_1->variant.template_info,
-                                         sym_2->variant.template_info)) {
+                                         sym_2->variant.template_info,
+                                         ET_NO_OPTIONS)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -3902,7 +3903,8 @@ for more information.
                   if their positions in the template parameter list are
                   the same, and they are associated with template
                   declarations of the same nesting level. */
-              identical =
+              identical = (flags &
+                           ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
                   (tptsp_1->coordinates.position ==
                                             tptsp_2->coordinates.position) &&
                     ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0
@@ -8526,7 +8528,8 @@ by specific_template_template_param.
   if (template_sym != NULL) {
     a_template_ptr	templ_ptr;
     templ_ptr = template_sym->variant.template_info->il_template_entry;
-    if (equiv_templates(templ_ptr, specific_template_template_param)) {
+    if (equiv_templates(templ_ptr, specific_template_template_param,
+                        ET_NO_OPTIONS)) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
   }  /* if */
@@ -8540,7 +8543,8 @@ by specific_template_template_param.
            tap = tap->next) {
         if (is_template_templ_arg(tap)) {
           if (equiv_templates(tap->variant.templ.ptr,
-                               specific_template_template_param)) {
+                              specific_template_template_param,
+                              ET_NO_OPTIONS)) {
             *force_end_of_traversal = found = TRUE;
             break;
           }  /* if */

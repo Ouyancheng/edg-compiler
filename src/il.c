@@ -5753,19 +5753,19 @@ are allowed under a sizeof (etc.) in a template argument expression.
 }  /* compare_template_param_constant_expressions */
 
 
-static a_boolean compare_constants(a_constant_ptr  cp1,
-                                   a_constant_ptr  cp2,
-                                   a_boolean       strictly_identical)
+a_boolean compare_constants(a_constant_ptr                   cp1,
+                            a_constant_ptr                   cp2,
+                            a_compare_constants_options_set  options)
 /*
-Return TRUE if the two constants are identical.  If strictly_identical
-is FALSE the qualifiers are stripped from the constant type before they
-are compared; otherwise, a "const int 5" and an "int 5" are treated as
-nonidentical.
+Return TRUE if the two constants are identical.  options is a set of flags
+that control the way in which certain comparisons are done.  See the
+definition of the CC flags in il.h for more information.
 */
 {
   a_boolean  eq = FALSE;
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
   a_boolean  same_types;
+  a_boolean  strictly_identical = (options & CC_STRICTLY_IDENTICAL) != 0;
 
   if (cp1 == cp2) {
     eq = TRUE;
@@ -5955,10 +5955,10 @@ nonidentical.
       case ck_label_difference:
         eq = compare_constants(cp1->variant.label_difference.from_address,
                                cp2->variant.label_difference.from_address,
-                               strictly_identical) &&
+                               options) &&
              compare_constants(cp1->variant.label_difference.to_address,
                                cp2->variant.label_difference.to_address,
-                               strictly_identical);
+                               options);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
@@ -5975,7 +5975,8 @@ nonidentical.
                                       cp2->variant.template_param.kind) {
           switch (cp1->variant.template_param.kind) {
             case tpck_param:
-              eq = (cp1->variant.template_param.variant.coordinates.position ==
+              eq = (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
+                   (cp1->variant.template_param.variant.coordinates.position ==
                     cp2->variant.template_param.variant.coordinates.position)
                 && equiv_nesting_depths(
                         cp1->variant.template_param.variant.coordinates.depth,
@@ -6016,7 +6017,7 @@ nonidentical.
                                                                       constant,
                                      cp2->variant.template_param.variant.
                                                                       constant,
-                                     strictly_identical);
+                                     options);
               break;
             case tpck_sizeof:
             case tpck_alignof:
@@ -6043,7 +6044,7 @@ nonidentical.
                                                               template_ref.con,
                                       cp2->variant.template_param.variant.
                                                               template_ref.con,
-                                      strictly_identical) &&
+                                      options) &&
                     equiv_template_arg_lists(
                                       cp1->variant.template_param.variant.
                                                          template_ref.arg_list,
@@ -6077,7 +6078,7 @@ to decide whether two constant entries are sufficiently alike to be
 shared, such that only one of them need appear in the IL.
 */
 {
-  a_boolean eq = compare_constants(cp1, cp2, /*strictly_identical=*/TRUE);
+  a_boolean eq = compare_constants(cp1, cp2, CC_STRICTLY_IDENTICAL);
 
   return eq;
 }  /* identical_constants */
@@ -6091,7 +6092,7 @@ value.  Thus, "(int)5" and "(const int)5" are equivalent -- even though they
 would not be considered "identical", since the type qualifiers are different.
 */
 {
-  a_boolean eq = compare_constants(cp1, cp2, /*strictly_identical=*/FALSE);
+  a_boolean eq = compare_constants(cp1, cp2, CC_NO_OPTIONS);
 
   return eq;
 }  /* eq_constants */

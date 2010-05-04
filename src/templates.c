@@ -4607,14 +4607,17 @@ done:
 
 
 a_boolean equiv_templates_given_supplement(
-				a_template_symbol_supplement_ptr	tssp1,
-				a_template_symbol_supplement_ptr	tssp2)
+			a_template_symbol_supplement_ptr	tssp1,
+			a_template_symbol_supplement_ptr	tssp2,
+			an_equiv_templates_options_set		options)
 /*
 Return TRUE if tssp1 and tssp2 are equivalent.  If either of the
 templates is a "real" template, the pointers must refer to the same
 template.  If they are both "nonreal" (either nonreal members or template
 template parameters), the two templates are equivalent if they have
-equivalent template parameter lists.
+equivalent template parameter lists.  options is a set of flags
+that control the way in which certain comparisons are done.  See the
+definition of the ET flags in templates.h for more information.
 */
 {
   a_boolean	result = FALSE;
@@ -4640,7 +4643,8 @@ equivalent template parameter lists.
       }  /* if */
     }  /* if */
   } else if (tssp1->variant.class_template.template_template_param &&
-             tssp2->variant.class_template.template_template_param) {
+             tssp2->variant.class_template.template_template_param &&
+             (options & ET_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
     /* Template template parameters must be at the same coordinates. */
     a_template_param_coordinate_ptr	coordinates1;
     a_template_param_coordinate_ptr	coordinates2;
@@ -4669,12 +4673,15 @@ equivalent template parameter lists.
 }  /* equiv_templates_given_supplement */
 
 
-a_boolean equiv_templates(a_template_ptr	templ1,
-			  a_template_ptr	templ2)
+a_boolean equiv_templates(a_template_ptr			templ1,
+			  a_template_ptr			templ2,
+			  an_equiv_templates_options_set	options)
 /*
 Return TRUE if the templates specified by templ1 and templ2 are equivalent.
 templ1 and/or templ2 are permitted to be NULL (in which case, they match
-nothing).
+nothing).  options is a set of flags that control the way in which certain
+comparisons are done.  See the definition of the ET flags in templates.h
+for more information.
 */
 {
   a_template_symbol_supplement_ptr	tssp1;
@@ -4686,7 +4693,7 @@ nothing).
     templ2 = canonical_template_entry_of(templ2);
     tssp1 = template_supplement_for_template(templ1);
     tssp2 = template_supplement_for_template(templ2);
-    result = equiv_templates_given_supplement(tssp1, tssp2);
+    result = equiv_templates_given_supplement(tssp1, tssp2, options);
   }  /* if */
   return result;
 }  /* equiv_templates */
@@ -4793,6 +4800,9 @@ the same constant.
   a_boolean		ignore_qualifiers;
   a_boolean		is_prototype;
   a_boolean		exact_match_required;
+  an_itf_flag_set	itf_options;
+  a_compare_constants_options_set
+			cc_options;
 
   db_enter(4, "equiv_template_arg_lists");
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
@@ -4800,6 +4810,10 @@ the same constant.
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
   is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
   exact_match_required = (options & ETA_EXACT_MATCH_REQUIRED) != 0;
+  itf_options = exact_match_required ? ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+                                     : ITF_NO_FLAGS;
+  cc_options = exact_match_required ? CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+                                    : CC_NO_OPTIONS;
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
   check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),
@@ -4810,9 +4824,6 @@ the same constant.
   while (arg1 != NULL && arg2 != NULL) {
     /* For a given class, argument lists should always have the same sequence
        of type, constant, and template arguments. */
-    a_boolean	exact_match_required_for_arg;
-    exact_match_required_for_arg = exact_match_required &&
-                                   template_arg_is_dependent(arg1);
     if (arg1->kind != arg2->kind) {
       equiv = FALSE;
       check_assertion_str(is_nonreal_member,
@@ -4833,8 +4844,7 @@ the same constant.
         equiv = FALSE;
       } else if (con1 == con2) {
         /* Okay. */
-      } else if (!exact_match_required_for_arg &&
-                 eq_constants(con1, con2)) {
+      } else if (compare_constants(con1, con2, cc_options)) {
         /* Okay. */
       } else if (is_prototype && 
                  equiv_nontype_template_param_names(con1, con2)) {
@@ -4859,10 +4869,10 @@ the same constant.
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
       } else if (type1 == type2 ||
-                 (!exact_match_required_for_arg &&
-                  f_identical_types(type1, type2,
-                                    ITF_SEEK_CORRESP |
-                                    ITF_EXACT_NESTING_DEPTHS_REQUIRED))) {
+                 f_identical_types(type1, type2,
+                                   itf_options |
+                                   ITF_SEEK_CORRESP |
+                                   ITF_EXACT_NESTING_DEPTHS_REQUIRED)) {
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_type(type1) || is_error_type(type2))) {
@@ -4881,11 +4891,14 @@ the same constant.
       if (!equiv) break;
     } else {
       /* A template template argument. */
+      an_equiv_templates_options_set	et_options;
+      et_options = exact_match_required ? ET_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+                                        : ET_NO_OPTIONS;
       if (arg1->variant.templ.ptr == arg2->variant.templ.ptr) {
         /* Okay. */
-      } else if (!exact_match_required_for_arg &&
-                 equiv_templates(arg1->variant.templ.ptr,
-                                 arg2->variant.templ.ptr)) {
+      } else if (equiv_templates(arg1->variant.templ.ptr,
+                                 arg2->variant.templ.ptr,
+                                 et_options)) {
         /* Okay. */
       } else {
         equiv = FALSE;
@@ -6120,7 +6133,8 @@ match is found.
     } else {
       /* The template template is not a template template parameter.  Just make
          sure the templates match. */
-      match = equiv_templates_given_supplement(tssp, templ_tssp);
+      match = equiv_templates_given_supplement(tssp, templ_tssp,
+                                               ET_NO_OPTIONS);
     }  /* if */
   }  /* if */
   return match;
@@ -11028,7 +11042,8 @@ be issued.
       /* Template template parameters.  Compare the two templates. */
       check_assertion(old_sym->kind == (a_symbol_kind)sk_class_template);
       err = !equiv_templates_given_supplement(old_tpp->variant.templ,
-                                              new_tpp->variant.templ);
+                                              new_tpp->variant.templ,
+                                              ET_NO_OPTIONS);
     }  /* if */
     if (err) {
       if (issue_errors) {
