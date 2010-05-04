@@ -1,5 +1,17 @@
 Version 4.2
 
+5/4/10   [EDGcpfe/10659]
+Nonreal types based on template parameters no longer shared
+
+Formerly, nonreal types based on template parameters were shared (i.e.,
+in the example below A<T> and A<U> would refer to the same type because
+they are both A<template-parameter#1>).  Such types are no longer shared.
+
+  template <class T> struct A {};
+  template <class T> void f(A<T>){}
+  template <class U> void g(A<U>){}
+
+
 5/3/10   [EDGcpfe/10666]
 Abort when a local pragma refers to a local class or local static variable
 
