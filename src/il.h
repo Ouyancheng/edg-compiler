@@ -1139,7 +1139,7 @@ typedef int a_compare_constants_options_set;
 			   an "int 5" are treated as nonidentical. */
 #define CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x2
 			/* TRUE if, when comparing template parameters of
-			   tpck_param kind, that the constant pointers must
+			   tpck_param kind, the constant pointers must
 			   match, not just the coordinates. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,

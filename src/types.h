@@ -522,7 +522,7 @@ typedef unsigned int an_itf_flag_set;
 			   qualifiers are those on the element type.) */
 #define ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x40
 			/* TRUE if, when comparing template parameters of
-			   tptk_param kind, that the type pointers must match,
+			   tptk_param kind, the type pointers must match,
 			   not just the coordinates. */
 
 #define identical_types(t1, t2) \
