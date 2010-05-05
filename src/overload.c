@@ -3334,8 +3334,9 @@ the point of call.
         /* Both the actual argument and formal parameter are available.
            See how well they match. */
         if (function_template_case) {
-          if (is_template_dependent_type(param_before_deduction->type) ||
-              is_template_dependent_type(arg_operand->operand.type)) {
+          /* Note that we test param_before_deduction rather than param because
+             we want to get the same result on the first and second passes. */
+          if (is_template_dependent_type(param_before_deduction->type)) {
             /* A template-dependent parameter.  On the first pass, skip it. */
             if (first_pass) goto next_parameter;
           } else {
