@@ -3544,12 +3544,14 @@ through the symbol table:  Establish that correspondence now if appropriate.
    f_change_to_canonical_types(type_1, type_2, seek_corresp))
 
 
-static a_boolean distinct_dependent_decltypes(a_type_ptr  type_1,
-                                              a_type_ptr  type_2)
+static a_boolean distinct_dependent_decltypes(a_type_ptr      type_1,
+                                              a_type_ptr      type_2,
+                                              an_itf_flag_set itf_flags)
 /*
 If type_1 and/or type_2 are expressed using decltype (or typeof) constructs
 with dependent arguments, return TRUE if those constructs can be considered
-to be distinct.  The C++ standard defines notions of "equivalent" and
+to be distinct.  itf_flags is a set of option flags that specify options for
+type comparisons.  The C++ standard defines notions of "equivalent" and
 "functionally equivalent" expressions.  When decltype is applied to
 "equivalent expressions" (which implies identical syntax), the resulting types
 are also equivalent (and this routine returns FALSE).  When decltype is
@@ -3602,10 +3604,18 @@ This routine may return TRUE or FALSE for such cases.
            other types.) */
         an_expr_node_ptr  expr1 = type_1->variant.typeref.extra_info->expr;
         an_expr_node_ptr  expr2 = type_2->variant.typeref.extra_info->expr;
+        a_compare_constants_options_set
+                          cc_options;
         a_local_expr_node_ref_kind
                           lerk = type_1->variant.typeref.is_decltype ?
                                 (a_local_expr_node_ref_kind)lerk_decltype :
                                 (a_local_expr_node_ref_kind)lerk_typeof;
+        /* When this routine is called with the "exact template param" flag
+           set, pass the corresponding flag to the constant comparison
+           routine. */
+        cc_options = (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0
+                                        ? CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+                                        : CC_NO_OPTIONS;
         if (expr1 == NULL) {
           expr1 = find_local_expr_node((char*)type_1, lerk);
         }  /* if */
@@ -3613,7 +3623,8 @@ This routine may return TRUE or FALSE for such cases.
           expr2 = find_local_expr_node((char*)type_2, lerk);
         }  /* if */
         result = expr1 == NULL || expr2 == NULL ||
-                 !compare_template_param_constant_expressions(expr1, expr2);
+                 !compare_template_param_constant_expressions(expr1, expr2,
+                                                              cc_options);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3648,7 +3659,7 @@ for more information.
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
-    } else if (distinct_dependent_decltypes(type_1, type_2)) {
+    } else if (distinct_dependent_decltypes(type_1, type_2, flags)) {
       /* type_1 and type_2 are built from decltype (or typeof) constructs
          with distinct template-dependent arguments.  Such types are assumed
          to be different. */
@@ -4276,7 +4287,7 @@ for exact pointer equality.
            other, and therefore have an extra "reference to" on it. */
         adjust_comparison_types_for_decltype(&type_1, &type_2);
       }  /* if */
-      if (distinct_dependent_decltypes(type_1, type_2)) {
+      if (distinct_dependent_decltypes(type_1, type_2, ITF_NO_FLAGS)) {
         goto done;
       }  /* if */
       type_1 = skip_typerefs(type_1);
