@@ -884,6 +884,7 @@ at file scope.
   ptp->has_unevaluated_template_default = FALSE;
   ptp->default_being_instantiated = FALSE;
   ptp->type_involves_deduced_template_param = FALSE;
+  ptp->type_involves_template_param = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;

@@ -4251,6 +4251,10 @@ typedef struct a_param_type {
 			   parameter involves a template parameter in a
 			   context in which a template argument value can
 			   be deduced. */
+  a_bit_field	type_involves_template_param:1;
+			/* TRUE if the type entry associated with the
+			   parameter involves a template parameter in any
+			   context. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers that have been removed
 			   from the parameter type; always TQ_NONE except in

@@ -1166,6 +1166,9 @@ Display a_param_type entry.
   if (ptr->type_involves_deduced_template_param) {
     disp_boolean("type_involves_deduced_template_param", TRUE);
   }  /* if */
+  if (ptr->type_involves_template_param) {
+    disp_boolean("type_involves_template_param", TRUE);
+  }  /* if */
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */

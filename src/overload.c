@@ -3336,7 +3336,7 @@ the point of call.
         if (function_template_case) {
           /* Note that we test param_before_deduction rather than param because
              we want to get the same result on the first and second passes. */
-          if (is_template_dependent_type(param_before_deduction->type)) {
+          if (param_before_deduction->type_involves_template_param) {
             /* A template-dependent parameter.  On the first pass, skip it. */
             if (first_pass) goto next_parameter;
           } else {
@@ -5724,7 +5724,7 @@ argument expression.
       rtsp = rout_type->variant.routine.extra_info;
       /* Loop through the parameter list looking for dependent types. */
       for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
-        if (is_template_dependent_type(ptp->type)) {
+        if (ptp->type_involves_template_param) {
           any_dep = TRUE;
           goto end_of_function;
         }  /* if */

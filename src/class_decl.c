@@ -9522,7 +9522,7 @@ declarations.)
   }  /* if */
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
-  set_type_involves_deduced_template_param(member_type);
+  set_parameter_list_template_param_flags(member_type);
   /* Create the new symbol and enter it into the symbol table. */
   effective_decl_level = class_type->variant.class_struct_union.extra_info->
                                            assoc_scope->depth_in_scope_stack;
@@ -14383,7 +14383,7 @@ tracks information about the current declaration.
        parameters for this function type, and if any of the associated types
        involves a template parameter, mark the param type entry; this is
        useful for function arg matching. */
-    set_type_involves_deduced_template_param(type);
+    set_parameter_list_template_param_flags(type);
   }  /* if */
 }  /* check_completed_member_type */
 

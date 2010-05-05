@@ -8684,9 +8684,8 @@ during wrapup processing by compare_function_templates.
       if (copy_error) templ_rout_type = NULL;
       if (templ_rout_type != NULL) {
         /* Reset the flags in the param type entry to reflect whether the
-           parameter contains any template parameters that participate in
-           template argument deduction. */
-        set_type_involves_deduced_template_param(templ_rout_type);
+           parameter contains any template parameters. */
+        set_parameter_list_template_param_flags(templ_rout_type);
       }  /* if */
       /* Add the new type to the list of substituted types. */
       add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
@@ -16454,7 +16453,7 @@ function declaration.
   dps->is_definition = func_info->is_definition;
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
-  set_type_involves_deduced_template_param(dps->type);
+  set_parameter_list_template_param_flags(dps->type);
   if (decl_state->is_template_friend) {
     if (!func_info->is_definition) {
       /* A friend declaration that is not a definition cannot specify default

@@ -9432,15 +9432,16 @@ parameter can be deduced.
 }  /* is_or_contains_deduced_template_param */
 
 
-void set_type_involves_deduced_template_param(a_type_ptr  rout_type)
+void set_parameter_list_template_param_flags(a_type_ptr  rout_type)
 /*
 Go through the parameters for rout_type, which is assumed to be a
-function type.  If any of the associated types involves a template
-parameter in a context in which the parameter can be deduced, mark the
-param type entry; this is useful for function arg matching.
-Nondeduced contexts are the parent classes of a type (e.g., ignore the
-T in A<T>::B) and nontype template parameters used in expression
-contexts.
+function type.  If any of its parameter types depends on a template
+parameter, set a flag in the param type entry to indicate that.  In
+addition, if any of the parameter types involves a template parameter
+in a context in which the parameter can be deduced, set a second flag
+to indicate that.  Nondeduced contexts are the parent classes of a
+type (e.g., ignore the T in A<T>::B) and nontype template parameters
+used in expression contexts.
 */
 {
   a_param_type_ptr  ptp;
@@ -9448,10 +9449,15 @@ contexts.
   check_assertion(is_function_type(rout_type));
   ptp = skip_typerefs(rout_type)->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
-    ptp->type_involves_deduced_template_param = 
+    ptp->type_involves_template_param = is_template_dependent_type(ptp->type);
+    if (ptp->type_involves_template_param) {
+      /* The type can only involve a deduced template parameter if it
+         involves a template parameter in any context. */
+      ptp->type_involves_deduced_template_param = 
                               is_or_contains_deduced_template_param(ptp->type);
+    }  /* if */
   }  /* for */
-}  /* set_type_involves_deduced_template_param */
+}  /* set_parameter_list_template_param_flags */
 
 
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
