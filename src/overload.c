@@ -3145,13 +3145,14 @@ the point of call.
   a_routine_type_supplement_ptr
                            rtsp;
   an_arg_operand_ptr       arg_operand;
-  a_param_type_ptr         param, template_param = NULL;
+  a_param_type_ptr         param, param_before_deduction = NULL;
+  a_param_type_ptr         first_param_before_deduction;
 #if DEBUG
-  unsigned long            narg = 0;
+  unsigned long            narg;
 #endif /* DEBUG */
-  a_boolean                reached_ellipsis;
+  a_boolean                reached_ellipsis, first_pass;
   an_arg_match_summary_ptr this_match, this_match_next;
-  an_arg_match_summary_ptr arg_match = NULL;
+  an_arg_match_summary_ptr arg_match = NULL, saved_arg_match_next;
   an_arg_match_summary_ptr arg_match_list = NULL;
   an_arg_match_summary_ptr end_arg_match_list = NULL;
   a_boolean                function_template_case = FALSE;
@@ -3241,7 +3242,7 @@ the point of call.
     /* Save the pointer to the first parameter in the template version
        (i.e., before deduction) for later use.  Note that this is after
        substitution of explicitly-specified template arguments. */
-    template_param = param;
+    first_param_before_deduction = param;
   }  /* if */
   for (arg_operand = arg_operand_list;
        arg_operand != NULL;
@@ -3274,7 +3275,108 @@ the point of call.
 #endif /* DEBUG */
   }  /* if */
   /* The function looks okay from the standpoint of argument count. */
-  if (function_template_case) {
+  /* Look at each argument and see whether or not it can match the formal
+     parameter, and if so, how well.  For a template, we match the
+     nondependent parameters on the first pass, and only if they all
+     match do we do template deduction and then a second pass for the
+     dependent parameters.  That may save time and prevent us from
+     instantiating some things we don't really need. */
+  first_pass = TRUE;
+  for (;;) {
+    param = rtsp->param_type_list;
+    reached_ellipsis = FALSE;
+    param_before_deduction = first_param_before_deduction;
+#if DEBUG
+    narg = 0;
+#endif /* DEBUG */
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+#if DEBUG
+      narg++;
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
+        db_display_overload_level();
+        fprintf(f_debug, "determine_function_viability: arg %lu", narg);
+        if (!first_pass) fprintf(f_debug, " (pass 2)");
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      if (first_pass) {
+        /* Add an entry to the end of the arg_match_list to record whether or
+           not this argument matches.  On the second pass, we just step
+           through the already-allocated entries. */
+        arg_match = alloc_arg_match_summary();
+        if (arg_match_list == NULL) {
+          arg_match_list = arg_match;
+        } else {
+          end_arg_match_list->next = arg_match;
+        }  /* if */
+        end_arg_match_list = arg_match;
+      }  /* if */
+      /* See if the parameter list is exhausted. */
+      if (param == NULL) {
+        /* More arguments than required.  Since the function was not rejected
+           in the initial argument-count check, it must have an ellipsis. */
+        check_assertion_str(rtsp->has_ellipsis,
+                          "determine_function_viability: no arg, no ellipsis");
+        reached_ellipsis = TRUE;
+        /* There is an ellipsis, so there is a match, but with a low
+           desirability. */
+        arg_match->match_level = aml_ellipsis;
+#if DEBUG
+        if (debug_level >= 4 || db_flag_is_set("overload")) {
+          db_display_overload_level();
+          fprintf(f_debug, "determine_function_viability: ellipsis match\n");
+        }  /* if */
+#endif /* DEBUG */
+      } else {
+        a_boolean param_type_is_deduced = FALSE;
+        /* Both the actual argument and formal parameter are available.
+           See how well they match. */
+        if (function_template_case) {
+          if (is_template_dependent_type(param_before_deduction->type) ||
+              is_template_dependent_type(arg_operand->operand.type)) {
+            /* A template-dependent parameter.  On the first pass, skip it. */
+            if (first_pass) goto next_parameter;
+          } else {
+            /* A non-dependent parameter.  On the second pass, skip it (it
+               was processed on the first pass). */
+            if (!first_pass) goto next_parameter;
+          }  /* if */
+          if (param_before_deduction != NULL &&
+              param_before_deduction->type_involves_deduced_template_param) {
+            param_type_is_deduced = TRUE;
+          }  /* if */
+        }  /* if */
+        /* On the second pass, preserve the "next" pointer in arg_match,
+           so we keep the already-allocated match list intact. */
+        if (!first_pass) saved_arg_match_next = arg_match->next;
+        /* See how well the argument matches the parameter. */
+        determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
+                                  param->type,
+                                  param_type_is_deduced,
+                                  /*try_user_conversions=*/
+                                                        allow_udc_on_arguments,
+                                  arg_match);
+        if (!first_pass) arg_match->next = saved_arg_match_next;
+        /* If no match is possible, go on to the next function. */
+        if (arg_match->match_level == aml_none) goto reject_function;
+      }  /* if */
+next_parameter:
+      /* Go on to the next parameter. */
+      if (!reached_ellipsis) {
+        param = param->next;
+        if (function_template_case) {
+          check_assertion(param_before_deduction != NULL);
+          param_before_deduction = param_before_deduction->next;
+          if (!first_pass) arg_match = arg_match->next;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (!first_pass || !function_template_case) break;
+    /* For a template, do a second pass to match the dependent parameters. */
+    first_pass = FALSE;
+    arg_match = arg_match_list;
     /* Do template argument deduction on the parameter types. */
     routine_type = function_template_call_argument_deduction(
                                                    function_symbol,
@@ -3287,71 +3389,6 @@ the point of call.
     }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
-  }  /* if */
-  /* Look at each argument and see whether or not it can match the formal
-     parameter, and if so, how well. */
-  reached_ellipsis = FALSE;
-  param = rtsp->param_type_list;
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-#if DEBUG
-    narg++;
-    if (debug_level >= 4 || db_flag_is_set("overload")) {
-      db_display_overload_level();
-      fprintf(f_debug, "determine_function_viability: arg %lu\n", narg);
-    }  /* if */
-#endif /* DEBUG */
-    /* Add an entry to the end of the arg_match_list to record whether or
-       not this argument matches. */
-    arg_match = alloc_arg_match_summary();
-    if (arg_match_list == NULL) {
-      arg_match_list = arg_match;
-    } else {
-      end_arg_match_list->next = arg_match;
-    }  /* if */
-    end_arg_match_list = arg_match;
-    /* See if the parameter list is exhausted. */
-    if (param == NULL) {
-      /* More arguments than required.  Since the function was not rejected
-         in the initial argument-count check, it must have an ellipsis. */
-      check_assertion_str(rtsp->has_ellipsis,
-                          "determine_function_viability: no arg, no ellipsis");
-      reached_ellipsis = TRUE;
-      /* There is an ellipsis, so there is a match, but with a low
-         desirability. */
-      arg_match->match_level = aml_ellipsis;
-#if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("overload")) {
-        db_display_overload_level();
-        fprintf(f_debug, "determine_function_viability: ellipsis match\n");
-      }  /* if */
-#endif /* DEBUG */
-    } else {
-      a_boolean param_type_is_deduced = FALSE;
-      /* Both the actual argument and formal parameter are available.
-         See how well they match. */
-      if (template_param != NULL &&
-          template_param->type_involves_deduced_template_param) {
-        param_type_is_deduced = TRUE;
-      }  /* if */
-      determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
-                                param->type,
-                                param_type_is_deduced,
-                                /*try_user_conversions=*/
-                                                        allow_udc_on_arguments,
-                                arg_match);
-      /* If no match is possible, go on to the next function. */
-      if (arg_match->match_level == aml_none) goto reject_function;
-    }  /* if */
-    /* Go on to the next parameter. */
-    if (!reached_ellipsis) {
-      param = param->next;
-      if (function_template_case) {
-        check_assertion(template_param != NULL);
-        template_param = template_param->next;
-      }  /* if */
-    }  /* if */
   }  /* for */
   /* If param != NULL here, there are default arguments (because we
      got past the argument-count check above). */

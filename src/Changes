@@ -1,5 +1,34 @@
 Version 4.2
 
+5/5/10   [EDGcpfe/10645]
+Templates rejected on non-dependent parameters before deduction
+
+In overload resolution, function templates are now rejected before deduction
+is done if it can be shown that any of the non-dependent parameters cannot
+match.  If all those parameters are okay, deduction is then done and the
+remaining parameters are checked.  This can speed up overload resolution,
+and in some cases avoids errors caused by instantiations needed to develop
+the function type.  For example:
+
+  template <class T> struct Z {
+    typedef T::x xx;
+  };
+  template <class T> Z<T>::xx f(void *, T);
+  template <class T> void f(int, T);
+  struct A {} a;
+  int main() {
+    f(1, a);  // Okay now.  Formerly provoked an error on the instantiation
+              // of the Z<T> in the return type, with T=A.  Now the first f
+              // is ruled out on the basis of the first parameter without
+              // doing deduction and producing the routine type.
+  }
+
+The C++ standard does not mandate a particular behavior here; it allows
+but does not require such instantiations.  However, test cases like the
+above are accepted by recent versions of g++, and it seems reasonable to
+do so.
+
+
 5/4/10   [EDGcpfe/10653]
 Microsoft mode: old-style cast forming pointer-to-member of overloaded function 
 
