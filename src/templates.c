@@ -6951,6 +6951,11 @@ points to the template parameter list.
             }  /* if */
           }  /* if */
         }  /* if */
+      } else if (templ_type->variant.template_param.kind ==
+                                    (a_template_param_type_kind)tptk_unknown) {
+        /* The template type is an unknown dependent type.  This is a
+           nondeduced context.  Consider it a match for now. */
+        match = TRUE;
       } else {
         /* Skip typedefs on the real type. */
         type = skip_typedefs(type);
