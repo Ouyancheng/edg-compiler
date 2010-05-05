@@ -117,7 +117,7 @@ extern
 int fxp_compare(a_constant	*constant_1,
 		a_constant	*constant_2);
 
-extern a_constant_hash_value fxp_hash(a_fixed_point_value *value);
+extern a_hash_value fxp_hash(a_fixed_point_value *value);
 
 #endif /* ifndef FIXED_PT_H */
 

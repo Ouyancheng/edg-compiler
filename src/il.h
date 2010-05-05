@@ -2058,14 +2058,9 @@ extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
 #define routine_does_not_return(rp)                                          \
   (skip_typerefs(rp->type)->variant.routine.extra_info->does_not_return)
 
-/*
-Type used as a hash value of a constant entry.
-*/
-typedef unsigned int a_constant_hash_value;
+extern a_hash_value hash_constant(a_constant *cp);
 
-extern a_constant_hash_value hash_constant(a_constant *cp);
-
-extern a_constant_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
+extern a_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
 
 extern a_boolean compare_template_param_constant_expressions(
                                                      an_expr_node_ptr  node1,

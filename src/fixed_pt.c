@@ -1457,7 +1457,7 @@ Compare two fixed-point values and return
 }  /* fxp_compare */
 
 
-a_constant_hash_value fxp_hash(a_fixed_point_value  *value)
+a_hash_value fxp_hash(a_fixed_point_value  *value)
 /*
 Return a hash value derived from the given fixed-point value.  This is used
 in building the hash table for shareable constants.  (This implementation
@@ -1466,8 +1466,8 @@ assumes a_fixed_point_value is a synonym for an_integer_value.)
 {
   a_boolean   ovflo;
 
-  return (a_constant_hash_value)
-         value_of_integer_value(value, /*is_signed=*/TRUE, &ovflo);
+  return (a_hash_value)
+                     value_of_integer_value(value, /*is_signed=*/TRUE, &ovflo);
 }  /* fxp_hash */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

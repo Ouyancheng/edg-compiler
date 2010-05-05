@@ -1042,7 +1042,7 @@ assign one now.
     /* Determine whether we have already assigned a sequence number for
        this string literal by looking up the string in a hash table. */
     int					bucket_number;
-    a_constant_hash_value		hash;
+    a_hash_value			hash;
     a_string_literal_table_entry_ptr	sltep;
     a_string_literal_table_entry_ptr	*bucket;
     hash = hash_constant(cp);
