@@ -652,7 +652,8 @@ Add the indicated null-terminated string to the mangled name.
 FIXME: In cases that have yet to be implemented, simply add a marker into
 the mangled name indicating that work needs to be done.
 */
-#define add_FIXME_to_mangled_name(mctl) add_str_to_mangled_name("FIXME", mctl)
+#define add_FIXME_to_mangled_name(mctl) \
+  mangled_name_with_length("_FIXME_", mctl)
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- mctl is not used in that case. */
@@ -4378,7 +4379,7 @@ that fact should be put out.
            occur only in nonreal classes in configurations that generate
            prototype instantiations. */
         check_assertion(type->variant.class_struct_union.is_nonreal_class);
-        mangled_name_with_length("?", mctl);
+        add_FIXME_to_mangled_name(mctl);
         break;
       default:
         unexpected_condition_str(
