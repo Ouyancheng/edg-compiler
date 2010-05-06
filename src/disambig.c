@@ -1292,7 +1292,7 @@ types separated by commas (when single_type_required is FALSE).
   if (microsoft_mode && is_start_of_type && next_tok != tok_lparen) {
     a_token_cache	cache;
     a_token_kind	next_2_tok;
-    a_token_kind	identifier_seen = curr_token == tok_identifier;
+    a_boolean		identifier_seen = curr_token == tok_identifier;
     a_boolean		any_tokens_fetched = FALSE;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     (void)next_two_tokens(next_tok, &next_2_tok);
