@@ -1822,7 +1822,7 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* while */
       break;
     case enk_param_ref:
-      fprintf(f_debug, "param_ref: param_num = %d, levels_up = %d\n",
+      fprintf(f_debug, "param_ref: param_num = %ud, levels_up = %ud\n",
               node->variant.param_ref.param_num,
               node->variant.param_ref.levels_up);
       break;
