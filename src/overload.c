@@ -3238,12 +3238,10 @@ the point of call.
        struct A { A(A, xxx, yyy); }
      which look viable as copy constructors on the first argument. */
   param = rtsp->param_type_list;
-  if (function_template_case) {
-    /* Save the pointer to the first parameter in the template version
-       (i.e., before deduction) for later use.  Note that this is after
-       substitution of explicitly-specified template arguments. */
-    first_param_before_deduction = param;
-  }  /* if */
+  /* Save the pointer to the first parameter in the template version
+     (i.e., before deduction) for later use.  Note that this is after
+     substitution of explicitly-specified template arguments. */
+  first_param_before_deduction = param;
   for (arg_operand = arg_operand_list;
        arg_operand != NULL;
        arg_operand = arg_operand->next) {
