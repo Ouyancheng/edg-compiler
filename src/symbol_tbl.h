@@ -1172,6 +1172,9 @@ typedef struct a_param_id {
 			   within the parenthesized comma-list of parameter
 			   names).  null_source_position for a new-style
 			   parameter. */
+  unsigned int	param_num;
+			/* The parameter number (the first parameter is
+			   number one). */
 } a_param_id;
 
 

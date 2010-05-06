@@ -2734,6 +2734,10 @@ fields to default values.
                                            (a_builtin_operation_kind)bok_last;
       node->variant.builtin_operation.operands = NULL;
       break;
+    case enk_param_ref:
+      node->variant.param_ref.param_num = 0;
+      node->variant.param_ref.levels_up = 0;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

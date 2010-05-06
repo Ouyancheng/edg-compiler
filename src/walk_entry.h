@@ -1597,6 +1597,9 @@ do_set_proper_definition_needed_flag:
             walk_list(ptr->variant.builtin_operation.operands,
                       an_expr_node_ptr, iek_expr_node);
             break;
+          case enk_param_ref:
+            /* No variant-specific fields to traverse. */
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

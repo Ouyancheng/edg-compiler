@@ -3630,6 +3630,13 @@ cleanup_state_common:
       disp_ptr("operands", (char *)ptr->variant.builtin_operation.operands,
                iek_expr_node);
       break;
+    case enk_param_ref:
+      (void)printf("enk_param_ref\n");
+      disp_unsigned_long("param_ref.param_num",
+                         (unsigned long)ptr->variant.param_ref.param_num);
+      disp_unsigned_long("param_ref.levels_up",
+                         (unsigned long)ptr->variant.param_ref.levels_up);
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

@@ -7850,9 +7850,9 @@ id_case:
         result = expr->variant.variable->type;
       } else if (is_routine_node(expr)) {
         result = expr->variant.routine->type;
-      } else if (operand->is_dummy_lvalue) {
-        /* A dummy operand created by make_dummy_lvalue_operand.  Assume it
-           is variable-like and use its type directly. */
+      } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+        /* A reference to a parameter in a function declarator: This is
+           similar to the variable case. */
         result = expr->type;
       } else {
         goto general_case;
@@ -19737,6 +19737,66 @@ in fact turn out to be a constant.
 }  /* is_field_selection_on_field_foldable */
 
 
+static void make_param_ref_operand(an_operand    *result,
+                                   a_symbol_ptr  param_sym)
+/*
+Create an operand in *result representing a use of the parameter described
+by param_sym (sk_parameter).  The enk_param_ref node holds two integer values:
+The parameter number (the first parameter is numbered 1), and a number L
+indicating how many "levels up" the function prototype scope containing the
+referenced parameter is relative to the point of reference.  L may participate
+in name mangling and is therefore subject to some constraints.  First, if two
+signatures differ only in which parameter level is referenced, L must be
+different for those two signature: This is the reason for L's existence.
+Second, if a reference in a return type refers to a particular parameter, L
+should be the same whether the return type is written as a trailing return
+type or using classic C/C++ syntax.  For example, the two declarations:
+  void f(int p, decltype(p) (*pf)());        // (1)
+  void f(int p, auto (*pf)()->decltype(p));  // (2)
+declare the same function and must therefore mangle to the same name (i.e.,
+have identical L for the reference to p in "decltype(p)").  Third, to simplify
+the determination of L, we do not want it to depend on anything that follows
+the actual reference to the parameter.  For example, in the two declarations
+  void f(int p, decltype(p) (*pf)());        // (1)
+  void f(int p, decltype(p));                // (3)
+L for the reference to p in "decltype(p)" should be the same.  Together these
+constraints naturally lead to the rule that determines the "levels_up" field
+(see il_def.h).
+*/
+{
+  unsigned                 levels_up = 1;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  an_expr_node_ptr         node;
+
+  /* First find the nearest enclosing function prototype scope. */
+  while (ssep->kind != (a_scope_kind)sck_func_prototype) ssep -= 1;
+  /* If we're no longer in the parameter clause, do not count the innermost
+     function prototype scope as a "level". */
+  if (ssep->parameter_clause_seen) {
+    levels_up = 0;
+  }  /* if */
+  while (ssep->number != param_sym->decl_scope) {
+    if (ssep->kind == (a_scope_kind)sck_func_prototype) {
+      /* A function prototype scope that does not indicate the parameter:
+         So the reference is at least another "level up" from this scope. */
+      ++levels_up;
+    }  /* if */
+    ssep -= 1;
+  }  /* while */
+  check_assertion(ssep->kind == (a_scope_kind)sck_func_prototype);
+  node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
+  node->type = param_sym->variant.param_id->type;
+  node->is_lvalue = TRUE;
+  node->variant.param_ref.param_num = param_sym->variant.param_id->param_num;
+  node->variant.param_ref.levels_up = levels_up;
+  make_lvalue_expression_operand(node, result);
+  /* If the parameter has a reference type, add an implicit indirection. */
+  if (!C_mode() && is_reference_type(node->type)) {
+    add_reference_indirection(result);
+  }  /* if */
+}  /* make_param_ref_operand */
+
+
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
@@ -20445,11 +20505,8 @@ overloaded_function:
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);
-               Create a dummy lvalue of the right type, since there is no
-               variable yet (the parameter is represented by an sk_parameter
-               symbol). */
-            a_type_ptr param_type = sym_ptr->variant.param_id->type;
-            make_dummy_lvalue_operand(param_type, result);
+               Create an enk_param_ref operand to represent the use. */
+            make_param_ref_operand(result, sym_ptr);
             result->is_id_expression = TRUE;
           }  /* if */
           break;

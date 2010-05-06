@@ -3094,6 +3094,8 @@ as specified in the control block.
     case enk_builtin_operation:
       traverse_expr_list(expr->variant.builtin_operation.operands, tblock);
       break;
+    case enk_param_ref:
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */

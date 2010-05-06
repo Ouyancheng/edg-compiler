@@ -552,6 +552,12 @@ typedef struct a_scope_stack_entry {
 			   during the instantiation context lookup even in
 			   modes where such checks would not normally be
 			   done. */
+  a_bit_field	parameter_clause_seen:1;
+			/* TRUE if, for a function prototype scope, the closing
+			   parenthesis of the associated function declarator
+			   has been seen.  (Additional elements may follow in
+			   C++, including trailing return types and exception
+			   specifications.) */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

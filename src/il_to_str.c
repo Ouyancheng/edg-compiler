@@ -4097,6 +4097,28 @@ on every expression.
           octl->output_str("<expression>", octl);
         }  /* if */
         break;
+      case enk_param_ref:
+        /* Describe a parameter for non-compilable output.  If the reference
+           is to the innermost function prototype scope (presumably the most
+           common case), just give the parameter number.  Otherwise, also
+           indicate how many "levels up" the function prototype scope is. */
+        octl->output_str("<parameter #", octl);
+        form_unsigned_num((a_host_large_unsigned)
+                                            expr->variant.param_ref.param_num,
+                          octl);
+        if (expr->variant.param_ref.levels_up != 0) {
+          if (expr->variant.param_ref.levels_up == 1) {
+            octl->output_str("(one level up)", octl);
+          } else {
+            octl->output_str("(", octl);
+            form_unsigned_num((a_host_large_unsigned)
+                                            expr->variant.param_ref.levels_up,
+                          octl);
+            octl->output_str(" levels up)", octl);
+          }  /* if */
+        }  /* if */
+        octl->output_str(">", octl);
+        break;
       default:
         octl->output_str("<expression>", octl);
         break;

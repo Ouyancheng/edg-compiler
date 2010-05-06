@@ -11654,6 +11654,14 @@ enum an_expr_node_kind_tag {
   enk_builtin_operation,
 			/* Used to represent a variety of builtin
 			   operations. */
+  enk_param_ref,
+			/* Used to represent a reference to a parameter in
+			   an expression that participates in the signature
+			   of a function type.  For example, in the function
+			   declaration "auto f(X a)->decltype(*a)" the use
+			   of "a" in the decltype construct is represented
+			   with an enk_param_ref node.  (Currently used in
+			   C++ only.) */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -12735,6 +12743,31 @@ typedef struct an_expr_node {
 		operands;
 			/* The list of operands. */
     } builtin_operation;
+    /* When kind == enk_param_ref: */
+    struct {
+      unsigned int
+		param_num;
+			/* The number of the parameter being referenced (the
+			   first parameter is number one). */
+      unsigned int
+		levels_up;
+			/* The number L of function prototype scopes from the
+			   innermost one (in which the parameter reference
+			   occurs) up to (and including) the one containing
+			   the declaration of the referenced parameter.  If
+			   the parameter declaration clause of the innermost
+			   function prototype scope has been completely seen,
+			   it is not counted (in that case -- which is perhaps
+			   the most common -- L can be zero).  Examples:
+			     typedef struct {} T;
+			     void f(T p, decltype(p));                // L = 1
+			     void g(T p, decltype(p) (*)());          // L = 1
+			     void h(T p, auto (*)()->decltype(p));    // L = 1
+			     void i(T p, auto (*)(T q)->decltype(q)); // L = 0
+			     void j(T p, auto (*)(decltype(p))->T);   // L = 2
+			     void k(T p, int (*(*)(T p))[sizeof(p)]); // L = 1
+			   */
+    } param_ref;
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

@@ -5386,6 +5386,7 @@ done_with_operation:
     case enk_typeid:      /* enk_typeid is used in C++ only. */
     case enk_reuse_value: /* enk_reuse_value is expected to be lowered in
                              both C and C++. */
+    case enk_param_ref:   /* enk_param_ref is used in C++ only. */
     default:
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */

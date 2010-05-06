@@ -2155,7 +2155,6 @@ if this is the function declarator in a friend function declaration.
         {
         /* Update source range information in the param-type entry. */
         a_decl_position_supplement_ptr  dpsp;
-
         dpsp = alloc_decl_position_supplement(in_file_scope(ptp));
         dpsp->identifier_range = local_decl_pos_block.identifier_range;
         dpsp->specifiers_range = local_decl_pos_block.specifiers_range;
@@ -2194,6 +2193,7 @@ if this is the function declarator in a friend function declaration.
           last_param_id->identifier_range =
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          last_param_id->param_num = param_number;
         }
         if (C_mode()) {
           /* Default argument processing not needed in C mode. */
@@ -2221,7 +2221,6 @@ if this is the function declarator in a friend function declaration.
           a_boolean		ignore_default_arg_expr;
           a_boolean		invalid_default_arg = FALSE;
           a_param_type_ptr	ptp_for_scan;
-
           if (!default_arg_allowed_on_curr_param) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
           } else if (!is_top_level_declarator) {
@@ -2600,6 +2599,7 @@ if this is the function declarator in a friend function declaration.
     curr_stop_token_stack_entry->stop_tokens[(int)tok_assign] = t2;
   }
   remove_stop_token(tok_rparen);
+  scope_stack_top().parameter_clause_seen = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* If this function type was declared with an ellipsis, its calling

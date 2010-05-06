@@ -1821,6 +1821,11 @@ Dump the contents of the indicated expression node for debug purposes.
         operand = operand->next;
       }  /* while */
       break;
+    case enk_param_ref:
+      fprintf(f_debug, "param_ref: param_num = %d, levels_up = %d\n",
+              node->variant.param_ref.param_num,
+              node->variant.param_ref.levels_up);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -5762,6 +5767,15 @@ are done.
             }  /* if */
           }  /* for */
         }  /* if */
+        break;
+      case enk_param_ref:
+        /* For two parameter references to be equivalent, they must refer to
+           the same parameter number at the same level in the stack of
+           function prototype scopes. */
+        eq = node1->variant.param_ref.param_num ==
+                                        node2->variant.param_ref.param_num  &&
+             node1->variant.param_ref.levels_up ==
+                                        node2->variant.param_ref.levels_up;
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -13892,6 +13906,19 @@ options is a set of name lookup options.
                                   expr, template_arg_list, template_param_list,
                                   source_pos, options, copy_error, constant);
       break;
+    case enk_param_ref:
+      /* A reference to a parameter.  Copy the expression node, but apply
+         substitutions to its type. */
+      { a_type_ptr  new_type = copy_type_with_substitution(
+                                        expr->type,
+                                        template_arg_list, template_param_list,
+                                        source_pos, options, copy_error);
+        if (!*copy_error) {
+          expr_copy = copy_node(expr);
+          expr_copy->type = new_type;
+        }  /* if */
+      }
+      break;
     default:
       /* Other kinds of expressions can come up when copying a non-constant
          expression under a sizeof. */
@@ -14895,6 +14922,7 @@ be called to start a copy.
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
+    case enk_param_ref:
       /* Nothing more to copy. */
       break;
     case enk_constant:
@@ -16081,6 +16109,7 @@ already indicates the load.
     case enk_temp_init:
     case enk_routine:
     case enk_typeid:
+    case enk_param_ref:
       rvalueable = TRUE;
       break;
     case enk_lambda:
@@ -16294,6 +16323,13 @@ process_ptr_to_member_selection:
               break;
           }  /* switch */
         }
+        break;
+      case enk_param_ref:
+        /* An rvalue parameter reference is conceptually a "fetch", but since
+           such nodes only appear in arguments of decltype, sizeof, etc., no
+           actual fetching is involved. */
+        does_fetch = TRUE;
+        fetched_type = node->type;
         break;
       default:
         break;
@@ -16547,6 +16583,7 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+    case enk_param_ref:
     default:
       /* Others cause no side effects at this level.  The subtree might
          still cause side effects. */
@@ -16668,6 +16705,7 @@ of this determination.
 {
   a_boolean is_invariant = FALSE;
 
+/* FIXME: Needs code for enk_param_ref? */
   expr = skip_parens(expr);
   if (vars_can_change) {
     /* Variable values can change. */
