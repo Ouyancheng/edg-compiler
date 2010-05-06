@@ -11731,7 +11731,11 @@ in *rcblock).
 
     /* Use an enk_new_delete node to represent the "new". */
     new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
-    new_node->type = ptr_new_type;
+    new_node->type = (template_case && auto_type_specifier_seen) ?
+                       /* Keep the special type used for "auto" from escaping
+                          from the new. */
+                       make_pointer_type(type_of_unknown_templ_param_nontype) :
+                       ptr_new_type;
     ndsp = new_node->variant.new_delete;
     ndsp->is_new = TRUE;
     ndsp->placement_new = placement_new;
