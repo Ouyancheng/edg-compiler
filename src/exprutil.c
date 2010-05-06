@@ -10090,21 +10090,26 @@ reference entry, or is NULL if none is needed.
 
 
 /*ARGSUSED*/  /* <-- end_position is not used in some configurations. */
-void make_field_operand(a_field_ptr       field,
+void make_field_operand(a_symbol_locator  *locator,
                         a_source_position *source_position,
                         a_source_position *end_position,
                         an_operand        *result)
 /*
-Allocate an expression node to contain a field reference, make an operand
-for it, and set the operand type to the type of the field.  source_position
-and end_position give the starting and ending source positions of the
-field reference (end_position only in configurations with extra source
-positions).
+Allocate an expression node to contain a field reference, and return an
+operand for it in *result.  locator describes the field name reference.
+source_position and end_position give the starting and ending source
+positions of the field reference (end_position only in configurations
+with extra source positions).
 */
 {
   an_expr_node_ptr node;
+  a_symbol_ptr     field_sym = locator->specific_symbol;
+  a_field_ptr      field;
 
-  /* Make the expression node first. */
+  reduce_projection_symbol_to_fundamental_symbol(field_sym);
+  check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
+  field = field_sym->variant.field.ptr;
+  /* Make the expression node. */
   node = alloc_expr_node((an_expr_node_kind)enk_field);
   node->type = field->type;
   node->variant.field = field;
@@ -10117,6 +10122,7 @@ positions).
   set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->state = (an_operand_state)os_none;
+  result->is_qualified_name = locator->is_qualified_name;
 }  /* make_field_operand */
 
 #if UPC_EXTENSIONS_ALLOWED

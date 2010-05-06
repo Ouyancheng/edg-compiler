@@ -1369,7 +1369,7 @@ extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
 extern a_boolean check_scalar_operand(an_operand *operand);
 
-extern void make_field_operand(a_field_ptr       field,
+extern void make_field_operand(a_symbol_locator  *locator,
                                a_source_position *source_position,
                                a_source_position *end_position,
                                an_operand        *result);

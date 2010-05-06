@@ -3206,7 +3206,7 @@ same offset, an error is issued and NULL is returned.
 static void make_field_selection_operand(
                                       an_operand            *operand_1,
                                       an_expr_operator_kind op,
-                                      a_symbol_ptr          field_sym,
+                                      a_symbol_locator      *field_locator,
                                       a_source_position     *member_position,
                                       a_source_position     *end_position,
                                       a_type_ptr            selection_type,
@@ -3215,19 +3215,23 @@ static void make_field_selection_operand(
                                       an_operand            *result)
 /*
 Make an operand for a field selection.  *operand_1 is the left operand.
-op is the selection operator.  field_sym is the right operand (the field).
-selection_type is the result type.  The result is an lvalue if is_lvalue
-is TRUE, an rvalue otherwise.  The field selection is compiler-generated
-if compiler_generated is TRUE.  The operand for the selection is created in
-*result.  member_position and end_position give the starting and
-ending source positions for the field reference (end_position only in
-configurations with extra source positions).
+op is the selection operator.  field_locator describes the right
+operand (the field).  selection_type is the result type.  The result
+is an lvalue if is_lvalue is TRUE, an rvalue otherwise.  The field
+selection is compiler-generated if compiler_generated is TRUE.  The
+operand for the selection is created in *result.  member_position and
+end_position give the starting and ending source positions for the
+field reference (end_position only in configurations with extra source
+positions).
 */
 {
-  a_field_ptr field = field_sym->variant.field.ptr;
-  an_operand  field_operand;
+  a_symbol_ptr field_sym = field_locator->specific_symbol;
+  an_operand   field_operand;
 
-  make_field_operand(field, member_position, end_position, &field_operand);
+  reduce_projection_symbol_to_fundamental_symbol(field_sym);
+  check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
+  make_field_operand(field_locator, member_position, end_position,
+                     &field_operand);
   build_binary_result_operand_full(operand_1, &field_operand, op,
                                    selection_type, is_lvalue, result);
   check_assertion(is_expression_operand(result) &&
@@ -3256,7 +3260,7 @@ static void do_field_selection_operation(
                                a_boolean         is_arrow_operator,
                                a_boolean         is_lvalue,
                                a_boolean         compiler_generated,
-                               a_symbol_ptr      field_sym,
+                               a_symbol_locator  *field_locator,
                                a_source_position *member_position,
                                a_source_position *end_position,
                                a_ref_entry_ptr   rep,
@@ -3270,7 +3274,7 @@ be attached to the result expression.  The operator is "->" if
 is_arrow_operator is TRUE, "." otherwise.  is_lvalue is TRUE if the
 result should be an lvalue.  compiler_generated is TRUE if this
 selection is compiler-generated (e.g., an implicit "this->" on a nonstatic
-data member reference).  field_sym points to the symbol for the
+data member reference).  field_locator identifies the symbol for the
 right-side field.  rep points to an associated reference entry, or is NULL
 if none is needed.  The result is placed in *result.  member_position
 and end_position give the starting and ending source positions for the
@@ -3278,12 +3282,15 @@ field reference (end_position only in configurations with extra source
 positions).
 */
 {
+  a_symbol_ptr          field_sym = field_locator->specific_symbol;
   a_field_ptr           field;
   a_type_ptr            result_type;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
   a_type_qualifier_set  qualifiers;
     
+  reduce_projection_symbol_to_fundamental_symbol(field_sym);
+  check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
   field = field_sym->variant.field.ptr;
   if (is_error_operand(operand_1)) {
     make_error_operand(result);
@@ -3343,7 +3350,7 @@ positions).
     op = is_arrow_operator ? (an_expr_operator_kind)eok_points_to_field :
                              (an_expr_operator_kind)eok_dot_field;
     /* Construct the field selection expression tree. */
-    make_field_selection_operand(operand_1, op, field_sym,
+    make_field_selection_operand(operand_1, op, field_locator,
                                  member_position, end_position, selection_type,
                                  is_lvalue, compiler_generated, result);
     /* In C++, a field may have a reference type.  An implicit indirection
@@ -3476,6 +3483,60 @@ Return NULL if the name is not found.
 }  /* look_up_selection_name */
 
 
+static a_boolean check_valid_qualified_member_in_selection(
+                                  a_symbol_locator  *locator,
+                                  a_source_position *qualified_member_position,
+                                  a_type_ptr        class_struct_union_type)
+/*
+locator describes the right-hand operand of a selection operator, and is
+a qualified name.  Check to see that it is a member of class_struct_union_type,
+which is the class type of the left-hand operand, or of an appropriate
+base class thereof.  Issue an error if not, at qualified_member_position
+(for a case like "A::x", qualified_member_position gives the position
+of the "A", whereas the position in the locator gives the position of
+the "x").
+*/
+{
+  a_boolean err = FALSE;
+
+  if (is_error_locator(*locator)) {
+    /* There was an error in the qualified name. */
+    err = TRUE;
+  } else {
+    a_symbol_ptr projection_member_sym = locator->specific_symbol;
+    if (!projection_member_sym->is_class_member) {
+      /* The qualified name is not the name of a class member (i.e., it's
+         the name of a namespace member). */
+      if (expr_error_should_be_issued()) {
+        pos_sy_error(ec_not_class_member,
+                     qualified_member_position,
+                     projection_member_sym);
+      }  /* if */
+      err = TRUE;
+    } else if (class_struct_union_type->
+                                 variant.class_struct_union.is_nonreal_class ||
+               sym_parent_class(projection_member_sym)->
+                                 variant.class_struct_union.is_nonreal_class) {
+      /* Skip the check for a nonreal class in a prototype instantiation. */
+    } else {
+      /* Make sure the name is a member of the class indicated by the
+         left-hand side, or one of its base classes. */
+      if (!is_same_class_or_base_class_thereof(class_struct_union_type,
+                                               sym_parent_class(
+                                                     projection_member_sym))) {
+        if (expr_error_should_be_issued()) {
+          pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                       qualified_member_position,
+                       class_struct_union_type);
+        }  /* if */
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return !err;
+}  /* check_valid_qualified_member_in_selection */
+
+
 static void scan_selection_second_operand(
                             an_operand        *operand_1,
                             a_type_ptr        class_struct_union_type,
@@ -3581,43 +3642,14 @@ qualified_name_check:
              preceding must be the class pointed to by p or a base class
              thereof, i.e., "A::x" must be a member of the class of the
              first operand or of one of its base classes. */
-          if (is_error_locator(locator_for_curr_id)) {
-            /* There was an error in the qualified name. */
-            *err = TRUE;
+          if (check_valid_qualified_member_in_selection(
+                                                   &locator_for_curr_id,
+                                                   &qualified_member_position,
+                                                   class_struct_union_type)) {
+            member_sym = fundamental_symbol_of(
+                                          locator_for_curr_id.specific_symbol);
           } else {
-            a_symbol_ptr projection_member_sym =
-                                           locator_for_curr_id.specific_symbol;
-            member_sym = fundamental_symbol_of(projection_member_sym);
-            if (!projection_member_sym->is_class_member) {
-              /* The qualified name is not the name of a class member
-                 (i.e., it's the name of a namespace member). */
-              if (expr_error_should_be_issued()) {
-                pos_sy_error(ec_not_class_member,
-                             &qualified_member_position,
-                             projection_member_sym);
-              }  /* if */
-              *err = TRUE;
-            } else if (class_struct_union_type->
-                                 variant.class_struct_union.is_nonreal_class ||
-                       sym_parent_class(projection_member_sym)->
-                                 variant.class_struct_union.is_nonreal_class) {
-              /* Skip the check for a nonreal class in a prototype
-                 instantiation. */
-            } else {
-              /* Make sure the name is a member of the class indicated by the
-                 left-hand side, or one of its base classes. */
-              if (!projection_member_sym->is_class_member ||
-                  !is_same_class_or_base_class_thereof(
-                        class_struct_union_type, sym_parent_class(
-                                                    projection_member_sym))) {
-                if (expr_error_should_be_issued()) {
-                  pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                               &qualified_member_position,
-                               class_struct_union_type);
-                }  /* if */
-                *err = TRUE;
-              }  /* if */
-            }  /* if */
+            *err = TRUE;
           }  /* if */
           need_member_sym_check = FALSE;
         } else {
@@ -3830,11 +3862,20 @@ the name in the abstract.  Set *err to TRUE if there is an error.
   a_boolean                     is_template_id = FALSE;
   a_template_arg_ptr            expl_templ_arg_list;
   an_expr_operator_kind         op;
+  a_boolean                     need_member_sym_check = TRUE;
+  a_source_position             *qualified_member_position;
 
   check_assertion(expr != NULL && is_operation_node(expr));
-  eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
+  if (op2 != NULL) {
+    eriep = get_expr_rescan_info(op2, &rescan_info);
+    is_qualified = eriep->saved_operand.is_qualified_name;
+    qualified_member_position = &eriep->saved_operand.position;
+  } else {
+    /* Cases like vacuous destructor calls have no second operand. */
+    eriep = get_expr_rescan_info(expr, &rescan_info);
+  }  /* if */
   op = expr->variant.operation.kind;
   switch (op) {
     case eok_dot_field:
@@ -3877,9 +3918,10 @@ the name in the abstract.  Set *err to TRUE if there is an error.
               if (class_struct_union_type != NULL &&
                   !is_incomplete_type(class_struct_union_type) &&
                   symbol_for(con) != NULL) {
-                clear_locator(locator, &eriep->saved_operand.position);
+                clear_locator(locator, qualified_member_position);
                 locator->symbol_header = symbol_for(con)->header;
                 sym = look_up_selection_name(locator, class_struct_union_type);
+                need_member_sym_check = FALSE;
               }  /* if */
               goto have_symbol;
             }  /* if */
@@ -3892,6 +3934,7 @@ the name in the abstract.  Set *err to TRUE if there is an error.
                                                          eriep,
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
+        need_member_sym_check = FALSE;
       } else if (is_variable_node(op2)) {
         /* Static data member. */
         sym = symbol_for(op2->variant.variable);
@@ -3912,7 +3955,7 @@ have_symbol:
       } else {
         *err = TRUE;
         rcblock->error_detected = TRUE;
-        clear_locator(locator, &eriep->saved_operand.position);
+        clear_locator(locator, qualified_member_position);
       }  /* if */
       break;
     case eok_dot_vacuous_destructor_call:
@@ -3947,6 +3990,15 @@ have_symbol:
   /* Do not insert code here. */
   {
     locator->source_position = eriep->saved_operand.position;
+  }  /* if */
+  /* For a qualified id case, make sure the id is a member of the class
+     or one of its base classes. */
+  if (need_member_sym_check && !*err && is_qualified) {
+    if (!check_valid_qualified_member_in_selection(locator,
+                                                   &locator->source_position,
+                                                   class_struct_union_type)) {
+      *err = TRUE;
+    }  /* if */
   }  /* if */
 }  /* get_locator_for_rescanned_selection_second_operand */
 
@@ -4365,7 +4417,7 @@ routine is also called to parse a __builtin_offsetof field construct
                                        orig_class_struct_union_type,
                                        is_arrow_operator, is_lvalue,
                                        /*compiler_generated=*/FALSE,
-                                       member_sym,
+                                       &locator,
                                        &member_position,
                                        end_position_or_null(&end_position),
                                        rep, result);
@@ -19028,8 +19080,8 @@ expression, and return the result in *result (or an error indication in
 
 
 static void make_anonymous_union_field_operand(
-                                            a_symbol_ptr      sym_ptr,
                                             a_symbol_ptr      union_sym,
+                                            a_symbol_locator  *locator,
                                             a_source_position *source_position,
                                             a_source_position *end_position,
                                             a_ref_entry_ptr   rep,
@@ -19037,12 +19089,12 @@ static void make_anonymous_union_field_operand(
 /*
 Make an operand for a field that is a member of a top-level anonymous union.
 (That is, an anonymous union that is not inside a struct or union.)
-sym_ptr is the field; union_sym is the symbol for the anonymous union;
-source_position and end_position indicate the field identifier starting
-and ending source positions (end_position only in configurations that
-have extra source positions); and rep points to a reference entry, or
-is NULL if none is needed.  The operand is built in *operand.  It's an
-lvalue for the field.
+union_sym is the symbol for the anonymous union; locator describes the
+field name; source_position and end_position indicate the field
+identifier starting and ending source positions (end_position only in
+configurations that have extra source positions); and rep points to a
+reference entry, or is NULL if none is needed.  The operand is built
+in *operand.  It's an lvalue for the field.
 */
 {
   a_variable_ptr union_var;
@@ -19060,7 +19112,7 @@ lvalue for the field.
                                /*is_arrow_operator=*/FALSE,
                                /*is_lvalue=*/TRUE,
                                /*compiler_generated=*/TRUE,
-                               sym_ptr,
+                               locator,
                                source_position, end_position,
                                rep, result);
   result->position = *source_position;
@@ -20094,8 +20146,8 @@ normal_function:
                  reference local variables of any containing function.
                  Check for those. */
             } else {
-              make_anonymous_union_field_operand(sym_ptr, anon_var_sym,
-                                                 &locator.source_position,
+              make_anonymous_union_field_operand(anon_var_sym, &locator,
+                                                 &start_position,
                                                  end_position_or_null(
                                                                 &end_position),
                                                  rep, result);
@@ -20174,8 +20226,8 @@ do_selection:
                                              /*is_arrow_operator=*/TRUE,
                                              /*is_lvalue=*/TRUE,
                                              /*compiler_generated=*/TRUE,
-                                             sym_ptr,
-                                             &locator.source_position,
+                                             &locator,
+                                             &start_position,
                                              end_position_or_null(
                                                                 &end_position),
                                              rep, result);
