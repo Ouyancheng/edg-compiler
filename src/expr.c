@@ -4497,7 +4497,7 @@ nonstatic_member_function:
           expr_pos_error(ec_type_identifier_not_allowed,
                          &member_position);
           operand_will_not_be_used_because_of_error(operand_1);
-          conv_to_error_operand(result);
+          make_error_operand(result);
           break;
 #if CHECKING
         default:
