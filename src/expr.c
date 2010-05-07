@@ -2586,7 +2586,7 @@ are expected to be NULL in that case.
       if (!operand->is_routine_name_followed_by_left_paren) {
         /* Argument-dependent lookup does not apply to member functions,
            so don't record it as "suppressed" for them. */
-        if (!operand->variant.symbol->is_class_member) {
+        if (!operand->symbol->is_class_member) {
           arg_dep_lookup_suppressed = TRUE;
         }  /* if */
       }  /* if */
@@ -2682,7 +2682,7 @@ are expected to be NULL in that case.
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
         !operand->bound_function) {
-      member_func_sym = operand->variant.symbol;
+      member_func_sym = operand->symbol;
       if (make_this_pointer_operand(member_func_sym,
                                     member_func_sym,
                                     &call_position,
@@ -2730,7 +2730,7 @@ are expected to be NULL in that case.
     }
     if (is_undefined_symbol_operand(operand)) {
       /* The function designator is an undefined symbol. */
-      a_symbol_ptr func_sym = operand->variant.symbol;
+      a_symbol_ptr func_sym = operand->symbol;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       /* Save the end position for later restoration. */
       a_source_position end_function_position;
@@ -2782,7 +2782,7 @@ are expected to be NULL in that case.
     } else if (is_indefinite_function_operand(operand)) {
       /* Overloaded function.  That means the routine type is not known yet. */
       overloaded_function_case = TRUE;
-      overloaded_function_symbol = operand->variant.symbol;
+      overloaded_function_symbol = operand->symbol;
       /* routine_type = NULL;  -- already set. */
     } else if (!C_mode() &&
                is_template_dependent_context() &&
@@ -3883,7 +3883,9 @@ the name in the abstract.  Set *err to TRUE if there is an error.
       /* A field selection like this names a concrete field.  Get the symbol
          for it and make a locator. */
       check_assertion(op2->kind == (an_expr_node_kind)enk_field);
-      sym = symbol_for(op2->variant.field);
+      /* Get the symbol from the saved operand, because that's the projection
+         symbol. */
+      sym = eriep->saved_operand.symbol;
       check_assertion(sym != NULL);
       make_locator_for_symbol(sym, locator);
       break;
@@ -22374,10 +22376,10 @@ bad_start_of_primary:
       } else {
         /* The undefined symbol is about to be the operand of some
            operation other than a call, so it's truly undefined. */
-        enter_undefined_symbol(local_result.variant.symbol);
+        enter_undefined_symbol(local_result.symbol);
         if (expr_error_should_be_issued()) {
           str_error(ec_undefined_identifier,
-                    local_result.variant.symbol->header->identifier);
+                    local_result.symbol->header->identifier);
         }  /* if */
         make_error_operand(&local_result);
       }  /* if */
@@ -22562,10 +22564,10 @@ bad_start_of_primary:
        Note that "(f)()" will not be treated as an implicit function
        declaration -- it will yield an error.  The standard says
        "expression ... consists solely of an identifier" (3.3.2.2). */
-    enter_undefined_symbol(local_result.variant.symbol);
+    enter_undefined_symbol(local_result.symbol);
     if (expr_error_should_be_issued()) {
       str_error(ec_undefined_identifier,
-                local_result.variant.symbol->header->identifier);
+                local_result.symbol->header->identifier);
     }  /* if */
     make_error_operand(&local_result);
 #if MICROSOFT_EXTENSIONS_ALLOWED

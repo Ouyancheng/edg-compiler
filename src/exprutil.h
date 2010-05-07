@@ -417,6 +417,13 @@ typedef struct an_operand {
 		ampersand_position;
 			/* When is_operand_of_address_of is TRUE, this gives
 			   the position of the "&" operator. */
+  /* When kind == ok_indefinite_function, ok_sym_for_member, or
+     ok_undefined_symbol, and also ok_expression for the enk_field case: */
+  a_symbol_ptr
+		symbol;
+			/* Pointer to the symbol.  May be a projection
+			   symbol for ok_indefinite_function,
+			   ok_sym_for_member, or ok_expression/enk_field. */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
@@ -424,13 +431,6 @@ typedef struct an_operand {
 		expression;
     /* When kind == ok_constant: */
     a_constant	constant;
-    /* When kind == ok_indefinite_function, ok_sym_for_member, or
-       ok_undefined_symbol: */
-    a_symbol_ptr
-		symbol;
-			/* Pointer to the symbol.  May be a projection
-			   symbol for ok_indefinite_function or
-			   ok_sym_for_member. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When kind == ok_property_ref: */
     /* This is used for a reference to a field declared with the Microsoft

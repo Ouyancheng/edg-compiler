@@ -1500,6 +1500,7 @@ to default values.
       break;
     case ok_expression:
       operand->variant.expression = NULL;
+      operand->symbol = NULL;
       break;
     case ok_constant:
       clear_constant(&operand->variant.constant,
@@ -1508,7 +1509,7 @@ to default values.
     case ok_indefinite_function:
     case ok_sym_for_member:
     case ok_undefined_symbol:
-      operand->variant.symbol = NULL;
+      operand->symbol = NULL;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
@@ -1567,6 +1568,7 @@ values.
   operand->template_arg_list = NULL;
   operand->id_position = null_source_position;
   operand->ampersand_position = null_source_position;
+  operand->symbol = NULL;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
@@ -1675,15 +1677,15 @@ Display an expression operand for debugging purposes.
       break;
     case ok_indefinite_function:
       (void)fprintf(f_debug, "indefinite function = ");
-      db_symbol(operand->variant.symbol, "", 0);
+      db_symbol(operand->symbol, "", 0);
       break;
     case ok_sym_for_member:
       (void)fprintf(f_debug, "sym for member = ");
-      db_symbol(operand->variant.symbol, "", 0);
+      db_symbol(operand->symbol, "", 0);
       break;
     case ok_undefined_symbol:
       (void)fprintf(f_debug, "undefined symbol = ");
-      db_symbol(operand->variant.symbol, "", 0);
+      db_symbol(operand->symbol, "", 0);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ok_property_ref:
@@ -3730,7 +3732,7 @@ and is a function designator.
   clear_operand((an_operand_kind)ok_indefinite_function, operand);
   operand->state = (an_operand_state)os_function_designator;
   operand->type = unknown_type();
-  operand->variant.symbol = routine_sym;
+  operand->symbol = routine_sym;
   set_operand_position_to_pos_curr_token(operand);
   if (locator != NULL) {
     operand->is_qualified_name = locator->is_qualified_name;
@@ -3759,7 +3761,7 @@ of the reference.  The resulting operand is placed in *operand.
 {
   clear_operand((an_operand_kind)ok_undefined_symbol, operand);
   operand->type = unknown_type();
-  operand->variant.symbol = sym;
+  operand->symbol = sym;
   operand->ref_entries_list = ref_list;
   operand->id_position = *position;
 }  /* make_undefined_symbol_operand */
@@ -3795,7 +3797,7 @@ symbol is a function, an rvalue otherwise.
     operand->state = (an_operand_state)os_function_designator;
     operand->type = fund_sym->variant.routine.ptr->type;
   }  /* if */
-  operand->variant.symbol = member_sym;
+  operand->symbol = member_sym;
   operand->is_qualified_name = is_qualified_name;
   set_operand_position_to_pos_curr_token(operand);
   operand->ref_entries_list = rep;
@@ -4588,7 +4590,7 @@ function to be selected is not known.
 
   check_assertion(is_indefinite_function_operand(operand) &&
                   is_template_dependent_context());
-  make_unknown_dependent_function_operand(operand->variant.symbol,
+  make_unknown_dependent_function_operand(operand->symbol,
                                           (a_boolean)operand->is_template_id,
                                           operand->template_arg_list,
                                           (a_boolean)operand->
@@ -4621,7 +4623,7 @@ implicit by context.
   a_boolean          reference_case = is_reference_type(type_cast_to);
   a_boolean          reinterpret_semantics;
 
-  overloaded_function_symbol = operand->variant.symbol;
+  overloaded_function_symbol = operand->symbol;
   function_symbol =
       find_addr_of_overloaded_function_match(overloaded_function_symbol,
                                              (a_boolean)operand->
@@ -4666,7 +4668,7 @@ implicit by context.
        an error. */
     if (expr_error_should_be_issued()) {
       pos_sy_error(ec_indeterminate_overloaded_function,
-                   &operand->position, operand->variant.symbol);
+                   &operand->position, operand->symbol);
     }  /* if */
     conv_to_error_operand(operand);
   }  /* if */
@@ -10103,10 +10105,10 @@ with extra source positions).
 */
 {
   an_expr_node_ptr node;
-  a_symbol_ptr     field_sym = locator->specific_symbol;
+  a_symbol_ptr     proj_field_sym = locator->specific_symbol;
+  a_symbol_ptr     field_sym = fundamental_symbol_of(proj_field_sym);
   a_field_ptr      field;
 
-  reduce_projection_symbol_to_fundamental_symbol(field_sym);
   check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
   field = field_sym->variant.field.ptr;
   /* Make the expression node. */
@@ -10115,6 +10117,7 @@ with extra source positions).
   node->variant.field = field;
   /* Make the operand with the node. */
   make_expression_operand(node, result);
+  result->symbol = proj_field_sym;
   result->position = *source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
@@ -13460,7 +13463,7 @@ If arg_operand is non-NULL, it points to an operand for the argument.
        a member function reference to decay to a pointer to
        member implicitly.  No warning is needed here, even in
        strict mode; the diagnostic is issued later. */
-    a_symbol_ptr  func_sym = arg_operand->variant.symbol;
+    a_symbol_ptr  func_sym = arg_operand->symbol;
     a_symbol_ptr  fund_sym = fundamental_symbol_of(func_sym);
     a_routine_ptr rout;
     check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
@@ -13491,7 +13494,7 @@ by an "&" in the source, and *ampersand_position gives its position.
 
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
-  member_sym = operand->variant.symbol;
+  member_sym = operand->symbol;
   if (ampersand_position != NULL) {
     /* Change the start position to be used/restored to include the "&"
        operator. */
@@ -13643,7 +13646,7 @@ used in generating the function-identifying operand in a call.
   if (is_sym_for_member_operand(operand) ||
       is_indefinite_function_operand(operand)) {
     /* There is an underlying function symbol. */
-    a_symbol_ptr func_sym = operand->variant.symbol;
+    a_symbol_ptr func_sym = operand->symbol;
     a_symbol_ptr fund_sym = fundamental_symbol_of(func_sym);
     if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       fund_sym = fund_sym->variant.overloaded_function.symbols;
@@ -13924,7 +13927,7 @@ will be called immediately (as opposed to, say, having its address taken).
       !(is_template_dependent_context() &&
         template_arg_list_is_dependent(operand->template_arg_list))) {
     a_template_arg_ptr new_arg_list;
-    a_symbol_ptr       orig_sym = operand->variant.symbol, base_sym;
+    a_symbol_ptr       orig_sym = operand->symbol, base_sym;
     a_symbol_ptr       matching_sym = NULL;
     a_template_arg_ptr matching_arg_list;
 
@@ -14028,7 +14031,7 @@ change the operand to an error operand.
 {
   if (is_indefinite_function_operand(operand)) {
     sym_error_in_operand(ec_indeterminate_overloaded_function,
-                         operand, operand->variant.symbol);
+                         operand, operand->symbol);
   }  /* if */
 }  /* error_if_indefinite_function */
 

@@ -600,7 +600,7 @@ from previous arguments; in the standard case, it is always NULL.
 */
 {
   a_boolean    can_be_arg = FALSE;
-  a_symbol_ptr sym = operand->variant.symbol, proj_sym;
+  a_symbol_ptr sym = operand->symbol, proj_sym;
   a_type_ptr   matching_arg_type = NULL;
 
   reduce_projection_symbol_to_fundamental_symbol(sym);
@@ -610,7 +610,7 @@ from previous arguments; in the standard case, it is always NULL.
     if (operand->is_template_id) {
       a_template_arg_ptr new_arg_list;
       matching_arg_type =
-        explicit_arg_list_identifies_specialization(operand->variant.symbol,
+        explicit_arg_list_identifies_specialization(operand->symbol,
                                                     operand->template_arg_list,
                                                     &new_arg_list);
       if (matching_arg_type != NULL) {
@@ -2021,7 +2021,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       a_symbol_ptr chosen_function;
       a_boolean    unknown_dependent_function;
       if ((chosen_function =
-           find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
+           find_addr_of_overloaded_function_match(arg_operand->symbol,
                                                   (a_boolean)arg_operand->
                                                                 is_template_id,
                                                   arg_operand->
@@ -5650,7 +5650,7 @@ lookup.
   if (is_indefinite_function_operand(operand)) {
     /* The operand is an indefinite function.  Loop through the symbols
        and add each function type to the list. */
-    a_symbol_ptr ovl_sym = operand->variant.symbol, sym;
+    a_symbol_ptr ovl_sym = operand->symbol, sym;
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
     /* Ignore templates. */
     if (ovl_sym->kind != (a_symbol_kind)sk_function_template) {
@@ -5752,8 +5752,8 @@ function.
   a_boolean dep = FALSE;
 
   if (is_indefinite_function_operand(operand) &&
-      ((operand->variant.symbol->is_class_member &&
-        sym_parent_class(operand->variant.symbol)->variant.class_struct_union.
+      ((operand->symbol->is_class_member &&
+        sym_parent_class(operand->symbol)->variant.class_struct_union.
                                                            is_nonreal_class) ||
        (operand->is_template_id &&
         template_arg_list_is_dependent(operand->template_arg_list)))) {
@@ -12700,7 +12700,7 @@ NULL, the operand is not a parameter.
       a_boolean unknown_dependent_function;
 
       if (find_addr_of_overloaded_function_match(
-                                           source_operand->variant.symbol,
+                                           source_operand->symbol,
                                            (a_boolean)source_operand->
                                                            is_template_id,
                                            source_operand->template_arg_list,
@@ -12728,7 +12728,7 @@ NULL, the operand is not a parameter.
         /* More than one function matches. */
         if (expr_error_should_be_issued()) {
           pos_sy_error(ec_ambiguous_ptr_to_overloaded_function, err_pos,
-                       source_operand->variant.symbol);
+                       source_operand->symbol);
         }  /* if */
         conv_to_error_operand(source_operand);
       } else {
@@ -12736,7 +12736,7 @@ NULL, the operand is not a parameter.
         if (!is_error_type(dest_type)) {
           if (expr_error_should_be_issued()) {
             pos_sy_error(ec_no_match_for_addr_of_overloaded_function, err_pos,
-                         source_operand->variant.symbol);
+                         source_operand->symbol);
           }  /* if */
         }  /* if */
         conv_to_error_operand(source_operand);
@@ -14418,7 +14418,7 @@ direct binding is "possible" and not whether it is "valid".
     a_boolean          ambiguous, unknown_dependent_function;
 
     *function_symbol =
-        find_addr_of_overloaded_function_match(source_operand->variant.symbol,
+        find_addr_of_overloaded_function_match(source_operand->symbol,
                                                (a_boolean)source_operand->
                                                                 is_template_id,
                                                source_operand->
@@ -14437,7 +14437,7 @@ direct binding is "possible" and not whether it is "valid".
       if (expr_error_should_be_issued()) {
         pos_sy_error(ec_ambiguous_ptr_to_overloaded_function,
                      &source_operand->position,
-                     source_operand->variant.symbol);
+                     source_operand->symbol);
       }  /* if */
       conv_to_error_operand(source_operand);
     } else if (unknown_dependent_function) {
@@ -14830,7 +14830,7 @@ been found to be acceptable, and *conversion describes it.
          for the specific function as a function designator. */
       check_assertion(is_indefinite_function_operand(source_operand));
       overloaded_function_catch_up(function_symbol,
-                                   source_operand->variant.symbol,
+                                   source_operand->symbol,
                                    &orig_operand,
                                    (a_source_position *)NULL,
                                    /*elided_reference=*/FALSE,
