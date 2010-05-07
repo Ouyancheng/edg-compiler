@@ -1806,7 +1806,7 @@ Dump the contents of the indicated expression node for debug purposes.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
       fprintf(f_debug, "type_operand: type = ");
-      db_type_name(node->variant.type_operand.type);
+      db_abbreviated_type(node->variant.type_operand.type);
       fputs("\n", f_debug);
       break;
     case enk_builtin_operation:
