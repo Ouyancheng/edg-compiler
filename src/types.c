@@ -3471,6 +3471,51 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
   return (c_and_cpp_function_types_are_distinct ? (nlk1 == nlk2) : TRUE);
 }  /* routine_linkages_are_identical */
 
+static void adjust_comparison_types_for_decltype(a_type_ptr *p_type_1,
+                                                 a_type_ptr *p_type_2)
+/*
+The types pointed to by p_type_1 and p_type_2 are being compared by
+f_identical_types or f_types_are_compatible as part of checking that
+the result of template deduction and substitution has produced a valid
+type.  If one or the other is a type produced by a decltype, adjust
+the types to account for any differences introduced by the decltype
+itself, e.g., an extra "reference to" on one of the types because the
+operand of the decltype is an lvalue in one case and not in the other.
+*/
+{
+  a_type_ptr type_1 = *p_type_1;
+  a_type_ptr type_2 = *p_type_2;
+
+  for (;;) {
+    /* Remove non-decltype typerefs from both types.  (This code is done
+       after cv-qualifiers have been checked, so they are irrelevant at
+       this point.) */
+    while (type_1->kind == (a_type_kind)tk_typeref &&
+           !typeref_is_decltype_or_typeof(type_1)) {
+      type_1 = type_1->variant.typeref.type;
+    }  /* while */
+    while (type_2->kind == (a_type_kind)tk_typeref &&
+           !typeref_is_decltype_or_typeof(type_2)) {
+      type_2 = type_2->variant.typeref.type;
+    }  /* while */
+    /* If one if a decltype for a non-reference type and the other is
+       a non-decltype for a reference type, strip the reference. */
+    if (type_1->kind == (a_type_kind)tk_typeref &&
+        !is_reference_type(type_1) &&
+        is_reference_type(type_2)) {
+      type_2 = type_pointed_to(type_2);
+    } else if (type_2->kind == (a_type_kind)tk_typeref &&
+               !is_reference_type(type_2) &&
+               is_reference_type(type_1)) {
+      type_1 = type_pointed_to(type_1);
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  *p_type_1 = type_1;
+  *p_type_2 = type_2;
+}  /* adjust_comparison_types_for_decltype */
+
 
 static a_boolean f_change_to_canonical_types(a_type_ptr  *type_1,
                                              a_type_ptr  *type_2,
@@ -3659,7 +3704,15 @@ for more information.
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
-    } else if (distinct_dependent_decltypes(type_1, type_2, flags)) {
+    }  /* if */
+    if (flags & ITF_CHECKING_DEDUCTION_RESULT) {
+      /* When checking a deduction result, we have to allow some slight
+         differences around a typeref for a decltype.  The decltype might
+         have been applied to an lvalue in one case and an rvalue in the
+         other, and therefore have an extra "reference to" on it. */
+      adjust_comparison_types_for_decltype(&type_1, &type_2);
+    }  /* if */
+    if (distinct_dependent_decltypes(type_1, type_2, flags)) {
       /* type_1 and type_2 are built from decltype (or typeof) constructs
          with distinct template-dependent arguments.  Such types are assumed
          to be different. */
@@ -4189,51 +4242,6 @@ of member functions).
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void adjust_comparison_types_for_decltype(a_type_ptr *p_type_1,
-                                                 a_type_ptr *p_type_2)
-/*
-The types pointed to by p_type_1 and p_type_2 are being compared by
-f_types_are_compatible as part of checking that the result of template
-deduction and substitution has produced a valid type.  If one or the
-other is a type produced by a decltype, adjust the types to account
-for any differences introduced by the decltype itself, e.g., an
-extra "reference to" on one of the types because the operand of the
-decltype is an lvalue in one case and not in the other.
-*/
-{
-  a_type_ptr type_1 = *p_type_1;
-  a_type_ptr type_2 = *p_type_2;
-
-  for (;;) {
-    /* Remove non-decltype typerefs from both types. */
-    while (type_1->kind == (a_type_kind)tk_typeref &&
-           !typeref_is_decltype_or_typeof(type_1)) {
-      type_1 = type_1->variant.typeref.type;
-    }  /* while */
-    while (type_2->kind == (a_type_kind)tk_typeref &&
-           !typeref_is_decltype_or_typeof(type_2)) {
-      type_2 = type_2->variant.typeref.type;
-    }  /* while */
-    /* FIXME: Array and function decay, etc.? */
-    /* If one if a decltype for a non-reference type and the other is
-       a non-decltype for a reference type, strip the reference. */
-    if (type_1->kind == (a_type_kind)tk_typeref &&
-        !is_reference_type(type_1) &&
-        is_reference_type(type_2)) {
-      type_2 = type_pointed_to(type_2);
-    } else if (type_2->kind == (a_type_kind)tk_typeref &&
-               !is_reference_type(type_2) &&
-               is_reference_type(type_1)) {
-      type_1 = type_pointed_to(type_1);
-    } else {
-      break;
-    }  /* if */
-  }  /* for */
-  *p_type_1 = type_1;
-  *p_type_2 = type_2;
-}  /* adjust_comparison_types_for_decltype */
-
-
 a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                  a_type_ptr              type_2,
                                  a_type_compat_flags_set flags)
@@ -4271,12 +4279,12 @@ for exact pointer equality.
   } else {
     /* Test for a qualifier mismatch. */
     a_boolean qualifier_mismatch = FALSE;
-    if (!ignore_type_qualifiers &&
-        !type_qualifiers_match(type_1, type_2)) {
-      qualifier_mismatch = TRUE;
-    }  /* if */
     if (type_1->kind == (a_type_kind)tk_typeref ||
         type_2->kind == (a_type_kind)tk_typeref) {
+      if (!ignore_type_qualifiers &&
+          !type_qualifiers_match(type_1, type_2)) {
+        qualifier_mismatch = TRUE;
+      }  /* if */
       /* Except for potential qualifier mismatches, typeref entries can
          usually be skipped, but some care must be taken with decltype/typeof
          entries. */

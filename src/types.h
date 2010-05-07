@@ -524,14 +524,15 @@ typedef unsigned int an_itf_flag_set;
 			/* TRUE if, when comparing template parameters of
 			   tptk_param kind, the type pointers must match,
 			   not just the coordinates. */
+#define ITF_CHECKING_DEDUCTION_RESULT 0x80
+			/* We are comparing two types to make sure deduction
+			   worked right and we didn't get a function type where
+			   we expected a non-function, or vice-versa. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
 #define il_identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_IL_IDENTICAL))
-#define unknown_this_class_identical_types(t1, t2) \
-  ((t1) == (t2) || f_identical_types((t1), (t2), \
-                                     ITF_UNKNOWN_THIS_CLASS_TYPE))
 #define identical_types_ignoring_qualifiers(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), \
                                      ITF_IGNORE_TOP_LEVEL_QUALIFIERS))

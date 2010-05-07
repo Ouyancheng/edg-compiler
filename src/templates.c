@@ -10093,14 +10093,17 @@ matching process.
            has a this class type.  Consequently, a NULL this class
            type should be considered a match for a non-NULL one in the
            routine we are matching with. */
-        match = unknown_this_class_identical_types(curr_type, new_type);
+        match = f_identical_types(curr_type, new_type,
+                                  ITF_UNKNOWN_THIS_CLASS_TYPE |
+                                  ITF_CHECKING_DEDUCTION_RESULT);
       } else {
         /* In nondeclarative contexts, the this class parameter types must
            match exactly.  types_are_compatible is used so that a conversion
            from a C++ linkage function to C linkage can be permitted in
 	   some modes. */
-        match = f_types_are_compatible(
-                            curr_type, new_type, TCF_IMPLICIT_CONVERSION);
+        match = f_types_are_compatible(curr_type, new_type,
+                                       TCF_IMPLICIT_CONVERSION |
+                                       TCF_CHECKING_DEDUCTION_RESULT);
       }  /* if */
     }  /* if */
   }  /* if */
