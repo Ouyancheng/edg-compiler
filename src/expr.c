@@ -23930,11 +23930,13 @@ static void make_operand_for_rescanned_identifier(
 /*
 expr is an expression referencing a constant (enk_constant) that is
 in essence an identifier reference, encountered while redoing semantic
-analysis on an expression as part of template deduction.  Make an
-operand in *result for the identifier after template substitution.
-rcblock provides the deduction context, e.g., the template argument
-list being tried.  It also has an error_detected flag, which is set
-to TRUE if any non-access error is detected during the processing.
+analysis on an expression as part of template deduction.  (Also
+handles enk_param_ref nodes, which represent references to parameter
+names within the header of the function).  Make an operand in *result
+for the identifier after template substitution.  rcblock provides the
+deduction context, e.g., the template argument list being tried.  It
+also has an error_detected flag, which is set to TRUE if any
+non-access error is detected during the processing.
 is_operand_of_address_of is TRUE if the expression is the immediate
 operand of an "&" operator.
 */
@@ -23944,35 +23946,47 @@ operand of an "&" operator.
   a_boolean                     is_template_id;
   a_template_arg_ptr            expl_templ_arg_list;
 
-  check_assertion(is_constant_node(expr));
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-  /* Do substitution and produce a symbol for the substituted result. */
-  sym = symbol_for_template_param_unknown_entity_rescan(expr->variant.constant,
+  if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+    /* A reference to a parameter name within the header of the function,
+       where a parameter variable is not available. */
+    an_expr_node_ptr expr_copy = copy_node(expr);
+    expr_copy->type = do_type_substitution_for_rescan(expr->type, rcblock,
+                                                      eriep);
+    make_lvalue_or_rvalue_expression_operand(expr_copy, result);
+  } else {
+    /* Constant case (ck_template_param representing an unknown name). */
+    check_assertion(is_constant_node(expr));
+    /* Do substitution and produce a symbol for the substituted result. */
+    sym = symbol_for_template_param_unknown_entity_rescan(
+                                                        expr->variant.constant,
                                                         rcblock,
                                                         eriep,
                                                         &is_template_id,
                                                         &expl_templ_arg_list);
-  if (sym == NULL) {
-    rcblock->error_detected = TRUE;
-    make_error_operand(result);
-    copy_operand_position(&eriep->saved_operand, result);
-  } else {
-    /* Build an operand for the symbol as if it had just been scanned as
-       an identifier */
-    a_local_expr_options_set options = EOPT_NO_OPTIONS;
-    if (is_operand_of_address_of) {
-      options |= EOPT_PTR_TO_MEMBER_CONTEXT;
-    }  /* fi */
-    scan_identifier(result, options, PREC_LOWEST, rcblock, sym,
-                    &eriep->saved_operand, is_template_id, expl_templ_arg_list,
-                    (a_symbol_ptr *)NULL, (a_boolean *)NULL);
-    /* Set the proper source position, and any flags like whether the
-       identifier reference was qualified. */
-    restore_operand_details(result, &eriep->saved_operand);
-    restore_operand_id_details(result, &eriep->saved_operand);
+    if (sym == NULL) {
+      rcblock->error_detected = TRUE;
+      make_error_operand(result);
+      copy_operand_position(&eriep->saved_operand, result);
+    } else {
+      /* Build an operand for the symbol as if it had just been scanned as
+         an identifier */
+      a_local_expr_options_set options = EOPT_NO_OPTIONS;
+      if (is_operand_of_address_of) {
+        options |= EOPT_PTR_TO_MEMBER_CONTEXT;
+      }  /* fi */
+      scan_identifier(result, options, PREC_LOWEST, rcblock, sym,
+                      &eriep->saved_operand, is_template_id,
+                      expl_templ_arg_list,
+                      (a_symbol_ptr *)NULL, (a_boolean *)NULL);
+    }  /* if */
   }  /* if */
+  /* Set the proper source position, and any flags like whether the
+     identifier reference was qualified. */
+  restore_operand_details(result, &eriep->saved_operand);
+  restore_operand_id_details(result, &eriep->saved_operand);
 }  /* make_operand_for_rescanned_identifier */
 
 
@@ -24322,6 +24336,9 @@ set accordingly.
         unexpected_condition();
     }  /* switch */
     *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+    /* A reference to a parameter name in the header of the function. */
+    operator_token = tok_identifier;
   } else {
     rescannable = FALSE;
   }  /* if */

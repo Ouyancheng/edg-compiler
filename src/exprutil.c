@@ -2732,7 +2732,7 @@ expression (which is returned in *op_expr).
 }  /* is_uuidof_expr */
 
 
-static a_type_ptr do_type_substitution_for_rescan(
+a_type_ptr do_type_substitution_for_rescan(
                                         a_type_ptr                    type,
                                         a_rescan_control_block        *rcblock,
                                         an_expr_rescan_info_entry_ptr eriep)

@@ -1489,6 +1489,11 @@ extern void make_selection_rescan_operands(
                              a_source_position       *operator_position,
                              a_token_sequence_number *operator_tok_seq_number);
 
+extern a_type_ptr do_type_substitution_for_rescan(
+                                        a_type_ptr                    type,
+                                        a_rescan_control_block        *rcblock,
+                                        an_expr_rescan_info_entry_ptr eriep);
+
 extern
 void make_sizeof_et_al_rescan_operands(
                               a_rescan_control_block  *rcblock,
