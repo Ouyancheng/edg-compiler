@@ -10821,11 +10821,12 @@ storage_class are the type and storage class for the parameter.
            when it is changed to sk_variable. */
         sym = enter_symbol((a_symbol_kind)sk_parameter, locator,
                            depth_scope_stack, ambiguous);
-        if (gpp_mode) {
-          /* In GNU mode, the parameters are invisible within the prototype
-             scope (e.g., they are invisible while scanning the default
-             arguments).  The is_invisible flag will be cleared when parsing
-             the function definition. */
+        if (parameters_visible_late) {
+          /* In some GNU C++ modes, the parameters are invisible within the
+             prototype scope.  This allows code like:
+               struct X; void f(int X, X *p);
+             The is_invisible flag will be cleared when parsing the function
+             definition. */
           sym->is_invisible = TRUE;
         }  /* if */
       } else {

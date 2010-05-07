@@ -1425,23 +1425,6 @@ syntactic properties of the current declaration.
   
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void set_param_syms_visibility(a_func_info_block  *func_info,
-                                      a_boolean          visible)
-/*
-Make each parameter symbol associated with func_info visible (if visible is
-TRUE) or invisible (if visible is FALSE).
-*/
-{
-  a_param_id_ptr  param_id = func_info->param_id_list;
-
-  for (; param_id != NULL; param_id = param_id->next) {
-    if (param_id->symbol != NULL) {
-      param_id->symbol->is_invisible = !visible;
-    }  /* if */
-  }  /* for */
-}  /* set_param_syms_visibility */
-
-
 static void scan_trailing_return_type(a_decl_parse_state  *dps,
                                       a_func_info_block   *func_info,
                                       a_type_ptr          rout_type)
@@ -1481,19 +1464,8 @@ lambda declarator.
   init_decl_parse_state(&trt_dps);
   trt_dps.is_trailing_return_type = TRUE;
   trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
-  /* In GNU mode, parameter symbols are marked invisible while processing
-     default arguments (which may or may not have been done already, depending
-     on the context).  They must however be visible while scanning a trailing
-     return type.  For example, in
-        void *x;
-        auto f(long x = (long)x)->decltype(2*x);
-     the x in the default argument must find the variable, but the x in the
-     trailing return type must find the parameter.
-  */
-  if (gpp_mode) set_param_syms_visibility(func_info, TRUE);
   /* Parse the trailing return type. */
   type_name_full(&trt_dps);
-  if (gpp_mode) set_param_syms_visibility(func_info, FALSE);
   if (err) {
     dps->specifiers_type = dps->declared_type = dps->type = error_type();
   } else {

@@ -22869,6 +22869,22 @@ Return a pointer to the expression.
 }  /* scan_typed_expression */
 
 
+static void make_param_syms_invisible(a_boolean  is_invisible)
+/*
+The current scope is a function prototype scope.  Set the is_invisible flag of
+the parameter symbols in that scope to is_invisible.
+*/
+{
+  a_symbol_ptr  sym = scope_stack_top().pointers_block.symbols;
+
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_parameter) {
+      sym->is_invisible = is_invisible;
+    }  /* if */
+  }  /* for */
+}  /* make_param_syms_invisible */
+
+
 void scan_default_arg_expr(a_param_type_ptr ptp)
 /*
 Scan a default argument expression on a formal parameter declaration, change
@@ -22885,6 +22901,14 @@ in a template instantiation) just do the scan.
   an_expr_stack_entry_ptr saved_expr_stack;
 
   db_enter(3, "scan_default_arg_expr");
+  check_assertion(scope_stack_top().kind == (a_scope_kind)sck_func_prototype);
+  if (gpp_mode && !parameters_visible_late) {
+    /* GCC does not consider parameter declarations while scanning default
+       arguments.  Some versions don't consider parameters visible at all
+       within the function prototype scope: In that case, the parameters are
+       already marked as invisible and no work is needed here. */
+    make_param_syms_invisible(TRUE);
+  }  /* if */
   /* Save, clear, and later restore the expression stack, since this expression
      is not part of any expression we may currently be inside of.  Note
      that push_scope cleared the object lifetime stack on pushing the
@@ -22938,6 +22962,7 @@ in a template instantiation) just do the scan.
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   restore_expr_stack(saved_expr_stack);
+  if (gpp_mode && !parameters_visible_late) make_param_syms_invisible(FALSE);
 #if DEBUG
   if (debug_level >= 3) {
     db_expression(node);

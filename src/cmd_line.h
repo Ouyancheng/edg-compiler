@@ -580,6 +580,12 @@ EXTERN a_boolean
 			   behavior of g++. */
 
 EXTERN a_boolean
+		parameters_visible_late;
+			/* TRUE if parameters should remain invisible while
+			   parsing a function declarator.  (This is the
+			   behavior of g++ prior to GCC 4.4.) */
+
+EXTERN a_boolean
 		friend_class_decl_can_find_using_dir;
 			/* TRUE if a friend class declaration can find names
 			   made visible by using-directives.  This is used

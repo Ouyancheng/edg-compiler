@@ -1,5 +1,20 @@
 Version 4.2
 
+5/7/10   [EDGcpfe/10682]
+GNU C++ compatibility: Visibility of parameters
+
+GNU C++ compilers prior to version 4.4 keep parameters invisible until the
+associated function declarator was completed (see Changes entry of 9/1/05).
+In later versions, however, g++ only keeps the parameters invisible while
+parsing default arguments.  We now emulate that behavior when
+gnu_version >= 40400.  For example:
+
+  struct S;
+  void f1(S *S, S *T);   // Accepted in GNU C++ mode with gnu_version < 40400.
+  int x();
+  void f2(int x = x());  // Accepted in all GNU C++ modes.
+
+
 5/5/10   [EDGcpfe/10645]
 Templates rejected on non-dependent parameters before deduction
 
