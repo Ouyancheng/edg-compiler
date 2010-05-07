@@ -22869,22 +22869,6 @@ Return a pointer to the expression.
 }  /* scan_typed_expression */
 
 
-static void make_param_syms_invisible(a_boolean  is_invisible)
-/*
-The current scope is a function prototype scope.  Set the is_invisible flag of
-the parameter symbols in that scope to is_invisible.
-*/
-{
-  a_symbol_ptr  sym = scope_stack_top().pointers_block.symbols;
-
-  for (; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_parameter) {
-      sym->is_invisible = is_invisible;
-    }  /* if */
-  }  /* for */
-}  /* make_param_syms_invisible */
-
-
 void scan_default_arg_expr(a_param_type_ptr ptp)
 /*
 Scan a default argument expression on a formal parameter declaration, change

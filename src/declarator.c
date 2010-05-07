@@ -1425,6 +1425,22 @@ syntactic properties of the current declaration.
   
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void make_param_syms_invisible(a_boolean  is_invisible)
+/*
+The current scope is a function prototype scope.  Set the is_invisible flag of
+the parameter symbols in that scope to is_invisible.
+*/
+{
+  a_symbol_ptr  sym = scope_stack_top().pointers_block.symbols;
+
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_parameter) {
+      sym->is_invisible = is_invisible;
+    }  /* if */
+  }  /* for */
+}  /* make_param_syms_invisible */
+
+
 static void scan_trailing_return_type(a_decl_parse_state  *dps,
                                       a_func_info_block   *func_info,
                                       a_type_ptr          rout_type)
@@ -1464,8 +1480,17 @@ lambda declarator.
   init_decl_parse_state(&trt_dps);
   trt_dps.is_trailing_return_type = TRUE;
   trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
+  if (parameters_visible_late) {
+  /* In some GNU C++ modes, parameter symbols are marked invisible until a
+     definition (if any) is seen.  The corresponding GCC compilers do not
+     support trailing return types, but that model severely limits the
+     usefulness of trailing return types.  In such modes, we therefore
+     make the parameters visible while scanning the trailing return type. */
+    make_param_syms_invisible(FALSE);
+  }  /* if */
   /* Parse the trailing return type. */
   type_name_full(&trt_dps);
+  if (parameters_visible_late) make_param_syms_invisible(TRUE);
   if (err) {
     dps->specifiers_type = dps->declared_type = dps->type = error_type();
   } else {

@@ -340,6 +340,8 @@ extern void scan_lambda_declarator(a_lambda_ptr        lambda,
                                    a_func_info_block   *func_info,
                                    a_decl_pos_block    *decl_pos_block);
 
+extern void make_param_syms_invisible(a_boolean  is_invisible);
+
 #endif /* DECLARATOR_H */
 
 /******************************************************************************
