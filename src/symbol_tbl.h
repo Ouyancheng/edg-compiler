@@ -265,10 +265,7 @@ typedef struct a_symbol_locator {
     /* When is_operator_name is TRUE: */
     an_opname_kind
 		opname;
-			/* The token that identifies the operator when an
-			   operator name is scanned.  For () and [] operators
-			   the identifying tokens are tok_lparen and
-			   tok_lbracket, respectively. */
+			/* For an operator name, the kind of operator. */
     /* When is_conversion_name is TRUE: */
     a_type_ptr  conversion_result_type;
 			/* The return type when a user-defined conversion
