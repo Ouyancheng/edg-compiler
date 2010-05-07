@@ -3068,6 +3068,11 @@ typedef struct a_symbol_header {
 			/* sk_extern_variable, sk_extern_routine and
                            synthesized namespace projection symbols
 			   associated with this name. */
+  an_opname_kind
+		opname;
+			/* If the symbol header is for an operator name, this
+			   identifies the particular operator kind.  For
+			   other kinds of symbols, this is onk_none. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_saved_macro_state_ptr
 		saved_macro_stack;

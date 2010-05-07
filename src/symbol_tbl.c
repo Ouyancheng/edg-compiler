@@ -1683,6 +1683,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->symbol            = NULL;
   ptr->inactive_symbols  = NULL;
   ptr->other_symbols     = NULL;
+  ptr->opname            = (an_opname_kind)onk_none;
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
@@ -6411,6 +6412,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     (void)memcpy(str, "operator", OPERATOR_LEN);
     if (blank_needed) str[OPERATOR_LEN] = ' ';
     (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
+    hdr_ptr->opname = opname;
 #if DEBUG
     symbol_name_string_space += opname_length+1;
 #endif /* DEBUG */
