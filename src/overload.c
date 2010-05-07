@@ -2850,11 +2850,19 @@ template arguments, or NULL if deduction failed.
                      rtsp;
   a_param_type_ptr   ptp;
   an_arg_operand_ptr arg_operand;
+  a_template_symbol_supplement_ptr
+                     tssp;
 
   db_enter(4, "function_template_call_argument_deduction");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   check_assertion(routine_type->kind == (a_type_kind)tk_routine);
+  tssp = template_supplement_for_symbol(template_sym);
   rtsp = routine_type->variant.routine.extra_info;
+  /* The pending instantiation count is incremented during the deduction
+     process to detect recursion in the substitution process.  If recursion
+     is detected, we consider deduction to have failed. */
+  if (tssp->pending_instantiations >= max_pending_instantiations) goto done;
+  tssp->pending_instantiations++;
   /* Look through the arguments/parameters to do template argument
      deduction. */
   for (ptp = rtsp->param_type_list, arg_operand = arg_operand_list;
@@ -2922,6 +2930,8 @@ template arguments, or NULL if deduction failed.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* Decrement the pending instantiation count used to detect recursion. */
+  tssp->pending_instantiations--;
 done:;
   db_exit();
   return updated_routine_type;
