@@ -1519,6 +1519,10 @@ typedef struct a_lexical_state_stack_entry {
 			/* The token sequence number of the last token added
 			   to the cache, or NO_TOKEN_SEQUENCE_NUMBER if the
 			   cache is empty. */
+  a_source_position
+		error_position;
+			/* The saved value of error_position when the state
+			   stack was pushed. */
   a_token_cache	cache;
 			/* The cache used to save tokens when cache_tokens is
 			   TRUE. */

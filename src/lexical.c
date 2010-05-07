@@ -11282,6 +11282,7 @@ is saved for use when the stack is popped.
 
   lssep = alloc_lexical_state_stack_entry();
   lssep->next = curr_lexical_state_stack_entry;
+  lssep->error_position = error_position;
   curr_lexical_state_stack_entry = lssep;
   /* Push a new stop token stack entry too. */
   push_stop_token_stack();
@@ -11306,6 +11307,7 @@ to alter the consistency check at the end of the routine.
   curr_lexical_state_stack_entry = lssep->next;
   /* Add the old entry to the list of available stack entries. */
   lssep->next = avail_lexical_state_stack_entries;
+  error_position = lssep->error_position;
   /* Discard any tokens that may have been cached. */
   discard_token_cache(&lssep->cache);
   avail_lexical_state_stack_entries = lssep;
