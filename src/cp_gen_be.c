@@ -4527,7 +4527,7 @@ default arguments should be suppressed (needed for template specializations).
   fpse.next = func_prototype_stack;
   fpse.function_type = type;
   fpse.after_parameter_list = FALSE;
-  func_prototype_stack = &fpse;
+  func_prototype_stack = &fpse;  /*lint !e789*/
   /* The code here is similar to code in form_function_declarator. */
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_ch('(');
