@@ -3681,6 +3681,9 @@ second parameter.
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+    case enk_param_ref:
+      /* Nothing to be done. */
+      break;
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;

@@ -1711,7 +1711,12 @@ is non-NULL, in which case that is the function scope.
   a_variable_ptr                param_var;
   a_boolean                     saved_gen_vla_array_as_asterisk_bound_array =
                                     octl.gen_vla_array_as_asterisk_bound_array;
+  a_func_prototype_stack_entry  fpse;
 
+  /* Push an entry onto the function prototype stack. */
+  fpse.function_type = type;
+  fpse.after_parameter_list = FALSE;
+  push_function_prototype(&fpse);
   if (scope != NULL) {
     param_var = scope->variant.routine.parameters;
   } else {
@@ -1890,6 +1895,7 @@ is non-NULL, in which case that is the function scope.
   write_tok_ch(')');
   octl.gen_vla_array_as_asterisk_bound_array =
                                    saved_gen_vla_array_as_asterisk_bound_array;
+  pop_function_prototype();
 }  /* dump_function_declarator_with_scope */
 
 
@@ -5378,6 +5384,11 @@ done_with_operation:
         write_tok_ch(')');
       }
       break;
+    case enk_param_ref:
+      /* A reference to a parameter in a function signature (e.g., in a
+         sizeof argument). */
+      form_param_ref(expr, &octl);
+      break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
@@ -5386,7 +5397,6 @@ done_with_operation:
     case enk_typeid:      /* enk_typeid is used in C++ only. */
     case enk_reuse_value: /* enk_reuse_value is expected to be lowered in
                              both C and C++. */
-    case enk_param_ref:   /* enk_param_ref is used in C++ only. */
     default:
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */

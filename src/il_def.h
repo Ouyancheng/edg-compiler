@@ -11660,8 +11660,7 @@ enum an_expr_node_kind_tag {
 			   of a function type.  For example, in the function
 			   declaration "auto f(X a)->decltype(*a)" the use
 			   of "a" in the decltype construct is represented
-			   with an enk_param_ref node.  (Currently used in
-			   C++ only.) */
+			   with an enk_param_ref node. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */

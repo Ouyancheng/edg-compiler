@@ -424,6 +424,35 @@ extern void form_sun_link_scope_specifiers(
 #endif /* (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || ... */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+
+/*
+Entry used in a stack to track function prototypes being rendered.  This stack
+is used to identify which parameter an enk_param_ref node refers to.
+*/
+typedef struct a_func_prototype_stack_entry *a_func_prototype_stack_entry_ptr;
+typedef struct a_func_prototype_stack_entry {
+  a_func_prototype_stack_entry_ptr
+		next;	/* Pointer to the next entry in the stack (or NULL
+			   if this entry if for the outermost function
+			   prototype scope. */
+  a_type_ptr	function_type;
+			/* The function type associated with this function
+			   prototype scope. */
+  a_boolean	after_parameter_list;
+			/* TRUE if we have already rendered the list of
+			   parameters for this function prototype scope. */
+} a_func_prototype_stack_entry;
+  
+extern void form_param_ref(an_expr_node_ptr                       expr,
+                           an_il_to_str_output_control_block_ptr  octl);
+
+extern void push_function_prototype(a_func_prototype_stack_entry_ptr  fpsep);
+
+extern void pop_function_prototype(void);
+
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
 extern void il_to_str_one_time_init(void);
 
 #endif /* ifndef IL_TO_STR_H */

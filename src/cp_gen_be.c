@@ -166,31 +166,6 @@ static a_source_sequence_entry_ptr
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 /*
-Entry used in a stack to track function prototypes being rendered.  This stack
-is used to identify which parameter an enk_param_ref node refers to.
-*/
-typedef struct a_func_prototype_stack_entry *a_func_prototype_stack_entry_ptr;
-typedef struct a_func_prototype_stack_entry {
-  a_func_prototype_stack_entry_ptr
-		next;	/* Pointer to the next entry in the stack (or NULL
-			   if this entry if for the outermost function
-			   prototype scope. */
-  a_type_ptr	function_type;
-			/* The function type associated with this function
-			   prototype scope. */
-  a_boolean	after_parameter_list;
-			/* TRUE if we have already rendered the list of
-			   parameters for this function prototype scope. */
-} a_func_prototype_stack_entry;
-  
-static a_func_prototype_stack_entry_ptr
-		func_prototype_stack;
-			/* If non-NULL, a pointer to the top of a stack of
-			   function prototype scopes currently being rendered.
-			   This is used to identify the parameter referred to
-			   by an enk_param_ref node. */
-
-/*
 Return TRUE if the indicated source sequence entry points to a source sequence
 sublist header, i.e., it has kind iek_src_seq_sublist.
 */
@@ -4523,11 +4498,10 @@ default arguments should be suppressed (needed for template specializations).
   a_variable_ptr                param_var;
   a_func_prototype_stack_entry  fpse;
 
-  /* Push an entry onto the routine type stack. */
-  fpse.next = func_prototype_stack;
+  /* Push an entry onto the function prototype stack. */
   fpse.function_type = type;
   fpse.after_parameter_list = FALSE;
-  func_prototype_stack = &fpse;  /*lint !e789*/
+  push_function_prototype(&fpse);
   /* The code here is similar to code in form_function_declarator. */
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_ch('(');
@@ -4721,8 +4695,7 @@ default arguments should be suppressed (needed for template specializations).
     write_tok_str("->");
     gen_type(type->variant.routine.return_type);
   }  /* if */
-  /* Pop the entry from the routine type stack. */
-  func_prototype_stack = func_prototype_stack->next;
+  pop_function_prototype();
 }  /* gen_function_declarator_with_scope */
 
 
@@ -8474,36 +8447,6 @@ used as an rvalue).
 }  /* handle_lvalue_constant_node */
 
 
-static void gen_param_ref(an_expr_node_ptr  expr)
-/*
-Render the name of the parameter described by the given enk_param_ref node.
-The node itself only indicates the position and "level" of the parameter in
-the routine type stack.
-*/
-{
-  unsigned               k, levels_up = expr->variant.param_ref.levels_up;
-  a_func_prototype_stack_entry_ptr
-                         fpsep = func_prototype_stack;
-  a_param_type_ptr       ptp;
-
-  check_assertion(fpsep != NULL);
-  if (!fpsep->after_parameter_list) levels_up -= 1;
-  for (k = 0; k<levels_up; ++k) {
-    fpsep = fpsep->next;
-    check_assertion(fpsep != NULL);
-  }  /* for */
-  check_assertion(fpsep->function_type->kind == (a_type_kind)tk_routine);
-  ptp = fpsep->function_type->variant.routine.extra_info->param_type_list;
-  check_assertion(ptp != NULL);
-  for (k = 1; k<expr->variant.param_ref.param_num; ++k) {
-    ptp = ptp->next;
-    check_assertion(ptp != NULL);
-  }  /* for */
-  check_assertion(ptp->name != NULL);
-  write_tok_str(ptp->name);
-}  /* gen_param_ref */
-
-
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator)
@@ -9317,7 +9260,7 @@ done_with_operation_after_parens:
     case enk_param_ref:
       /* A reference to a parameter in a function signature (e.g., in a
          decltype argument). */
-      gen_param_ref(expr);
+      form_param_ref(expr, &octl);
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");
