@@ -7316,7 +7316,6 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         break;
       case tok_typedef:
         specifier_allows_vacuous_decl = !strict_ansi_mode;
-        auto_type_allowed = FALSE;
         goto storage_class_specifier;
       case tok_extern:
         if (!C_mode() && next_token() == tok_string_literal) {

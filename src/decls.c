@@ -9009,7 +9009,7 @@ symbol entry, and return a pointer to it in state->sym.
   a_symbol_ptr             loc_sym;
 
   db_enter(3, "decl_typedef");
-  if (state->auto_type != NULL) {
+  if (state->auto_type != NULL && !state->has_trailing_return_type) {
     /* An "auto" type specifier is not allowed in a typedef declaration. */
     pos_error(ec_auto_not_allowed_here, &state->auto_pos);
     state->auto_type_specifier_seen = FALSE;
