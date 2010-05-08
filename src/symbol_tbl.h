@@ -1934,7 +1934,7 @@ typedef struct an_out_of_class_partial_spec {
 
 
 /* Used to track the number of pending instantiations of a given class. */
-typedef unsigned long a_pending_instantiation_count;
+typedef uint32_t a_pending_instantiation_count;
 
 /* Used to track the number of instantiations performed in tim_all mode that
    were not actually required. */
@@ -2248,6 +2248,12 @@ typedef struct a_template_symbol_supplement {
                            template that are in the process of being
 			   instantiated.  Used to detect runaway recursive
 			   instantiations. */
+      a_pending_instantiation_count
+		pending_deductions;
+			/* The number of deductions/substitutions of this
+                           template that are in the process of being
+			   performed.  Used to detect runaway recursion
+			   during deduction. */
       a_symbol_ptr
 		prototype_friend_symbol;
 			/* If this template was declared as a friend of a
