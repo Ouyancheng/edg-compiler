@@ -14012,6 +14012,15 @@ for the copy/substitution.
        updated class to see what the member is. */
     a_symbol_ptr orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
     check_assertion(orig_sym != NULL);
+    /* For a tpck_unknown_function constant with an underlying symbol, use
+       that symbol for the substitution. */
+    if (con->kind == (a_constant_repr_kind)ck_template_param &&
+        con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+      a_symbol_ptr under_sym = con->variant.template_param.variant.
+                                                       unknown_function.symbol;
+      if (under_sym != NULL) orig_sym = under_sym;
+    }  /* if */
     parent_type = parent_class_of(con);
     if (parent_type->source_corresp.member_of_unknown_base) {
       /* We're pretending that we found the member in a dependent
