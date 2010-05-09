@@ -1,5 +1,31 @@
 Version 4.2
 
+5/9/10   [EDGcpfe/10678]
+C++-generating back end: user-defined conversions in folded conditional
+expressions
+
+When a conditional expression has a constant expression as its first operand,
+the front end may fold the expression so that the IL contains only the
+selected operand in place of the conditional expression.  If that operand
+involves an implicit call to a conversion function to bring the type of the
+operand to the result type of the expression, the C++-generating back end
+omitted the call and thus, because of the suppression of the conditional
+expression, generated incorrect code.  This has now been fixed by generating
+the implicit call to the conversion function as an explicit cast.  For
+example:
+
+  struct A {
+    A();
+    operator int();
+  } a;
+  void f(int);
+  void f(A);
+  int main() {
+    f(1 ? a : 0);  // Previously generated as f(a), which selected the
+                   // wrong overload.  Now generated as f((int)a).
+  }
+
+
 5/7/10   [EDGcpfe/10682]
 GNU C++ compatibility: Visibility of parameters
 
