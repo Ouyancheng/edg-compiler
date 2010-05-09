@@ -9184,7 +9184,9 @@ indication in *rcblock).
        that use runtime typeid determination. */
     /* As of now (April 2009), the working draft doesn't give special
        handling to rvalue reference objects here. */
-    if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type) &&
+    if (is_an_lvalue(&operand) &&
+        (is_polymorphic_class_type(typeid_type) ||
+         could_be_dependent_class_type(typeid_type)) &&
         /* An objectless nonstatic data member reference is not
            polymorphic, regardless of the type of the member. */
         !operand_is_objectless_nonstatic_data_mem_ref(&operand)) {
@@ -9200,7 +9202,8 @@ indication in *rcblock).
         /* Passing call_case TRUE here because we want to treat something
            like "*this" in a constructor as having known type, and not go
            to the virtual function table. */
-        if (operand_complete_object_type(&operand,
+        if (!could_be_dependent_class_type(typeid_type) &&
+            operand_complete_object_type(&operand,
                                          /*call_case=*/TRUE) != NULL &&
             /* Special case for (*(T *)0), which should throw an exception. */
             !op_is_null_address_lvalue(&operand)) {
@@ -9212,13 +9215,6 @@ indication in *rcblock).
           expr = operand.variant.expression;
         }  /* if */
       }  /* if */
-    } else if (is_auto_type(typeid_type)) {
-      /* The type is the "auto" type-specifier, so we need to keep the
-         expression.  (This can only occur in a prototype instantiation;
-         otherwise, the type would have been resolved to an actual type.) */
-      check_assertion(is_prototype_instantiation_context());
-      check_assertion(is_expression_operand(&operand));
-      expr = operand.variant.expression;
     }  /* if */
     if (microsoft_template_arg_case) {
       if (expr != NULL) {
