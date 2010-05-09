@@ -1,5 +1,21 @@
 Version 4.2
 
+5/9/10   [EDGcpfe/10681]
+C++-generating back end: template headers with unintentional digraphs
+
+In a configuration in which template definitions are generated from
+prototype instantiations, the header of a template whose first parameter is
+a non-type parameter whose type name is qualified using the global scope
+operator "::" was written by the C++-generating back end with no space
+between the "<" and "::" tokens, inadvertently forming the "<:" digraph
+(the alternate token spelling for "[").  This is now fixed.  For example:
+
+  typedef int I;
+  namespace N {
+    template< ::I n> struct S;  // Formerly generated as "template<::I..."
+  }
+
+
 5/9/10   [EDGcpfe/10678]
 C++-generating back end: user-defined conversions in folded conditional
 expressions

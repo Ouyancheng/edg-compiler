@@ -9788,7 +9788,10 @@ recorded with this particular header.
      should be put out for it. */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   set_output_position(&tdp->template_pos);
-  write_tok_str("template<");
+  /* Put a space after the "<" to avoid forming the diagraph "<:" if the
+     first parameter is a nontype parameter whose type name begins with
+     the global scope operator. */
+  write_tok_str("template< ");
   for (; param != NULL; param = param->next) {
     if (param->kind == (a_template_parameter_kind)tpk_nontype) {
       a_constant_ptr  cp = param->variant.nontype.constant;
