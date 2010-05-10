@@ -9212,7 +9212,7 @@ indication in *rcblock).
           expr = NULL;
         } else {
           /* The type must be determined dynamically at runtime. */
-          expr = operand.variant.expression;
+          expr = make_node_from_operand(&operand);
         }  /* if */
       }  /* if */
     }  /* if */
