@@ -1316,6 +1316,8 @@ types separated by commas (when single_type_required is FALSE).
          may not be a type.  Use is_type_start to determine if it is
          something like a type identifier. */
       is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
+    } else if (next_2_tok != tok_lparen) {
+      /* Not a case we need to worry about. */
     } else if (!identifier_seen && next_tok == tok_identifier) {
       /* Check whether the identifier is a type. */
       cache_curr_token(&cache);
