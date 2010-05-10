@@ -46,7 +46,7 @@ example:
 GNU C++ compatibility: Visibility of parameters
 
 GNU C++ compilers prior to version 4.4 keep parameters invisible until the
-associated function declarator was completed (see Changes entry of 9/1/05).
+associated function declarator is completed (see Changes entry of 9/1/05).
 In later versions, however, g++ only keeps the parameters invisible while
 parsing default arguments.  We now emulate that behavior when
 gnu_version >= 40400.  For example:
