@@ -115,9 +115,9 @@ are instantiated.
   pop_scope();
   push_file_scope(/*is_reactivation=*/TRUE);
 
-  /* If this is a secondary translation unit, establish any IL
-     correspondences. */
-  if (!is_primary_translation_unit && !do_preprocessing_only) {
+  /* Establish any IL correspondences (for primary translation units this
+     doesn't involve actual work, but sets some state flags). */
+  if (!do_preprocessing_only) {
     set_trans_unit_correspondences();
   }  /* if */
 

@@ -6709,21 +6709,25 @@ translation unit).
 
 void set_trans_unit_correspondences(void)
 /*
-Establish correspondences between entities with linkage in the
-current (secondary) translation unit and ones in other translation
-units.
+Establish correspondences between entities with linkage in the current
+translation unit and ones in other translation units.  Actual work is only
+done in secondary translation units, and only if no non-correspondence errors
+have been encountered.  This routine should still be called for the primary
+translation unit to correctly set the correspondence_checking_done flag, since
+it may be consulted when additional correspondence checking is done for
+later instantiations performed in the primary translation unit.
 */
 {
   /* Correspondences are not established if errors occurred. */
-  if (!any_noncorresp_errors()) {
+  if (!is_primary_translation_unit && !any_noncorresp_errors()) {
     a_scope_ptr  file_scope = curr_translation_unit->primary_scope;
     correspondence_checking_underway = TRUE;
     establish_trans_unit_correspondences_for_scope(file_scope);
     verify_trans_unit_correspondences_for_scope(file_scope);
     process_verification_list();
     correspondence_checking_underway = FALSE;
-    correspondence_checking_done = TRUE;
   }  /* if */
+  correspondence_checking_done = TRUE;
 }  /* set_trans_unit_correspondences */
 
 
