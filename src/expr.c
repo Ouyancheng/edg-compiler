@@ -2744,6 +2744,10 @@ are expected to be NULL in that case.
         overloaded_function_symbol = func_sym;
         /* routine_type = NULL;  -- already set. */
       } else {
+        /* On a rescan, the symbol should not still be an sk_undefined
+           if argument-dependent lookup was not done; it should have gone
+           through the code below and should now be an sk_routine. */
+        check_assertion(rcblock == NULL);
         /* Implicitly declare the symbol as a function. */
         enter_undefined_symbol(func_sym);
         decl_default_function(func_sym);

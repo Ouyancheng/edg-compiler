@@ -6256,7 +6256,11 @@ in_instantiation:
       /* The function symbol is not defined, and no functions were added
          by argument-dependent lookup, so the best diagnostic is one
          that says the name is undefined. */
-      enter_undefined_symbol(overloaded_function_symbol);
+      /* On a rescan, the name will already be in the symbol table, so do not
+         re-enter it. */
+      if (overloaded_function_symbol->decl_scope == NO_SCOPE_NUMBER) {
+        enter_undefined_symbol(overloaded_function_symbol);
+      }  /* if */
       if (expr_error_should_be_issued()) {
         pos_st_error(ec_undefined_identifier, call_position,
                      overloaded_function_symbol->header->identifier);
