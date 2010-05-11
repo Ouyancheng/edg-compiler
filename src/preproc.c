@@ -231,10 +231,12 @@ which an include_alias pragma has been seen.
     iap = find_or_create_include_alias(buf->buffer, (char*)NULL,
                                        /*create=*/FALSE);
     if (iap != NULL) result = iap->short_file_name;
+#if DEBUG
     if (db_flag_is_set("include_alias")) {
       fprintf(f_debug, "Looking for alias for %s, found %s\n", buf->buffer,
               result == NULL ? "NULL" : result);
     }  /* if */
+#endif /* DEBUG */
   }  /* if */
   return result;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
