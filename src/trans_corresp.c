@@ -3740,8 +3740,9 @@ is in fact valid.
          (!is_class_template_symbol(templ_sym) && !is_type_symbol(templ_sym) &&
           is_exported(templ) != is_exported(corresp_templ)) ||
          (tssp != NULL &&
-          (tssp->variant.class_template.is_alias_template !=
-                     corresp_tssp->variant.class_template.is_alias_template ||
+          ((is_class_template_symbol(templ_sym) &&
+            tssp->variant.class_template.is_alias_template !=
+                    corresp_tssp->variant.class_template.is_alias_template) ||
            !equiv_template_param_lists(
                                     corresp_tssp->cache.decl_info->parameters,
                                     tssp->cache.decl_info->parameters,
