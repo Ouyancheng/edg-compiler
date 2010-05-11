@@ -706,6 +706,11 @@ this routine will create such a correspondence entry.
 {
   a_trans_unit_corresp_ptr  *tcp1, *tcp2;
 
+  if (is_primary_translation_unit && !in_secondary_trans_unit(entity2)) {
+    char  *tmp = entity2;
+    entity2 = entity1;
+    entity1 = tmp;
+  }  /* if */
   check_assertion_str(entity1 != NULL && entity2 != NULL && entity1 != entity2,
                       "f_set_trans_unit_corresp: bad input");
   trace_corresp_check(entity1);
