@@ -5653,7 +5653,9 @@ Add to the mangled name the encoding for the type "type".
            mangled as appropriate. */
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* for */
+#if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode && is_function_type(type)) {
     /* In g++ versions, function types with the "noreturn" or "volatile"
        attributes are mangled as though declared with the volatile keyword. */
