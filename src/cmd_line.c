@@ -3291,9 +3291,11 @@ exclude the GNU modes already.  Hence those are not checked again here.)
                                                gnu_version < 40300);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   gnu_attributes_enabled = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
   if (!option_kind_used[(int)optk_nonstd_gnu_keywords]) {
     nonstd_gnu_keywords_enabled = TRUE;
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* check_and_set_gnu_mode_options */
 
 
