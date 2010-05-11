@@ -1010,7 +1010,7 @@ caution when modifying this routine.
   a_boolean	             tag_err = FALSE;
   a_boolean	             is_tag_definition = FALSE;
   an_identifier_options_set  options;
-  a_scope_depth              computed_decl_level;
+  a_scope_depth              computed_decl_level = NO_SCOPE_DEPTH;
   a_boolean                  allow_typedef = FALSE;
 
   db_enter(3, "scan_tag_name");
