@@ -541,8 +541,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   for (;;) {
     a_boolean	next_token_fetched = FALSE;
     switch (curr_token) {
-      /* Storage class specifiers. */
+      /* "auto" is sometimes a storage class and sometimes a type specifier. */
       case tok_auto:
+        if (auto_type_specifier_enabled) type_specifier_seen = TRUE;
+        break;
+      /* Storage class specifiers. */
       case tok_register:
       case tok_static:
       case tok_extern:
