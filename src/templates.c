@@ -9596,6 +9596,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #if CHECKING
   check_function_template_arg_list(templ_arg_list, templ_sym);
 #endif /* CHECKING */
+  /* Remove any local or nonreal typedefs from the argument list. */
+  strip_types_from_template_arg_list(templ_arg_list);
   check_assertion(templ_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = templ_sym->variant.template_info;
   /* Create the associated function instantiation entry and link it
