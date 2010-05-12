@@ -6256,9 +6256,8 @@ in_instantiation:
       /* The function symbol is not defined, and no functions were added
          by argument-dependent lookup, so the best diagnostic is one
          that says the name is undefined. */
-      /* On a rescan, the name will already be in the symbol table, so do not
-         re-enter it. */
-      if (overloaded_function_symbol->decl_scope == NO_SCOPE_NUMBER) {
+      /* On a rescan, do not enter the name into the symbol table. */
+      if (!expr_stack->template_deduction_context) {
         enter_undefined_symbol(overloaded_function_symbol);
       }  /* if */
       if (expr_error_should_be_issued()) {
