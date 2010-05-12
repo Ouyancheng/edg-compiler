@@ -3045,7 +3045,6 @@ Remove a symbol from the symbol table, i.e., unlink it from either the main
     }  /* if */
   }  /* if */
   sym_ptr->next = NULL;
-  sym_ptr->in_symbol_table = FALSE;
   db_exit();
 }  /* unlink_symbol_from_symbol_table */
 
@@ -3682,7 +3681,6 @@ Add the given symbol to its symbol header's inactive list.
                       "add_symbol_to_inactive_list: bad symbol kind");
   sym_ptr->next = sym_hdr->inactive_symbols;
   sym_hdr->inactive_symbols = sym_ptr;
-  sym_ptr->in_symbol_table = TRUE;
 }  /* add_symbol_to_inactive_list */
 
 
@@ -3722,7 +3720,6 @@ symbol must be added to the inactive list.
                         sym_ptr->kind != (a_symbol_kind)sk_extern_routine,
                         "link_symbol_into_symbol_table: bad symbol kind");
 #endif /* CHECKING */
-    sym_ptr->in_symbol_table = TRUE;
     insert_after = NULL;
     if (scope_depth == NO_SCOPE_DEPTH) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -12443,7 +12440,6 @@ are handled in symbol_tbl_init.)
   cleared_symbol.parent.class_type                 = NULL;
   cleared_symbol.parent.namespace_ptr              = NULL;
   cleared_symbol.corresp_nonreal_or_nested_type    = NULL;
-  cleared_symbol.in_symbol_table                   = FALSE;
   cleared_symbol.referenced                        = FALSE;
   cleared_symbol.defined                           = FALSE;
   cleared_symbol.explicit_linkage_specifier        = FALSE;

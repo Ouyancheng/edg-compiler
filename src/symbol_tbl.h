@@ -2526,11 +2526,6 @@ typedef struct a_symbol {
 			   one or the nonreal version. */
   a_symbol_kind kind;
 			/* The kind of symbol. */
-  a_bit_field	in_symbol_table:1;
-			/* TRUE if the symbol is currently entered into the
-			   symbol table.  FALSE for symbols that are not part
-			   of the symbol table or that have been removed from
-			   the symbol table. */
   a_bit_field	referenced:1;
 			/* TRUE if the symbol is actually referenced, not just
 			   declared. */
