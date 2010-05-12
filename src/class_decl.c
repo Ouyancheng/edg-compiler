@@ -12123,16 +12123,14 @@ operator should be created.  No routine body is generated at this time.
        to class-type. */
     rout_type->variant.routine.return_type = make_reference_type(class_type);
   }  /* if */
-  if (ptp != NULL) {
-    /* Set a flag in the param type entry if its associated type is or contains
-       a template parameter. */
-    if (is_or_contains_template_param(class_type)) {
-      ptp->type_involves_deduced_template_param = TRUE;
-    }  /* if */
-  }  /* if */
   extra_info->param_type_list = ptp;
   extra_info->this_class = class_type;
   extra_info->prototyped = TRUE;
+  if (ptp != NULL) {
+    /* Set a flag in the param type entry if its associated type is or contains
+       a template parameter. */
+    set_parameter_list_template_param_flags(rout_type);
+  }  /* if */
   /* Check whether the routine needs special support for returning a class
      object by value.  This call should be superfluous; it is included just
      to be safe, in case the rules change on when the flag needs to be set. */
@@ -12675,10 +12673,6 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
   initialize_member_decl_info(&decl_info, pos);
   ptype = make_qualified_type(class_type, qualifiers);
   ptp = alloc_param_type(make_reference_type(ptype));
-  /* Set a flag in the param type entry if its associated type is or
-     contains a template parameter. */
-  ptp->type_involves_deduced_template_param =
-                                    is_or_contains_template_param(class_type);
   generate_special_function(class_state, &decl_info, ptp);
   if (is_deleted) {
     a_symbol_ptr  sym = decl_info.decl_state.sym;
@@ -12695,10 +12689,6 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
        because the class is declared "far"). */
     if (!identical_types(far_ptype, ptype)) {
       ptp = alloc_param_type(make_reference_type(far_ptype));
-      /* Set a flag in the param type entry if its associated type is or
-         contains a template parameter. */
-      ptp->type_involves_deduced_template_param =
-                                    is_or_contains_template_param(class_type);
       initialize_member_decl_info(&decl_info, pos);
       generate_special_function(class_state, &decl_info, ptp);
     }  /* if */
@@ -12849,10 +12839,6 @@ The routine body is not generated until it is known to be needed.
       /* Generate a copy constructor. */
       ptp = alloc_param_type(make_reference_type(
                             make_qualified_type(class_type, ctor_qualifiers)));
-      /* Set a flag in the param type entry if its associated type is or
-         contains a template parameter. */
-      ptp->type_involves_deduced_template_param =
-                                    is_or_contains_template_param(class_type);
       initialize_member_decl_info(&decl_info, pos);
       decl_info.is_constructor = TRUE;
       generate_special_function(class_state, &decl_info, ptp);

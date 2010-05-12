@@ -7730,6 +7730,10 @@ make_new_comp_type:
             check_assertion(ptp2->type_involves_deduced_template_param);
             new_ptp->type_involves_deduced_template_param = TRUE;
           }  /* if */
+          if (ptp1->type_involves_template_param) {
+            check_assertion(ptp2->type_involves_template_param);
+            new_ptp->type_involves_template_param = TRUE;
+          }  /* if */
           if (ptp1->passed_via_copy_constructor) {
             check_assertion(ptp2->passed_via_copy_constructor);
             new_ptp->passed_via_copy_constructor = TRUE;
@@ -8156,6 +8160,8 @@ the old list.  Only callable in C++ mode.  See ARM 13.
            not containing such types. */
         if ((old_param->type_involves_deduced_template_param !=
                            new_param->type_involves_deduced_template_param) ||
+            (old_param->type_involves_template_param !=
+                           new_param->type_involves_template_param) ||
             !f_types_are_compatible(old_param->type, new_param->type,
                                     TCF_NO_FLAGS)) {
           distinguishable = TRUE;
@@ -10189,10 +10195,17 @@ make_new_type:
           }  /* if */
         }  /* if */
         /* Recompute the value of the flag, if necessary. */
-        new_ptp->type_involves_deduced_template_param =
-                     (same_entities(ptp->type, tp) ?
-                        ptp->type_involves_deduced_template_param :
-                        is_or_contains_deduced_template_param(new_ptp->type));
+        if (same_entities(ptp->type, tp)) {
+          new_ptp->type_involves_deduced_template_param =
+                                     ptp->type_involves_deduced_template_param;
+          new_ptp->type_involves_template_param =
+                                             ptp->type_involves_template_param;
+        } else {
+          new_ptp->type_involves_deduced_template_param =
+                          is_or_contains_deduced_template_param(new_ptp->type);
+          new_ptp->type_involves_template_param =
+                                  is_or_contains_template_param(new_ptp->type);
+        }  /* if */
         /* Add the new param type entry to the param types list. */
         if (prev_ptp == NULL) {
           new_type->variant.routine.extra_info->param_type_list = new_ptp;
