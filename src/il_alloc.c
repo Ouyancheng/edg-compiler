@@ -4661,6 +4661,7 @@ in il_alloc_init.)
   def_source_corresp.same_name_as_external_entity_in_secondary_trans_unit =
                                                                         FALSE;
   def_source_corresp.member_of_unknown_base = FALSE;
+  def_source_corresp.qualified_unknown_base_member = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   def_source_corresp.member_of_unknown_super = FALSE;
   def_source_corresp.microsoft_identifier_used = FALSE;

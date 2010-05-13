@@ -277,6 +277,17 @@ Given that the current name context is a class, return the class type.
 
 
 /*
+When generating the definition of a class template or member class template
+from a prototype instantiation, curr_class_template designates the prototype
+instantiation class type.  This is used to generate the qualifier for a
+dependent name that is a member of an unknown base in the prototype
+instantiation.
+*/
+static a_type_ptr
+		curr_class_template;
+
+
+/*
 Macro to test a type kind to see if it is a class, struct, or union.
 */
 #define is_class_type_kind(kind)                                      \
@@ -2626,7 +2637,8 @@ in options, put a parenthesis in front of the name and set
 GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 */
 {
-  a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0;
+  a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0 ||
+                                                   scp->member_of_unknown_base;
 
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
@@ -2732,7 +2744,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            (only in versions prior to 7.0). */
       } else {
         /* Use a qualified name. */
-        a_type_ptr qualifier;
+        a_type_ptr             qualifier;
+        a_gen_name_options_set qualifier_options =
+                                       options & GN_PARENS_IF_GLOBAL_QUALIFIER;
         if (entry_kind == iek_type &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
           /* Emit a "class", "struct", "union" or "typename" preceding a
@@ -2754,7 +2768,20 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("::");
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (scp->access == (an_access_specifier)as_protected &&
+          if (scp->member_of_unknown_base) {
+            /* This is a dependent name that is assumed to come from a
+               dependent base class in the prototype instantiation of a
+               class template.  It must be qualified using the name of the
+               class template to mark it as dependent in the generated
+               code.  (This is handled as a special case because the front
+               end arbitrarily assumes during prototype instantiation that
+               such a name is a member of the first dependent base, but the
+               generated template definition cannot follow that assumption
+               because when the template is actually instantiated the name
+               might be from a different dependent base.) */
+            qualifier = curr_class_template;
+            qualifier_options |= GN_NO_TEMPLATE_ARGS;
+          } else if (scp->access == (an_access_specifier)as_protected &&
               (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
               !scp->qualification_needed &&
               curr_name_context_is_a_class() &&
@@ -2770,8 +2797,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           } else {
             qualifier = class_type;
           }  /* if */
-          gen_class_qualifier(qualifier,
-                              options & GN_PARENS_IF_GLOBAL_QUALIFIER,
+          gen_class_qualifier(qualifier, qualifier_options,
                               need_closing_paren);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         }  /* if */
@@ -9902,8 +9928,11 @@ instantiation is available.
     case templk_class:
     case templk_member_class:
       if (tp->prototype_instantiation.type != NULL) {
+        a_type_ptr saved_curr_class_template = curr_class_template;
+        curr_class_template = tp->prototype_instantiation.type;
         gen_type_decl(/*suppress_specifiers=*/FALSE,
                       &another_decl_in_comma_list);
+        curr_class_template = saved_curr_class_template;
         result = TRUE;
       }  /* if */
       break;
@@ -13286,6 +13315,7 @@ Initialize for the C++/C-generating back end.
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
+  curr_class_template = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);

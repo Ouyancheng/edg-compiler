@@ -519,6 +519,8 @@ as the class type, and use as a base class.
     set_source_corresp(&(type->source_corresp), sym);
     type->source_corresp.member_of_unknown_base =
                        templ_param_type->source_corresp.member_of_unknown_base;
+    type->source_corresp.qualified_unknown_base_member =
+                templ_param_type->source_corresp.qualified_unknown_base_member;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     type->source_corresp.member_of_unknown_super =
                       templ_param_type->source_corresp.member_of_unknown_super;
@@ -780,7 +782,16 @@ and the lookup options "options".
       if_microsoft_extensions(
         && scp->member_of_unknown_super ==
                              ((options & IDL_MEMBER_OF_UNKNOWN_SUPER) != 0))) {
-      result = TRUE;
+      if (scp->member_of_unknown_base) {
+        /* Qualified and unqualified references to a given member of an
+           unknown base are treated as separate symbols, so that the IL can
+           distinguish between "this->f()", which might be virtual, and
+           "this->S::f()", which is always non-virtual. */
+        result = scp->qualified_unknown_base_member ==
+                                                    locator->is_qualified_name;
+      } else {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -909,7 +920,10 @@ routine.
   }  /* switch */
   if (scp != NULL) {
     set_source_corresp_with_scope_depth(scp, sym, depth);
-    scp->member_of_unknown_base = (options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0;
+    if (options & IDL_MEMBER_OF_UNKNOWN_BASE) {
+      scp->member_of_unknown_base = TRUE;
+      scp->qualified_unknown_base_member = locator->is_qualified_name;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     scp->member_of_unknown_super =
                                  (options & IDL_MEMBER_OF_UNKNOWN_SUPER) != 0;
@@ -927,6 +941,8 @@ routine.
     if (scp != NULL) {
       fprintf(f_debug, "Member of unknown base=%s\n",
               scp->member_of_unknown_base ? "true" : "false");
+      fprintf(f_debug, "Qualified unknown base member = %s\n",
+              scp->qualified_unknown_base_member ? "true" : "false");
     }  /* if */
   }  /* if */
 #endif /* DEBUG */

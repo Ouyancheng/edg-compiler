@@ -682,6 +682,9 @@ Display the indicated source correspondence entry.
   if (scp->member_of_unknown_base) {
     disp_boolean("  member_of_unknown_base", TRUE);
   }  /* if */
+  if (scp->qualified_unknown_base_member) {
+    disp_boolean("  qualified_unknown_base_member", TRUE);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (scp->member_of_unknown_super) {
     disp_boolean("  member_of_unknown_super", TRUE);

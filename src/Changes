@@ -1,5 +1,23 @@
 Version 4.2
 
+5/13/10  [EDGcpfe/10680]
+C++-generating back end: members of dependent base classes in prototype
+instantiations
+
+In a configuration in which template definitions are generated from the
+prototype instantiation rather than the string form of the template, the
+C++-generating back end failed to use a qualified name for a dependent name
+that is assumed to come from a dependent base class, thus making the name
+non-dependent in the generated code.  This has now been fixed.  For example:
+
+  template<typename T> struct B {
+    typedef int I;
+  };
+  template<typename T> struct D: B<T> {
+    typename D::I m;    // Previously generated as "I m;"
+  };
+
+
 5/9/10   [EDGcpfe/10681]
 C++-generating back end: template headers with unintentional digraphs
 

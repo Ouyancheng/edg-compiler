@@ -1490,10 +1490,11 @@ by octl.
               scp_kind = iek_template_parameter;
             }  /* if */
           }  /* if */
-          if (scp->member_of_unknown_base) {
+          if (scp->member_of_unknown_base &&
+              !scp->qualified_unknown_base_member) {
             /* We're pretending that we found the member in a dependent
-               base class.  That means the original form of reference
-               was unqualified. */
+               base class and the original form of reference was
+               unqualified. */
             form_unqualified_name(scp, scp_kind, octl);
           } else {
             form_name(scp, (an_il_entry_kind)scp_kind, octl);
@@ -4603,10 +4604,11 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_member:
           {
             a_source_correspondence_ptr scp = &constant->source_corresp;
-            if (scp->member_of_unknown_base) {
+            if (scp->member_of_unknown_base &&
+                !scp->qualified_unknown_base_member) {
               /* We're pretending that we found the member in a dependent
-                 base class.  That means the original form of reference
-                 was unqualified. */
+                 base class and the original form of reference was
+                 unqualified. */
               form_unqualified_name(scp, (an_il_entry_kind)iek_constant, octl);
             } else {
               form_name(scp, (an_il_entry_kind)iek_constant, octl);

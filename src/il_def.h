@@ -2345,6 +2345,15 @@ typedef struct a_source_correspondence {
 			   front end assigns a member to the first dependent
 			   base) or the name could come from a base class
 			   of the dependent base. */
+  a_bit_field	qualified_unknown_base_member:1;
+			/* If member_of_unknown_base is TRUE, this flag
+			   reflects whether the reference to the member was
+			   qualified or unqualified.  This is important to
+			   distinguish between "this->f()", which might be a
+			   virtual call, and "this->S::f()", which is always
+			   non-virtual.  If both qualified and unqualified
+			   references to the same member are used, there will
+			   be distinct constants for the two forms. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	member_of_unknown_super:1;
 			/* When a reference to the Microsoft __super keyword
