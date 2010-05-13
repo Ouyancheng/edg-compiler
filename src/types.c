@@ -2875,6 +2875,10 @@ object or an rvalue that is a pointer to an object.
            the complete object type. */
         suppress_subtree_walk = TRUE;
         break;
+      case enk_param_ref:
+        /* The type of the parameter is the complete object type. */
+        complete_object_type = node->type;
+        break;
       case enk_reuse_value:
       case enk_new_delete:
       case enk_address_of_ellipsis:
@@ -3019,6 +3023,10 @@ object or an rvalue that is a pointer to an object.
            implementation-specific type derived from that, so we don't know
            the complete object type. */
         suppress_subtree_walk = TRUE;
+        break;
+      case enk_param_ref:
+        /* The type of the parameter is the complete object type. */
+        complete_object_type = node->type;
         break;
       case enk_reuse_value:
         /* The details of the reused pointer value determine whether we know

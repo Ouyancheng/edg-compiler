@@ -2331,31 +2331,40 @@ that has it.
     }  /* if */
   }  /* if */
   for (;;) {
-    if (!is_operation_node(expr)) break;
-    if ((expr->variant.operation.compiler_generated &&
-         is_cast_operation_node(expr)) ||
-        expr->variant.operation.implicit_step_of_explicit_cast) {
-      /* Implicit cast -- keep stripping. */
+    if (is_operation_node(expr)) {
+      if ((expr->variant.operation.compiler_generated &&
+           is_cast_operation_node(expr)) ||
+          expr->variant.operation.implicit_step_of_explicit_cast) {
+        /* Implicit cast -- keep stripping. */
+      } else {
+        switch (expr->variant.operation.kind) {
+          case eok_reference_to:
+          case eok_ref_indirect:
+          case eok_array_to_pointer:
+          case eok_lvalue:
+          case eok_lvalue_adjust:
+          case eok_class_rvalue_adjust:
+            /* These operations are always implicit.  Keep stripping. */
+            break;
+          case eok_parens:
+            /* Explicit, but irrelevant since precedence is not applied
+               in binding operands to operators during a rescan. */
+            break;
+          default:
+            /* Something else.  Stop stripping. */
+            goto end_of_loop;
+        }  /* switch */
+      }  /* if */
+      expr = expr->variant.operation.operands;
+    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+      /* An explicit cast is retained. */
+      if (dip->is_explicit_cast) goto end_of_loop;
+      /* Anything else is implicit and stripped. */
+      expr = rescan_arg_list_from_dyn_init(dip);
     } else {
-      switch (expr->variant.operation.kind) {
-        case eok_reference_to:
-        case eok_ref_indirect:
-        case eok_array_to_pointer:
-        case eok_lvalue:
-        case eok_lvalue_adjust:
-        case eok_class_rvalue_adjust:
-          /* These operations are always implicit.  Keep stripping. */
-          break;
-        case eok_parens:
-          /* Explicit, but irrelevant since precedence is not applied
-             in binding operands to operators during a rescan. */
-          break;
-        default:
-          /* Something else.  Stop stripping. */
-          goto end_of_loop;
-      }  /* switch */
+      break;
     }  /* if */
-    expr = expr->variant.operation.operands;
     /* Remember the last rescan info block we encounter. */
     if (periep != NULL && expr->rescan_info != NULL) {
       *periep = expr->rescan_info;
