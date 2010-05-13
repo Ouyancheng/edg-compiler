@@ -2624,9 +2624,13 @@ are expected to be NULL in that case.
     */
     vacuous_destructor_case = TRUE;
     /* routine = NULL; -- already set. */
-    /* Move to after the left parenthesis. */
-    (void)get_token();
-    first_arg_position = pos_curr_token;
+    if (rcblock != NULL) {
+      first_arg_position = closing_paren_position;
+    } else {
+      /* Move to after the left parenthesis. */
+      (void)get_token();
+      first_arg_position = pos_curr_token;
+    }  /* if */
     already_after_left_paren = TRUE;
   } else if (!C_mode() &&
              is_class_struct_union_type(operand->type)) {
@@ -3506,8 +3510,11 @@ the "x").
   if (is_error_locator(*locator)) {
     /* There was an error in the qualified name. */
     err = TRUE;
+  } else if (!is_class_struct_union_type(class_struct_union_type)) {
+    err = TRUE;
   } else {
     a_symbol_ptr projection_member_sym = locator->specific_symbol;
+    class_struct_union_type = skip_typerefs(class_struct_union_type);
     if (!projection_member_sym->is_class_member) {
       /* The qualified name is not the name of a class member (i.e., it's
          the name of a namespace member). */
@@ -3852,7 +3859,8 @@ A selection operator is being rescanned to redo semantic analysis.
 rcblock->expr is the selection expression.  The first operand has
 already been retrieved, and its underlying class type is given by
 class_struct_union_type (NULL if there is an error in the first
-operand).  Produce a symbol locator for the second operand, which is
+operand, possibly a non-class type for a vacuous destructor
+reference).  Produce a symbol locator for the second operand, which is
 basically a name, and put that in *locator.  The locator describes the
 result of looking up the name in the first operand's class, not just
 the name in the abstract.  Set *err to TRUE if there is an error.
@@ -3868,7 +3876,14 @@ the name in the abstract.  Set *err to TRUE if there is an error.
   an_expr_operator_kind         op;
   a_boolean                     need_member_sym_check = TRUE;
   a_source_position             *qualified_member_position;
+  a_type_ptr                    dtor_type = NULL;
 
+  if (class_struct_union_type == NULL) {
+    /* Some previous error on the first operand. */
+    set_to_error_locator(*locator);
+    *err = TRUE;
+    goto end_of_routine;
+  }  /* if */
   check_assertion(expr != NULL && is_operation_node(expr));
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
@@ -3909,9 +3924,36 @@ the name in the abstract.  Set *err to TRUE if there is an error.
         if (con->kind == (a_constant_repr_kind)ck_template_param) {
           if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
-            a_type_ptr     parent_type = parent_class_of(con);
-            a_class_symbol_supplement_ptr
-                        parent_cssp = symbol_supplement_for_class(parent_type);
+            a_type_ptr                    parent_type;
+            a_class_symbol_supplement_ptr parent_cssp;
+            if (has_name(con) &&
+                unmangled_name_of(&con->source_corresp)[0] == '~') {
+              /* For a destructor name, deal with the various cases. */
+              if (!is_class_struct_union_type(class_struct_union_type)) {
+                /* The left operand is not a class type, so this is a vacuous
+                   destructor case. */
+                dtor_type = class_struct_union_type;
+                goto handle_vacuous_destructor_call;
+              } else {
+                a_class_symbol_supplement_ptr cssp =
+                                 symbol_supplement_for_class(
+                                                      class_struct_union_type);
+                if (cssp->destructor == NULL) {
+                  /* The class doesn't have a destructor, so this is a
+                     vacuous destructor case. */
+                  dtor_type = class_struct_union_type;
+                  goto handle_vacuous_destructor_call;
+                } else {
+                  /* The class does have a destructor.  We don't need to look
+                     it up the usual way. */
+                  sym = cssp->destructor;
+                  need_member_sym_check = FALSE;
+                  goto have_symbol;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            parent_type = parent_class_of(con);
+            parent_cssp = symbol_supplement_for_class(parent_type);
             if (parent_cssp->template_param_for_proxy_class != NULL) {
               /* The parent type is a proxy class for a template parameter.
                  Substitute the original template parameter for the proxy
@@ -3921,7 +3963,7 @@ the name in the abstract.  Set *err to TRUE if there is an error.
             /* For a member of an unknown class, look up the member name
                in the actual class of the first operand. */
             if (parent_type == type_of_unknown_templ_param_nontype) {
-              if (class_struct_union_type != NULL &&
+              if (is_class_struct_union_type(class_struct_union_type) &&
                   !is_incomplete_type(class_struct_union_type) &&
                   symbol_for(con) != NULL) {
                 clear_locator(locator, qualified_member_position);
@@ -3969,21 +4011,24 @@ have_symbol:
       /* A vacuous destructor call.  The underlying type of the first
          operand gives the "destructor class" type (which might not be a
          class at all). */
-      { a_type_ptr dtor_type = op1->type;
-        if (op==(an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
-          if (is_pointer_type(dtor_type)) {
-            dtor_type = type_pointed_to(dtor_type);
-          } else if (is_template_param_type(dtor_type)) {
-            dtor_type = type_of_unknown_templ_param_nontype;
-          } else {
-            check_assertion(is_error_type(dtor_type));
-          }  /* if */
+      dtor_type = op1->type;
+      if (op == (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
+        if (is_pointer_type(dtor_type)) {
+          dtor_type = type_pointed_to(dtor_type);
+        } else if (is_template_param_type(dtor_type)) {
+          dtor_type = type_of_unknown_templ_param_nontype;
+        } else {
+          check_assertion(is_error_type(dtor_type));
         }  /* if */
-        clear_locator(locator, &null_source_position);
-        locator->is_vacuous_destructor_reference = TRUE;
-        locator->is_class_member = TRUE;
-        locator->parent.class_type = dtor_type;
-      }
+      }  /* if */
+handle_vacuous_destructor_call:
+      clear_locator(locator, &null_source_position);
+      locator->is_vacuous_destructor_reference = TRUE;
+      locator->is_class_member = TRUE;
+      locator->parent.class_type = dtor_type;
+      if (!is_class_struct_union_type(dtor_type)) {
+        locator->is_nonclass_destructor = TRUE;
+      }  /* if */
       break;
     default:
       unexpected_condition_str("bad selection operator in rescan");
@@ -4006,6 +4051,7 @@ have_symbol:
       *err = TRUE;
     }  /* if */
   }  /* if */
+end_of_routine:;
 }  /* get_locator_for_rescanned_selection_second_operand */
 
 
