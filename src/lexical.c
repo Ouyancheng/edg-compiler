@@ -11958,6 +11958,10 @@ class, we should accept any type.
   cssp = symbol_supplement_for_class(field_sel_type);
   if (cssp->template_param_for_proxy_class != NULL) {
     result = TRUE;
+  } else if (is_template_param_type(dtor_type)) {
+    /* The destructor type is a template parameter.  This could potentially
+       match a real type during instantiation, so consider it okay for now. */
+    result = TRUE;
   } else {
     result = identical_types(field_sel_type, dtor_type);
   }  /* if */
