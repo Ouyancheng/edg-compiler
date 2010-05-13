@@ -2897,8 +2897,11 @@ the scope being pushed.
     }  /* if */
     /* The in_template_deduction_context field should be TRUE for
        template declaration scopes and function prototype scopes directly
-       within a template declaration scope. */
-    if (kind == (a_scope_kind)sck_template_declaration) {
+       within a template declaration scope.  It should also be TRUE for a
+       scope pushed with the PS_DEDUCTION_CONTEXT flag and function prototype
+       scopes directly within that scope. */
+    if (kind == (a_scope_kind)sck_template_declaration ||
+        (options & PS_DEDUCTION_CONTEXT) != 0) {
       ssep->in_template_deduction_context = TRUE;
     } else if (kind == (a_scope_kind)sck_func_prototype) {
       ssep->in_template_deduction_context =

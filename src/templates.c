@@ -5533,7 +5533,7 @@ is to be updated when a new instance is created.
       type->variant.typeref.type = error_type();
     } else {
       a_decl_parse_state	dps;
-      a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+      a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
       if (type->variant.typeref.is_nonreal) {
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */

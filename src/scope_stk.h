@@ -62,6 +62,10 @@ typedef int a_push_scope_options_set;
 			   during the instantiation context lookup even in
 			   modes where such checks would not normally be
 			   done. */
+#define PS_DEDUCTION_CONTEXT		0x800
+			/* TRUE if the in_template_deduction_context flag
+			   should be set for the instantiation scope being
+			   pushed. */
 
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
@@ -1071,7 +1075,7 @@ that could later potentially participate in template argument deduction
 and/or template argument substitution into an expression.
 */
 #define is_template_deduction_context()					\
-  (depth_template_declaration_scope != NO_SCOPE_DEPTH ?			\
+  (depth_scope_stack != NO_SCOPE_DEPTH ?			        \
    scope_stack[depth_scope_stack].in_template_deduction_context : FALSE)
 
 
