@@ -277,17 +277,6 @@ Given that the current name context is a class, return the class type.
 
 
 /*
-When generating the definition of a class template or member class template
-from a prototype instantiation, curr_class_template designates the prototype
-instantiation class type.  This is used to generate the qualifier for a
-dependent name that is a member of an unknown base in the prototype
-instantiation.
-*/
-static a_type_ptr
-		curr_class_template;
-
-
-/*
 Macro to test a type kind to see if it is a class, struct, or union.
 */
 #define is_class_type_kind(kind)                                      \
@@ -953,7 +942,7 @@ are also considered to be on the stack.
 
 static a_scope_ptr decl_scope_of(a_source_correspondence *scp)
 /*
-Return the scope in which the entity with the given course correspondence
+Return the scope in which the entity with the given source correspondence
 is declared.  If the entity is local to a function, the innermost block/
 function scope is assumed.
 */
@@ -983,8 +972,42 @@ function scope is assumed.
 }  /* decl_scope_of */
 
 
+static a_type_ptr qualifier_for_unknown_base_member(
+                                                  a_source_correspondence *scp)
+/*
+Given the source correspondence for a member of an unknown base, return the
+topmost class type from the name context stack that has the parent class of
+the entity as a base class.  That is, in a prototype instantiation, given
+
+  template<typename T> struct B { ... };
+  template<typename T> struct D: B<T> {
+    ... D::x ...
+  };
+
+the source correspondence for "x" will appear to be a member of B<T>, and
+this routine returns the class type for D<T>.
+*/
+{
+  a_type_ptr         result = NULL;
+  a_name_context_ptr ncp;
+  a_type_ptr         entity_parent_class;
+
+  check_assertion(scp->member_of_unknown_base && scp->is_class_member);
+  entity_parent_class = scp_parent_class(scp);
+  for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+    if (ncp->class_type != NULL &&
+        find_base_class_of(ncp->class_type, entity_parent_class) != NULL) {
+      result = ncp->class_type;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(result != NULL);
+  return result;
+}  /* qualifier_for_unknown_base_member */
+
+
 static a_namespace_ptr innermost_namespace_parent_of(
-                                                a_source_correspondence  *scp)
+                                                 a_source_correspondence  *scp)
 /*
 Return the namespace enclosing the declaration associated with the given
 source correspondence.  For declarations in file scope and in local scopes
@@ -2779,7 +2802,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                generated template definition cannot follow that assumption
                because when the template is actually instantiated the name
                might be from a different dependent base.) */
-            qualifier = curr_class_template;
+            qualifier = qualifier_for_unknown_base_member(scp);
             qualifier_options |= GN_NO_TEMPLATE_ARGS;
           } else if (scp->access == (an_access_specifier)as_protected &&
               (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
@@ -9928,11 +9951,8 @@ instantiation is available.
     case templk_class:
     case templk_member_class:
       if (tp->prototype_instantiation.type != NULL) {
-        a_type_ptr saved_curr_class_template = curr_class_template;
-        curr_class_template = tp->prototype_instantiation.type;
         gen_type_decl(/*suppress_specifiers=*/FALSE,
                       &another_decl_in_comma_list);
-        curr_class_template = saved_curr_class_template;
         result = TRUE;
       }  /* if */
       break;
@@ -13315,7 +13335,6 @@ Initialize for the C++/C-generating back end.
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
-  curr_class_template = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
