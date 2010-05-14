@@ -2212,7 +2212,8 @@ expression), do nothing.  Also do nothing if we're not currently in
 a possible rescan context.
 */
 {
-  if (expr_stack->possible_rescan_context) {
+  if (expr_stack->possible_rescan_context &&
+      !is_error_operand(operand)) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
@@ -2239,7 +2240,8 @@ and type is the type cast to.  Also used for other operators with a
 salient type, e.g., "new".
 */
 {
-  if (expr_stack->possible_rescan_context) {
+  if (expr_stack->possible_rescan_context &&
+      !is_error_node(expr)) {
     an_expr_rescan_info_entry_ptr eriep;
     check_assertion(is_cast_operation_node(expr) ||
                     expr->kind == (an_expr_node_kind)enk_temp_init ||
@@ -2267,7 +2269,8 @@ type within the cast; and cast_type is the type cast to.
 Do nothing if the operand is not discernibly a cast expression.
 */
 {
-  if (expr_stack->possible_rescan_context) {
+  if (expr_stack->possible_rescan_context &&
+      !is_error_operand(operand)) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
