@@ -19916,6 +19916,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Make a locator for the symbol. */
     make_locator_for_symbol(sym_ptr, &locator);
+    reduce_projection_symbol_to_fundamental_symbol(sym_ptr);
     /* For a qualified name like X::y, the locator position is the position of
        the "y", and start_position is the position of the "X".   The operand
        position is the "X", and the operand id_position is the "y". */
