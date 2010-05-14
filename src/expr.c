@@ -4357,7 +4357,7 @@ routine is also called to parse a __builtin_offsetof field construct
                                                 dtor_type;
       an_operand orig_operand;
       orig_operand = *operand_1;
-      node = extract_node_from_operand(operand_1);
+      node = make_node_from_operand(operand_1);
       if (!identical_types(node->type, new_type)) {
         /* There is an actual type change here (probably one involving
            cv-qualifiers). */

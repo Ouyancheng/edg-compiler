@@ -2049,7 +2049,7 @@ value is TRUE.
 }  /* clone_operand */
 
 
-an_expr_node_ptr extract_node_from_operand(an_operand *operand)
+static an_expr_node_ptr extract_node_from_operand(an_operand *operand)
 /*
 Extract an expression from an operand.  If the operand contains a
 constant, allocate a constant node and copy the constant value to it.
@@ -2432,6 +2432,7 @@ bound function as the result, and the selector for that can be stored
 in *bound_function_selector.
 */
 {
+  an_expr_node_ptr              orig_expr = expr;
   an_expr_node_ptr              expr_copy;
   a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
   a_constant                    constant;
@@ -2454,7 +2455,9 @@ in *bound_function_selector.
        copy_template_param_expr allows us to keep the rescanned expression
        in an_operand form rather than having to convert it to an expression
        and then back again. */
-    rescan_expr_with_substitution_internal(expr, rcblock,
+    /* Pass orig_expr in case the rescan information is on one of the
+       implicit operations stripped above. */
+    rescan_expr_with_substitution_internal(orig_expr, rcblock,
                                            local_options,
                                            operand, bound_function_selector);
     rescanned_case = TRUE;

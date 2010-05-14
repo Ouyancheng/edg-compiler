@@ -1560,8 +1560,6 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
 
 extern void make_template_param_expr_constant_operand(an_operand *operand);
 
-extern an_expr_node_ptr extract_node_from_operand(an_operand *operand);
-
 extern an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
                                            a_boolean        parens_also);
 
