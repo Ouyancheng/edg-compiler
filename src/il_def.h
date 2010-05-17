@@ -12759,14 +12759,15 @@ typedef struct an_expr_node {
 			   first parameter is number one). */
       unsigned int
 		levels_up;
-			/* The number L of function prototype scopes from the
-			   innermost one (in which the parameter reference
-			   occurs) up to (and including) the one containing
-			   the declaration of the referenced parameter.  If
-			   the parameter declaration clause of the innermost
-			   function prototype scope has been completely seen,
-			   it is not counted (in that case -- which is perhaps
-			   the most common -- L can be zero).  Examples:
+			/* The number L of parameter lists enclosing the
+			   reference to the parameter up to (and including)
+			   the one containing the declaration of the
+			   referenced parameter.  Zero if the reference is
+			   from outside the parameter list that declares the
+			   referenced parameter (this includes what is
+			   probably the most common case: A trailing return
+			   type referring to a parameter of the associated
+			   function type).  Examples:
 			     typedef struct {} T;
 			     void f(T p, decltype(p));                // L = 1
 			     void g(T p, decltype(p) (*)());          // L = 1

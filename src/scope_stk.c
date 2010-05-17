@@ -2450,7 +2450,7 @@ the scope being pushed.
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
-  ssep->parameter_clause_seen = FALSE;
+  ssep->outside_parameter_list   = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */

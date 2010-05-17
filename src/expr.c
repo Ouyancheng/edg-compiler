@@ -19789,29 +19789,31 @@ static void make_param_ref_operand(an_operand    *result,
                                    a_symbol_ptr  param_sym)
 /*
 Create an operand in *result representing a use of the parameter described
-by param_sym (sk_parameter).  The enk_param_ref node holds two integer values:
-The parameter number (the first parameter is numbered 1), and a number L
-indicating how many "levels up" the function prototype scope containing the
-referenced parameter is relative to the point of reference.  L may participate
-in name mangling and is therefore subject to some constraints.  First, if two
-signatures differ only in which parameter level is referenced, L must be
-different for those two signature: This is the reason for L's existence.
-Second, if a reference in a return type refers to a particular parameter, L
-should be the same whether the return type is written as a trailing return
-type or using classic C/C++ syntax.  For example, the two declarations:
-  void f(int p, decltype(p) (*pf)());        // (1)
-  void f(int p, auto (*pf)()->decltype(p));  // (2)
-declare the same function and must therefore mangle to the same name (i.e.,
-have identical L for the reference to p in "decltype(p)").  Third, to simplify
-the determination of L, we do not want it to depend on anything that follows
-the actual reference to the parameter.  For example, in the two declarations
-  void f(int p, decltype(p) (*pf)());        // (1)
-  void f(int p, decltype(p));                // (3)
-L for the reference to p in "decltype(p)" should be the same.  Together these
-constraints naturally lead to the rule that determines the "levels_up" field
-(see il_def.h).
+by param_sym (sk_parameter).
 */
 {
+  /* The enk_param_ref node holds two integer values: The parameter number
+     (the first parameter is numbered 1), and a number L indicating how many
+     "levels up" the parameter list containing the referenced parameter is
+     relative to the point of reference.  L may participate in name mangling
+     and is therefore subject to some constraints.  First, if two signatures
+     differ only in which parameter level is referenced, L must be different
+     for those two signatures: This is the reason for L's existence.  Second,
+     if a reference in a return type refers to a particular parameter, L
+     should be the same whether the return type is written as a trailing return
+     type or using classic C/C++ syntax.  For example, the two declarations:
+         void f(int p, decltype(p) (*pf)());        // (1)
+         void f(int p, auto (*pf)()->decltype(p));  // (2)
+     declare the same function and must therefore mangle to the same name
+     (i.e., have identical L for the reference to p in "decltype(p)").  Third,
+     to simplify the determination of L, we do not want it to depend on
+     anything that follows the actual reference to the parameter.  For example,
+     in the two declarations
+         void f(int p, decltype(p) (*pf)());        // (1)
+         void f(int p, decltype(p));                // (3)
+     L for the reference to p in "decltype(p)" should be the same.  Together
+     these constraints naturally lead to the definition of the "levels_up"
+     field (see il_def.h). */
   unsigned                 levels_up = 1;
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
   an_expr_node_ptr         node;
@@ -19820,7 +19822,7 @@ constraints naturally lead to the rule that determines the "levels_up" field
   while (ssep->kind != (a_scope_kind)sck_func_prototype) ssep -= 1;
   /* If we're no longer in the parameter clause, do not count the innermost
      function prototype scope as a "level". */
-  if (ssep->parameter_clause_seen) {
+  if (ssep->outside_parameter_list) {
     levels_up = 0;
   }  /* if */
   while (ssep->number != param_sym->decl_scope) {
