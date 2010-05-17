@@ -3506,7 +3506,7 @@ operand of the decltype is an lvalue in one case and not in the other.
            !typeref_is_decltype_or_typeof(type_2)) {
       type_2 = type_2->variant.typeref.type;
     }  /* while */
-    /* If one if a decltype for a non-reference type and the other is
+    /* If one is a decltype for a non-reference type and the other is
        a non-decltype for a reference type, strip the reference. */
     if (type_1->kind == (a_type_kind)tk_typeref &&
         !is_reference_type(type_1) &&

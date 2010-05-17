@@ -5722,6 +5722,10 @@ handle_field_selection:
         }  /* switch */
       }
       break;
+    case enk_param_ref:
+      /* A reference to a parameter is similar to a variable with automatic
+         storage duration: Its address is not a constant. */
+      break;
     default:
       /* Other expression kinds cannot be folded. */
       break;
@@ -5780,6 +5784,10 @@ caller would prefer to handle that higher up.
     case enk_variable:
       /* An rvalue for a variable.  There aren't any pointer-typed constant
          variables in the C or C++ languages currently. */
+      break;
+    case enk_param_ref:
+      /* A reference to a parameter is similar to a variable in this
+         respect. */
       break;
     case enk_routine:
       /* An rvalue for a function.  That's a function pointer, which can

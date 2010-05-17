@@ -11951,6 +11951,10 @@ e.g., in a back end.
                                                           node->type));
     }  /* if */
 #endif /* DO_IL_LOWERING */
+  } else if (node->kind == (an_expr_node_kind)enk_param_ref) {
+    /* A reference to a parameter.  Change it to an lvalue by just changing
+       the is_lvalue flag. */
+    possible = TRUE;
   } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
     /* A temporary initialization indicating the value of a temporary.
        Change it to an lvalue for the temporary. */
@@ -14211,6 +14215,12 @@ that identifies an object or an rvalue that is a pointer to an object.
         tblock->is_temp = FALSE;
         tblock->terminate = TRUE;
       }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+      /* An lvalue for a parameter outside an associated function
+         definition. */
+      tblock->result = TRUE;
+      tblock->is_temp = FALSE;
+      tblock->terminate = TRUE;
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       if (!expr->variant.init.dynamic_init->static_temp) {
         /* An lvalue for a nonstatic temporary. */

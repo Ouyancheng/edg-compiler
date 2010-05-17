@@ -16050,8 +16050,10 @@ Called from the expression traversal routines to process an expression
 as part of seeing whether an expression is a pointer with restrict semantics.
 */
 {
-  if (expr->kind == (an_expr_node_kind)enk_variable) {
-    a_type_ptr var_type = expr->variant.variable->type;
+  if (is_variable_node(expr) ||
+      expr->kind == (an_expr_node_kind)enk_param_ref) {
+    a_type_ptr var_type = is_variable_node(expr) ? expr->variant.variable->type
+                                                 : expr->type;
     /* Ignore error types. */
     if (is_pointer_type(var_type)) {
       if ((get_type_qualifiers(var_type) & TQ_RESTRICT) != 0) {
@@ -16061,8 +16063,7 @@ as part of seeing whether an expression is a pointer with restrict semantics.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
-  } else if (microsoft_mode &&
-             is_call_node(expr)) {
+  } else if (microsoft_mode && is_call_node(expr)) {
     a_routine_ptr rp = routine_from_function_expr(
                                              expr->variant.operation.operands);
     if (rp != NULL &&

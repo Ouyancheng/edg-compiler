@@ -8390,6 +8390,7 @@ problems.
     }  /* if */
   } while (operand_changed);
   if (operand->kind == (an_expr_node_kind)enk_variable ||
+      operand->kind == (an_expr_node_kind)enk_param_ref ||
       operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;

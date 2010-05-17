@@ -4103,23 +4103,22 @@ on every expression.
         break;
       case enk_param_ref:
         /* Describe a parameter for non-compilable output.  If the reference
-           is to the innermost function prototype scope (presumably the most
-           common case), just give the parameter number.  Otherwise, also
-           indicate how many "levels up" the function prototype scope is. */
+           is to the innermost function parameter list or to a parameter list
+           preceding a trailing return type (presumably the most common cases),
+           just give the parameter number.  Otherwise, also indicate how many
+           "levels up" the function prototype scope is. */
         octl->output_str("<parameter #", octl);
         form_unsigned_num((a_host_large_unsigned)
                                             expr->variant.param_ref.param_num,
                           octl);
-        if (expr->variant.param_ref.levels_up != 0) {
-          if (expr->variant.param_ref.levels_up == 1) {
-            octl->output_str("(one level up)", octl);
-          } else {
-            octl->output_str("(", octl);
-            form_unsigned_num((a_host_large_unsigned)
-                                            expr->variant.param_ref.levels_up,
-                          octl);
-            octl->output_str(" levels up)", octl);
-          }  /* if */
+        if (expr->variant.param_ref.levels_up == 2) {
+          octl->output_str(" (one level up)", octl);
+        } else if (expr->variant.param_ref.levels_up > 2) {
+          octl->output_str(" (", octl);
+          form_unsigned_num((a_host_large_unsigned)
+                                          expr->variant.param_ref.levels_up,
+                             octl);
+          octl->output_str(" levels up)", octl);
         }  /* if */
         octl->output_str(">", octl);
         break;
@@ -5511,8 +5510,9 @@ Pop a function prototype stack entry from the top of the function prototype
 stack associated with octl.
 */
 {
+  check_assertion(octl->func_prototype_stack != NULL);
   octl->func_prototype_stack = octl->func_prototype_stack->next;
-}  /* push_function_prototype */
+}  /* pop_function_prototype */
 
 
 void form_param_ref(an_expr_node_ptr                       expr,
