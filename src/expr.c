@@ -9234,8 +9234,8 @@ indication in *rcblock).
        that use runtime typeid determination. */
     /* As of now (April 2009), the working draft doesn't give special
        handling to rvalue reference objects here. */
-    if (is_an_lvalue(&operand) &&
-        (is_polymorphic_class_type(typeid_type) ||
+    if (((is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) ||
+         /* For a dependent case, we don't know the lvalueness for sure. */
          could_be_dependent_class_type(typeid_type)) &&
         /* An objectless nonstatic data member reference is not
            polymorphic, regardless of the type of the member. */
