@@ -16718,7 +16718,6 @@ of this determination.
 {
   a_boolean is_invariant = FALSE;
 
-/* FIXME: Needs code for enk_param_ref? */
   expr = skip_parens(expr);
   if (vars_can_change) {
     /* Variable values can change. */
@@ -16727,10 +16726,13 @@ of this determination.
       is_invariant = TRUE;
     } else if (expr->is_lvalue) {
       /* Lvalue cases. */
-      if (is_variable_node(expr)) {
+      if (is_variable_node(expr) ||
+          expr->kind == (an_expr_node_kind)enk_param_ref) {
         /* An lvalue for a variable is invariant.  Note that local variables
            are considered invariant even though their addresses may change
-           between invocations of the function. */
+           between invocations of the function.  enk_param_ref nodes
+           represent references to parameters within the function header,
+           and as such are essentially variable references. */
         is_invariant = TRUE;
       } else if (is_operation_node(expr)) {
         an_expr_node_ptr op1 = expr->variant.operation.operands;
