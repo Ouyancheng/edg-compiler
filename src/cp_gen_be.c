@@ -4555,8 +4555,8 @@ default arguments should be suppressed (needed for template specializations).
 
   /* Push an entry onto the function prototype stack. */
   fpse.function_type = type;
-  fpse.after_parameter_list = FALSE;
-  push_function_prototype(&fpse);
+  fpse.outside_parameter_list = FALSE;
+  push_function_prototype(&fpse, &octl);
   /* The code here is similar to code in form_function_declarator. */
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_ch('(');
@@ -4720,7 +4720,7 @@ default arguments should be suppressed (needed for template specializations).
     }  /* if */
   }  /* if */
   write_tok_ch(')');
-  fpse.after_parameter_list = TRUE;
+  fpse.outside_parameter_list = TRUE;
   if (rtsp->assoc_routine != NULL && rtsp->assoc_routine->is_lambda_body) {
     /* This is the type for a lambda's call operator.  The qualifier is
        either TQ_CONST (the default) or TQ_NONE (indicated by the
@@ -4750,7 +4750,7 @@ default arguments should be suppressed (needed for template specializations).
     write_tok_str("->");
     gen_type(type->variant.routine.return_type);
   }  /* if */
-  pop_function_prototype();
+  pop_function_prototype(&octl);
 }  /* gen_function_declarator_with_scope */
 
 

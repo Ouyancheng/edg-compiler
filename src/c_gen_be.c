@@ -1715,8 +1715,8 @@ is non-NULL, in which case that is the function scope.
 
   /* Push an entry onto the function prototype stack. */
   fpse.function_type = type;
-  fpse.after_parameter_list = FALSE;
-  push_function_prototype(&fpse);
+  fpse.outside_parameter_list = FALSE;
+  push_function_prototype(&fpse, &octl);
   if (scope != NULL) {
     param_var = scope->variant.routine.parameters;
   } else {
@@ -1895,7 +1895,7 @@ is non-NULL, in which case that is the function scope.
   write_tok_ch(')');
   octl.gen_vla_array_as_asterisk_bound_array =
                                    saved_gen_vla_array_as_asterisk_bound_array;
-  pop_function_prototype();
+  pop_function_prototype(&octl);
 }  /* dump_function_declarator_with_scope */
 
 

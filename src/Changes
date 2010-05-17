@@ -1,5 +1,27 @@
 Version 4.2
 
+5/17/10  [EDGcpfe/9169]
+enk_param_ref nodes (IL CHANGE)
+
+Previously, the IL definition had no way to represent a reference to a function
+parameter if that reference appeared outside the definition of the function.
+For example:
+
+  auto f(int n)->decltype(n);
+
+Prior to the C++0x SFINAE implementation (see Changes entry of 4/26/10), such
+parameter references were replaced by "dummy expressions" producing the type of
+the parameter (these dummy expressions dereferenced a null pointer constant).
+
+Now, a new expression node kind enk_param_ref is used to represent the
+indicated parameter.  Since there can be multiple a_type entries for a given
+function type, enk_param_ref nodes cannot point directly to such type entries
+(or to their associated a_param_type entries).  Instead, a coordinate system
+is used (somewhat similar to the coordinates used for template parameters),
+and code that tracks function declarators can use the coordinates of an
+enk_param_ref node to identify a corresponding a_param_type entry.
+
+
 5/13/10  [EDGcpfe/10680]
 C++-generating back end: members of dependent base classes in prototype
 instantiations

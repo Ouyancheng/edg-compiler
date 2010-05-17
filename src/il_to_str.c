@@ -87,6 +87,9 @@ Clear an output control block to default values.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  octl->func_prototype_stack      = NULL;
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_typedefs         = FALSE;
@@ -5490,31 +5493,25 @@ described by octl).
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
-static a_func_prototype_stack_entry_ptr
-		func_prototype_stack;
-			/* If non-NULL, a pointer to the top of a stack of
-			   function prototype scopes currently being rendered.
-			   This is used to identify the parameter referred to
-			   by an enk_param_ref node. */
-
-void push_function_prototype(a_func_prototype_stack_entry_ptr  fpsep)
+void push_function_prototype(a_func_prototype_stack_entry_ptr       fpsep,
+                             an_il_to_str_output_control_block_ptr  octl)
 /*
 Add the given function prototype stack entry on top of the function prototype
-stack.
+stack associated with octl.
 */
 {
-  fpsep->next = func_prototype_stack;
-  func_prototype_stack = fpsep;
+  fpsep->next = octl->func_prototype_stack;
+  octl->func_prototype_stack = fpsep;
 }  /* push_function_prototype */
 
 
-void pop_function_prototype(void)
+void pop_function_prototype(an_il_to_str_output_control_block_ptr  octl)
 /*
 Pop a function prototype stack entry from the top of the function prototype
-stack.
+stack associated with octl.
 */
 {
-  func_prototype_stack = func_prototype_stack->next;
+  octl->func_prototype_stack = octl->func_prototype_stack->next;
 }  /* push_function_prototype */
 
 
@@ -5529,11 +5526,11 @@ is properly maintained.  Do the output as indicated by octl.
 {
   unsigned               k, levels_up = expr->variant.param_ref.levels_up;
   a_func_prototype_stack_entry_ptr
-                         fpsep = func_prototype_stack;
+                         fpsep = octl->func_prototype_stack;
   a_param_type_ptr       ptp;
 
   check_assertion(fpsep != NULL);
-  if (!fpsep->after_parameter_list) levels_up -= 1;
+  if (!fpsep->outside_parameter_list) levels_up -= 1;
   for (k = 0; k<levels_up; ++k) {
     fpsep = fpsep->next;
     check_assertion(fpsep != NULL);
@@ -5565,7 +5562,6 @@ One-time initialization for il_to_str static variables.
 #endif /* ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE */
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
-  func_prototype_stack = NULL;
 }  /* il_to_str_one_time_init */
 
 

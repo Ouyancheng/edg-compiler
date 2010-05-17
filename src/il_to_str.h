@@ -61,6 +61,39 @@ typedef void an_output_attributes_function(
                            a_boolean              primary_only);
 typedef an_output_attributes_function *an_output_attributes_function_ptr;
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+
+/*
+Entry used in a stack to track function prototypes being rendered.  This stack
+is used to identify which parameter an enk_param_ref node refers to.
+*/
+typedef struct a_func_prototype_stack_entry *a_func_prototype_stack_entry_ptr;
+typedef struct a_func_prototype_stack_entry {
+  a_func_prototype_stack_entry_ptr
+		next;	/* Pointer to the entry for the enclosing function
+			   prototype scope (or NULL if this entry if for the
+			   outermost function prototype scope). */
+  a_type_ptr	function_type;
+			/* The function type associated with this function
+			   prototype scope. */
+  a_boolean	outside_parameter_list;
+			/* TRUE if we have already rendered the list of
+			   parameters for this function prototype scope. */
+} a_func_prototype_stack_entry;
+  
+extern void form_param_ref(an_expr_node_ptr                       expr,
+                           an_il_to_str_output_control_block_ptr  octl);
+
+extern void push_function_prototype(
+                                 a_func_prototype_stack_entry_ptr       fpsep,
+                                 an_il_to_str_output_control_block_ptr  octl);
+
+extern void pop_function_prototype(
+                                 an_il_to_str_output_control_block_ptr  octl);
+
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
+
 /* If you add a field here, add it also to
    clear_il_to_str_output_control_block. */
 typedef struct an_il_to_str_output_control_block {
@@ -132,6 +165,14 @@ typedef struct an_il_to_str_output_control_block {
 			   suppress_typedefs, below) are always done.  This
 			   pointer is non-NULL if additional tests are
 			   needed. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  a_func_prototype_stack_entry_ptr
+	func_prototype_stack;
+			/* If non-NULL, a pointer to the top of a stack of
+			   function prototype scopes currently being rendered.
+			   This is used to identify the parameter referred to
+			   by an enk_param_ref node. */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be
@@ -423,35 +464,6 @@ extern void form_sun_link_scope_specifiers(
                                  an_il_to_str_output_control_block_ptr  octl);
 #endif /* (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || ... */
 #endif /* SUN_EXTENSIONS_ALLOWED */
-
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-
-/*
-Entry used in a stack to track function prototypes being rendered.  This stack
-is used to identify which parameter an enk_param_ref node refers to.
-*/
-typedef struct a_func_prototype_stack_entry *a_func_prototype_stack_entry_ptr;
-typedef struct a_func_prototype_stack_entry {
-  a_func_prototype_stack_entry_ptr
-		next;	/* Pointer to the next entry in the stack (or NULL
-			   if this entry if for the outermost function
-			   prototype scope. */
-  a_type_ptr	function_type;
-			/* The function type associated with this function
-			   prototype scope. */
-  a_boolean	after_parameter_list;
-			/* TRUE if we have already rendered the list of
-			   parameters for this function prototype scope. */
-} a_func_prototype_stack_entry;
-  
-extern void form_param_ref(an_expr_node_ptr                       expr,
-                           an_il_to_str_output_control_block_ptr  octl);
-
-extern void push_function_prototype(a_func_prototype_stack_entry_ptr  fpsep);
-
-extern void pop_function_prototype(void);
-
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 extern void il_to_str_one_time_init(void);
 
