@@ -19820,7 +19820,7 @@ constraints naturally lead to the rule that determines the "levels_up" field
   while (ssep->kind != (a_scope_kind)sck_func_prototype) ssep -= 1;
   /* If we're no longer in the parameter clause, do not count the innermost
      function prototype scope as a "level". */
-  if (ssep->parameter_clause_seen) {
+  if (ssep->outside_parameter_list) {
     levels_up = 0;
   }  /* if */
   while (ssep->number != param_sym->decl_scope) {

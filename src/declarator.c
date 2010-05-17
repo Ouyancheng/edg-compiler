@@ -2596,7 +2596,7 @@ if this is the function declarator in a friend function declaration.
     curr_stop_token_stack_entry->stop_tokens[(int)tok_assign] = t2;
   }
   remove_stop_token(tok_rparen);
-  scope_stack_top().parameter_clause_seen = TRUE;
+  scope_stack_top().outside_parameter_list = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* If this function type was declared with an ellipsis, its calling
