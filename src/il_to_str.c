@@ -4116,7 +4116,7 @@ on every expression.
         } else if (expr->variant.param_ref.levels_up > 2) {
           octl->output_str(" (", octl);
           form_unsigned_num((a_host_large_unsigned)
-                                          expr->variant.param_ref.levels_up,
+                                          expr->variant.param_ref.levels_up-1,
                              octl);
           octl->output_str(" levels up)", octl);
         }  /* if */
