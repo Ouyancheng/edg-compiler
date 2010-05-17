@@ -6029,16 +6029,15 @@ definition of the CC flags in il.h for more information.
                                     options);
               break;
             case tpck_member:
-              /* Note: this test intentionally does not consider the
-                 qualified_unknown_base_member flag, which reflects only
-                 the spelling of the name used to refer to the member;
-                 constants that differ only in that flag are identical. */
               eq = (cp1->source_corresp.name ==
                     cp2->source_corresp.name &&
                     cp1->source_corresp.is_class_member ==
                     cp2->source_corresp.is_class_member &&
                     cp1->source_corresp.member_of_unknown_base ==
                     cp2->source_corresp.member_of_unknown_base &&
+                    (!strictly_identical ||
+                     cp1->source_corresp.qualified_unknown_base_member ==
+                     cp2->source_corresp.qualified_unknown_base_member) &&
                     (cp1->source_corresp.is_class_member ?
                       (strictly_identical ? 
                          corresponding_types(parent_class_of(cp1),
