@@ -2660,9 +2660,15 @@ in options, put a parenthesis in front of the name and set
 GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 */
 {
-  a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0 ||
-                                                   scp->member_of_unknown_base;
+  a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0;
 
+  if (scp->member_of_unknown_base) {
+    /* A member of an unknown base only gets here if the original source
+       form was qualified, so make sure it is qualified in the output as
+       well. */
+    check_assertion(scp->qualified_unknown_base_member);
+    force_qualified_name = TRUE;
+  }  /* if */
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -2805,11 +2811,11 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             qualifier = qualifier_for_unknown_base_member(scp);
             qualifier_options |= GN_NO_TEMPLATE_ARGS;
           } else if (scp->access == (an_access_specifier)as_protected &&
-              (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
-              !scp->qualification_needed &&
-              curr_name_context_is_a_class() &&
-              find_base_class_of(curr_name_context_class(),
-                                 scp_parent_class(scp)) != 0) {
+                     (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
+                     !scp->qualification_needed &&
+                     curr_name_context_is_a_class() &&
+                     find_base_class_of(curr_name_context_class(),
+                                        scp_parent_class(scp)) != 0) {
             /* This is a case where the name is not hidden but is required to
                be qualified by the context (e.g., when forming a pointer to
                member) and the name is a protected member of a base of the
