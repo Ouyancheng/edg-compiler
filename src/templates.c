@@ -5413,17 +5413,7 @@ is to be updated when a new instance is created.
   a_symbol_ptr				instance_sym;
   a_type_ptr				type;
   a_type_ptr				parent_class = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean                             saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Temporarily disallow source sequence entries.  Since alias templates
-     cannot be explicitly specialized configurations that represent template
-     instances as specializations cannot do so for alias templates. */
-  saved_sses_disallowed = source_sequence_entries_disallowed;
-  source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(template_sym);
@@ -5534,6 +5524,9 @@ is to be updated when a new instance is created.
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_boolean                 saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (type->variant.typeref.is_nonreal) {
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */
@@ -5549,6 +5542,14 @@ is to be updated when a new instance is created.
 					      template_arg_list,
                                               /*push_lex_state=*/TRUE,
                                               ps_options);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Temporarily disallow source sequence entries.  Since alias templates
+         cannot be explicitly specialized configurations that represent
+         template instances as specializations cannot do so for alias
+         templates. */
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -5611,6 +5612,11 @@ is to be updated when a new instance is created.
       }  /* if */
       flush_past_token_cache_terminator();
       --(tssp_of_prototype->pending_instantiations);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
     }  /* if */
@@ -5645,11 +5651,6 @@ is to be updated when a new instance is created.
   record_instantiation(instance_sym, tssp);
   /* If the translation unit stack was pushed above, pop it now. */
   if (trans_unit_pushed) pop_translation_unit_stack();
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Restore the previous state wrt. the generation of source sequence
-     entries. */
-  source_sequence_entries_disallowed = saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return instance_sym;
 }  /* instantiate_template_alias */
 
