@@ -2806,7 +2806,9 @@ is in fact valid.
       if (templ != NULL && corresp_templ != NULL) {
         if (templ->cache_checksum != corresp_templ->cache_checksum &&
             !suppress_inline_corresp_check) {
-          match = FALSE;
+          /* A difference in definition doesn't break the correspondence
+             (i.e., "match" remains TRUE).  This is to avoid unnecessary
+             cascading of correspondence errors. */
           process_bad_trans_unit_corresp(iek_routine,
                                          routine, corresp_routine);
         }  /* if */
