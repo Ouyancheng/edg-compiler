@@ -15355,11 +15355,16 @@ the information in rcblock.
     } else {
       /* Non-empty parentheses. */
       if (rcblock != NULL) {
-        /* Rescan the operand expression. */
-        check_assertion(rcblock->argument_list->next == NULL);
-        make_rescan_operand_full(rcblock->argument_list, rcblock,
-                                 EOPT_OPERAND_OF_CAST,
-                                 result, &local_bound_function_selector);
+        if (rcblock->argument_list->next != NULL) {
+          /* Multiple operand expressions in a cast that can only take one. */
+          rcblock->error_detected = TRUE;
+          make_error_operand(result);
+        } else {
+          /* Rescan the operand expression. */
+          make_rescan_operand_full(rcblock->argument_list, rcblock,
+                                   EOPT_OPERAND_OF_CAST,
+                                   result, &local_bound_function_selector);
+        }  /* if */
       } else {
         /* Scan the expression inside the parentheses. */
         /* Since the expression in parentheses is syntactically an
