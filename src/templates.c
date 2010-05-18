@@ -8176,20 +8176,32 @@ a pointer over a reference type or creating an array of references.
         } else {
           /* Make an identically qualified type of a copy (or reuse) of the
              type that underlies the typeref. */
-          a_type_qualifier_set	qualifiers;
+          a_type_qualifier_set	qualifiers = TQ_NONE;
           a_type_ptr		type_without_typerefs;
-          type_without_typerefs = skip_typerefs(type);
+          /* Remove typerefs, but stop at a decltype, since it may require
+             substitution of its own.  Accumulate the type qualifiers we
+             skip over so they can be restored below.  Always take at least
+             one typeref because we decided above that the current typeref
+             doesn't require the decltype expression processing. */
+          type_without_typerefs = type;
+          do {
+            qualifiers |= type_without_typerefs->variant.typeref.qualifiers;
+            type_without_typerefs= type_without_typerefs->variant.typeref.type;
+          } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
+                   !typeref_is_decltype_or_typeof(type_without_typerefs));
           tp = copy_type_with_substitution(type_without_typerefs,
                                            templ_arg_list,
                                            templ_param_list, source_pos,
                                            options, copy_error);
-          qualifiers = get_type_qualifiers(type);
-          if (qualifiers != TQ_NONE && is_function_type(tp)) {
-            /* An attempt to place a qualifier on top of a function type.
-               Ignore it. */
-            new_type = tp;
-          } else {
-            new_type = make_qualified_type(tp, qualifiers);
+          new_type = tp;
+          if (qualifiers != TQ_NONE) {
+            if (is_function_type(tp)) {
+              /* An attempt to place a qualifier on top of a function type.
+                 Ignore it. */
+            } else {
+              /* Restore the type qualifiers stripped off above. */
+              new_type = make_qualified_type(tp, qualifiers);
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
