@@ -19834,15 +19834,16 @@ constraints naturally lead to the rule that determines the "levels_up" field
   if (ssep->outside_parameter_list) {
     levels_up = 0;
   }  /* if */
-  while (ssep->number != param_sym->decl_scope) {
+  while (ssep->number != param_sym->decl_scope ||
+         ssep->kind != (a_scope_kind)sck_func_prototype) {
     if (ssep->kind == (a_scope_kind)sck_func_prototype) {
       /* A function prototype scope that does not indicate the parameter:
          So the reference is at least another "level up" from this scope. */
       ++levels_up;
     }  /* if */
     ssep -= 1;
+    check_assertion(ssep != scope_stack);
   }  /* while */
-  check_assertion(ssep->kind == (a_scope_kind)sck_func_prototype);
   node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
   node->type = param_sym->variant.param_id->type;
   node->is_lvalue = TRUE;
