@@ -20869,14 +20869,14 @@ Display memory use for entities in front end memory in this file (il.c).
  #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires IL lowering
 #endif /* !DO_IL_LOWERING */
 
-a_type_ptr
+static a_type_ptr
 	*type_reordering;
 		/* A pointer to a temporary array of a_type_ptr values
 		   used to order the file scopes type list as required for
 		   the C-generating back end.
 		   See fix_type_list_ordering_problems. */
 
-a_type_ptr
+static a_type_ptr
 	*next_type_reordering_slot;
 		/* Pointer to the next available slot in type_reordering. */
 
