@@ -271,15 +271,6 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && ... */
 
-/*
-Return TRUE if ph points to a tk_typeref type that is a placeholder-for-
-namespace-type that points to tp.
-*/
-#define is_assoc_namespace_type_placeholder(ph, tp)                   \
-  ((ph)->kind == (a_type_kind)tk_typeref &&                           \
-   (ph)->variant.typeref.is_placeholder_for_namespace_type &&         \
-   (ph)->variant.typeref.type == (tp))
-
 extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                                   a_boolean   top_level);
 
