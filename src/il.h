@@ -745,11 +745,6 @@ extern a_type_ptr make_vector_type(a_type_ptr     element_type,
                                    a_targ_size_t  n_elements);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
-extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
-
-extern void add_placeholder_for_nested_class_def(a_type_ptr     type_ptr,
-                                                 a_scope_depth  decl_level);
-
 #if NAMED_REGISTERS_ALLOWED
 extern void record_named_register_storage_class(
                                              a_variable_ptr       var,
@@ -778,19 +773,11 @@ extern void set_parent_scope_for_type(a_type_ptr     type_ptr,
 extern void add_lambda_closure_to_types_list(a_type_ptr     type_ptr,
                                              a_scope_depth  scope_level);
 
-extern void add_to_types_list_full(a_type_ptr     type_ptr,
-                                   a_scope_depth  scope_level,
-                                   a_boolean      do_placeholder);
-
 extern void add_to_types_list(a_type_ptr     type_ptr,
                               a_scope_depth  scope_level);
 
-extern void eliminate_invalid_placeholders_in_file_scope(
-                                                     a_scope_ptr  file_scope);
-
 extern void move_to_end_of_types_list(a_type_ptr     type_ptr,
-                                      a_scope_depth  scope_level,
-                                      a_boolean      delete_placeholder);
+                                      a_scope_depth  scope_level);
 
 extern void do_based_type_fixup(void);
 

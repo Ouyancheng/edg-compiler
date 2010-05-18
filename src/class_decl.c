@@ -10821,12 +10821,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     if (scope != NULL) {
       a_type_ptr  nested_type = scope->types;
       for (; nested_type != NULL; nested_type = nested_type->next) {
-        if (nested_type->kind == (a_type_kind)tk_typeref &&
-            nested_type
-                    ->variant.typeref.is_placeholder_for_class_instantiation) {
-          /* This type was not really declared in the nested union.  It is
-             just the side-effect of using a class template specialization. */
-        } else if (allow_anon_types_in_anon_unions && !has_name(nested_type)) {
+        if (allow_anon_types_in_anon_unions && !has_name(nested_type)) {
           /* Some test suites commonly declare anonymous types in anonymous
              unions.  Since these tests must run in strict mode, a flag is
              provided to inhibit this particular diagnostic. */
@@ -16080,11 +16075,8 @@ bits of information that were acquired while parsing.
       /* The type will already have been added to the current scope's types
          list.  However, it should be moved to the end of the list (unless
          it's already there), since its location in the types list should
-         record where it was defined, not where it was initially declared.
-         move_to_end_of_types_list also takes care of the placeholder
-         typerefs associated with this class. */
-      move_to_end_of_types_list(class_type, effective_decl_level,
-                                /*delete_placeholder=*/FALSE);
+         record where it was defined, not where it was initially declared. */
+      move_to_end_of_types_list(class_type, effective_decl_level);
 #if DEBUG
     } else {
       if (db_flag_is_set("dump_type_lists")) {
@@ -16901,57 +16893,16 @@ next_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Pop the scope created for the class definition. */
     pop_scope();
-    if (is_template_instantiation && !class_state.is_nonreal_instantiation) {
-      /* A class template instantiation (or a nontemplate class nested
-         in a template class): if it appears inside a class definition,
-         a placeholder typeref must often be added to the types list for
-         the class; if one had already been entered, it may have to be
-         removed. */
-      add_placeholder_for_class_instantiation(class_type);
-    }  /* if */
     if (delayed_nested_class_def) {
       /* A nested class defined outside the parent class definition. */
+      class_type->variant.class_struct_union
+                               .nested_class_defined_outside_of_parent = TRUE;
       if (is_template_instantiation || instantiation_scope_pushed) {
         /* The class reactivation scope is popped along with the template
            instantiation scope. */
       } else {
         /* Restore the scope stack to its original state. */
         pop_class_reactivation_scope();
-      }  /* if */
-      /* Put out a nested-class-definition placeholder, if necessary. */
-      if (class_state.is_nonreal_instantiation) {
-        /* Ignore prototype (and other non-real) instantiations. */
-      } else if (class_type->variant.class_struct_union.
-                    referenced_by_class_instantiation_placeholder_typeref) {
-        /* If a class-instantiation placeholder has been put out, a
-           nested-class-definition placeholder is not needed.  (Note that
-           this applies both to member templates and to nontemplate classes
-           that are nested within template class instantiations.) */
-      } else if (is_template_instantiation &&
-                 class_type_supp(parent_class_of(class_type))
-                     ->assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
-        /* Don't put out the nested-class-definition placeholder for a delayed
-           definition if the parent class is still on the stack. This may be
-           needed both for a member template -- e.g.,
-             struct S {
-               template <class T> class X { ... };
-               X<int> x;
-             };
-           -- and for a nontemplate class nested in a template class (since
-           in that case the nested class is not instantiated immediately when
-           it is encountered) -- e.g., 
-             template <class T> class A {
-               class B { ... };
-               B b;
-             };
-             A<int> a;
-           When A<int> is instantiated, the instantiation of A<int>::B is
-           delayed but then triggered by the declaration of A<int>::b. */
-      } else {
-        /* Enter a typedef entry that points at the nested class just defined.
-           It will serve to indicate just where (in the sequence of type
-           declarations) the delayed nested type definition appeared. */
-        add_placeholder_for_nested_class_def(class_type, orig_decl_level);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_rbrace);

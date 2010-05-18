@@ -1,5 +1,22 @@
 Version 4.2
 
+5/18/10  [EDGcpfe/10646]
+Placeholder types removed (IL CHANGE)
+
+Previously, the front end generated "placeholder typeref" types on the file-
+scope types list to indicate the order in which types (in other scopes) were
+encountered.  This was needed particularly to produce lowered IL that would
+cause the C-generating back end to render correct C code -- i.e., code where
+the definition of a type appeared before a declaration that depended on that
+definition.  (Lowering used the placeholder types as markers to insert types
+promoted from other scopes.)
+Now, the same goal is achieved without placeholder types: After IL lowering
+the types list is sorted to meet the requirements of the C-generating back end.
+Whether this sorting is done is determined by the configuration macro
+ENSURE_LOWERED_TYPE_LIST_ORDERING (it must be TRUE if the C-generating back end
+is used).
+
+
 5/17/10  [EDGcpfe/9169]
 enk_param_ref nodes (IL CHANGE)
 

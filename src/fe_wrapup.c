@@ -455,8 +455,6 @@ static void file_scope_il_wrapup_part_2(void)
 Do more wrapup processing on a translation unit.  A single call of
 this routine handles all translation units.  "Part 2" does needed
 flag processing and unneeded IL removal for secondary translation units.
-It also handles the elimination of invalid placeholders in secondary
-translation units.
 */
 {
   a_translation_unit_ptr tup;
@@ -488,10 +486,6 @@ translation units.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
-    /* Note that invalid placeholders must be eliminated before unneeded IL,
-       because the elimination of unneeded IL may eliminate a type entry to
-       which an invalid placeholder is pointing. */
-    eliminate_invalid_placeholders_in_file_scope(tup->primary_scope);
 #if MAINTAIN_NEEDED_FLAGS
     file_scope_il_wrapup_remove_unneeded_il();
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -512,13 +506,6 @@ already been copied over.
 */
 {
   if (is_primary_translation_unit) {
-    /* Eliminate invalid placeholders in the primary file scope.  This was
-       done in part 2 for secondary translation units, but for the primary
-       translation unit it must be delayed until part 3 because the process of
-       copying type entries from secondary translation units to the primary
-       translation unit can invalidate some placeholders in the latter. */
-    eliminate_invalid_placeholders_in_file_scope(
-                                            translation_units->primary_scope);
     /* Remove the definitions of any static data members instantiated only for
        the purpose of determining their size. */
     remove_unneeded_static_data_member_instantiations();
@@ -569,15 +556,9 @@ already been copied over.
        unit.  That was done for secondary translation units in part 2. */
     file_scope_il_wrapup_remove_unneeded_il();
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
-    if (total_errors == 0 &&
-        (perform_type_list_ordering ||
-         local_type_used_as_template_type_argument ||
-         (!trans_unit_test_mode &&
-          translation_units->next != NULL))) {
-      /* Fix ordering problems for C generation when explicitly requested by
-         lowering (e.g., when a local type is used as the return type for
-         a function) or when local types are used as template arguments or
-         secondary translation units are involved. */
+    if (il_lowering_needed() && perform_type_list_ordering) {
+      /* Ensure that the file-scope types list is ordered for correct C-code
+         generation. */
       fix_type_list_ordering_problems();
     }  /* if */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */

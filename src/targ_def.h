@@ -3829,17 +3829,6 @@ applies only in other modes, e.g., default C mode.
 #endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
 
 /*
-This switch controls whether a post-pass is done after IL lowering
-to ensure that the types list is in order, in the sense that the
-C-generating back end can generate compilable code from it.  The
-fixup is needed sometimes when secondary translation units are
-involved or local types are used as template type arguments.
-*/
-#ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING
-#define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
-#endif /* ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING */
-
-/*
 This switch controls whether or not types and static variables that
 are local to function and block scopes are moved onto the file scope
 lists.  When the switch is FALSE, no promotions are done.  Local

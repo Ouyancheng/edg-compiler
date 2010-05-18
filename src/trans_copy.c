@@ -1430,21 +1430,6 @@ to the secondary translation unit.
                       type->variant.class_struct_union.extra_info->assoc_scope;
       keep_on_list = prepare_for_trans_unit_copy(class_scope,
                                                  any_removed_function_bodies);
-    } else if (type->kind == (a_type_kind)tk_typeref &&
-               !typeref_is_typedef(type)) {
-      /* This is a placeholder typeref, used to give guidance to IL lowering
-         on the order of types promoted out of classes and namespaces.
-         Keep the placeholder only if the type pointed to is being kept. */
-      a_type_ptr ref_type = type;
-      /* Loop to handle placeholders that point to placeholders. */
-      do {
-        ref_type = ref_type->variant.typeref.type;
-      } while (ref_type->kind == (a_type_kind)tk_typeref &&
-               !typeref_is_typedef(ref_type));
-#if DEBUG
-      trace_type = ref_type;
-#endif /* DEBUG */
-      keep_on_list = entry_should_be_kept(ref_type);
     } else if (entry_should_be_copied(type)) {
       /* The type doesn't exist in the primary IL, and just gets copied
          over. */
@@ -1940,8 +1925,6 @@ the secondary translation unit IL).
 */
 {
   a_boolean                   is_class = is_immediate_class_type(type);
-  a_boolean                   first_placeholder_invalid =
-                                      primary_type->first_placeholder_invalid;
   a_class_list_entry_ptr      saved_befriending_classes;
 #if MAINTAIN_NEEDED_FLAGS
   a_boolean                   saved_definition_needed;
@@ -1961,7 +1944,6 @@ the secondary translation unit IL).
   transfer_type_details(primary_type, type);
   *primary_type = *type;
   do_restores_for_overwrite(primary_type, type);
-  primary_type->first_placeholder_invalid = first_placeholder_invalid;
   if (is_class) {
     primary_ctsp = class_type_supp(primary_type);
     primary_ctsp->befriending_classes = saved_befriending_classes;
@@ -2182,11 +2164,7 @@ unit set to the primary translation unit.
                                            class_type_has_body(corresp_type) :
                                            !is_incomplete_type(corresp_type)));
           if (move_to_end) {
-            /* Also remove any associated namespace placeholder, but do
-               not move it to the end of the list.  There will be a
-               placeholder in the secondary IL that gets moved over. */
-            move_to_end_of_types_list(primary_type, NO_SCOPE_DEPTH,
-                                      /*delete_placeholder=*/TRUE);
+            move_to_end_of_types_list(primary_type, NO_SCOPE_DEPTH);
             last_type = primary_type;
             check_assertion(pointers_block != NULL &&
                             pointers_block->last_type == last_type);

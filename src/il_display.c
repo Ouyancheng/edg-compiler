@@ -364,12 +364,6 @@ be written.
       } else if (entry_kind == iek_type) {
         a_type_ptr type = (a_type_ptr)entry_ptr;
         (void)printf(": ");
-        if (type->kind == (a_type_kind)tk_typeref &&
-            (type->variant.typeref.is_placeholder_for_class_instantiation ||
-             type->variant.typeref.is_placeholder_for_namespace_type ||
-             type->variant.typeref.is_placeholder_for_nested_class_def)) {
-          (void)printf("placeholder for ");
-        }  /* if */
         summarize_type(type);
       } else if (entry_kind == iek_source_file) {
         (void)printf(": ");
@@ -1525,9 +1519,6 @@ Display the indicated type entry.
     disp_boolean("autonomous_primary_tag_decl", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (ptr->referenced_by_namespace_placeholder_typeref) {
-    disp_boolean("referenced_by_namespace_placeholder_typeref", TRUE);
-  }  /* if */
   if (ptr->is_builtin_va_list) {
     disp_boolean("is_builtin_va_list", TRUE);
   }  /* if */
@@ -1767,11 +1758,6 @@ Display the indicated type entry.
         disp_boolean("any_virtual_functions_including_in_base_classes", TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.
-                       referenced_by_class_instantiation_placeholder_typeref) {
-        disp_boolean("referenced_by_class_instantiation_placeholder_typeref",
-                     TRUE);
-      }  /* if */
-      if (ptr->variant.class_struct_union.
                                       nested_class_defined_outside_of_parent) {
         disp_boolean("nested_class_defined_outside_of_parent", TRUE);
       }  /* if */
@@ -1859,23 +1845,10 @@ Display the indicated type entry.
       /* Do not print out ptr->variant.typeref.orig_type, which is used only
          during IL lowering. */
 #endif /* DO_IL_LOWERING */
-      if (ptr->variant.typeref.is_placeholder_for_class_instantiation) {
-        disp_boolean("is_placeholder_for_class_instantiation", TRUE);
-      } else if (ptr->variant.typeref.is_placeholder_for_namespace_type) {
-        disp_boolean("is_placeholder_for_namespace_type", TRUE);
-      } else if (ptr->variant.typeref.is_placeholder_for_nested_class_def) {
-        disp_boolean("is_placeholder_for_nested_class_def", TRUE);
-      } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
+      if (ptr->variant.typeref.qualifiers != TQ_NONE) {
         disp_name("qualifiers");
         disp_type_qualifiers(ptr->variant.typeref.qualifiers);
         (void)printf("\n");
-      }  /* if */
-      if (ptr->variant.typeref.
-                       referenced_by_class_instantiation_placeholder_typeref) {
-        disp_boolean("referenced_by_class_instantiation_placeholder_typeref",
-                     TRUE);
-      } else if (ptr->variant.typeref.nested_type_defined_outside_of_parent) {
-        disp_boolean("nested_type_defined_outside_of_parent", TRUE);
       }  /* if */
 #if NEAR_AND_FAR_ALLOWED
       if (ptr->variant.typeref.explicit_memory_attribute_made_implicit) {

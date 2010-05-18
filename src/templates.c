@@ -5345,8 +5345,7 @@ complete nonreal type is returned.
       a_scope_depth	depth_to_add;
       depth_to_add = tssp->is_nonreal_member ? DEPTH_OF_FILE_SCOPE
                                              : NO_SCOPE_DEPTH;
-      add_to_types_list_full(class_type, depth_to_add,
-                             /*do_placeholder=*/FALSE);
+      add_to_types_list(class_type, depth_to_add);
     }  /* if */
   } else {
     /* Update the friend information associated with this template.
@@ -5354,9 +5353,7 @@ complete nonreal type is returned.
     update_befriending_classes_for_class(tssp, class_type);
     /* Add the type to the types list of the appropriate scope.  Pass
        NO_SCOPE_DEPTH to the subroutine to force it to compute which scope's
-       list it belongs to.  add_to_types_list also creates the appropriate
-       placeholder typerefs (in case this partial instantiation occurs
-       inside a class definition and/or a namespace). */
+       list it belongs to. */
     add_to_types_list(class_type, NO_SCOPE_DEPTH);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -5586,24 +5583,6 @@ is to be updated when a new instance is created.
                                    (a_boolean*)NULL);
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */
-      /* Record in the file scope where this type was created, so that IL
-         lowering correctly orders types when promoting nested types that this
-         alias instance may depend on (see also promote_type_list). */
-      if (!type->variant.typeref.is_nonreal) {
-        add_placeholder_for_class_instantiation(type);
-        if (parent_class != NULL &&
-            !type->variant.typeref
-                     .referenced_by_class_instantiation_placeholder_typeref &&
-            class_type_supp(parent_class)->assoc_scope->depth_in_scope_stack
-                                                          == NO_SCOPE_DEPTH) {
-          /* If a member alias template is instantiated outside its parent
-             class, issue a placeholder entry so that lowering can correctly
-             place the instantiated type (this is not needed if a different
-             kind of placeholder was already emitted by the call to
-             add_placeholder_for_class_instantiation above). */
-          add_placeholder_for_nested_class_def(type, decl_scope_level);
-        }  /* if */
-      }  /* if */
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
@@ -5628,13 +5607,8 @@ is to be updated when a new instance is created.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Add the type to the types list of the appropriate scope.  Pass
-     NO_SCOPE_DEPTH to force it to compute the scope list to be used.
-     Suppress the placeholder processing for nonreal types. */
-  if (type->variant.typeref.is_nonreal) {
-    if (prototype_instantiations_in_il) {
-      add_to_types_list_full(type, NO_SCOPE_DEPTH, /*do_placeholder=*/FALSE);
-    }  /* if */
-  } else {
+     NO_SCOPE_DEPTH to force it to compute the scope list to be used. */
+  if (!type->variant.typeref.is_nonreal || prototype_instantiations_in_il) {
     add_to_types_list(type, NO_SCOPE_DEPTH);
   }  /* if */
 #if DEBUG

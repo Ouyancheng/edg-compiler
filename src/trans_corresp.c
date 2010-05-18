@@ -1655,12 +1655,6 @@ a_routine_list_entry nodes.
 }  /* skip_generated_friend_routine */
 
 
-#define is_placeholder_type(type)                                       \
-  ((type)->kind == (a_type_kind)tk_typeref &&                           \
-    ((type)->variant.typeref.is_placeholder_for_class_instantiation ||  \
-     (type)->variant.typeref.is_placeholder_for_namespace_type ||       \
-     (type)->variant.typeref.is_placeholder_for_nested_class_def))
-
 #if DO_IL_LOWERING
 #define class_type_is_compiler_generated(tp)                           \
   (class_type_supp(tp)->compiler_generated)
@@ -1692,8 +1686,7 @@ unit to another.
 Return TRUE for "generated" types: These can differ from one translation
 unit to another.
 */
-#define is_generated_type(tp)                                          \
-  (is_placeholder_type(tp) || is_generated_class_type(tp))
+#define is_generated_type(tp)  is_generated_class_type(tp)
 
 static a_type_ptr skip_generated_type(a_type_ptr  type)
 /*
@@ -1731,7 +1724,6 @@ a_class_list_entry nodes.
           result->class_type->variant.class_struct_union.extra_info
                                                       ->compiler_generated) ||
 #endif /* DO_IL_LOWERING */
-         is_placeholder_type(result->class_type) ||
           /* Nonprototype instantiations can differ from one translation unit
              to another.  (The check on template_arg_list ensures that we
              only skip actual instantiations as opposed to members of
@@ -3617,12 +3609,8 @@ is in fact valid.
       check_for_enumerator_conflicts(type);
     }  /* if */
   } else if (type_sym == NULL) {
-    /* This must be a placeholder type or a built-in type.  The former has
-       no correspondence; the latter needs no checking. */
-    match = !is_placeholder_type(type);
-    if (!match) {
-      set_no_trans_unit_corresp(iek_type, type);
-    }  /* if */
+    /* This must be a built-in type: It needs no checking. */
+    match = TRUE;
   } else {
     /* The usual case: class and enumeration types must have their inner
        structure checked. */
@@ -3909,7 +3897,6 @@ correspondence pointer for each of them.
          set_correspondence_of_unvisited_entries eventually. */
     } else {
       a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      /* Note that placeholder types do not have an associated symbol. */
       if (type_sym != NULL && may_have_correspondence(type_sym)) {
         (void)verify_type_correspondence(type);
       }  /* if */
@@ -4890,7 +4877,6 @@ involved in the declaration of an entity with linkage).
     a_trans_unit_corresp_ptr  tucp = trans_unit_corresp_of(type);
     if (tucp == NULL) {
       a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      /* Note that placeholder types do not have an associated symbol. */
       if (!C_mode() && type_sym != NULL && may_have_correspondence(type_sym)) {
         /* Some types may not have a correspondence yet.  (Note that in C types
            do not have linkage and therefore do not need a correspondence

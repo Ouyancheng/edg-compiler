@@ -3262,9 +3262,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       }  /* if */
       break;
     case tk_typeref:
-      if (type->variant.typeref.is_placeholder_for_class_instantiation) {
-        /* Ignore placeholder typerefs for template types. */
-      } else if (type->variant.typeref.is_decltype) {
+      if (type->variant.typeref.is_decltype) {
         /* Decltype types do not need to be declared separately. */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
@@ -3546,7 +3544,6 @@ the scope must be the file scope.
      program. */
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
-      check_assertion(!type->first_placeholder_invalid);
       check_membership_info(type, scope);
 #if GNU_EXTENSIONS_ALLOWED
       if (type->copy_with_additional_attributes) {

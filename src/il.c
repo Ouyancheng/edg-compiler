@@ -89,17 +89,6 @@ static unsigned long
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
-#if !STANDALONE_UTILITY_PROGRAM
-
-/*
-Number of namespace type placeholders on the file scope types list that have
-been marked as invalid.  This is a per-translation-unit variable.
-*/
-static unsigned long
-		num_invalid_placeholders_in_file_scope;
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 /*
 Data structure used to save information about the last source sequence
 to file/line number conversion that was done so that subsequent
@@ -1422,15 +1411,6 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs("\"", f_debug);
             db_name_full(&tp->source_corresp, iek_type);
             fputs("\" ", f_debug);
-          }  /* if */
-          if (tp->variant.typeref.is_placeholder_for_class_instantiation) {
-            fputs("class-inst-PH ", f_debug);
-          }  /* if */
-          if (tp->variant.typeref.is_placeholder_for_namespace_type) {
-            fputs("namespace-type-PH ", f_debug);
-          }  /* if */
-          if (tp->variant.typeref.is_placeholder_for_nested_class_def) {
-            fputs("nested-class-def-PH ", f_debug);
           }  /* if */
           if (tp->variant.typeref.is_decltype) {
             fputs("decltype ", f_debug);
@@ -7448,158 +7428,6 @@ it's to be moved to another position in the list.
   return may_be_added;
 }  /* may_be_added_to_types_list */
 
-
-static void add_placeholder_for_namespace_type(a_type_ptr  type_ptr)
-/*
-Allocate a namespace-type placeholder typeref to point to type_ptr, set its
-fields, and add it to the file-scope types list.
-*/
-{
-  a_type_ptr  placeholder;
-
-  placeholder = alloc_type((a_type_kind)tk_typeref);
-  placeholder->variant.typeref.type = type_ptr;
-  placeholder->variant.typeref.is_placeholder_for_namespace_type = TRUE;
-  type_ptr->referenced_by_namespace_placeholder_typeref = TRUE;
-  add_to_types_list(placeholder, DEPTH_OF_FILE_SCOPE);
-}  /* add_placeholder_for_namespace_type */
-
-
-void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr)
-/*
-When an instantiation occurs in the midst of a class definition, the
-instantiation may be dependent upon nested types from the class.  The
-instantiation is put out on the file scope types list, but the types upon
-which it is possibly dependent have been recorded on the class scope types
-list.  To enable il-lowering to get the ordering right when it promotes the
-nested types to file scope, enter a placeholder type in the class scope to
-mark the declaration position of the instantiation.  This is not an issue
-when the class is a local class, since a template cannot legally be defined
-in terms of local classes or types that are local class members.  Also,
-don't do it for class template prototypes, since the class types created for
-them don't appear in the IL.  When finding the scope to which the
-placeholder type should be added, we scan backwards through the scope stack
-looking for a class scope for a real class (i.e., not a prototype
-instantiation).  This search is unusual in that it doesn't stop at the first
-instantiation scope.  This is done so that we can find the innermost class
-scope, even if there are other instantiations (e.g., function
-instantiations) below that on the scope stack.
-*/
-{
-  a_scope_stack_entry_ptr        ssep;
-  a_scope_depth                  scope_depth = depth_scope_stack;
-  a_type_ptr                     inst_placeholder;
-
-  db_enter(4, "add_placeholder_for_class_instantiation");
-  /* This function should not be called for the partial instantiation of a
-     class template. */
-  check_assertion_str2(!is_immediate_class_type(type_ptr) ||
-                       class_type_supp(type_ptr)->assoc_scope != NULL,
-                       "add_placeholder_for_class_instantiation",
-                       "class is not fully instantiated");
-  ssep = &scope_stack[scope_depth];
-#if CHECKING
-  while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-    --scope_depth;
-    --ssep;
-  }  /* while */
-  check_assertion(ssep->kind == (a_scope_kind)sck_template_instantiation);
-#endif /* CHECKING */
-  /* Find the nearest enclosing class scope, if any. */
-  for (--scope_depth; scope_depth > DEPTH_OF_FILE_SCOPE; --scope_depth) {
-    --ssep;
-    if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-        !ssep->assoc_type->variant.class_struct_union.is_nonreal_class) {
-      /* Found a class scope. */
-      break;
-    }  /* if */
-  }  /* for */
-  if (scope_depth > DEPTH_OF_FILE_SCOPE) {
-    /* At this point, ssep should point to a real class scope. */
-    if (ssep->inside_local_class) {
-      /* A placeholder is not needed for an instantiation within a
-         function definition. */
-    } else if (type_ptr->source_corresp.is_class_member &&
-               parent_class_of(type_ptr) == ssep->assoc_type) {
-      /* Nor is a placeholder needed within the class to which a member
-         template class instance belongs. */
-    } else {
-      /* Allocate the placeholder type, set its fields, and add it to the
-         types list of the enclosing class.  Note that this typeref has no
-         name or symbol associated with it. */
-      inst_placeholder = alloc_type((a_type_kind)tk_typeref);
-      inst_placeholder->variant.typeref.type = type_ptr;
-      set_class_membership((a_symbol_ptr)NULL,
-                           &inst_placeholder->source_corresp,
-                           ssep->assoc_type);
-      inst_placeholder->
-             variant.typeref.is_placeholder_for_class_instantiation = TRUE;
-      if (type_ptr->kind == (a_type_kind)tk_typeref) {
-        check_assertion(type_ptr->variant.typeref.is_alias);
-        type_ptr->variant.typeref.
-              referenced_by_class_instantiation_placeholder_typeref = TRUE;
-      } else {
-        check_assertion(is_immediate_class_type(type_ptr));
-        type_ptr->variant.class_struct_union.
-              referenced_by_class_instantiation_placeholder_typeref = TRUE;
-      }  /* if */
-      add_to_types_list(inst_placeholder, scope_depth);
-    }  /* if */
-  }  /* if */
-  db_exit();
-}  /* add_placeholder_for_class_instantiation */
-
-
-void add_placeholder_for_nested_class_def(a_type_ptr     type_ptr,
-                                          a_scope_depth  decl_level)
-/*
-Allocate a nested-class-definition placeholder typeref to point to type_ptr,
-set its fields, and add it to the types list for the indicated scope depth.
-*/
-{
-  a_type_ptr  placeholder;
-
-  placeholder = alloc_type((a_type_kind)tk_typeref);
-  placeholder->variant.typeref.type = type_ptr;
-  placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
-  if (type_ptr->kind == (a_type_kind)tk_typeref) {
-    type_ptr->variant.typeref.nested_type_defined_outside_of_parent = TRUE;
-  } else {
-    type_ptr->variant.class_struct_union
-                               .nested_class_defined_outside_of_parent = TRUE;
-  }  /* if */
-  /* Add the placeholder type to the types list of the scope active when the
-     original declaration was seen -- before any namespace extension scopes
-     were pushed if the nested class was specified with a namespace-qualified
-     name -- for instance:
-       namespace N { class A { class B; }; }
-       class N::A::B { };
-     Here the namespace-extension scope for N is still on the scope stack, but
-     we want the placeholder typeref to be added to the file scope, which is
-     what decl_level should specify. */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  if (scope_stack[decl_level].kind == (a_scope_kind)sck_class_struct_union) {
-    /* Microsoft and GNU C++ allow delayed nested class definitions that
-       appear in class scopes.  Make the placeholder a member of the class in
-       which the definition appears. */
-    a_type_ptr  enclosing_class =
-                         scope_stack[decl_level].il_scope->variant.assoc_type;
-    set_class_membership((a_symbol_ptr)NULL,
-                         &placeholder->source_corresp, enclosing_class);
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (scope_stack[decl_level].kind == (a_scope_kind)sck_namespace) {
-    /* The original declaration scope is a namespace scope instead of the file
-       scope.  Make the placeholder a member of the namespace. */
-    a_namespace_ptr nsp =
-                    scope_stack[decl_level].il_scope->variant.assoc_namespace;
-    set_namespace_membership((a_symbol_ptr)NULL, &placeholder->source_corresp,
-                             nsp);
-  }  /* if */
-  add_to_types_list(placeholder, decl_level);
-}  /* add_placeholder_for_nested_class_def */
-
 #if NAMED_REGISTERS_ALLOWED
 
 static a_variable_ptr
@@ -7758,26 +7586,19 @@ done to add the type to the end of the types list for the enclosing class.
       prev_type->next = type_ptr;
     }  /* if */
     pointers_block->last_type = type_ptr;
-    /* We are adding a type to the types list of a namespace scope.  Add
-       a placeholder type to the types list of the filescope -- it's used
-       by IL lowering to get the order right when it promotes namespace
-       types to the file scope. */
-    add_placeholder_for_namespace_type(type_ptr);
   } else {
     /* Normal case -- just use the normal add_to_types_list process. */
-    add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
+    add_to_types_list(type_ptr, scope_level);
   }  /* if */
 }  /* add_lambda_closure_to_types_list */
 
 
-void add_to_types_list_full(a_type_ptr     type_ptr,
-                            a_scope_depth  scope_level,
-                            a_boolean      do_placeholder)
+void add_to_types_list(a_type_ptr     type_ptr,
+                       a_scope_depth  scope_level)
 /*
 Add the given type to the types list for the scope corresponding to
 scope_level.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
-rather than determined directly.  If do_placeholder is TRUE, add
-a namespace placeholder if appropriate.
+rather than determined directly.
 */
 {
   a_scope_ptr                 sp;
@@ -7845,106 +7666,17 @@ a namespace placeholder if appropriate.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    if (!C_mode() && do_placeholder) {
-      if (sp->kind == (a_scope_kind)sck_namespace) {
-        /* We are adding a type to the types list of a namespace scope.  Add
-           a placeholder type to the types list of the filescope -- it's used
-           by IL lowering to get the order right when it promotes namespace
-           types to the file scope. */
-        add_placeholder_for_namespace_type(type_ptr);
-      }  /* if */
-    }  /* if */
   }  /* if */
-}  /* add_to_types_list_full */
-
-
-void add_to_types_list(a_type_ptr     type_ptr,
-                       a_scope_depth  scope_level)
-/*
-Add the given type to the types list for the scope corresponding to
-scope_level.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
-rather than determined directly.
-*/
-{
-  add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
 }  /* add_to_types_list */
 
 
-static a_type_ptr find_and_eliminate_invalid_placeholder_in_file_scope(
-                                                      a_scope_ptr  file_scope,
-                                                      a_type_ptr   type)
-/*
-Find the placeholder typeref (which must be marked as invalid; i.e., the type
-it refers to must have first_placeholder_invalid set to TRUE) for the given
-type on the types list of the given file scope.  All invalid placeholders
-encountered during the traversal (including the one found for the given type)
-are removed.  If type is NULL, this routine eliminates all the invalid
-placeholder typerefs in the given file scope and NULL is returned.  Otherwise,
-the invalid placeholder corresponding to type is returned.
-*/
-{
-  a_type_ptr  tp = file_scope->types, prev_tp = NULL;
-
-  while (num_invalid_placeholders_in_file_scope > 0 && tp != NULL) {
-    if (tp->kind == (a_type_kind)tk_typeref &&
-        tp->variant.typeref.is_placeholder_for_namespace_type) {
-      /* A placeholder typeref. */
-      a_type_ptr  ref_tp = tp->variant.typeref.type;
-      if (ref_tp->first_placeholder_invalid) {
-        /* The placeholder was no longer valid: Delete it (by linking
-           around the type entry). */
-        if (prev_tp == NULL) {
-          file_scope->types = tp->next;
-        } else {
-          prev_tp->next = tp->next;
-        }  /* if */
-        /* We deleted the invalid placeholder: Adjust the book-
-           keeping information as appropriate. */ 
-        --num_invalid_placeholders_in_file_scope;
-        ref_tp->first_placeholder_invalid = FALSE;
-        if (ref_tp == type) {
-          /* We found the requested type: End the traversal.  (This test
-             will always fail if type is NULL.) */
-          break;
-        }  /* if */
-      } else {
-        prev_tp = tp;
-      }  /* if */
-    } else {
-      prev_tp = tp;
-    }  /* if */
-    tp = tp->next;
-  }  /* while */
-  check_assertion(type != NULL ? tp != NULL
-                               : num_invalid_placeholders_in_file_scope == 0);
-  return tp;
-}  /* find_and_eliminate_invalid_placeholder_in_file_scope */
-
-
-void eliminate_invalid_placeholders_in_file_scope(a_scope_ptr  file_scope)
-/*
-Calls to move_to_end_of_types_list may have invalidated placeholder typerefs
-in the given file scope.  Traverse the scope's type list and remove such
-placeholder typerefs.  (Doing it in a separate pass can improve performance
-by amortizing the traversal over multiple deletions.)
-*/
-{
-  (void)find_and_eliminate_invalid_placeholder_in_file_scope(file_scope,
-                                                             (a_type_ptr)NULL);
-}  /* eliminate_invalid_placeholders_in_file_scope */
-
-
 void move_to_end_of_types_list(a_type_ptr     type_ptr,
-                               a_scope_depth  scope_level,
-                               a_boolean      delete_placeholder)
+                               a_scope_depth  scope_level)
 /*
 Move the indicated type, which is already on the types list of an IL scope,
 to the end of that list.  Use scope_level to find the appropriate IL scope.
 When scope_level is NO_SCOPE_DEPTH, the scope is computed rather than
-determined directly.  If the type has an associated namespace placeholder,
-the placeholder type is moved to the end of the file-scope list, except
-if delete_placeholder is TRUE, in which case the placeholder is simply
-removed from the list.
+determined directly.
 */
 {
   a_scope_ptr                 sp;
@@ -8008,66 +7740,6 @@ removed from the list.
       fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    if (!C_mode()
-#if DO_IL_LOWERING
-        && !il_lowering_underway
-#endif /* DO_IL_LOWERING */
-                                ) {
-      if (sp->kind == (a_scope_kind)sck_namespace) {
-        /* Move the associated placeholder typedef (there ought to be one) to
-           the end of the file-scope types list. */
-        a_scope_ptr file_scope = curr_translation_unit->primary_scope;
-
-        pointers_block = &curr_translation_unit->file_scope_pointers_block;
-        tp = pointers_block->last_type;
-        if (!delete_placeholder &&
-            is_assoc_namespace_type_placeholder(tp, type_ptr)) {
-          /* The placeholder entry is already the last entry. */
-        } else {
-          if (!type_ptr->first_placeholder_invalid) {
-            /* type_ptr does not yet have an invalid placeholder associated
-               with it.  We can therefore now mark it as having an invalid
-               placeholder and delay the actual removal of the placeholder
-               until later (to amortize the needed traversal over multiple
-               deletions).  This should be by far the most common case,
-               since a type is rarely moved to the end of the types list
-               more than once. */
-            type_ptr->first_placeholder_invalid = TRUE;
-            ++num_invalid_placeholders_in_file_scope;
-            if (!delete_placeholder) {
-              /* "Moving" the placeholder really amounts to a "copy" in
-                 this case. */
-              add_placeholder_for_namespace_type(type_ptr);
-            }  /* if */
-          } else {
-            /* There are already two placeholders for the given type: An
-               invalid one followed by a valid one.  Remove the invalid one
-               and invalidate the valid one. */
-            tp = find_and_eliminate_invalid_placeholder_in_file_scope(
-                                                        file_scope, type_ptr);
-            check_assertion(tp != NULL &&
-                            is_assoc_namespace_type_placeholder(tp, type_ptr));
-            type_ptr->first_placeholder_invalid = TRUE;
-            ++num_invalid_placeholders_in_file_scope;
-            if (!delete_placeholder) {
-              /* Reenter the entry that was found onto the end of the list. */
-              pointers_block->last_type->next = tp;
-              pointers_block->last_type = tp;
-            }  /* if */
-            tp->next = NULL;
-          }  /* if */
-#if DEBUG
-          if (db_flag_is_set("dump_type_lists")) {
-            fprintf(f_debug, "%s: \n", delete_placeholder ?
-                                           "Removed placeholder from list" :
-                                           "Moved placeholder to end of list");
-            db_abbreviated_type(tp);
-            fprintf(f_debug, "\n");
-          }  /* if */
-#endif /* DEBUG */
-        }  /* if */
-      }  /* if */
-    }  /* if */
   }  /* if */
 }  /* move_to_end_of_types_list */
 
@@ -19373,43 +19045,6 @@ necessary processing on those members to clear instantiation information.
 }  /* clear_instantiation_information_for_eliminated_members */
 
 
-static void clear_placeholder_flags_for_eliminated_members(
-                                                         a_type_ptr class_type)
-/*
-The indicated class type or its definition is being eliminated from the
-IL, which means the class members are also being eliminated.  If any
-member types are placeholders for class instantiations, clear the flag in
-the class instantiations because the placeholders will be removed.
-*/
-{
-  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
-  a_scope_ptr                 scope;
-
-  check_assertion(!C_mode() && ctsp != NULL);
-  scope = ctsp->assoc_scope;
-  if (scope != NULL) {
-    a_type_ptr type;
-    for (type = scope->types; type != NULL; type = type->next) {
-      if (type->kind == (a_type_kind)tk_typeref &&
-          type->variant.typeref.is_placeholder_for_class_instantiation) {
-        a_type_ptr inst_type = type->variant.typeref.type;
-        if (inst_type->kind == (a_type_kind)tk_typeref) {
-          check_assertion(inst_type->variant.typeref.is_alias);
-          inst_type->variant.typeref.
-                 referenced_by_class_instantiation_placeholder_typeref = FALSE;
-        } else {
-          check_assertion(is_immediate_class_type(inst_type));
-          check_assertion(inst_type->variant.class_struct_union.
-                        referenced_by_class_instantiation_placeholder_typeref);
-          inst_type->variant.class_struct_union.
-                 referenced_by_class_instantiation_placeholder_typeref = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* clear_placeholder_flags_for_eliminated_members */
-
-
 static void process_members_of_eliminated_class_definition(
                                                          a_type_ptr class_type)
 /*
@@ -19430,8 +19065,6 @@ necessary processing on those members.
   eliminate_member_function_default_arg_object_lifetimes(class_type);
   /* Clear instantiation information for any template members. */
   clear_instantiation_information_for_eliminated_members(class_type);
-  /* Clear flags for placeholder typerefs eliminated. */
-  clear_placeholder_flags_for_eliminated_members(class_type);
   /* Do the same processing for nested classes. */
   if (ctsp->assoc_scope != NULL) {
     a_type_ptr  tp = ctsp->assoc_scope->types;
@@ -19516,8 +19149,6 @@ entry into one representing a nondefining declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   eliminate_class_body_source_sequence_entries(class_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  class_type->variant.class_struct_union.
-                       nested_class_defined_outside_of_parent = FALSE;
   class_type->variant.class_struct_union.is_empty_class = FALSE;
   /* The type is now incomplete. */
   class_type->incomplete = TRUE;
@@ -19606,35 +19237,12 @@ part, this means that its keep_in_il flag is TRUE.
 */
 {
   a_boolean  keep;
-  a_type_ptr type = tp, nested_type_ph = NULL;
+  a_type_ptr type = tp;
 
-  /* For placeholder typerefs, test the keep_in_il flag on the
-     underlying type, thus keeping the placeholder typeref if the
-     underlying type is being kept. */
-  while (type->kind == (a_type_kind)tk_typeref &&
-         !typeref_is_typedef(type)) {
-    if (type->variant.typeref.is_placeholder_for_nested_class_def) {
-      /* Remember that there is a nested class placeholder. */
-      nested_type_ph = type;
-    }  /* if */
+  while (type->kind == (a_type_kind)tk_typeref && !typeref_is_typedef(type)) {
     type = type->variant.typeref.type;
   }  /* while */
   keep = il_entry_prefix_of(type).keep_in_il;
-  if (keep && nested_type_ph != NULL) {
-    /* If the body of a nested type defined outside of its parent has been
-       removed, the placeholder for the definition gets removed also. */
-    if (type->kind == (a_type_kind)tk_typeref) {
-      if (!type->variant.typeref.nested_type_defined_outside_of_parent) {
-        keep = FALSE;
-      }  /* if */
-    } else {
-      check_assertion(is_immediate_class_type(type));
-      if (!type->variant.class_struct_union
-                                    .nested_class_defined_outside_of_parent) {
-        keep = FALSE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
   return keep;
 }  /* type_is_to_be_kept_in_il */
 
@@ -21261,61 +20869,82 @@ Display memory use for entities in front end memory in this file (il.c).
  #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires IL lowering
 #endif /* !DO_IL_LOWERING */
 
+a_type_ptr
+	*type_reordering;
+		/* A pointer to a temporary array of a_type_ptr values
+		   used to order the file scopes type list as required for
+		   the C-generating back end.
+		   See fix_type_list_ordering_problems. */
+
+a_type_ptr
+	*next_type_reordering_slot;
+		/* Pointer to the next available slot in type_reordering. */
+
+/*
+Macro to append a given type to the type_reordering array.
+*/
+#define append_type_to_reordering(tp)                                       \
+  (*next_type_reordering_slot++ = (tp))
+
 static void process_type_for_ordering(a_type_ptr type,
-                                      a_boolean  must_be_complete,
-                                      a_type_ptr *insert_pointer);
+                                      a_boolean  must_be_complete);
 static void process_referenced_types_for_ordering(a_type_ptr type,
-                                                  a_boolean  must_be_complete,
-                                                  a_type_ptr *insert_pointer);
+                                                  a_boolean  must_be_complete);
 
 
 static void process_referenced_type_for_ordering(a_type_ptr type,
-                                                 a_boolean  must_be_complete,
-                                                 a_type_ptr *insert_pointer)
+                                                 a_boolean  must_be_complete)
 /*
-The indicated type is referenced from another type.  If it's a type
-that is on the file-scope list, move it to the list of processed types
-by inserting it following *insert_pointer and updating *insert_pointer.
-If must_be_complete is TRUE, the type is used in a way that requires
-it to be complete.
+The indicated type is referenced from another type.  If it's a type that is on
+the file-scope list, add it to the type_reordering array if appropriate.  
+Either way, types referenced by this are similarly processed if needed.
+If must_be_complete is TRUE, the type is used in a way that requires it to be
+complete.
 */
 {
-  if (must_be_complete ? type->type_processed_as_complete_for_ordering :
-                         type->type_processed_for_ordering) {
-    /* The type has already been processed in the appropriate way. */
+  a_scope_ptr  scope = parent_scope_of(type);
+
+  /* Note that types defined in function prototypes are not promoted to the
+     file scope. */
+  if (type->type_processed_as_complete_for_ordering) {
+    /* The type has already been added to the reordering and traversed as
+       requiring completeness. */
+  } else if (is_immediate_class_type(type) &&
+             !(scope != NULL &&
+               scope->kind == (a_scope_kind)sck_func_prototype)) {
+    /* This is a struct or union, which goes on the file-scope types list. */
+    /* structs and unions are declared in the first pass through the types
+       in c_gen_be, so their names are always available.  So if no definition
+       is needed (must_be_complete is FALSE), don't append the type yet to
+       avoid circular dependency problems. */
+    if (must_be_complete) {
+      process_type_for_ordering(type, /*must_be_complete=*/TRUE);
+    }  /* if */
+  } else if (is_immediate_enum_type(type) &&
+             !(scope != NULL &&
+               scope->kind == (a_scope_kind)sck_func_prototype)) {
+    /* This is an enum, which goes on the file-scope types list. */
+    /* enums are put out as definitions in the first pass in c_gen_be, so they
+       are always available.  However, it doesn't hurt to append the type now
+       to the reordered list. */
+    process_type_for_ordering(type, /*must_be_complete=*/TRUE);
+  } else if (type->kind == (a_type_kind)tk_typeref &&
+             typeref_is_typedef(type) &&
+             !type->type_processed_for_ordering &&
+             !(scope != NULL &&
+               scope->kind == (a_scope_kind)sck_func_prototype)) {
+    /* This is a typedef, which goes on the file-scope types list, and this
+       one is not on the reordering yet. */
+    /* These are put out as definitions in the second pass in c_gen_be, so
+       they are available -- even as incomplete types -- only after their
+       appearance in the type list: At this entry to the reordering now. */
+      process_type_for_ordering(type, must_be_complete);
   } else {
-    if (is_immediate_class_type(type)) {
-      /* This is a struct or union, which goes on the type list. */
-      /* structs and unions are declared in the first pass through the
-         types in c_gen_be, so their names are always available.  Their
-         definitions are put out in the second pass, however, so if
-         a definition is needed here the reference must be to something
-         earlier on the list. */
-      if (must_be_complete) {
-        process_type_for_ordering(type, must_be_complete, insert_pointer);
-      } else {
-        type->type_processed_for_ordering = TRUE;
-      }  /* if */
-    } else if (is_immediate_enum_type(type)) {
-      /* This is an enum, which goes on the type list.  enums are put out
-         as definitions in the first pass in c_gen_be, so they are always
-         available. */
-      type->type_processed_for_ordering = TRUE;
-      type->type_processed_as_complete_for_ordering = TRUE;
-    } else if (type->kind == (a_type_kind)tk_typeref &&
-               typeref_is_typedef(type) &&
-               !type->type_processed_for_ordering) {
-      /* This is a typedef, which goes on the type list. */
-      /* These are put out as definitions in the second pass in c_gen_be,
-         so they are available -- even as incomplete types -- only after
-         their appearance in the type list. */
-      process_type_for_ordering(type, must_be_complete, insert_pointer);
-    } else {
-      /* This type is either one that doesn't go on the type list, or
-         it's a typedef type that has not been processed as a complete
-         type yet. */
-      process_referenced_types_for_ordering(type, must_be_complete,
-                                            insert_pointer);
+    /* This type is either one that doesn't go on the file-scope types list,
+       or it's a typedef type that is already placed in the new ordering but
+       that has not yet been traversed as requiring completeness. */
+    if (must_be_complete || !type->type_processed_for_ordering) {
+      process_referenced_types_for_ordering(type, must_be_complete);
       type->type_processed_for_ordering = TRUE;
       if (must_be_complete) {
         type->type_processed_as_complete_for_ordering = TRUE;
@@ -21326,49 +20955,42 @@ it to be complete.
     
 
 static void process_referenced_types_for_ordering(a_type_ptr type,
-                                                  a_boolean  must_be_complete,
-                                                  a_type_ptr *insert_pointer)
+                                                  a_boolean  must_be_complete)
 /*
-Process any types referenced by the indicated type as being referenced
-by the ordering processing.  "type" itself is not processed at this
-level.  See process_referenced_type_for_ordering for the description of
-must_be_complete and insert_pointer.
+Process any types referenced by the indicated type as being referenced by the
+ordering processing.  "type" itself is not processed at this level.  See
+process_referenced_type_for_ordering for the description of must_be_complete.
 */
 {
   switch (type->kind) {
     case tk_typeref:
       /* A typedef or cv-qualifier.  Process the underlying type. */
       process_referenced_type_for_ordering(type->variant.typeref.type,
-                                           must_be_complete,
-                                           insert_pointer);
+                                           must_be_complete);
       break;
     case tk_pointer:
       /* A pointer type.  Process the underlying type, which does
          not need to be complete. */
       process_referenced_type_for_ordering(type->variant.pointer.type,
-                                           /*must_be_complete=*/FALSE,
-                                           insert_pointer);
+                                           /*must_be_complete=*/FALSE);
       break;
     case tk_array:
       /* An array type.  Process the underlying type. */
       process_referenced_type_for_ordering(type->variant.array.element_type,
-                                           must_be_complete,
-                                           insert_pointer);
+                                           must_be_complete);
       break;
     case tk_routine:
       /* A function type.  The return type and the parameter types
          do not have to be complete. */
       process_referenced_type_for_ordering(type->variant.routine.return_type,
-                                           /*must_be_complete=*/FALSE,
-                                           insert_pointer);
+                                           /*must_be_complete=*/FALSE);
       { a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
         a_param_type_ptr              ptp;
         for (ptp = rtsp->param_type_list;
              ptp != NULL;
              ptp = ptp->next) {
           process_referenced_type_for_ordering(ptp->type,
-                                               /*must_be_complete=*/FALSE,
-                                               insert_pointer);
+                                               /*must_be_complete=*/FALSE);
         }  /* for */
       }
       break;
@@ -21381,8 +21003,7 @@ must_be_complete and insert_pointer.
              field != NULL;
              field = field->next) {
           process_referenced_type_for_ordering(field->type,
-                                               must_be_complete,
-                                               insert_pointer);
+                                               must_be_complete);
         }  /* for */
       }  /* if */
       break;
@@ -21394,79 +21015,19 @@ must_be_complete and insert_pointer.
       
 
 static void process_type_for_ordering(a_type_ptr type,
-                                      a_boolean  must_be_complete,
-                                      a_type_ptr *insert_pointer)
+                                      a_boolean  must_be_complete)
 /*
-Move the indicated type to the list of types processed by the type-ordering
-algorithm, by inserting it following *insert_pointer and updating
-*insert_pointer.  Before doing that, make sure that all types referenced
-by the type have already been moved (so they are on the list before they
-are used).  If must_be_complete is TRUE, the type is used in a way that
-requires it to be complete.  The type passed in must be one that appears
-on the file-scope types list (i.e., struct, union, enum, or typedef).
+Add the indicated type to the type_reordering array.  Before doing that, make
+sure that all types referenced by the type are already in that array if needed.
+If must_be_complete is TRUE, the type is used in a way that requires it to be
+complete.  The type passed in must be one that appears on the file-scope types
+list (i.e., struct, union, enum, or typedef).
 */
 {
-  a_type_ptr prev_type, temp_type;
-
-  /* Find the type preceding "type" on the list.  Start looking at
-     *insert_pointer, which will often be the preceding type. */
-  if (*insert_pointer == NULL) {
-    prev_type = NULL;
-    temp_type = il_header.primary_scope->types;
-  } else {
-    prev_type = *insert_pointer;
-    temp_type = prev_type->next;
-  }  /* if */
-#if DEBUG
-  if (temp_type != type &&
-      db_trace("type_list_order", type, iek_type)) {
-    (void)fprintf(f_debug, "Moving type earlier to fix ordering problem:\n");
-    db_abbreviated_type(type);
-    (void)fprintf(f_debug, "\n");
-    if (*insert_pointer == NULL) {
-      (void)fprintf(f_debug, "Moving to front of type list\n");
-    } else {
-      (void)fprintf(f_debug, "Moving to after type:\n");
-      db_abbreviated_type(*insert_pointer);
-      (void)fprintf(f_debug, "\n");
-    }  /* if */
-  }  /* if */
-#endif /* DEBUG */
-  for (; temp_type != type;
-       prev_type = temp_type, temp_type = temp_type->next) {
-#if CHECKING
-    if (temp_type == NULL) {
-#if DEBUG
-      (void)fprintf(f_debug, "Missing type: ");
-      db_abbreviated_type(type);
-      (void)fprintf(f_debug, "\n");
-#endif /* DEBUG */
-      /* The most likely cause of this abort is a cycle in the type
-         dependencies that cannot be resolved.  If such a cycle happens,
-         it's not possible to generate valid C code for the program. */
-      internal_error("process_type_for_ordering: type not found");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* for */
-  /* Remove the type from the list. */
-  if (prev_type == NULL) {
-    il_header.primary_scope->types = type->next;
-  } else {
-    prev_type->next = type->next;
-  }  /* if */
-  type->next = NULL;
   /* Process any types referenced from this type. */
-  process_referenced_types_for_ordering(type, must_be_complete,
-                                        insert_pointer);
+  process_referenced_types_for_ordering(type, must_be_complete);
   /* Add the type to the list of processed types. */
-  if (*insert_pointer == NULL) {
-    type->next = il_header.primary_scope->types;
-    il_header.primary_scope->types = type;
-  } else {
-    type->next = (*insert_pointer)->next;
-    (*insert_pointer)->next = type;
-  }  /* if */
-  *insert_pointer = type;
+  append_type_to_reordering(type);
   type->type_processed_for_ordering = TRUE;
   if (must_be_complete) type->type_processed_as_complete_for_ordering = TRUE;
 }  /* process_type_for_ordering */
@@ -21474,42 +21035,53 @@ on the file-scope types list (i.e., struct, union, enum, or typedef).
 
 void fix_type_list_ordering_problems(void)
 /*
-Fix any ordering problems on the file scope types list that would cause
-errors when C code is generated by the C-generating back end.  Such
-problems come up (rarely) when multiple translation units are processed or
-when a local type is used as a template type argument.  This code runs
-after IL lowering.
+Fix any ordering problems on the file scope types list that would cause errors
+when C code is generated by the C-generating back end.  This code runs after
+IL lowering.
 */
 {
-  a_type_ptr insert_pointer = NULL;
-  a_type_ptr type;
-
-  /* Run through the file-scope types list.  Move each type to a list of
-     processed types, making sure that all the types it references
-     are processed previously so that they will precede the type on the
-     list. */
-  /* We're modeling references in types output in the second pass of
-     c_gen_be here.  In the first pass, structs and unions are output
-     as declarations, and enums as definitions, so their names are
-     always available in the second pass, but the definitions of structs
-     and unions are not available unless they appear earlier in the
-     list.  typedefs are put out in the second pass, so their names
-     are not available unless they appear earlier in the list.  However,
-     their types need not be complete at the point of definition. */
-  for (;;) {
-    if (insert_pointer == NULL) {
-      type = il_header.primary_scope->types;
-    } else {
-      type = insert_pointer->next;
-    }  /* if */
-    if (type == NULL) break;
-    process_type_for_ordering(type,
-                              /*must_be_complete=*/
+  if (il_header.primary_scope->types != NULL) {
+    a_type_ptr     type = il_header.primary_scope->types;
+    unsigned long  n_types = 0, k; 
+    /* Run through the file-scope types list.  Move each type to a list of
+       processed types, making sure that all the types it references
+       are processed previously so that they will precede the type on the
+       list (if they ought to be on the list at all). */
+    /* First count the types to be reordered and allocate an array of
+       a_type_ptr values to keep track of the new order. */
+    for (; type != NULL; type = type->next) ++n_types;
+    type_reordering = (a_type_ptr*)alloc_general(n_types*sizeof(a_type_ptr));
+    next_type_reordering_slot = type_reordering;
+    /* We're modeling references in types output in the second pass of
+       c_gen_be here.  In the first pass, structs and unions are output
+       as declarations, and enums as definitions, so their names are
+       always available in the second pass, but the definitions of structs
+       and unions are not available unless they appear earlier in the
+       list.  typedefs are put out in the second pass, so their names
+       are not available unless they appear earlier in the list.  However,
+       their types need not be complete at the point of definition. */
+    for (type = il_header.primary_scope->types;
+         type != NULL;
+         type = type->next) {
+      if (!type->type_processed_for_ordering) {
+        process_type_for_ordering(type,
+                                  /*must_be_complete=*/
                                               (is_immediate_class_type(type) ||
-                                               is_immediate_enum_type(type)),
-                              &insert_pointer);
-  }  /* for */
-  translation_units->file_scope_pointers_block.last_type = insert_pointer;
+                                               is_immediate_enum_type(type)));
+      }  /* if */
+    }  /* for */
+    check_assertion(next_type_reordering_slot - type_reordering == n_types);
+    /* Now apply the reordering. */
+    il_header.primary_scope->types = type_reordering[0];
+    for (k = 1; k<n_types; ++k) {
+      type_reordering[k-1]->next = type_reordering[k];
+    }  /* for */
+    type_reordering[k-1]->next = NULL;
+    translation_units->file_scope_pointers_block.last_type =
+                                                         type_reordering[k-1];
+    free_general(type_reordering, n_types*sizeof(a_type_ptr));
+    type_reordering = NULL;
+  }  /* if */
 }  /* fix_type_list_ordering_problems */
 
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
@@ -21783,7 +21355,6 @@ in il_init.)
       pch_saved_var_array_elem(curr_upc_access_method),
       pch_saved_var_array_elem(max_upc_block_size),
 #endif /* UPC_EXTENSIONS_ALLOWED */
-      pch_saved_var_array_elem(num_invalid_placeholders_in_file_scope),
 #if DEBUG
       pch_saved_var_array_elem(num_searches_for_shareable_constants),
       pch_saved_var_array_elem(num_compares_for_shareable_constants),
@@ -21852,7 +21423,6 @@ in il_init.)
 #if UPC_EXTENSIONS_ALLOWED
   register_trans_unit_variable(curr_upc_access_method);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  register_trans_unit_variable(num_invalid_placeholders_in_file_scope);
   register_trans_unit_variable(scheduled_routine_moves);
   register_trans_unit_variable(scope_of_scheduled_routine_moves);
   register_trans_unit_variable(scope_pointers_of_scheduled_routine_moves);
@@ -21944,7 +21514,6 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)orphaned_file_scope_il_entries,
           sizeof(orphaned_file_scope_il_entries));
 #endif /* ORPHAN_PROCESSING_NEEDED */
-  num_invalid_placeholders_in_file_scope = 0;
   scheduled_routine_moves = NULL;
   scope_of_scheduled_routine_moves = NULL;
   scope_pointers_of_scheduled_routine_moves = NULL;

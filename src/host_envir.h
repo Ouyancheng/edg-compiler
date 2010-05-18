@@ -350,6 +350,20 @@ be TRUE in the standalone IL display program.
 #endif /* ifndef BACK_END_IS_C_GEN_BE */
 
 /*
+This switch controls whether a post-pass is done after IL lowering to ensure
+that the types list is in order, in the sense that the C-generating back end
+can generate compilable code from it.  (Other code-generating back ends may
+also require such an ordering.)
+*/
+#ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING
+#define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
+#endif /* ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING */
+
+#if BACK_END_IS_C_GEN_BE && !ENSURE_LOWERED_TYPE_LIST_ORDERING
+ #error BACK_END_IS_C_GEN_BE requires ENSURE_LOWERED_TYPE_LIST_ORDERING
+#endif /* BACK_END_IS_C_GEN_BE && !ENSURE_LOWERED_TYPE_LIST_ORDERING */
+
+/*
 Is the C++-generating back end being used as the back end?
 Note that this means we're using the C++-generating back end,
 but not necessarily in the current program -- e.g., it can

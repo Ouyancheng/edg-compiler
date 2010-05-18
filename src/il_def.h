@@ -6481,14 +6481,6 @@ typedef struct a_type {
   a_bit_field	declared_in_function_prototype:1;
 			/* TRUE if this is a local type declared or defined
 			   within a function prototype scope (C mode only). */
-  a_bit_field	first_placeholder_invalid:1;
-			/* TRUE if the first placeholder typeref for this
-			   type is no longer valid (because a new one was
-			   created later on the types list).  This flag is
-			   used only to optimize the process of moving
-			   placeholder typerefs.  The flag is eventually
-			   reset to FALSE when the invalid placeholder is
-			   deleted. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   a_bit_field	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a
@@ -6599,11 +6591,6 @@ typedef struct a_type {
 			   produced by a template instantiation, no matter
 			   what triggers the instantiation. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_bit_field	referenced_by_namespace_placeholder_typeref:1;
-			/* TRUE if this type is pointed to by a placeholder
-			   typeref that has is_placeholder_for_namespace_type
-			   TRUE.  Used for types that are members of
-			   namespaces. */
   a_bit_field	is_builtin_va_list:1;
 			/* TRUE if this type is the va_list type declared by
 			   <stdarg.h> or <cstdarg>, when that's treated as
@@ -6629,13 +6616,18 @@ typedef struct a_type {
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
   a_bit_field	type_processed_for_ordering:1;
 			/* Set during the processing that fixes ordering
-			   problems in the file scope types list when there
-			   are secondary translation units, to indicate that
-			   the definition for the type has already been
-			   seen. */
+			   problems in the file scope types list, to indicate
+			   that the type has already been placed in the new
+			   ordering.  (For types not on the file scope types
+			   list it is set when the type has been traversed
+			   for the purpose of determining the type ordering.)
+			   */
   a_bit_field	type_processed_as_complete_for_ordering:1;
-			/* Similar to previous, but marks whether the type
-			   has been processed as a complete type. */
+			/* Similar to previous, but marks whether the type has
+			   been processed as a complete type.  For class and
+			   enum types the two flags are identical, but for
+			   typedefs type_processed_for_ordering may be TRUE
+			   while this flag is still FALSE. */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   a_bit_field	visited_for_vla_lowering:1;
@@ -6995,21 +6987,9 @@ typedef struct a_type {
 			   the class, struct, or union or its base classes
 			   is a virtual function (C++ only). */
       a_bit_field
-		referenced_by_class_instantiation_placeholder_typeref:1;
-			/* TRUE if the class is pointed to by a placeholder
-			   typeref on a class scope's types list; the type
-			   entry for the associated typeref will have
-			   is_placeholder_for_class_instantiation set to
-			   TRUE. */
-      a_bit_field
 		nested_class_defined_outside_of_parent:1;
 			/* TRUE if the class is a nested class defined outside
-			   its parent class.  It will be pointed to by a
-			   nested-class-def placeholder typeref; the type
-			   entry for the associated typeref will be on the
-			   types list of the file scope or a namespace scope
-			   enclosing the parent class and will have
-			   is_placeholder_for_nested_class_def set to TRUE. */
+			   its parent class. */
       a_bit_field
 		originally_unnamed:1;
 			/* TRUE if the class was declared without a tag; in
@@ -7216,47 +7196,6 @@ typedef struct a_type {
 			/* Bit set with bits set to indicate the presence
 			   of one or more type qualifiers (const, volatile,
 			   or other(s) as defined by the implementation). */
-      a_bit_field
-		is_placeholder_for_class_instantiation:1;
-			/* TRUE if the typeref appears on a class types list
-			   to indicate the declaration sequence position of
-			   the template type to which it refers, which is on
-			   the file scope or a namespace scope types list.
-			   Used for class and alias templates that are
-			   instantiated in the midst of a class definition. */
-      a_bit_field
-		referenced_by_class_instantiation_placeholder_typeref:1;
-			/* TRUE if this type entry is pointed to by a
-			   placeholder typeref on a class scope's types list;
-			   the type entry for the associated typeref will have
-			   is_placeholder_for_class_instantiation set to
-			   TRUE.  (If TRUE, this entry must be an instance of
-			   an alias template.) */
-      a_bit_field
-		is_placeholder_for_namespace_type:1;
-			/* TRUE if the typeref appears on the file-scope
-			   types list to indicate the declaration sequence
-			   position of the type to which it refers, which is
-			   on the types list of a namespace scope.  Used for
-			   user-defined types that are namespace members. */
-      a_bit_field
-		is_placeholder_for_nested_class_def:1;
-			/* TRUE if the typeref appears on a file-scope or
-			   namespace-scope types list to indicate where a
-			   nested class was defined when its definition was
-			   outside the scope of the parent class; the class
-			   type entry pointed to will be on the types list
-			   of the scope of the parent class. */
-      a_bit_field
-		nested_type_defined_outside_of_parent:1;
-			/* TRUE if the typeref is a nested type defined outside
-			   its parent class (this is only possible with alias
-			   template instances).  It will be pointed to by a
-			   nested-class-def placeholder typeref; the type entry
-			   for the associated typeref will be on the types list
-			   of the file scope or a namespace scope enclosing the
-			   parent class and will have the flag
-			   is_placeholder_for_nested_class_def set to TRUE. */
 #if NEAR_AND_FAR_ALLOWED
       a_bit_field
 		explicit_memory_attribute_made_implicit:1;

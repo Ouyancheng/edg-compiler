@@ -1475,8 +1475,6 @@ to default values.
       pte->variant.class_struct_union.
                  any_virtual_functions_including_in_base_classes = FALSE;
       pte->variant.class_struct_union.
-                 referenced_by_class_instantiation_placeholder_typeref = FALSE;
-      pte->variant.class_struct_union.
                  nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
@@ -1590,12 +1588,6 @@ to default values.
       pte->variant.typeref.upc_block_size = UPC_BLOCK_SIZE_NONE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
       pte->variant.typeref.qualifiers  = TQ_NONE;
-      pte->variant.typeref.is_placeholder_for_class_instantiation = FALSE;
-      pte->variant.typeref
-                .referenced_by_class_instantiation_placeholder_typeref = FALSE;
-      pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
-      pte->variant.typeref.is_placeholder_for_nested_class_def = FALSE;
-      pte->variant.typeref.nested_type_defined_outside_of_parent = FALSE;
 #if NEAR_AND_FAR_ALLOWED
       pte->variant.typeref.explicit_memory_attribute_made_implicit = FALSE;
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -1678,7 +1670,6 @@ variant fields to default values.
   }  /* if */
   pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
-  pte->first_placeholder_invalid = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
@@ -1714,7 +1705,6 @@ variant fields to default values.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   pte->autonomous_primary_tag_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  pte->referenced_by_namespace_placeholder_typeref = FALSE;
   pte->is_builtin_va_list = FALSE;
   pte->is_builtin_va_list_from_cstdarg = FALSE;
 #ifdef GUARD_MACRO_FOR_VA_LIST
