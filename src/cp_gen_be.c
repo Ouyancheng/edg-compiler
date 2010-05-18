@@ -5794,7 +5794,7 @@ declaration following this one is such a continuation.
       if (is_alias) {
         /* An alias of the form "using name = type" (the "using" was output
            above). */
-        gen_unqualified_name(&type->source_corresp, iek_type);
+        gen_bare_name(&type->source_corresp, iek_type);
         gen_attributes(attributes, al_declarator_id, sec_decl == NULL);
         include_name = FALSE;
         write_tok_str(" = ");
