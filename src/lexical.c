@@ -17144,9 +17144,9 @@ instantiation.  class_type is the class to be defined.
   add_char_to_text_buffer(class_def_buffer, '\0');
   insert_string_into_token_stream(class_def_buffer->buffer,
                                   /*insert_after=*/FALSE);
-  (void)scan_class_definition
-                   (class_type, depth_innermost_namespace_scope,
-                    depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
+  (void)scan_class_definition(
+                    class_type, depth_innermost_namespace_scope,
+                    /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/
                                     class_type->source_corresp.is_class_member,
                     /*is_template_instantiation=*/FALSE,

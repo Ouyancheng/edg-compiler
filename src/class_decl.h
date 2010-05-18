@@ -68,7 +68,6 @@ extern void check_for_file_with_unterminated_type_definition(
 extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,
-                                   a_scope_depth    orig_decl_level,
                                    a_boolean        is_local_class,
                                    a_boolean        delayed_nested_class_def,
                                    a_boolean        is_template_instantiation,

@@ -2713,7 +2713,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_boolean               tag_resolution = FALSE;
   a_boolean               err = FALSE;
   a_scope_depth           effective_decl_level = decl_scope_level;
-  a_scope_depth           orig_decl_level = decl_scope_level;
   a_boolean               is_class_definition;
   a_source_position       decl_start_pos;
   a_source_position       tag_position;
@@ -3700,8 +3699,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (is_class_definition) {
-    if (scan_class_definition(class_type, effective_decl_level,
-                              orig_decl_level, is_local_class,
+    if (scan_class_definition(class_type, effective_decl_level, is_local_class,
                               delayed_nested_class_def,
                               /*is_template_instantiation=*/FALSE,
                               is_template_specialization,

@@ -16310,7 +16310,6 @@ be a syntax error showing up in the next file.  I.e., something like:
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL !GENERATE_SOURCE_SEQUENCE_LISTS */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
-                                a_scope_depth    orig_decl_level,
                                 a_boolean        is_local_class,
                                 a_boolean        delayed_nested_class_def,
                                 a_boolean        is_template_instantiation,
@@ -16321,12 +16320,9 @@ a_boolean scan_class_definition(a_type_ptr       class_type,
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
 definition is to be scanned.  effective_decl_level indicates the name scope
-to which the class declaration belongs.  orig_decl_level is usually the same
-as effective_decl_level, but when the class was specified with a
-namespace-qualified name, it is instead the scope depth before the namespace
-extension scope was pushed.  is_local_class is TRUE if the class definition
-appears inside a function body.  delayed_nested_class_def is TRUE if the
-class is a nested class whose parent class definition has already been
+to which the class declaration belongs.  is_local_class is TRUE if the class
+definition appears inside a function body.  delayed_nested_class_def is TRUE
+if the class is a nested class whose parent class definition has already been
 completed (C++ only).  is_template_instantiation is TRUE when a template
 is being instantiated either for the purpose of producing the prototype
 instantiation or for generating a real instantiation.  It is also TRUE for

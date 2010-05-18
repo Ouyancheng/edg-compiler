@@ -2918,9 +2918,9 @@ loading of classes.
       curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions++;
       /* Scan the base specifiers list, if any, and the body of the class. */
-      (void)scan_class_definition
-                   (class_type, depth_innermost_namespace_scope,
-                    depth_innermost_namespace_scope, /*is_local_class=*/FALSE,
+      (void)scan_class_definition(
+                    class_type, depth_innermost_namespace_scope,
+                    /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/is_class_member,
                     /*is_template_instantiation=*/TRUE,
                     /*is_template_specialization=*/FALSE,
@@ -3499,7 +3499,6 @@ A pointer to the head of the list is returned in tcsp.
   curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions++;
   (void)scan_class_definition(prototype_type, depth_innermost_namespace_scope,
-                              depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
