@@ -3777,15 +3777,24 @@ without a leading "&".  Do the output in the way described by octl.
               octl);
   } else {
     /* Normal case (not a conversion function). */
-    a_boolean saved_force_qualified_name = octl->force_qualified_name;
-    octl->force_qualified_name = con->variant.template_param.is_qualified_name;
-    if (is_template && octl->output_template_name != NULL) {
-      octl->output_template_name((char *)&con->source_corresp,
-                                 iek_constant);
+    if (con->variant.template_param.is_qualified_name) {
+      a_boolean saved_force_qualified_name = octl->force_qualified_name;
+      octl->force_qualified_name = TRUE;
+      if (is_template && octl->output_template_name != NULL) {
+        octl->output_template_name((char *)&con->source_corresp,
+                                   iek_constant);
+      } else {
+        form_name(&con->source_corresp, iek_constant, octl);
+      }  /* if */
+      octl->force_qualified_name = saved_force_qualified_name;
+    } else if (con->source_corresp.member_of_unknown_base &&
+               !con->source_corresp.qualified_unknown_base_member) {
+      /* We're pretending that we found the member in a dependent base
+         class and the original form of the reference was unqualified. */
+      form_unqualified_name(&con->source_corresp, iek_constant, octl);
     } else {
       form_name(&con->source_corresp, iek_constant, octl);
     }  /* if */
-    octl->force_qualified_name = saved_force_qualified_name;
   }  /* if */
   if (is_template) {
     /* Add the template arguments. */

@@ -2662,10 +2662,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 {
   a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0;
 
-  if (scp->member_of_unknown_base) {
-    /* A member of an unknown base only gets here if the original source
-       form was qualified, so make sure it is qualified in the output as
-       well. */
+  if (scp->member_of_unknown_base && !(options & GN_QUALIFIER)) {
+    /* An unqualified name for a member of an unknown base should not come
+       here but should use something like gen_unqualified_name, to ensure
+       that an expression like "this->f()" (potentially a virtual call when
+       the template is instantiated) does not become "this->S::f()" (which
+       would make it unconditionally non-virtual).  It is not possible to
+       determine whether a member of an unknown base used as a qualifier
+       was itself qualified in the source, but that case does not not
+       matter: the normal logic below will generate a correct form. */
     check_assertion(scp->qualified_unknown_base_member);
     force_qualified_name = TRUE;
   }  /* if */

@@ -2353,7 +2353,12 @@ typedef struct a_source_correspondence {
 			   virtual call, and "this->S::f()", which is always
 			   non-virtual.  If both qualified and unqualified
 			   references to the same member are used, there will
-			   be distinct constants for the two forms. */
+			   be distinct constants for the two forms.  (Note:
+			   this flag will always be FALSE for a type used as
+			   a qualifier in a qualified name, due to the way
+			   the front end handles coalescing of identifiers,
+			   but the distinction is unimportant in such
+			   cases.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	member_of_unknown_super:1;
 			/* When a reference to the Microsoft __super keyword
