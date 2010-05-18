@@ -11150,23 +11150,29 @@ in *rcblock).
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned "new". */
     if (auto_type_specifier_seen) {
-      /* Deduce the type from the initializer.  The initializer expression
-         is "prescanned" by putting it in dps. */
-      dps.is_new_expr_type = TRUE;
-      dps.declared_type = new_type;
-      dps.prescanned_auto_initializer = alloc_arg_operand();
-      make_rescan_operand(rcblock->argument_list, rcblock,
-                          &dps.prescanned_auto_initializer->operand);
-      dps.declarator_pos = dps.auto_pos = type_position;
-      dps.auto_type_specifier_seen = TRUE;
-      /* Find the "auto" in the type. */
-      { a_type_ptr tp = find_bottom_of_type(new_type);
-        tp = skip_typerefs(tp);
+      /* The type is based on "auto".  Find the "auto" in the type. */
+      a_type_ptr tp = find_bottom_of_type(new_type);
+      tp = skip_typerefs(tp);
+      if (is_error_type(tp)) {
+        /* There was a previous error. */
+        new_type = error_type();
+        rcblock->error_detected = TRUE;
+      } else {
         check_assertion(is_auto_type(tp));
+        /* Deduce the type from the initializer.  The initializer expression
+           is "prescanned" by putting it in dps. */
+        dps.is_new_expr_type = TRUE;
+        dps.declared_type = new_type;
+        dps.prescanned_auto_initializer = alloc_arg_operand();
+        make_rescan_operand(rcblock->argument_list, rcblock,
+                            &dps.prescanned_auto_initializer->operand);
+        dps.declarator_pos = dps.auto_pos = type_position;
+        dps.auto_type_specifier_seen = TRUE;
+        /* Do the deduction. */
         dps.auto_type = tp;
-      }
-      deduce_auto_type_if_necessary(&dps);
-      new_type = dps.type;
+        deduce_auto_type_if_necessary(&dps);
+        new_type = dps.type;
+      }  /* if */
     }  /* if */
   } else {
     /* Scan the new-type-name or ( type-name ) from source. */
