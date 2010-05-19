@@ -5823,10 +5823,12 @@ caller would prefer to handle that higher up.
                 constant_lvalue_address(op1, con, address_escapes,
                                         template_constant) &&
                 is_pointer_type(con->type)) {
-              implicit_cast(con,
-                            type_after_array_to_pointer_transformation(
-                                                  type_pointed_to(con->type)));
-              is_constant_ptr = TRUE;
+              a_type_ptr atype = type_pointed_to(con->type);
+              if (is_array_type(atype)) {
+                implicit_cast(con,
+                            type_after_array_to_pointer_transformation(atype));
+                is_constant_ptr = TRUE;
+              }  /* if */
             }  /* if */
             break;
           case eok_padd:
