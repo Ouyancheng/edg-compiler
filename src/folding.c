@@ -5580,6 +5580,7 @@ handle_field_selection:
                 fold_field_selection(pconaddr1, field,
                                      make_pointer_type(expr->type),
                                      con, template_constant);
+                if (*template_constant) is_constant_addr = FALSE;
               }  /* if */
             }
             break;
