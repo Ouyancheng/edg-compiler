@@ -5896,7 +5896,7 @@ cast_case:
       /* Other expression kinds cannot be folded. */
       break;
   }  /* switch */
-  if (template_constant == &local_template_constant) {
+  if (template_constant == &local_template_constant && is_constant_ptr) {
     /* Handle tagging a template constant locally. */
     if (local_template_constant &&
         con->kind != (a_constant_repr_kind)ck_template_param) {
