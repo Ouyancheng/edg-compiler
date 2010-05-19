@@ -2975,6 +2975,12 @@ _Bool type, and VLA types.  The type_kind of the operation is lowered
           break;
       }  /* switch */
       break;
+    case eok_unary_plus:
+      /* Remove this do-nothing operation (it can cause problems in some
+         lowered code, e.g., with complex types).  The operand has already been
+         lowered. */
+      overwrite_node(expr, expr->variant.operation.operands);
+      break;
     case eok_post_incr:
     case eok_post_decr:
     case eok_pre_incr:

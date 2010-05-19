@@ -7,7 +7,9 @@ The UNARY_PLUS_IN_IL macro, which controlled whether unary "+" operators
 would be put into the IL, has now been eliminated, with the consequence
 that customers that formerly had this macro set to FALSE will now see
 eok_unary_plus operators in the IL and must be prepared to handle them
-(IL CHANGE).  This change was made to ensure that such operators are
+(IL CHANGE).  Lowering has been modified to remove the eok_unary_plus
+operation (by overwriting it with its operand), so customers who use lowering
+should see no change.  This change was made to ensure that such operators are
 always available in the new-style SFINAE implementation.
 
 

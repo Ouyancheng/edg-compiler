@@ -14107,6 +14107,12 @@ cast.  See lower_expr for typical invocation.
           case eok_bool_cast:
             lower_bool_cast(expr);
             break;
+          case eok_unary_plus:
+            /* Remove this do-nothing operation (it can cause problems in some
+               lowered code, e.g., with complex types).  The operand has
+               already been lowered. */
+            overwrite_node(expr, operand_node);
+            break;
           case eok_post_incr:
           case eok_pre_incr:
             if (bool_is_keyword) {
