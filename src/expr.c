@@ -23999,8 +23999,9 @@ expr is an expression referencing a constant (enk_constant) that is
 in essence an identifier reference, encountered while redoing semantic
 analysis on an expression as part of template deduction.  (Also
 handles enk_param_ref nodes, which represent references to parameter
-names within the header of the function).  Make an operand in *result
-for the identifier after template substitution.  rcblock provides the
+names within the header of the function, and field selections in
+anonymous union variables).  Make an operand in *result for the
+identifier after template substitution.  rcblock provides the
 deduction context, e.g., the template argument list being tried.  It
 also has an error_detected flag, which is set to TRUE if any
 non-access error is detected during the processing.
@@ -24009,9 +24010,9 @@ operand of an "&" operator.
 */
 {
   an_expr_rescan_info_entry_ptr eriep;
-  a_symbol_ptr                  sym;
-  a_boolean                     is_template_id;
-  a_template_arg_ptr            expl_templ_arg_list;
+  a_symbol_ptr                  sym = NULL;
+  a_boolean                     is_template_id = FALSE;
+  a_template_arg_ptr            expl_templ_arg_list = NULL;
 
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
@@ -24023,6 +24024,16 @@ operand of an "&" operator.
     expr_copy->type = do_type_substitution_for_rescan(expr->type, rcblock,
                                                       eriep);
     make_lvalue_or_rvalue_expression_operand(expr_copy, result);
+  } else if (is_operation_node(expr)) {
+    /* Selection of a field of an anonymous union variable. */
+    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr op2 = op1->next;
+    check_assertion(node_operator_is(expr, eok_dot_field) &&
+                    is_variable_node(op1) &&
+                    op1->variant.variable->is_anonymous_parent_object);
+    check_assertion(op2->kind == (an_expr_node_kind)enk_field);
+    sym = symbol_for(op2->variant.field);
+    check_assertion(sym != NULL);
   } else {
     /* Constant case (ck_template_param representing an unknown name). */
     check_assertion(is_constant_node(expr));
@@ -24037,18 +24048,19 @@ operand of an "&" operator.
       rcblock->error_detected = TRUE;
       make_error_operand(result);
       copy_operand_position(&eriep->saved_operand, result);
-    } else {
-      /* Build an operand for the symbol as if it had just been scanned as
-         an identifier */
-      a_local_expr_options_set options = EOPT_NO_OPTIONS;
-      if (is_operand_of_address_of) {
-        options |= EOPT_PTR_TO_MEMBER_CONTEXT;
-      }  /* fi */
-      scan_identifier(result, options, PREC_LOWEST, rcblock, sym,
-                      &eriep->saved_operand, is_template_id,
-                      expl_templ_arg_list,
-                      (a_symbol_ptr *)NULL, (a_boolean *)NULL);
     }  /* if */
+  }  /* if */
+  if (sym != NULL) {
+    /* Build an operand for the symbol as if it had just been scanned as
+       an identifier */
+    a_local_expr_options_set options = EOPT_NO_OPTIONS;
+    if (is_operand_of_address_of) {
+      options |= EOPT_PTR_TO_MEMBER_CONTEXT;
+    }  /* if */
+    scan_identifier(result, options, PREC_LOWEST, rcblock, sym,
+                    &eriep->saved_operand, is_template_id,
+                    expl_templ_arg_list,
+                    (a_symbol_ptr *)NULL, (a_boolean *)NULL);
   }  /* if */
   /* Set the proper source position, and any flags like whether the
      identifier reference was qualified. */
@@ -24072,8 +24084,9 @@ whether the expression is rescannable and return *is_rescannable
 set accordingly.
 */
 {
-  a_token_kind operator_token = tok_error;
-  a_boolean    rescannable = TRUE;
+  a_token_kind     operator_token = tok_error;
+  a_boolean        rescannable = TRUE;
+  an_expr_node_ptr op1;
 
   *unary = FALSE;
   *postfix = FALSE;
@@ -24090,6 +24103,16 @@ set accordingly.
         operator_token = tok_lparen;
         break;
       case eok_dot_field:
+        if (expr->variant.operation.compiler_generated &&
+            (op1 = expr->variant.operation.operands,
+             is_variable_node(op1)) &&
+            op1->variant.variable->is_anonymous_parent_object) {
+          /* This selection picks a field out of an anonymous union variable.
+             Treat it as a simple identifier reference. */
+          operator_token = tok_identifier;
+          break;
+        }  /* if */
+        /*FALLTHROUGH*/
       case eok_dot_static:
       case eok_dot_vacuous_destructor_call:
         operator_token = tok_period;
