@@ -19866,7 +19866,7 @@ by param_sym (sk_parameter).
       ++levels_up;
     }  /* if */
     check_assertion(ssep != scope_stack);
-    ssep = &scope_stack[ssep->previous_scope];
+    ssep -= 1;
   }  /* while */
   node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
   node->type = param_sym->variant.param_id->type;
