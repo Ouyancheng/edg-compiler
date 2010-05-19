@@ -13989,9 +13989,10 @@ name lookup options.
                                     &did_not_fold,
                                     &error_detected,
                                     source_pos);
-          check_assertion(!did_not_fold);
           con_copy = NULL;
-          if (error_detected != ec_no_error) *copy_error = TRUE;
+          if (error_detected != ec_no_error || did_not_fold) {
+            *copy_error = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case tpck_address:
