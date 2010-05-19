@@ -2895,6 +2895,9 @@ do_unknown_function:
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
       /* Strings should be converted to addresses. */
+      /* FIXME: Temporarily allow compilation to continue. */
+      add_FIXME_to_mangled_name(mctl);
+      break;
     default:
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
