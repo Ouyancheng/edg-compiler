@@ -1,5 +1,28 @@
 Version 4.2
 
+5/19/10  [EDGcpfe/10701]
+IA-64 ABI: Mangling substitution erroneously used for std::nullptr_t
+
+In the IA-64 ABI, substitutions were erroneously allocated for std::nullptr_t
+types during mangling.  Types that fall under the <builtin-type> production are
+not candidates for substitution during mangling.  These additional
+substitutions could also contribute to subsequent substitution numbers being
+incorrect in a mangled name that had more than one instance of a mangled
+std::nullptr_t type.  This is now fixed.  The previous behavior is
+preserved when ABI_COMPATIBILITY_VERSION < 402.  For example:
+
+  namespace std {
+    typedef decltype(nullptr) nullptr_t;
+  }
+  template <class T, T t> struct A {
+    static void f();
+  };
+  int main() {
+    A<std::nullptr_t, nullptr>::f(); // was _ZN1AIDnLS0_0EE1fEv
+                                     // now _ZN1AIDnLDn0EE1fEV
+  }
+
+
 5/18/10  [EDGcpfe/10646]
 Placeholder types removed (IL CHANGE)
 

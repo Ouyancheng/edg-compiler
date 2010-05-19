@@ -6048,9 +6048,14 @@ Add to the mangled name the encoding for the type "type".
   }  /* if */
 have_whole_mangled_name:;
 #if IA64_ABI
-  /* Create a substitution for the unqualified type. */
+  /* Create a substitution for the unqualified type.  No substitutions are
+     created for <builtin-type>s. */
   if ((!is_integral_type(type) &&
        !is_floating_type(type) && 
+#if ABI_COMPATIBILITY_VERSION >= 402
+       /* Versions prior to 4.2 mistakenly allocated a substitution here. */
+       !is_or_was_nullptr_type(type) &&
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
        !is_void_type(type))
 #if ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED
       /* The IA-64 ABI mandates substitutions for complex types (versions
