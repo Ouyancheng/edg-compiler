@@ -11810,8 +11810,7 @@ enum an_expr_operator_kind_tag {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   eok_parens,		/* Parentheses.  See PARENS_IN_IL. */
   eok_negate,           /* Arithmetic negation. */
-  eok_unary_plus,	/* Unary "+" (arithmetic or pointer).  See
-			   UNARY_PLUS_IN_IL. */
+  eok_unary_plus,	/* Unary "+" (arithmetic or pointer). */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_not,              /* Logical complement ("!" operator).  Operand has been
                            standardized to integer/boolean. */

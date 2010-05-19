@@ -3674,20 +3674,15 @@ statements whose source position would need to be set).
 #endif /* STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION */
 #endif /* MINIMAL_INLINING */
 
-/*
-This switch controls whether the unary plus operator is generated in the
-IL.  When it is FALSE, +expr will be rendered simply as expr.  Note that
-the eok_unary_plus operator is used in prototype instantiations even when
-this switch is FALSE, but such code would not ordinarily be passed to
-a code generator.
-*/
-#ifndef UNARY_PLUS_IN_IL
-#if BACK_END_IS_CP_GEN_BE
-#define UNARY_PLUS_IN_IL TRUE
-#else /* !BACK_END_IS_CP_GEN_BE */
-#define UNARY_PLUS_IN_IL FALSE
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* ifndef UNARY_PLUS_IN_IL */
+#ifdef UNARY_PLUS_IN_IL
+/* Up until version 4.2, UNARY_PLUS_IN_IL could be set to FALSE to
+   suppress generation of unary "+" operators (eok_unary_plus) in the
+   IL.  The option has been eliminated, so back ends must now always
+   be prepared to handle eok_unary_plus. */
+#if !UNARY_PLUS_IN_IL
+ #error -- the UNARY_PLUS_IN_IL macro has been eliminated
+#endif /* !UNARY_PLUS_IN_IL */
+#endif /* ifdef UNARY_PLUS_IN_IL */
 
 /*
 This switch controls whether the eok_parens operator is put out for

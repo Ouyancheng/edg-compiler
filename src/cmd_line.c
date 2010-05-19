@@ -6785,11 +6785,6 @@ file.
 #else /* !defined(UCN_ESCAPE_REWRITE_CHAR) */
   comment_undefined_macro_name(UCN_ESCAPE_REWRITE_CHAR);
 #endif /* defined(UCN_ESCAPE_REWRITE_CHAR) */
-#if defined(UNARY_PLUS_IN_IL)
-  define_numeric_valued_macro(UNARY_PLUS_IN_IL);
-#else /* !defined(UNARY_PLUS_IN_IL) */
-  comment_undefined_macro_name(UNARY_PLUS_IN_IL);
-#endif /* defined(UNARY_PLUS_IN_IL) */
 #if defined(UNICODE_SOURCE_SUPPORTED)
   define_numeric_valued_macro(UNICODE_SOURCE_SUPPORTED);
 #else /* !defined(UNICODE_SOURCE_SUPPORTED) */

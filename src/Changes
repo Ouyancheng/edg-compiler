@@ -1,5 +1,16 @@
 Version 4.2
 
+5/19/10  [EDGcpfe/10703]
+UNARY_PLUS_IN_IL eliminated; unary plus operator is always present in IL
+
+The UNARY_PLUS_IN_IL macro, which controlled whether unary "+" operators
+would be put into the IL, has now been eliminated, with the consequence
+that customers that formerly had this macro set to FALSE will now see
+eok_unary_plus operators in the IL and must be prepared to handle them
+(IL CHANGE).  This change was made to ensure that such operators are
+always available in the new-style SFINAE implementation.
+
+
 5/19/10  [EDGcpfe/10701]
 IA-64 ABI: Mangling substitution erroneously used for std::nullptr_t
 

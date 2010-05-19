@@ -9009,15 +9009,6 @@ token sequence number of the operator.
         /* The operation could not be folded to a constant, so build
            an expression node. */
         build_unary_result_operand(operand, op, result_type, result);
-#if !UNARY_PLUS_IN_IL
-        if (op == (an_expr_operator_kind)eok_unary_plus &&
-            !is_template_dependent_context()) {
-          /* Do not put the unary "+" in the IL.  The unary "+" operator
-             was added in version 2.44, and pre-existing back ends didn't
-             know about it. */
-          copy_operand(operand, result);
-        }  /* if */
-#endif /* !UNARY_PLUS_IN_IL */
         if (template_constant) {
           /* For an expression based on a template parameter, scanned
              during the prototype instantiation, make a ck_template_param
