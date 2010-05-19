@@ -11727,7 +11727,11 @@ in *rcblock).
         check_assertion(new_routine != NULL);
       } else {
         warn_about_missing_delete_if(TRUE);
-        needs_initialization = (dip != NULL);
+        needs_initialization = TRUE;
+        if (dip == NULL) {
+          /* Some error. */
+          needs_initialization = has_new_initializer = FALSE;
+        }  /* if */
       }  /* if */
     } else if (template_case) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
