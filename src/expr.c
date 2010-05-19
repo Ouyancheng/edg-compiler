@@ -11036,7 +11036,8 @@ in *rcblock).
   a_boolean         unknown_dependent_new = FALSE;
   a_boolean         template_case = FALSE;
   a_boolean         force_dependent = FALSE;
-  a_boolean         auto_type_specifier_seen = FALSE;
+  a_boolean         new_type_involves_auto = FALSE;
+  a_boolean         auto_deduction_attempted = FALSE;
   a_boolean         empty_parens;
   a_boolean         trapped_left_paren = FALSE;
   a_new_delete_supplement_ptr
@@ -11060,7 +11061,7 @@ in *rcblock).
     use_global_new = rescan_ndsp->global_new_or_delete;
     placement_new = rescan_ndsp->placement_new;
     has_new_initializer = rescan_ndsp->has_new_initializer;
-    auto_type_specifier_seen = rescan_ndsp->type_contains_auto_specifier;
+    new_type_involves_auto = rescan_ndsp->type_contains_auto_specifier;
     if (placement_new) {
       /* Pick up the placement new argument list in arg_operand form. */
       check_assertion(rescan_ndsp->arg != NULL);
@@ -11149,7 +11150,7 @@ in *rcblock).
   /* Next, get the type of entity to be allocated (new_type). */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned "new". */
-    if (auto_type_specifier_seen) {
+    if (new_type_involves_auto) {
       /* The type is based on "auto".  Find the "auto" in the type. */
       a_type_ptr tp = find_bottom_of_type(new_type);
       tp = skip_typerefs(tp);
@@ -11172,6 +11173,7 @@ in *rcblock).
         dps.auto_type = tp;
         deduce_auto_type_if_necessary(&dps);
         new_type = dps.type;
+        auto_deduction_attempted = TRUE;
       }  /* if */
     }  /* if */
   } else {
@@ -11184,26 +11186,42 @@ in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    auto_type_specifier_seen = (dps.auto_type_specifier_seen &&
-                                !dps.has_trailing_return_type);
+    new_type_involves_auto = (dps.auto_type_specifier_seen &&
+                              !dps.has_trailing_return_type);
     if (curr_token == tok_lparen) {
       /* A new-initializer is present. */
       has_new_initializer = TRUE;
       init_position = pos_curr_token;
       /* Advance past the "(". */
       (void)get_token();
-      if (auto_type_specifier_seen) {
+      if (new_type_involves_auto) {
         /* Prescan the initializer to deduce the type to allocate. */
         prescan_initializer_for_auto_type_deduction(&dps);
+        auto_deduction_attempted = TRUE;
       }  /* if */
-    } else if (auto_type_specifier_seen) {
+    } else if (new_type_involves_auto) {
       /* An auto type specifier not followed by a new-initializer or a
          trailing return type is an error. */
       expr_pos_error(ec_auto_type_requires_initializer, &type_position);
       dps.type = error_type();
-      dps.auto_type_specifier_seen = auto_type_specifier_seen = FALSE;
+      dps.auto_type_specifier_seen = new_type_involves_auto = FALSE;
     }  /* if */
     new_type = dps.type;
+  }  /* if */
+  if (auto_deduction_attempted) {
+    /* Deduction for "auto" was attempted.  See what the results were. */
+    if (!dps.auto_type_specifier_seen) {
+      /* There was an error.  Proceed as if "auto" did not appear. */
+      new_type = error_type();
+      new_type_involves_auto = FALSE;
+    } else if (dps.deduced_auto_type == NULL) {
+      /* The deduction was not done because the initializer or the auto
+         type is dependent.  The new_type will still involve "auto". */
+    } else {
+      /* In other cases, the deduction succeeded and "auto" is gone
+         from the new_type. */
+      new_type_involves_auto = FALSE;
+    }  /* if */
   }  /* if */
   unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
@@ -11785,7 +11803,7 @@ in *rcblock).
 
     /* Use an enk_new_delete node to represent the "new". */
     new_node = alloc_expr_node((an_expr_node_kind)enk_new_delete);
-    new_node->type = (template_case && auto_type_specifier_seen) ?
+    new_node->type = new_type_involves_auto ?
                        /* Keep the special type used for "auto" from escaping
                           from the new. */
                        make_pointer_type(type_of_unknown_templ_param_nontype) :
@@ -11795,7 +11813,7 @@ in *rcblock).
     ndsp->placement_new = placement_new;
     ndsp->global_new_or_delete = use_global_new;
     ndsp->has_new_initializer = has_new_initializer;
-    ndsp->type_contains_auto_specifier = auto_type_specifier_seen;
+    ndsp->type_contains_auto_specifier = new_type_involves_auto;
     ndsp->type = new_type;
     /* Put the routine and argument list into the supplement.  Note that
        the argument list is present even when the routine is NULL -- that's

@@ -8136,10 +8136,14 @@ a pointer over a reference type or creating an array of references.
         break;
       case tk_typeref:
         if (typeref_is_decltype_or_typeof(type) &&
-            (expr = decltype_arg(type)) != NULL) {
+            (expr = decltype_arg(type)) != NULL &&
+            expr->rescan_info != NULL) {
           /* decltype or typeof based on an expression: do substitution on the
              expression and see what its type is.  For typeof(type), fall into
              the code below to do substitution. */
+          /* Some decltypes come from non-dependent contexts, and therefore
+             have no recorded rescan information.  For those, just use the
+             type. */
           new_type = type_of_decltype_expr_with_substitution(
                                             type,
                                             expr,
