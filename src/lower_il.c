@@ -296,6 +296,21 @@ IL lowering.
 }  /* alloc_lowered_name_string */
 
 
+a_boolean is_or_was_nullptr_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is either std::nullptr_t or a lowered version of 
+std::nullptr_t.
+*/
+{
+#if DO_IL_LOWERING
+  /* A lowered std::nullptr_t has been transformed into a typeref with
+     void* type, whose underlying type is the original std::nullptr_t. */
+  tp = get_underlying_type(tp);
+#endif /* DO_IL_LOWERING */
+  return is_nullptr_type(tp);
+}  /* is_or_was_nullptr_type */
+
+
 /* The things above this point are the routines needed for name mangling
    even if lowering is not done. */
 /* Everything below this point is related to IL lowering. */
@@ -19343,17 +19358,6 @@ The scope is the top scope in a memory region.
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
 }  /* clean_up_all_object_lifetimes */
-
-
-a_boolean is_or_was_nullptr_type(a_type_ptr type)
-/*
-Return TRUE if type is either std::nullptr_t or a lowered version of 
-std::nullptr_t.
-*/
-{
-  type = get_underlying_type(type);
-  return is_nullptr_type(type);
-}  /* is_or_was_nullptr_type */
 
 
 #if DEBUG
