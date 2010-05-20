@@ -24066,6 +24066,18 @@ operand of an "&" operator.
      identifier reference was qualified. */
   restore_operand_details(result, &eriep->saved_operand);
   restore_operand_id_details(result, &eriep->saved_operand);
+  if (result->is_operand_of_address_of &&
+      is_a_function_designator(result)) {
+    /* If an overloaded function had "&" applied to it, change the operand
+       to an rvalue. */
+    check_assertion(is_indefinite_function_operand(result));
+    result->is_operand_of_address_of = FALSE;
+    conv_function_designator_to_ptr_to_function(result,
+                                                &eriep->saved_operand.
+                                                            ampersand_position,
+                                                /*allow_ctor=*/FALSE,
+                                                /*will_call=*/FALSE);
+  }  /* if */
 }  /* make_operand_for_rescanned_identifier */
 
 
