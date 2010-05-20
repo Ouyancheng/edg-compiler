@@ -24781,7 +24781,14 @@ expression-processing routines.
     /* The result is a constant, so return it via *constant. */
     expr = NULL;
     copy_constant(&result.variant.constant, constant);
+  } else if (is_expression_operand(&result) ||
+             is_error_operand(&result)) {
+    expr = make_node_from_operand(&result);
   } else {
+    /* Some other case, e.g., an overloaded function that isn't meeting a
+       type that could disambiguate it. */
+    rcblock->error_detected = TRUE;
+    conv_to_error_operand(&result);
     expr = make_node_from_operand(&result);
   }  /* if */
   pop_expr_stack();
