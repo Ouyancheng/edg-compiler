@@ -2705,7 +2705,7 @@ are expected to be NULL in that case.
                                                           &saved_end_position),
                                          operand->ref_entries_list, operand);
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (rcblock == NULL &&  /* FIXME? */
+        if (rcblock == NULL &&
             !operand->name_reference_set &&
             locator_for_curr_id.is_qualified_name) {
           /* Remember the form of the name reference (it was set in
@@ -5868,7 +5868,7 @@ error indication in *rcblock).
           make_error_operand(result);
         }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
-        if (rcblock == NULL &&  /* FIXME? */
+        if (rcblock == NULL &&
             is_constant_operand(result) &&
             result->variant.constant.kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member) {
@@ -8060,7 +8060,7 @@ outside of the expression-processing routines.
     /* This call is done late because we need the expression stack to be pushed
        already. */
     make_rescan_operand(rcblock->expr, rcblock, &operand);
-    leading_paren_seen = !operand.is_id_expression;  /* FIXME */
+    leading_paren_seen = !operand.is_id_expression;
   } else {
     /* This call is done late because we need the expression stack to be pushed
        already. */
