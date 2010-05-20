@@ -2499,7 +2499,17 @@ in *bound_function_selector.
     /* The information in the rescan info was saved for this moment, when
        we can use it to restore operand information that would not otherwise
        survive in the IL.  Do that now. */
-    restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+    if (operand->is_operand_of_address_of) {
+      /* For indefinite functions with an implied "&", restore just the
+         position information, because the original operand may have been
+         for a "&" operator, and wouldn't have all the identifier-form
+         flags. */
+      check_assertion(is_indefinite_function_operand(operand));
+      copy_operand_position(&eriep->saved_operand, operand);
+    } else {
+      /* Normal case: restore everything. */
+      restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+    }  /* if */
   }  /* if */
 }  /* make_rescan_operand_full */
 
@@ -3232,7 +3242,8 @@ destroyed its source position, etc.  Restore such things from
   operand->is_qualified_name = orig_operand->is_qualified_name;
   operand->access_control_error_reported =
                                    orig_operand->access_control_error_reported;
-  operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
+  operand->is_operand_of_address_of= (orig_operand->is_operand_of_address_of &&
+                                      is_indefinite_function_operand(operand));
   operand->has_required_ptr_to_member_form =
                                  orig_operand->has_required_ptr_to_member_form;
   operand->ruled_out_expr_kinds |= orig_operand->ruled_out_expr_kinds;

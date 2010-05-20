@@ -24013,6 +24013,7 @@ operand of an "&" operator.
   a_symbol_ptr                  sym = NULL;
   a_boolean                     is_template_id = FALSE;
   a_template_arg_ptr            expl_templ_arg_list = NULL;
+  a_boolean                     is_unknown_func_addr = FALSE;
 
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
@@ -24036,10 +24037,21 @@ operand of an "&" operator.
     check_assertion(sym != NULL);
   } else {
     /* Constant case (ck_template_param representing an unknown name). */
+    a_constant_ptr con;
     check_assertion(is_constant_node(expr));
+    con = expr->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param &&
+        (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+         con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref)) {
+      /* Remember that the constant is for the address of an unknown
+         function (see below). */
+      is_unknown_func_addr = TRUE;
+    }  /* if */
     /* Do substitution and produce a symbol for the substituted result. */
     sym = symbol_for_template_param_unknown_entity_rescan(
-                                                        expr->variant.constant,
+                                                        con,
                                                         rcblock,
                                                         eriep,
                                                         &is_template_id,
@@ -24066,17 +24078,24 @@ operand of an "&" operator.
      identifier reference was qualified. */
   restore_operand_details(result, &eriep->saved_operand);
   restore_operand_id_details(result, &eriep->saved_operand);
-  if (result->is_operand_of_address_of &&
-      is_a_function_designator(result)) {
-    /* If an overloaded function had "&" applied to it, change the operand
-       to an rvalue. */
-    check_assertion(is_indefinite_function_operand(result));
-    result->is_operand_of_address_of = FALSE;
-    conv_function_designator_to_ptr_to_function(result,
-                                                &eriep->saved_operand.
+  if (is_a_function_designator(result)) {
+    if (result->is_operand_of_address_of) {
+      /* If an overloaded function had "&" applied to it, change the operand
+         to an rvalue. */
+      check_assertion(is_indefinite_function_operand(result));
+      result->is_operand_of_address_of = FALSE;
+      conv_function_designator_to_ptr_to_function(result,
+                                                  &eriep->saved_operand.
                                                             ampersand_position,
-                                                /*allow_ctor=*/FALSE,
-                                                /*will_call=*/FALSE);
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/FALSE);
+    } else if (is_unknown_func_addr) {
+       /* Likewise if the unknown function was represented by a constant. */
+      conv_function_designator_to_ptr_to_function(result,
+                                                  (a_source_position *)NULL,
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/FALSE);
+    }  /* if */
   }  /* if */
 }  /* make_operand_for_rescanned_identifier */
 
