@@ -4877,9 +4877,10 @@ user-defined conversions.
               /* Record a cast expression for the constant (inhibit normal
                  diagnostics during that process, since they were already
                  issued). */
-              an_error_severity  saved_error_threshold = error_threshold;
-
-              error_threshold = es_catastrophe;
+              a_boolean saved_suppress = expr_stack->suppress_diagnostics;
+              a_boolean saved_any_error =
+                                     expr_stack->any_non_access_error_detected;
+              expr_stack->suppress_diagnostics = TRUE;
               if (local_constant.expr == NULL ||
                   /* Ignore the expression attached to an enum constant. */
                   is_enum_constant(&operand->variant.constant)) {
@@ -4894,7 +4895,8 @@ user-defined conversions.
                                is_implicit_cast,
                                is_reinterpret_cast, reinterpret_semantics,
                                err_pos);
-              error_threshold = saved_error_threshold;
+              expr_stack->suppress_diagnostics = saved_suppress;
+              expr_stack->any_non_access_error_detected = saved_any_error;
             }  /* if */
           }  /* if */
           make_constant_operand(&local_constant, operand);
