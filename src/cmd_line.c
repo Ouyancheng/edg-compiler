@@ -1953,7 +1953,8 @@ by a command line option.
       }  /* if */
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
-    if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+    if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+        !option_kind_used[(int)optk_cpp0x_mode]) {
       cpp0x_sfinae_enabled = (microsoft_version >= 1600);
     }  /* if */
   }  /* if */
