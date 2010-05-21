@@ -3922,10 +3922,9 @@ the name in the abstract.  Set *err to TRUE if there is an error.
            which we can do substitution on and produce a symbol. */
         a_constant_ptr con = op2->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_template_param) {
+          a_constant_ptr member_con = NULL;
           if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
-            a_type_ptr                    parent_type;
-            a_class_symbol_supplement_ptr parent_cssp;
             if (has_name(con) &&
                 unmangled_name_of(&con->source_corresp)[0] == '~') {
               /* For a destructor name, deal with the various cases. */
@@ -3952,8 +3951,27 @@ the name in the abstract.  Set *err to TRUE if there is an error.
                 }  /* if */
               }  /* if */
             }  /* if */
-            parent_type = parent_class_of(con);
-            parent_cssp = symbol_supplement_for_class(parent_type);
+            member_con = con;
+          } else if (con->variant.template_param.kind ==
+                           (a_template_param_constant_kind)tpck_template_ref) {
+            /* For a tpck_template_ref, check the underlying
+               tpck_unknown_function to see if we're dealing with a class
+               member. */
+            member_con = con->variant.template_param.variant.template_ref.con;
+            if (!member_con->source_corresp.is_class_member) {
+              member_con = NULL;
+            }  /* if */
+          } else if (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+            if (con->source_corresp.is_class_member) {
+              member_con = con;
+            }  /* if */
+          }  /* if */
+          if (member_con != NULL) {
+            /* See if we need to do a lookup to find the member. */
+            a_type_ptr parent_type = parent_class_of(member_con);
+            a_class_symbol_supplement_ptr
+                       parent_cssp = symbol_supplement_for_class(parent_type);
             if (parent_cssp->template_param_for_proxy_class != NULL) {
               /* The parent type is a proxy class for a template parameter.
                  Substitute the original template parameter for the proxy
@@ -3965,9 +3983,9 @@ the name in the abstract.  Set *err to TRUE if there is an error.
             if (parent_type == type_of_unknown_templ_param_nontype) {
               if (is_class_struct_union_type(class_struct_union_type) &&
                   !is_incomplete_type(class_struct_union_type) &&
-                  symbol_for(con) != NULL) {
+                  symbol_for(member_con) != NULL) {
                 clear_locator(locator, qualified_member_position);
-                locator->symbol_header = symbol_for(con)->header;
+                locator->symbol_header = symbol_for(member_con)->header;
                 sym = look_up_selection_name(locator, class_struct_union_type);
                 need_member_sym_check = FALSE;
               }  /* if */

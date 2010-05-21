@@ -12853,7 +12853,9 @@ to an already-allocated constant; otherwise, constant points to the
 static a_boolean operator_is_foldable(an_expr_node_ptr  expr)
 /*
 Return TRUE if the indicated enk_operation expression node should be folded
-when doing template argument substitution.
+when doing template argument substitution.  Note that this applies to
+old-style SFINAE, and not the new-style SFINAE of C++0X.  See
+expr_is_rescannable for the equivalent routine for new-style SFINAE.
 */
 {
   a_boolean              is_foldable = FALSE;
