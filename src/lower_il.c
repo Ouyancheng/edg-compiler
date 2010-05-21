@@ -17639,7 +17639,7 @@ so they are left in the scope.
       if (!(is_immediate_class_type(type) &&
             (class_type_supp(type)->compiler_generated ||
              class_type_supp(type)->is_lambda_closure_class))) {
-        /* Count the number of local types declared in the source (this
+        /* Count the number of local types declared in the source -- this
            excludes generated classes (closure classes and classes generated
            by lowering).  The count is used later to optimize the removal of
            these types from stmk_decl statements. */
@@ -18953,7 +18953,7 @@ static void clear_parent_info_on_types(void)
 Clear class/namespace membership information and the is_local_to_function
 flag (where appropriate) on all file-scope types.  This is done late in
 file scope lowering so that the information is around for the use of IL
-lowering, e.g., for promotion of types out of namespaces via placeholders.
+lowering.
 */
 {
   a_type_ptr type;

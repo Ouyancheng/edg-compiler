@@ -6046,11 +6046,9 @@ is done, is that all the classes have to have been marked first.
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* If a typeref type points to a class that is needed, has a name, and
          was originally unnamed, the typeref type is needed, too. */
-      /* Also keep placeholder typerefs if the referenced type is needed. */
       under_type = tp->variant.typeref.type;
-      if ((is_immediate_class_type(under_type) &&
-           under_type->variant.class_struct_union.originally_unnamed) ||
-          !has_name(tp)) {
+      if (is_immediate_class_type(under_type) &&
+          under_type->variant.class_struct_union.originally_unnamed) {
         mark_as_needed_like((char *)tp, (an_il_entry_kind)iek_type,
                             &under_type->source_corresp,
                             /*set_class_defn_needed=*/FALSE);

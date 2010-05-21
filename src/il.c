@@ -19152,6 +19152,8 @@ entry into one representing a nondefining declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   eliminate_class_body_source_sequence_entries(class_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  class_type->variant.class_struct_union.
+                               nested_class_defined_outside_of_parent = FALSE;
   class_type->variant.class_struct_union.is_empty_class = FALSE;
   /* The type is now incomplete. */
   class_type->incomplete = TRUE;
@@ -20875,7 +20877,7 @@ Display memory use for entities in front end memory in this file (il.c).
 static a_type_ptr
 	*type_reordering;
 		/* A pointer to a temporary array of a_type_ptr values
-		   used to order the file scopes type list as required for
+		   used to order the file-scope types list as required for
 		   the C-generating back end.
 		   See fix_type_list_ordering_problems. */
 
@@ -20898,23 +20900,26 @@ static void process_referenced_types_for_ordering(a_type_ptr type,
 static void process_referenced_type_for_ordering(a_type_ptr type,
                                                  a_boolean  must_be_complete)
 /*
-The indicated type is referenced from another type.  If it's a type that is on
-the file-scope list, add it to the type_reordering array if appropriate.  
-Either way, types referenced by this are similarly processed if needed.
-If must_be_complete is TRUE, the type is used in a way that requires it to be
-complete.
+The indicated type is referenced from another type (ultimately from a type on
+the file-scope types list).  If it's a type that is on the file-scope types
+list, add it to the type_reordering array if appropriate (i.e., it may have to
+appear in that array before the type that references "type").  Either way,
+types referenced by "type" are similarly processed if needed (via recursive
+calls in process_referenced_types_for_ordering).
+If must_be_complete is TRUE, "type" is referenced in a way that requires it to
+be complete.
 */
 {
   a_scope_ptr  scope = parent_scope_of(type);
+  a_boolean    in_func_proto = scope != NULL &&
+                               scope->kind == (a_scope_kind)sck_func_prototype;
 
   /* Note that types defined in function prototypes are not promoted to the
      file scope. */
   if (type->type_processed_as_complete_for_ordering) {
-    /* The type has already been added to the reordering and traversed as
-       requiring completeness. */
-  } else if (is_immediate_class_type(type) &&
-             !(scope != NULL &&
-               scope->kind == (a_scope_kind)sck_func_prototype)) {
+    /* The type has already been added to type_reordering and traversed as
+       requiring completeness.  Its subtree need not be traversed. */
+  } else if (is_immediate_class_type(type) && !in_func_proto) {
     /* This is a struct or union, which goes on the file-scope types list. */
     /* structs and unions are declared in the first pass through the types
        in c_gen_be, so their names are always available.  So if no definition
@@ -20923,9 +20928,7 @@ complete.
     if (must_be_complete) {
       process_type_for_ordering(type, /*must_be_complete=*/TRUE);
     }  /* if */
-  } else if (is_immediate_enum_type(type) &&
-             !(scope != NULL &&
-               scope->kind == (a_scope_kind)sck_func_prototype)) {
+  } else if (is_immediate_enum_type(type) && !in_func_proto) {
     /* This is an enum, which goes on the file-scope types list. */
     /* enums are put out as definitions in the first pass in c_gen_be, so they
        are always available.  However, it doesn't hurt to append the type now
@@ -20934,14 +20937,13 @@ complete.
   } else if (type->kind == (a_type_kind)tk_typeref &&
              typeref_is_typedef(type) &&
              !type->type_processed_for_ordering &&
-             !(scope != NULL &&
-               scope->kind == (a_scope_kind)sck_func_prototype)) {
+             !in_func_proto) {
     /* This is a typedef, which goes on the file-scope types list, and this
        one is not on the reordering yet. */
-    /* These are put out as definitions in the second pass in c_gen_be, so
+    /* Typedefs are put out as definitions in the second pass in c_gen_be, so
        they are available -- even as incomplete types -- only after their
-       appearance in the type list: At this entry to the reordering now. */
-      process_type_for_ordering(type, must_be_complete);
+       appearance in the type list: Add this entry to the reordering now. */
+    process_type_for_ordering(type, must_be_complete);
   } else {
     /* This type is either one that doesn't go on the file-scope types list,
        or it's a typedef type that is already placed in the new ordering but
@@ -21027,12 +21029,14 @@ complete.  The type passed in must be one that appears on the file-scope types
 list (i.e., struct, union, enum, or typedef).
 */
 {
+  /* Set the flags indicating that this type has been processed before actually
+     traversing the subtree to avoid unnecessary recursion. */
+  type->type_processed_for_ordering = TRUE;
+  if (must_be_complete) type->type_processed_as_complete_for_ordering = TRUE;
   /* Process any types referenced from this type. */
   process_referenced_types_for_ordering(type, must_be_complete);
   /* Add the type to the list of processed types. */
   append_type_to_reordering(type);
-  type->type_processed_for_ordering = TRUE;
-  if (must_be_complete) type->type_processed_as_complete_for_ordering = TRUE;
 }  /* process_type_for_ordering */
 
 

@@ -7339,8 +7339,6 @@ is what mangled_type_name generates, plus a prefix.
      previously mangled (in the Cfront ABI) when they are used as a component
      of another mangled name. */
   if (!type->source_corresp.name_has_been_mangled &&
-      /* Ignore placeholder typerefs. */
-      (type->kind != (a_type_kind)tk_typeref || typeref_is_typedef(type)) &&
       /* Skip types needing a module id for now. */
       !mctl.lacking_module_id &&
       /* Mangle nested types. */
