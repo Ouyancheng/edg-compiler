@@ -2361,8 +2361,8 @@ that has it.
       expr = expr->variant.operation.operands;
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      /* An explicit cast is retained. */
-      if (dip->is_explicit_cast) goto end_of_loop;
+      /* An explicit cast is retained.  Also a compound literal. */
+      if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
       /* Anything else is implicit and stripped. */
       expr = rescan_arg_list_from_dyn_init(dip);
     } else {

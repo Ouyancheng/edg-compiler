@@ -2849,6 +2849,9 @@ typedef struct a_dynamic_init {
   a_bit_field	is_explicit_cast:1;
 			/* If TRUE, the source construct that generated
 			   this initialization is an explicit cast. */
+  a_bit_field	is_compound_literal:1;
+			/* If TRUE, the source construct that generated
+			   this initialization is a compound literal. */
   a_bit_field	is_partially_initialized_compound_literal:1;
 			/* If TRUE, the source construct is a compound
 			   literal (C99) and the entity was not fully

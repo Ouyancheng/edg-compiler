@@ -5010,6 +5010,9 @@ Display the indicated dynamic_init structure.
   if (ptr->is_explicit_cast) {
     disp_boolean("is_explicit_cast", TRUE);
   }  /* if */
+  if (ptr->is_compound_literal) {
+    disp_boolean("is_compound_literal", TRUE);
+  }  /* if */
   if (ptr->is_partially_initialized_compound_literal) {
     disp_boolean("is_partially_initialized_compound_literal", TRUE);
   }  /* if */

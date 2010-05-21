@@ -24437,6 +24437,9 @@ set accordingly.
         operator_token = tok_typename;  /* Representing a generic cast. */
       }  /* if */
       *unary = TRUE;
+    } else if (dip->is_compound_literal) {
+      /* We don't support rescanning compound literals at this time. */
+      rescannable = FALSE;
     } else {
       rescannable = FALSE;
     }  /* if */

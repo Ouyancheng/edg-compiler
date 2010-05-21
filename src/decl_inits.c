@@ -2851,9 +2851,12 @@ function get_initializer does all the hard work.
       *dip = compound_constant->variant.dynamic_init;
     }  /* if */
   }  /* if */
-  if (!err && (info.any_uninitialized_member ||
-               info.uses_designated_initializers)) {
-    (*dip)->is_partially_initialized_compound_literal = TRUE;
+  if (!err) {
+    (*dip)->is_compound_literal = TRUE;
+    if (info.any_uninitialized_member ||
+        info.uses_designated_initializers) {
+      (*dip)->is_partially_initialized_compound_literal = TRUE;
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Record the position of the closing brace. */
