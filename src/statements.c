@@ -6245,13 +6245,11 @@ static void local_label_declaration(a_boolean  is_statement_expr)
 /*
 Scan a GNU local label declaration of the form:
 	__label__ l1, l2, ..., ln;
-Normally, they should only appear at the beginning of a statement expression.
+Local labels can appear only at the beginning of a block (that check is
+performed elsewhere).
 */
 {
   check_assertion(gnu_mode && curr_token == tok_identifier);
-  if (!is_statement_expr) {
-    warning(ec_local_labels_only_in_statement_expressions);
-  }  /* if */
   (void)get_token();
   (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
   add_stop_token(tok_semicolon);

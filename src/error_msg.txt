@@ -1160,7 +1160,7 @@ ec_union_cannot_be_transparent;;"%t cannot be transparent because it has a field
 REMOVED;ec_transparent_variable;;"only parameters can be transparent"
 ec_attribute_does_not_apply_to_local_variable;;"attribute %sq does not apply to local variables"
 ec_attributes_in_rout_defn;;"attributes are not permitted in a function definition"
-ec_local_labels_only_in_statement_expressions;;"declarations of local labels should only appear at the start of statement expressions"
+REMOVED;ec_local_labels_only_in_statement_expressions;;"declarations of local labels should only appear at the start of statement expressions"
 ec_invalid_case_range;;"the second constant in a case range must be larger than the first"
 ec_asm_name_in_rout_defn;;"an asm name is not permitted in a function definition"
 ec_asm_name_in_typedef;;"an asm name is ignored in a typedef"
