@@ -3140,8 +3140,13 @@ an error.
                                                 parent_class, &err);
 
             } else {
+              an_expr_node_ptr  saved_expr = aap->variant.constant->expr;
+              /* Do not copy the backing expression since it may have a
+                 dependent component (which we cannot easily substitute). */
+              aap->variant.constant->expr = NULL;
               (*p_aap)->variant.constant =
                                alloc_unshared_constant(aap->variant.constant);
+              aap->variant.constant->expr = saved_expr;
             }  /* if */
             break;
           case aak_type:
