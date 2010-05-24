@@ -20902,10 +20902,11 @@ static void process_referenced_type_for_ordering(a_type_ptr type,
 /*
 The indicated type is referenced from another type (ultimately from a type on
 the file-scope types list).  If it's a type that is on the file-scope types
-list, add it to the type_reordering array if appropriate (i.e., it may have to
-appear in that array before the type that references "type").  Either way,
-types referenced by "type" are similarly processed if needed (via recursive
-calls in process_referenced_types_for_ordering).
+list, add it to the type_reordering array if appropriate.  Specifically, it is
+added if the C-generating back end requires it to have been rendered as a
+definition before rendering the type that references "type".  Whether "type"
+is added to type_reordering or not, types referenced by "type" are recursively
+processed if needed.
 If must_be_complete is TRUE, "type" is referenced in a way that requires it to
 be complete.
 */
@@ -20916,9 +20917,13 @@ be complete.
 
   /* Note that types defined in function prototypes are not promoted to the
      file scope. */
-  if (type->type_processed_as_complete_for_ordering) {
-    /* The type has already been added to type_reordering and traversed as
-       requiring completeness.  Its subtree need not be traversed. */
+  if (type->type_processed_as_complete_for_ordering ||
+      (type->type_processed_for_ordering && !must_be_complete)) {
+    /* The type has either (a) already been processed as requiring completeness
+       (and therefore doesn't need traversing again), or (b) been processed
+       without requiring completeness but this call doesn't require
+       completeness either (and therefore an additional traversal would have
+       no effect). */
     /* For enum and class types, type_processed_as_complete_for_ordering is
        always set to TRUE when it is added to the type_reordering list: Such
        types will therefore have their subtree only traversed once.  typedef
@@ -20942,9 +20947,7 @@ be complete.
        are always available.  However, it doesn't hurt to append the type now
        to the reordered list. */
     process_type_for_ordering(type, /*must_be_complete=*/TRUE);
-  } else if (type->kind == (a_type_kind)tk_typeref &&
-             typeref_is_typedef(type) &&
-             !type->type_processed_for_ordering &&
+  } else if (type_is_typedef(type) && !type->type_processed_for_ordering &&
              !in_func_proto) {
     /* This is a typedef, which goes on the file-scope types list, and this
        one is not on the reordering yet. */
@@ -20956,13 +20959,11 @@ be complete.
     /* This type is either one that doesn't go on the file-scope types list,
        or it's a typedef type that is already placed in the new ordering but
        that has not yet been traversed as requiring completeness. */
-    if (must_be_complete || !type->type_processed_for_ordering) {
-      process_referenced_types_for_ordering(type, must_be_complete);
-      type->type_processed_for_ordering = TRUE;
-      if (must_be_complete) {
-        type->type_processed_as_complete_for_ordering = TRUE;
-      }  /* if */
+    type->type_processed_for_ordering = TRUE;
+    if (must_be_complete) {
+      type->type_processed_as_complete_for_ordering = TRUE;
     }  /* if */
+    process_referenced_types_for_ordering(type, must_be_complete);
   }  /* if */
 }  /* process_referenced_type_for_ordering */
     
