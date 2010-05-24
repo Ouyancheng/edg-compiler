@@ -6241,12 +6241,12 @@ expr_statement:
 }  /* statement */
 
 
-static void local_label_declaration(a_boolean  is_statement_expr)
+static void local_label_declaration()
 /*
 Scan a GNU local label declaration of the form:
 	__label__ l1, l2, ..., ln;
-Local labels can appear only at the beginning of a block (that check is
-performed elsewhere).
+Local labels can appear only at the beginning of a block (that check has been
+performed by the caller).
 */
 {
   check_assertion(gnu_mode && curr_token == tok_identifier);
@@ -6398,13 +6398,12 @@ e.g., ({ ... }).
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) check_for_upc_pragmas(block);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  /* It is also the only place where a GNU local label can be declared.
-     Normally, such labels should only appear in statement expressions. */
+  /* It is also the only place where a GNU local label can be declared. */
   while (gnu_mode && curr_token == tok_identifier &&
          strcmp("__label__",
                 locator_for_curr_id.symbol_header->identifier) == 0) {
-    local_label_declaration(is_statement_expr);
-  }  /* if */
+    local_label_declaration();
+  }  /* while */
 
   /* Scan the sequence of statements.  (Note that we may end up here during
      preprocessing error recovery if a C++0x lambda or GNU statement
