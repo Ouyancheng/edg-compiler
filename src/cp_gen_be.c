@@ -6872,8 +6872,17 @@ indicated by opstr.
   write_tok_str(opstr);
   /* Put out the second operand. */
   if (unknown_function_case) {
-    /* Put out an unknown function without a leading "&". */
+    /* Put out an unknown function without a leading "&".  Even though we
+       did not push a new name context for this case, we need to indicate
+       that the name appears in the second operand of a field selection
+       operator (to allow the "template" keyword to be put out by gen_name),
+       so we save and restore the previous value of the flag in the existing
+       name context. */
+    a_boolean saved_field_selection_context =
+                                    curr_name_context->field_selection_context;
+    curr_name_context->field_selection_context = TRUE;
     form_unknown_function_constant(con, &octl);
+    curr_name_context->field_selection_context = saved_field_selection_context;
   } else {
     /* Put parentheses around the expression if it was changed to the ","
        form. */
