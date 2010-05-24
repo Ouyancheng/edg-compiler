@@ -3,10 +3,10 @@ Version 4.2
 5/23/10  [EDGcpfe/9290]
 GNU: Remove warning when local labels are used outside of statement expressions
 
-GNU allows local labels to be used at the beginning of any block statement.
-The warning issued by the front end when local labels were declared outside of
-statement expressions has been removed.  This example had previously resulted
-in a warning (in --gcc or --g++ mode), and doesn't any longer:
+The GNU compiler allows local labels to be used at the beginning of any block
+statement.  The warning issued by the front end when local labels were declared
+outside of statement expressions has been removed.  This example had previously
+resulted in a warning (in --gcc or --g++ mode), and doesn't any longer:
 
   void f() {
     __label__ l1;
