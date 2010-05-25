@@ -186,7 +186,7 @@ do so.
 
 
 5/4/10   [EDGcpfe/10653]
-Microsoft mode: old-style cast forming pointer-to-member of overloaded function 
+Microsoft mode: old-style cast forming pointer-to-member of overloaded function
 
 The Microsoft compiler allows an old-style cast applied to a pointer-to-member
 for an overloaded function to select a function from the overload set even
