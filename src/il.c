@@ -20924,14 +20924,6 @@ be complete.
        without requiring completeness but this call doesn't require
        completeness either (and therefore an additional traversal would have
        no effect). */
-    /* For enum and class types, type_processed_as_complete_for_ordering is
-       always set to TRUE when it is added to the type_reordering list: Such
-       types will therefore have their subtree only traversed once.  typedef
-       types on the other hand may be traversed a first time with the flag set
-       to FALSE (if the typedef is referenced in a way that doesn't require
-       its underlying type to be complete), but if it is traversed a second
-       time it will be because must_be_complete is TRUE (see below), which
-       ensures that the second traversal is also the last. */
   } else if (is_immediate_class_type(type) && !in_func_proto) {
     /* This is a struct or union, which goes on the file-scope types list. */
     /* structs and unions are declared in the first pass through the types
