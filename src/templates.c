@@ -22898,8 +22898,10 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
        not for pragmas.  When the entire class is being instantiated, the
        check is done only once for the class. */
     if (!is_pragma && !is_class_instantiation) check_instantiation_scope(sym);
-    update_instantiation_required_flag(tip, instantiation_required_flag,
-                                       SIR_NONE);
+    if (!ignore_directive) {
+      update_instantiation_required_flag(tip, instantiation_required_flag,
+                                         SIR_NONE);
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {

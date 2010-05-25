@@ -1,5 +1,19 @@
 Version 4.2
 
+5/25/10  [EDGcpfe/10700]
+Use of uninitialized variable in update_instantiation_flags
+
+When an explicit instantiation was followed by an "extern template"
+declaration, an unset variable was passed from update_instantiation_flags to
+update_instantiation_required_flag after a diagnostic was issued.  Now fixed.
+
+  template <typename T> struct A {
+    A(){};
+  };
+  template class A<char>;
+  extern template class A<char>;
+
+
 5/23/10  [EDGcpfe/9290]
 GNU: Remove warning when local labels are used outside of statement expressions
 
