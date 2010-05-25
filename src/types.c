@@ -9074,7 +9074,9 @@ its parameters?).
             status = traverse_template_args(tap, func, flags);
           }  /* if */
         }  /* if */
-	break;
+        /* For cases where the typeref is a member of another class, check
+           the enclosing classes too. */
+        goto check_enclosing_classes;
       case tk_template_param:
         /* "Member" template params (e.g., T::X) should have a pointer to a
            parent class. */

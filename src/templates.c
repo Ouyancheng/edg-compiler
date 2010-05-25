@@ -4940,9 +4940,14 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
       template_param_found = FALSE;
     } else {
       /* A normal nontype parameter represented as a constant. */
-      check_assertion(tap->variant.constant != NULL);
-      template_param_found = (tap->variant.constant->kind ==
-                                   (a_constant_repr_kind)ck_template_param);
+      a_constant_ptr	cp = tap->variant.constant;
+      check_assertion(cp != NULL);
+      template_param_found = (cp->kind ==
+                                      (a_constant_repr_kind)ck_template_param);
+      if (!template_param_found) {
+        /* Check if the type depends on a template parameter. */
+        template_param_found = is_or_contains_template_param(cp->type);
+      }  /* if */
     }  /* if */
   } else {
     /* A template template parameter.  The argument involves a template
