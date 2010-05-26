@@ -2880,8 +2880,10 @@ to be used for expression rescan purposes.  The effective argument list is
 the initializer expression or the arguments of the constructor call.
 */
 {
+  a_constant_ptr   con;
   an_expr_node_ptr args = NULL;
 
+top_of_routine:
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
@@ -2897,8 +2899,21 @@ the initializer expression or the arguments of the constructor call.
       /* The constructor call argument list is the argument list. */
       args = dip->variant.constructor.args;
       break;
-    case dik_constant:
     case dik_nonconstant_aggregate:
+      /* This is okay if it's a repeated initialization for an array,
+         e.g., a default constructor call for each element. */
+      con = dip->variant.constant;
+      check_assertion(con->kind == (a_constant_repr_kind)ck_aggregate);
+      con = con->variant.aggregate.first_constant;
+      check_assertion(con->next == NULL);
+      if (con->kind == (a_constant_repr_kind)ck_init_repeat &&
+          con->variant.init_repeat.constant->kind ==
+                                       (a_constant_repr_kind)ck_dynamic_init) {
+        dip = con->variant.init_repeat.constant->variant.dynamic_init;
+        goto top_of_routine;
+      }  /* if */
+      /*FALLTHROUGH*/
+    case dik_constant:
     case dik_bitwise_copy:
     default:
       unexpected_condition_str("unexpected dynamic init kind in rescan");
