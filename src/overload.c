@@ -15852,6 +15852,7 @@ constructor.
   *class_bitwise_copy = FALSE;
   *ambiguous = FALSE;
   class_type = skip_typerefs(class_type);
+  instantiate_template_class(class_type);
   cssp = symbol_supplement_for_class(class_type);
   if (cssp->construction_by_bitwise_copy_allowed ||
       class_type->variant.class_struct_union.is_nonreal_class) {
