@@ -3644,10 +3644,12 @@ This routine may return TRUE or FALSE for such cases.
         /* The two types were obtained with different constructs and are
            therefore different. */
         result = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
       } else if (type_1->variant.typeref.is_typeof_with_type_operand) {
         /* typeof applied to a type.  Treat as non-distinct here.  The
            caller will apply the usual type checking. */
         result = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         /* Two types obtained with the decltype or typeof construct. */
         an_expr_node_ptr  expr1 = decltype_arg(type_1);
