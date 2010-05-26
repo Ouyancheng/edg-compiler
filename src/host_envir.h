@@ -2269,7 +2269,7 @@ int unicode_to_multibyte_char(unsigned long uc,
 
 #if EDG_WIN32
 
-static _locale_t
+EXTERN _locale_t
 		native_multibyte_locale;
 			/* The locale object to be used for converting
 			   multibyte characters to UTF-8. */

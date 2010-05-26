@@ -1,5 +1,13 @@
 Version 4.2
 
+5/26/10  [EDGcpfe/10704]
+Microsoft compatibility: incorrect locale used for identifier characters
+
+The native_multibyte_locale variable was incorrectly declared as static
+in host_envir.h, this could result in an incorrect locale being used in
+lexical.c for the conversion of multibyte characters in identifiers.
+Now fixed.
+
 5/26/10  [EDGcpfe/9169]
 Extra flags on typeref entries for decltype and typeof
 
