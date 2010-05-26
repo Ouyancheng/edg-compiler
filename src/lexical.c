@@ -15213,6 +15213,11 @@ selection operator, in which case it points to the type of the left operand.
                  not the nonreal one. */
               lookup_options |= IDL_USE_PROTOTYPE_NOT_NONREAL;
             }  /* if */
+            /* Set the is_qualified_name field of the locator so that it
+               can be used by the lookup routines called below.  This is
+               needed in cases such as the creation of a symbol for a member
+               of an unknown base. */
+            locator_for_curr_id.is_qualified_name = TRUE;
             if (qualifier_is_type) {
               if (qualifier_is_enum) {
               /* In some modes (e.g., C++0x), an enumeration can be used as the
