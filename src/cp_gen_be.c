@@ -4329,7 +4329,13 @@ will be put out when they are encountered when generating the parameter types.
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
       /* There is a type declaration.  See if it is part of the prototype
          scope. */
-      if (il_header.source_language == sl_Cplusplus) {
+      if (il_header.source_language == sl_Cplusplus || microsoft_mode) {
+        /* In C++ (and in Microsoft C) class types declared in a parameter
+           list are not actually entered in the function prototype scope: The
+           type entry will thus not have its declared_in_function_prototype
+           flag set, but the secondary source sequence may have it set,
+           reflecting the lexical location of the declaration (but not its
+           scope). */
         if (sec_decl != NULL && sec_decl->declared_in_func_prototype) {
           found_decl = TRUE;
         }  /* if */
@@ -4376,9 +4382,10 @@ will be put out when they are encountered when generating the parameter types.
       /* found_decl = FALSE; */
     } else {
       /* Anything else should be a type declared or defined in the parameter
-         list (and in the prototype scope, in C). */
+         list (and in the prototype scope, in non-Microsoft C). */
       if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
         check_assertion_str(il_header.source_language == sl_Cplusplus ||
+                            microsoft_mode ||
                             type->declared_in_function_prototype,
                       "bypass_prototyped_param_...: not prototype scope type");
          found_decl = is_type = TRUE;
@@ -8308,7 +8315,9 @@ Render code for the given expression node, which represents a lambda.
 {
   a_lambda_ptr            lambda = expr->variant.lambda.ptr;
   a_routine_ptr           rp = lambda->lambda_routine;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
   a_memory_region_number  scope_region_number = rp->assoc_scope;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   a_scope_ptr             scope;
   a_function_state        state;
   a_source_sequence_scan_state
@@ -12430,7 +12439,9 @@ TRUE if the declaration following this one is such a continuation.
   a_storage_class               storage_class;
   a_storage_class               implicit_storage_class = FALSE;
   a_scope_ptr                   scope = NULL;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
   a_memory_region_number        scope_region_number;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
@@ -12621,8 +12632,8 @@ handle_as_definition:
   if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
-    scope_region_number = rout->assoc_scope;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
+    scope_region_number = rout->assoc_scope;
     /* Read the information for the function from the IL file.  This must be
        read before the interface is generated in order to get the parameter
        names. */

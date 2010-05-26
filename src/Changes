@@ -1,5 +1,20 @@
 Version 4.2
 
+5/26/10  [EDGcpfe/10706]
+C++-generating back end abort in Microsoft C mode on type declared in a
+function prototype scope
+
+In Microsoft C mode, the C++-generating back end previously could abort in
+gen_declaration_statement when a class type was declared in a function
+prototype scope of a block-extern declaration.  For example:
+
+  void f() {
+    void g(struct X *px);  // Previously triggered an abort in the
+  }                        // C++-generating back end.
+
+This is now fixed.
+
+
 5/26/10  [EDGcpfe/10704]
 Microsoft compatibility: incorrect locale used for identifier characters
 
