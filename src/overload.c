@@ -2692,7 +2692,7 @@ it is always NULL.
     arg_type = skip_typerefs(arg_type);
     /* Top-level type qualifiers on the parameter type are also not
        significant. */
-    param_type = skip_typerefs(param_type);
+    param_type = skip_typerefs_not_dependent_decltypes(param_type);
     /* An incomplete type operand cannot be made to match anything.
        This comes up for something like
          struct A *p;

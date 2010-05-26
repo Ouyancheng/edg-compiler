@@ -277,6 +277,23 @@ typedefs.
 }  /* skip_typerefs_not_typedefs */
 
 
+a_type_ptr skip_typerefs_not_dependent_decltypes(a_type_ptr type_ptr)
+/*
+Strip any typeref entries off the given type, and return a pointer to
+the underlying type, but keep dependent decltype or typeof types.
+This is useful for cases where deduction will be done on the type:
+a decltype has an underlying expression, which needs to be rescanned
+during the deduction process and therefore must not be discarded.
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref &&
+         !type_ptr->variant.typeref.is_dependent_decltype_or_typeof) {
+    type_ptr = type_ptr->variant.typeref.type;
+  }  /* while */
+  return type_ptr;
+}  /* skip_typerefs_not_dependent_decltypes */
+
+
 a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
@@ -3619,14 +3636,8 @@ This routine may return TRUE or FALSE for such cases.
   if (!C_mode() && in_front_end) {
     /* Peel off tk_typeref layers looking for template-dependent decltype or
        typeof nodes. */
-    while (type_1->kind == (a_type_kind)tk_typeref &&
-           !type_1->variant.typeref.is_dependent_decltype_or_typeof) {
-      type_1 = type_1->variant.typeref.type;
-    }  /* while */
-    while (type_2->kind == (a_type_kind)tk_typeref &&
-           !type_2->variant.typeref.is_dependent_decltype_or_typeof) {
-      type_2 = type_2->variant.typeref.type;
-    }  /* while */
+    type_1 = skip_typerefs_not_dependent_decltypes(type_1);
+    type_2 = skip_typerefs_not_dependent_decltypes(type_2);
     if (type_1->kind == (a_type_kind)tk_typeref ||
         type_2->kind == (a_type_kind)tk_typeref) {
       /* Some dependent decltype/typeof type was encountered. */
