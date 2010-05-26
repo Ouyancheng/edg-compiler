@@ -7087,6 +7087,11 @@ points to the template parameter list.
         case tk_typeref:
           if (!type_qualifiers_match(type, templ_type)) {
             /* Not a match. */
+          } else if (templ_type->variant.typeref.
+                                             is_dependent_decltype_or_typeof) {
+            /* decltype and typeof should be considered nondeduced.  Consider
+               this a match for now. */
+            match = TRUE;
           } else {
             /* Qualifiers match.  See if the underlying types do, too. */
             tp = skip_typerefs(type->variant.typeref.type);
