@@ -5002,6 +5002,10 @@ list specified by tap.
       if (is_type_templ_arg(tap) && tap->variant.type != NULL) {
         tap->variant.type =
                            strip_local_and_nonreal_typedefs(tap->variant.type);
+      } else if (is_nontype_templ_arg(tap)) {
+        check_assertion(tap->arg_operand == NULL);
+        tap->variant.constant->type =
+                 strip_local_and_nonreal_typedefs(tap->variant.constant->type);
       }  /* if */
     }  /* for */
   }  /* if */
