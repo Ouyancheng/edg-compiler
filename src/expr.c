@@ -8113,10 +8113,19 @@ outside of the expression-processing routines.
                                                      &no_parens_matters);
     tp->variant.typeref.is_decltype = TRUE;
     tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
+    tp->variant.typeref.is_dependent_decltype_or_typeof = dependent_arg;
     if (dependent_arg) {
       prep_generic_operand(&operand);
     }  /* if */
     expr = make_node_from_operand(&operand);
+    if (!dependent_arg) {
+      /* Check for cases where the result type is not dependent but there's
+         a subexpression that is. */
+      if (is_template_dependent_context() &&
+          expr_contains_dependent_type(expr)) {
+        tp->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
+      }  /* if */
+    }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
        expression is a local expression,  the type entry cannot point
        directly to it, and instead we use the "a_local_expr_node_ref"
@@ -8430,11 +8439,21 @@ the expression-processing routines.
                                 is_template_dependent_type(result);
     typeof_type->variant.typeref.type = result;
     typeof_type->variant.typeref.is_typeof = TRUE;
+    typeof_type->variant.typeref.is_typeof_with_type_operand = is_type;
+    typeof_type->variant.typeref.is_dependent_decltype_or_typeof=dependent_arg;
     if (!is_type) {
       if (dependent_arg) {
         prep_generic_operand(&operand);
       }  /* if */
       expr = make_node_from_operand(&operand);
+      if (!dependent_arg) {
+        /* Check for cases where the result type is not dependent but there's
+           a subexpression that is. */
+        if (is_template_dependent_context() &&
+            expr_contains_dependent_type(expr)) {
+          typeof_type->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
+        }  /* if */
+      }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
          expression is a local expression,  the type entry cannot point
          directly to it, and instead we use the "a_local_expr_node_ref"

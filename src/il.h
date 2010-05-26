@@ -976,6 +976,8 @@ extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
 
 extern a_boolean has_statement_expression(an_expr_node_ptr expr);
 
+extern a_boolean expr_contains_dependent_type(an_expr_node_ptr expr);
+
 extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                             a_source_position  *err_pos);
 

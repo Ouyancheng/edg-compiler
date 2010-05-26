@@ -8141,6 +8141,7 @@ a pointer over a reference type or creating an array of references.
         break;
       case tk_typeref:
         if (typeref_is_decltype_or_typeof(type) &&
+            type->variant.typeref.is_dependent_decltype_or_typeof &&
             (expr = decltype_arg(type)) != NULL &&
             expr->rescan_info != NULL) {
           /* decltype or typeof based on an expression: do substitution on the

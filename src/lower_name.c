@@ -5538,35 +5538,6 @@ operation; compare mangled_class_name (no "_internal").
 }  /* mangled_class_name_internal */
 
 
-static void examine_expr_for_dependent_type(
-                                    an_expr_node_ptr                    node,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Called during an expression traversal; returns TRUE (via tblock) and
-terminates the traversal if a node with a dependent type is found.
-*/
-{
-  if (is_template_dependent_type(node->type)) {
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
-  }  /* if */
-}  /* examine_expr_for_dependent_type */
-
-
-static a_boolean expression_contains_dependent_type(an_expr_node_ptr expr)
-/*
-Returns TRUE if the expression contains a dependent type.
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = examine_expr_for_dependent_type;
-  traverse_expr(expr, &tblock);
-  return tblock.result;
-}  /* expression_contains_dependent_type */
-
-
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl)
 /*
@@ -5613,11 +5584,10 @@ Add to the mangled name the encoding for the type "type".
 #endif /* DO_IL_LOWERING */
     /* Mangle a decltype expression here; decltypes without expressions are
        stripped, as are non-dependent types. */
-    if (type->variant.typeref.is_decltype) {
+    if (type->variant.typeref.is_decltype &&
+        type->variant.typeref.is_dependent_decltype_or_typeof) {
       an_expr_node_ptr decltype_expr = decltype_arg(type);
-      if (decltype_expr != NULL &&
-          (is_template_dependent_type(type) ||
-           expression_contains_dependent_type(decltype_expr))) {
+      if (decltype_expr != NULL) {
 #if IA64_ABI
         if (type->variant.typeref.decltype_expr_not_parenthesized) {
           add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_TYPE, mctl);
@@ -5636,9 +5606,12 @@ Add to the mangled name the encoding for the type "type".
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Mangle a typeof expression here. */
-    if (type->variant.typeref.is_typeof) {
-      an_expr_node_ptr typeof_expr = decltype_arg(type);
-      if (typeof_expr != NULL) {
+    if (type->variant.typeref.is_typeof &&
+        type->variant.typeref.is_dependent_decltype_or_typeof) {
+      an_expr_node_ptr typeof_expr;
+      if (!type->variant.typeref.is_typeof_with_type_operand &&
+          (typeof_expr = decltype_arg(type)) != NULL) {
+        /* typeof(expression). */
 #if IA64_ABI
         /* FIXME: need to invent a mangling for typeof */
         add_FIXME_to_mangled_name(mctl);

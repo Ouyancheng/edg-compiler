@@ -16498,6 +16498,61 @@ Return whether expr contains a statement expression (a GNU extension).
 }  /* has_statement_expression */
 
 
+static void examine_expr_for_dependent_type(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the expression is template-dependent
+(either type-dependent or dependent anywhere in the tree).
+*/
+{
+  if (is_template_dependent_type(expr->type)) {
+    /* The node has a template-dependent type. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  } else {
+    /* Check expression kinds that have a type embedded in them. */
+    if (expr->kind == (an_expr_node_kind)enk_typeid) {
+      if (is_template_dependent_type(expr->variant.typeid_info.type)) {
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
+      if (expr->variant.sizeof_info.is_type &&
+          is_template_dependent_type(expr->variant.sizeof_info.variant.type)){
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_type_operand) {
+      if (is_template_dependent_type(expr->variant.type_operand.type)) {
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* examine_expr_for_dependent_type */
+
+
+a_boolean expr_contains_dependent_type(an_expr_node_ptr expr)
+/*
+Return TRUE if expr is template-dependent.  This includes both type-dependent
+and value-dependent cases.  Checking for the latter requires a tree traversal.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!C_mode()) {
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_dependent_type;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* expr_contains_dependent_type */
+
+
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*

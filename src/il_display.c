@@ -1876,7 +1876,13 @@ Display the indicated type entry.
       if (ptr->variant.typeref.is_typeof) {
         disp_boolean("is_typeof", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_typeof_with_type_operand) {
+        disp_boolean("is_typeof_with_type_operand", TRUE);
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      if (ptr->variant.typeref.is_dependent_decltype_or_typeof) {
+        disp_boolean("is_dependent_decltype_or_typeof", TRUE);
+      }  /* if */
       if (ptr->variant.typeref.for_type_attributes) {
         disp_boolean("for_type_attributes", TRUE);
       }  /* if */

@@ -9218,7 +9218,7 @@ symbol entry, and return a pointer to it in state->sym.
            struct {} x;
            typedef typeof(x) S;   // "S" is the name for linkage purposes.
            typedef typeof(x) S2;  // "S2" isn't the name for linkage purposes,
-                                  // since once is established already. */
+                                  // since one is established already. */
       while (type_to_check->kind == (a_type_kind)tk_typeref &&
              type_to_check->variant.typeref.is_typeof) {
         type_to_check = type_to_check->variant.typeref.type;

@@ -1600,7 +1600,9 @@ to default values.
       pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.typeref.is_typeof = FALSE;
+      pte->variant.typeref.is_typeof_with_type_operand = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      pte->variant.typeref.is_dependent_decltype_or_typeof = FALSE;
       pte->variant.typeref.for_type_attributes = FALSE;
       pte->variant.typeref.is_alias = FALSE;
       pte->variant.typeref.is_template_alias = FALSE;

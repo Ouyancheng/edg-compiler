@@ -1,5 +1,17 @@
 Version 4.2
 
+5/26/10  [EDGcpfe/9169]
+Extra flags on typeref entries for decltype and typeof
+
+The typeref entries for types named via decltype or typeof now have an
+additional flag, is_dependent_decltype_or_typeof, that indicates that
+the operand expression is dependent (including cases where the final
+type is not dependent but a subexpression is).  The typeof case also
+has a new flag is_typeof_with_type_operand that indicates that the
+operand of typeof is a type, i.e., typeof(type-name), rather than
+an expression.
+
+
 5/25/10  [EDGcpfe/10700]
 Use of uninitialized variable in update_instantiation_flags
 

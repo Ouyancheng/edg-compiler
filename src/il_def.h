@@ -6316,11 +6316,11 @@ typedef struct a_typeref_type_supplement {
 			   the expression is local to a function, this field is
 			   NULL and the expression must be retrieved using
 			   find_local_expr_node.  For typeof, this field is
-			   also NULL for the typeof(type) variant; that case
-			   can be distinguished from the typeof(local-expr)
-			   case only by calling find_local_expr_node and
-			   getting a NULL result.  The function decltype_arg
-			   can be used to fetch the expression in all cases. */
+			   also NULL for the typeof(type) variant, which is
+			   indicated by the is_typeof_with_type_operand
+			   field.  The function decltype_arg can be used to
+			   fetch the expression (if there is one) in all
+			   cases. */
   int32_t	min_template_arguments;
 			/* The minimum number of template arguments used to
 			   refer to this instance in the source (using
@@ -7236,7 +7236,18 @@ typedef struct a_type {
 		is_typeof:1;
 			/* The type was created by a typeof operator
                            (a GNU C extension). */
+      a_bit_field
+		is_typeof_with_type_operand:1;
+			/* The type was created by a typeof operator applied to
+			   a type rather than an expression, i.e.,
+			   typeof(type-name) rather than typeof(expr). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      a_bit_field
+		is_dependent_decltype_or_typeof:1;
+			/* TRUE if the type was created by decltype or typeof,
+			   and it's dependent (including cases where there are
+			   dependent subexpressions but the final result has
+			   a non-dependent type). */
       a_bit_field
 		for_type_attributes:1;
 			/* When TRUE, the underlying type has type-transforming

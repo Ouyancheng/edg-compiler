@@ -1247,7 +1247,7 @@ in the current context.
 
 an_expr_node_ptr decltype_arg(a_type_ptr  type)
 /*
-The given type represents a decltype construct.  Return its argument
+The given type represents a decltype or typeof construct.  Return its argument
 expression if available, or NULL otherwise.
 */
 {
@@ -1450,9 +1450,11 @@ by octl.
              types. */
           octl->output_name((char*)type, iek_type);
         } else {
-          an_expr_node_ptr  expr = decltype_arg(type);
           octl->output_str("__typeof__(", octl);
-          if (expr != NULL) {
+          if (!type->variant.typeref.is_typeof_with_type_operand) {
+            /* typeof(expression). */
+            an_expr_node_ptr expr = decltype_arg(type);
+            check_assertion(expr != NULL);
             if (octl->output_expression != NULL) {
               /* Unlike decltype, typeof is not affected by extra top-level
                  parentheses.  Suppress them anyway to produce more pleasing
@@ -1462,6 +1464,7 @@ by octl.
               form_expression(expr, octl);
             }  /* if */
           } else {
+            /* typeof(type-name). */
             form_type(type->variant.typeref.type, octl);
           }  /* if */
           octl->output_str(")", octl);

@@ -3619,18 +3619,12 @@ This routine may return TRUE or FALSE for such cases.
   if (!C_mode() && in_front_end) {
     /* Peel off tk_typeref layers looking for template-dependent decltype or
        typeof nodes. */
-    while (type_1->kind == (a_type_kind)tk_typeref) {
-      if (typeref_is_decltype_or_typeof(type_1) &&
-          is_template_dependent_type(type_1)) {
-        break;
-      }  /* if */
+    while (type_1->kind == (a_type_kind)tk_typeref &&
+           !type_1->variant.typeref.is_dependent_decltype_or_typeof) {
       type_1 = type_1->variant.typeref.type;
     }  /* while */
-    while (type_2->kind == (a_type_kind)tk_typeref) {
-      if (typeref_is_decltype_or_typeof(type_2) &&
-          is_template_dependent_type(type_2)) {
-        break;
-      }  /* if */
+    while (type_2->kind == (a_type_kind)tk_typeref &&
+           !type_2->variant.typeref.is_dependent_decltype_or_typeof) {
       type_2 = type_2->variant.typeref.type;
     }  /* while */
     if (type_1->kind == (a_type_kind)tk_typeref ||
@@ -3640,6 +3634,8 @@ This routine may return TRUE or FALSE for such cases.
 #if GNU_EXTENSIONS_ALLOWED
           type_1->variant.typeref.is_typeof !=
                                         type_2->variant.typeref.is_typeof ||
+          type_1->variant.typeref.is_typeof_with_type_operand !=
+                      type_2->variant.typeref.is_typeof_with_type_operand ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
           type_1->variant.typeref.is_decltype !=
                                       type_2->variant.typeref.is_decltype ||
@@ -3648,36 +3644,31 @@ This routine may return TRUE or FALSE for such cases.
         /* The two types were obtained with different constructs and are
            therefore different. */
         result = TRUE;
+      } else if (type_1->variant.typeref.is_typeof_with_type_operand) {
+        /* typeof applied to a type.  Treat as non-distinct here.  The
+           caller will apply the usual type checking. */
+        result = FALSE;
       } else {
-        /* Two types obtained with the decltype(<expr>) or typeof(<expr>)
-           construct, where the expression has a template-dependent type.
-           Compare the expression trees.  (No expression trees are available
-           if the decltype was constructed inside a function whose body
-           is complete.  Such types are always considered non-identical to
-           other types.) */
-        an_expr_node_ptr  expr1 = type_1->variant.typeref.extra_info->expr;
-        an_expr_node_ptr  expr2 = type_2->variant.typeref.extra_info->expr;
-        a_compare_constants_options_set
-                          cc_options;
-        a_local_expr_node_ref_kind
-                          lerk = type_1->variant.typeref.is_decltype ?
-                                (a_local_expr_node_ref_kind)lerk_decltype :
-                                (a_local_expr_node_ref_kind)lerk_typeof;
-        /* When this routine is called with the "exact template param" flag
-           set, pass the corresponding flag to the constant comparison
-           routine. */
-        cc_options = (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0
+        /* Two types obtained with the decltype or typeof construct. */
+        an_expr_node_ptr  expr1 = decltype_arg(type_1);
+        an_expr_node_ptr  expr2 = decltype_arg(type_2);
+        if (expr1 == NULL || expr2 == NULL) {
+          /* No expression is available for cases constructed inside a
+             function body that's no longer the current one.  In those cases,
+             we assume they are distinct. */
+          result = TRUE;
+        } else {
+          /* Compare the expression trees. */
+          a_compare_constants_options_set cc_options;
+          /* When this routine is called with the "exact template param" flag
+             set, pass the corresponding flag to the constant comparison
+             routine. */
+          cc_options = (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED)
                                         ? CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
                                         : CC_NO_OPTIONS;
-        if (expr1 == NULL) {
-          expr1 = find_local_expr_node((char*)type_1, lerk);
+          result = !compare_template_param_constant_expressions(expr1, expr2,
+                                                                cc_options);
         }  /* if */
-        if (expr2 == NULL) {
-          expr2 = find_local_expr_node((char*)type_2, lerk);
-        }  /* if */
-        result = expr1 == NULL || expr2 == NULL ||
-                 !compare_template_param_constant_expressions(expr1, expr2,
-                                                              cc_options);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3719,8 +3710,7 @@ for more information.
          have been applied to an lvalue in one case and an rvalue in the
          other, and therefore have an extra "reference to" on it. */
       adjust_comparison_types_for_decltype(&type_1, &type_2);
-    }  /* if */
-    if (distinct_dependent_decltypes(type_1, type_2, flags)) {
+    } else if (distinct_dependent_decltypes(type_1, type_2, flags)) {
       /* type_1 and type_2 are built from decltype (or typeof) constructs
          with distinct template-dependent arguments.  Such types are assumed
          to be different. */
@@ -4302,8 +4292,7 @@ for exact pointer equality.
            have been applied to an lvalue in one case and an rvalue in the
            other, and therefore have an extra "reference to" on it. */
         adjust_comparison_types_for_decltype(&type_1, &type_2);
-      }  /* if */
-      if (distinct_dependent_decltypes(type_1, type_2, ITF_NO_FLAGS)) {
+      } else if (distinct_dependent_decltypes(type_1, type_2, ITF_NO_FLAGS)) {
         goto done;
       }  /* if */
       type_1 = skip_typerefs(type_1);
