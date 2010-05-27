@@ -1281,6 +1281,20 @@ types separated by commas (when single_type_required is FALSE).
   a_boolean	      is_start_of_type;
 
   db_enter(3, "is_decl_not_expr_full");
+#if GNU_EXTENSIONS_ALLOWED
+  if (curr_token == tok_extension) {
+    /* The GNU __extension__ keyword can start an expression or a declaration:
+       temporarily skip the token, and restart disambiguation from the next
+       token. */
+    a_token_cache  cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    (void)get_token();
+    result = is_decl_not_expr(flags);
+    rescan_cached_tokens(&cache);
+    goto done;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Determine whether the current identifier is a synthesized template
      parameter type symbol created in implicit_typename mode.  If so,
      we must do additional checking for casts to determine that the
@@ -1377,7 +1391,7 @@ types separated by commas (when single_type_required is FALSE).
        declaration.  Each token that is encountered is cached away, so
        that they can be restored for the actual scan. */
     prescan_declaration(&state, flags, /*is_top_level=*/TRUE);
-    if (!state.may_be_decl) goto done;
+    if (!state.may_be_decl) goto restore_token_sequence;
     /* We should now be at either a comma separating two declarators or at
        the semicolon at the end of the declaration.  If not, assume that this
        is really an expression. */
@@ -1431,7 +1445,7 @@ types separated by commas (when single_type_required is FALSE).
         }  /* if */
       }  /* if */
     }  /* if */
-done:
+restore_token_sequence:
     /* Restore the tokens. */
     rescan_cached_tokens(&state.cache);
     if (curr_token == tok_identifier) {
@@ -1443,6 +1457,7 @@ done:
     result = state.may_be_decl;
     wrapup_disambig_state(&state);
   }  /* if */
+done:
   db_exit();
   return result;
 }  /* is_decl_not_expr_full */

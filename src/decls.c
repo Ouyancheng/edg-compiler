@@ -615,6 +615,15 @@ of declarations that are permitted.
   } else if (curr_token == tok_attribute || curr_token == tok_extension) {
     /* An attribute or the __extension__ keyword can start a declaration. */
     is_start = TRUE;
+  } else if (curr_token == tok_extension) {
+    /* The __extension__ keyword could be followed by an arbitrary expression
+       or declaration.  Cache the token an recursively examine what follows. */
+    a_token_cache  cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_curr_token(&cache);
+    (void)get_token();
+    is_start = is_decl_start(options);
+    rescan_cached_tokens(&cache);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   } else if (is_sun_link_scope_specifier()) {
