@@ -1302,7 +1302,6 @@ types separated by commas (when single_type_required is FALSE).
       next_tok != tok_lparen) {
     a_token_cache	cache;
     a_token_kind	next_2_tok;
-    a_boolean		identifier_seen = curr_token == tok_identifier;
     a_boolean		any_tokens_fetched = FALSE;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     (void)next_two_tokens(next_tok, &next_2_tok);
@@ -1328,7 +1327,7 @@ types separated by commas (when single_type_required is FALSE).
       is_start_of_type = is_type_start(/*is_expr_context=*/TRUE);
     } else if (next_2_tok != tok_lparen) {
       /* Not a case we need to worry about. */
-    } else if (!identifier_seen && next_tok == tok_identifier) {
+    } else if (next_tok == tok_identifier) {
       /* Check whether the identifier is a type. */
       cache_curr_token(&cache);
       (void)get_token();
