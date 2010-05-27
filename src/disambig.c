@@ -1142,7 +1142,13 @@ evidence to the contrary.
 */
 {
   a_boolean	is_first_declarator = TRUE;
+
   db_enter(3, "prescan_declaration");
+  if (curr_token == tok_extension) {
+    /* Skip over a leading GNU __extension__ keyword. */
+    cache_curr_token(&state->cache);
+    (void)get_token();
+  }  /* if */
   /* Coalesce the identifier if this is a tok_identifier. */
   (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_IS_EXPR_CONTEXT |

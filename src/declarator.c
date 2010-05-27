@@ -1940,13 +1940,6 @@ if this is the function declarator in a friend function declaration.
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         a_type_qualifier_set param_qualifiers = TQ_NONE;
-        if (gnu_mode) {
-          if (curr_token == tok_extension) {
-            /* Ignore the GNU C __extension__ annotation. */
-            (void)get_token();
-            dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
-          }  /* if */
-        }  /* if */
         if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
         if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
