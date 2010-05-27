@@ -245,8 +245,9 @@ of the macro to avoid multiple evaluations of the argument.
 a_type_ptr skip_typedefs(a_type_ptr type_ptr)
 /*
 Strip any typedef entries off the given type to get to the real type, and
-return a pointer to that.  Note that type qualifiers (const, volatile)
-are not dropped here.
+return a pointer to that.  cv-qualifiers (const, volatile) are not dropped,
+but decltype entries are.  This function answers the request "give me the
+underlying type, without changing the type represented."
 */
 {
   while (type_ptr->kind == (a_type_kind)tk_typeref &&
@@ -284,6 +285,7 @@ the underlying type, but keep dependent decltype or typeof types.
 This is useful for cases where deduction will be done on the type:
 a decltype has an underlying expression, which needs to be rescanned
 during the deduction process and therefore must not be discarded.
+Note that cv-qualifiers ARE stripped off.
 */
 {
   while (type_ptr->kind == (a_type_kind)tk_typeref &&
@@ -292,6 +294,26 @@ during the deduction process and therefore must not be discarded.
   }  /* while */
   return type_ptr;
 }  /* skip_typerefs_not_dependent_decltypes */
+
+
+a_type_ptr skip_typedefs_not_dependent_decltypes(a_type_ptr type_ptr)
+/*
+Strip any typedef entries off the given type, and return a pointer to
+the underlying type, but keep cv-qualifiers and dependent decltype or
+typeof types.  This is useful for cases where deduction will be done
+on the type: a decltype has an underlying expression, which needs to
+be rescanned during the deduction process and therefore must not be
+discarded.  This function answers the request "give me the underlying
+type, without changing the type represented, for deduction purposes."
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_qualified(type_ptr) &&
+         !type_ptr->variant.typeref.is_dependent_decltype_or_typeof) {
+    type_ptr = type_ptr->variant.typeref.type;
+  }  /* while */
+  return type_ptr;
+}  /* skip_typedefs_not_dependent_decltypes */
 
 
 a_boolean is_error_type(a_type_ptr tp)

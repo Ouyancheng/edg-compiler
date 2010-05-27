@@ -6831,7 +6831,7 @@ points to the template parameter list.
      should not allow conversions or the special unknown this class
      type checks. */
   new_flags = MTT_NO_FLAGS;
-  templ_type = skip_typedefs(templ_type);
+  templ_type = skip_typedefs_not_dependent_decltypes(templ_type);
   if (is_immediate_class_type(templ_type)) {
     /* If the template type is a proxy class for a template parameter,
        substitute the underlying template parameter for the deduction

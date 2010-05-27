@@ -906,7 +906,7 @@ of which type is an instance.  Return NULL otherwise.
   a_template_symbol_supplement_ptr  tssp;
   a_template_ptr                    class_template = NULL;
 
-  type = skip_typedefs(type);
+  type = skip_typedefs_not_dependent_decltypes(type);
   if (is_immediate_class_type(type) && 
       type->variant.class_struct_union.is_template_class) {
     /* The class is an instantiation or specialization -- but it might be a
