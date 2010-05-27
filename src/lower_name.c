@@ -5608,21 +5608,22 @@ Add to the mangled name the encoding for the type "type".
     /* Mangle a typeof expression here. */
     if (type->variant.typeref.is_typeof &&
         type->variant.typeref.is_dependent_decltype_or_typeof) {
-      an_expr_node_ptr typeof_expr;
-      if (!type->variant.typeref.is_typeof_with_type_operand &&
-          (typeof_expr = decltype_arg(type)) != NULL) {
+      if (!type->variant.typeref.is_typeof_with_type_operand) {
         /* typeof(expression). */
+        an_expr_node_ptr typeof_expr = decltype_arg(type);
+        if (typeof_expr != NULL) {
 #if IA64_ABI
-        /* FIXME: need to invent a mangling for typeof */
-        add_FIXME_to_mangled_name(mctl);
-        mangled_encoding_for_expression(typeof_expr,
-                                        /*in_dependent_expr=*/TRUE, mctl);
-        add_to_mangled_name('E', mctl);
+          /* FIXME: need to invent a mangling for typeof */
+          add_FIXME_to_mangled_name(mctl);
+          mangled_encoding_for_expression(typeof_expr,
+                                          /*in_dependent_expr=*/TRUE, mctl);
+          add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
-        /* FIXME: implement Cfront case */
-        add_FIXME_to_mangled_name(mctl);
+          /* FIXME: implement Cfront case */
+          add_FIXME_to_mangled_name(mctl);
 #endif /* IA64_ABI */
-        goto have_whole_mangled_name;
+          goto have_whole_mangled_name;
+        }  /* if */
       } else {
         /* In cases where typeof has a type argument (rather than an
            expression), the typeref will be stripped and the underlying type
