@@ -6873,6 +6873,11 @@ points to the template parameter list.
     if (is_qualified_type(templ_type)) {
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
+    } else if (templ_type->kind == (a_type_kind)tk_typeref &&
+               templ_type->variant.typeref.is_dependent_decltype_or_typeof) {
+      /* decltype and typeof should be considered nondeduced.  Consider
+         this a match for now. */
+      match = TRUE;
     } else {
       a_template_nesting_depth	depth_of_template;
       /* Get the template nesting depth as indicated by the first template
@@ -6938,10 +6943,6 @@ points to the template parameter list.
                                     (a_template_param_type_kind)tptk_unknown) {
         /* The template type is an unknown dependent type.  This is a
            nondeduced context.  Consider it a match for now. */
-        match = TRUE;
-      } else if (templ_type->variant.typeref.is_dependent_decltype_or_typeof) {
-        /* decltype and typeof should be considered nondeduced.  Consider
-           this a match for now. */
         match = TRUE;
       } else {
         /* Skip typedefs on the real type. */
