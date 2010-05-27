@@ -3876,7 +3876,6 @@ the name in the abstract.  Set *err to TRUE if there is an error.
   an_expr_operator_kind         op;
   a_boolean                     need_member_sym_check = TRUE;
   a_source_position             *qualified_member_position;
-  a_type_ptr                    dtor_type = NULL;
 
   if (class_struct_union_type == NULL) {
     /* Some previous error on the first operand. */
@@ -3931,7 +3930,6 @@ the name in the abstract.  Set *err to TRUE if there is an error.
               if (!is_class_struct_union_type(class_struct_union_type)) {
                 /* The left operand is not a class type, so this is a vacuous
                    destructor case. */
-                dtor_type = class_struct_union_type;
                 goto handle_vacuous_destructor_call;
               } else {
                 a_class_symbol_supplement_ptr cssp =
@@ -3940,7 +3938,6 @@ the name in the abstract.  Set *err to TRUE if there is an error.
                 if (cssp->destructor == NULL) {
                   /* The class doesn't have a destructor, so this is a
                      vacuous destructor case. */
-                  dtor_type = class_struct_union_type;
                   goto handle_vacuous_destructor_call;
                 } else {
                   /* The class does have a destructor.  We don't need to look
@@ -4026,25 +4023,15 @@ have_symbol:
       break;
     case eok_dot_vacuous_destructor_call:
     case eok_points_to_vacuous_destructor_call:
-      /* A vacuous destructor call.  The underlying type of the first
-         operand gives the "destructor class" type (which might not be a
-         class at all). */
-      dtor_type = op1->type;
-      if (op == (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
-        if (is_pointer_type(dtor_type)) {
-          dtor_type = type_pointed_to(dtor_type);
-        } else if (is_template_param_type(dtor_type)) {
-          dtor_type = type_of_unknown_templ_param_nontype;
-        } else {
-          check_assertion(is_error_type(dtor_type));
-        }  /* if */
-      }  /* if */
+      /* A vacuous destructor call.  class_struct_union_type gives the
+         substituted "destructor class" type (which might not be a
+         class type at all). */
 handle_vacuous_destructor_call:
       clear_locator(locator, &null_source_position);
       locator->is_vacuous_destructor_reference = TRUE;
       locator->is_class_member = TRUE;
-      locator->parent.class_type = dtor_type;
-      if (!is_class_struct_union_type(dtor_type)) {
+      locator->parent.class_type = class_struct_union_type;
+      if (!is_class_struct_union_type(class_struct_union_type)) {
         locator->is_nonclass_destructor = TRUE;
       }  /* if */
       break;
@@ -8124,6 +8111,7 @@ outside of the expression-processing routines.
       if (is_template_dependent_context() &&
           expr_contains_dependent_type(expr)) {
         tp->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
+        tp->variant.typeref.type = type_of_unknown_templ_param_nontype;
       }  /* if */
     }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
@@ -8452,6 +8440,8 @@ the expression-processing routines.
         if (is_template_dependent_context() &&
             expr_contains_dependent_type(expr)) {
           typeof_type->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
+          typeof_type->variant.typeref.type =
+                                           type_of_unknown_templ_param_nontype;
         }  /* if */
       }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
