@@ -10337,6 +10337,16 @@ to the caller.  If no modification is done return the original type.
         is_nonreal = !is_real_class_symbol(cowam_sym);
       }  /* if */
     }  /* if */
+    if (!is_local && !is_nonreal &&
+        typeref_is_decltype_or_typeof(type)) {
+      if (type->variant.typeref.extra_info->expr == NULL &&
+          !type->variant.typeref.is_typeof_with_type_operand) {
+        /* This is a decltype or typeof applied to a local expression (which
+           is indicated by the expr field being NULL, meaning the expression
+           is stored elsewhere for memory region reasons). */
+        is_local = TRUE;
+      }  /* if */
+    }  /* if */
     /* Only continue processing this typedef if it is either a local typedef
        or defined in a prototype instantiation. */
     if (!is_local && !is_nonreal) break;

@@ -4093,7 +4093,7 @@ al_tag_name attributes (if any).
 
 static void gen_decltype_or_typeof(a_type_ptr tp)
 /*
-Render a decltype(<expr>), __typeof__(<expr>), or __typeof(<type>) construct.
+Render a decltype(<expr>), __typeof__(<expr>), or __typeof__(<type>) construct.
 If the argument to the construct has associated source sequence entries, the
 type previously had its definition_delayed flag set to TRUE (at which time
 those source sequence entries were skipped); the source sequence entries
@@ -4101,7 +4101,6 @@ associated with the argument should be reactivated in such cases.
 */
 {
   a_source_sequence_scan_state  saved_state;
-  an_expr_node_ptr              expr = decltype_arg(tp);
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
 
   write_tok_str((char*)(is_decltype ? "decltype(" : "__typeof__("));
@@ -4147,12 +4146,14 @@ srq_seq_sublist_parent_found:
     }  /* if */
     adv_curr_source_sequence_entry();
   }  /* if */
-  if (expr == NULL) {
+  if (tp->variant.typeref.is_typeof_with_type_operand) {
     /* A __typeof__(<type>) form. */
-    check_assertion(!is_decltype);
     skip_embedded_declarations();
     gen_type(tp->variant.typeref.type);
   } else {
+    /* __typeof__(<expr>) or decltype(<expr>). */
+    an_expr_node_ptr expr = decltype_arg(tp);
+    check_assertion(expr != NULL);
     if (is_decltype && !tp->variant.typeref.decltype_expr_not_parenthesized) {
       write_tok_str("(");
     }  /* if */
