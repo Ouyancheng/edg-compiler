@@ -6862,7 +6862,12 @@ points to the template parameter list.
     skip_common_type_qualifiers(&type, &templ_type);
     templ_type = skip_typerefs(templ_type);
   }  /* if */
-  if (is_template_param_type(templ_type)) {
+  if (templ_type->kind == (a_type_kind)tk_typeref &&
+      templ_type->variant.typeref.is_dependent_decltype_or_typeof) {
+    /* decltype and typeof should be considered nondeduced.  Consider
+       this a match for now. */
+    match = TRUE;
+  } else if (is_template_param_type(templ_type)) {
     if (is_qualified_type(templ_type)) {
       /* If the template parameter has any type qualifiers, the argument type
          will have to have a set of type qualifiers that includes any on the
@@ -6873,11 +6878,6 @@ points to the template parameter list.
     if (is_qualified_type(templ_type)) {
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
-    } else if (templ_type->kind == (a_type_kind)tk_typeref &&
-               templ_type->variant.typeref.is_dependent_decltype_or_typeof) {
-      /* decltype and typeof should be considered nondeduced.  Consider
-         this a match for now. */
-      match = TRUE;
     } else {
       a_template_nesting_depth	depth_of_template;
       /* Get the template nesting depth as indicated by the first template
