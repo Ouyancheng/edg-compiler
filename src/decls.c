@@ -612,8 +612,8 @@ of declarations that are permitted.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (curr_token == tok_attribute || curr_token == tok_extension) {
-    /* An attribute or the __extension__ keyword can start a declaration. */
+  } else if (curr_token == tok_attribute) {
+    /* An attribute can start a declaration. */
     is_start = TRUE;
   } else if (curr_token == tok_extension) {
     /* The __extension__ keyword could be followed by an arbitrary expression
