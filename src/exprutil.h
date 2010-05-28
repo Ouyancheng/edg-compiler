@@ -1587,6 +1587,11 @@ void record_cast_position_in_rescan_info(an_operand        *operand,
                                          a_source_position *type_position,
                                          a_type_ptr        cast_type);
 
+extern
+void restore_operand_info_from_expr_rescan_info_entry(
+                                        an_operand                    *operand,
+                                        an_expr_rescan_info_entry_ptr eriep);
+
 extern void clear_rescan_control_block(a_rescan_control_block *rcblock);
 
 extern an_expr_node_ptr strip_implicit_operations_for_rescan(

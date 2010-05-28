@@ -5347,6 +5347,12 @@ typedef struct a_template_arg {
 			   the front end proper.  Used only in the same
 			   cases as the "constant" field above, i.e., for
 			   nontype parameters. */
+  an_expr_rescan_info_entry_ptr
+		rescan_info;
+			/* For template arguments scanned in templates that
+			   might be rescanned later to redo semantic analysis,
+			   points to extra front-end-only information that
+			   is needed for the rescan.  NULL otherwise. */
 } a_template_arg;
 
 

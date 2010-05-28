@@ -2143,6 +2143,27 @@ set its fields to default values, and return a pointer to it.
 }  /* alloc_expr_rescan_info_entry */
 
 
+static an_expr_rescan_info_entry_ptr save_operand_info_in_rescan_info_entry(
+                                        an_operand                    *operand,
+                                        an_expr_rescan_info_entry_ptr eriep)
+/*
+The operand "operand" will potentially be rescanned later to redo semantic
+analysis for template deduction.  Save any extra information from the operand
+in an expression rescan info entry.  If eriep is non-NULL, it points to a
+pre-allocated entry.  Otherwise, a new entry is allocated.  In either case,
+a pointer to the filled-in rescan info entry is returned.
+*/
+{
+  if (eriep == NULL) eriep = alloc_expr_rescan_info_entry();
+  /* Note that we do not clear all fields.  In particular, operator_position
+     and operator_token_sequence_number will often have been set previously
+     by record_operator_position_in_expr_rescan_info. */
+  eriep->saved_operand = *operand;
+  eriep->expression_kind = expr_stack->expression_kind;
+  return eriep;
+}  /* save_operand_info_in_rescan_info_entry */
+
+
 static void save_operand_info_in_expr_rescan_info_entry(
                                                      an_operand       *operand,
                                                      an_expr_node_ptr node)
@@ -2153,16 +2174,10 @@ any extra information from the operand in an expression rescan info
 entry attached to the expression node so it will be available for the rescan.
 */
 {
-  an_expr_rescan_info_entry_ptr eriep = node->rescan_info;
+  an_expr_rescan_info_entry_ptr eriep;
 
-  if (eriep == NULL) {
-    node->rescan_info = eriep = alloc_expr_rescan_info_entry();
-  }  /* if */
-  /* Note that we do not clear all fields.  In particular, operator_position
-     and operator_token_sequence_number will often have been set previously
-     by record_operator_position_in_expr_rescan_info. */
-  eriep->saved_operand = *operand;
-  eriep->expression_kind = expr_stack->expression_kind;
+  eriep = save_operand_info_in_rescan_info_entry(operand, node->rescan_info);
+  node->rescan_info = eriep;
 }  /* save_operand_info_in_expr_rescan_info_entry */
 
 
@@ -2283,7 +2298,7 @@ Do nothing if the operand is not discernibly a cast expression.
 }  /* record_cast_position_in_rescan_info */
 
 
-static void restore_operand_info_from_expr_rescan_info_entry(
+void restore_operand_info_from_expr_rescan_info_entry(
                                         an_operand                    *operand,
                                         an_expr_rescan_info_entry_ptr eriep)
 /*
@@ -4564,6 +4579,12 @@ so it can go into the IL.
       extract_constant_from_operand_with_fs_fixup(operand, constant);
       tap->variant.constant = constant;
       switch_back_to_original_region(region_to_switch_back_to);
+      if (expr_stack->possible_rescan_context) {
+        /* Save rescan info if we may rescan this argument later. */
+        tap->rescan_info = save_operand_info_in_rescan_info_entry(
+                                          operand,
+                                          (an_expr_rescan_info_entry_ptr)NULL);
+      }  /* if */
       free_arg_operand_list(tap->arg_operand);
       tap->arg_operand = NULL;
     } else if (tap->kind == (a_templ_arg_kind)tak_type) {

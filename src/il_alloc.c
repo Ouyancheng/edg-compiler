@@ -1053,6 +1053,7 @@ allocated.
       break;
   }  /* switch */
   tap->arg_operand = NULL;
+  tap->rescan_info = NULL;
   return tap;
 }  /* alloc_template_arg */
 

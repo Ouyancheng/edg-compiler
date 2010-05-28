@@ -19908,6 +19908,39 @@ by param_sym (sk_parameter).
 }  /* make_param_ref_operand */
 
 
+static void add_template_arg_list_arg_operands(
+                                     a_template_arg_ptr template_arg_list,
+                                     a_template_arg_ptr orig_template_arg_list)
+/*
+template_arg_list is a template argument list created in a rescan
+by doing substitution on orig_template_arg_list.  For the nontype
+template arguments on template_arg_list, add arg_operand entries based
+on the rescan info recorded in the entries on orig_template_arg_list.
+*/
+{
+  a_template_arg_ptr tap, orig_tap;
+
+  for (tap = template_arg_list, orig_tap = orig_template_arg_list;
+       tap != NULL;
+       tap = tap->next, orig_tap = orig_tap->next) {
+    check_assertion(orig_tap != NULL);
+    if (is_nontype_templ_arg(tap) &&
+        !tap->is_array_bound_of_unknown_type) {
+      an_operand_ptr                operand;
+      an_expr_rescan_info_entry_ptr eriep = orig_tap->rescan_info;
+      check_assertion_str(eriep != NULL,
+                          "missing rescan info on explicit template argument");
+      check_assertion(tap->arg_operand == NULL);
+      tap->arg_operand = alloc_arg_operand();
+      operand = &tap->arg_operand->operand;
+      make_constant_operand(tap->variant.constant, operand);
+      restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+    }  /* if */
+  }  /* for */
+  check_assertion(orig_tap == NULL);
+}  /* add_template_arg_list_arg_operands */
+
+
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
@@ -20001,9 +20034,10 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     }  /* if */
     if (locator.template_arg_list != NULL) {
       /* Do substitution on the explicit template argument list. */
-      a_boolean copy_error = FALSE;
+      a_template_arg_ptr rescan_orig_templ_arg_list= locator.template_arg_list;
+      a_boolean          copy_error = FALSE;
       locator.template_arg_list = copy_template_arg_list_with_substitution(
-                                             locator.template_arg_list,
+                                             rescan_orig_templ_arg_list,
                                              (a_template_param_ptr)NULL,
                                              rcblock->template_arg_list,
                                              rcblock->template_param_list,
@@ -20014,6 +20048,11 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       if (copy_error) {
         locator.is_error = TRUE;
         record_non_access_error_detected();
+      } else {
+        /* Add the arg_operand representation to the nontype arguments by
+           using the rescan info. */
+        add_template_arg_list_arg_operands(locator.template_arg_list,
+                                           rescan_orig_templ_arg_list);
       }  /* if */
     }  /* if */
   } else {

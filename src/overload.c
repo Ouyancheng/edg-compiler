@@ -3231,10 +3231,17 @@ the point of call.
            an updated template argument list (template arguments are cast to
            the types of the template parameters), which may be different for
            each template considered. */
+        a_template_symbol_supplement_ptr tssp =
+                               template_supplement_for_symbol(function_symbol);
+        /* Avoid infinite recursion. */
+        if (tssp->variant.function.pending_deductions >
+                              max_pending_instantiations) goto reject_function;
+        ++(tssp->variant.function.pending_deductions);
         routine_type = substitute_template_arguments(
                          function_symbol, template_arg_list,
                          &local_template_arg_list, (a_template_param_ptr)NULL,
                          /*is_partial_order_check=*/FALSE);
+        --(tssp->variant.function.pending_deductions);
         /* Bail out if there is a mismatch. */
         if (routine_type == NULL) goto reject_function;
       }  /* if */
