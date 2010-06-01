@@ -3545,18 +3545,7 @@ the scope must be the file scope.
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
       check_membership_info(type, scope);
-#if GNU_EXTENSIONS_ALLOWED
-      if (type->copy_with_additional_attributes) {
-	/* If this type was created via an attribute-adding typedef,
-	   there's no need to emit it, nor any legal way to do so.
-	   When the typedef is generated, the attributes will be
-	   recreated there. */
-      } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-	dump_type_decl(type, pass);
-      }  /* if */
+      dump_type_decl(type, pass);
     }  /* for */
     /* K&R C doesn't have prototype scopes, so when generating K&R C
        promote any types defined in prototype scopes out of those scopes.
@@ -3756,13 +3745,6 @@ selection operation).
                    "dump_field_from_second_operand: unexpected operator kind");
     }  /* if */
     struct_class = skip_typerefs(struct_class);
-#if GNU_EXTENSIONS_ALLOWED
-    if (struct_class->copy_with_additional_attributes) {
-      /* The two classes may not match if one is a copy that was made
-         to add additional attributes. */
-    } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Do not add code here. */
     if (struct_class != field_class) {
       internal_error("dump_field_from_second_operand: wrong field class");
     }  /* if */

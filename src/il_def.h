@@ -1970,6 +1970,7 @@ typedef enum an_attribute_kind_tag {
   ak_init_priority,	/* "init_priority" (gnu). */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   ak_malloc,		/* "malloc" (gnu). */
+  ak_may_alias,		/* "may_alias" (gnu). */
   ak_mode,		/* "mode" (gnu). */
   ak_no_instrument_function,
 			/* "no_instrument_function" (gnu). */
@@ -6568,10 +6569,9 @@ typedef struct a_type {
 			/* TRUE if no warnings about unused variables
 			   should be emitted for variables that have
 			   this type. */
-  a_bit_field	copy_with_additional_attributes:1;
-			/* TRUE if this is a type that is the same as
-			   some other type, but with additional
-			   attributes. */
+  a_bit_field	may_alias:1;
+			/* TRUE if this is a type resulting from the GNU
+			   attribute "may_alias". */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	has_microsoft_w64_specifier:1;

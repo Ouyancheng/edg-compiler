@@ -1497,8 +1497,8 @@ Display the indicated type entry.
   if (ptr->variables_are_implicitly_referenced) {
     disp_boolean("variables_are_implicitly_referenced", TRUE);
   }  /* if */
-  if (ptr->copy_with_additional_attributes) {
-    disp_boolean("copy_with_additional_attributes", TRUE);
+  if (ptr->may_alias) {
+    disp_boolean("may_alias", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

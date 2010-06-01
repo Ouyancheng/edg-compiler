@@ -230,6 +230,11 @@ extern void get_attr_corresp_checking_info(
                                      an_attr_corresp_flag_set     *p_flags,
                                      an_attr_corresp_checking_fn  **p_fn);
 
+#if GNU_EXTENSIONS_ALLOWED
+extern a_type_ptr copy_gnu_type_properties(a_type_ptr  dst,
+                                           a_type_ptr  src);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);

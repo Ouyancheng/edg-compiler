@@ -233,6 +233,7 @@ static an_attr_descr known_attr_table[] = {
   { "init_priority", "(ci)", "g+", ak_init_priority },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "malloc", "", "gx", ak_malloc },
+  { "may_alias", "", "gx(30300-)", ak_may_alias },
   { "mode", "(n)", "gx", ak_mode },
   { "no_instrument_function", "", "gx", ak_no_instrument_function },
   { "no_check_memory_usage", "", "gx", ak_no_check_memory_usage },
@@ -467,6 +468,7 @@ static an_attr_application_fn apply_gnu_inline_attr;
 static an_attr_application_fn apply_init_priority_attr;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 static an_attr_application_fn apply_malloc_attr;
+static an_attr_application_fn apply_may_alias_attr;
 static an_attr_application_fn apply_mode_attr;
 static an_attr_application_fn apply_no_instrument_function_attr;
 static an_attr_application_fn apply_no_check_memory_usage_attr;
@@ -574,6 +576,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_init_priority, "v:-l", apply_init_priority_attr },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { ak_malloc, "r", apply_malloc_attr },
+  { ak_may_alias, "T|c|e", apply_may_alias_attr },
   { ak_mode, "T", apply_mode_attr },
   { ak_no_instrument_function, "r", apply_no_instrument_function_attr },
   { ak_no_check_memory_usage, "r", apply_no_check_memory_usage_attr },
@@ -2595,9 +2598,11 @@ appropriate and set ap->kind to ak_unrecognized).
          We issue a warning. */
       sev = es_warning;
     } else if (ap->family == (a_byte_attribute_family)af_gnu &&
-               entity_kind == iek_type) {
+               entity_kind == iek_type &&
+               !is_type_transforming_attribute(ap)) {
       /* GCC only issues a warning on recognized attributes incorrectly
-         applied to types. */
+         applied to types.  (However, a hard error is still issued on a type-
+         transforming attribute applied to a class or enumeration type.) */
       sev = es_warning;
     }  /* if */
     report_bad_attribute_target(sev, ap);
@@ -2846,8 +2851,8 @@ void attach_attributes(an_attribute_ptr  attributes,
                        an_il_entry_kind  entity_kind)
 /*
 Attach and apply the given list of attributes to the given IL entry, except
-that type-transforming attributes are not applied (but still attached).
-For the non-type-transforming attributes, perform any required checking, and
+that type-transforming attributes applied in a location other than al_tag_name
+are not applied (but still attached).  Perform any required checking, and
 update the IL entry's fields if applicable.  (To apply type-transforming
 attributes, call attach_type_attributes.)
 */
@@ -2861,7 +2866,8 @@ attributes, call attach_type_attributes.)
   }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     db_log_attribute_action("attach", ap, entity, entity_kind);
-    if (!is_type_transforming_attribute(ap)) {
+    if (!is_type_transforming_attribute(ap) ||
+        ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
       new_entity = apply_one_attribute(ap, new_entity, entity_kind);
     }  /* if */
   }  /* for */
@@ -2934,7 +2940,9 @@ produces *p_type.
                            apply_one_attribute(ap, (char*)new_type, iek_type);
       ap->assoc_info = NULL;
     }  /* for */
-    if (new_type->kind != (a_type_kind)tk_routine) {
+    if (new_type->kind != (a_type_kind)tk_routine &&
+        !(new_type->kind == (a_type_kind)tk_typeref &&
+          new_type->variant.typeref.for_type_attributes)) {
       /* Attributes should not be recorded directly in type entries that might
          be shared.  Use a typeref to carry the attributes instead. */
       *p_type =  make_typeref_with_attributes(new_type, attributes);
@@ -2943,7 +2951,9 @@ produces *p_type.
          attributes applied.  Attach the attributes directly (besides saving
          a tk_typeref entry, it also avoid surprises with existing code that
          has been assuming that tk_typerefs on top of routine types must be
-         typedef/decltype/typeof entries). */
+         typedef/decltype/typeof entries).  Similarly, if new_type is a
+         tk_typeref entries whose for_type_attributes is TRUE, attributes can
+         be attached to it directly. */
       *last_attribute_link(&new_type->source_corresp.attributes) = attributes;
       *p_type = new_type;
     }  /* if */
@@ -4612,6 +4622,44 @@ and return the entity.
   ((a_routine_ptr)entity)->allocates_memory = TRUE;
   return entity;
 }  /* apply_malloc_attr */
+
+
+static char* apply_may_alias_attr(an_attribute_ptr  ap,
+                                  char              *entity,
+                                  an_il_entry_kind  entity_kind)
+/*
+The given entity must be a type.  Return the type produced by applying the
+given "may_alias" attribute to it.
+*/
+{
+  a_type_ptr  type = (a_type*)entity;
+
+  check_assertion(entity_kind == iek_type);
+  if (ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+    /* The attribute appears in a class or enum definition.  E.g.:
+         struct __attribute((may_alias)) X { ... };
+       Set the may_alias flag directly. */
+    type->may_alias = TRUE;
+  } else if (is_class_struct_union_type(type) || is_enum_type(type)) {
+    /* GNU compilers ignore the attribute applied on a use (as opposed to a
+       declaration) of a class/enum type with a warning.  However, since this
+       this makes a subtle difference with potential grave consequences, we
+       issue an error. */
+    report_bad_attribute_target(es_error, ap);
+  } else if (type->kind == (a_type_kind)tk_routine) {
+    /* A routine type (not under a typedef) is never shared and can therefore
+       be modified directly.  (Furthermore, some code assumes that tk_typerefs
+       on top of routine types must be typedef/decltype/typeof entries; so,
+       no other typeref entry should be placed on top of the type.) */
+    type->may_alias = TRUE;
+  } else {
+    /* Create a typeref entry to apply the may_alias flag to.  The
+       attribute entries themselves will be attached elsewhere. */
+    type = make_typeref_with_attributes(type, (an_attribute_ptr)NULL);
+    type->may_alias = TRUE;
+  }  /* if */
+  return (char*)type;
+}  /* apply_may_alias_attr */
 
 
 a_type_ptr get_type_with_mode(a_type_ptr        type,
@@ -6567,6 +6615,100 @@ process_alias_fixup_list.
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if GNU_EXTENSIONS_ALLOWED
+
+a_type_ptr copy_gnu_type_properties(a_type_ptr  dst,
+                                    a_type_ptr  src)
+/*
+Copy any GNU type properties (set by attributes) in type dst to type src.
+*/
+{
+  a_type_ptr        result = dst;
+  a_boolean         src_may_alias = FALSE, dst_may_alias = FALSE;
+  an_attribute_ptr  may_alias_ap = NULL, ap;
+
+  /* Skip any typerefs, but record any properties they embed. */
+  while (src->kind == (a_type_kind)tk_typeref) {
+    if (src->may_alias && !src_may_alias) {
+      src_may_alias = TRUE;
+      may_alias_ap = find_attribute(ak_may_alias,
+                                    src->source_corresp.attributes);
+      check_assertion(may_alias_ap != NULL);
+    }  /* if */
+    src = src->variant.typeref.type;
+  }  /* while */
+  while (dst->kind == (a_type_kind)tk_typeref) {
+    if (dst->may_alias) dst_may_alias = TRUE;
+    dst = dst->variant.typeref.type;
+  }  /* while */
+  if (dst == src) {
+    /* Nothing to be done. */
+  } else {
+    switch (src->kind) {
+      case tk_routine:
+        { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
+          src_rtsp = src->variant.routine.extra_info;
+          dst_rtsp = dst->variant.routine.extra_info;
+#if USER_CONTROL_OF_STRUCT_PACKING
+          if (src->alignment_set_explicitly &&
+              src->alignment > dst->alignment) {
+            dst->alignment = src->alignment;
+            dst->alignment_set_explicitly = TRUE;
+          }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_X86_ATTRIBUTES_ALLOWED
+          if (src_rtsp->calling_convention !=
+                                           (a_calling_convention)cc_default &&
+              dst_rtsp->calling_convention !=
+                                           (a_calling_convention)cc_stdcall) {
+            dst_rtsp->calling_convention = src_rtsp->calling_convention;
+          }  /* if */
+#endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+          if (src_rtsp->does_not_return) {
+            dst_rtsp->does_not_return = TRUE;
+          }  /* if */
+          if (src_rtsp->is_const) {
+            dst_rtsp->is_const = TRUE;
+          }  /* if */
+          if (src_rtsp->result_should_be_used) {
+            dst_rtsp->result_should_be_used = TRUE;
+          }  /* if */
+          if (src_rtsp->arg_pragma != (a_pragma_kind)pk_none) {
+            dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
+            dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
+          }  /* if */
+          if (src_rtsp->prototyped && dst_rtsp->prototyped) {
+            /* Copy any "nonnull" attributes. */
+            a_param_type_ptr  src_ptp = src_rtsp->param_type_list;
+            a_param_type_ptr  dst_ptp = dst_rtsp->param_type_list;
+            while (src_ptp != NULL) {
+              check_assertion(dst_ptp != NULL);
+              if (src_ptp->nonnull) dst_ptp->nonnull = TRUE;
+              src_ptp = src_ptp->next;
+              dst_ptp = dst_ptp->next;
+            }  /* while */
+          }  /* if */
+          if (src->may_alias) dst->may_alias = TRUE;
+          /* Update the result since a skip_typerefs was applied to dst. */
+          result = dst;
+        }
+        break;
+      default:
+        /* No properties to copy. */
+        break;
+    }  /* switch */
+  }  /* if */
+  if (src_may_alias && !dst_may_alias && !result->may_alias) {
+    /* Copy over the "may_alias" attribute. */
+    ap =  alloc_attribute();
+    *ap = *may_alias_ap;
+    ap->next = NULL;
+    attach_type_attributes(&result, ap, NULL);
+  }  /* if */
+  return result;
+}  /* copy_gnu_type_properties */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void attribute_one_time_init(void)
 /*

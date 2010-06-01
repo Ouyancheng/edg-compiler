@@ -2495,9 +2495,6 @@ attributes are attached as part of the template instantiation process.
             gnu_warning_emitted = TRUE;
           }  /* if */
           make_attr_unrecognized(ap);
-        } else if (is_type_transforming_attribute(ap)) {
-          /* Don't accept attributes like vector_size in this context. */
-          report_bad_attribute_target(es_error, ap);
         }  /* if */
       }  /* if */
     }  /* for */

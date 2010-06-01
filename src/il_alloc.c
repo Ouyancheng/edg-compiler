@@ -1699,7 +1699,7 @@ variant fields to default values.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_EXTENSIONS_ALLOWED
   pte->variables_are_implicitly_referenced = FALSE;
-  pte->copy_with_additional_attributes = FALSE;
+  pte->may_alias = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pte->has_microsoft_w64_specifier = FALSE;

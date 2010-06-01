@@ -200,33 +200,55 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
+static void form_attributes_for_type(
+                                   a_type_ptr                            type,
+                                   an_il_to_str_output_control_block_ptr octl)
+/*
+Render type attributes associated with the given type, unless they are
+rendered elsewhere.  Do the output in the way described by octl.
+*/
+{
+  /* Currently, only the GNU may_alias attribute is rendered here. */
+  if (type->may_alias) {
+    octl->output_str(" __attribute((__may_alias__))", octl);
+  }  /* if */
+}  /* form_attributes_for_type */
+
+
 static void output_type_attributes(
                          a_type_ptr                            type,
                          a_type_ptr                            stop_type,
                          an_il_to_str_output_control_block_ptr octl)
 /*
 The given type may contain typerefs that carry attributes: Render those
-attributes if octl->output_attributes is non-NULL (and use that routine to
-output those attributes).  stop_type is a type along the typeref chain (or
+attributes.  If octl->output_attributes is non-NULL, use that routine to
+output the attributes.  Otherwise, only output type attributes that are not
+handled elsewhere.  stop_type is a type along the typeref chain (or
 stop_type == type if there are no typerefs): Do not render attributes
 associated with that type entry or entries under it, except that if stop_type
-is a tk_routine entry, any attributes on that routine type entry are rendered.
+is a tk_routine entry, attributes on that routine type entry are rendered.
 */
 {
-  if (octl->output_attributes != NULL) {
-    while (type != stop_type) {
-      check_assertion(type->kind == (a_type_kind)tk_typeref);
-      if (type->variant.typeref.for_type_attributes) {
-        check_assertion(type->source_corresp.attributes != NULL);
+  while (type != stop_type) {
+    check_assertion(type->kind == (a_type_kind)tk_typeref);
+    if (type->variant.typeref.for_type_attributes) {
+      check_assertion(type->source_corresp.attributes != NULL);
+      if (octl->output_attributes != NULL) {
         octl->output_attributes(type->source_corresp.attributes,
                                 al_explicit, /*primary_only=*/FALSE);
+      } else {
+        form_attributes_for_type(type, octl);
       }  /* if */
-      type = type->variant.typeref.type;
-    }  /* while */
-    if (type->kind == (a_type_kind)tk_routine &&
-        type->source_corresp.attributes != NULL) {
+    }  /* if */
+    type = type->variant.typeref.type;
+  }  /* while */
+  if (type->kind == (a_type_kind)tk_routine &&
+      type->source_corresp.attributes != NULL) {
+    if (octl->output_attributes != NULL) {
       octl->output_attributes(type->source_corresp.attributes,
                               al_explicit, /*primary_only=*/FALSE);
+    } else {
+      form_attributes_for_type(type, octl);
     }  /* if */
   }  /* if */
 }  /* output_type_attributes */
@@ -5105,6 +5127,11 @@ described by octl.
         is_function_type(type_pointed_to(type))) {
       form_routine_type_attributes(f_skip_typerefs(type_pointed_to(type)),
                                    &need_leading_space, octl);
+    }  /* if */
+    if (type->may_alias && type->kind != (a_type_kind)tk_routine) {
+      /* The tk_routine and tk_typeref cases are handled by
+         output_type_attributes. */
+      form_simple_attribute("__may_alias__", &need_leading_space, octl);
     }  /* if */
   }  /* if */
   return need_leading_space;

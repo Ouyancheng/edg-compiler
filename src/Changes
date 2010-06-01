@@ -1,5 +1,16 @@
 Version 4.2
 
+6/1/10   [EDGcpfe/10690]
+GNU compatibility: Attribute may_alias
+
+In GNU modes with gnu_version >= 30300, the front end now accepts the GNU
+attribute "may_alias" (the attribute indicates that the standard rules
+regarding aliasing for pointers to different types are weakened so that a
+back end should not rely on them).  For example:
+
+  typedef int __attribute((may_alias)) AliasedInt;
+
+
 6/1/10   [EDGcpfe/10716]
 Another tweak on gcc do-nothing casts
 
