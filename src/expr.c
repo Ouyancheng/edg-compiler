@@ -13622,15 +13622,13 @@ indicates which.
                                               /*compiler_generated=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (gcc_mode &&
-                   is_an_lvalue(operand) &&
-                   (gnu_version < 40000 ||
-                    (gnu_version >= 40100 &&
-                     is_class_struct_union_type(type_cast_to))) &&
+                   ((gnu_version < 40000 && is_an_lvalue(operand)) ||
+                    is_class_struct_union_type(type_cast_to)) &&
                    identical_types_ignoring_qualifiers(source_type,
                                                        type_cast_to)) {
-          /* GNU C ignores a do-nothing cast.  The result does not change
-             type (even if there is a cv-qualifier difference implied) and
-             it is not forced to an rvalue. */
+          /* GNU C ignores a do-nothing cast in some cases.  The result does
+             not change type (even if there is a cv-qualifier difference
+             implied) and it is not forced to an rvalue. */
         } else if (is_gpp_lvalue_cast(operand, type_cast_to)) {
           /* GNU C++ allows a limited form of lvalue cast on integral types. */
           lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);

@@ -1,5 +1,18 @@
 Version 4.2
 
+6/1/10   [EDGcpfe/10716]
+Another tweak on gcc do-nothing casts
+
+In GNU C mode, a cast of a class rvalue to the same type (ignoring
+cv-qualifiers) is now accepted and ignored.
+
+  typedef struct A { int i; } A;
+  extern A f();
+  int main() {
+    (A)f();  // Now accepted
+  }
+
+
 5/26/10  [EDGcpfe/10705]
 GNU compatibility: __extension__ on function parameter declarations
 
