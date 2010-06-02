@@ -680,8 +680,7 @@ initialization.
   a_class_symbol_supplement_ptr  cssp;
 
   /* Make a pass over the remaining fields. */
-  for (; fp != NULL; fp = fp->next) {
-    tp = fp->type;
+  for (; fp != NULL; fp = fp->next) { tp = fp->type;
     if (is_reference_type(tp)) {
       /* Field is a reference -- an error should be put out. */
       init_info->any_uninitialized_const_or_ref_member = TRUE;
@@ -879,8 +878,7 @@ This routine is called in C++ mode only.
      whether there is anything requiring default initialization. */
   if (any_constructible_fields_remaining(init_context, init_info)) {
     /* Yes, so make another pass over the remaining fields. */
-    for (; init_context->field != NULL;
-           init_context->field = init_context->field->next) {
+    while (init_context->field != NULL) {
       tp = skip_typerefs(init_context->field->type);
       if (is_array_type(tp)) {
         array_type = tp;
@@ -974,7 +972,9 @@ This routine is called in C++ mode only.
           break;
         }  /* if */
       }  /* if */
-    }  /* for */
+      init_context->field =
+                          next_initializable_field(init_context->field->next);
+    }  /* while */
     init_done = TRUE;
     init_context->any_dynamic_initialization = TRUE;
   }  /* if */
