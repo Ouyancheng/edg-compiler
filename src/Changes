@@ -1,5 +1,25 @@
 Version 4.2
 
+6/2/10   [EDGcpfe/10710]
+GNU C++ typeof applied to an expression can be written without parentheses
+
+gcc and g++ have an extension, typeof, that can be used to extract
+the type of an expression and use it in a declaration.  typeof(x),
+for example, means the type of the expression "x".  Heretofore,
+the front end has required that the operand of typeof always be
+enclosed in parentheses, but it turns out that, since version 3.4,
+g++ (but not gcc) allows typeof to be applied to an unparenthesized
+expression.  We now allow the same, in GNU C++ mode, with all
+values of gnu_version.
+
+  int main() {
+    typeof (int *) p = (int *)0;  // typeof applied to a type
+    typeof (p) p2 = (int *)0;     // typeof applied to a parenthesized expr
+    typeof p p3 = (int *)0;       // typeof applied to an unparenthesized expr;
+                                  // now accepted in g++ mode.
+  }
+
+
 6/1/10   [EDGcpfe/10690]
 GNU compatibility: Attribute may_alias
 

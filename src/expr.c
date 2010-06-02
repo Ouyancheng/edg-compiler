@@ -8298,9 +8298,12 @@ in type contexts, not expression contexts.
 
 Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
-        typeof ( expression )   or   __typeof__ ( expression )
+        typeof expression       or   __typeof__ expression
 
-The parentheses are required, unlike for sizeof.  If decl_pos_block is
+(gcc requires parentheses around the expression case as well, but g++ does
+not.)
+
+The current token is the typeof, however spelled.  If decl_pos_block is
 not NULL, the end position in its specifiers_range is updated.  If
 rcblock is non-NULL, redo semantic analysis on a previously-scanned
 typeof expression, and return the result type (or an error indication
@@ -8312,7 +8315,8 @@ the expression-processing routines.
   an_expr_stack_entry         expr_stack_entry;
   an_expr_node_ptr            expr = NULL;
   an_operand                  operand;
-  a_boolean                   is_type;
+  a_boolean                   is_parenthesized = FALSE, is_type = FALSE;
+  a_source_position           lparen_position;
   an_expr_stack_entry_ptr     saved_expr_stack;
   a_scope_depth               expr_scope_depth;
   a_memory_region_number      region_to_switch_back_to;
@@ -8348,8 +8352,6 @@ the expression-processing routines.
     report_gnu_extension_if_needed(&pos_curr_token,
                                    ec_typeof_is_gnu_extension);
     (void)get_token();
-    /* Check for and pass over the left parenthesis. */
-    (void)required_token(tok_lparen, ec_exp_lparen);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* A typeof construct may include embedded statements and declarations if
        it contains a statement expression.  To allow e.g. the C++-generating
@@ -8362,16 +8364,36 @@ the expression-processing routines.
     }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Distinguish between the type-name and expression case. */
-    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                         DFS_SINGLE_TYPE_REQUIRED)) {
-      /* typeof(typename) case. */
-      is_type = TRUE;
-      add_stop_token(tok_rparen);
-      type_name(&result);
-      remove_stop_token(tok_rparen);
+    if (curr_token == tok_lparen) {
+      /* A left parenthesis could indicate a type in parentheses or
+         an expression in parentheses, i.e.,
+           typeof (int)  vs.
+           typeof (i)
+         We can distinguish the two using the first token inside the
+         parentheses.  However, if the construct is an expression in
+         parentheses, we must then scan it with a special flag indicating
+         that a left parenthesis was trapped.  It's not enough to just scan
+         the expression to the matching right parenthesis, as shown by
+         the following:
+           typeof (v).b
+         The typeof should be applied to "(v).b", not just "(v)". */
+      is_parenthesized = TRUE;
+      copy_source_position(pos_curr_token, lparen_position);
+      (void)get_token();
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED)) {
+        /* typeof(typename) case. */
+        is_type = TRUE;
+        add_stop_token(tok_rparen);
+        type_name(&result);
+        (void)required_token(tok_rparen, ec_exp_rparen);
+        remove_stop_token(tok_rparen);
+      }  /* if */
     } else {
-      /* typeof(expression) case. */
-      is_type = FALSE;
+      /* gcc requires parentheses around the expression case (g++ does not). */
+      if (gcc_mode) {
+        expr_pos_error(ec_exp_lparen, &pos_curr_token);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!is_type) {
@@ -8396,11 +8418,22 @@ the expression-processing routines.
       make_rescan_operand(rcblock->expr, rcblock, &operand);
     } else {
       /* Scan the expression from source. */
+      a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
+      if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
       /* This call is done late because we need the expression stack to be
          pushed already. */
-      add_matching_stop_token(tok_rparen);
-      scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-      remove_matching_stop_token(tok_rparen);
+      /* The precedence is chosen so that casts and multiplication operators
+         aren't taken as expressions:
+           typeof j*p = 0;  // expression is just "j"
+           typeof (int *) p2 = 0; // type, not cast expression "(int *)p2"
+      */
+      scan_expr(&operand, PREC_PREFIX, local_options);
+      if (is_parenthesized) {
+        /* When scanning the expression with a trapped left parenthesis, the
+           position returned in the operand indicates the token following
+           the left parenthesis, which is wrong.  Correct it. */
+        copy_source_position(lparen_position, operand.position);
+      }  /* if */
     }  /* if */
     error_if_indefinite_function(&operand);
     force_complete_type_if_a_variable(&operand);
@@ -8485,10 +8518,6 @@ the expression-processing routines.
     decl_pos_block->specifiers_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (rcblock == NULL) {
-    /* Check for and pass over the right parenthesis. */
-    (void)required_token(tok_rparen, ec_exp_rparen);
-  }  /* if */
   return result;
 }  /* scan_typeof_operator */
 
