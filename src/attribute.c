@@ -2952,8 +2952,8 @@ produces *p_type.
          a tk_typeref entry, it also avoid surprises with existing code that
          has been assuming that tk_typerefs on top of routine types must be
          typedef/decltype/typeof entries).  Similarly, if new_type is a
-         tk_typeref entries whose for_type_attributes is TRUE, attributes can
-         be attached to it directly. */
+         tk_typeref entry whose for_type_attributes is TRUE, attributes can be
+         attached to it directly. */
       *last_attribute_link(&new_type->source_corresp.attributes) = attributes;
       *p_type = new_type;
     }  /* if */
@@ -6644,6 +6644,7 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
   if (dst == src) {
     /* Nothing to be done. */
   } else {
+    check_assertion(dst->kind == src->kind);
     switch (src->kind) {
       case tk_routine:
         { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
