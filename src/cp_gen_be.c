@@ -2660,20 +2660,11 @@ in options, put a parenthesis in front of the name and set
 GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
 */
 {
-  a_boolean force_qualified_name = (options & GN_FORCE_QUALIFIED_NAME) != 0;
+  a_boolean               force_qualified_name =
+                                      (options & GN_FORCE_QUALIFIED_NAME) != 0;
+  a_source_correspondence *scp_for_unknown_base_member =
+                                    (scp->member_of_unknown_base) ? scp : NULL;
 
-  if (scp->member_of_unknown_base && !(options & GN_QUALIFIER)) {
-    /* An unqualified name for a member of an unknown base should not come
-       here but should use something like gen_unqualified_name, to ensure
-       that an expression like "this->f()" (potentially a virtual call when
-       the template is instantiated) does not become "this->S::f()" (which
-       would make it unconditionally non-virtual).  It is not possible to
-       determine whether a member of an unknown base used as a qualifier
-       was itself qualified in the source, but that case does not not
-       matter: the normal logic below will generate a correct form. */
-    check_assertion(scp->qualified_unknown_base_member);
-    force_qualified_name = TRUE;
-  }  /* if */
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
@@ -2683,24 +2674,45 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if ((tp->kind == (a_type_kind)tk_class ||
            tp->kind == (a_type_kind)tk_struct ||
            tp->kind == (a_type_kind)tk_union) &&
-          tp->variant.class_struct_union.is_template_class &&
-          tp->variant.class_struct_union.extra_info->assoc_template->
-                                       source_corresp.qualification_needed) {
-        /* If the template requires qualification, so do all of its
-           instances.  (The check for qualified instance names is done this
-           way instead of by putting the instances on the hidden name list
-           to avoid performance problems with huge hidden name lists when
-           there are many instances, with the injected class name of each
-           instance hiding all the other instances.) */
-        if (!(options & GN_NO_TEMPLATE_ARGS)) {
-          /* If we are suppressing template arguments (which happens in a
-             prototype instantiation), we must not qualify the name --
-             the qualified name without the template arguments will refer
-             to the template itself, not the current specialization, and
-             thus won't be a type, as this name is. */
-          scp->qualification_needed = TRUE;
+          tp->variant.class_struct_union.is_template_class) {
+        if (tp->variant.class_struct_union.extra_info->assoc_template->
+                                       source_corresp.member_of_unknown_base) {
+          /* A template instance generated from a template that is a member
+             of an unknown base is not itself marked as a member of an
+             unknown base -- only the template is -- but its qualifier must
+             still be handled specially. */
+          scp_for_unknown_base_member = &tp->variant.class_struct_union.
+                                    extra_info->assoc_template->source_corresp;
+        }  /* if */
+        if (tp->variant.class_struct_union.extra_info->assoc_template->
+                                         source_corresp.qualification_needed) {
+          /* If the template requires qualification, so do all of its
+             instances.  (The check for qualified instance names is done
+             this way instead of by putting the instances on the hidden
+             name list to avoid performance problems with huge hidden name
+             lists when there are many instances, with the injected class
+             name of each instance hiding all the other instances.) */
+          if (!(options & GN_NO_TEMPLATE_ARGS)) {
+            /* If we are suppressing template arguments (which happens in a
+               prototype instantiation), we must not qualify the name --
+               the qualified name without the template arguments will refer
+               to the template itself, not the current specialization, and
+               thus won't be a type, as this name is. */
+            scp->qualification_needed = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (scp_for_unknown_base_member != NULL) {
+      /* An unqualified name for a member of an unknown base should not
+         come here but should use something like gen_unqualified_name, to
+         ensure that an expression like "this->f()" (potentially a virtual
+         call when the template is instantiated) does not become
+         "this->S::f()" (which would make it unconditionally
+         non-virtual). */
+      check_assertion(scp_for_unknown_base_member->
+                                                qualified_unknown_base_member);
+      force_qualified_name = TRUE;
     }  /* if */
     if (entry_kind == iek_constant) {
       /* Check the special case of a scoped enumerator constant: It requires
@@ -2802,7 +2814,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("::");
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (scp->member_of_unknown_base) {
+          if (scp_for_unknown_base_member != NULL) {
             /* This is a dependent name that is assumed to come from a
                dependent base class in the prototype instantiation of a
                class template.  It must be qualified using the name of the
@@ -2813,7 +2825,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                generated template definition cannot follow that assumption
                because when the template is actually instantiated the name
                might be from a different dependent base.) */
-            qualifier = qualifier_for_unknown_base_member(scp);
+            qualifier =
+                qualifier_for_unknown_base_member(scp_for_unknown_base_member);
             qualifier_options |= GN_NO_TEMPLATE_ARGS;
           } else if (scp->access == (an_access_specifier)as_protected &&
                      (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
@@ -4295,17 +4308,27 @@ Routine to be called by the il_to_str routines to output the name of a
 template.
 */
 {
-  a_gen_name_options_set options = GN_NO_OPTIONS;
-  a_boolean              saved_force_qualified_name =
+  a_source_correspondence *scp = (a_source_correspondence *)entry;
+
+  if (scp->member_of_unknown_base && !scp->qualified_unknown_base_member) {
+    /* We're pretending that we found the member in a dependent base class
+       and the original form of the reference was unqualified.  Just write
+       the "template" keyword and the name of the template. */
+    write_tok_str("template ");
+    gen_bare_name(scp, kind);
+  } else {
+    a_gen_name_options_set options = GN_NO_OPTIONS;
+    a_boolean              saved_force_qualified_name =
                                                      octl.force_qualified_name;
-  options = GN_TEMPLATE;
-  if (octl.force_qualified_name) {
-    options |= GN_FORCE_QUALIFIED_NAME;
-    octl.force_qualified_name = FALSE;
+    options = GN_TEMPLATE;
+    if (octl.force_qualified_name) {
+      options |= GN_FORCE_QUALIFIED_NAME;
+      octl.force_qualified_name = FALSE;
+    }  /* if */
+    gen_name((a_source_correspondence *)entry, kind, options,
+             (a_boolean *)NULL);
+    octl.force_qualified_name = saved_force_qualified_name;
   }  /* if */
-  gen_name((a_source_correspondence *)entry, kind, options,
-           (a_boolean *)NULL);
-  octl.force_qualified_name = saved_force_qualified_name;
 }  /* gen_template_name */
 
 

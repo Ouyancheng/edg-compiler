@@ -719,6 +719,15 @@ of the symbol header.
     /* Link this symbol onto the other symbols list. */
     sym->next = hdr->other_symbols;
     hdr->other_symbols = sym;
+    if (orig_sym->kind == (a_symbol_kind)sk_class_template) {
+      /* Copy the flags indicating whether the unknown function is a member
+         of an unknown base and, if so, whether the name was qualified. */
+      a_template_ptr tp = orig_sym->variant.template_info->il_template_entry;
+      con->source_corresp.member_of_unknown_base =
+                                     tp->source_corresp.member_of_unknown_base;
+      con->source_corresp.qualified_unknown_base_member =
+                              tp->source_corresp.qualified_unknown_base_member;
+    }  /* if */
   }  /* if */
   return sym;
 }  /* find_unknown_function_symbol */
