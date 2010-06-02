@@ -10265,6 +10265,7 @@ to the caller.  If no modification is done return the original type.
         is_nonreal = !is_real_class_symbol(cowam_sym);
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
     if (!is_local && !is_nonreal &&
         typeref_is_decltype_or_typeof(type)) {
       if (type->variant.typeref.extra_info->expr == NULL &&
@@ -10275,6 +10276,7 @@ to the caller.  If no modification is done return the original type.
         is_local = TRUE;
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Only continue processing this typedef if it is either a local typedef
        or defined in a prototype instantiation. */
     if (!is_local && !is_nonreal) break;
