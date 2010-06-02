@@ -617,7 +617,8 @@ of declarations that are permitted.
     is_start = TRUE;
   } else if (curr_token == tok_extension) {
     /* The __extension__ keyword could be followed by an arbitrary expression
-       or declaration.  Cache the token an recursively examine what follows. */
+       or declaration.  Cache the token and recursively examine what
+       follows. */
     a_token_cache  cache;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
