@@ -208,10 +208,12 @@ Render type attributes associated with the given type, unless they are
 rendered elsewhere.  Do the output in the way described by octl.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   /* Currently, only the GNU may_alias attribute is rendered here. */
   if (type->may_alias) {
     octl->output_str(" __attribute((__may_alias__))", octl);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* form_attributes_for_type */
 
 
