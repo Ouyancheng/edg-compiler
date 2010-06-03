@@ -680,7 +680,8 @@ initialization.
   a_class_symbol_supplement_ptr  cssp;
 
   /* Make a pass over the remaining fields. */
-  for (; fp != NULL; fp = fp->next) { tp = fp->type;
+  for (; fp != NULL; fp = fp->next) {
+    tp = fp->type;
     if (is_reference_type(tp)) {
       /* Field is a reference -- an error should be put out. */
       init_info->any_uninitialized_const_or_ref_member = TRUE;
