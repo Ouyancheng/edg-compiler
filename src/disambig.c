@@ -1479,7 +1479,10 @@ routine to do lookahead, etc.
     is_decl_start_options |= IDS_REAL_DECLARATOR_ALLOWED;
   }  /* if */
   if (!C_mode()) {
-    if (is_decl_start(is_decl_start_options)) {
+    if (curr_token == tok_typeof) {
+      /* typeof is always considered to start a declaration. */
+      result = TRUE;
+    } else if (is_decl_start(is_decl_start_options)) {
       result = is_decl_not_expr_full(flags);
     } else {
       /* is_decl_start returns FALSE on "overload" but it should still be
