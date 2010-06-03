@@ -3279,7 +3279,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   /* In some configurations, special processing is done for references
      to __STDC__ in system header files. */
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
-    stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS;
+    stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS ||
+                                  DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   }  /* if */
   mixed_string_concat_enabled = TRUE;
   if (!option_kind_used[(int)optk_check_concatenations]) {
@@ -4679,6 +4680,11 @@ file.
 #else /* !defined(DEFAULT_SPECIAL_SUBSCRIPT_COST) */
   comment_undefined_macro_name(DEFAULT_SPECIAL_SUBSCRIPT_COST);
 #endif /* defined(DEFAULT_SPECIAL_SUBSCRIPT_COST) */
+#if defined(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS)
+  define_numeric_valued_macro(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS);
+#else /* !defined(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS) */
+  comment_undefined_macro_name(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS);
+#endif /* defined(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS) */
 #if defined(DEFAULT_STRING_LITERALS_ARE_CONST)
   define_numeric_valued_macro(DEFAULT_STRING_LITERALS_ARE_CONST);
 #else /* !defined(DEFAULT_STRING_LITERALS_ARE_CONST) */
@@ -8948,7 +8954,7 @@ variables declared in cmd_line.h.
   instantiation_dir_name = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   stdc_zero_in_nonstrict_mode = STDC_ZERO_IN_NONSTRICT_MODE;
-  stdc_zero_in_system_headers = FALSE;
+  stdc_zero_in_system_headers = DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   max_pending_instantiations = DEFAULT_MAX_PENDING_INSTANTIATIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   import_dir_name = NULL;

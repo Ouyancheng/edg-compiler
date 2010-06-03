@@ -44,6 +44,7 @@ This version is for the Sun Solaris operating system.
 /* Intel Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN TRUE
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
+#define DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS 1
 #endif /* defined(sparc) || defined(__sparc) */
 #endif /* ifdef SUNOS */
 

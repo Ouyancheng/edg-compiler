@@ -143,11 +143,18 @@ in when stdc_zero_in_system_headers is TRUE is still done, however.
 
 /*
 TRUE if, in GNU mode, __STDC__ should be defined to 0 while processing
-system header files and 1 in other source files.
+system header files.
 */
 #ifndef DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS
 #define DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS FALSE
 #endif /* ifndef DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS */
+
+/*
+TRUE if __STDC__ should be defined to 0 while processing system header files.
+*/
+#ifndef DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS
+#define DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS FALSE
+#endif /* ifndef DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS */
 
 /*
 Flag that is TRUE if the address of a bit field may be taken as long

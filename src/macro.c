@@ -212,6 +212,12 @@ static a_symbol_ptr
 			   macro.  Only non-NULL when
 			   stdc_zero_in_system_headers is TRUE. */
 
+static a_boolean
+		stdc_value;
+			/* The value to be used for the __STDC__ macro,
+			   except when stdc_zero_in_system_headers is TRUE
+			   and we are in a system header. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -3976,9 +3982,12 @@ end_scan_for_macro_modifs:;
         (void)strcat(repl_text, "L");
       } else if (macro_symbol == stdc_macro_symbol) {
         /* This macro symbol is only non-NULL when stdc_zero_in_system_headers
-           is TRUE.  Use a value of 0 if we are in a system header, or 1
+           is TRUE.  Use a value of 0 if we are in a system header or if
+           __STDC__ should be 0 even outside of a system header, or 1
            otherwise. */
-        (void)strcpy(repl_text, curr_ise->from_system_include_dir ? "0" : "1");
+        (void)strcpy(repl_text,
+                     curr_ise->from_system_include_dir || !stdc_value ? "0"
+                                                                      : "1");
       } else if (macro_symbol == Pragma_macro_symbol) {
         /* The C99-style _Pragma operator.  This is invoked as
                _Pragma("pragma-name pragma-operands(opt)")
@@ -7945,9 +7954,9 @@ command line -D options.
      except for strict ANSI C mode. */
   if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) {
     a_boolean	define_stdc = TRUE;
-    a_boolean	stdc_value = TRUE;
     a_boolean	stdc_cannot_be_redefined = (C_dialect == C_dialect_ANSI &&
                                             strict_ansi_mode);
+    stdc_value = TRUE;
     if (stdc_zero_in_nonstrict_mode) {
       /* In this mode, __STDC__ is 1 in strict mode and 0 otherwise. */
       stdc_value = strict_ansi_mode;
@@ -8492,6 +8501,7 @@ after this function.
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
   stdc_macro_symbol = NULL;
+  stdc_value = FALSE;
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   assert_predicates = NULL;
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */

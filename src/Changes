@@ -1,5 +1,18 @@
 Version 4.2
 
+6/3/10   [EDGcpfe/10724]
+Additional flexibility in the setting of __STDC__
+
+Some systems (e.g., some versions of Intel Solaris) require __STDC__ to
+be zero while compiling the system header files.  The front end already
+has the ability to set __STDC__ to zero in system headers but there was
+not a configuration macro to set this as the default behavior.  The
+DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS macro has been added to provide this
+capability.  In addition, when a system header is not being processed
+the __STDC__ macro now has the value it would have if __STDC__ was not
+being treated specially in system headers (formerly __STDC__ would always
+be 1 when not in a system header).
+
 6/2/10   [EDGcpfe/10721]
 Abort on aggregate initializer involving an unnamed bit field
 
