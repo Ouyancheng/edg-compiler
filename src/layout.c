@@ -2849,9 +2849,9 @@ Allocate bcp (an empty base class).
 done:
   bcp->is_optimized_empty_base = TRUE;
   /* Ensure the alignment of the class as a whole is at least as strict as
-     that of the empty base. */
+     that of the empty base.  (Early versions of g++ do not do this.) */
   alignment = alignment_of_type(bcp->type);
-  if (alignment > lob->alignment) {
+  if (alignment > lob->alignment && !(gpp_mode && gnu_version < 40300)) {
     lob->alignment = alignment;
   }  /* if */
 }  /* allocate_empty_base */
