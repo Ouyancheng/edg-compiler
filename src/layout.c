@@ -2788,6 +2788,7 @@ Allocate bcp (an empty base class).
 */
 {
   a_targ_size_t               offset = (a_targ_size_t)0, size;
+  a_targ_alignment            alignment;
   an_unnormalized_bit_offset  dummy = 0;
 
   /* Attempt to allocate the base at offset zero.  Some GNU compilers do not
@@ -2847,6 +2848,12 @@ Allocate bcp (an empty base class).
   }  /* if */
 done:
   bcp->is_optimized_empty_base = TRUE;
+  /* Ensure the alignment of the class as a whole is at least as strict as
+     that of the empty base. */
+  alignment = alignment_of_type(bcp->type);
+  if (alignment > lob->alignment) {
+    lob->alignment = alignment;
+  }  /* if */
 }  /* allocate_empty_base */
 
 #endif /* IA64_ABI */

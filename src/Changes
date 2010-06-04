@@ -1,5 +1,19 @@
 Version 4.2
 
+6/4/10   [EDGcpfe/10686]
+IA-64 ABI: Alignment of class with explicitly aligned empty base class type
+
+The front end previously failed to ensure that a derived class be at least
+as strictly aligned as a base class if the base class was empty.  For example,
+in g++ mode:
+
+  struct __attribute((aligned(16))) B {};
+  struct D: B {};  // Previously, the alignment of B was not reflected in the
+                   // alignment of D (i.e., the alignment of D could be 1).
+
+This is now fixed.
+
+
 6/3/10   [EDGcpfe/10724]
 Additional flexibility in the setting of __STDC__
 
