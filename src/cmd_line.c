@@ -3279,8 +3279,9 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   /* In some configurations, special processing is done for references
      to __STDC__ in system header files. */
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
-    stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS ||
-                                  DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
+    stdc_zero_in_system_headers =
+                            DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS ||
+                            DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS; /*lint !e506*/
   }  /* if */
   mixed_string_concat_enabled = TRUE;
   if (!option_kind_used[(int)optk_check_concatenations]) {
