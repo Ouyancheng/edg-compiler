@@ -5214,7 +5214,7 @@ static void check_named_address_space_constraints(
                                               a_storage_class   storage_class)
 /*
 A variable is being declared with the given type and storage class.  If the 
-type s qualified with a named address space, verify that it has static storage
+type is qualified with a named address space, verify that it has static storage
 duration.  If an error occurs, the given locator is changed to an error
 locator.
 */
