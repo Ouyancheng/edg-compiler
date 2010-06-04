@@ -6909,8 +6909,7 @@ typedef struct a_type {
       a_class_type_supplement_ptr
                 extra_info;
                         /* Supplementary information, in a separate block
-                           to keep down the size of a_type.  This pointer
-                           is only used in C++, and will be NULL in C. */
+                           to keep down the size of a_type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
 		is_interface:1;
