@@ -1461,7 +1461,6 @@ caution when modifying this routine.
     tag_err = TRUE;
   } else {
     a_boolean  is_vacuous_declaration = FALSE;
-
     /* Save the symbol locator for this identifier. */
     *locator = locator_for_curr_id;
     if (next_tok == tok_semicolon || next_tok == tok_removed_template_body) {
@@ -1774,6 +1773,7 @@ names the namespace containing tag_sym.
 
 
 static void check_nested_class_redeclaration(
+                                 a_decl_parse_state      *dps,
                                  a_symbol_ptr            tag_sym,
                                  a_source_position       *tag_position,
                                  a_boolean               is_class_definition,
@@ -1786,14 +1786,14 @@ elaborated type-specifier is really a redeclaration, and if so performs
 various checks related to access and the use of a qualified name.
 This function is called if a class-specifier is seen in the scope of another
 class type, and the tag of that specifier was already declared in that scope.
-In: tag_sym is a pointer to the symbol associated with the elaborated name;
-tag_position is the position of the elaborated name (tag) that was just
-scanned; is_class_definition and is_friend_decl are set when the tag is used
-to define the nested type or introduce a friend declaration. If the tag-name
-was qualified, is_qualified_name is set as well.
-Out: *declares_something is set to false if the elaborated type specifier
-does not introduce a definition and is not followed by a semicolon; otherwise
-it is left unchanged.
+*dps describes the context of the elaborated name.  tag_sym is a pointer to
+the symbol associated with the elaborated name.  tag_position is the position
+of the elaborated name (tag) that was just scanned.  is_class_definition and
+is_friend_decl are set when the tag is used to define the nested type or
+introduce a friend declaration.  If the tag-name was qualified,
+is_qualified_name is set as well.  *declares_something is set to false if the
+elaborated type specifier does not introduce a definition and is not followed
+by a semicolon; otherwise it is left unchanged.
 */
 {
   a_type_ptr  type = tag_sym->variant.class_struct_union.type;
@@ -1810,10 +1810,12 @@ it is left unchanged.
                        strict_ansi_error_severity : es_warning,
                    ec_qualifier_in_member_declaration, tag_position);
   }  /* if */
-  if (!is_class_definition && curr_token != tok_semicolon) {
+  if (!is_class_definition &&
+      (curr_token != tok_semicolon || dps->is_type_name)) {
     /* For example:
           struct S { struct N {}; private: struct N* f(); };
-       is fine---there is no redeclaration of struct N here. */
+       is fine -- there is no redeclaration of struct N here.  Similarly:
+          struct T { struct N {}; using R = struct N; }; */
     *declares_something = FALSE;
   } else if (!is_friend_decl) {
     /* Be sure the access is consistent on the redeclaration. */
@@ -3259,7 +3261,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
              type-specifier does not introduce a definition and is not
              followed by a semicolon, then it is not a redeclaration. */
           check_nested_class_redeclaration(
-             tag_sym, &tag_position, is_class_definition, is_friend_decl,
+             dps, tag_sym, &tag_position, is_class_definition, is_friend_decl,
              (a_boolean)locator.is_qualified_name, declares_something);
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other

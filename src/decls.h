@@ -343,6 +343,10 @@ typedef struct a_decl_parse_state {
 			   of a trailing return type (this is set before
 			   parsing that type with a call to type_name_full). */
   a_bit_field
+		is_type_name:1;
+			/* TRUE if this information block is one created for a
+			   call to type_name_full. */
+  a_bit_field
 		trailing_return_type_allowed:1;
 			/* TRUE if the current context allows a trailing
 			   return type. */
