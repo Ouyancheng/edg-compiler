@@ -6949,6 +6949,19 @@ TRUE if the operator is "->", FALSE if it is ".".
   orig_operand = *operand;
   selector_expr = make_node_from_operand(bound_function_selector);
   orig_expr = make_node_from_operand(operand);
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (operand->name_reference_set) {
+    if (is_routine_node(orig_expr)) {
+      orig_expr->name_reference = find_allocated_name_reference(
+                                   &orig_expr->variant.routine->source_corresp,
+                                   &operand->name_reference);
+    } else if (is_constant_node(orig_expr)) {
+      orig_expr->name_reference = find_allocated_name_reference(
+                                  &orig_expr->variant.constant->source_corresp,
+                                  &operand->name_reference);
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   stripped_selector_expr = skip_parens(selector_expr);
   stripped_orig_expr = skip_parens(orig_expr);
   if (!stripped_orig_expr->is_lvalue &&

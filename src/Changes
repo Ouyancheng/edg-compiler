@@ -1,5 +1,26 @@
 Version 4.2
 
+6/6/10   [EDGcpfe/10713]
+C++-generating back end: Qualification in prototype instantiation calls to
+members of class templates
+
+In configurations in which the C++-generating back end generates the
+definition of a function template from the prototype instantiation, the
+qualification used in naming member functions of class templates was
+sometimes incorrect, potentially leading to invoking the wrong variant of
+a virtual function.  The source form of the reference to the function is
+now correctly reproduced in the output when RECORD_FORM_OF_NAME_REFERENCE
+is set to TRUE.  For example:
+
+  template<typename T> struct B {
+    virtual void f();
+  };
+  template<typename T> void g(B<T>& ref, B<T>* ptr) {
+    ptr->B<T>::f();  // Previously generated as ptr->f()
+    ref.f();         // Previously generated as ref.B<T>::f()
+  }
+
+
 6/4/10   [EDGcpfe/10570]
 GNU C compatibility: Flexible array member initializer constraints
 
