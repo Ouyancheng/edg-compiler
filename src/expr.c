@@ -8419,8 +8419,8 @@ the expression-processing routines.
       make_rescan_operand(rcblock->expr, rcblock, &operand);
     } else {
       /* Scan the expression from source. */
+      int                      prec;
       a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
-      if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
       /* This call is done late because we need the expression stack to be
          pushed already. */
       /* The precedence is chosen so that casts and multiplication operators
@@ -8428,12 +8428,29 @@ the expression-processing routines.
            typeof j*p = 0;  // expression is just "j"
            typeof (int *) p2 = 0; // type, not cast expression "(int *)p2"
       */
-      scan_expr(&operand, PREC_PREFIX, local_options);
+      prec = PREC_PREFIX;
+      if (gnu_mode && gnu_version < 30400) {
+        /* Before 3.4, the parentheses were required and nothing past the
+           closing paren was scanned.  We don't treat the scanned parenthesis
+           as trapped, so we stop on the closing paren. */
+        prec = PREC_LOWEST;
+      } else {
+        if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
+      }  /* if */
+      scan_expr(&operand, prec, local_options);
       if (is_parenthesized) {
-        /* When scanning the expression with a trapped left parenthesis, the
-           position returned in the operand indicates the token following
-           the left parenthesis, which is wrong.  Correct it. */
-        copy_source_position(lparen_position, operand.position);
+        if (!(local_options & EOPT_TRAPPED_LEFT_PAREN)) {
+          /* Old g++ mode -- we didn't trap the opening paren, so now we
+             have to pass over the closing paren. */
+          if (rcblock == NULL) {
+            (void)required_token(tok_rparen, ec_exp_rparen);
+          }  /* if */
+        } else {
+          /* When scanning the expression with a trapped left parenthesis, the
+             position returned in the operand indicates the token following
+             the left parenthesis, which is wrong.  Correct it. */
+          copy_source_position(lparen_position, operand.position);
+        }  /* if */
       }  /* if */
     }  /* if */
     error_if_indefinite_function(&operand);
