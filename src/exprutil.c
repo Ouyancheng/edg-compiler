@@ -3114,7 +3114,11 @@ that extra work.
                                        &node->variant.variable->source_corresp,
                                        &operand->name_reference);
     } else if (is_constant_node(node) &&
-               is_enum_constant(node->variant.constant)) {
+               (is_enum_constant(node->variant.constant) ||
+                (node->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param &&
+                 node->variant.constant->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_member))) {
       node->name_reference = find_allocated_name_reference(
                                        &node->variant.constant->source_corresp,
                                        &operand->name_reference);
