@@ -2422,7 +2422,8 @@ this function points to a tree that includes a dynamic-init entry.
                    issued below. */
                 initializer_pos = pos_curr_token;
               } else if (is_incomplete_type(member_type)) {
-                error(ec_cannot_initialize_flexible_array_member);
+                error(gcc_mode ? ec_cannot_init_auto_flexible_array_member
+                               : ec_cannot_initialize_flexible_array_member);
               }  /* if */
             } else {
               /* The only other zero-sized type that should be allowed here
