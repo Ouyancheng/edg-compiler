@@ -2851,7 +2851,8 @@ done:
   /* Ensure the alignment of the class as a whole is at least as strict as
      that of the empty base.  (Early versions of g++ do not do this.) */
   alignment = alignment_of_type(bcp->type);
-  if (alignment > lob->alignment && !(gpp_mode && gnu_abi_version < 40300)) {
+  if (alignment > lob->alignment &&
+      !(emulate_gnu_abi_bugs && gnu_abi_version < 40300)) {
     lob->alignment = alignment;
   }  /* if */
 }  /* allocate_empty_base */
