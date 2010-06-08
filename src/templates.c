@@ -23262,6 +23262,9 @@ instantiation.
     (void)get_token();
     goto final_check;
   }  /* if */
+  /* First scan any prefix GNU attributes. */
+  state.prefix_attributes = scan_gnu_attribute_groups(al_prefix);
+  /* Next, scan decl-specifiers. */
   clear_decl_pos_block(&decl_pos_block);
   dsi_flags = DSI_EMPTY_DECL_SPECIFIERS_ALLOWED | DSI_TYPE_SPECIFIER_ALLOWED |
               DSI_IS_EXPLICIT_INSTANTIATION;
@@ -23269,6 +23272,8 @@ instantiation.
     /* GNU C++ accepts (and ignores) some storage class specifiers in explicit
        instantiations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+    /* Recognize GNU attributes while scanning the decl-specifiers. */
+    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
   decl_specifiers(dsi_flags, &state, &decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
@@ -23438,6 +23443,7 @@ instantiation.
                                    /*in_class_specialization=*/FALSE,
                                    severity_if_not_found);
       if (new_sym != NULL) {
+        state.sym = new_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode) {
           if (new_sym->kind == (a_symbol_kind)sk_member_function &&
@@ -23475,8 +23481,11 @@ instantiation.
                                         &func_info.throw_position,
                                         /*is_redecl=*/TRUE);
         }  /* if */
-        /* In Microsoft mode __declspec(...) modifiers are accepted -- e.g.,
-           dllimport on an "extern template" declaration. */
+        /* Apply any attributes if appropriate. */
+        attach_decl_attributes(&state, /*primary_decl=*/FALSE);
+        /* Some additional modifiers may apply in Microsoft mode (that
+           includes the dllimport/dllexport attributes, which are not
+           handled by the call to attach_decl_attributes above). */
         update_routine_decl_modifiers(
                           new_sym->variant.routine.ptr, &state.decl_modifiers,
                           &locator.source_position, /*is_redecl=*/FALSE,

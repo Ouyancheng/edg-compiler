@@ -1,5 +1,18 @@
 Version 4.2
 
+6/8/10   [EDGcpfe/10728]
+GNU compatibility: Attributes on explicit instantiations
+
+IN GNU C++ modes, the front end now accepts GNU attributes on explicit
+instantiation directives for function template specializations.  For example:
+
+  template<class T> void f(T);
+  template __attribute((deprecated)) void f(int);  // Now accepted.
+  int main() {
+    f(42);  // Warning: f<int>(int) is deprecated.
+  }
+
+
 6/6/10   [EDGcpfe/10713]
 C++-generating back end: Qualification in prototype instantiation calls to
 members of class templates
