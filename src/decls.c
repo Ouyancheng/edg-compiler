@@ -536,8 +536,8 @@ the name of a type (a typedef name or, in C++, the name of a class, struct,
 union, or enum).  Also works if the current is the "::" at the start of
 a global qualified name.
 */
-#define is_type_name(options) (is_generalized_identifier_start(options) &&\
-                               curr_id_is_type_name())
+#define type_name_next(options) (is_generalized_identifier_start(options) && \
+                                 curr_id_is_type_name())
 
 
 a_boolean is_type_start(a_boolean is_expr_context)
@@ -553,8 +553,8 @@ expression is permitted.
   if (is_type_specifier() || is_type_qualifier() ||
       is_function_specifier() || curr_token == tok_friend) {
     is_start = TRUE;
-  } else if (is_type_name(is_expr_context ? GID_IS_EXPR_CONTEXT
-                                          : GID_NO_OPTIONS)) {
+  } else if (type_name_next(is_expr_context ? GID_IS_EXPR_CONTEXT
+                                            : GID_NO_OPTIONS)) {
     /* Identifier that is a type name (a typedef name or, in C++,
        the name of a class, struct, or union). */
     is_start = TRUE;
