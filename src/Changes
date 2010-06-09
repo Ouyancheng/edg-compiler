@@ -67,8 +67,9 @@ in g++ mode:
   struct D: B {};  // Previously, the alignment of B was not reflected in the
                    // alignment of D (i.e., the alignment of D could be 1).
 
-This is now fixed.  However, in GNU C++ mode with gnu_version < 40300, the
-previous behavior is maintained since it matches that of GCC.
+This is now fixed.  However, when emulate_gnu_abi_bugs is TRUE and
+gnu_abi_version < 40300, the previous behavior is maintained since it matches
+that of corresponding GCC versions.
 
 
 6/3/10   [EDGcpfe/10724]
