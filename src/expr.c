@@ -9887,12 +9887,13 @@ there was an error type somewhere in the type.
     }  /* if */
   } else {
     /* uuidof_type is a class type. */
-    if (uuidof_type->variant.class_struct_union.is_template_class) {
-      /* Templates don't have a uuid themselves -- the uuid of a template
-         argument type is used.  There must be only one argument with a
-         uuid value. */
-      a_class_type_supplement_ptr ctsp =
-                            uuidof_type->variant.class_struct_union.extra_info;
+    a_class_type_supplement_ptr ctsp = class_type_supp(uuidof_type);
+    if (ctsp->uuid_string != NULL) {
+      /* uuidof_type has an associated uuid: Return the type to the caller. */
+    } else if (uuidof_type->variant.class_struct_union.is_template_class) {
+      /* Templates don't have a uuid themselves (except if an explicit
+         specialization provided one) -- the uuid of a template argument type
+         is used.  There must be only one argument with a uuid value. */
       a_template_arg_ptr tap = ctsp->template_arg_list;
       uuidof_type = NULL;
       for (; tap != NULL; tap = tap->next) {
@@ -9915,12 +9916,8 @@ there was an error type somewhere in the type.
         }  /* if */
       }  /* for */
     } else {
-      /* Non-template class type. */
-      if (uuidof_type->variant.class_struct_union.extra_info->uuid_string
-                                                                     == NULL) {
-        /* No uuid on this class. */
-        uuidof_type = NULL;
-      }  /* if */
+      /* A non-template class type with no uuid. */
+      uuidof_type = NULL;
     }  /* if */
   }  /* if */
   return uuidof_type;
