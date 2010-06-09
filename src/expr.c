@@ -24130,6 +24130,9 @@ operand of an "&" operator.
     expr_copy->type = do_type_substitution_for_rescan(expr->type, rcblock,
                                                       eriep);
     make_lvalue_or_rvalue_expression_operand(expr_copy, result);
+    if (is_reference_type(result->type)) {
+      add_reference_indirection(result);
+    }  /* if */
   } else if (is_operation_node(expr)) {
     /* Selection of a field of an anonymous union variable. */
     an_expr_node_ptr op1 = expr->variant.operation.operands;
