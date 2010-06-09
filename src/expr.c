@@ -8112,7 +8112,6 @@ outside of the expression-processing routines.
       if (is_template_dependent_context() &&
           expr_contains_dependent_type(expr)) {
         tp->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
-        tp->variant.typeref.type = type_of_unknown_templ_param_nontype;
       }  /* if */
     }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
@@ -8491,8 +8490,6 @@ the expression-processing routines.
         if (is_template_dependent_context() &&
             expr_contains_dependent_type(expr)) {
           typeof_type->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
-          typeof_type->variant.typeref.type =
-                                           type_of_unknown_templ_param_nontype;
         }  /* if */
       }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
