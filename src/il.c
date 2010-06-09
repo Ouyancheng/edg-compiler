@@ -16546,6 +16546,9 @@ and value-dependent cases.  Checking for the latter requires a tree traversal.
 
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_expr = examine_expr_for_dependent_type;
+    /* Get expressions under sizeofs checked. */
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    tblock.process_non_dynamic_constants = TRUE;
     traverse_expr(expr, &tblock);
     result = tblock.result;
   }  /* if */
