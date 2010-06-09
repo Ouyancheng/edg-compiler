@@ -2956,7 +2956,7 @@ the argument list for the cast is returned in rcblock->argument_list
 instead.
 */
 {
-  an_expr_node_ptr              expr = rcblock->expr;
+  an_expr_node_ptr              expr = rcblock->expr, op1;
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
 
@@ -2968,22 +2968,22 @@ instead.
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   check_assertion(eriep->type != NULL);
   *cast_type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
+  /* Get the operand of the cast. */
+  if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+    op1 = rescan_arg_list_from_dyn_init(dip);
+  } else {
+    op1 = expr->variant.operation.operands;
+  }  /* if */
   if (rcblock->operator_token == tok_typename) {
     /* Functional-notation cast (or old-style cast).  Return the argument
-       list via rcblock->argument_list. */
-    if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      rcblock->argument_list = rescan_arg_list_from_dyn_init(dip);
-    } else {
-      /* Cast operation, e.g., eok_cast.  The operand of the cast is
-         the argument list. */
-      rcblock->argument_list = expr->variant.operation.operands;
-    }  /* if */
+       list via rcblock->argument_list.  It may have more than one argument. */
+    rcblock->argument_list = op1;
   } else {
     /* Not a functional-notation cast, e.g., something like static_cast.
        Return the single argument expression via *operand and
        *bound_function_selector. */
-    an_expr_node_ptr op1 = expr->variant.operation.operands;
+    check_assertion(op1->next == NULL);
     make_rescan_operand_full(op1, rcblock, EOPT_OPERAND_OF_CAST,
                              operand, bound_function_selector);
   }  /* if */
