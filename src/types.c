@@ -3064,8 +3064,9 @@ object or an rvalue that is a pointer to an object.
         suppress_subtree_walk = TRUE;
         break;
       case enk_param_ref:
-        /* The type of the parameter is the complete object type. */
-        complete_object_type = node->type;
+        /* Complete object type is not known.  The parameter is a pointer,
+           but we don't know the static type of the thing pointed to. */
+        suppress_subtree_walk = TRUE;
         break;
       case enk_reuse_value:
         /* The details of the reused pointer value determine whether we know
