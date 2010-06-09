@@ -1802,9 +1802,11 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* while */
       break;
     case enk_param_ref:
-      fprintf(f_debug, "param_ref: param_num = %u, levels_up = %u\n",
+      fprintf(f_debug, "param_ref: param_num = %u, levels_up = %u, type = ",
               node->variant.param_ref.param_num,
               node->variant.param_ref.levels_up);
+      db_abbreviated_type(node->type);
+      fputs("\n", f_debug);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
