@@ -2227,8 +2227,7 @@ expression), do nothing.  Also do nothing if we're not currently in
 a possible rescan context.
 */
 {
-  if (expr_stack->possible_rescan_context &&
-      !is_error_operand(operand)) {
+  if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
@@ -2284,8 +2283,7 @@ type within the cast; and cast_type is the type cast to.
 Do nothing if the operand is not discernibly a cast expression.
 */
 {
-  if (expr_stack->possible_rescan_context &&
-      !is_error_operand(operand)) {
+  if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
@@ -8812,7 +8810,9 @@ e.g., if the source operand is an lvalue.
     can_fold = TRUE;
   }  /* if */
   if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
+    /* Leave an error operand alone (change an operand with an error type to
+       a full error operand). */
+    conv_to_error_operand(operand);
   } else if (can_fold) {
     /* Fold a constant cast. */
     check_assertion_str(is_constant_operand(operand) && is_an_rvalue(operand),
