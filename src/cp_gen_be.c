@@ -3009,6 +3009,19 @@ put out nothing.
              is_typedef_invisible_in_cp_gen_be(class_type)) {
         class_type = class_type->variant.typeref.type;
       }  /* while */
+      if (is_immediate_class_type(class_type) &&
+          class_type->variant.class_struct_union.is_nonreal_class &&
+          template_arguments_for_name(
+                                 &class_type->source_corresp, iek_type,
+                                 /*insert_space=*/(a_boolean *)NULL) != NULL &&
+          nqp->previous_qualifier != NULL &&
+          nqp->previous_qualifier->is_class &&
+          skip_typerefs(nqp->previous_qualifier->qualifier.class_type)->
+                                 variant.class_struct_union.is_nonreal_class) {
+        /* This qualifier is a dependent template-id and must be prefixed
+           with the "template" keyword. */
+        write_tok_str("template ");
+      }  /* if */
       gen_unqualified_name(&class_type->source_corresp, iek_type);
     } else {
       /* A namespace qualifier. */
