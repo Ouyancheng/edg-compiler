@@ -39,6 +39,9 @@ typedef struct a_disambig_state {
   a_boolean	may_be_decl;
 			/* TRUE while the statement being scanned could still
 			   be a declaration. */
+  a_boolean	terminate;
+			/* TRUE if the disambiguation should be stopped at
+			   this point. */
   a_boolean	set_decl_class_type;
 			/* TRUE if the decl_class_type field should be set,
 			   and scanning stopped once the declarator is
@@ -57,6 +60,7 @@ Initialize a disambiguation state block.
   clear_token_cache(&dsp->cache, /*reusable=*/FALSE);
   dsp->decl_class_type = NULL;
   dsp->may_be_decl = TRUE;
+  dsp->terminate = FALSE;
   dsp->set_decl_class_type = FALSE;
   dsp->friend_encountered = FALSE;
 }  /* init_disambig_state */
@@ -104,6 +108,13 @@ Macros to test bits in a disambiguation flag set.
 
 #define is_template_argument(flags)					\
   (((flags) & DFS_IS_TEMPLATE_ARGUMENT) != 0)
+
+
+/*
+Macro that is TRUE if the disambiguation process should stop at this point.
+*/
+#define terminate_disambiguation(state)					\
+  ((state)->may_be_decl == FALSE || ((state)->terminate))
 
 
 /*
@@ -461,13 +472,43 @@ C++0x attributes (i.e., not a lambda), scan over them.
 }  /* prescan_any_prefix_bracketed_attributes */
 
 
+static a_boolean is_token_allowed_after_typeof(a_token_kind token)
+/*
+Return TRUE if token can follow a typeof of the form "typeof(expression)".
+*/
+{
+  a_boolean	result = FALSE;
+
+  switch (token) {
+    case tok_plus_plus:
+    case tok_minus_minus:
+    case tok_lbracket:
+    case tok_period:
+    case tok_arrow:
+    case tok_lparen:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_token_allowed_after_typeof */
+
+
 static void prescan_typeof_operator(a_disambig_state_ptr       state,
                                     a_disambig_flag_set        flags)
 /*
 Scan past (and cache) a decltype or typeof specifier.  state points to the
 token cache to be used.
+
+The typeof operator can be used with or without parentheses in g++
+(but not gcc) mode:
+
+        typeof ( type-name )
+        typeof expression
 */
 {
+  a_boolean	is_typeof = curr_token == tok_typeof;
   /* Bypass the decltype or typeof (or __typeof__) token. */
   cache_curr_token(&state->cache);
   (void)get_token();
@@ -475,8 +516,24 @@ token cache to be used.
     /* Advance past the left paren. */
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
-    /* Now scan up to the matching right parenthesis. */
-    cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+    if (is_typeof && gpp_mode && gnu_version >= 30400 &&
+        !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                          DFS_REAL_DECLARATOR_ALLOWED)) {
+      /* This is a g++ typeof of the form "typeof (expression)".  Check for
+         a continuation of the expression after the ")". */
+      cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+      if (is_token_allowed_after_typeof(next_token())) {
+        /* There are more tokens that are part of the expression.  We can't
+           prescan an arbitrary expression, so cut off the disambiguation
+           here and conclude that this is a declaration. */
+        state->may_be_decl = TRUE;
+        state->terminate = TRUE;
+        /* We can't terminate when looking for the declarator class type. */
+        check_assertion(!state->set_decl_class_type);
+      }  /* if */
+    } else {
+      cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
+    }  /* if */
   }  /* if */
 }  /* prescan_typeof_operator */
 
@@ -787,7 +844,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
 			  (DFS_ABSTRACT_DECLARATOR_ALLOWED |
                            DFS_REAL_DECLARATOR_ALLOWED),
                           /*is_top_level=*/FALSE);
-      if (!state->may_be_decl) goto done;
+      if (terminate_disambiguation(state)) goto done;
     }  /* if */
     if (curr_token == tok_comma) {
       cache_curr_token(&state->cache);
@@ -1017,7 +1074,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     prescan_declarator(state, flags,
                        /*paren_initializer_allowed=*/FALSE,
                        /*is_top_level=*/FALSE);
-    if (!state->may_be_decl) goto done;
+    if (terminate_disambiguation(state)) goto done;
     /* The nested declarator must be followed by a ")". */
     if (curr_token != tok_rparen) {
       state->may_be_decl = FALSE;
@@ -1159,7 +1216,7 @@ evidence to the contrary.
     prescan_any_prefix_bracketed_attributes(state, flags);
     /* Scan the decl specifiers. */
     prescan_decl_specifiers(state, flags);
-    if (!state->may_be_decl) goto done;
+    if (terminate_disambiguation(state)) goto done;
     for (;;) {
       /* Parenthesized initializers are only allowed in contexts
          in which only real declarators are allowed, but not in
@@ -1170,7 +1227,7 @@ evidence to the contrary.
       prescan_declarator(state, flags,
                          paren_initializer_allowed,
 			 is_top_level && is_first_declarator);
-      if (!state->may_be_decl) goto done;
+      if (terminate_disambiguation(state)) goto done;
       /* If we are not processing real declarators, or if we are processing
          a condition, don't look for additional declarators. */
       if (abstract_declarator_allowed(flags) ||
@@ -1391,7 +1448,7 @@ types separated by commas (when single_type_required is FALSE).
        declaration.  Each token that is encountered is cached away, so
        that they can be restored for the actual scan. */
     prescan_declaration(&state, flags, /*is_top_level=*/TRUE);
-    if (!state.may_be_decl) goto restore_token_sequence;
+    if (terminate_disambiguation(&state)) goto restore_token_sequence;
     /* We should now be at either a comma separating two declarators or at
        the semicolon at the end of the declaration.  If not, assume that this
        is really an expression. */
@@ -1479,10 +1536,7 @@ routine to do lookahead, etc.
     is_decl_start_options |= IDS_REAL_DECLARATOR_ALLOWED;
   }  /* if */
   if (!C_mode()) {
-    if (curr_token == tok_typeof) {
-      /* typeof is always considered to start a declaration. */
-      result = TRUE;
-    } else if (is_decl_start(is_decl_start_options)) {
+    if (is_decl_start(is_decl_start_options)) {
       result = is_decl_not_expr_full(flags);
     } else {
       /* is_decl_start returns FALSE on "overload" but it should still be
