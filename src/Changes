@@ -1,5 +1,12 @@
 Version 4.2
 
+6/9/10   [EDGcpfe/10559]
+Microsoft compatibility: __builtin_alignof
+
+In Microsoft modes, the new keyword __builtin_alignof is now equivalent to
+__alignof.
+
+
 6/8/10   [EDGcpfe/10728]
 GNU compatibility: Attributes on explicit instantiations
 
