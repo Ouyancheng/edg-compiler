@@ -1,5 +1,25 @@
 Version 4.2
 
+6/10/10  [EDGcpfe/10627]
+Internal error on missing template argument list on template from base class
+
+An internal error (in scan_field_selection_operator) could occur on a
+reference to a class template from a base class referenced as a member of a
+derived class.  The internal error would occur if the reference omitted
+the template argument list.  Now fixed.
+
+  struct A {
+    template <class U> struct C {};
+  };
+  struct B : A { };
+  template <class T> void f(T p) {
+    p.T::C();  // missing argument list for A::C (inherited in B)
+  }
+  int main() {
+    f(B());
+  }
+
+
 6/10/10  [EDGcpfe/10736]
 GNU C compatibility: "static" function declarations in local scopes
 

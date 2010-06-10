@@ -15959,14 +15959,16 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
         a_symbol_ptr	symbol;
 	a_boolean	templ_err = FALSE;
         symbol = locator_for_curr_id.specific_symbol;
-        if (symbol != NULL &&
-            symbol->kind == (a_symbol_kind)sk_class_template) {
-          (void)coalesce_template_class_reference(symbol,
-                                                  options, &templ_err);
-           if (templ_err) {
-             okay = FALSE;
-             *err = TRUE;
-           }  /* if */
+        if (symbol != NULL) {
+          symbol = fundamental_symbol_of(symbol);
+          if (symbol->kind == (a_symbol_kind)sk_class_template) {
+            (void)coalesce_template_class_reference(symbol,
+                                                    options, &templ_err);
+            if (templ_err) {
+              okay = FALSE;
+              *err = TRUE;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }
       /* A qualified declarator name in a template declaration must name
