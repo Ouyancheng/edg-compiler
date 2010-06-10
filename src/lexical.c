@@ -12280,7 +12280,12 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         saved_position = locator_for_curr_id.source_position;
         tp = type_symbol_type(type_sym);
         tp = skip_typerefs(tp);
-        type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+        if (symbol_for(tp) != NULL) {
+          /* In some error cases involving aliases the underlying type may
+             not have a symbol.  In such cases, use the symbol from the
+             alias. */
+          type_sym = symbol_for(tp);
+        }  /* if */
         make_locator_for_symbol(type_sym, &locator_for_curr_id);
         locator_for_curr_id.source_position = saved_position;
       }  /* if */
