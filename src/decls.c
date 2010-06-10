@@ -13746,8 +13746,10 @@ proceed after the call.
        scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block) &&
       state->storage_class != (a_storage_class)sc_unspecified &&
       state->storage_class != (a_storage_class)sc_extern) {
-    /* Allow "static" in all C modes except strict ANSI.  The function will be
-       entered at the file scope as static.  This is an extension to ANSI C.
+    /* Allow "static" in all non-GNU C modes (an extension) except in strict
+       mode.  The function will be entered at the file scope as static.  
+       GCC 3.3.x and earlier ignore the "static", GCC 3.4.x behaves like our
+       default mode, and GCC 4.x disallows "static" in this context.
        Do not allow at all in C++ mode. */
     if (state->storage_class == (a_storage_class)sc_static) {
       an_error_severity  severity;
@@ -13755,6 +13757,13 @@ proceed after the call.
         /* This is an extension to ANSI C so produce a diagnostic in strict
            ANSI C mode. */
         severity = strict_ansi_mode ? strict_ansi_error_severity : es_none;
+        if (gcc_mode) {
+          if (gnu_version < 30400) {
+            state->storage_class = (a_storage_class)sc_unspecified;
+          } else if (gnu_version >= 40000) {
+            severity = es_discretionary_error;
+          }  /* if */
+        }  /* if */
       } else { /* C++ mode */
         /* The downstream call to id_linkage doesn't expect block level
            statics in C++ mode. */

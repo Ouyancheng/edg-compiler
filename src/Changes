@@ -1,5 +1,22 @@
 Version 4.2
 
+6/10/10  [EDGcpfe/10736]
+GNU C compatibility: "static" function declarations in local scopes
+
+In default C mode, the front end accepts (as an extension) a function
+declaration in a local scope with the "static" specifier.  For example:
+
+  void g() {
+    static void f();  // Nonstandard, but accepted in default C mode.
+  }
+
+Such a function is given internal linkage (i.e., as if it had been declared
+with "static" in the file scope).  Previously, such declarations were handled
+identically in GNU C modes.  Now, when gnu_version >= 40000, such declarations
+trigger an error, and when gnu_version < 30400, the "static" specifier is
+ignored (in the example above, this results in f having external linkage).
+
+
 6/10/10  [EDGcpfe/10737]
 Internal error during deduction on array with invalid substituted bound
 
