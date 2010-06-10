@@ -7812,6 +7812,9 @@ on the ck_template_param constant pointed to by the expression.
           }  /* if */
         } else if (is_error_constant(new_cp)) {
           *copy_error = TRUE;
+        } else if (new_cp->kind != (a_constant_repr_kind)ck_template_param) {
+          /* The new array size has an invalid type. */
+          *copy_error = TRUE;
         } else {
           /* The substituted value is still a ck_template_param
              constant. */

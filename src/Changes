@@ -1,5 +1,19 @@
 Version 4.2
 
+6/10/10  [EDGcpfe/10737]
+Internal error during deduction on array with invalid substituted bound
+
+An internal error could occur in copy_array_type_with_substitution if
+the result of the copy was a substituted array bound with an invalid
+type.  Now fixed.
+
+  template <class T> struct A {};
+  template <class T, class U, U I> void f(A<T> (*)(U(&)[I])) {}
+  int main() {
+    f<int,double,37>(0);
+  }
+
+
 6/9/10   [EDGcpfe/10557]
 Microsoft compatibility: __uuidof and explicit class template specialization
 
