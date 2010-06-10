@@ -6058,8 +6058,8 @@ static char* apply_uuid_attr(an_attribute_ptr  ap,
                              char              *entity,
                              an_il_entry_kind  entity_kind)
 /*
-Apply the Microsoft __declspec(uuid) attribute to the given entity (and return
-that entity).
+Apply the Microsoft __declspec(uuid(...)) attribute to the given entity (and
+return that entity).
 */
 {
   a_constant_ptr  arg;
@@ -6080,7 +6080,12 @@ that entity).
                      ec_decl_modifiers_incompatible_with_previous_decl,
                      &ap->position);
     } else if (is_immediate_class_type(tp)) {
-      class_type_supp(tp)->uuid_string = str;
+      /* If this is a class template instance (but not an explicit
+         specialization), the uuid is ignored. */
+      if (!tp->variant.class_struct_union.is_template_class ||
+          tp->variant.class_struct_union.is_specialized) {
+        class_type_supp(tp)->uuid_string = str;
+      }  /* if */
     } else if (is_immediate_enum_type(tp)) {
       if (C_mode()) {
         report_bad_attribute_target(es_discretionary_error, ap);
