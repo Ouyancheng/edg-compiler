@@ -1,5 +1,16 @@
 Version 4.2
 
+6/10/10  [EDGcpfe/10740]
+Internal error on specialization of nonreal class
+
+An internal error could occur (in various places) on an attempt to
+specialize a nonreal class.  Now fixed.
+
+  template <template <class> class T,
+            typename X = class T<int> { T(); }> struct A {};
+
+
+
 6/10/10  [EDGcpfe/10627]
 Internal error on missing template argument list on template from base class
 
