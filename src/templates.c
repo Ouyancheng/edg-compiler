@@ -4624,36 +4624,37 @@ definition of the ET flags in templates.h for more information.
   a_boolean	okay_so_far = TRUE;
   a_boolean	compare_parameters = TRUE;
 
-  if (tssp1->is_nonreal_member &&
-      tssp2->is_nonreal_member) {
-    /* Nonreal members have must have the same name and parent class. */
-    a_template_ptr	templ1 = tssp1->il_template_entry;
-    a_template_ptr	templ2 = tssp2->il_template_entry;
-    must_be_identical = FALSE;
-    /* Nonreal templates have no parameter lists. */
-    compare_parameters = FALSE;
-    if (strcmp(templ1->source_corresp.name,
-               templ2->source_corresp.name) == 0) {
-      /* They have the same names. */
-      if (!identical_types(parent_class_of(templ1),
-                          parent_class_of(templ2))) {
-        /* Their parent types are the different. */
+  if ((options & ET_EXACT_MATCH_REQUIRED) == 0) {
+    if (tssp1->is_nonreal_member &&
+        tssp2->is_nonreal_member) {
+      /* Nonreal members have must have the same name and parent class. */
+      a_template_ptr	templ1 = tssp1->il_template_entry;
+      a_template_ptr	templ2 = tssp2->il_template_entry;
+      must_be_identical = FALSE;
+      /* Nonreal templates have no parameter lists. */
+      compare_parameters = FALSE;
+      if (strcmp(templ1->source_corresp.name,
+                 templ2->source_corresp.name) == 0) {
+        /* They have the same names. */
+        if (!identical_types(parent_class_of(templ1),
+                            parent_class_of(templ2))) {
+          /* Their parent types are the different. */
+          okay_so_far = FALSE;
+        }  /* if */
+      }  /* if */
+    } else if (tssp1->variant.class_template.template_template_param &&
+               tssp2->variant.class_template.template_template_param) {
+      /* Template template parameters must be at the same coordinates. */
+      a_template_param_coordinate_ptr	coordinates1;
+      a_template_param_coordinate_ptr	coordinates2;
+      coordinates1 = &tssp1->il_template_entry->coordinates;
+      coordinates2 = &tssp2->il_template_entry->coordinates;
+      must_be_identical = FALSE;
+      if (coordinates1->position != coordinates2->position ||
+          !equiv_nesting_depths(coordinates1->depth, coordinates2->depth)) {
+        /* The coordinates do not match. */
         okay_so_far = FALSE;
       }  /* if */
-    }  /* if */
-  } else if (tssp1->variant.class_template.template_template_param &&
-             tssp2->variant.class_template.template_template_param &&
-             (options & ET_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
-    /* Template template parameters must be at the same coordinates. */
-    a_template_param_coordinate_ptr	coordinates1;
-    a_template_param_coordinate_ptr	coordinates2;
-    coordinates1 = &tssp1->il_template_entry->coordinates;
-    coordinates2 = &tssp2->il_template_entry->coordinates;
-    must_be_identical = FALSE;
-    if (coordinates1->position != coordinates2->position ||
-        !equiv_nesting_depths(coordinates1->depth, coordinates2->depth)) {
-      /* The coordinates do not match. */
-      okay_so_far = FALSE;
     }  /* if */
   }  /* if */
   if (!okay_so_far) {
@@ -4891,7 +4892,7 @@ the same constant.
     } else {
       /* A template template argument. */
       an_equiv_templates_options_set	et_options;
-      et_options = exact_match_required ? ET_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+      et_options = exact_match_required ? ET_EXACT_MATCH_REQUIRED
                                         : ET_NO_OPTIONS;
       if (arg1->variant.templ.ptr == arg2->variant.templ.ptr) {
         /* Okay. */
@@ -5182,6 +5183,14 @@ hashes template argument lists works properly.
     if (equiv_template_arg_lists(old_list, template_arg_list,
                                  eta_options | ETA_EXACT_MATCH_REQUIRED)) {
       /* We've found a match. */
+#if DEBUG
+      fprintf(f_debug, "check_new_class_instantiation:\n");
+      fprintf(f_debug, "  existing list: ");
+      db_template_arg_list(old_list);
+      fprintf(f_debug, "\n  new list: ");
+      db_template_arg_list(template_arg_list);
+      fprintf(f_debug, "\n");
+#endif /* DEBUG */
       unexpected_condition();
     }  /* if */
   }  /* for */

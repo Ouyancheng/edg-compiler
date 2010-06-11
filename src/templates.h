@@ -570,10 +570,10 @@ equiv_templates_given_supplement.
 typedef int an_equiv_templates_options_set;
 
 #define ET_NO_OPTIONS		0x0
-#define ET_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED 0x1
+#define ET_EXACT_MATCH_REQUIRED 0x1
 			/* TRUE if, when comparing template template
-			   parameters, the template pointers must match,
-			   not just the coordinates. */
+			   parameters and nonreal templates, the template
+			   pointers must match, not just the coordinates. */
 
 extern a_boolean equiv_templates(a_template_ptr			templ1,
 				 a_template_ptr			templ2,
