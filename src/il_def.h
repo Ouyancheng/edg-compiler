@@ -3004,6 +3004,12 @@ typedef struct a_dynamic_init {
 			   The master entry handles destruction etc.  This is
 			   used for the optimization of a "?" operator
 			   returning a class rvalue. */
+  an_expr_rescan_info_entry_ptr
+		rescan_info;
+			/* For casts scanned in templates that might
+			   be rescanned later to redo semantic analysis,
+			   points to extra front-end-only information that
+			   is needed for the rescan.  NULL otherwise. */
 } a_dynamic_init;
 
 

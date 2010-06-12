@@ -1508,6 +1508,7 @@ extern an_expr_node_ptr rescan_arg_list_from_dyn_init(a_dynamic_init_ptr dip);
 
 extern void make_cast_rescan_operands(
                               a_rescan_control_block *rcblock,
+                              a_dynamic_init_ptr     dip,
                               a_source_position      *start_position,
                               a_type_ptr             *cast_type, 
                               a_source_position      *type_position,

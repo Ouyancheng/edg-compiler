@@ -10177,7 +10177,8 @@ indication in *rcblock).
 
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    make_cast_rescan_operands(rcblock, start_position,
+    make_cast_rescan_operands(rcblock, (a_dynamic_init_ptr)NULL,
+                              start_position,
                               cast_type, type_position, operand,
                               (an_operand *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11144,7 +11145,8 @@ in *rcblock).
     if (has_new_initializer) {
       /* Set up the argument list for the new initializer. */
       a_dynamic_init_ptr init_dip = rescan_ndsp->dynamic_init;
-      check_assertion(init_dip != NULL);
+      check_assertion(init_dip != NULL &&
+                      !init_dip->is_explicit_cast);
       rcblock->argument_list = arg_expr_list =
                                        rescan_arg_list_from_dyn_init(init_dip);
       if (arg_expr_list != NULL &&
@@ -15222,6 +15224,7 @@ one argument, return TRUE; otherwise, return FALSE.
 
 static void scan_functional_notation_type_conversion(
                                       a_rescan_control_block   *rcblock,
+                                      a_dynamic_init_ptr       rescan_dip,
                                       a_type_ptr               type_cast_to,
                                       a_source_position        *start_position,
                                       an_operand               *result,
@@ -15237,7 +15240,8 @@ functional-notation or old-style; they have different syntax but the
 same semantics, at least for the cases they have in common), and
 return the result in *result (or an error indication in *rcblock).  In
 that case, type_cast_to and start_position are ignored, and set from
-the information in rcblock.
+the information in rcblock.  If rescan_dip is non-NULL, use that
+as the cast in place of rcblock->expr.
 */
 {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -15261,11 +15265,14 @@ the information in rcblock.
     check_assertion(rcblock->operator_token == tok_typename);
     check_assertion(type_cast_to == NULL && start_position == NULL);
     start_position = &local_start_position;
-    make_cast_rescan_operands(rcblock, start_position,
+    make_cast_rescan_operands(rcblock, rescan_dip, start_position,
                               &type_cast_to, &type_position, result,
                               &local_bound_function_selector);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_position = rcblock->expr->expr_range.end;
+    end_position = (rcblock->expr != NULL) ? rcblock->expr->expr_range.end :
+                                             /* No end position available
+                                                from rescan_dip. */
+                                             type_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
@@ -20628,6 +20635,7 @@ overloaded_function:
             }  /* if */
             (void)get_token();
             scan_functional_notation_type_conversion(rcblock,
+                                                     (a_dynamic_init_ptr)NULL,
                                                      cast_type,
                                                      &start_position,
                                                      result,
@@ -22511,6 +22519,7 @@ type_start:
         } else {
           scan_functional_notation_type_conversion(
                                                 (a_rescan_control_block *)NULL,
+                                                (a_dynamic_init_ptr)NULL,
                                                 cast_type,
                                                 &start_position,
                                                 &local_result,
@@ -24736,6 +24745,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
            have different syntax, they have the same semantics for the
            cases they have in common. */
         scan_functional_notation_type_conversion(rcblock,
+                                                 (a_dynamic_init_ptr)NULL,
                                                  (a_type_ptr)NULL,
                                                  (a_source_position *)NULL,
                                                  result,
@@ -24937,6 +24947,48 @@ expression-processing routines.
   pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
   return expr;
 }  /* rescan_expr_with_substitution */
+
+
+void rescan_dynamic_init_with_substitution(a_dynamic_init_ptr     dip,
+                                           a_rescan_control_block *rcblock,
+                                           an_operand             *result)
+/*
+Redo the semantic analysis on the dynamic initialization dip as part of doing
+template deduction.  rcblock provides the deduction context, e.g., the
+template argument list being tried.  It also has an error_detected
+flag, which is set to TRUE if any non-access error is detected during
+the rescan.  If there is no error, *result is set to an operand for the
+dynamic initialization after substitution.
+*/
+{
+  an_expr_node_ptr expr;
+
+  if (dip->is_compound_literal) {
+    /* We don't do rescans on compound literals currently. */
+    rcblock->error_detected = TRUE;
+    make_error_operand(result);
+  } else if (dip->is_explicit_cast) {
+    /* The dynamic init is an explicit cast, so the whole operation is the
+       thing to be rescanned. */
+    an_expr_node_ptr saved_expr = rcblock->expr;
+    rcblock->expr = NULL;
+    rcblock->operator_token = tok_typename;
+    check_assertion(dip->rescan_info != NULL);
+    scan_functional_notation_type_conversion(rcblock,
+                                             dip,
+                                             (a_type_ptr)NULL,
+                                             (a_source_position *)NULL,
+                                             result,
+                                             EOPT_NO_OPTIONS);
+    rcblock->expr = saved_expr;
+  } else {
+    /* The dynamic init is not an explicit cast, so it's an implicit
+       operation.  Fetch and return its operand. */
+    expr = rescan_arg_list_from_dyn_init(dip);
+    check_assertion(expr->next == NULL);
+    make_rescan_operand(expr, rcblock, result);
+  }  /* if */
+}  /* rescan_dynamic_init_with_substitution */
 
 
 void scan_member_constant_initializer_expression(a_decl_parse_state  *dps,

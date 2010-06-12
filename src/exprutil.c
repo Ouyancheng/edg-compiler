@@ -2291,6 +2291,13 @@ Do nothing if the operand is not discernibly a cast expression.
                                                          start_position,
                                                          type_position,
                                                          cast_type);
+      if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+        /* Record the same rescan info in an associated dynamic init entry.
+           This is useful in a case like a throw, where the dynamic init
+           might later be separated from the enk_temp_init and used
+           directly. */
+        expr->variant.init.dynamic_init->rescan_info = expr->rescan_info;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* record_cast_position_in_rescan_info */
@@ -2936,6 +2943,7 @@ top_of_routine:
 
 
 void make_cast_rescan_operands(a_rescan_control_block *rcblock,
+                               a_dynamic_init_ptr     dip,
                                a_source_position      *start_position,
                                a_type_ptr             *cast_type, 
                                a_source_position      *type_position,
@@ -2944,14 +2952,15 @@ void make_cast_rescan_operands(a_rescan_control_block *rcblock,
 /*
 As part of redoing semantic analysis on an expression while doing
 template deduction, extract the operand of the cast expression
-given by rcblock->expr and return it in *operand.  Also return the
-type cast to in *cast_type, the starting position of the cast in
-*start_position, and the position of the type in the cast in
-*type_position.  If bound_function_selector is non-NULL, the caller
-is willing to accept a bound function, and *bound_function_selector
-can be set to the selector part of that.  If rcblock->operator_token
-is tok_typename, indicating a functional-notation type conversion (or
-an old-style cast), *operand and *bound_function_selector are not used;
+given by rcblock->expr and return it in *operand.  (If dip != NULL,
+use that dynamic initialization in place of rcblock->expr.)  Also
+return the type cast to in *cast_type, the starting position of the
+cast in *start_position, and the position of the type in the cast in
+*type_position.  If bound_function_selector is non-NULL, the caller is
+willing to accept a bound function, and *bound_function_selector can
+be set to the selector part of that.  If rcblock->operator_token is
+tok_typename, indicating a functional-notation type conversion (or an
+old-style cast), *operand and *bound_function_selector are not used;
 the argument list for the cast is returned in rcblock->argument_list
 instead.
 */
@@ -2960,21 +2969,29 @@ instead.
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
 
-  check_assertion(expr != NULL);
-  check_assertion(is_cast_operation_node(expr) ||
-                  expr->kind == (an_expr_node_kind)enk_temp_init);
-  /* We pass NULL for the second argument because we want to require
-     explicit rescan information on all casts. */
-  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-  check_assertion(eriep->type != NULL);
-  *cast_type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
-  /* Get the operand of the cast. */
-  if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+  if (dip != NULL) {
+    /* The cast is specified by a dynamic initialization (dip), not an
+       expression. */
+    eriep = dip->rescan_info;
+    check_assertion(eriep != NULL);
     op1 = rescan_arg_list_from_dyn_init(dip);
   } else {
-    op1 = expr->variant.operation.operands;
+    /* The cast is specified by an expression. */
+    check_assertion(expr != NULL);
+    check_assertion(is_cast_operation_node(expr) ||
+                    expr->kind == (an_expr_node_kind)enk_temp_init);
+    /* We pass NULL for the second argument because we want to require
+       explicit rescan information on all casts. */
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+    if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      dip = expr->variant.init.dynamic_init;
+      op1 = rescan_arg_list_from_dyn_init(dip);
+    } else {
+      op1 = expr->variant.operation.operands;
+    }  /* if */
   }  /* if */
+  check_assertion(eriep->type != NULL);
+  *cast_type = do_type_substitution_for_rescan(eriep->type, rcblock, eriep);
   if (rcblock->operator_token == tok_typename) {
     /* Functional-notation cast (or old-style cast).  Return the argument
        list via rcblock->argument_list.  It may have more than one argument. */
@@ -3041,7 +3058,7 @@ the starting position of the expression.  *expr_present is returned
 FALSE for a rethrow, in which case *operand is not set.
 */
 {
-  an_expr_node_ptr              expr = rcblock->expr, arg_expr;
+  an_expr_node_ptr              expr = rcblock->expr;
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
 
@@ -3052,10 +3069,11 @@ FALSE for a rethrow, in which case *operand is not set.
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   *expr_present = (expr->variant.throw_info != NULL);
   if (*expr_present) {
-    arg_expr =
-         rescan_arg_list_from_dyn_init(expr->variant.throw_info->dynamic_init);
-    check_assertion(arg_expr->next == NULL);
-    make_rescan_operand(arg_expr, rcblock, operand);
+    /* Rescan the operand, substituting template arguments. */
+    rescan_dynamic_init_with_substitution(
+                                        expr->variant.throw_info->dynamic_init,
+                                        rcblock,
+                                        operand);
   }  /* if */
   get_rescan_operator_positions(eriep, start_position,
                                 &operator_tok_seq_number,

@@ -263,6 +263,11 @@ extern an_expr_node_ptr rescan_expr_with_substitution(
                                              a_rescan_control_block *rcblock,
                                              a_constant             *constant);
 
+extern
+void rescan_dynamic_init_with_substitution(a_dynamic_init_ptr     dip,
+                                           a_rescan_control_block *rcblock,
+                                           an_operand_ptr         result);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern void scan_member_constant_initializer_expression(
                                                  a_decl_parse_state *dps,
