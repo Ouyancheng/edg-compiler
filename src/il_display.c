@@ -240,7 +240,7 @@ Display an int32_t value along with a name.
 static void disp_long(char *name,
                       long value)
 /*
-Display an long value along with a name.
+Display a long value along with a name.
 */
 {
   disp_name(name);
