@@ -20601,10 +20601,17 @@ overloaded_function:
                While we only create an undefined symbol operand from source
                in some special circumstances, if we bothered to create one
                and save it in the IL, we preserve it here in the rescan. */
-            make_undefined_symbol_operand(sym_ptr,
-                                          (a_ref_entry_ptr)NULL,
-                                          &locator.source_position,
-                                          result);
+            if (rescan_operand->is_routine_name_followed_by_left_paren) {
+              make_undefined_symbol_operand(sym_ptr,
+                                            (a_ref_entry_ptr)NULL,
+                                            &locator.source_position,
+                                            result);
+            } else {
+              /* The undefined symbol is not about to be called, so don't
+                 allow an undefined symbol operand to escape. */
+              rcblock->error_detected = TRUE;
+              make_error_operand(result);
+            }  /* if */
           }  /* if */
           break;
 #if NAMED_ADDRESS_SPACES_ALLOWED
