@@ -926,7 +926,9 @@ This is now fixed.
 C++0x: Alias and alias template declarations
 
 Alias declarations and alias template declarations are now supported in
-C++0x mode.
+C++0x mode.  As part of this change the type entries for tk_typeref types
+now have a supplement (a_typeref_type_supplement -- IL CHANGE).  The expr
+field previously in the a_type entry has been moved to the supplement.
 
   using X = int;
   X x;  // equivalent to "int x"
