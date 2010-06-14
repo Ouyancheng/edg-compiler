@@ -17125,17 +17125,15 @@ alias
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (!decl_state->decl_scope_err) {
-    /* Create the symbol for the prototype instantiation. */
-    create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
-                          /*is_partial_specialization=*/FALSE);
+  /* Create the symbol for the prototype instantiation. */
+  create_prototype_type(decl_state, sym, tssp, (a_symbol_ptr)NULL,
+                        /*is_partial_specialization=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    update_decl_pos_info(
+  update_decl_pos_info(
            &tssp->variant.class_template.prototype_instantiation->
                                               variant.type.ptr->source_corresp,
                        &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
   return sym;
 }  /* alias_template_declaration */
 
