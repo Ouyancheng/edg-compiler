@@ -114,7 +114,7 @@ Macros to test bits in a disambiguation flag set.
 Macro that is TRUE if the disambiguation process should stop at this point.
 */
 #define terminate_disambiguation(state)					\
-  ((state)->may_be_decl == FALSE || ((state)->terminate))
+  (!(state)->may_be_decl || ((state)->terminate))
 
 
 /*
