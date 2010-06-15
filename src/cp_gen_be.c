@@ -2550,27 +2550,35 @@ is called.
   a_boolean invisible = FALSE;
   a_boolean typedef_will_be_implicitly_instantiated_if_referenced;
 
+  check_assertion(type->kind == (a_type_kind)tk_typeref &&
+                  typeref_is_typedef(type));
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
-     all instances of class templates are handled by explicit specialization.
-     In that case, when typedef_definition_has_been_put_out is FALSE, it
-     indicates that the specialization has been declared but not yet
-     defined, so we must not generate a reference to that typedef name. */
-  typedef_will_be_implicitly_instantiated_if_referenced = FALSE;
+     all instances of class templates are represented by explicit
+     specializations.  If the typedef is a template alias, there is no
+     problem with using it.  Otherwise, it will not be implicitly
+     instantiated, even if it is a member of a template instance. */
+  typedef_will_be_implicitly_instantiated_if_referenced =
+                                       type->variant.typeref.is_template_alias;
 #else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE,
      we will still be able to use the name of a typedef for which
      typedef_definition_has_been_put_out is FALSE if it is a member of a
      class template that was (and will be in the generated code) implicitly
-     instantiated. */
+     instantiated or if it is a template alias that is not a member of an
+     explicitly-specialized specialization. */
   typedef_will_be_implicitly_instantiated_if_referenced =
-        type->source_corresp.is_class_member &&
-        parent_class_of(type)->variant.class_struct_union.is_template_class &&
-        !parent_class_of(type)->variant.class_struct_union.is_specialized;
+        (type->source_corresp.is_class_member &&
+         parent_class_of(type)->variant.class_struct_union.is_template_class &&
+         !parent_class_of(type)->variant.class_struct_union.is_specialized);
+  if (!typedef_will_be_implicitly_instantiated_if_referenced &&
+      type->variant.typeref.is_template_alias) {
+    typedef_will_be_implicitly_instantiated_if_referenced =
+       !type->source_corresp.is_class_member ||
+       !(parent_class_of(type)->variant.class_struct_union.is_template_class &&
+         parent_class_of(type)->variant.class_struct_union.is_specialized);
+  }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-
-  check_assertion(type->kind == (a_type_kind)tk_typeref &&
-                  typeref_is_typedef(type));
   if (!type->typedef_definition_has_been_put_out &&
       !typedef_will_be_implicitly_instantiated_if_referenced) {
     /* The typedef definition has not been put out yet, so the typedef

@@ -1,5 +1,17 @@
 Version 4.2
 
+6/14/10  [EDGcpfe/10751]
+C++-generating back end: template aliases in generated code
+
+The C++-generating back end used the underlying type of a template alias
+instead of the alias itself in the generated code.  This is now fixed.  For
+example:
+
+  template<int I> struct S { };
+  template<int I> using X = S<I+1>;
+  X<5> x5;  // Previously generated as "S<6> x5;"
+
+
 6/10/10  [EDGcpfe/10740]
 Internal error on specialization of nonreal class
 
