@@ -3404,13 +3404,14 @@ Generate code for a compound literal (a C99 feature).  If the
 compound literal is available only in constant form, literal_con points
 to the constant.  Otherwise, literal_con is NULL and dip and temp_type
 give the dynamic initialization entry and type for the compound literal.
+An example of the form of a compound literal:
+       (int []){1, 2, 3}
+In GNU C++0x mode, a "list initializer" may also be represented as a compound
+literal (but the source form doesn't include the cast-like prefix).
 */
 {
-  a_boolean is_scalar;
+  a_boolean  is_scalar, list_init = (dip != NULL && dip->is_list_initializer);
 
-  /* An example of the form of a compound literal:
-       (int []){1, 2, 3}
-  */
   if (literal_con != NULL) {
     literal_type = literal_con->type;
   } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
@@ -3418,8 +3419,12 @@ give the dynamic initialization entry and type for the compound literal.
     /* Constant dynamic initializations are handled as constants. */
     literal_con = dip->variant.constant;
   }  /* if */
-  write_tok_ch('(');
-  gen_cast(literal_type);
+  /* If dip represents a list initializer, omit the cast-like prefix and the
+     surrounding parentheses. */
+  if (!list_init) {
+    write_tok_ch('(');
+    gen_cast(literal_type);
+  }  /* if */
   is_scalar = !is_aggregate_or_union_type(literal_type);
   if (is_scalar) {
     /* Scalar initialization.  Put an extra set of braces around the
@@ -3438,7 +3443,7 @@ give the dynamic initialization entry and type for the compound literal.
              /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
   if (is_scalar) write_tok_ch('}');
-  write_tok_ch(')');
+  if (!list_init) write_tok_ch(')');
 }  /* gen_compound_literal */
 
 

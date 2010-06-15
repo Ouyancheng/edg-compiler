@@ -1,5 +1,18 @@
 Version 4.2
 
+6/15/10  [EDGcpfe/10656]
+GNU C++0x compatibility: List initializers in return statements
+
+Recent versions of GCC support C++0x-style list initializers and make some
+use of the feature in return statements that appear in GCC system headers.
+The front end does not yet accept C++0x list initializers in general, but
+in GNU C++0x mode it now accepts some list initialization cases in return
+statements.  For example:
+
+  struct S { int x; };
+  S f() { return { 42 }; }  // Now accepted with --g++ --c++0x
+
+
 6/15/10
 Default GNU version changed to 4.2
 

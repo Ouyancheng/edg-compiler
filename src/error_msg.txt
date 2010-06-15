@@ -1949,6 +1949,7 @@ ec_conflicting_attribute_in_other_translation_unit;;"attribute %sq conflicts wit
 ec_cl_nonstd_gnu_keywords_requires_gnu_mode;;"the \"nonstd_gnu_keywords\" option is only valid in GNU C and GNU C++ modes"
 ec_const_var_in_C_const_expr;;"use of a const variable in a constant expression is nonstandard in C"
 ec_cannot_init_auto_flexible_array_member;;"an initializer cannot be specified for a flexible array member with automatic storage duration"
+ec_bad_type_for_list_init;;"a list initializer is not allowed for type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
