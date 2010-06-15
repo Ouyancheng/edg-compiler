@@ -467,7 +467,7 @@ emulated by default.  Version x.y.z of the GNU compiler is represented by
 the value x*10000+y*100+z.
 */
 #ifndef DEFAULT_GNU_VERSION
-#define DEFAULT_GNU_VERSION 30300
+#define DEFAULT_GNU_VERSION 40200
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*

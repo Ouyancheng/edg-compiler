@@ -1,5 +1,13 @@
 Version 4.2
 
+6/15/10
+Default GNU version changed to 4.2
+
+The default value of DEFAULT_GNU_VERSION, which specifies the default
+version of gcc/g++ to be emulated, has been updated to 40200, which
+corresponds to gcc/g++ version 4.2.
+
+
 6/14/10  [EDGcpfe/10751]
 C++-generating back end: template aliases in generated code
 
