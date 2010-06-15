@@ -12750,6 +12750,7 @@ semicolon.
       }  /* if */
     }  /* if */
   }  /* if */
+  record_entity_in_decl_stmt_if_needed(dps->sym);
   remove_stop_token(tok_semicolon);
   /* Check for final semicolon in the caller. */
 }  /* alias_declaration */
