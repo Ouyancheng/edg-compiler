@@ -1,5 +1,26 @@
 Version 4.2
 
+6/15/10  [EDGcpfe/10722]
+Microsoft compatibility: internal error on __super use of using-declaration
+
+In Microsoft mode, an internal error could occur (in add_symbol_to_super_set)
+on a function call in which the function was named using the __super keyword
+and where the set of functions being considered included a function made
+visible by a using-declaration.  Now fixed.
+
+  struct  C1 {
+    virtual void f(double);
+    virtual void f(long);
+  };	
+  struct C2 : C1 {
+    using C1::f;
+    virtual void f(long);
+  };
+  struct  C3 : public C2 {
+    void g(long l) { __super::f(l); }
+  };
+
+
 6/15/10  [EDGcpfe/10656]
 GNU C++0x compatibility: List initializers in return statements
 

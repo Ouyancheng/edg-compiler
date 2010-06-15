@@ -4292,10 +4292,10 @@ symbol is found, the first one is used but is marked as ambiguous.
 {
   a_boolean	is_function;
   a_symbol_ptr  fund_result_sym = NULL;
+  a_symbol_ptr	fund_new_sym;
 
-  /* The symbol provided is expected to be a fundamental symbol. */
-  check_assertion(new_sym->kind != (a_symbol_kind)sk_projection);
-  is_function = is_function_or_template_symbol(new_sym);
+  fund_new_sym = fundamental_symbol_of(new_sym);
+  is_function = is_function_or_template_symbol(fund_new_sym);
   /* Check the accessibility of the symbol. */
   if (*result_sym != NULL) {
     fund_result_sym = fundamental_symbol_of(*result_sym);
@@ -4312,7 +4312,18 @@ symbol is found, the first one is used but is marked as ambiguous.
     /* Add the symbol to the set.  Start by creating a projection symbol
        that points to new_sym. */
     a_symbol_ptr	new_proj;
-    new_proj = make_projection_symbol(new_sym, class_type, base_class,
+    a_boolean		new_is_proj;
+    new_is_proj = new_sym->kind == (a_symbol_kind)sk_projection;
+    if (new_is_proj) {
+      /* The new symbol is a projection symbol when it comes from a
+         using-declaration.  Get the base class information for the member
+         named in the using-declaration as a base class of the class in which
+         the using-declaration was found. */
+      base_class = corresp_base_class(new_sym->variant.projection.extra_info->
+                                                        fundamental_base_class,
+                                      base_class);
+    }  /* if */
+    new_proj = make_projection_symbol(fund_new_sym, class_type, base_class,
                                      (a_derivation_step_ptr)NULL,
                                      /*ambiguous=*/FALSE);
     /* Note that projection symbols for using-declarations have the
@@ -4322,6 +4333,9 @@ symbol is found, the first one is used but is marked as ambiguous.
     new_proj->decl_position = locator->source_position;
     set_decl_sequence_number(new_proj);
     new_proj->is_super_reference = TRUE;
+    /* Mark the projection symbol as a using-declaration so that the "this"
+       parameter will be considered an exact match for overload resolution. */
+    new_proj->variant.projection.is_using_decl = TRUE;
     if (*result_sym == NULL) {
       /* This is the first symbol in the set. */
       *result_sym = new_proj;
