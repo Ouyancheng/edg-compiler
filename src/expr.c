@@ -8500,7 +8500,7 @@ the expression-processing routines.
         /* Before 3.4, the parentheses were required and nothing past the
            closing paren was scanned.  We don't treat the scanned parenthesis
            as trapped, so we stop on the closing paren. */
-        prec = PREC_LOWEST;
+        if (is_parenthesized) prec = PREC_LOWEST;
       } else {
         if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
       }  /* if */
