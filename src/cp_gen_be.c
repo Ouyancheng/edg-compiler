@@ -2555,18 +2555,26 @@ is called.
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
      all instances of class templates are represented by explicit
-     specializations.  If the typedef is a template alias, there is no
-     problem with using it.  Otherwise, it will not be implicitly
-     instantiated, even if it is a member of a template instance. */
+     specializations.  We must avoid any references to instances of class
+     templates whose explicit specializations have not yet been emitted in
+     order to avoid implicitly instantiating them (which would be an
+     error).  A reference to a template alias that is not a member of an
+     instance of a class template or is a member of a class template whose
+     explicit specialization has already been emitted is safe, though,
+     because template aliases cannot be explicitly specialized and an
+     implicit instantiation is no problem. */
   typedef_will_be_implicitly_instantiated_if_referenced =
-                                       type->variant.typeref.is_template_alias;
+                                     type->variant.typeref.is_template_alias &&
+       !(type->source_corresp.is_class_member &&
+         parent_class_of(type)->variant.class_struct_union.is_template_class &&
+         !parent_class_of(type)->has_been_declared);
 #else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   /* When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE,
      we will still be able to use the name of a typedef for which
      typedef_definition_has_been_put_out is FALSE if it is a member of a
      class template that was (and will be in the generated code) implicitly
      instantiated or if it is a template alias that is not a member of an
-     explicitly-specialized specialization. */
+     explicitly-specialized specialization that hasn't yet been declared. */
   typedef_will_be_implicitly_instantiated_if_referenced =
         (type->source_corresp.is_class_member &&
          parent_class_of(type)->variant.class_struct_union.is_template_class &&
@@ -2575,6 +2583,7 @@ is called.
       type->variant.typeref.is_template_alias) {
     typedef_will_be_implicitly_instantiated_if_referenced =
        !type->source_corresp.is_class_member ||
+       parent_class_of(type)->has_been_declared ||
        !(parent_class_of(type)->variant.class_struct_union.is_template_class &&
          parent_class_of(type)->variant.class_struct_union.is_specialized);
   }  /* if */
