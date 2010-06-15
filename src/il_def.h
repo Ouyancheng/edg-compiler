@@ -2856,7 +2856,7 @@ typedef struct a_dynamic_init {
 			   C++ mode, it could also be a list initializer). */
   a_bit_field	is_list_initializer:1;
 			/* If TRUE, the source construct that generated this
-			   this initialization is a list initializer. */
+			   initialization is a list initializer. */
   a_bit_field	is_partially_initialized_compound_literal:1;
 			/* If TRUE, the source construct is a compound
 			   literal (C99) and the entity was not fully
