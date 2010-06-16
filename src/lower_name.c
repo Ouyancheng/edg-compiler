@@ -3143,6 +3143,7 @@ appear in late specified return types.
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_param_reference */
 
+#if IA64_ABI
 
 /*
 Macro that returns TRUE if the expression is a tpck_typeid template parameter
@@ -3155,6 +3156,7 @@ constant.
     (expr)->variant.constant->variant.template_param.kind ==             \
                            (a_template_param_constant_kind)tpck_typeid))
 
+#endif /* IA64_ABI */
 
 static an_expr_node_ptr skip_non_mangleable_expressions(
                                an_expr_node_ptr expr,
