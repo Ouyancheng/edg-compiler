@@ -6795,7 +6795,7 @@ previously-scanned sizeof expression, and return the result in *result
      involve a dependent expression even though the result type is not
      dependent.  This is done after the type validity tests above so
      we can detect any possible errors anyway. */
-  if (is_partially_dependent_type(sizeof_type)) {
+  if (is_dependent_decltype_type(sizeof_type)) {
     template_case = TRUE;
   }  /* if */
 
@@ -9171,7 +9171,7 @@ enk_typeid entry should be created.
 {
   an_expr_node_ptr typeid_node;
   a_boolean        template_case = is_template_dependent_type(typeid_type) ||
-                                   is_partially_dependent_type(typeid_type);
+                                   is_dependent_decltype_type(typeid_type);
   a_type_ptr       const_type_info = make_qualified_type(
                                               type_of_type_info,
                                               (a_type_qualifier_set)TQ_CONST);

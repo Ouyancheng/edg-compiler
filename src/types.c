@@ -316,12 +316,12 @@ type, without changing the type represented, for deduction purposes."
 }  /* skip_typedefs_not_dependent_decltypes */
 
 
-a_boolean is_partially_dependent_type(a_type_ptr type)
+a_boolean is_dependent_decltype_type(a_type_ptr type)
 /*
-Return TRUE if the given type is a "partially-dependent" type, i.e., one
-that isn't actually type-dependent but does involve a dependent
-expression (e.g., in a decltype), so that at the least on a rescan
-an error might be detected for certain values of the template parameters.
+Return TRUE if the given type is based on a decltype, and the decltype
+either produces a dependent type or involves a value-dependent expression.
+Such decltypes must be preserved in certain cases so that the underlying
+expression can be rescanned.
 */
 {
   a_boolean result = FALSE;
@@ -332,7 +332,7 @@ an error might be detected for certain values of the template parameters.
     result = TRUE;
   }  /* if */
   return result;
-}  /* is_partially_dependent_type */
+}  /* is_dependent_decltype_type */
 
 
 a_boolean is_error_type(a_type_ptr tp)
