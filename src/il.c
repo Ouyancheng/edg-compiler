@@ -13884,13 +13884,15 @@ substitution on a type), set *copy_error to TRUE.  options is a set of
 name lookup options.
 */
 {
-  a_constant_ptr con_copy, other_con;
+  a_constant_ptr con_copy, other_con, src_con;
   a_type_ptr     new_type;
   a_type_ptr     copied_con_type;
-  a_boolean      did_not_fold;
-  an_error_code  error_detected;
+  a_boolean      did_not_fold, reinterpret_cast_needed = FALSE;
+  an_error_code  error_detected, warning_suggested;
   a_template_param_coordinate_ptr
                  coordinates;
+  a_std_conv_descr
+                 std_conv;
 
   con_copy = con;
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -13958,25 +13960,47 @@ name lookup options.
                                  constant);
         /* Get the type of the copied constant from either other_con or
            constant, as appropriate. */
-        copied_con_type = type_of_copied_template_expr((an_expr_node_ptr)NULL,
-                                                       constant, other_con); 
-        if (same_entities(new_type, con->type) &&
-            other_con == con->variant.template_param.variant.constant) {
+        src_con = (other_con != NULL) ? other_con : constant;
+        copied_con_type = src_con->type;
+        if (!(options & CTWS_NON_CONSTANT_EXPR) &&
+            (is_bad_type_for_template_arg_operand(new_type) ||
+             is_bad_type_for_template_arg_operand(copied_con_type)) &&
+            !types_are_compatible(new_type, copied_con_type)) {
+          /* One of the types is invalid for a template argument constant
+             expression.  However, exempt the idiom where a constant is
+             converted to its own type as a way of marking it as dependent. */
+          *copy_error = TRUE;
+        } else if (!(con->explicit_cast_applied ?
+                       expl_conversion_possible(copied_con_type,
+                                                /*source_is_constant=*/TRUE,
+                                                /*source_is_string_literal=*/
+                                                                         FALSE,
+                                                src_con,
+                                                new_type,
+                                                &reinterpret_cast_needed,
+                                                ec_bad_cast,
+                                                &warning_suggested) :
+                       impl_conversion_possible(copied_con_type,
+                                                /*source_is_constant=*/TRUE,
+                                                /*source_is_string_literal=*/
+                                                                         FALSE,
+                                                src_con,
+                                                new_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                                /*suppress_extensions=*/FALSE,
+                                                ec_bad_cast,
+                                                &std_conv))) {
+          /* The conversion is not valid. */
+          /* Note that this is crude; we don't really know the kind of cast,
+             and, e.g., a static_cast would allow different things than a
+             const_cast.  However, we try to make all dependent casts
+             written in the source be presented by casts under tpck_expression
+             constants, so the only casts that get here are implicit ones
+             and odd non-source explicit cases. */
+          *copy_error = FALSE;
+        } else if (same_entities(new_type, con->type) &&
+                   other_con == con->variant.template_param.variant.constant) {
           /* No change in the type or constant. */
-        } else if (is_incomplete_type(new_type) ||
-                   is_class_struct_union_type(new_type) ||
-                   is_function_type(new_type) ||
-                   is_array_type(new_type)) {
-          /* You can't cast to an incomplete type, a class type, a
-             function type, or an array type. */
-          *copy_error = TRUE;
-        } else if (!identical_types(new_type, copied_con_type) &&
-                   !is_pointer_type(new_type) &&
-                   !is_ptr_to_member_type(new_type) &&
-                   is_nullptr_type(copied_con_type)) {
-          /* A nullptr can only be converted to a pointer or pointer to member
-             type. */
-          *copy_error = TRUE;
         } else {
           if (other_con != NULL) *constant = *other_con;
           /* Do the cast again with the type and constant after
@@ -13988,7 +14012,7 @@ name lookup options.
                                     /*fold_constant_addr_exprs=*/TRUE,
                                     /*check_cast_access=*/FALSE,
                                     /*check_ambiguity=*/TRUE,
-                                    /*is_reinterpret_cast=*/FALSE,
+                                    reinterpret_cast_needed,
                                     /*maintain_expression=*/FALSE,
                                     &did_not_fold,
                                     &error_detected,
