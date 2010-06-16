@@ -21276,6 +21276,79 @@ be used, but there are exceptions.
 
 #endif /* MODULE_ID_NEEDED */
 
+void destination_type_for_reference_cast(an_expr_node_ptr  expr,
+                                         a_type            *ref_type)
+/*
+The type of an (rvalue) reference cast operation doesn't reflect the
+(rvalue) reference, but that type is needed both for mangling as well as
+in the C++ generating back end.  This routine returns, in *ref_type, a
+type that approximates the type used in the source code (as specified by
+expr->type).
+*/
+{
+  a_type_ptr  dest_type = expr->type;
+  a_type      quals_type;
+  an_expr_node_ptr  operand_1 = expr->variant.operation.operands;
+
+  check_assertion(ref_type != NULL &&
+                  (expr->variant.operation.is_reference_cast ||
+                   node_operator_is(expr, eok_ref_cast) ||
+                   node_operator_is(expr, eok_ref_dynamic_cast)));
+  /* A cast to a reference type. */
+  if (!expr->is_lvalue) {
+    /* The cast has an lvalue-to-rvalue conversion built in, so the node
+       type may be a little different from the underlying cast type. */
+    if (is_function_type(operand_1->type) &&
+        is_pointer_type(dest_type) &&
+        is_function_type(type_pointed_to(dest_type))) {
+      /* When the underlying lvalue is a function, the decay to rvalue
+         adds a "pointer-to" to the type, which must be stripped off to
+         get back to the underlying cast type. */
+      dest_type = type_pointed_to(dest_type);
+    }  /* if */
+    if (expr->is_static_cast &&
+        any_qualifier_missing(dest_type, operand_1->type)) {
+      /* This node is a static_cast to a reference type followed by an
+         lvalue-to-rvalue conversion that drops the cv-qualifiers.  We don't
+         have a way of recovering the original cv-qualifiers of the reference
+         cast, so make a destination type that has all the cv-qualifiers
+         of the source lvalue, which will do the right thing and
+         compile correctly. */
+      a_type_qualifier_set dest_quals = get_type_qualifiers(dest_type);
+      a_type_qualifier_set src_quals  = get_type_qualifiers(operand_1->type);
+      a_type_qualifier_set quals_to_add;
+      quals_to_add = src_quals & ~dest_quals;
+#if !STANDALONE_UTILITY_PROGRAM
+      clear_type(&quals_type, (a_type_kind)tk_typeref);
+#else /* STANDALONE_UTILITY_PROGRAM */
+      /* clear_type is not available in a standalone program -- it's part
+         of the memory management routines -- so we just zero-fill the
+         struct and set the kind. */
+      memzero((char *)&quals_type, sizeof(quals_type));
+      quals_type.kind = (a_type_kind)tk_typeref;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+      quals_type.variant.typeref.type = dest_type;
+      quals_type.variant.typeref.qualifiers = quals_to_add;
+      dest_type = &quals_type;
+    }  /* if */
+  }  /* if */
+  /* Substitute a reference type for the destination type. */
+#if !STANDALONE_UTILITY_PROGRAM
+  clear_type(ref_type, (a_type_kind)tk_pointer);
+#else /* STANDALONE_UTILITY_PROGRAM */
+  /* Again, we can't use clear_type, so we zero the struct and then set
+     the kind. */
+  memzero((char *)ref_type, sizeof(*ref_type));
+  ref_type->kind = (a_type_kind)tk_pointer;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  ref_type->variant.pointer.is_reference = TRUE;
+  if (expr->variant.operation.is_rvalue_reference_cast) {
+    ref_type->variant.pointer.is_rvalue_reference = TRUE;
+  }  /* if */
+  ref_type->variant.pointer.type = dest_type;
+}  /* destination_type_for_reference_cast */
+
+
 void il_one_time_init(void)
 /*
 Do one-time initialization of variables related to the IL. (Variables

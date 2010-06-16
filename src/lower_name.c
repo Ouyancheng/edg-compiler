@@ -33,6 +33,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #if IA64_ABI
 #include "templates.h"
 #endif /* IA64_ABI */
+#include "exprutil.h"
 
 #if IA64_ABI
 /* IA-64 name mangling codes. */
@@ -130,6 +131,16 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_NULLPTR "Dn"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "Dt"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "DT"
+#define MANGLING_STRING_FOR_CAST "cv"
+#define MANGLING_STRING_FOR_STATIC_CAST "sc"
+#define MANGLING_STRING_FOR_CONST_CAST "cc"
+#define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
+#define MANGLING_STRING_FOR_DYNAMIC_CAST "dc"
+#define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
+#define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "v18__imag__"
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
@@ -220,6 +231,26 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_DESTRUCTOR "dt"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "op"
 #define MANGLING_STRING_FOR_NULLPTR "n"
+#define MANGLING_STRING_FOR_CAST "cs"
+#define MANGLING_STRING_FOR_DECLTYPE_TYPE "y"
+#define MANGLING_STRING_FOR_DECLTYPE_EXPR "Y"
+#define MANGLING_STRING_FOR_STATIC_CAST "sc"
+#define MANGLING_STRING_FOR_CONST_CAST "cc"
+#define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
+#define MANGLING_STRING_FOR_DYNAMIC_CAST "dc"
+#define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_OPERATOR_REAL_PART "rl"
+#define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "im"
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#if ABI_COMPATIBILITY_VERSION >= 402
+#define MANGLING_STRING_FOR_OPERATOR_UNARY_PLUS "ps"
+#define MANGLING_STRING_FOR_OPERATOR_NEGATE "ng"
+#define MANGLING_STRING_FOR_OPERATOR_DEREFERENCE "de"
+#define MANGLING_STRING_FOR_OPERATOR_ADDRESS "ao"
+#define MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX "ppt"
+#define MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX "mmt"
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 
 #endif /* IA64_ABI */
 
@@ -360,6 +391,7 @@ static a_boolean
                            generated yet (e.g., because they rely on a module
                            id) are left to be mangled later. */
 
+
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
 static void mangled_function_base_name(
@@ -386,8 +418,9 @@ static void mangled_function_name_externalized_if_necessary(
                              a_mangling_control_block *mctl);
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
-static char *mangled_expr_operator_name(an_expr_operator_kind op,
-                                        a_boolean             *bad_operator);
+static char *mangled_expr_operator_name(an_expr_node_ptr expr,
+                                        a_boolean        *bad_operator,
+                                        a_boolean        *is_cast);
 static void mangled_encoding_for_expression(
                                     an_expr_node_ptr         expr,
                                     a_boolean                in_dependent_expr,
@@ -436,6 +469,8 @@ static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
 static a_boolean function_name_mangling_needed(
                                        a_routine_ptr routine,
                                        a_boolean     *suppress_param_encoding);
+static char *mangled_operator_name(an_opname_kind kind,
+                                   unsigned int   num_operands);
 
 #if !IA64_ABI
 /*
@@ -648,12 +683,17 @@ Add the indicated null-terminated string to the mangled name.
                                                    mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
 
+/* FIXME: remove this. */
+static void mangled_name_with_length(char                     *name,
+                                     a_mangling_control_block *mctl);
 /*
 FIXME: In cases that have yet to be implemented, simply add a marker into
 the mangled name indicating that work needs to be done.
 */
-#define add_FIXME_to_mangled_name(mctl) \
-  mangled_name_with_length("_FIXME_", mctl)
+static void add_FIXME_to_mangled_name(a_mangling_control_block *mctl)
+{
+  mangled_name_with_length("_FIXME_", mctl);
+}  /* add_FIXME_to_mangled_name */
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- mctl is not used in that case. */
@@ -1873,11 +1913,18 @@ ignored if expr != NULL.
 #if !IA64_ABI
       add_str_to_mangled_name("ty", mctl);
 #else /* IA64_ABI */
-      /* Use a "vendor extended operator". */
       if (expr != NULL) {
+#if ABI_COMPATIBILITY_VERSION >= 402
+        add_str_to_mangled_name("te", mctl);
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
         add_str_to_mangled_name("v17typeide", mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       } else {
+#if ABI_COMPATIBILITY_VERSION >= 402
+        add_str_to_mangled_name("ti", mctl);
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
         add_str_to_mangled_name("v16typeid", mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       }  /* if */
 #endif /* IA64_ABI */
       break;
@@ -1915,26 +1962,18 @@ ignored if expr != NULL.
 }  /* mangled_encoding_for_sizeof */
 
 
-static unsigned long number_of_operands_in_expr(an_expr_node_ptr expr)
+static unsigned long number_of_operands_in_list(an_expr_node_ptr expr)
 /*
-Return the number of operands in the specified operation expression.
+Return the number of expressions in the specified list.
 */
 {
   unsigned long    num_operands;
-  an_expr_node_ptr operand;
 
-  if (is_operation_node(expr)) {
-    operand = expr->variant.operation.operands;
-  } else if (expr->kind == (an_expr_node_kind)enk_builtin_operation) {
-    operand = expr->variant.builtin_operation.operands;
-  } else {
-    unexpected_condition();
-  }  /* if */
   for (num_operands = 0;
-       operand != NULL;
-       num_operands++, operand = operand->next) {}
+       expr != NULL;
+       num_operands++, expr = expr->next) {}
   return num_operands;
-}  /* number_of_operands_in_expr */
+}  /* number_of_operands_in_list */
 
 
 static unsigned long number_of_parameters(a_routine_ptr routine)
@@ -1980,7 +2019,8 @@ extensions, e.g., Microsoft __is_base_of).
   check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
   kind = expr->variant.builtin_operation.kind;
   /* Get the operand count. */
-  num_operands = number_of_operands_in_expr(expr);
+  num_operands = number_of_operands_in_list(
+                                     expr->variant.builtin_operation.operands);
   check_assertion(num_operands <= 9);
 #if !IA64_ABI
   /* Output has the form
@@ -2010,7 +2050,7 @@ extensions, e.g., Microsoft __is_base_of).
   add_number_to_mangled_name(((int)kind)/10, mctl);
   add_number_to_mangled_name(((int)kind)%10, mctl);
 #endif /* IA64_ABI */
-  for (operand = expr->variant.operation.operands;
+  for (operand = expr->variant.builtin_operation.operands;
        operand != NULL;
        operand = operand->next) {
     /* Put out the operands. */
@@ -2267,6 +2307,45 @@ template classes.
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_address_constant */
 
+#if DO_IL_LOWERING
+
+static char *first_field_name(a_type_ptr              class_type,
+                              a_source_correspondence **field_scp)
+/*
+Return the name of the first named field of the indicated class, struct,
+or union.  If the first member of the class is unnamed, recursively look
+at its first member, etc.  If there is no named member, return NULL.
+Set *field_scp to point to the source correspondence of the
+first named field; leave it unchanged if there is no named field.
+*/
+{
+  char        *name = NULL;
+  a_field_ptr field;
+
+  /* GNU and Microsoft compilers allow cv-qualifiers on anonymous unions. */
+  class_type = skip_typerefs(class_type);
+  check_assertion(is_immediate_class_type(class_type));
+  /* Look at fields, find the first named one. */
+  for (field = class_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    name = field->source_corresp.name;
+    if (name != NULL) {
+      *field_scp = &field->source_corresp;
+      break;
+    }  /* if */
+    /* Unnamed field. */
+    if (field->is_anonymous_parent_object) {
+      /* Do a recursive call to process a nested anonymous union. */
+      name = first_field_name(field->type, field_scp);
+      if (name != NULL) break;
+    }  /* if */
+    /* Keep looping for other unnamed fields (e.g., unnamed bit fields). */
+  }  /* for */
+  return name;
+}  /* first_field_name */
+
+#endif /* DO_IL_LOWERING */
 #if IA64_ABI
 
 /*
@@ -2361,9 +2440,27 @@ describing it.
   } else {
     /* Use a name as a literal instead of "sr", because the parent class
        is not dependent or the entity is not a class member. */
+    a_boolean need_static_indication = FALSE;
     add_str_to_mangled_name("L_Z", mctl);
+#if ABI_COMPATIBILITY_VERSION >= 402
+    if (emulate_gnu_abi_bugs &&
+        ((kind == iek_routine &&
+          ((a_routine_ptr)scp)->storage_class == (a_storage_class)sc_static) ||
+         (kind == iek_variable &&
+          ((a_variable_ptr)scp)->storage_class == (a_storage_class)sc_static)))
+                                                                              {
+      /* GNU appears to add an 'L' for static entities. */
+      need_static_indication = TRUE;
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
+      if (need_static_indication) add_to_mangled_name('L', mctl);
+      /* FIXME: static functions are individuated in this call, which doesn't
+         match g++.  Setting suppress_parent_encoding to TRUE (say
+         when entity_needs_to_be_individuated is TRUE) suppresses the
+         individuation, but also suppresses cases where the individuation is
+         necessary (e.g., N::sf). */
       mangled_function_name(rout,
                             /*suppress_param_encoding=*/FALSE,
                             /*suppress_parent_encoding=*/FALSE,
@@ -2377,6 +2474,7 @@ describing it.
       mangled_ia64_parent_qualifier(scp, kind,
                                     &need_nested_name_close, 
                                     &discriminator_scp, mctl);
+      if (need_static_indication) add_to_mangled_name('L', mctl);
       if (rinfo != NULL) {
         /* Not a routine entry, but it represents a routine (this might be
            the address of an overloaded function, and we can't tell which
@@ -2397,7 +2495,7 @@ describing it.
         }  /* if */
       } else {
         /* Not a routine of any kind. */
-        mangled_name_with_length(scp->name, mctl);
+        mangled_name_with_length(unmangled_or_fabricated_name_of(scp), mctl);
       }  /* if */
       close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
     }  /* if */
@@ -2454,6 +2552,12 @@ Add to the mangled name the name of the variable.  Used in cfront ABI only.
   char                    *str =
                     unmangled_or_fabricated_name_of(&variable->source_corresp);
 
+  if (str == NULL && variable->is_anonymous_parent_object) {
+    a_source_correspondence *field_scp;
+    /* Give a name to an anonymous union variable based on its first
+       member's name. */
+    str = first_field_name(variable->type, &field_scp);
+  }  /* if */
   check_assertion(str != NULL);
   reserve_space_for_length(&length_reservation, mctl);
   if (is_class_or_namespace_member(variable)) {
@@ -2894,8 +2998,19 @@ do_unknown_function:
          no mangling should be needed for them. */
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
-      /* Strings should be converted to addresses. */
-      /* FIXME: Temporarily allow compilation to continue. */
+      /* Strings can appear in expressions (e.g., in decltype). */
+#if IA64_ABI
+      add_to_mangled_name('L', mctl);
+      mangled_encoding_for_type(skip_typerefs(array_element_type(con->type)),
+                                mctl);
+      add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+      add_str_to_mangled_name("LS", mctl);
+#endif /* IA64_ABI */
+      break;
+    case ck_complex:
+    case ck_imaginary:
+      /* FIXME: need to specify how to mangle complex/imaginary literals. */
       add_FIXME_to_mangled_name(mctl);
       break;
     default:
@@ -2961,7 +3076,8 @@ operator name mangling.
      part, however, we just want to get out of here with a valid mangled
      name; it doesn't matter a great deal what it is. */
   /* Count the number of operands. */
-  num_operands = number_of_operands_in_expr(expr);
+  check_assertion(is_operation_node(expr));
+  num_operands = number_of_operands_in_list(expr->variant.operation.operands);
   /* Limit the number of operands to a single digit.  Cases with more
      operands will not demangle correctly. */
   if (num_operands > 9) num_operands = 9;
@@ -2989,7 +3105,44 @@ something in error or skipped over.  The mangling used is a constant zero.
                                 mctl);
 }  /* add_mangling_for_placeholder_expression */
 
+
+static void mangled_encoding_for_param_reference(
+                                                an_expr_node_ptr         expr,
+                                                a_mangling_control_block *mctl)
+/*
+Add an encoding for the function parameter as specified in expr.  These can
+appear in late specified return types.
+*/
+{
+  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref);
 #if IA64_ABI
+  if (expr->variant.param_ref.levels_up == 0) {
+    add_str_to_mangled_name("fp", mctl);
+  } else {
+    add_str_to_mangled_name("fL", mctl);
+    add_number_to_mangled_name(expr->variant.param_ref.levels_up-1, mctl);
+    add_to_mangled_name('p', mctl);
+  }  /* if */
+  if (expr->variant.param_ref.param_num > 1) {
+    add_number_to_mangled_name(expr->variant.param_ref.param_num-2, mctl);
+  }  /* if */
+  add_to_mangled_name('_', mctl);
+#else /* !IA64_ABI */
+  /* Parameter reference.  Output has the form
+     I0_1I <-- "param#1 at the top level"
+         ^---- Terminating non-digit character so parameter number won't run
+               into an entity with an initial length.
+        ^----- Parameter number (1-based).
+      ^------- Number of "levels up" for this parameter (0-based).
+     ^-------- "I" indicates parameter reference.  */
+  add_to_mangled_name('I', mctl);
+  add_number_to_mangled_name(expr->variant.param_ref.levels_up, mctl);
+  add_to_mangled_name('_', mctl);
+  add_number_to_mangled_name(expr->variant.param_ref.param_num, mctl);
+  add_to_mangled_name('I', mctl);
+#endif /* IA64_ABI */
+}  /* mangled_encoding_for_param_reference */
+
 
 /*
 Macro that returns TRUE if the expression is a tpck_typeid template parameter
@@ -3002,31 +3155,24 @@ constant.
     (expr)->variant.constant->variant.template_param.kind ==             \
                            (a_template_param_constant_kind)tpck_typeid))
 
-#endif /* IA64_ABI */
 
-static void mangled_encoding_for_expression(
-                                    an_expr_node_ptr         expr,
-                                    a_boolean                in_dependent_expr,
-                                    a_mangling_control_block *mctl)
+static an_expr_node_ptr skip_non_mangleable_expressions(
+                               an_expr_node_ptr expr,
+                               a_boolean        *suppress_address_of_on_typeid)
 /*
-Add to the mangled name the encoding for the expression pointed to by expr.
-These expressions come up in ck_template_param expressions as template
-arguments, and as dimensions of arrays in template signatures.
-In the IA-64 ABI, in_dependent_expr is TRUE if this expression is
-part of a template-dependent expression.
+This routine skips any expressions that appear at the top of the given
+expression that aren't relevant to mangling (e.g., compiler generated
+operations, parentheses, etc.) so that the mangled output will accurately
+reflect the source code.  *suppress_address_of_on_typeid is set to TRUE
+when the caller (in the IA-64 ABI) needs to suppress an implicit "&" operation
+on a tpck_typeid template parameter constant (because the compiler generated
+"*" has been removed here).
 */
 {
-  char             *operation_name;
-  an_expr_node_ptr operand;
-  an_expr_operator_kind
-                   op;
-  a_boolean        done;
-#if IA64_ABI
-  a_boolean        suppress_address_of_on_typeid = FALSE;
-#else /* !IA64_ABI */
-  unsigned long    num_operands;
-#endif /* IA64_ABI */
+  an_expr_operator_kind op;
+  a_boolean             done;
 
+  *suppress_address_of_on_typeid = FALSE;
   /* Drop parentheses. */
   expr = skip_parens(expr);
   /* Drop implicit operations. */
@@ -3037,6 +3183,7 @@ part of a template-dependent expression.
       if (op == (an_expr_operator_kind)eok_lvalue ||
           op == (an_expr_operator_kind)eok_lvalue_adjust ||
           op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
+          op == (an_expr_operator_kind)eok_array_to_pointer ||
           op == (an_expr_operator_kind)eok_reference_to ||
           op == (an_expr_operator_kind)eok_ref_indirect
 #if IA64_ABI
@@ -3050,29 +3197,408 @@ part of a template-dependent expression.
         expr = skip_parens(expr->variant.operation.operands);
         done = FALSE;
 #if IA64_ABI
-      } else if (expr->variant.operation.compiler_generated &&
-                 op == (an_expr_operator_kind)eok_indirect &&
-                 is_typeid_template_param(expr->variant.operation.operands)) {
-        /* Suppress the implicit "&" operation on a typeid template parameter
-           constant if it is under a compiler generated "*". */
-        expr = skip_parens(expr->variant.operation.operands);
-        suppress_address_of_on_typeid = TRUE;
-      } else if (expr->variant.operation.compiler_generated &&
-                 is_operation_node(expr->variant.operation.operands)) {
+      } else if (expr->variant.operation.compiler_generated) {
+        /* Remove various compiler generated operations so the mangling
+           accurately reflects the original source. */
         an_expr_node_ptr  child = expr->variant.operation.operands;
-        if (child->variant.operation.compiler_generated &&
-            ((op == (an_expr_operator_kind)eok_address_of &&
-              child->kind == (an_expr_operator_kind)eok_indirect) ||
-             (op == (an_expr_operator_kind)eok_indirect &&
-              child->kind == (an_expr_operator_kind)eok_address_of))) {
-          /* Remove compiler generated "&*" or "*&" sequences. */
-          expr = skip_parens(child->variant.operation.operands);
+        if (op == (an_expr_operator_kind)eok_indirect &&
+            is_typeid_template_param(child)) {
+          /* Suppress the implicit "&" operation on a typeid template parameter
+             constant if it is under a compiler generated "*". */
+          expr = skip_parens(child);
+          *suppress_address_of_on_typeid = TRUE;
+        } else if (is_operation_node(child)) {
+          if (child->variant.operation.compiler_generated &&
+              ((op == (an_expr_operator_kind)eok_address_of &&
+                child->kind == (an_expr_operator_kind)eok_indirect) ||
+               (op == (an_expr_operator_kind)eok_indirect &&
+                child->kind == (an_expr_operator_kind)eok_address_of))) {
+            /* Remove compiler generated "&*" or "*&" sequences. */
+            expr = skip_parens(child->variant.operation.operands);
+            done = FALSE;
+          }  /* if */
+#if ABI_COMPATIBILITY_VERSION < 402
+        } else if (op == (an_expr_operator_kind)eok_dot_field &&
+                   is_variable_node(child) &&
+                   child->variant.variable->is_anonymous_parent_object) {
+          /* Remove a compiler generated "." operation added to access a
+             member of an anonymous union. */
+          expr = skip_parens(child->next);
           done = FALSE;
+#endif /* ABI_COMPATIBILITY_VERSION < 402 */
         }  /* if */
 #endif /* IA64_ABI */
       }  /* if */
     }  /* if */
   } while (!done);
+  return expr;
+}  /* skip_non_mangleable_expressions */
+
+
+static void mangled_unresolved_name(an_expr_node_ptr         expr,
+                                    an_expr_node_ptr         arguments,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
+/*
+FIXME: The code doesn't reflect any of the recent changes for <unresolved-name>.
+
+Add to the mangled name an encoding for the entity represented by the
+expression node.  This is not a general purpose routine for representing
+an expression; rather it is used when mangling a call operand or the field of a
+selection (e.g., "." or "->") operation.  Often, these entities are unknown
+(e.g., because they are members of a dependent type) so mangle them with a
+"spelling" of the entity name rather than their usual mangling.  arguments
+refers to a (possibly NULL) set of arguments being passed to this entity, and
+is used only in the case where the entity represents a ck_template_param
+operator name (to differentiate unary/binary cases).
+*/
+{
+  char                        *str;
+  a_source_correspondence_ptr scp = NULL;
+  a_template_arg_ptr          template_arg_list = NULL;
+  a_boolean                   suppress_address_of_on_typeid;
+
+  /* Skip any expressions (e.g., compiler added) that don't belong in the
+     mangled output. */
+  /* FIXME: suppress_address_of_on_typeid? */
+  expr = skip_non_mangleable_expressions(expr, &suppress_address_of_on_typeid);
+  if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    scp = &con->source_corresp;
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (con->variant.template_param.kind ==
+                           (a_template_param_constant_kind)tpck_template_ref) {
+        /* An unknown function template with a list of explicit template
+           arguments.  The template is given by an underlying
+           tpck_unknown_function constant. */
+        template_arg_list = con->variant.template_param.variant.
+                                                         template_ref.arg_list;
+        scp = &con->variant.template_param.variant.template_ref.con->
+                                                                source_corresp;
+      } else if (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+        /* An unknown function, which may be a member of a class or namespace,
+           and may be a conversion function or operator function. */
+        a_symbol_ptr   sym =
+                   con->variant.template_param.variant.unknown_function.symbol;
+        an_opname_kind opname =
+              con->variant.template_param.variant.unknown_function.opname_kind; 
+        /* FIXME: What to do with conversion functions? */
+        check_assertion( 
+          con->variant.template_param.variant.unknown_function.conversion_type
+                                                                      == NULL);
+        if (sym != NULL && sym->header != NULL &&
+            sym->header->opname != (an_opname_kind)onk_none) {
+          /* In some cases, the opname kind is in the symbol header. */
+          check_assertion(opname == (an_opname_kind)onk_none);
+          opname = sym->header->opname;
+        }  /* if */
+        if (opname != (an_opname_kind)onk_none) {
+          /* An operator. */
+          unsigned long num_operands = number_of_operands_in_list(arguments);
+#if IA64_ABI
+          add_str_to_mangled_name("on", mctl);
+#else /* !IA64_ABI */
+          add_str_to_mangled_name("__", mctl);
+#endif /* IA64_ABI */
+          add_str_to_mangled_name(mangled_operator_name(opname, num_operands),
+                                  mctl);
+#if !IA64_ABI
+          add_str_to_mangled_name("__", mctl);
+#endif /* !IA64_ABI */
+          /* FIXME: Can there be template arguments here? */
+          scp = NULL;
+        }  /* if */
+      } else if (con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+        if (scp->name != NULL && scp->name[0] == '~') {
+          /* A destructor. */
+#if 0
+          /* FIXME: Better way to detect destructor? */
+#if IA64_ABI
+          /* FIXME: When do we need to emit "sr"? */
+          /* FIXME: Substitutions? */
+          add_str_to_mangled_name("co", mctl);
+#else /* !IA64_ABI */
+          add_str_to_mangled_name("__", mctl);
+          add_str_to_mangled_name(MANGLING_STRING_FOR_DESTRUCTOR, mctl);
+          /* FIXME: How to mangle the type here? */
+          add_str_to_mangled_name("__", mctl);
+#endif /* IA64_ABI */
+          /* FIXME: How to emit template parameter here? */
+#endif /* 0 */
+          add_FIXME_to_mangled_name(mctl);
+          scp = NULL;
+        }  /* if */
+      }  /* if */
+    } else {
+      scp = &con->source_corresp;
+    }  /* if */
+  } else if (is_variable_node(expr)) {
+    scp = &expr->variant.variable->source_corresp;
+  } else if (is_routine_node(expr)) {
+    scp = &expr->variant.routine->source_corresp;
+    if (expr->variant.routine->special_kind !=
+                                           (a_special_function_kind)sfk_none) {
+#if 0
+      /* FIXME: destructors (and others?) */
+      check_assertion(expr->variant.routine->special_kind ==
+                                      (a_special_function_kind)sfk_destructor);
+      add_str_to_mangled_name("dr", mctl);
+      str = unmangled_or_fabricated_name_of(scp);
+      check_assertion(str != NULL && *str == '~');
+      add_str_to_mangled_name(&str[1], mctl);
+#endif /* 0 */
+      add_FIXME_to_mangled_name(mctl);
+      scp = NULL;
+    }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_field) {
+    /* This can happen when a field of an anonymous union is being mangled. */
+    scp = &expr->variant.field->source_corresp;
+  } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
+    /* Parameter references get the same mangling in all contexts. */
+    mangled_encoding_for_param_reference(expr, mctl);
+  } else if (is_operation_node(expr)) {
+    /* An underlying expression.  Note that any names mangled within the
+       nested expression receive "normal" mangling treatment (provided the
+       operations don't contain further unresolved name references). */
+    mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (scp != NULL) {
+    /* FIXME: This doesn't currently take into account any qualification. */
+    str = unmangled_or_fabricated_name_of(scp);
+    check_assertion(str != NULL);
+    /* FIXME: What do we do about substitutions here? */
+    mangled_name_with_length(str, mctl);
+  }  /* if */
+  if (template_arg_list != NULL) {
+    /* Put out the template argument list. */
+    mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE, mctl);
+  }  /* if */
+}  /* mangled_unresolved_name */
+
+
+static void mangled_expression_list(an_expr_node_ptr         expr,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
+/*
+Utility to emit mangled encodings for the given expr and all that follow
+it (often arguments to some type of call operand).  In the IA-64 ABI,
+in_dependent_expr is TRUE if this expression is part of a template-dependent
+expression. 
+*/
+{
+  for (; expr != NULL; expr = expr->next) {
+    mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
+  }  /* for */
+}  /* mangled_expression_list */
+
+
+static void mangled_selection_operation(
+                                    an_expr_node_ptr         expr,
+                                    an_expr_node_ptr         arguments,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
+/*
+Utility to mangle (part of) a selection operation expression as specified
+by expr.  In some cases, the selection operation also involves a call
+operation; in those cases, the caller is responsible for emitting the mangling
+for the call operation.  arguments specifies a list of arguments to the
+call (and should be NULL if there is no call).  In the IA-64 ABI,
+in_dependent_expr is TRUE if this expression is part of a template-dependent
+expression. 
+*/
+{
+  an_expr_node_ptr selector, selection, operand;
+
+  check_assertion(is_operation_node(expr));
+  operand = expr->variant.operation.operands;
+  /* Determine where the operands are in the expression. */
+  switch (expr->variant.operation.kind) {
+    case eok_dot_field:
+    case eok_dot_static:
+    case eok_points_to_field:
+    case eok_points_to_static:
+      selector = operand;
+      selection = operand->next;
+      break;
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+    case eok_dot_pm_call:
+    case eok_points_to_pm_call:
+      selector = operand->next;
+      selection = operand;
+      break;
+    case eok_dot_vacuous_destructor_call:
+    case eok_points_to_vacuous_destructor_call:
+      selector = operand;
+      selection = NULL;
+      break;
+#if CHECKING
+    default:
+      unexpected_condition();
+      break;
+#endif /* CHECKING */
+  }  /* switch */
+  if (expr->variant.operation.compiler_generated) {
+    /* Look for some cases where the front end has added a selection
+       operation that isn't in the source code and remove these operations
+       for mangling purposes. */
+    if (node_operator_is(expr, eok_dot_field) &&
+        is_variable_node(selector) &&
+        selector->variant.variable->is_anonymous_parent_object) {
+      /* A field in an anonymous union. */
+      selector = NULL;
+    } else if (expr->is_objectless_nonstatic_data_mem_ref) {
+      /* An implied "this" has been added. */
+      selector = NULL;
+    }  /* if */
+  }  /* if */
+  if (selector != NULL) {
+#if !IA64_ABI
+    add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+    /* Determine the appropriate mangling for the expression.  Note that these
+       mangled operator names are the same in both the IA-64 and Cfront ABIs. */
+    switch (expr->variant.operation.kind) {
+      case eok_dot_field:
+      case eok_dot_static:
+      case eok_dot_member_call:
+      case eok_dot_vacuous_destructor_call:
+        add_str_to_mangled_name("dt", mctl);
+        break;
+      case eok_points_to_field:
+      case eok_points_to_static:
+      case eok_points_to_member_call:
+      case eok_points_to_vacuous_destructor_call:
+        add_str_to_mangled_name("pt", mctl);
+        break;
+      case eok_dot_pm_call:
+        add_str_to_mangled_name("ds", mctl);
+        break;
+      case eok_points_to_pm_call:
+        add_str_to_mangled_name("pm", mctl);
+        break;
+#if CHECKING
+      default:
+        unexpected_condition();
+        break;
+#endif /* CHECKING */
+    }  /* switch */
+#if !IA64_ABI
+    /* Count of operands. */
+    add_to_mangled_name('2', mctl);
+#endif /* !IA64_ABI */
+    mangled_encoding_for_expression(selector, in_dependent_expr, mctl);
+  }  /* if */
+  if (selection != NULL) {
+    mangled_unresolved_name(selection, arguments, in_dependent_expr, mctl);
+  } else {
+    /* A vacuous destructor. */
+    /* FIXME: not sure we ever get here. */
+    add_FIXME_to_mangled_name(mctl);
+  }  /* if */
+#if !IA64_ABI
+  if (selector != NULL) add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_selection_operation */
+
+
+static void mangled_call_operation(an_expr_node_ptr         expr,
+                                   a_boolean                in_dependent_expr,
+                                   a_mangling_control_block *mctl)
+/*
+Utility to emit a mangling for the given expr, which is an expression involving
+some type of call operation.  In the IA-64 ABI, in_dependent_expr is TRUE if
+this expression is part of a template-dependent expression.
+*/
+{
+  an_expr_node_ptr  call_operand, arguments;
+
+  check_assertion(is_operation_node(expr));
+  switch (expr->variant.operation.kind) {
+    case eok_call:
+      call_operand = expr->variant.operation.operands;
+      arguments = call_operand->next;
+      break;
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+      call_operand = expr->variant.operation.operands->next;
+      arguments = call_operand->next;
+      break;
+    case eok_dot_pm_call:
+    case eok_points_to_pm_call:
+      call_operand = expr->variant.operation.operands;
+      arguments = call_operand->next->next;
+      break;
+    case eok_dot_vacuous_destructor_call:
+    case eok_points_to_vacuous_destructor_call:
+      call_operand = expr->variant.operation.operands;
+      arguments = NULL;
+      break;
+#if CHECKING
+    default:
+      unexpected_condition();
+      break;
+#endif /* CHECKING */
+  }  /* switch */
+#if IA64_ABI
+  add_str_to_mangled_name("cl", mctl);
+#else /* !IA64_ABI */
+  /* Call.  Output has the form
+       Ocl_1_1fI0_1IO <-- encoding for "f(p1)"
+                    ^---- "O" to end the operation encoding.
+               ^^^^^----- First argument.
+             ^^---------- Call operand.
+          ^^^------------ Count of arguments to call (with underscores).
+        ^^--------------- Call operation.
+       ^----------------- "O" for operation.
+  */
+  add_to_mangled_name('O', mctl);
+  add_str_to_mangled_name("cl", mctl);
+  store_digits_and_underscore(1 + number_of_operands_in_list(arguments),
+                              /*old_form=*/FALSE, mctl);
+#endif /* IA64_ABI */
+  if (node_operator_is(expr, eok_call)) {
+    mangled_unresolved_name(call_operand, arguments, in_dependent_expr, mctl);
+  } else {
+    mangled_selection_operation(expr, arguments, in_dependent_expr, mctl);
+  }  /* if */
+  mangled_expression_list(arguments, in_dependent_expr, mctl);
+#if IA64_ABI
+  /* Close the "cl" mangling. */
+  add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+  add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+}  /* mangled_call_operation */
+
+
+static void mangled_encoding_for_expression(
+                                    an_expr_node_ptr         expr,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the expression pointed to by expr.
+These expressions come up in ck_template_param expressions as template
+arguments, as dimensions of arrays in template signatures, and in decltype
+expressions.  In the IA-64 ABI, in_dependent_expr is TRUE if this expression is
+part of a template-dependent expression. 
+*/
+{
+  char             *operation_name;
+  an_expr_node_ptr operand;
+  a_boolean        suppress_address_of_on_typeid;
+#if IA64_ABI
+  a_boolean        need_close = FALSE;
+#else /* !IA64_ABI */
+  unsigned long    num_operands;
+#endif /* IA64_ABI */
+
+  expr = skip_non_mangleable_expressions(expr, &suppress_address_of_on_typeid);
   switch (expr->kind) {
     case enk_constant:
 #if IA64_ABI
@@ -3097,32 +3623,53 @@ part of a template-dependent expression.
       check_assertion(expr->variant.operation.kind !=
                                             (an_expr_operator_kind)eok_assume);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      operand = expr->variant.operation.operands;
+#if ABI_COMPATIBILITY_VERSION >= 402
+      if (node_operator_is(expr, eok_call) ||
+          node_operator_is(expr, eok_dot_member_call) ||
+          node_operator_is(expr, eok_points_to_member_call) ||
+          node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
+          node_operator_is(expr, eok_points_to_vacuous_destructor_call) ||
+          node_operator_is(expr, eok_dot_pm_call) ||
+          node_operator_is(expr, eok_points_to_pm_call)) {
+        /* Mangle some type of call operation. */
+        mangled_call_operation(expr, in_dependent_expr, mctl);
+      } else if (node_operator_is(expr, eok_dot_field) ||
+                 node_operator_is(expr, eok_dot_static) ||
+                 node_operator_is(expr, eok_points_to_field) ||
+                 node_operator_is(expr, eok_points_to_static)) {
+        /* Mangle a "." or "->" field operation. */
+        mangled_selection_operation(expr, /*arguments=*/NULL,
+                                    in_dependent_expr, mctl);
+      } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+      /* Do not insert code here. */
+      {
+        /* Generic operation. */
+        a_boolean bad_operator, is_cast;
 #if !IA64_ABI
-      /* Operation.  Output has the form
-           Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
-                           parameters.
-                     ^---- "O" to end the operation encoding.
-                  ^^^----- Second operand.
-               ^^^-------- First operand.
-              ^----------- Count of operands.
-            ^^------------ Operation, using same encoding as for operator
-                           function names.
-           ^-------------- "O" for operation.
-         mangled_encoding_for_constant_cast generates a compatible structure,
-         so if you change this be sure to change that as well.
-      */
-      /* Put out the initial "O". */
-      add_to_mangled_name('O', mctl);
+        /* Operation.  Output has the form
+             Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
+                             parameters.
+                       ^---- "O" to end the operation encoding.
+                    ^^^----- Second operand.
+                 ^^^-------- First operand.
+                ^----------- Count of operands.
+              ^^------------ Operation, using same encoding as for operator
+                             function names.
+             ^-------------- "O" for operation.
+           mangled_encoding_for_constant_cast generates a compatible structure,
+           so if you change this be sure to change that as well.
+        */
+        /* Put out the initial "O". */
+        add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
-      { a_boolean bad_operator;
         /* Get the operator name and put it out. */
-        operation_name = mangled_expr_operator_name(
-                                                  expr->variant.operation.kind,
-                                                  &bad_operator);
+        operation_name = mangled_expr_operator_name(expr, &bad_operator,
+                                                    &is_cast);
         if (bad_operator) {
           /* Unexpected operator.  These are allowed in some cases for
              expressions under sizeof in the IA-64 ABI. */
-#if 0
 #if CHECKING
 #if IA64_ABI
           if (!mctl->mangling_sizeof_expression)
@@ -3132,58 +3679,73 @@ part of a template-dependent expression.
             internal_error("mangled_encoding_for_expression: bad operator");
           }  /* if */
 #endif /* CHECKING */
-#else /* !0 */
-          /* FIXME: Temporarily allow compilation to continue. */
-          add_FIXME_to_mangled_name(mctl);
-          return;
-          /*NOTREACHED*/
-#endif /* 0 */
 #if IA64_ABI
           operation_name = bad_mangled_expr_operator_name(expr);
 #endif /* IA64_ABI */
         }  /* if */
         add_str_to_mangled_name(operation_name, mctl);
-      }  /* if */
-      /* For a cast, put out the type cast to. */
-      if (operation_name[0] == 'c' && 
 #if !IA64_ABI
-                                      operation_name[1] == 's'
+        /* The Cfront mangling has different mangled names to distinguish
+           prefix and postfix unary operators. */
 #else /* IA64_ABI */
-                                      operation_name[1] == 'v'
-#endif /* IA64_ABI */          
-                                                              ) {
-        mangled_encoding_for_type(expr->type, mctl);
-      }  /* if */
-#if !IA64_ABI
-      /* Put out the count of operands. */
-      for (num_operands = 0, operand = expr->variant.operation.operands;
-           operand != NULL;
-           num_operands++, operand = operand->next) {}
-      check_assertion(num_operands <= 9);
-      add_number_to_mangled_name(num_operands, mctl);
+        if (node_operator_is(expr, eok_pre_incr) ||
+            node_operator_is(expr, eok_pre_decr)) {
+          /* Need to differentiate prefix versions from postfix versions of
+             these operations. */
+          add_to_mangled_name('_', mctl);
+        }  /* if */
 #endif /* !IA64_ABI */
-      /* Put out the operands. */
-      for (operand = expr->variant.operation.operands;
-           operand != NULL;
-           operand = operand->next) {
+        /* For cast operations, put out the type cast to. */
+        if (is_cast) {
+          if (node_operator_is(expr, eok_ref_cast) ||
+              node_operator_is(expr, eok_ref_dynamic_cast)) {
+            /* If we're casting to a reference type, the reference isn't
+               indicated in the type itself, so we create a new type for
+               mangling purposes and mangle that here. */
+            a_type ref_cast;
+            destination_type_for_reference_cast(expr, &ref_cast);
+            mangled_encoding_for_type(&ref_cast, mctl);
+          } else {
+            mangled_encoding_for_type(expr->type, mctl);
+          }  /* if */
+        }  /* if */
+#if !IA64_ABI
+        /* Put out the count of operands.  Note that the old form (single
+           digit length) is used here for compatibility with older version,
+           though the demangler can handle the new form in this position. */
+        num_operands = number_of_operands_in_list(
+                                             expr->variant.operation.operands);
+        check_assertion(num_operands <= 9);
+        store_digits_and_underscore(num_operands, /*old_form=*/TRUE, mctl);
+#endif /* !IA64_ABI */
+        /* Put out the operands. */
+        for (operand = expr->variant.operation.operands;
+             operand != NULL;
+             operand = operand->next) {
 #if GNU_EXTENSIONS_ALLOWED
-        if (expr->variant.operation.is_gnu_two_operand_question_mark &&
-            operand == expr->variant.operation.operands->next) {
-          /* Put out a dummy expression for the synthesized second operand
-             of the GNU two-operand "?".  This preserves the number of
-             operands the demangler expects. */
-          add_mangling_for_placeholder_expression(mctl);
-        } else
+          if (expr->variant.operation.is_gnu_two_operand_question_mark &&
+              operand == expr->variant.operation.operands->next) {
+            /* Put out a dummy expression for the synthesized second operand
+               of the GNU two-operand "?".  This preserves the number of
+               operands the demangler expects. */
+            add_mangling_for_placeholder_expression(mctl);
+          } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
-        }  /* fi */
-      }  /* for */
-#if !IA64_ABI
-      /* Put out the final "O". */
-      add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
+          /* Do not insert code here. */
+          {
+            mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
+          }  /* if */
+        }  /* for */
+#if IA64_ABI
+        /* Add an "E" for conversions with other than one argument. */
+        if (need_close) {
+          add_to_mangled_name('E', mctl);
+        }  /* if */
+#else /* !IA64_ABI */
+        /* Put out the final "O". */
+        add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+      }  /* if */
       break;
 #if IA64_ABI
     case enk_sizeof:
@@ -3201,6 +3763,19 @@ part of a template-dependent expression.
       }  /* if */
       break;
 #endif /* IA64_ABI */
+    case enk_typeid:
+      if (expr->variant.typeid_info.expr == NULL) {
+        mangled_encoding_for_sizeof(expr->variant.typeid_info.type,
+                                    (an_expr_node_ptr)NULL,
+                                   (a_template_param_constant_kind)tpck_typeid,
+                                    mctl);
+      } else {
+        mangled_encoding_for_sizeof((a_type_ptr)NULL,
+                                    expr->variant.typeid_info.expr,
+                                   (a_template_param_constant_kind)tpck_typeid,
+                                    mctl);
+      }  /* if */
+      break;
     case enk_variable:
 #if IA64_ABI
       mangled_entity_reference(&expr->variant.variable->source_corresp,
@@ -3228,6 +3803,170 @@ part of a template-dependent expression.
     case enk_builtin_operation:
       mangled_encoding_for_builtin_operation(expr, mctl);
       break;
+    case enk_new_delete:
+      /* Mangling for a new/delete operation. */
+      { char             *name; 
+        an_expr_node_ptr args = expr->variant.new_delete->arg;
+#if !IA64_ABI
+        /* new/delete.  new operation encodes placement new arguments (if any),
+           followed by the type, followed by initializer arguments (if any).
+           delete is a standard operation with one expression.
+             
+             Onw_1_CiL_2_10Z1Z_1_CiL_1_0O <-- encoding for "new (10) T (0)"
+                                        ^---- "O" to end the encoding.
+                                 ^^^^^^^----- Initializers (if any).
+                              ^^^------------ Initializer count (zero or more).
+                           ^^^--------------- Type of new operation.
+                   ^^^^^^^^------------------ Placement arguments (if any).
+                ^^^-------------------------- Placement argument count (zero or
+                                              more).
+              ^^----------------------------- new operation (nw, nwa).
+             ^------------------------------- "O" for operation.
+             
+             Odl_1_I0_1IO <-- encoding for "delete p1"
+                        ^---- "O" to end the operation encoding.
+                   ^^^^^----- Argument to delete.
+                ^^^---------- Argument count (always one for delete).
+              ^^------------- delete operation (dl, dla).
+             ^--------------- "O" for operation.
+        */
+        add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+        if (expr->variant.new_delete->is_new) {
+          if (is_array_type(expr->variant.new_delete->type)) {
+            name = MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW;
+          } else {
+            name = MANGLING_STRING_FOR_OPERATOR_NEW;
+          }  /* if */
+        } else if (expr->variant.new_delete->array_delete) {
+          name = MANGLING_STRING_FOR_OPERATOR_ARRAY_DELETE;
+        } else {
+          name = MANGLING_STRING_FOR_OPERATOR_DELETE;
+        }  /* if */
+        add_str_to_mangled_name(name, mctl);
+        if (expr->variant.new_delete->is_new) {
+          /* Skip the first argument to the new operator (the size of the
+             type). */
+          check_assertion(args != NULL);
+          args = args->next;
+        }  /* if */
+#if !IA64_ABI
+        store_digits_and_underscore(number_of_operands_in_list(args), 
+                                    /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+        if (args != NULL) {
+          mangled_expression_list(args, in_dependent_expr, mctl);
+        }  /* if */
+        if (expr->variant.new_delete->is_new) {
+          /* New operations have a type and optional initializer list that
+             also have to be mangled. */
+#if IA64_ABI
+          add_to_mangled_name('_', mctl);
+#endif /* IA64_ABI */
+          mangled_encoding_for_type(expr->variant.new_delete->type, mctl);
+          if (expr->variant.new_delete->dynamic_init != NULL) {
+            /* We need to include an initializer expression list. */
+            args = rescan_arg_list_from_dyn_init(
+                                       expr->variant.new_delete->dynamic_init);
+          } else {
+            args = NULL;
+          }  /* if */
+#if !IA64_ABI
+          store_digits_and_underscore(number_of_operands_in_list(args), 
+                                      /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+          if (args != NULL) {
+#if IA64_ABI
+            add_str_to_mangled_name("pi", mctl);
+#endif /* IA64_ABI */
+            mangled_expression_list(args, in_dependent_expr, mctl);
+          }  /* if */
+#if IA64_ABI
+          add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+        }  /* if */
+#if !IA64_ABI
+        add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+      }
+      break;
+    case enk_throw:
+      /* Mangle a throw-expression (or a rethrow). */
+#if !IA64_ABI
+      /* Throw.  Output has the form
+           Otw1I0_1IO <-- encoding for "throw p1"
+                    ^---- "O" to end the operation encoding.
+               ^^^^^----- Throw expression.
+              ^---------- Count of expressions (zero for a rethrow otherwise
+                          one).
+            ^^----------- Throw operation.
+           ^------------- "O" for operation.
+      */
+      add_to_mangled_name('O', mctl);
+      add_str_to_mangled_name("tw", mctl);
+#endif /* IA64_ABI */
+      if (expr->variant.throw_info == NULL) {
+        /* A rethrow; indicate that there is no expression. */
+#if IA64_ABI
+        add_str_to_mangled_name("tr", mctl);
+#else /* !IA64_ABI */
+        add_to_mangled_name('0', mctl);
+#endif /* IA64_ABI */
+      } else {
+#if IA64_ABI
+        add_str_to_mangled_name("tw", mctl);
+#else /* !IA64_ABI */
+        add_to_mangled_name('1', mctl);
+#endif /* !IA64_ABI */
+        check_assertion(expr->variant.throw_info->dynamic_init != NULL &&
+                        expr->variant.throw_info->dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression &&
+                    expr->variant.throw_info->dynamic_init->variant.expression
+                                                                      != NULL);
+        mangled_encoding_for_expression(
+                    expr->variant.throw_info->dynamic_init->variant.expression,
+                    /*in_dependent_expr=*/TRUE, mctl);
+      }  /* if */
+#if !IA64_ABI
+      add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+      break;
+    case enk_param_ref:
+      mangled_encoding_for_param_reference(expr, mctl);
+      break;
+    case enk_temp_init:
+      /* Mangle an enk_temp_init as a conversion operation. */
+      {
+        an_expr_node_ptr    args;
+        a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+        check_assertion(dip != NULL && dip->is_explicit_cast);
+        args = rescan_arg_list_from_dyn_init(dip);
+#if IA64_ABI
+        add_str_to_mangled_name("cv", mctl);
+        mangled_encoding_for_type(expr->type, mctl);
+        if (args == NULL || args->next != NULL) add_to_mangled_name('_', mctl);
+        mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+        if (args == NULL || args->next != NULL) add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+        /* Conversion.  Output has the form
+             Ocv1A_1_I0_1IO <-- encoding for "A(p1)"
+                          ^---- "O" to end the operation encoding.
+                     ^^^^^----- Arguments to conversion.
+                  ^^^---------- Argument count.
+                ^^------------- Type to convert to.
+              ^^--------------- Conversion operation.
+             ^----------------- "O" for operation.
+        */
+        add_to_mangled_name('O', mctl);
+        add_str_to_mangled_name("cv", mctl);
+        mangled_encoding_for_type(expr->type, mctl);
+        store_digits_and_underscore(number_of_operands_in_list(args),
+                                    /*old_form=*/FALSE, mctl);
+        mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+        add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+      }
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -3235,7 +3974,6 @@ part of a template-dependent expression.
     default:;
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */
-#if 0
 #if CHECKING
 #if IA64_ABI
       if (!mctl->mangling_sizeof_expression)
@@ -3245,12 +3983,6 @@ part of a template-dependent expression.
         internal_error("mangled_encoding_for_expression: bad kind");
       }  /* if */
 #endif /* CHECKING */
-#else /* !0 */
-      /* FIXME: Temporarily allow compilation to continue. */
-      add_FIXME_to_mangled_name(mctl);
-      break;
-      /*NOTREACHED*/
-#endif /* 0 */
 #if IA64_ABI
       /* Generate a zero constant instead of the unexpected expression.
          We expect this in cases where the mangling doesn't matter.
@@ -3260,46 +3992,6 @@ part of a template-dependent expression.
 #endif /* IA64_ABI */
   }  /* switch */
 }  /* mangled_encoding_for_expression */
-
-#if DO_IL_LOWERING
-
-static char *first_field_name(a_type_ptr              class_type,
-                              a_source_correspondence **field_scp)
-/*
-Return the name of the first named field of the indicated class, struct,
-or union.  If the first member of the class is unnamed, recursively look
-at its first member, etc.  If there is no named member, return NULL.
-Set *field_scp to point to the source correspondence of the
-first named field; leave it unchanged if there is no named field.
-*/
-{
-  char        *name = NULL;
-  a_field_ptr field;
-
-  /* GNU and Microsoft compilers allow cv-qualifiers on anonymous unions. */
-  class_type = skip_typerefs(class_type);
-  check_assertion(is_immediate_class_type(class_type));
-  /* Look at fields, find the first named one. */
-  for (field = class_type->variant.class_struct_union.field_list;
-       field != NULL;
-       field = field->next) {
-    name = field->source_corresp.name;
-    if (name != NULL) {
-      *field_scp = &field->source_corresp;
-      break;
-    }  /* if */
-    /* Unnamed field. */
-    if (field->is_anonymous_parent_object) {
-      /* Do a recursive call to process a nested anonymous union. */
-      name = first_field_name(field->type, field_scp);
-      if (name != NULL) break;
-    }  /* if */
-    /* Keep looping for other unnamed fields (e.g., unnamed bit fields). */
-  }  /* for */
-  return name;
-}  /* first_field_name */
-
-#endif /* DO_IL_LOWERING */
 
 
 static a_type_ptr call_operator_function_type_for_lambda(a_type_ptr lambda)
@@ -4524,7 +5216,8 @@ units.  This can occur when an unnamed type (or named type of a static
 function) is used as a template type argument.  Unnamed types that are class
 members or local to a function are already mangled in a unique manner (relative
 to their class or function -- this includes lambdas defined in default
-arguments or initializers).
+arguments or initializers).  Names of routines and/or variables may need to
+be individuated in late specified return types as well.
 */
 {
   a_boolean result = FALSE;
@@ -5563,7 +6256,8 @@ Add to the mangled name the encoding for the type "type".
   }  /* if */
 #endif /* IA64_ABI */
   /* Walk through any typerefs above the type.  Remember type qualifiers
-     and skip down to the "real" underlying type. */
+     and skip down to the "real" underlying type.  decltype and typeof typerefs
+     are handled here. */
   qualifiers = 0;
   /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type->kind == (a_type_kind)tk_typeref;
@@ -5587,48 +6281,44 @@ Add to the mangled name the encoding for the type "type".
     if (type->variant.typeref.is_decltype &&
         type->variant.typeref.is_dependent_decltype_or_typeof) {
       an_expr_node_ptr decltype_expr = decltype_arg(type);
-      if (decltype_expr != NULL) {
-#if IA64_ABI
-        if (type->variant.typeref.decltype_expr_not_parenthesized) {
-          add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_TYPE, mctl);
-        } else {
-          add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_EXPR, mctl);
-        }  /* if */
-        mangled_encoding_for_expression(decltype_expr,
-                                        /*in_dependent_expr=*/TRUE, mctl);
-        add_to_mangled_name('E', mctl);
-#else /* !IA64_ABI */
-        /* FIXME: implement Cfront case */
-        add_FIXME_to_mangled_name(mctl);
-#endif /* IA64_ABI */
-        goto have_whole_mangled_name;
+      check_assertion(decltype_expr != NULL);
+      if (type->variant.typeref.decltype_expr_not_parenthesized) {
+        add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_TYPE, mctl);
+      } else {
+        add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_EXPR, mctl);
       }  /* if */
+      mangled_encoding_for_expression(decltype_expr,
+                                      /*in_dependent_expr=*/TRUE, mctl);
+#if IA64_ABI
+      add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+      goto have_whole_mangled_name;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    /* Mangle a typeof expression here. */
+    /* Mangle a typeof expression here.  In cases where typeof has a type
+       argument (rather than an expression), the typeref will be stripped and
+       the underlying type mangled as appropriate. */
     if (type->variant.typeref.is_typeof &&
+        !type->variant.typeref.is_typeof_with_type_operand &&
         type->variant.typeref.is_dependent_decltype_or_typeof) {
-      if (!type->variant.typeref.is_typeof_with_type_operand) {
-        /* typeof(expression). */
-        an_expr_node_ptr typeof_expr = decltype_arg(type);
-        if (typeof_expr != NULL) {
+      an_expr_node_ptr typeof_expr = decltype_arg(type);
+      check_assertion(typeof_expr != NULL);
+      /* typeof(expression). */
 #if IA64_ABI
-          /* FIXME: need to invent a mangling for typeof */
-          add_FIXME_to_mangled_name(mctl);
-          mangled_encoding_for_expression(typeof_expr,
-                                          /*in_dependent_expr=*/TRUE, mctl);
-          add_to_mangled_name('E', mctl);
+      /* Use a vendor extension for typeof. */
+      add_str_to_mangled_name("u6typeof", mctl);
 #else /* !IA64_ABI */
-          /* FIXME: implement Cfront case */
-          add_FIXME_to_mangled_name(mctl);
+      mangled_name_with_length("__typeof", mctl);
 #endif /* IA64_ABI */
-          goto have_whole_mangled_name;
-        }  /* if */
-      } else {
-        /* In cases where typeof has a type argument (rather than an
-           expression), the typeref will be stripped and the underlying type
-           mangled as appropriate. */
-      }  /* if */
+#if 0
+      /* FIXME: We really should encode the expression into the type name,
+         but the vendor type extension doesn't allow for this (unless we
+         somehow add it to the type name itself).  Also, g++ doesn't seem to
+         provide a mangling for typeof that we can mimic. */
+      mangled_encoding_for_expression(typeof_expr,
+                                      /*in_dependent_expr=*/TRUE, mctl);
+#endif /* 0 */
+      goto have_whole_mangled_name;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* for */
@@ -6239,14 +6929,16 @@ binary versions of operators are mangled differently.
 }  /* mangled_operator_name */
 
 
-static char *mangled_expr_operator_name(an_expr_operator_kind op,
-                                        a_boolean             *bad_operator)
+static char *mangled_expr_operator_name(an_expr_node_ptr expr,
+                                        a_boolean        *bad_operator,
+                                        a_boolean        *is_cast)
 /*
-Return the string used to mangle the indicated expression operator.
+Return the string used to mangle the operator in the indicated expression.
 This routine only needs to handle the operators that can be used in
 expressions on nontype template parameters in function signatures or
 in expressions used in decltype.  If the operator is unrecognized, return
-*bad_operator TRUE.
+*bad_operator TRUE.  If the operator is some type of cast (which requires
+mangling of a type as well as an expression), return *is_cast TRUE.
 */
 {
   char           *name = NULL;
@@ -6254,7 +6946,9 @@ in expressions used in decltype.  If the operator is unrecognized, return
   unsigned int   num_operands = 2;
 
   *bad_operator = FALSE;
-  switch (op) {
+  *is_cast = FALSE;
+  check_assertion(is_operation_node(expr));
+  switch (expr->variant.operation.kind) {
 #ifdef MANGLING_STRING_FOR_OPERATOR_ADDRESS
     case eok_address_of:
       opkind = (an_opname_kind)onk_ampersand;
@@ -6280,17 +6974,32 @@ in expressions used in decltype.  If the operator is unrecognized, return
       num_operands = 1;
       break;
     case eok_cast:
+    case eok_ref_cast:
     case eok_base_class_cast:
     case eok_derived_class_cast:
     case eok_pm_base_class_cast:
     case eok_pm_derived_class_cast:
     case eok_lvalue_cast:
     case eok_bool_cast:
-#if !IA64_ABI
-      name = "cs";
-#else /* IA64_ABI */
-      name = "cv";
-#endif /* IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION >= 402
+      if (expr->is_static_cast) {
+        name = MANGLING_STRING_FOR_STATIC_CAST;
+      } else if (expr->variant.operation.is_const_cast) {
+        name = MANGLING_STRING_FOR_CONST_CAST;
+      } else if (expr->variant.operation.is_reinterpret_cast) {
+        name = MANGLING_STRING_FOR_REINTERPRET_CAST;
+      } else 
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+      /* Do not insert code here. */
+      {
+        name = MANGLING_STRING_FOR_CAST;
+      }  /* if */
+      *is_cast = TRUE;
+      break;
+    case eok_dynamic_cast:
+    case eok_ref_dynamic_cast:
+      name = MANGLING_STRING_FOR_DYNAMIC_CAST;
+      *is_cast = TRUE;
       break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     case eok_xconj:
@@ -6298,6 +7007,62 @@ in expressions used in decltype.  If the operator is unrecognized, return
     case eok_complement:
       opkind = (an_opname_kind)onk_compl;
       num_operands = 1;
+      break;
+    case eok_assign:
+      opkind = (an_opname_kind)onk_assign;
+      break;
+    case eok_add_assign:
+      opkind = (an_opname_kind)onk_plus_assign;
+      break;
+    case eok_subtract_assign:
+      opkind = (an_opname_kind)onk_minus_assign;
+      break;
+    case eok_multiply_assign:
+      opkind = (an_opname_kind)onk_times_assign;
+      break;
+    case eok_divide_assign:
+      opkind = (an_opname_kind)onk_divide_assign;
+      break;
+    case eok_remainder_assign:
+      opkind = (an_opname_kind)onk_remainder_assign;
+      break;
+    case eok_xor_assign:
+      opkind = (an_opname_kind)onk_excl_or_assign;
+      break;
+    case eok_and_assign:
+      opkind = (an_opname_kind)onk_and_assign;
+      break;
+    case eok_or_assign:
+      opkind = (an_opname_kind)onk_or_assign;
+      break;
+    case eok_shiftr_assign:
+      opkind = (an_opname_kind)onk_shift_right_assign;
+      break;
+    case eok_shiftl_assign:
+      opkind = (an_opname_kind)onk_shift_left_assign;
+      break;
+    case eok_post_incr:
+#ifdef MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX
+      /* Use a special mangling for the postfix version if one is defined,
+         otherwise fall through and use the generic operator version. */
+      name = MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX;
+      break;
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX */
+    case eok_pre_incr:
+      opkind = (an_opname_kind)onk_plus_plus;
+      break;
+    case eok_post_decr:
+#ifdef MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX
+      /* Use a special mangling for the postfix version if one is defined,
+         otherwise fall through and use the generic operator version. */
+      name = MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX;
+      break;
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX */
+    case eok_pre_decr:
+      opkind = (an_opname_kind)onk_minus_minus;
+      break;
+    case eok_subscript:
+      opkind = (an_opname_kind)onk_subscript;
       break;
     case eok_add:
       opkind = (an_opname_kind)onk_plus;
@@ -6368,6 +7133,21 @@ in expressions used in decltype.  If the operator is unrecognized, return
       opkind = (an_opname_kind)onk_question;
       num_operands = 3;
       break;
+    case eok_pm_points_to_field:
+      opkind = (an_opname_kind)onk_arrow_star;
+      break;
+    case eok_pm_field:
+      /* There is no corresponding operator for ".*". */
+      name = MANGLING_STRING_FOR_OPERATOR_DOT_STAR;
+      break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+    case eok_real_part:
+      name = MANGLING_STRING_FOR_OPERATOR_REAL_PART;
+      break;
+    case eok_imag_part:
+      name = MANGLING_STRING_FOR_OPERATOR_IMAG_PART;
+      break;
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
     case eok_lvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */
@@ -8359,7 +9139,7 @@ be embedded in other mangled names.
        mangled already (e.g., for a class name-as-subobject).  The lint
        comment indicates that is_string is known to be FALSE in some
        configurations. */
-    check_assertion(!entity_needs_to_be_individuated(scp, kind));
+    check_assertion(is_string || !entity_needs_to_be_individuated(scp, kind));
     start_mangling(&mctl);
     /* Name mangling is needed. */
 #if !IA64_ABI
