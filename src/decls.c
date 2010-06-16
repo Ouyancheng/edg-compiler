@@ -9218,7 +9218,7 @@ symbol entry, and return a pointer to it in state->sym.
        [dcl.typedef]).  If so, set the name pointer in the type entry to
        point to the same name as the current typedef name. */
     a_type_ptr  type_to_check = type_ptr;
-    a_boolean   is_class_or_enum;
+    a_boolean   is_class_or_enum, via_typeof = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
       /* Normally, a typedef imbues a name for linkage purposes only when it
@@ -9232,6 +9232,7 @@ symbol entry, and return a pointer to it in state->sym.
                                   // since one is established already. */
       while (type_to_check->kind == (a_type_kind)tk_typeref &&
              type_to_check->variant.typeref.is_typeof) {
+        via_typeof = TRUE;
         type_to_check = type_to_check->variant.typeref.type;
       }  /* while */
     }  /* if */
@@ -9262,12 +9263,10 @@ symbol entry, and return a pointer to it in state->sym.
            the current scope (which is created for the template instantiation
            after the template arguments have been determined).  A typedef in
            such an instantiation should not affect the name of the type.  In
-           GNU C++ mode, the scope comparison check cannot be done because
-           a typeof construct can bring in an unnamed type from another scope
-           to give it a name for linkage purposes.  Fortunately, in GNU C++
-           mode unnamed template arguments also cause deduction failures and
-           we never get here with the otherwise problematic cases. */
-        if (gpp_mode ||
+           GNU C++ mode, the scope comparison check cannot always be done
+           because a typeof construct can bring in an unnamed type from
+           another scope to give it a name for linkage purposes. */
+        if (via_typeof ||
             tag_sym->decl_scope == scope_stack[decl_scope_level].number) {
           tp = type_to_check;
         }  /* if */

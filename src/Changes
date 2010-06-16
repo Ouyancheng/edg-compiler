@@ -1,5 +1,24 @@
 Version 4.2
 
+6/16/10  [EDGcpfe/10755]
+GNU C++0x mode: Typedefs and unnamed types as template arguments
+
+Previously, in GNU C++0x mode ("--g++ --c++0x"), a typedef of a template
+parameter could imbue a name for linkage purposes when the template parameter
+was substituted by an unnamed class or enumeration type (e.g., a closure type
+for a lambda expression).  For example:
+
+  template<class T> void f(T) { typedef T X; }
+  int main() {
+    f([]{});
+    f([]{});
+      // Previously, both closure types were given the name "X" for linkage
+      // purposes.  (Resulting e.g. in invalid generated C code.)
+  }
+
+This is now fixed (i.e., no name for linkage purposes is imbued in such cases).
+
+
 6/16/10  [EDGcpfe/10757]
 Explicit template argument for reference-typed parameter not seen as dependent
 
