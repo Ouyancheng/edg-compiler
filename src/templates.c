@@ -6869,7 +6869,7 @@ points to the template parameter list.
        will be ignored.  This occurs when the template type is a qualified
        array type. */
     skip_common_type_qualifiers(&type, &templ_type);
-    templ_type = skip_typerefs(templ_type);
+    templ_type = skip_typerefs_not_dependent_decltypes(templ_type);
   }  /* if */
   if (templ_type->kind == (a_type_kind)tk_typeref &&
       templ_type->variant.typeref.is_dependent_decltype_or_typeof) {
@@ -7103,8 +7103,10 @@ points to the template parameter list.
             /* Not a match. */
           } else {
             /* Qualifiers match.  See if the underlying types do, too. */
-            tp = skip_typerefs(type->variant.typeref.type);
-            ttp = skip_typerefs(templ_type->variant.typeref.type);
+            tp = skip_typerefs_not_dependent_decltypes(
+                                                   type->variant.typeref.type);
+            ttp = skip_typerefs_not_dependent_decltypes(
+                                             templ_type->variant.typeref.type);
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
                                           new_flags);
