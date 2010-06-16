@@ -6744,7 +6744,10 @@ previously-scanned sizeof expression, and return the result in *result
     }  /* if */
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  sizeof_type = skip_typerefs(sizeof_type);
+  /* Skip typerefs, but keep dependent decltypes because they will have
+     to be rescanned to get the real type (or detect any errors on the
+     rescan). */
+  sizeof_type = skip_typerefs_not_dependent_decltypes(sizeof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(sizeof_type);
   /* The operand of a sizeof may not have function type or incomplete
@@ -6787,6 +6790,13 @@ previously-scanned sizeof expression, and return the result in *result
       expr_pos_error(ec_incomplete_type_not_allowed, &type_position);
       sizeof_type = error_type();
     }  /* if */
+  }  /* if */
+  /* Force building a template-dependent representation for cases that
+     involve a dependent expression even though the result type is not
+     dependent.  This is done after the type validity tests above so
+     we can detect any possible errors anyway. */
+  if (is_partially_dependent_type(sizeof_type)) {
+    template_case = TRUE;
   }  /* if */
 
 #if UPC_EXTENSIONS_ALLOWED
@@ -9160,7 +9170,8 @@ enk_typeid entry should be created.
 */
 {
   an_expr_node_ptr typeid_node;
-  a_boolean        template_case = is_template_dependent_type(typeid_type);
+  a_boolean        template_case = is_template_dependent_type(typeid_type) ||
+                                   is_partially_dependent_type(typeid_type);
   a_type_ptr       const_type_info = make_qualified_type(
                                               type_of_type_info,
                                               (a_type_qualifier_set)TQ_CONST);
@@ -9426,10 +9437,15 @@ indication in *rcblock).
     }  /* if */
   }  /* if */
   /* Type qualifiers on the type are ignored [expr.typeid]. */
-  /* The two calls here make sure typedefs are removed and qualifiers under
-     arrays are removed. */
-  typeid_type = make_unqualified_type(typeid_type);
-  typeid_type = skip_typerefs(typeid_type);
+  if (is_array_type(typeid_type)) {
+    /* Remove cv-qualifiers on an array element type. */
+    typeid_type = make_unqualified_type(typeid_type);
+  } else {
+    /* Skip typerefs, but keep dependent decltypes because they will have
+       to be rescanned to get the proper type (or detect any errors on the
+       rescan). */
+    typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
+  }  /* if */
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(typeid_type);
   /* The type cannot be incomplete if it is a class type. */

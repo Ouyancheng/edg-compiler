@@ -316,6 +316,25 @@ type, without changing the type represented, for deduction purposes."
 }  /* skip_typedefs_not_dependent_decltypes */
 
 
+a_boolean is_partially_dependent_type(a_type_ptr type)
+/*
+Return TRUE if the given type is a "partially-dependent" type, i.e., one
+that isn't actually type-dependent but does involve a dependent
+expression (e.g., in a decltype), so that at the least on a rescan
+an error might be detected for certain values of the template parameters.
+*/
+{
+  a_boolean result = FALSE;
+
+  type = skip_typerefs_not_dependent_decltypes(type);
+  if (type->kind == (a_type_kind)tk_typeref &&
+      type->variant.typeref.is_dependent_decltype_or_typeof) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_partially_dependent_type */
+
+
 a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
