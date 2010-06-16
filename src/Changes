@@ -1,5 +1,31 @@
 Version 4.2
 
+6/16/10  [EDGcpfe/10757]
+Explicit template argument for reference-typed parameter not seen as dependent
+
+In a regression introduced in version 4.0, an explicit nontype template
+argument passed to a reference-typed template parameter was not seen as
+dependent when appropriate, and overload resolution on a call with
+such an explicit template argument was not correctly deferred until
+the actual instantiation of the template.  As a consequence, various
+aborts could occur, e.g., "lower_constant: bad kind" in IL lowering.
+Now fixed.
+
+  typedef int ZP;
+  template <ZP& I> ZP f() {}
+  void h(ZP) {}
+  template <ZP& I> struct X {
+    void g() {
+      h(f<I>());
+    }
+  };
+  ZP z;
+  int main() {
+    X<z> x; 
+    x.g();
+  }
+
+
 6/15/10  [EDGcpfe/10722]
 Microsoft compatibility: internal error on __super use of using-declaration
 

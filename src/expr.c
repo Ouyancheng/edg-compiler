@@ -26284,7 +26284,11 @@ arg_operand entry.
   an_operand     *operand = &arg_operand->operand;
   a_constant_ptr con;
 
-  if (is_template_param_constant_operand(operand)) {
+  if (is_expression_operand(operand) &&
+      expr_contains_dependent_type(operand->variant.expression)) {
+    contains_template_param = TRUE;
+  } else if (is_constant_operand(operand) &&
+             constant_contains_dependent_type(&operand->variant.constant)) {
     contains_template_param = TRUE;
   } else if (is_template_dependent_indefinite_function(operand)) {
     contains_template_param = TRUE;
