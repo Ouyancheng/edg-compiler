@@ -3128,10 +3128,12 @@ are expected to be NULL in that case.
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
   if (result_operand_is_call) {
-    record_operator_position_in_rescan_info(result,
-                                            &operator_position,
-                                            opening_paren_tok_seq_number,
-                                            &closing_paren_position);
+    if (function_call_node != NULL) {
+      record_operator_position_in_expr_rescan_info(function_call_node,
+                                                   &operator_position,
+                                                  opening_paren_tok_seq_number,
+                                                   &closing_paren_position);
+    }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand_node = expr_node_from_operand(operand);
