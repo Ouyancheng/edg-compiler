@@ -828,6 +828,75 @@ position following what was demangled.
 }  /* demangle_template_parameter_name */
 
 
+static char *demangle_constant_value(char                       *ptr,
+                                     a_boolean                  is_bool,
+                                     a_boolean                  is_nullptr,
+                                     a_decode_control_block_ptr dctl)
+/*
+Demangle a constant value that is part of a literal.  The form of the
+constant has an initial length (which may or may not use the new underscore
+for specifying the length), followed by some number of characters, for example:
+
+  3n12     encoding for -12
+   ^^^---- Characters of constant.  Some characters get remapped:
+             n --> -
+             p --> +
+             d --> .
+  ^------- Length of constant (may or may not include underscores).
+
+When is_bool is TRUE, emit "true"/"false" instead of 1/0.  Likewise when
+is_nullptr is TRUE (emits "nullptr" rather than 0).
+*/
+{
+  char          *p = ptr, *prev_end, ch;
+  unsigned long nchars;
+  a_boolean     is_nonzero = FALSE;
+
+  /* Get the length of the constant. */
+  p = get_length_with_optional_underscore(p, &nchars, &prev_end, dctl);
+  /* Process the characters of the literal constant. */
+  for (; nchars > 0; nchars--, p++) {
+    /* Remap characters where necessary. */
+    ch = get_char(p, dctl);
+    switch (ch) {
+      case '\0':
+      case '_':
+        /* Ran off end of string. */
+        bad_mangled_name(dctl);
+        goto end_of_routine;
+      case 'p':
+        ch = '+';
+        break;
+      case 'n':
+        ch = '-';
+        break;
+      case 'd':
+        ch = '.';
+        break;
+    }  /* switch */
+    if (is_bool) {
+      /* For the bool case, just keep track of whether the constant is
+         non-zero; true or false will be output later. */
+      if (ch != '0') is_nonzero = TRUE;
+    } else if (is_nullptr) {
+      /* Constant should only ever be zero.  Suppress it. */
+    } else {
+      /* Normal (non-bool, non-nullptr) case.  Output the character of the
+         constant. */
+      write_id_ch(ch, dctl);
+    }  /* if */
+  }  /* for */
+  dctl->end_of_name = prev_end;
+  if (is_bool) {
+    /* For bool, output true or false. */
+    write_id_str((char *)(is_nonzero ? "true" : "false"), dctl);
+  }  /* if */
+  if (is_nullptr) write_id_str("nullptr", dctl);
+end_of_routine:
+  return p;
+}  /* demangle_constant_value */
+
+
 static char *demangle_constant(char                       *ptr,
                                a_decode_control_block_ptr dctl)
 /*
@@ -984,8 +1053,9 @@ position following what was demangled.
          That is, the literal constant preceded by a cast to the right type.
       */
       /* See if the type is bool. */
-      a_boolean is_bool = (type+2 == p && *(type+1) == 'b'), is_nonzero;
+      a_boolean is_bool = (type+2 == p && *(type+1) == 'b');
       a_boolean is_nullptr = (type+2 == p && *(type+1) == 'n');
+      a_boolean is_complex = (type+3 == p && *(type+1) == 'x');
       /* If the type is bool or nullptr, don't put out the cast. */
       if (!(is_bool || is_nullptr)) {
         write_id_ch('(', dctl);
@@ -993,48 +1063,16 @@ position following what was demangled.
         (void)demangle_type(type+1, dctl);
         write_id_ch(')', dctl);
       }  /* if */
+      if (is_complex) write_id_ch('(', dctl);
       p++;  /* Advance past the "L". */
-      /* Get the length of the constant. */
-      p = get_length_with_optional_underscore(p, &nchars, &prev_end, dctl);
-      /* Process the characters of the literal constant. */
-      is_nonzero = FALSE;
-      for (; nchars > 0; nchars--, p++) {
-        /* Remap characters where necessary. */
-        ch = get_char(p, dctl);
-        switch (ch) {
-          case '\0':
-          case '_':
-            /* Ran off end of string. */
-            bad_mangled_name(dctl);
-            goto end_of_routine;
-          case 'p':
-            ch = '+';
-            break;
-          case 'n':
-            ch = '-';
-            break;
-          case 'd':
-            ch = '.';
-            break;
-        }  /* switch */
-        if (is_bool) {
-          /* For the bool case, just keep track of whether the constant is
-             non-zero; true or false will be output later. */
-          if (ch != '0') is_nonzero = TRUE;
-        } else if (is_nullptr) {
-          /* Constant should only ever be zero.  Suppress it. */
-        } else {
-          /* Normal (non-bool, non-nullptr) case.  Output the character of the
-             constant. */
-          write_id_ch(ch, dctl);
-        }  /* if */
-      }  /* for */
-      dctl->end_of_name = prev_end;
-      if (is_bool) {
-        /* For bool, output true or false. */
-        write_id_str((char *)(is_nonzero ? "true" : "false"), dctl);
+      p = demangle_constant_value(p, is_bool, is_nullptr, dctl);
+      if (!dctl->err_in_id && is_complex) {
+        /* Now emit the imaginary portion of the complex number. */
+        write_id_ch('+', dctl);
+        p = demangle_constant_value(p, /*is_bool=*/FALSE, /*is_nullptr=*/FALSE,
+                                    dctl);
+        write_id_str("i)", dctl);
       }  /* if */
-      if (is_nullptr) write_id_str("nullptr", dctl);
     }  /* if */
   } else if (ch == 'Z') {
     /* A template parameter. */
@@ -5114,17 +5152,13 @@ value.
 }  /* get_hex_digit */
 
 
-static char *demangle_float_literal(char                       *ptr,
-                                    a_decode_control_block_ptr dctl)
+static char *demangle_float_number(char                       *ptr,
+                                   a_decode_control_block_ptr dctl)
 /*
-Demangle an IA-64 float literal and output the demangled form.
-Return a pointer to the character position following what was demangled.
-The syntax is:
-
-  <expr-primary> ::= L <type> <value float> E
-
-<float> is the hexadecimal representation of the floating-point value,
-high-order bytes first, using lower-case letters.
+Demangle a floating point number as specified in an IA-64 float or complex
+literal and output the demangled form.  The floating point number is
+terminated by either an E or underscore, and the return value will point
+to the terminating character.
 */
 {
   sizeof_t i, length;
@@ -5143,15 +5177,11 @@ high-order bytes first, using lower-case letters.
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   x.d = 0.0;
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-  /* Put parentheses around the type to make a cast. */
-  write_id_ch('(', dctl);
-  ptr = demangle_type(ptr+1, dctl);
-  write_id_ch(')', dctl);
   /* Determine the number of digits in the value by scanning to the
-     terminating "E". */
+     terminating "E" or "_". */
   length = 0;
   p = ptr;
-  while (*p != 'E' && *p != '\0') {
+  while (*p != 'E' && *p != '_' && *p != '\0') {
     length++;
     p++;
   }  /* while */
@@ -5217,12 +5247,80 @@ high-order bytes first, using lower-case letters.
       *p++ = '\0';
     }  /* if */
     write_id_str(str, dctl);
-    /* Skip the final "E". */
-    ptr = advance_past('E', ptr, dctl);
+  }  /* if */
+  return ptr;
+} /* demangle_float_number */
+
+
+static char *demangle_float_literal(char                       *ptr,
+                                    a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 float literal and output the demangled form.
+Return a pointer to the character position following what was demangled.
+The syntax is:
+
+  <expr-primary> ::= L <type> <value float> E
+
+<float> is the hexadecimal representation of the floating-point value,
+high-order bytes first, using lower-case letters.
+*/
+{
+  /* Put parentheses around the type to make a cast. */
+  write_id_ch('(', dctl);
+  ptr = demangle_type(ptr+1, dctl);
+  write_id_ch(')', dctl);
+  if (!dctl->err_in_id) {
+    ptr = demangle_float_number(ptr, dctl);
+    if (!dctl->err_in_id) {
+      ptr = advance_past('E', ptr, dctl);
+    }  /* if */
   }  /* if */
   return ptr;
 } /* demangle_float_literal */
 
+
+static char *demangle_complex_literal(char                       *ptr,
+                                      a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 complex float literal and output the demangled form.
+Return a pointer to the character position following what was demangled.
+The syntax is:
+
+  <expr-primary> ::= L <type> <real-part float> _ <imag-part float> E 
+
+<float> is the hexadecimal representation of the floating-point value,
+high-order bytes first, using lower-case letters.
+*/
+{
+  /* Put parentheses around the type to make a cast. */
+  write_id_ch('(', dctl);
+  ptr = demangle_type(ptr+1, dctl);
+  write_id_str(")(", dctl);
+  /* Emit the literal as ( <real> + <imag> i). */
+  if (!dctl->err_in_id) {
+    ptr = demangle_float_number(ptr, dctl);
+    if (!dctl->err_in_id) {
+      ptr = advance_past('_', ptr, dctl);
+      if (!dctl->err_in_id) {
+        write_id_ch('+', dctl);
+        ptr = demangle_float_number(ptr, dctl);
+        if (!dctl->err_in_id) {
+          write_id_str("i)", dctl);
+          if (!dctl->err_in_id) {
+            ptr = advance_past('E', ptr, dctl);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return ptr;
+} /* demangle_complex_literal */
+
+/*
+Macro that returns TRUE if the character represents a floating point type.
+*/
+#define is_floating_point_type(ch)                                        \
+ ((ch) == 'd' || (ch) == 'e' || (ch) == 'f' || (ch) == 'g')
 
 static char *demangle_literal(char                       *ptr,
                               a_decode_control_block_ptr dctl)
@@ -5234,6 +5332,8 @@ The syntax is:
   <expr-primary> ::= L <type> <value number> E    # integer literal
                  ::= L <type> <value float> E     # floating literal
                  ::= L <character builtin-type> E # string literal
+                 ::= L <type> <real-part float> _ <imag-part float> E
+                                      # complex floating point literal (C 2000)
                  ::= L_Z <encoding> E             # external name
 
 */
@@ -5246,12 +5346,14 @@ The syntax is:
       ptr = demangle_encoding(ptr+3, /*include_func_params=*/FALSE, dctl);
       ptr = advance_past('E', ptr, dctl);
     }  /* if */
-  } else if (ptr[1] == 'f' || ptr[1] == 'd' ||
-             ptr[1] == 'e' || ptr[1] == 'g') {
+  } else if (is_floating_point_type(ptr[1])) {
     /* Float literal, L <type> <hex> E, where <hex> is the hexadecimal
        representation of the value, high-order bytes first, with
        lower-case hex letters. */
     ptr = demangle_float_literal(ptr, dctl);
+  } else if (ptr[1] == 'C' && is_floating_point_type(ptr[2])) {
+    /* Complex floating point literal. */
+    ptr = demangle_complex_literal(ptr, dctl);
   } else if ((ptr[1] == 'c' || ptr[1] == 'a' || ptr[1] == 'h') &&
               ptr[2] == 'E') {
     /* A narrow string literal. */
