@@ -3402,7 +3402,7 @@ static void gen_compound_literal(a_constant_ptr     literal_con,
 /*
 Generate code for a compound literal (a C99 feature).  If the
 compound literal is available only in constant form, literal_con points
-to the constant.  Otherwise, literal_con is NULL and dip and temp_type
+to the constant.  Otherwise, literal_con is NULL and dip and literal_type
 give the dynamic initialization entry and type for the compound literal.
 An example of the form of a compound literal:
        (int []){1, 2, 3}
