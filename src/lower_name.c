@@ -2996,15 +2996,16 @@ do_unknown_function:
          no mangling should be needed for them. */
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
-      /* Strings can appear in expressions (e.g., in decltype). */
+      { /* Strings can appear in expressions (e.g., in decltype). */
 #if IA64_ABI
-      add_to_mangled_name('L', mctl);
-      mangled_encoding_for_type(skip_typerefs(array_element_type(con->type)),
-                                mctl);
-      add_to_mangled_name('E', mctl);
+        a_type_ptr  elem_type = array_element_type(con->type);
+        add_to_mangled_name('L', mctl);
+        mangled_encoding_for_type(skip_typerefs(elem_type), mctl);
+        add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
-      add_str_to_mangled_name("LS", mctl);
+        add_str_to_mangled_name("LS", mctl);
 #endif /* IA64_ABI */
+      }
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
