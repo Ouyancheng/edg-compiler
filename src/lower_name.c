@@ -137,6 +137,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
 #define MANGLING_STRING_FOR_DYNAMIC_CAST "dc"
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
+#define MANGLING_STRING_FOR_AUTO "Da"
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "v18__imag__"
@@ -239,6 +240,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
 #define MANGLING_STRING_FOR_DYNAMIC_CAST "dc"
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
+#define MANGLING_STRING_FOR_AUTO "u"
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "rl"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "im"
@@ -6557,27 +6559,33 @@ Add to the mangled name the encoding for the type "type".
       case tk_template_param:
         /* This comes up when mangling the names for template entities using
            the modern mangling approach. */
-        switch (type->variant.template_param.kind) {
-          case tptk_param:
-            mangled_encoding_for_template_parameter(
+        if (is_auto_type(type)) {
+          /* This occurs, for example, when mangling decltype(new auto(p1)). */
+          s = MANGLING_STRING_FOR_AUTO;
+        } else {
+          switch (type->variant.template_param.kind) {
+            case tptk_param:
+              mangled_encoding_for_template_parameter(
                          &type->variant.template_param.extra_info->coordinates,
                          (a_template_arg *)NULL,
                          mctl);
-            break;
-          case tptk_member:
-            /* Type selected from a template parameter type, e.g., T::x. */
-            if (!has_name(type)) {
-              give_unnamed_template_param_member_a_name(type, mctl);
-            }  /* if */
-            mangled_type_name_full(type, /*check_for_subst=*/FALSE, 
-                                   /*ok_to_mangle_type=*/TRUE, mctl);
-            break;
-          case tptk_unknown:
-          default:
-            unexpected_condition_str(
+              break;
+            case tptk_member:
+              /* Type selected from a template parameter type, e.g., T::x. */
+              if (!has_name(type)) {
+                give_unnamed_template_param_member_a_name(type, mctl);
+              }  /* if */
+              mangled_type_name_full(type, /*check_for_subst=*/FALSE, 
+                                     /*ok_to_mangle_type=*/TRUE, mctl);
+              break;
+            case tptk_unknown:
+            default:
+              unexpected_condition_str(
                       "mangled_encoding_for_type: bad tk_template_param kind");
+          }  /* switch */
+          goto have_whole_mangled_name;
         }  /* if */
-        goto have_whole_mangled_name;
+        break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         s = MANGLING_STRING_FOR_VECTOR;
