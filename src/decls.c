@@ -3491,8 +3491,7 @@ created; the caller must set it.
         *routine_ptr =
                     ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
         if (*routine_ptr != NULL && !C_mode()) {
-          a_symbol_ptr  rout_sym = (a_symbol_ptr)(*routine_ptr)->
-                                                    source_corresp.assoc_info;
+          a_symbol_ptr  rout_sym = symbol_for(*routine_ptr);
           if (func_info->is_definition &&
               routine_has_been_defined(*routine_ptr)) {
             /* This error can come up when the same extern "C" function is
@@ -3500,8 +3499,9 @@ created; the caller must set it.
                  namespace N { extern "C" void f() { } }
                  namespace M { extern "C" void f() { } }
             */
-            pos_sy_error(ec_already_defined, &locator->source_position,
-                         rout_sym);
+            an_error_severity  sev = microsoft_bugs ? es_warning : es_error;
+            pos_sy_diagnostic(
+                sev, ec_already_defined, &locator->source_position, rout_sym);
             *routine_ptr = NULL;
           } else {
             /* Do compatibility checking on the throw specification. */
@@ -12700,9 +12700,6 @@ semicolon.
               &pos_curr_token);
     set_to_error_locator(loc);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  dps->source_sequence_entry = add_empty_source_sequence_entry();
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   (void)get_token();
   /* Although the alias name is not technically a "declarator-id", it has
      exactly the same function and relation to any subsequent attributes.
@@ -12722,6 +12719,17 @@ semicolon.
       parent_type = scope_stack_top().assoc_type;
     }  /* if */
     type_name_full(dps);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* It is tempting to emit the source sequence entry for the alias
+       declaration when the name of the alias is first encountered (above),
+       since that name has some similarity to a declarator.  However, doing so
+       could create complications if type_name_full parses a non-autonomous
+       tag declaration: Such a declaration may have to be promoted to become
+       autonomous later on, and that promotion process requires that the
+       source sequence entry for the top-level declaration follows the entry
+       for the non-autonomous tag declaration. */
+    dps->source_sequence_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     decl_typedef(&loc, dps, parent_type, &decl_pos_block);
     if (dps->sym != NULL && dps->sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr  tp = dps->sym->variant.type.ptr;
