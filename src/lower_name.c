@@ -2078,30 +2078,31 @@ extensions, e.g., Microsoft __is_base_of).
 #if IA64_ABI
 /*ARGSUSED*/  /* old_form is not used in that case. */
 #endif /* IA64_ABI */
-static void mangled_encoding_for_float_constant(
-                                             a_constant_ptr           con,
-                                             a_boolean                old_form,
-                                             a_mangling_control_block *mctl)
+static void add_float_value_to_mangled_name(
+                                           a_float_kind             float_kind,
+                                           an_internal_float_value  *value,
+                                           a_boolean                old_form,
+                                           a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the ck_float constant con.
-This is used to encode floating-point constants as part of the
-mangled names of template classes.  If old_form is TRUE, use the old form
-of length specification in the mangling for lengths of literals.
+Add a string to the mangled name representing the value of the floating
+point number as given by *value.  The kind of the floating point value
+(e.g., float, double, etc.) is given by float_kind.  If old_form is TRUE,
+the length of the value (only emitted in the Cfront ABI) uses the old form
+for specifying the length (which can be ambiguous in some cases).
 */
 {
-  char     *str;
 #if !IA64_ABI
+  char     *str;
   sizeof_t str_length;
-  /* Float: the Cfront-like ABI encoding is like
-       L4n1p5 <-- encoding for "-1.5"
-          ^^^---- Literal value ("p" for decimal point).
-         ^------- "n" indicates negative.
-        ^-------- Length of the literal.
-       ^--------- "L" indicates a number.
+
+  /* The Cfront-like ABI encoding for a floating point value is:
+       4n1p5 <-- encoding for "-1.5"
+         ^^^---- Literal value ("p" for decimal point).
+        ^------- "n" indicates negative.
+       ^-------- Length of the float.
      cfront 3.0.1 does not implement this, so we made it up. */
-  str = fp_to_string(skip_typerefs(con->type)->variant.float_kind,
-                     &con->variant.float_value,
-                     (a_boolean *)NULL, (a_boolean *)NULL, (a_boolean *)NULL);
+  str = fp_to_string(float_kind, value, (a_boolean *)NULL, (a_boolean *)NULL,
+                     (a_boolean *)NULL);
   str_length = strlen(str);  /* Includes "-" sign if any. */
   /* Remove unnecessary trailing zeroes, e.g., change
      "1.50000e+10" to "1.5    e+10".  The blanks are then dropped
@@ -2122,7 +2123,6 @@ of length specification in the mangling for lengths of literals.
       }  /* while */
     }  /* if */
   }
-  add_to_mangled_name('L', mctl);
   store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
   while (str_length > 0) {
     /* Move the string and recode non-alphanumeric characters. */
@@ -2145,23 +2145,107 @@ of length specification in the mangling for lengths of literals.
     }  /* if */
   }  /* while */
 #else /* IA64_ABI */
+  add_str_to_mangled_name(fp_to_hex_string(float_kind, value), mctl);
+#endif /* !IA64_ABI */
+}  /* add_float_value_to_mangled_name */
+
+
+#if IA64_ABI
+/*ARGSUSED*/  /* old_form is not used in that case. */
+#endif /* IA64_ABI */
+static void mangled_encoding_for_float_constant(
+                                             a_constant_ptr           con,
+                                             a_boolean                old_form,
+                                             a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the ck_float constant con.
+This is used to encode floating-point constants as part of the
+mangled names of template classes.  If old_form is TRUE, use the old form
+of length specification in the mangling for lengths of literals.
+*/
+{
+#if !IA64_ABI
+  /* Float: the Cfront-like ABI encoding is like
+       L4n1p5 <-- encoding for "-1.5"
+          ^^^---- Literal value ("p" for decimal point).
+         ^------- "n" indicates negative.
+        ^-------- Length of the literal.
+       ^--------- "L" indicates a number.
+     cfront 3.0.1 does not implement this, so we made it up. */
+  add_to_mangled_name('L', mctl);
+  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+                                  &con->variant.float_value, old_form, mctl);
+#else /* IA64_ABI */
   /* For IA-64, the encoding is
        L <type> <float> E
      The <float> is a hexadecimal string for the constant value,
      high-order bytes first, using lower-case hexadecimal letters.
   */
-  str = fp_to_hex_string(skip_typerefs(con->type)->variant.float_kind,
-                         &con->variant.float_value);
   add_to_mangled_name('L', mctl);
   /* Add the encoding for the type. */
   mangled_encoding_for_type(con->type, mctl);
   /* Add the hex digits. */
-  add_str_to_mangled_name(str, mctl);
+  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+                                  &con->variant.float_value, old_form, mctl);
   /* Add the end-of-literal marker. */
   add_to_mangled_name('E', mctl);
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_float_constant */
 
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static void mangled_encoding_for_complex_constant(
+                                             a_constant_ptr           con,
+                                             a_boolean                old_form,
+                                             a_mangling_control_block *mctl)
+/*
+Add to the mangled name the encoding for the ck_complex constant con.
+This is used to encode complex floating-point constants as part of the
+mangled names of expressions.  If old_form is TRUE, use the old form
+of length specification in the mangling for lengths of literals.
+*/
+{
+#if !IA64_ABI
+  /* Complex float: the Cfront-like ABI encoding mangles both real and
+     imaginary portions of the value as floating point numbers:
+       L_3_0d0_3_1d0 <-- encoding for "0.0+1.0i"
+                 ^^^---- Imaginary portion of complex number.
+              ^^^------- Length of the imaginary portion of the number.
+           ^^^---------- Real portion of complex number.
+        ^^^------------- Length of the real portion of the complex number.
+       ^---------------- "L" indicates a number.
+     cfront 3.0.1 does not implement this, so we made it up. */
+  add_to_mangled_name('L', mctl);
+  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+                                  &con->variant.complex_value->real, old_form,
+                                  mctl);
+  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+                                  &con->variant.complex_value->imag, old_form,
+                                  mctl);
+#else /* IA64_ABI */
+  /* For IA-64, the encoding is
+       L <type> <real-part float> _ <imag-part float> E
+     The <float> is a hexadecimal string for the constant value,
+     high-order bytes first, using lower-case hexadecimal letters.
+  */
+  add_to_mangled_name('L', mctl);
+  /* Add the encoding for the type. */
+  mangled_encoding_for_type(con->type, mctl);
+  /* Add the hex digits for the real portion of the complex number. */
+  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+                                  &con->variant.complex_value->real, old_form,
+                                  mctl);
+  add_to_mangled_name('_', mctl);
+  /* Add the hex digits for the imaginary portion of the complex number. */
+  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+                                  &con->variant.complex_value->imag, old_form,
+                                  mctl);
+  /* Add the end-of-literal marker. */
+  add_to_mangled_name('E', mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_encoding_for_complex_constant */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static void mangled_name_with_length(char                     *name,
                                      a_mangling_control_block *mctl)
@@ -3011,8 +3095,7 @@ do_unknown_function:
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
-      /* FIXME: need to specify how to mangle complex literals. */
-      add_FIXME_to_mangled_name(mctl);
+      mangled_encoding_for_complex_constant(con, old_form, mctl);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
