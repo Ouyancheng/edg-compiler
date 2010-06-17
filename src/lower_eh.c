@@ -2315,7 +2315,7 @@ front end as lvalues, but may have undergone an lvalue-to-rvalue
 conversion in cases where their value is not used.
 */
 {
-  a_type_ptr       typeid_type = skip_typerefs(expr->variant.typeid_info.type);
+  a_type_ptr       typeid_type = expr->variant.typeid_info.type;
   an_expr_node_ptr typeid_expr = expr->variant.typeid_info.expr;
   an_expr_node_ptr new_expr, null_constant_node, test_node;
   an_expr_node_ptr vptr_expr;
