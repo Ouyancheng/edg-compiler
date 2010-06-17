@@ -2440,6 +2440,9 @@ to the character position following what was demangled.
       case 'n':
         s = "std::nullptr_t";
         break;
+      case 'u':
+        s = "auto";
+        break;
       case 'y':
         /* decltype(type) */
         write_id_str("decltype ", dctl);
@@ -4168,6 +4171,9 @@ demangled as part of the template function instead).
         /* Additional built-in types (too many to assign a single character
            to each one). */
         switch (*p++) {
+          case 'a':
+            s = "auto";
+            break;
           case 'n':
             s = "std::nullptr_t";
             break;
