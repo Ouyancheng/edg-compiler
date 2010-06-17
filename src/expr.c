@@ -9437,14 +9437,17 @@ indication in *rcblock).
     }  /* if */
   }  /* if */
   /* Type qualifiers on the type are ignored [expr.typeid]. */
-  if (is_array_type(typeid_type)) {
-    /* Remove cv-qualifiers on an array element type. */
-    typeid_type = make_unqualified_type(typeid_type);
-  } else {
-    /* Skip typerefs, but keep dependent decltypes because they will have
-       to be rescanned to get the proper type (or detect any errors on the
-       rescan). */
+  /* Skip typerefs, but keep dependent decltypes because they will have
+     to be rescanned to get the proper type (or detect any errors on the
+     rescan). */
+  if (is_dependent_decltype_type(typeid_type)) {
     typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
+  } else {
+    if (is_array_type(typeid_type)) {
+      /* Remove cv-qualifiers on an array element type. */
+      typeid_type = make_unqualified_type(typeid_type);
+    }  /* if */
+    typeid_type = skip_typerefs(typeid_type);
   }  /* if */
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(typeid_type);
