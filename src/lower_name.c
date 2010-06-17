@@ -3008,11 +3008,12 @@ do_unknown_function:
       add_str_to_mangled_name("LS", mctl);
 #endif /* IA64_ABI */
       break;
+#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
-    case ck_imaginary:
-      /* FIXME: need to specify how to mangle complex/imaginary literals. */
+      /* FIXME: need to specify how to mangle complex literals. */
       add_FIXME_to_mangled_name(mctl);
       break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
