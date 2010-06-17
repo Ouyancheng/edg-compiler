@@ -1,5 +1,30 @@
 Version 4.2
 
+6/17/10  [EDGcpfe/10756]
+Lifetime of call-result temporary bound to reference not extended
+
+In a regression introduced in version 4.0, a temporary rvalue of class type
+that can be bitwise copied (i.e., no copy constructor is needed), returned
+from a function call and bound to a reference with static lifetime, was not
+extended to static lifetime.  This was because there was no explicit
+front end temporary (enk_temp_init and associated dynamic initialization
+entry) generated in that case whose lifetime could be adjusted.  Now,
+such a temporary is generated and its lifetime is properly extended.
+
+  struct S {
+    int x;
+    S() : x(7) {}
+  };
+  S s;
+  S f() { return s; }
+  const S& cr = f();  // Lifetime of returned value is now extended
+  int main() {
+    if (cr.x != 7) {
+      return 1;
+    }
+  }
+
+
 6/16/10  [EDGcpfe/10755]
 GNU C++0x mode: Typedefs and unnamed types as template arguments
 

@@ -14264,6 +14264,22 @@ like
            node_operator_is(node, eok_dot_field)) {
       node = skip_parens(node->variant.operation.operands);
     }  /* while */
+    if (!node->is_lvalue &&
+        is_call_node(node) &&
+        is_class_struct_union_type(node->type)) {
+      /* A call returning a class object by value.  Add an enk_temp_init
+         to create a front-end temporary so we can adjust its lifetime. */
+      an_expr_node_ptr node_copy, new_node;
+      an_operand       local_operand;
+      node_copy = copy_node(node);
+      make_expression_operand(node_copy, &local_operand);
+      temp_init_from_operand(&local_operand, /*result_is_lvalue=*/FALSE);
+      new_node = make_node_from_operand(&local_operand);
+      /* Overwrite the original node so we alter the original expression,
+         under any nodes we might have stripped off above. */
+      check_assertion(identical_types(node_copy->type, new_node->type));
+      overwrite_node(node, new_node);
+    }  /* if */
     dip = NULL;
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       dip = node->variant.init.dynamic_init;
