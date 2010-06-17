@@ -2108,7 +2108,8 @@ extern void use_variable_or_routine_for_module_id_if_needed(
 #endif /* MODULE_ID_NEEDED */
 
 extern void destination_type_for_reference_cast(an_expr_node_ptr  expr,
-                                                a_type            *ref_type);
+                                                a_type            *ref_type,
+                                                a_type            *quals_type);
 
 #endif /* ifndef IL_H */
 

@@ -21317,17 +21317,18 @@ be used, but there are exceptions.
 #endif /* MODULE_ID_NEEDED */
 
 void destination_type_for_reference_cast(an_expr_node_ptr  expr,
-                                         a_type            *ref_type)
+                                         a_type            *ref_type,
+                                         a_type            *quals_type)
 /*
 The type of an (rvalue) reference cast operation doesn't reflect the
 (rvalue) reference, but that type is needed both for mangling as well as
 in the C++ generating back end.  This routine returns, in *ref_type, a
 type that approximates the type used in the source code (as specified by
-expr->type).
+expr->type).  quals_type points to an a_type structure that may be
+referred to by the returned *ref_type.
 */
 {
   a_type_ptr  dest_type = expr->type;
-  a_type      quals_type;
   an_expr_node_ptr  operand_1 = expr->variant.operation.operands;
 
   check_assertion(ref_type != NULL &&
@@ -21359,17 +21360,17 @@ expr->type).
       a_type_qualifier_set quals_to_add;
       quals_to_add = src_quals & ~dest_quals;
 #if !STANDALONE_UTILITY_PROGRAM
-      clear_type(&quals_type, (a_type_kind)tk_typeref);
+      clear_type(quals_type, (a_type_kind)tk_typeref);
 #else /* STANDALONE_UTILITY_PROGRAM */
       /* clear_type is not available in a standalone program -- it's part
          of the memory management routines -- so we just zero-fill the
          struct and set the kind. */
-      memzero((char *)&quals_type, sizeof(quals_type));
-      quals_type.kind = (a_type_kind)tk_typeref;
+      memzero((char *)quals_type, sizeof(*quals_type));
+      quals_type->kind = (a_type_kind)tk_typeref;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-      quals_type.variant.typeref.type = dest_type;
-      quals_type.variant.typeref.qualifiers = quals_to_add;
-      dest_type = &quals_type;
+      quals_type->variant.typeref.type = dest_type;
+      quals_type->variant.typeref.qualifiers = quals_to_add;
+      dest_type = quals_type;
     }  /* if */
   }  /* if */
   /* Substitute a reference type for the destination type. */
