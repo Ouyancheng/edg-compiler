@@ -14180,8 +14180,7 @@ name lookup options.
           } else if (expr != expr_copy) {
             /* The expression remains an expression, different than the
                original one.  Make a tpck_expression constant for it. */
-            *constant = *con;
-            constant->variant.template_param.variant.expr = expr_copy;
+            make_template_param_expr_constant(expr_copy, constant);
             con_copy = NULL;
           }  /* if */
         }
