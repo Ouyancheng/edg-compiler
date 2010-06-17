@@ -2307,7 +2307,6 @@ template classes.
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_address_constant */
 
-#if DO_IL_LOWERING
 
 static char *first_field_name(a_type_ptr              class_type,
                               a_source_correspondence **field_scp)
@@ -2345,7 +2344,6 @@ first named field; leave it unchanged if there is no named field.
   return name;
 }  /* first_field_name */
 
-#endif /* DO_IL_LOWERING */
 #if IA64_ABI
 
 /*
@@ -3791,10 +3789,19 @@ part of a template-dependent expression.
       break;
     case enk_routine:
 #if IA64_ABI
+#if ABI_COMPATIBILITY_VERSION >= 402
+      mangled_entity_reference(&expr->variant.routine->source_corresp,
+                               (an_il_entry_kind)iek_routine,
+                               (a_routine_info_block *)NULL,
+                               mctl);
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
+      /* Prior to version 4.2, an enk_routine was mistakenly encoded with
+         an extra "address of" operation. */
       mangled_address_of_entity(&expr->variant.routine->source_corresp,
                                 (an_il_entry_kind)iek_routine,
                                 (a_routine_info_block *)NULL,
                                 mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #else /* !IA64_ABI */
       mangled_routine_name(expr->variant.routine, mctl);
 #endif /* IA64_ABI */
