@@ -14925,7 +14925,7 @@ static void scan_compound_literal(a_type_ptr               *p_literal_type,
 /*
 Scan a compound literal (or if list_init is TRUE, a C++0x "list initializer").
 For the syntax and constraints of compound literals, see 6.5.2.5 in the C99
-standard (the are also allowed in some C++ modes, e.g., GNU C++).  A compound
+standard (they are also allowed in some C++ modes, e.g., GNU C++).  A compound
 literal looks like a cast in which the source expression is a brace-enclosed
 initializer, e.g.,
 
