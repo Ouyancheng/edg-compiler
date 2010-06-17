@@ -4312,9 +4312,7 @@ symbol is found, the first one is used but is marked as ambiguous.
     /* Add the symbol to the set.  Start by creating a projection symbol
        that points to new_sym. */
     a_symbol_ptr	new_proj;
-    a_boolean		new_is_proj;
-    new_is_proj = new_sym->kind == (a_symbol_kind)sk_projection;
-    if (new_is_proj) {
+    if (new_sym->kind == (a_symbol_kind)sk_projection) {
       /* The new symbol is a projection symbol when it comes from a
          using-declaration.  Get the base class information for the member
          named in the using-declaration as a base class of the class in which
