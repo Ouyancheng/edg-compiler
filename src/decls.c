@@ -3491,7 +3491,8 @@ created; the caller must set it.
         *routine_ptr =
                     ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
         if (*routine_ptr != NULL && !C_mode()) {
-          a_symbol_ptr  rout_sym = symbol_for(*routine_ptr);
+          a_symbol_ptr  rout_sym = (a_symbol_ptr)(*routine_ptr)->
+                                                    source_corresp.assoc_info;
           if (func_info->is_definition &&
               routine_has_been_defined(*routine_ptr)) {
             /* This error can come up when the same extern "C" function is
@@ -3499,9 +3500,8 @@ created; the caller must set it.
                  namespace N { extern "C" void f() { } }
                  namespace M { extern "C" void f() { } }
             */
-            an_error_severity  sev = microsoft_bugs ? es_warning : es_error;
-            pos_sy_diagnostic(
-                sev, ec_already_defined, &locator->source_position, rout_sym);
+            pos_sy_error(ec_already_defined, &locator->source_position,
+                         rout_sym);
             *routine_ptr = NULL;
           } else {
             /* Do compatibility checking on the throw specification. */
