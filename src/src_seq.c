@@ -768,15 +768,22 @@ entry that has already been created and linked in for this entity.
   if (kind == (an_il_entry_kind)iek_statement) {
     /* Statement. */
     ((a_statement_ptr)entity_ptr)->source_sequence_entry = new_ssep;
-  } else if (kind == (an_il_entry_kind)iek_pragma) {
-    /* Pragma. */
-    ((a_pragma_ptr)entity_ptr)->source_sequence_entry = new_ssep;
   } else {
     /* See if there's a source sequence entry. */
     scp = source_corresp_for_il_entry(entity_ptr, kind);
     if (scp == NULL) {
-      /* No source correspondence, so no pointer back from the IL entry to
-         the source sequence entry. */
+      /* No source correspondence: Check for entities that point back to the
+         source sequence entry through an entity-specific pointer (the common
+         case of a_statement is handled above for performance reasons). */
+      if (kind == (an_il_entry_kind)iek_using_decl) {
+        /* Using-declaration. */
+        ((a_using_decl_ptr)entity_ptr)->source_sequence_entry = new_ssep;
+      } else if (kind == (an_il_entry_kind)iek_pragma) {
+        /* Pragma. */
+        ((a_pragma_ptr)entity_ptr)->source_sequence_entry = new_ssep;
+      } else {
+        /* No pointer back to the source sequence entry. */
+      }  /* if */
     } else {
       /* Declared entity (variable, routine, etc.). */
       if (scp->source_sequence_entry == NULL) {

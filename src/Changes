@@ -1,5 +1,12 @@
 Version 4.2
 
+6/18/10  [EDGcpfe/10734]
+Source sequence entry pointer for using-declaration entries
+
+The front end previously failed to set the "source_sequence_entry" pointer in
+a_using_decl entries.  This is now fixed.
+
+
 6/18/10  [EDGcpfe/10644]
 Spurious remark on checking of printf %ls specifier against const wide string
 

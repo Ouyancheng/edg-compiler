@@ -10216,7 +10216,7 @@ Generate code for a namespace "using" directive.
   a_namespace_ptr  nsp = (a_namespace_ptr)udp->entity.ptr;
 
   /* Advance past the source sequence entry for the "using" directive. */
-  adv_curr_source_sequence_entry();
+  check_for_and_take_source_seq_entry(udp->source_sequence_entry);
   /* Position the output file to the "using" position. */
   set_output_position(&udp->position);
   write_tok_str("using namespace ");
