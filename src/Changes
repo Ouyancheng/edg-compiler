@@ -2298,13 +2298,14 @@ operands).  For example:
 
 
 1/12/10  [EDGcpfe/10364]
-Abort in mangled_type_name_full when mangling unnamed template parameter
+Abort in mangled_type_name_full when mangling unnamed nested type in a
+class template
 
 In configurations where PROTOTYPE_INSTANTIATIONS_IN_IL and MANGLE_ALL_NAMES
-are both TRUE, the mangling of an unnamed class in a template parameter
+are both TRUE, the mangling of an unnamed type in a class template
 could cause an assertion failure (in mangled_type_name_full) when the IA-64
 ABI is used.  This occurs only in certain circumstances, for example when
-the template parameter is a namespace member.  For example:
+the class template is a namespace member.  For example:
 
   namespace N {
     template <typename T> struct A {
