@@ -1867,7 +1867,7 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
                  int (int, int, int, int, int, ...);
                So if we have less than five arguments, an error should be
                issued elsewhere. */
-            expect_error();
+            if (expr_error_should_be_issued()) expect_error();
           } else if (args2->next->next->next->next == NULL ||
                      args2->next->next->next->next->next != NULL) {
             /* Five arguments or more than six: Issue an error. */
@@ -1878,7 +1878,7 @@ arguments are invalid (and *op is replaced by an error operand in such cases).
             if (!is_real_floating_type(fparg->type) &&
                 !is_template_param_type(fparg->type)) {
               if (is_error_type(fparg->type)) {
-                expect_error();
+                if (expr_error_should_be_issued()) expect_error();
               } else {
                 expr_pos_error(ec_bad_final_builtin_fpclassify_arg,
                                &op->position);
@@ -2384,7 +2384,7 @@ that the final call needs to be cast to the indicated type.
       template_case = TRUE;
     } else if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
-      expect_error();
+      if (expr_error_should_be_issued()) expect_error();
       err = TRUE;
     } else if (!is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
@@ -18114,6 +18114,11 @@ that case.
             pos_ty2_error(ec_incompatible_operands, &colon_position,
                           operand_2.type, operand_3.type);
           }  /* if */
+          err = TRUE;
+        } else if (!C_mode()) {
+          check_assertion(is_or_contains_error_type(operand_2.type) ||
+                          is_or_contains_error_type(operand_3.type));
+          if (expr_error_should_be_issued()) expect_error();
           err = TRUE;
         }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
