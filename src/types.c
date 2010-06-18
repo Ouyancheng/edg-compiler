@@ -3116,7 +3116,7 @@ object or an rvalue that is a pointer to an object.
     }  /* switch */
   } /* if */
   if (!tblock->terminate) {
-   if (complete_object_type != NULL) {
+    if (complete_object_type != NULL) {
       /* We've determined a complete object type at this level. */
       tblock->complete_object_type = complete_object_type;
       tblock->terminate = TRUE;

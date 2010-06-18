@@ -2846,12 +2846,18 @@ Tips for proper use of the follow_addressing_path mode:
         case eok_ref_cast:
         case eok_lvalue_adjust:
           /* eok_ref_cast and eok_lvalue_adjust operations are used to adjust
-             the type of an lvalue. */
-          traverse_expr(operand1, tblock);
+             the type of an lvalue.  Keep going only if the type change is
+             trivial. */
+          { a_type_ptr target_type = f_skip_typerefs(expr->type);
+            a_type_ptr source_type = f_skip_typerefs(operand1->type);
+            if (same_entities(target_type, source_type)) {
+              traverse_expr(operand1, tblock);
+            }  /* if */
+          }
           break;
         case eok_class_rvalue_adjust:
           /* eok_class_rvalue_adjust operations are used to adjust the
-             cv-qualification of an class rvalue.  We wouldn't get here
+             cv-qualification of a class rvalue.  We wouldn't get here
              unless follow_class_rvalue_addressing_path is TRUE. */
           traverse_expr(operand1, tblock);
           break;
