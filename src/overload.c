@@ -7682,15 +7682,15 @@ present).
 
 
 static a_type_ptr next_printf_scanf_arg_type(
-                                       a_boolean           is_scanf,
-                                       char                **fmt_string_ptr,
-                                       a_printf_scan_state *pss_ptr,
-                                       a_boolean           *indirect,
-                                       a_boolean           *weakly_typed,
-                                       a_boolean           *any_signedness,
-                                       a_type_ptr          *alt_type,
-                                       int                 *value_pos,
-                                       int                 *next_value_pos)
+                                 a_boolean           is_scanf,
+                                 char                **fmt_string_ptr,
+                                 a_printf_scan_state *pss_ptr,
+                                 a_boolean           *indirect,
+                                 a_boolean           *weakly_typed,
+                                 a_boolean           *weak_pointer_to_integral,
+                                 a_type_ptr          *alt_type,
+                                 int                 *value_pos,
+                                 int                 *next_value_pos)
 /*
 Return the type that the next argument to a printf or scanf call should have,
 by finding the next thing in the format string that consumes an argument.
@@ -7702,13 +7702,12 @@ If there is an error in the format string, set *fmt_string_ptr to NULL.
 *indirect is returned TRUE if the type returned has an added pointer level
 relative to the type indicated in the formatting string, e.g., for scanf.
 *weakly_typed is returned TRUE if the formatting specifier is one that is
-weakly typed, e.g. "%x".  *any_signedness is returned TRUE if the
-required type is an integral type, and any other integral type that
-differs only in signedness is also acceptable (or a pointer to such
-a type, if the returned type is a pointer).  *alt_type is usually
-returned NULL, but if some alternate type is also valid for the next
-argument (i.e., in addition to the type returned), *alt_type is set
-to the alternate type.
+weakly typed, e.g. "%x".  *weak_pointer_to_integral is returned TRUE if the
+required type is a pointer to an integral type, and any other pointer to
+an integral type that differs only in signedness or cv-qualification
+is also acceptable.  *alt_type is usually returned NULL, but if some
+alternate type is also valid for the next argument (i.e., in addition
+to the type returned), *alt_type is set to the alternate type.
 
 See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 
@@ -7739,7 +7738,7 @@ to format (whose type will be returned by a subsequent call to this routine).
   a_boolean           suppress_assignment = FALSE;
 
   *weakly_typed = FALSE;
-  *any_signedness = FALSE;
+  *weak_pointer_to_integral = FALSE;
   *indirect = FALSE;
   *alt_type = NULL;
   *value_pos = *next_value_pos = 0;
@@ -7985,9 +7984,9 @@ after_precision:;
           required_type = eff_wchar_t_type();
         } else {
           required_type = integer_type(plain_char_int_kind);
-          *any_signedness = TRUE;
         }  /* if */
         add_pointer = TRUE;
+        *weak_pointer_to_integral = TRUE;
         /* *indirect is not set on purpose (it's not wanted for printf, and
            it's set by default for scanf). */
         break;
@@ -8078,7 +8077,7 @@ static void check_printf_scanf_arg(an_operand  *argument_operand,
                                    a_type_ptr  alt_type,
                                    a_boolean   indirect,
                                    a_boolean   weakly_typed,
-                                   a_boolean   any_signedness)
+                                   a_boolean   weak_pointer_to_integral)
 /*
 Check an argument of a printf- or scanf-type function call to see if its
 type matches the corresponding formatting specifier in the format string.
@@ -8088,11 +8087,11 @@ some cases an alternative type alt_type may also be valid (otherwise,
 alt_type is NULL).  indirect is TRUE if an extra level of indirection was
 applied to the required type (so a value can be returned).  weakly_typed
 is TRUE if the format specifier does not fully constrain the type (e.g.,
-"%x", "%o", and "%p").  any_signedness is TRUE if the required type
-can match any differently-signed version of the same integral type
-(or a pointer thereto, if the required type is a pointer; this is used,
-for example, to allow a pointer to any variety of char for the "%s"
-specifier).
+"%x", "%o", and "%p").  weak_pointer_to_integral is TRUE if the required
+type is a pointer to an integral type that can match any pointer to
+an integral type that differs only in signedness or cv-qualification
+(this is used, for example, to allow a pointer to any variety of char
+for the "%s" specifier).
 */
 {
   a_type_ptr eff_required_type, eff_argument_type;
@@ -8103,7 +8102,7 @@ specifier).
   eff_required_type = required_type;
   eff_argument_type = argument_operand->type;
   if (indirect ||
-      (any_signedness && is_pointer_type(eff_required_type))) {
+      (weak_pointer_to_integral && is_pointer_type(eff_required_type))) {
     /* In cases where an extra indirection is added to the required
        type so that a value can be returned from the routine, remove
        the extra level of pointer type.  That allows matching things
@@ -8134,7 +8133,7 @@ specifier).
               is_template_param_type(type_pointed_to(eff_argument_type)) &&
               is_pointer_type(eff_required_type))) {
     /* A template parameter type could match anything. */
-  } else if ((weakly_typed || any_signedness) &&
+  } else if ((weakly_typed || weak_pointer_to_integral) &&
              is_integral_or_enum_type(eff_required_type) &&
              is_integral_or_enum_type(eff_argument_type) &&
              integral_types_the_same_except_for_signedness(
@@ -8516,7 +8515,7 @@ arguments).
   char                 *fmt_string = arg_block->fmt_string;
   an_arg_operand_ptr   arg = arg_block->printf_scanf_args;
   a_type_ptr           type = NULL, alt_type = NULL;
-  a_boolean            indirect, weakly_typed, any_signedness;
+  a_boolean            indirect, weakly_typed, weak_pointer_to_integral;
   a_printf_scan_state  pss = pss_new_specifier;
   a_boolean            is_scanf = (arg_block->arg_list_kind ==
                                                  (a_pragma_kind)pk_scanf_args);
@@ -8528,7 +8527,7 @@ arguments).
        argument. */
     type = next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss,
                                       &indirect, &weakly_typed,
-                                      &any_signedness, &alt_type,
+                                      &weak_pointer_to_integral, &alt_type,
                                       &value_pos, &next_value_pos);
     if (saved_value_pos != 0) {
       /* A previous call to next_printf_scanf_arg_type yielded positional
@@ -8590,7 +8589,7 @@ arguments).
       break;
     }  /* if */
     check_printf_scanf_arg(&arg->operand, type, alt_type,
-                           indirect, weakly_typed, any_signedness);
+                           indirect, weakly_typed, weak_pointer_to_integral);
     arg = arg->next;
   }  /* while */
 }  /* check_printf_scanf_arg_list */

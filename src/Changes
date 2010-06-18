@@ -1,5 +1,17 @@
 Version 4.2
 
+6/18/10  [EDGcpfe/10644]
+Spurious remark on checking of printf %ls specifier against const wide string
+
+The checking of printf/scanf formatting specifiers generated a spurious
+remark when matching up a %ls (wide string) formatting specifier with
+an argument that is a const wide string.  Now fixed.
+
+  #pragma __printf_args
+  void printa(char const *s, ...);
+  void faw(void) { printa("%ls", L"a"); }   // Formerly produced remark
+
+
 6/17/10  [EDGcpfe/10756]
 Lifetime of call-result temporary bound to reference not extended
 
