@@ -773,9 +773,11 @@ above, NULL is also returned in this case).
     /* Add the final null. */
     add_to_mangled_name('\0', mctl);
     if (mctl->num_leftover_spaces) {
-      /* This string contains some leftover spaces, the result of saving extra
-         room for potentially large leading length indications.  Remove those
-         spaces now. */
+      /* This string contains some leftover spaces, typically the result of
+         saving extra room for potentially large leading length indications.
+         Remove those spaces now.  Note that this is primarily used in Cfront
+         ABI manglings, but is also used in the IA-64 ABI for cases where an
+         unneeded mangling was "erased" (by overwriting it with spaces). */
       char *src = mangling_text_buffer->buffer;
       char *dest = src;
       char ch;
@@ -3875,10 +3877,23 @@ part of a template-dependent expression.
       break;
     case enk_routine:
 #if IA64_ABI
-      mangled_address_of_entity(&expr->variant.routine->source_corresp,
-                                (an_il_entry_kind)iek_routine,
-                                (a_routine_info_block *)NULL,
-                                mctl);
+#if ABI_COMPATIBILITY_VERSION >= 402
+      if (expr->is_lvalue) {
+        mangled_entity_reference(&expr->variant.routine->source_corresp,
+                                 (an_il_entry_kind)iek_routine,
+                                 (a_routine_info_block *)NULL,
+                                 mctl);
+      } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+      /* Do not insert code here. */
+      {
+        /* Add an "&" on to an rvalue reference to a routine (prior to release
+           4.2, this was mistakenly added to all references). */
+        mangled_address_of_entity(&expr->variant.routine->source_corresp,
+                                  (an_il_entry_kind)iek_routine,
+                                  (a_routine_info_block *)NULL,
+                                  mctl);
+      }  /* if */
 #else /* !IA64_ABI */
       mangled_routine_name(expr->variant.routine, mctl);
 #endif /* IA64_ABI */
@@ -4720,6 +4735,7 @@ literals.
 #if IA64_ABI
       a_constant_ptr con;
       a_boolean      is_expression = FALSE;
+      char           *save_location;
 #endif /* IA64_ABI */
       check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                            "mangled_template_arguments:",
@@ -4745,6 +4761,12 @@ literals.
         is_expression = TRUE;
         /* Mark the start of the expression. */
         add_to_mangled_name('X', mctl);
+        /* It's difficult to know ahead of time whether the constant can
+           be mangled using the <expr-primary> production or not.  Assume that
+           it can't (the usual case), and keep a pointer to the 'X' that was
+           just added in case we were wrong. */
+        save_location = &mangling_text_buffer->buffer[
+                                                 mangling_text_buffer->size-1];
       }  /* if */
 #endif /* IA64_ABI */
       mangled_encoding_for_constant(tap->variant.constant,
@@ -4753,8 +4775,25 @@ literals.
                                     mctl);
 #if IA64_ABI
       if (is_expression) {
-        /* Mark the end of the expression. */
-        add_to_mangled_name('E', mctl);
+        /* If the constant was mangled using an <expr-primary> production
+           in the grammar (i.e., mangled name of the constant starts with
+           an L), then there is no need to bracket the expression with X ... E.
+           In that case, remove the X that had been put there, otherwise
+           close the expression with an E. */
+        check_assertion(*save_location == 'X');
+        if (save_location[1] != 'L' ||
+            (emulate_gnu_abi_bugs && gnu_abi_version < 30400)) {
+          /* In some cases, when emulating older GNU bugs, the extra X ... E
+             is required for compatibility. */
+          /* Mark the end of the expression. */
+          add_to_mangled_name('E', mctl);
+        } else {
+          /* Overwrite the X with a space (which will be removed at the end
+             of mangling for this entity). */
+          *save_location = ' ';
+          mctl->num_leftover_spaces++;
+          mctl->length--;
+        }  /* if */
       }  /* if */
 #endif /* IA64_ABI */
     }  /* if */

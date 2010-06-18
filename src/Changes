@@ -1,5 +1,27 @@
 Version 4.2
 
+6/18/10  [EDGcpfe/10758]
+Incorrect IA-64 ABI mangling for lvalue routine used as a nontype template
+argument
+
+In cases where an lvalue routine is used as a nontype template argument,
+an extra "ad" (representing the "address of" operator) had mistakenly been
+added to the IA-64 mangled name of the template.  Note that by removing the
+extra mangled operator, the template argument no longer needs to be mangled
+as an expression, so the "X ... E" <template-arg> production is no longer
+used.  This has now been fixed (the previous behavior is retained when
+ABI_COMPATIBILITY_VERSION < 402).  For example:
+
+  template <class T> struct A {
+    template <void (*PF)()> struct B {};
+  };
+  void ff();
+  template<class T> typename A<T>::template B<ff> f(T);
+  int main() {
+    f(1);   // was: _Z1fIiEN1AIT_E1BIXadL_Z2ffvEEEES1_
+            // now: _Z1fIiEN1AIT_E1BIL_Z2ffvEEES1_
+  }
+
 6/18/10  [EDGcpfe/10734]
 Source sequence entry pointer for using-declaration entries
 
