@@ -3867,7 +3867,7 @@ return_types_are_override_compatible.
                                             source_pos);
   }  /* if */
   check_deleted_function_overrides(overrider_sym, overridden_sym, source_pos);
-  if (rp->sealed) {
+  if (rp->final) {
     /* Sealed/final virtual functions cannot be overridden. */
     a_boolean  use_final_diag =
               find_attribute(ak_final, rp->source_corresp.attributes) != NULL;
@@ -4141,9 +4141,9 @@ done:
   } else if (func_info->sealed || func_info->abstract) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (rout->sealed) {
+  } else if (rout->final) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
-    rout->sealed = FALSE;
+    rout->final = FALSE;
   }  /* if */
   db_exit();
   return rout->is_virtual;
@@ -5703,13 +5703,16 @@ issue an error and return FALSE.
                                   /*adjust_template_base=*/TRUE,
                                   &error_position);
       }  /* if */
-      if (base_class_type->variant.class_struct_union.sealed) {
-        /* Sealed classes cannot be derived from. */
-        error(ec_sealed_base_class);
-        okay = FALSE;
-      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (base_class_type->variant.class_struct_union.final) {
+      /* Final/sealed classes cannot be derived from. */
+      an_attribute_ptr  final_ap =
+         find_attribute(ak_final, base_class_type->source_corresp.attributes);
+      pos_error(final_ap != NULL ? ec_final_base_class : ec_sealed_base_class,
+                &pos_curr_token);
+      okay = FALSE;
+    }  /* if */
     if (is_incomplete_type(base_class_type)) {
       if ((gpp_mode || microsoft_mode) &&
           base_class_type->variant.class_struct_union.extra_info->assoc_scope
@@ -8932,7 +8935,7 @@ implicitly declared member functions.
       if (microsoft_version >= 1400) {
         /* Record any function modifiers (they can only appear in the class-
            scope declaration). */
-        rtn->sealed = func_info->sealed;
+        rtn->final = func_info->sealed;
 #if BACK_END_IS_CP_GEN_BE
         rtn->abstract = func_info->abstract;
         rtn->override = func_info->override;
@@ -9710,13 +9713,13 @@ and it is legal for virtual member functions only.
   if (!pure_specifier_allowed && !decl_info->invalid_virtual_specifier) {
     pos_error(ec_pure_specifier_on_nonvirtual_function, &pos_curr_token);
   } else if (pure_specifier_allowed &&
-             (rout->sealed || class_type->variant.class_struct_union.final)) {
+             (rout->final || class_type->variant.class_struct_union.final)) {
     /* Making a pure virtual member sealed/final is useless, but while
        Microsoft makes the "sealed" case an error, the C++0x standard does not
        prohibit the "[[final]]" case. */
     an_attribute_ptr  final_ap =
                     find_attribute(ak_final, rout->source_corresp.attributes);
-    if (!rout->sealed) {
+    if (!rout->final) {
       check_assertion(class_type->variant.class_struct_union.final);
       pos_warning(ec_pure_final_virtual, &pos_curr_token);
     } else if (final_ap == NULL) {

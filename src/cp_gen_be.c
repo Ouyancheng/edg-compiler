@@ -5703,7 +5703,7 @@ is the one associated with the definition of the class.
                                      .defined_with_abstract_class_modifier) {
       write_tok_str("abstract ");
     }  /* if */
-    if (type->variant.class_struct_union.sealed) {
+    if (type->variant.class_struct_union.final) {
       write_tok_str("sealed ");
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10364,7 +10364,7 @@ is generated.
   if (rout->override) {
     write_tok_str(" override");
   }  /* if */
-  if (rout->sealed) {
+  if (rout->final) {
     write_tok_str(" sealed");
   }  /* if */
 }  /* gen_microsoft_function_modifiers */

@@ -1,5 +1,24 @@
 Version 4.2
 
+6/18/10  [EDGcpfe/10585]
+C++0x attribute "final" (IL CHANGE)
+
+When the "final" attribute was originally added to the working paper for the
+next C++ standard ("C++0x"), its use on a class type indicated that all
+virtual members of that class type were implicitly "final", but the class
+could still be derived from.  Later, the working paper was revised such that
+the "final" attribute now means that a class cannot be used as a base class
+type: The front end now reflects this.  For example:
+
+  struct [[final]] B {};
+  struct D: B {};  // Error: B is a final class.
+
+The new meaning of "final" for class types is now identical to that of the
+Microsoft-specific "sealed" modifier for class types.  Therefore, the flag
+"sealed" in a_type has been eliminated, and the "sealed" modifier is now
+instead reflected in the "final" flag.  (This is an IL CHANGE.)
+
+
 6/18/10  [EDGcpfe/10758]
 Incorrect IA-64 ABI mangling for lvalue routine used as a nontype template
 argument

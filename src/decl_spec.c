@@ -3660,7 +3660,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
   if (is_sealed) {
-    class_type->variant.class_struct_union.sealed = TRUE;
+    class_type->variant.class_struct_union.final = TRUE;
   }  /* if */
   if (dps->ms_attributes != NULL && !is_local_class) {
     if (!is_class_definition && curr_token != tok_semicolon) {

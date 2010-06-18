@@ -1459,7 +1459,6 @@ to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.class_struct_union.is_interface = FALSE;
       pte->variant.class_struct_union.is_interface_like = FALSE;
-      pte->variant.class_struct_union.sealed = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       pte->variant.class_struct_union.
                  defined_with_abstract_class_modifier = FALSE;
@@ -2232,7 +2231,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_virtual                  = FALSE;
   rp->overrides_base_member       = FALSE;
   rp->pure_virtual                = FALSE;
-  rp->sealed                      = FALSE;
+  rp->final                       = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->interface_slot              = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

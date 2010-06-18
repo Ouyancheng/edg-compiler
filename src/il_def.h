@@ -6935,11 +6935,6 @@ typedef struct a_type {
 			   the IUnknown and IDispatch types, as well as certain
 			   classes (directly or indirectly) derived from any of
 			   those two types. */
-      a_bit_field
-		sealed:1;
-			/* TRUE if this class was defined with the context-
-			   sensitive keyword "sealed" (indicating that the
-			   class cannot be used as a base class). */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		defined_with_abstract_class_modifier:1;
@@ -6950,12 +6945,10 @@ typedef struct a_type {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		final:1;
-			/* TRUE if this class was defined with the attribute
-			   "final", which means that every one of its virtual
-			   member functions is "final" (note that this is
-			   different from the "sealed" keyword applied to a
-			   class, even though "sealed" and "final" mean the
-			   same thing when applied to a member function). */
+			/* TRUE if this class was defined with the C++0x
+			   attribute "final" or the Microsoft-mode context-
+			   sensitive keyword "sealed".  Such a class type
+			   cannot be used as a base class. */
       a_bit_field
                 any_const_member:1;
                         /* TRUE if any member of the class, struct, or union
@@ -10834,7 +10827,7 @@ typedef struct a_routine {
 			/* TRUE for virtual member functions declared with a
 			   "pure" specifier (C++ only).  TRUE only if
 			   is_virtual is also TRUE. */
-  a_bit_field	sealed:1;
+  a_bit_field	final:1;
 			/* TRUE for a virtual member function that cannot be
 			   overridden in a derived class.  (Declared using the
 			   context-sensitive keyword "sealed" in some Microsoft

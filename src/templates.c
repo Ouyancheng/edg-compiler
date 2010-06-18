@@ -2895,8 +2895,9 @@ loading of classes.
                      proto_type->variant.class_struct_union
                                         .defined_with_abstract_class_modifier;
 #endif /* BACK_END_IS_CP_GEN_BE */
-        class_type->variant.class_struct_union.sealed =
-                                proto_type->variant.class_struct_union.sealed;
+        if (proto_type->variant.class_struct_union.final) {
+          class_type->variant.class_struct_union.final = TRUE;
+        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
@@ -11473,7 +11474,7 @@ definition (as opposed to a mere declaration).
 #endif /* BACK_END_IS_CP_GEN_BE */
     }  /* if */
     if (is_sealed) {
-      prototype_type->variant.class_struct_union.sealed = TRUE;
+      prototype_type->variant.class_struct_union.final = TRUE;
     }  /* if */
   }  /* if */
   /* Update any instances that have already been created. */

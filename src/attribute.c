@@ -3637,7 +3637,7 @@ attribute to it and return the entity.
                    &ap->position, ap->name);
       make_attr_unrecognized(ap);
     } else {
-      rp->sealed = TRUE;
+      rp->final = TRUE;
     }  /* if */
   } else if (entity_kind == iek_type) {
     a_type_ptr  tp = (a_type_ptr)entity;

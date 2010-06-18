@@ -1719,9 +1719,6 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_interface_like) {
         disp_boolean("is_interface_like", TRUE);
       }  /* if */
-      if (ptr->variant.class_struct_union.sealed) {
-        disp_boolean("sealed", TRUE);
-      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.class_struct_union
                                       .defined_with_abstract_class_modifier) {
@@ -2686,8 +2683,8 @@ Display the indicated routine.
   if (ptr->pure_virtual) {
     disp_boolean("pure_virtual", TRUE);
   }  /* if */
-  if (ptr->sealed) {
-    disp_boolean("sealed", TRUE);
+  if (ptr->final) {
+    disp_boolean("final", TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->interface_slot) {
