@@ -4771,16 +4771,7 @@ Return TRUE if the constants should be considered to match.
 
 
 /* Forward declaration. */
-static a_boolean f_template_arg_is_dependent(a_template_arg_ptr tap);
-
-
-/*
-Interface to f_template_arg_is_dependent that reuses a previously
-computed value when possible.
-*/
-#define template_arg_is_dependent(tap)					\
-((tap)->dependency_checked ? (tap)->is_dependent			\
-                           : f_template_arg_is_dependent(tap));
+static a_boolean template_arg_is_dependent(a_template_arg_ptr tap);
 
 
 a_boolean equiv_template_arg_lists(
@@ -4923,7 +4914,7 @@ the same constant.
 }  /* equiv_template_arg_lists */
 
 
-static a_boolean f_template_arg_is_dependent(a_template_arg_ptr tap)
+static a_boolean template_arg_is_dependent(a_template_arg_ptr tap)
 /*
 Return TRUE if the template argument entry pointed to by tap is dependent.
 */
@@ -4972,10 +4963,8 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
                    is_or_contains_template_param(sym_parent_class(templ_sym));
     }  /* if */
   }  /* if */
-  tap->is_dependent = template_param_found;
-  tap->dependency_checked = TRUE;
   return template_param_found;
-}  /* f_template_arg_is_dependent */
+}  /* template_arg_is_dependent */
 
 
 a_boolean template_arg_list_is_dependent(a_template_arg_ptr	tap)
@@ -4991,6 +4980,65 @@ Return TRUE if the template argument list pointed to by tap is dependent.
   }  /* for */
   return result;
 }  /* template_arg_list_is_dependent */
+
+
+static a_boolean template_arg_involves_error_entity(a_template_arg_ptr tap)
+/*
+Return TRUE if the template argument tap in some way involves the use of
+an error entity.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_type_templ_arg(tap)) {
+    result = is_or_contains_error_type(tap->variant.type);
+  } else if (is_nontype_templ_arg(tap)) {
+    if (tap->arg_operand != NULL) {
+      /* The constant is still in arg_operand form. */
+      result = arg_operand_involves_error_entity(tap->arg_operand);
+    } else if (tap->is_array_bound_of_unknown_type) {
+      /* An array bound specified as a integral constant. */
+    } else {
+      /* A normal nontype parameter represented as a constant. */
+      a_constant_ptr	cp = tap->variant.constant;
+      check_assertion(cp != NULL);
+      result = is_error_constant(cp);
+      if (!result) {
+        /* Check if the type depends on a template parameter. */
+        result = is_or_contains_error_type(cp->type);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* A template template parameter. */
+    a_template_symbol_supplement_ptr	tssp;
+    a_template_ptr			templ_ptr;
+    a_symbol_ptr			templ_sym;
+    templ_ptr = tap->variant.templ.ptr;
+    /* Look at the argument template, not the original symbol (which,
+       unlike other template parameters, always points to the prototype
+       argument symbol). */
+    templ_sym = symbol_for(templ_ptr);
+    tssp = templ_sym->variant.template_info;
+    result = tssp->is_error;
+  }  /* if */
+  return result;
+}  /* template_arg_involves_error_entity */
+
+
+a_boolean template_arg_list_involves_error_entity(a_template_arg_ptr	tap)
+/*
+Return TRUE if the template argument list pointed to by tap involves an
+error entity.
+*/
+{
+  a_boolean	result = FALSE;
+
+  for (; tap != NULL; tap = tap->next) {
+    result = template_arg_involves_error_entity(tap);
+    if (result) break;
+  }  /* for */
+  return result;
+}  /* template_arg_list_involves_error_entity */
 
 
 static void strip_types_from_template_arg_list(a_template_arg_ptr tap)
@@ -5107,14 +5155,14 @@ entry pointer.  Return TRUE if the key matches the entry.
 static a_symbol_ptr *find_class_instantiation(
 		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
-		a_template_arg_ptr			template_arg_list)
+		a_template_arg_ptr			template_arg_list,
+		a_boolean				create)
 /*
 Find an existing instantiation of the class or alias template specified by
 template_sym and tssp with the argument list specified by template_arg_list.
-If no instantiation is found an entry is created in the hash table that can
-be filled in later.  A pointer to the symbol entry field of the hash table
-is returned.  This will either point to the symbol of the instantiation,
-or to the NULL pointer to be filled in when the instance is created.
+If no instantiation is found and create is TRUE, an entry is created in the
+hash table that can be filled in later.  A pointer to the symbol entry field
+of the hash table is returned, or NULL is no entry is found.
 */
 {
   a_symbol_ptr		*sym_in_table;
@@ -5133,23 +5181,28 @@ or to the NULL pointer to be filled in when the instance is created.
   }  /* if */
   sym_in_table = (a_symbol_ptr*)hash_find(
                          tssp->variant.class_template.instantiation_hash_table,
-                         (a_void_ptr)&key, /*create=*/TRUE);
+                         (a_void_ptr)&key, create);
   return sym_in_table;
 }  /* find_class_instantiation */
 
 
 static void add_class_instantiation(
+		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
 		a_symbol_ptr				instance_sym,
-		a_symbol_ptr				*hash_table_sym)
+		a_template_arg_ptr			template_arg_list)
 /*
-Add the instantiation specified by instance_sym to the instantiation list
-and hash table of the template specified by tssp.  hash_table_sym points
-to the hash table entry that is to be updated when a new instance is created.
+Add the instantiation specified by instance_sym and template_arg_list to the
+instantiation list and hash table of the template specified by template_sym
+and tssp.
 */
 {
   a_symbol_list_entry_ptr	slep;
+  a_symbol_ptr			*hash_table_sym;
 
+  hash_table_sym = find_class_instantiation(template_sym, tssp,
+                                            template_arg_list,
+                                            /*create=*/TRUE);
   slep = alloc_symbol_list_entry();
   slep->symbol = instance_sym;
   slep->next = tssp->variant.class_template.instantiations;
@@ -5201,17 +5254,15 @@ hashes template argument lists works properly.
 
 static a_symbol_ptr create_partial_instantiation_of_class(
 				a_symbol_ptr		class_template_sym,
-				a_template_arg_ptr	template_arg_list,
-				a_symbol_ptr		*hash_table_sym)
+				a_template_arg_ptr	template_arg_list)
 /*
 Do a partial instantiation of class_template_sym based on the template
-arguments specified by template_arg_list.  hash_table_sym points to the
-hash table entry that is to be updated when a new instance is created.
-Return the symbol for the class that was created.  The partial
-instantiation is usually an incomplete type that can be completed
-later by doing a full instantiation, but if the template argument list
-contains nonreal types, or if the template itself is nonreal, a
-complete nonreal type is returned.
+arguments specified by template_arg_list.  Return the symbol for the
+class that was created.  The partial instantiation is usually an
+incomplete type that can be completed later by doing a full
+instantiation, but if the template argument list contains nonreal
+types, or if the template itself is nonreal, a complete nonreal type
+is returned.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -5221,6 +5272,7 @@ complete nonreal type is returned.
   a_symbol_ptr				sym;
   a_type_ptr				class_type;
   a_class_type_supplement_ptr		ctsp;
+  a_boolean				add_to_instantiation_list = TRUE;
 
   tssp = class_template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
@@ -5236,8 +5288,6 @@ complete nonreal type is returned.
   check_new_class_instantiation(primary_template_sym, primary_tssp,
                                 template_arg_list);
 #endif /* EXPENSIVE_CHECKING */
-  /* Add the instantiation to the instantiations list for the template. */
-  add_class_instantiation(primary_tssp, sym, hash_table_sym);
   /* Now create a new type entry. */
   class_type = alloc_type(tssp->variant.class_template.type_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5272,6 +5322,19 @@ complete nonreal type is returned.
      through subsequent processing without causing spurious errors. */
   if (template_arg_list_is_dependent(template_arg_list)) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+  } else if (is_template_dependent_context() &&
+             template_arg_list_involves_error_entity(template_arg_list)) {
+    /* If the template argument list contains error entities and we are in
+       a dependent context, the class is created as a nonreal class.  It
+       is not added to the instantiation list because we don't want such
+       classes to be reused in non-dependent contexts. */
+    class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+    add_to_instantiation_list = FALSE;
+  }  /* if */
+  if (add_to_instantiation_list) {
+    /* Add the instantiation to the instantiations list for the template. */
+    add_class_instantiation(class_template_sym, primary_tssp, sym,
+                            template_arg_list);
   }  /* if */
   /* Record the argument list in the type.  It should be available in the
      IL at least for name generation and possibly for debuggers, too.  Note,
@@ -5410,8 +5473,7 @@ complete nonreal type is returned.
 static a_symbol_ptr instantiate_template_alias(
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	template_arg_list,
-				a_symbol_ptr		existing_instance_sym,
-				a_symbol_ptr		*hash_table_sym)
+				a_symbol_ptr		existing_instance_sym)
 /*
 Instantiate the alias template template_sym using the template argument
 list template_arg_list.  Return the symbol for the type that was created.
@@ -5419,8 +5481,7 @@ If the alias is indirectly used in the type to which the alias refers an
 error should be issued.  existing_instance_sym will point to the template
 alias symbol that is in the process of being instantiated in this case.
 When existing_instance_sym is non-NULL an error is issued here and an
-error type is used.  hash_table_sym points to the hash table entry that
-is to be updated when a new instance is created.
+error type is used.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -5450,7 +5511,8 @@ is to be updated when a new instance is created.
     check_new_class_instantiation(template_sym, tssp, template_arg_list);
 #endif /* EXPENSIVE_CHECKING */
     /* Add the instantiation to the instantiations list for the template. */
-    add_class_instantiation(tssp, instance_sym, hash_table_sym);
+    add_class_instantiation(template_sym, tssp, instance_sym,
+                            template_arg_list);
     /* Create the type entry for the alias. */
     type = alloc_type((a_type_kind)tk_typeref);
     type->variant.typeref.is_alias = TRUE;
@@ -5699,7 +5761,6 @@ prototype instantiation is considered as a potential match.
 */
 {
   a_symbol_ptr                      sym;
-  a_symbol_ptr                      *hash_table_sym = NULL;
   a_symbol_ptr 			    prototype_sym;
   a_template_arg_ptr                old_list;
   a_template_symbol_supplement_ptr  tssp;
@@ -5768,9 +5829,13 @@ prototype instantiation is considered as a potential match.
     }  /* if */
   }  /* if */
   if (sym == NULL) {
+    a_symbol_ptr	*hash_table_sym = NULL;
     /* Look for a previously created instantiation. */
-    hash_table_sym = find_class_instantiation(template_sym, tssp, *new_list);
-    sym = *hash_table_sym;
+    hash_table_sym = find_class_instantiation(template_sym, tssp, *new_list,
+                                              /*create=*/FALSE);
+    /* hash_table_sym will be NULL if no entry is found, otherwise it will
+       point to the symbol in the hash table. */
+    sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
 #if DEBUG
     if (sym != NULL && debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
@@ -5783,11 +5848,9 @@ prototype instantiation is considered as a potential match.
        instantiation routine if the type is already in the process of being
        instantiated (as determined by the NULL typeref type pointer). */
     if (is_alias_template) {
-      sym = instantiate_template_alias(template_sym, *new_list, sym,
-                                       hash_table_sym);
+      sym = instantiate_template_alias(template_sym, *new_list, sym);
     } else {
-      sym = create_partial_instantiation_of_class(template_sym, *new_list,
-                                                  hash_table_sym);
+      sym = create_partial_instantiation_of_class(template_sym, *new_list);
     }  /* if */
   } else {
     /* We are reusing a class type that already exists, so *new_list will not
@@ -9001,6 +9064,43 @@ the error type is a member, or is NULL for a nonmember.
 }  /* create_error_routine_type */
 
 
+static a_symbol_ptr create_error_routine(a_symbol_ptr	template_sym,
+					 a_type_ptr	parent_class)
+/*
+Create an error routine based on the routine type of template_sym and
+parent_class.  Return a symbol pointing to that routine.  See
+create_error_routine_type for more information about the type of routine
+created.
+*/
+{
+  a_symbol_ptr			sym;
+  a_routine_ptr			rout;
+  a_routine_ptr			templ_rout;
+  a_memory_region_number	region_to_switch_back_to;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  templ_rout = template_sym->variant.template_info->variant.function.routine;
+  rout = alloc_routine();
+  rout->type = create_error_routine_type(templ_rout, parent_class);
+  rout->special_kind = templ_rout->special_kind;
+  if (rout->special_kind == (a_special_function_kind)sfk_operator) {
+    rout->variant.opname_kind = templ_rout->variant.opname_kind;
+  }  /* if */
+  sym = alloc_symbol(parent_class == NULL ? (a_symbol_kind)sk_routine
+                                          : (a_symbol_kind)sk_member_function,
+                     template_sym->header,
+                     &null_source_position);
+  sym->variant.routine.ptr = rout;
+  sym->is_error = TRUE;
+  set_source_corresp(&rout->source_corresp, sym);
+  if (parent_class != NULL) {
+    set_class_membership(sym, &rout->source_corresp, parent_class);
+  }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
+  return sym;
+}  /* create_error_routine */
+
+
 static void check_for_invalid_instantiation(
 				a_type_ptr		*type,
 				a_routine_ptr		templ_rout,
@@ -10886,6 +10986,7 @@ structure.
   a_template_symbol_supplement_ptr  tssp;
   a_template_instance_ptr           tip, prev_tip;
   a_template_arg_ptr		    tap = *new_list;
+  a_boolean			    is_error_routine = FALSE;
 
   db_enter(3, "find_template_function");
   templ_sym = fundamental_symbol_of(templ_sym);
@@ -10964,8 +11065,20 @@ structure.
        function instantiation entry, and linking all these appropriately.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
-    sym = make_template_function(templ_sym, *new_list,
-                                 /*in_class_specialization=*/FALSE);
+    if (template_arg_involves_error_entity(*new_list)) {
+      /* If the argument list contains an error entity, don't do the partial
+         instantiation of the template.  Instead, create an error routine
+         that can be used in place of the routine that would normally be
+         returned. */
+      is_error_routine = TRUE;
+      sym = create_error_routine(templ_sym, 
+                                 templ_sym->is_class_member
+                                             ? sym_parent_class(templ_sym)
+                                             : NULL);
+    } else {
+      sym = make_template_function(templ_sym, *new_list,
+                                   /*in_class_specialization=*/FALSE);
+    }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "created: ", 2);
@@ -10977,8 +11090,10 @@ structure.
   }  /* if */
   /* Update the flags that indicate whether any explicitly specified template
      arguments were used. */
-  update_template_arg_usage_info(sym, *new_list, explicit_arg_list_present);
-  if (tip != NULL) {
+  if (!is_error_routine) {
+    update_template_arg_usage_info(sym, *new_list, explicit_arg_list_present);
+  }  /* if */
+  if (tip != NULL || is_error_routine) {
     /* We are reusing a template function that already exists, so *new_list
        will not be used.  Return it to the available list for reuse. */
     free_template_arg_list(*new_list);

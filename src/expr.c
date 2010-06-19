@@ -26308,6 +26308,17 @@ entries with the field arg_operand pointing to an arg_operand entry.
 }  /* arg_operand_contains_template_param */
 
 
+a_boolean arg_operand_involves_error_entity(an_arg_operand_ptr arg_operand)
+/*
+Return TRUE if the given arg_operand makes use of an error type or constant.
+*/
+{
+  a_boolean      contains_template_param = FALSE;
+
+  return contains_template_param;
+}  /* arg_operand_involves_error_entity */
+
+
 a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,
                                    a_boolean             source_is_rvalue,
