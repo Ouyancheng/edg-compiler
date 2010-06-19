@@ -476,14 +476,9 @@ current expression (used to decide how a comma should be treated).
         new_prec = PREC_COMMA;
       }  /* if */
       break;
-#if GNU_EXTENSIONS_ALLOWED
-    case tok_gnu_real:
-    case tok_gnu_imag:
-      new_prec = PREC_CAST;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
-      /* Not an operator; the expression ends. */
+      /* Not an operator, or an operator only usable as a prefix operator
+         (e.g., throw); the expression ends. */
       done = TRUE;
   }  /* switch */
 
