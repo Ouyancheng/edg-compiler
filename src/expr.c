@@ -26281,13 +26281,13 @@ Return TRUE if we are currently inside an expression context.
 
 a_boolean arg_operand_contains_template_param(an_arg_operand_ptr arg_operand)
 /*
-Return TRUE if the given arg_operand has a template-dependent value.  This
-is used for testing nontype template arguments in determining whether
-a template argument list is dependent.  Nontype template arguments that are
-not yet associated with a template parameter, as in explicit template
-argument lists on functions (e.g., f<int,1>(x)), are represented as
-a_template_arg IL entries with the field arg_operand pointing to an
-arg_operand entry.
+Return TRUE if the given arg_operand has a template-dependent value,
+including value-dependent cases.  This is used for testing nontype
+template arguments in determining whether a template argument list is
+dependent.  Nontype template arguments that are not yet associated
+with a template parameter, as in explicit template argument lists on
+functions (e.g., f<int,1>(x)), are represented as a_template_arg IL
+entries with the field arg_operand pointing to an arg_operand entry.
 */
 {
   a_boolean      contains_template_param = FALSE;

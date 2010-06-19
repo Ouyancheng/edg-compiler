@@ -5788,6 +5788,18 @@ function.
 }  /* is_template_dependent_indefinite_function */
 
 
+static a_boolean operand_is_dependent(an_operand *operand)
+/*
+Return TRUE if the indicated operand is dependent.  Specifically, this
+means type-dependent and not value-dependent.
+*/
+{
+  a_boolean is_dependent = (is_template_dependent_type(operand->type) ||
+                           is_template_dependent_indefinite_function(operand));
+  return is_dependent;
+}  /* operand_is_dependent */
+
+
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
                                                               a_symbol_ptr sym)
 /*
@@ -6000,8 +6012,7 @@ and return NULL.  This routine is called only in C++ mode.
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
       an_operand *arg = &arg_operand->operand;
-      if (is_template_dependent_type(arg->type) ||
-          is_template_dependent_indefinite_function(arg)) {
+      if (operand_is_dependent(arg)) {
         dependent_call = TRUE;
         break;
       } else if (gpp_mode && is_constant_operand(arg) &&
@@ -12034,8 +12045,8 @@ because of an error.  This routine is used only in C++ mode.
     conversion->class_identity_or_bitwise_copy = TRUE;
     okay = TRUE;
   } else if (is_template_dependent_context() &&
-             (is_template_dependent_type(source_type) ||
-              class_type->variant.class_struct_union.is_nonreal_class)) {
+             (class_type->variant.class_struct_union.is_nonreal_class ||
+              operand_is_dependent(source_operand))) {
     /* Assume we can convert to or from an unknown type in a prototype
        instantiation. */
     okay = TRUE;
