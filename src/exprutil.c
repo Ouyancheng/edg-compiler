@@ -2287,16 +2287,29 @@ Do nothing if the operand is not discernibly a cast expression.
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
       expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
-      record_typed_operator_position_in_expr_rescan_info(expr,
-                                                         start_position,
-                                                         type_position,
-                                                         cast_type);
-      if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-        /* Record the same rescan info in an associated dynamic init entry.
-           This is useful in a case like a throw, where the dynamic init
-           might later be separated from the enk_temp_init and used
-           directly. */
-        expr->variant.init.dynamic_init->rescan_info = expr->rescan_info;
+      if (is_operation_node(expr) &&
+          expr->variant.operation.is_conversion_call) {
+        /* This is a non-dependent cast rendered as a call.  Record the
+           extra position in the form expected for a call.  (Approximately:
+           we don't have the opening and closing paren positions.)  The
+           construct will be rescanned later as a call, not a cast. */
+        record_operator_position_in_expr_rescan_info(expr,
+                                                     start_position,
+                                                     NO_TOKEN_SEQUENCE_NUMBER,
+                                                     start_position);
+      } else {
+        /* Normal case: a cast rendered as a cast. */
+        record_typed_operator_position_in_expr_rescan_info(expr,
+                                                           start_position,
+                                                           type_position,
+                                                           cast_type);
+        if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+          /* Record the same rescan info in an associated dynamic init entry.
+             This is useful in a case like a throw, where the dynamic init
+             might later be separated from the enk_temp_init and used
+             directly. */
+          expr->variant.init.dynamic_init->rescan_info = expr->rescan_info;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
