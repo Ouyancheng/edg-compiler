@@ -5860,7 +5860,8 @@ caller would prefer to handle that higher up.
             /* Casts of a class lvalue or rvalue shouldn't get here. */
 cast_case:
             if (constant_rvalue_pointer(op1, &conaddr1, address_escapes,
-                                        template_constant)) {
+                                        template_constant) &&
+                !*template_constant) {
               an_error_code     err_code;
               an_error_severity err_severity;
               a_boolean         did_not_fold;
