@@ -5136,7 +5136,8 @@ specifications match.  For other types, just return TRUE.
     /* Something went wrong during the processing of this function type
        already; to avoid unreliable diagnostics, ignore differences in
        exception specifications. */
-  } else if (is_ptr_or_ref_type(type_1)) {
+  } else if (is_ptr_or_ref_type(type_1) &&
+             is_ptr_or_ref_type(type_2)) {
     type_1 = type_pointed_to(type_1);
     type_2 = type_pointed_to(type_2);
     type_1 = skip_typerefs(type_1);
@@ -5145,7 +5146,8 @@ specifications match.  For other types, just return TRUE.
       result = !(exception_spec_is_less_restrictive(type_1, type_2) ||
                  exception_spec_is_less_restrictive(type_2, type_1));
     }  /* if */
-  } else if (is_ptr_to_member_type(type_1)) {
+  } else if (is_ptr_to_member_type(type_1) &&
+             is_ptr_to_member_type(type_2)) {
     type_1 = pm_member_type(type_1);
     type_2 = pm_member_type(type_2);
     type_1 = skip_typerefs(type_1);
