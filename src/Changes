@@ -1,5 +1,26 @@
 Version 4.2
 
+6/19/10  [EDGcpfe/10760]
+Unlowered pointer to member type kind in dynamic initialization
+
+In cases where a dynamic initialization involves a type that contains a
+function type with a parameter type that is passed via a copy constructor, a
+cast operation is added after the expression has been lowered, and that cast
+operation may have an unlowered type_kind.  An unlowered type_kind may be
+unexpected by back ends; causing an assertion failure in dump_expr in c_gen_be
+on this example (--c++0x):
+
+  struct A {};
+  struct B {
+    B(const B&) {}
+  };
+  template <class T> auto f(T x) -> decltype(*new T A::*);
+  void g() {
+    B (B::*a)(B);
+    auto p = f(a);
+  }
+
+
 6/18/10  [EDGcpfe/10561]
 Microsoft C++ compatibility: Multiple extern "C" definitions
 

@@ -9554,6 +9554,10 @@ Generate code for a stmk_init (dynamic initialization) statement.
           check_assertion(var != NULL);
           dip->variant.expression = add_cast(dip->variant.expression,
                                              var->type);
+          /* We've just added a cast to a lowered expression; perform another
+             post pass on the new expression (for example, to lower a
+             pointer-to-member type_kind that might have just been added). */
+          perform_post_pass_on_lowered_expression(dip->variant.expression);
         }  /* if */
         break;
 #if CHECKING
