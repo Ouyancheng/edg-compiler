@@ -3589,6 +3589,8 @@ position field as the error position.
   operand->is_id_expression = FALSE;
   /* bound_function is not cleared on purpose. */
   operand->selector_is_object_pointer = FALSE;
+  operand->is_operand_of_address_of = FALSE;
+  operand->has_required_ptr_to_member_form = FALSE;
 }  /* conv_to_error_operand */
 
 
