@@ -10693,7 +10693,7 @@ an acceptable result.
 #endif /* UPC_EXTENSIONS_ALLOWED */
        con->kind == (a_constant_repr_kind)ck_template_param ||
        (will_cast && con->kind == (a_constant_repr_kind)ck_float)) &&
-      (will_cast ||
+      ((will_cast && !is_nullptr_type(con->type)) ||
        is_integral_or_enum_type(con->type) ||
        is_template_param_type(con->type))) {
     okay = TRUE;
