@@ -6,9 +6,9 @@ Unlowered pointer to member type kind in dynamic initialization
 In cases where a dynamic initialization involves a type that contains a
 function type with a parameter type that is passed via a copy constructor, a
 cast operation is added after the expression has been lowered, and that cast
-operation may have an unlowered type_kind.  An unlowered type_kind may be
-unexpected by back ends; causing an assertion failure in dump_expr in c_gen_be
-on this example (--c++0x):
+operation may have an unlowered type_kind.  In configurations that use the
+C generating back end, this unlowered IL causes an assertion failure in
+dump_expr in c_gen_be on this example (--c++0x):
 
   struct A {};
   struct B {
