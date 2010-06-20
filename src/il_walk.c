@@ -2861,7 +2861,13 @@ Tips for proper use of the follow_addressing_path mode:
              trivial. */
           { a_type_ptr target_type = f_skip_typerefs(expr->type);
             a_type_ptr source_type = f_skip_typerefs(operand1->type);
-            if (same_entities(target_type, source_type)) {
+            if (
+#if STANDALONE_UTILITY_PROGRAM
+                same_entities(target_type, source_type)
+#else /* !STANDALONE_UTILITY_PROGRAM */
+                identical_types(target_type, source_type)
+#endif /* STANDALONE_UTILITY_PROGRAM */
+                                                         ) {
               traverse_expr(operand1, tblock);
             }  /* if */
           }
@@ -2956,7 +2962,13 @@ Tips for proper use of the follow_addressing_path mode:
                                   f_skip_typerefs(type_pointed_to(expr->type));
             a_type_ptr source_type =
                               f_skip_typerefs(type_pointed_to(operand1->type));
-            if (same_entities(target_type, source_type)) {
+            if (
+#if STANDALONE_UTILITY_PROGRAM
+                same_entities(target_type, source_type)
+#else /* !STANDALONE_UTILITY_PROGRAM */
+                identical_types(target_type, source_type)
+#endif /* STANDALONE_UTILITY_PROGRAM */
+                                                         ) {
               traverse_expr(operand1, tblock);
             }  /* if */
           }  /* if */
