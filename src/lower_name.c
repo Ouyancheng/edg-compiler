@@ -4744,7 +4744,7 @@ literals.
 #if IA64_ABI
       a_constant_ptr con;
       a_boolean      is_expression = FALSE;
-      char           *save_location;
+      sizeof_t       save_location;
 #endif /* IA64_ABI */
       check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                            "mangled_template_arguments:",
@@ -4774,8 +4774,7 @@ literals.
            be mangled using the <expr-primary> production or not.  Assume that
            it can't (the usual case), and keep a pointer to the 'X' that was
            just added in case we were wrong. */
-        save_location = &mangling_text_buffer->buffer[
-                                                 mangling_text_buffer->size-1];
+        save_location = mangling_text_buffer->size-1;
       }  /* if */
 #endif /* IA64_ABI */
       mangled_encoding_for_constant(tap->variant.constant,
@@ -4787,10 +4786,10 @@ literals.
         /* If the constant was mangled using an <expr-primary> production
            in the grammar (i.e., mangled name of the constant starts with
            an L), then there is no need to bracket the expression with X ... E.
-           In that case, remove the X that had been put there, otherwise
+           In that case, remove the X that had been put there; otherwise
            close the expression with an E. */
-        check_assertion(*save_location == 'X');
-        if (save_location[1] != 'L' ||
+        check_assertion(mangling_text_buffer->buffer[save_location] == 'X');
+        if (mangling_text_buffer->buffer[save_location+1] != 'L' ||
             (emulate_gnu_abi_bugs && gnu_abi_version < 30400)) {
           /* In some cases, when emulating older GNU bugs, the extra X ... E
              is required for compatibility. */
@@ -4799,7 +4798,7 @@ literals.
         } else {
           /* Overwrite the X with a space (which will be removed at the end
              of mangling for this entity). */
-          *save_location = ' ';
+          mangling_text_buffer->buffer[save_location] = ' ';
           mctl->num_leftover_spaces++;
           mctl->length--;
         }  /* if */
