@@ -11952,7 +11952,15 @@ node pointed to by that sequence.  Otherwise, return node.
   /* Parentheses above (but not below) a cast are skipped also. */
   while ((snode = skip_parens(node), is_operation_node(snode)) &&
          node_operator_is(snode, eok_cast)) {
-    node = snode->variant.operation.operands;
+    an_expr_node_ptr op1 = snode->variant.operation.operands;
+    if (is_template_dependent_context() &&
+        could_be_dependent_class_type(node->type) ||
+        could_be_dependent_class_type(op1->type)) {
+      /* Template-dependent casts can't be discarded if they might be
+         user-defined conversions. */
+      break;
+    }  /* if */
+    node = op1;
   }  /* while */
   return node;
 }  /* remove_cast_operations */
