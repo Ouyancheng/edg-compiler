@@ -5002,11 +5002,7 @@ an error entity.
       /* A normal nontype parameter represented as a constant. */
       a_constant_ptr	cp = tap->variant.constant;
       check_assertion(cp != NULL);
-      result = is_error_constant(cp);
-      if (!result) {
-        /* Check if the type depends on a template parameter. */
-        result = is_or_contains_error_type(cp->type);
-      }  /* if */
+      result = constant_contains_error(cp);
     }  /* if */
   } else {
     /* A template template parameter. */

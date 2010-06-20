@@ -2539,6 +2539,7 @@ default values.
   tblock->process_post_dynamic_init = NULL;
   tblock->process_statement = NULL;
   tblock->process_post_statement = NULL;
+  tblock->process_type = NULL;
   tblock->terminate = FALSE;
   tblock->suppress_subtree_walk = FALSE;
   tblock->result = FALSE;
@@ -2594,6 +2595,9 @@ it's the initializer for an aggregate.
     traverse_expr(constant->expr, tblock);
     goto end_of_routine;
   }  /* if */
+  if (tblock->process_type != NULL && constant->type != NULL) {
+    tblock->process_type(constant->type, tblock);
+  }  /* if */
   if (tblock->process_constant != NULL) {
     /* Call the user-provided routine. */
     tblock->process_constant(constant, tblock);
@@ -2617,6 +2621,13 @@ it's the initializer for an aggregate.
       traverse_dynamic_init(constant->variant.dynamic_init, tblock);
       break;
     case ck_address:
+      if (tblock->process_type != NULL) {
+        if (constant->variant.address.kind==(an_address_base_kind)abk_uuidof ||
+            constant->variant.address.kind==(an_address_base_kind)abk_typeid) {
+          tblock->process_type(constant->variant.address.variant.type,
+                               tblock);
+        }  /* if */
+      }  /* if */
       if (tblock->process_non_dynamic_constants) {
         if (constant->variant.address.kind ==
                                           (an_address_base_kind)abk_constant) {
@@ -2979,6 +2990,9 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
+  if (tblock->process_type != NULL) {
+    tblock->process_type(expr->type, tblock);
+  }  /* if */
   if (tblock->process_expr != NULL) {
     /* Call the user-provided routine. */
     tblock->process_expr(expr, tblock);
@@ -3056,12 +3070,20 @@ as specified in the control block.
       traverse_expr(expr->variant.object_lifetime.expr, tblock);
       break;
     case enk_typeid:
+      if (tblock->process_type != NULL) {
+        tblock->process_type(expr->variant.typeid_info.type, tblock);
+      }  /* if */
       if (expr->variant.typeid_info.expr != NULL) {
         traverse_expr(expr->variant.typeid_info.expr, tblock);
       }  /* if */
       break;
     case enk_sizeof:
-      if (!expr->variant.sizeof_info.is_type) {
+      if (expr->variant.sizeof_info.is_type) {
+        if (tblock->process_type != NULL) {
+          tblock->process_type(expr->variant.sizeof_info.variant.type,
+                               tblock);
+        }  /* if */
+      } else {
         traverse_expr(expr->variant.sizeof_info.variant.expr, tblock);
       }  /* if */
       break;
@@ -3096,6 +3118,9 @@ as specified in the control block.
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
+      if (tblock->process_type != NULL) {
+        tblock->process_type(expr->variant.type_operand.type, tblock);
+      }  /* if */
       break;
     case enk_builtin_operation:
       traverse_expr_list(expr->variant.builtin_operation.operands, tblock);

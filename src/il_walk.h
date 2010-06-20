@@ -211,6 +211,12 @@ typedef void a_traversal_statement_process_function(
                                  an_expr_or_stmt_traversal_block_ptr tblock);
 typedef a_traversal_statement_process_function
 		*a_traversal_statement_process_function_ptr;
+/* Type of function called to process a type. */
+typedef void a_traversal_type_process_function(
+                                 a_type_ptr                          type,
+                                 an_expr_or_stmt_traversal_block_ptr tblock);
+typedef a_traversal_type_process_function
+		*a_traversal_type_process_function_ptr;
 typedef struct an_expr_or_stmt_traversal_block {
   /* If you add fields here, also add them to
      clear_expr_or_stmt_traversal_block. */
@@ -247,6 +253,10 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_traversal_statement_process_function_ptr
 		process_post_statement;
 			/* Function called for each statement, after the
+			   subtree. */
+  a_traversal_type_process_function_ptr
+		process_type;
+			/* Function called for each type, before the
 			   subtree. */
   a_boolean	terminate;
 			/* A called routine can set this to TRUE to

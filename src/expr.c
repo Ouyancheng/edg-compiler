@@ -26313,9 +26313,23 @@ a_boolean arg_operand_involves_error_entity(an_arg_operand_ptr arg_operand)
 Return TRUE if the given arg_operand makes use of an error type or constant.
 */
 {
-  a_boolean      contains_template_param = FALSE;
+  a_boolean  contains_error = FALSE;
+  an_operand *operand = &arg_operand->operand;
 
-  return contains_template_param;
+  if (is_error_operand(operand)) {
+    contains_error = TRUE;
+  } else if (is_expression_operand(operand) &&
+             expr_contains_error(operand->variant.expression)) {
+    contains_error = TRUE;
+  } else if (is_constant_operand(operand) &&
+             constant_contains_error(&operand->variant.constant)) {
+    contains_error = TRUE;
+  } else if (operand->is_template_id &&
+             template_arg_list_involves_error_entity(
+                                                 operand->template_arg_list)) {
+    contains_error = TRUE;
+  }  /* if */
+  return contains_error;
 }  /* arg_operand_involves_error_entity */
 
 

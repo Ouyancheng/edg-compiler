@@ -16524,6 +16524,20 @@ Return whether expr contains a statement expression (a GNU extension).
 }  /* has_statement_expression */
 
 
+static void examine_type_for_dependent_type(
+                                    a_type_ptr                          type,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the type is template-dependent.
+*/
+{
+  if (is_template_dependent_type(type)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_type_for_dependent_type */
+
+
 static void examine_constant_for_dependent_type(
                                     a_constant_ptr                      con,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -16539,48 +16553,13 @@ Called from traverse_expr to check whether the constant is template-dependent
     /* Constants other than ck_template_param are known not to be dependent. */
     tblock->suppress_subtree_walk = TRUE;
   }  /* if */
-}  /* examine_expr_for_dependent_type */
-
-
-static void examine_expr_for_dependent_type(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Called from traverse_expr to check whether the expression is template-dependent
-(either type-dependent or dependent anywhere in the tree).
-*/
-{
-  if (is_template_dependent_type(expr->type)) {
-    /* The node has a template-dependent type. */
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
-  } else {
-    /* Check expression kinds that have a type embedded in them. */
-    if (expr->kind == (an_expr_node_kind)enk_typeid) {
-      if (is_template_dependent_type(expr->variant.typeid_info.type)) {
-        tblock->result = TRUE;
-        tblock->terminate = TRUE;
-      }  /* if */
-    } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
-      if (expr->variant.sizeof_info.is_type &&
-          is_template_dependent_type(expr->variant.sizeof_info.variant.type)){
-        tblock->result = TRUE;
-        tblock->terminate = TRUE;
-      }  /* if */
-    } else if (expr->kind == (an_expr_node_kind)enk_type_operand) {
-      if (is_template_dependent_type(expr->variant.type_operand.type)) {
-        tblock->result = TRUE;
-        tblock->terminate = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* examine_expr_for_dependent_type */
+}  /* examine_constant_for_dependent_type */
 
 
 a_boolean expr_contains_dependent_type(an_expr_node_ptr expr)
 /*
 Return TRUE if expr is template-dependent.  This includes both type-dependent
-and value-dependent cases.  Checking for the latter requires a tree traversal.
+and value-dependent cases.
 */
 {
   a_boolean result = FALSE;
@@ -16589,8 +16568,8 @@ and value-dependent cases.  Checking for the latter requires a tree traversal.
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = examine_expr_for_dependent_type;
     tblock.process_constant = examine_constant_for_dependent_type;
+    tblock.process_type = examine_type_for_dependent_type;
     tblock.process_non_dynamic_constants = TRUE;
     traverse_expr(expr, &tblock);
     result = tblock.result;
@@ -16602,7 +16581,7 @@ and value-dependent cases.  Checking for the latter requires a tree traversal.
 a_boolean constant_contains_dependent_type(a_constant_ptr con)
 /*
 Return TRUE if con is template-dependent.  This includes both type-dependent
-and value-dependent cases.  Checking for the latter requires a tree traversal.
+and value-dependent cases.
 */
 {
   a_boolean result = FALSE;
@@ -16611,14 +16590,104 @@ and value-dependent cases.  Checking for the latter requires a tree traversal.
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = examine_expr_for_dependent_type;
     tblock.process_constant = examine_constant_for_dependent_type;
+    tblock.process_type = examine_type_for_dependent_type;
     tblock.process_non_dynamic_constants = TRUE;
     traverse_constant(con, &tblock);
     result = tblock.result;
   }  /* if */
   return result;
 }  /* constant_contains_dependent_type */
+
+
+static void examine_type_for_error(a_type_ptr                          type,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the type is or contains an
+error type.
+*/
+{
+  if (is_or_contains_error_type(type)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_type_for_error */
+
+
+static void examine_constant_for_error(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the constant is an error constant.
+*/
+{
+  if (is_error_constant(con)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_error */
+
+
+static void examine_expr_for_error(an_expr_node_ptr                    expr,
+                                   an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to check whether the expression is an error node.
+*/
+{
+  if (is_error_node(expr)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_error */
+
+
+a_boolean expr_contains_error(an_expr_node_ptr expr)
+/*
+Return TRUE if expr contains an error node, error constant, or error type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!C_mode()) {
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_error;
+    tblock.process_constant = examine_constant_for_error;
+    tblock.process_type = examine_type_for_error;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* expr_contains_error */
+
+
+a_boolean constant_contains_error(a_constant_ptr con)
+/*
+Return TRUE if con contains an error constant, error node, or error type
+(including in expressions in its subtree).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!C_mode()) {
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_error;
+    tblock.process_constant = examine_constant_for_error;
+    tblock.process_type = examine_type_for_error;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    traverse_constant(con, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
+}  /* constant_contains_error */
 
 
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
