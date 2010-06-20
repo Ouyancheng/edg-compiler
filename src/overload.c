@@ -6956,17 +6956,31 @@ TRUE if the operator is "->", FALSE if it is ".".
   an_expr_operator_kind op;
   a_boolean             need_expr = FALSE, need_expr_for_constant = FALSE;
   a_boolean             discard_selector_in_expr = FALSE;
+  a_boolean             template_constant = FALSE;
 
   orig_operand = *operand;
   selector_expr = make_node_from_operand(bound_function_selector);
   orig_expr = make_node_from_operand(operand);
   stripped_selector_expr = skip_parens(selector_expr);
   stripped_orig_expr = skip_parens(orig_expr);
-  if (!stripped_orig_expr->is_lvalue &&
+  if (is_template_dependent_context() &&
+      is_constant_node(stripped_selector_expr) &&
       is_constant_node(stripped_orig_expr) &&
-      current_mode_allows_dot_static_folding(stripped_selector_expr) &&
-      !is_dependent_selection_first_operand(is_arrow_operator,
-                                            selector_expr)) {
+      !stripped_orig_expr->is_lvalue &&
+      (stripped_selector_expr->variant.constant->kind ==
+                                   (a_constant_repr_kind)ck_template_param ||
+       stripped_orig_expr->variant.constant->kind ==
+                                   (a_constant_repr_kind)ck_template_param)) {
+    /* The operation is based on constants, and at least one of those
+       is a ck_template_param, so build an expression and later put that
+       under a tpck_expression constant, thus producing a constant result. */
+    need_expr = TRUE;
+    template_constant = TRUE;
+  } else if (!stripped_orig_expr->is_lvalue &&
+             is_constant_node(stripped_orig_expr) &&
+             current_mode_allows_dot_static_folding(stripped_selector_expr) &&
+             !is_dependent_selection_first_operand(is_arrow_operator,
+                                                   selector_expr)) {
     /* In certain modes, produce a constant result for an rvalue.
        Note that only things like enumerator values are handled here.  Most
        others stay as lvalues at this point and are converted to the constant
@@ -6975,7 +6989,7 @@ TRUE if the operator is "->", FALSE if it is ".".
        we're going to need the left operand later to do substitution
        to find out what we really have.  We might find we have a nonstatic
        selection. */
-    /* The is_constant_node test may seem redundant, but is needed for
+    /* The is_constant_node test below may seem redundant, but is needed for
        template-dependent constants in prototype instantiations,
        because such constants are considered to have side effects. */
     check_assertion(is_constant_node(stripped_selector_expr) ||
@@ -7023,6 +7037,9 @@ TRUE if the operator is "->", FALSE if it is ".".
     } else {
       make_expression_operand(expr, operand);
       operand->state = saved_operand_state;
+      if (template_constant) {
+        make_template_param_expr_constant_operand(operand);
+      }  /* if */
       /* Restore the reference entries list too so that we can get
          address_taken set on the function. */
       restore_operand_details_incl_ref(operand, &orig_operand);
