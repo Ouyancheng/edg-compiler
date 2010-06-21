@@ -3460,10 +3460,10 @@ expression that was used to select expr (it is NULL if no selector was used).
       has_been_mangled = TRUE;
 #if IA64_ABI
     } else if (emulate_gnu_abi_bugs &&
-               expr->variant.routine->source_corresp.is_class_member &&
-               selector != NULL &&
-               is_variable_node(selector)) {
-      /* FIXME: g++ mangles a.f() as an <expr-primary>. (bug or feature?) */
+               (selector == NULL ||
+                (expr->variant.routine->source_corresp.is_class_member &&
+                 is_variable_node(selector)))) {
+      /* FIXME: g++ mangles f() and a.f() as <expr-primary>. bug or feature? */
       /* FIXME: Call this here to prevent extra "ad" from being added. */
       mangled_entity_reference(&expr->variant.routine->source_corresp,
                                (an_il_entry_kind)iek_routine,
@@ -3478,6 +3478,19 @@ expression that was used to select expr (it is NULL if no selector was used).
   } else if (expr->kind == (an_expr_node_kind)enk_field) {
     /* This can happen when a field of an anonymous union is being mangled. */
     scp = &expr->variant.field->source_corresp;
+#if IA64_ABI
+    if (emulate_gnu_abi_bugs &&
+        !(selector != NULL &&
+          is_variable_node(selector))) {
+      /* FIXME: need a flag in the front end to tell us when the field was
+         qualified. */
+      add_str_to_mangled_name("sr", mctl);
+      mangled_encoding_for_type(scp_parent_class(scp), mctl);
+      /* Mangling for field is emitted below. */
+    }  /* if */
+#else /* !IA64_ABI */
+    /* FIXME: cfront mangling? */
+#endif /* IA64_ABI */
   }  /* if */
   if (scp != NULL) {
     /* FIXME: This doesn't currently take into account any qualification. */
