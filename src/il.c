@@ -5775,6 +5775,40 @@ are done.
 }  /* compare_template_param_constant_expressions */
 
 
+static a_boolean equiv_template_constant_identity(
+                                                 a_constant *cp1,
+                                                 a_constant *cp2,
+                                                 a_boolean  strictly_identical)
+/*
+Compare two ck_template_param constants that represent dependent entities
+to see if they have the same name and parent ("identity") information.
+Return TRUE if so.  If strictly_identical is TRUE, the identity information
+has to be identical, not just equivalent.
+*/
+{
+  a_boolean eq;
+
+  check_assertion(cp1->kind == (a_constant_repr_kind)ck_template_param &&
+                  cp2->kind == (a_constant_repr_kind)ck_template_param);
+  eq = (cp1->source_corresp.name == cp2->source_corresp.name &&
+        cp1->source_corresp.is_class_member ==
+                                         cp2->source_corresp.is_class_member &&
+        cp1->source_corresp.member_of_unknown_base ==
+                                  cp2->source_corresp.member_of_unknown_base &&
+        (!strictly_identical ||
+         cp1->source_corresp.qualified_unknown_base_member ==
+                          cp2->source_corresp.qualified_unknown_base_member) &&
+        (cp1->source_corresp.is_class_member ?
+           (strictly_identical ? corresponding_types(parent_class_of(cp1),
+                                                     parent_class_of(cp2)) :
+                                 identical_types(parent_class_of(cp1),
+                                                 parent_class_of(cp2))) :
+            corresponding_namespaces(parent_namespace_or_null(cp1),
+                                     parent_namespace_or_null(cp2))));
+  return eq;
+}  /* equiv_template_constant_identity */
+
+
 a_boolean compare_constants(a_constant_ptr                   cp1,
                             a_constant_ptr                   cp2,
                             a_compare_constants_options_set  options)
@@ -6011,31 +6045,33 @@ definition of the CC flags in il.h for more information.
                                     options);
               break;
             case tpck_member:
-              eq = (cp1->source_corresp.name ==
-                    cp2->source_corresp.name &&
-                    cp1->source_corresp.is_class_member ==
-                    cp2->source_corresp.is_class_member &&
-                    cp1->source_corresp.member_of_unknown_base ==
-                    cp2->source_corresp.member_of_unknown_base &&
-                    (!strictly_identical ||
-                     cp1->source_corresp.qualified_unknown_base_member ==
-                     cp2->source_corresp.qualified_unknown_base_member) &&
-                    (cp1->source_corresp.is_class_member ?
-                      (strictly_identical ? 
-                         corresponding_types(parent_class_of(cp1),
-                                             parent_class_of(cp2)) :
-                         identical_types(parent_class_of(cp1),
-                                         parent_class_of(cp2))) :
-                      corresponding_namespaces(
-                                             parent_namespace_or_null(cp1),
-                                             parent_namespace_or_null(cp2))));
+              eq = equiv_template_constant_identity(cp1, cp2,
+                                                    strictly_identical);
               break;
             case tpck_unknown_function:
-              check_assertion(cp1->source_corresp.assoc_info != NULL);
-              check_assertion(cp2->source_corresp.assoc_info != NULL);
-              eq = equiv_unknown_functions(
-                                 (a_symbol_ptr)cp1->source_corresp.assoc_info,
-                                 (a_symbol_ptr)cp2->source_corresp.assoc_info);
+              if (equiv_template_constant_identity(cp1, cp2,
+                                                   strictly_identical) &&
+                  cp1->variant.template_param.variant.
+                                                    unknown_function.symbol ==
+                  cp2->variant.template_param.variant.
+                                                    unknown_function.symbol &&
+                  cp1->variant.template_param.variant.
+                                                unknown_function.opname_kind ==
+                  cp2->variant.template_param.variant.
+                                                unknown_function.opname_kind &&
+                  cp1->variant.template_param.is_qualified_name ==
+                  cp2->variant.template_param.is_qualified_name) {
+                a_type_ptr tp1 = cp1->variant.template_param.variant.
+                                              unknown_function.conversion_type;
+                a_type_ptr tp2 = cp2->variant.template_param.variant.
+                                              unknown_function.conversion_type;
+                eq = TRUE;
+                if (tp1 != NULL && tp2 != NULL) {
+                  if (!identical_types(tp1, tp2)) eq = FALSE;
+                } else if (!(tp1 == NULL && tp2 == NULL)) {
+                  eq = FALSE;
+                }  /* if */
+              }  /* if */
               break;
             case tpck_cast:
             case tpck_address:
