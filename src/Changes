@@ -26,7 +26,7 @@ Microsoft C++ compatibility: Multiple extern "C" definitions
 
 In Microsoft C++ bugs mode, the front end now accepts multiple definitions of
 the same extern "C" function in different namespaces (each such definition
-is associated with a different a_routine type entry).  For example:
+is associated with a different a_routine entry).  For example:
 
   namespace N { extern "C" void f() { } }
   namespace M { extern "C" void f() { } }  // Previously always an error; now
