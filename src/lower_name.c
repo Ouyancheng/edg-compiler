@@ -3398,7 +3398,11 @@ expression that was used to select expr (it is NULL if no selector was used).
           /* An operator. */
           unsigned long num_operands = number_of_operands_in_list(arguments);
 #if IA64_ABI
-          add_str_to_mangled_name("on", mctl);
+          if (emulate_gnu_abi_bugs && selector != NULL) {
+            /* FIXME: g++ seems to add "on" only when there is no selector. */
+          } else {
+            add_str_to_mangled_name("on", mctl);
+          }  /* if */
 #else /* !IA64_ABI */
           add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
@@ -3493,7 +3497,6 @@ expression that was used to select expr (it is NULL if no selector was used).
 #endif /* IA64_ABI */
   }  /* if */
   if (scp != NULL) {
-    /* FIXME: This doesn't currently take into account any qualification. */
     str = unmangled_or_fabricated_name_of(scp);
     check_assertion(str != NULL);
     /* FIXME: What do we do about substitutions here? */
