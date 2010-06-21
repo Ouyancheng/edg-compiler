@@ -13971,6 +13971,8 @@ name lookup options.
              expression.  However, exempt the idiom where a constant is
              converted to its own type as a way of marking it as dependent. */
           *copy_error = TRUE;
+        } else if (is_reference_type(new_type)) {
+          *copy_error = TRUE;
         } else if (!(con->explicit_cast_applied ?
                        expl_conversion_possible(copied_con_type,
                                                 /*source_is_constant=*/TRUE,
