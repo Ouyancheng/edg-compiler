@@ -3331,6 +3331,9 @@ on a tpck_typeid template parameter constant (because the compiler generated
 }  /* skip_non_mangleable_expressions */
 
 
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- selector is unused in that case. */
+#endif /* !IA64_ABI */
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     an_expr_node_ptr         arguments,
                                     an_expr_node_ptr         selector,
