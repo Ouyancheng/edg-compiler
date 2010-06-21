@@ -3333,6 +3333,7 @@ on a tpck_typeid template parameter constant (because the compiler generated
 
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     an_expr_node_ptr         arguments,
+                                    an_expr_node_ptr         selector,
                                     a_boolean                in_dependent_expr,
                                     a_mangling_control_block *mctl)
 /*
@@ -3346,13 +3347,15 @@ selection (e.g., "." or "->") operation.  Often, these entities are unknown
 "spelling" of the entity name rather than their usual mangling.  arguments
 refers to a (possibly NULL) set of arguments being passed to this entity, and
 is used only in the case where the entity represents a ck_template_param
-operator name (to differentiate unary/binary cases).
+operator name (to differentiate unary/binary cases).  selector refers to the
+expression that was used to select expr (it is NULL if no selector was used).
 */
 {
   char                        *str;
   a_source_correspondence_ptr scp = NULL;
   a_template_arg_ptr          template_arg_list = NULL;
   a_boolean                   suppress_address_of_on_typeid;
+  a_boolean                   has_been_mangled = FALSE;
 
   /* Skip any expressions (e.g., compiler added) that don't belong in the
      mangled output. */
@@ -3360,7 +3363,6 @@ operator name (to differentiate unary/binary cases).
   check_assertion(!suppress_address_of_on_typeid);
   if (is_constant_node(expr)) {
     a_constant_ptr con = expr->variant.constant;
-    scp = &con->source_corresp;
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
       if (con->variant.template_param.kind ==
                            (a_template_param_constant_kind)tpck_template_ref) {
@@ -3403,11 +3405,14 @@ operator name (to differentiate unary/binary cases).
           add_str_to_mangled_name("__", mctl);
 #endif /* !IA64_ABI */
           /* FIXME: Can there be template arguments here? */
-          scp = NULL;
+          has_been_mangled = TRUE;
+        } else {
+          scp = &expr->variant.constant->source_corresp;
         }  /* if */
       } else if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
-        if (scp->name != NULL && scp->name[0] == '~') {
+        if (con->source_corresp.name != NULL &&
+            con->source_corresp.name[0] == '~') {
           /* A destructor. */
 #if 0
           /* FIXME: Better way to detect destructor? */
@@ -3424,16 +3429,19 @@ operator name (to differentiate unary/binary cases).
           /* FIXME: How to emit template parameter here? */
 #endif /* 0 */
           add_FIXME_to_mangled_name(mctl);
-          scp = NULL;
+          has_been_mangled = TRUE;
+        } else {
+          scp = &expr->variant.constant->source_corresp;
         }  /* if */
       }  /* if */
-    } else {
-      scp = &con->source_corresp;
     }  /* if */
   } else if (is_variable_node(expr)) {
-    scp = &expr->variant.variable->source_corresp;
+    /* Static data members are mangled with <source-name>, others are
+       mangled using <expr-primary>. */
+    if (expr->variant.variable->source_corresp.is_class_member) {
+      scp = &expr->variant.variable->source_corresp;
+    }  /* if */
   } else if (is_routine_node(expr)) {
-    scp = &expr->variant.routine->source_corresp;
     if (expr->variant.routine->special_kind !=
                                            (a_special_function_kind)sfk_none) {
 #if 0
@@ -3446,21 +3454,27 @@ operator name (to differentiate unary/binary cases).
       add_str_to_mangled_name(&str[1], mctl);
 #endif /* 0 */
       add_FIXME_to_mangled_name(mctl);
-      scp = NULL;
+      has_been_mangled = TRUE;
+#if IA64_ABI
+    } else if (emulate_gnu_abi_bugs &&
+               expr->variant.routine->source_corresp.is_class_member &&
+               selector != NULL &&
+               is_variable_node(selector)) {
+      /* FIXME: g++ mangles a.f() as an <expr-primary>. (bug or feature?) */
+      /* FIXME: Call this here to prevent extra "ad" from being added. */
+      mangled_entity_reference(&expr->variant.routine->source_corresp,
+                               (an_il_entry_kind)iek_routine,
+                               (a_routine_info_block *)NULL,
+                               mctl);
+      has_been_mangled = TRUE;
+#endif /* IA64_ABI */
+    } else {
+      /* Provide a spelling for the routine. */
+      scp = &expr->variant.routine->source_corresp;
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_field) {
     /* This can happen when a field of an anonymous union is being mangled. */
     scp = &expr->variant.field->source_corresp;
-  } else if (expr->kind == (an_expr_node_kind)enk_param_ref) {
-    /* Parameter references get the same mangling in all contexts. */
-    mangled_encoding_for_param_reference(expr, mctl);
-  } else if (is_operation_node(expr)) {
-    /* An underlying expression.  Note that any names mangled within the
-       nested expression receive "normal" mangling treatment (provided the
-       operations don't contain further unresolved name references). */
-    mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
-  } else {
-    unexpected_condition();
   }  /* if */
   if (scp != NULL) {
     /* FIXME: This doesn't currently take into account any qualification. */
@@ -3468,11 +3482,16 @@ operator name (to differentiate unary/binary cases).
     check_assertion(str != NULL);
     /* FIXME: What do we do about substitutions here? */
     mangled_name_with_length(str, mctl);
+    has_been_mangled = TRUE;
   }  /* if */
   if (template_arg_list != NULL) {
     /* Put out the template argument list. */
     mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
                                /*old_form=*/FALSE, mctl);
+  }  /* if */
+  if (!has_been_mangled) {
+    /* This isn't a special case, provide usual mangling. */
+    mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
   }  /* if */
 }  /* mangled_unresolved_name */
 
@@ -3591,7 +3610,8 @@ expression.
     mangled_encoding_for_expression(selector, in_dependent_expr, mctl);
   }  /* if */
   if (selection != NULL) {
-    mangled_unresolved_name(selection, arguments, in_dependent_expr, mctl);
+    mangled_unresolved_name(selection, arguments, selector, in_dependent_expr,
+                            mctl);
   } else {
     /* A vacuous destructor. */
     /* FIXME: not sure we ever get here. */
@@ -3659,7 +3679,8 @@ this expression is part of a template-dependent expression.
                               /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
   if (node_operator_is(expr, eok_call)) {
-    mangled_unresolved_name(call_operand, arguments, in_dependent_expr, mctl);
+    mangled_unresolved_name(call_operand, arguments, /*selector=*/NULL, 
+                            in_dependent_expr, mctl);
   } else {
     mangled_selection_operation(expr, arguments, in_dependent_expr, mctl);
   }  /* if */
