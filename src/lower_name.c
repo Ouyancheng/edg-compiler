@@ -3292,11 +3292,21 @@ on a tpck_typeid template parameter constant (because the compiler generated
                                                       ) {
         expr = skip_parens(expr->variant.operation.operands);
         done = FALSE;
-#if IA64_ABI
       } else if (expr->variant.operation.compiler_generated) {
         /* Remove various compiler generated operations so the mangling
            accurately reflects the original source. */
         an_expr_node_ptr  child = expr->variant.operation.operands;
+#if ABI_COMPATIBILITY_VERSION >= 402
+        if (op == (an_expr_operator_kind)eok_dot_member_call &&
+            is_routine_node(child) &&
+            child->variant.routine->special_kind
+                                  == (a_special_function_kind)sfk_conversion) {
+          /* Remove a compiler generated conversion operation. */
+          expr = skip_parens(child->next);
+          done = FALSE;
+        }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+#if IA64_ABI
         if (op == (an_expr_operator_kind)eok_indirect &&
             is_typeid_template_param(child)) {
           /* Suppress the implicit "&" operation on a typeid template parameter
@@ -3355,6 +3365,33 @@ arguments using <source-name> and others with <expr-primary>.
 #endif /* IA64_ABI */
 
 #if !IA64_ABI
+/*ARGSUSED*/ /* <-- suppress_operation_indicator is unused in that case. */
+#endif /* !IA64_ABI */
+static void add_operator_name_to_mangled_name(
+                         an_opname_kind           kind,
+                         unsigned int             num_operands,
+                         a_boolean                suppress_operation_indicator,
+                         a_mangling_control_block *mctl)
+/*
+This routine adds the proper mangling for the specified operator.  num_operands
+is the number of operands that the operator takes (and is used to differentiate
+unary/binary versions of the operator).  In the IA-64 ABI, the "on" mangling
+is suppressed when suppress_operation_indicator is TRUE.
+*/
+{
+#if IA64_ABI
+  if (!suppress_operation_indicator) add_str_to_mangled_name("on", mctl);
+#else /* !IA64_ABI */
+  add_str_to_mangled_name("__", mctl);
+#endif /* IA64_ABI */
+  add_str_to_mangled_name(mangled_operator_name(kind, num_operands), mctl);
+#if !IA64_ABI
+  add_str_to_mangled_name("__", mctl);
+#endif /* !IA64_ABI */
+}  /* add_operator_name_to_mangled_name */
+
+
+#if !IA64_ABI
 /*ARGSUSED*/ /* <-- selector is unused in that case. */
 #endif /* !IA64_ABI */
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
@@ -3382,11 +3419,19 @@ expression that was used to select expr (it is NULL if no selector was used).
   a_template_arg_ptr          template_arg_list = NULL;
   a_boolean                   suppress_address_of_on_typeid;
   a_boolean                   has_been_mangled = FALSE;
+  a_boolean                   suppress_operation_indicator = FALSE;
 
   /* Skip any expressions (e.g., compiler added) that don't belong in the
      mangled output. */
   expr = skip_non_mangleable_expressions(expr, &suppress_address_of_on_typeid);
   check_assertion(!suppress_address_of_on_typeid);
+#if IA64_ABI
+  if (emulate_gnu_abi_bugs && selector != NULL) {
+    /* g++ seems to add the "on" mangling to operator names only when there
+       is no selector (i.e., for non-member operators). */
+    suppress_operation_indicator = TRUE;
+  }  /* if */
+#endif /* IA64_ABI */
   if (is_constant_node(expr)) {
     a_constant_ptr con = expr->variant.constant;
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -3407,7 +3452,6 @@ expression that was used to select expr (it is NULL if no selector was used).
                    con->variant.template_param.variant.unknown_function.symbol;
         an_opname_kind opname =
               con->variant.template_param.variant.unknown_function.opname_kind; 
-        /* FIXME: What to do with conversion functions? */
         check_assertion( 
           con->variant.template_param.variant.unknown_function.conversion_type
                                                                       == NULL);
@@ -3419,23 +3463,12 @@ expression that was used to select expr (it is NULL if no selector was used).
         }  /* if */
         if (opname != (an_opname_kind)onk_none) {
           /* An operator. */
-          unsigned long num_operands = number_of_operands_in_list(arguments);
-#if IA64_ABI
-          if (emulate_gnu_abi_bugs && selector != NULL) {
-            /* FIXME: g++ seems to add "on" only when there is no selector. */
-          } else {
-            add_str_to_mangled_name("on", mctl);
-          }  /* if */
-#else /* !IA64_ABI */
-          add_str_to_mangled_name("__", mctl);
-#endif /* IA64_ABI */
-          add_str_to_mangled_name(mangled_operator_name(opname, num_operands),
-                                  mctl);
-#if !IA64_ABI
-          add_str_to_mangled_name("__", mctl);
-#endif /* !IA64_ABI */
-          /* FIXME: Can there be template arguments here? */
+          add_operator_name_to_mangled_name(opname,
+                                         number_of_operands_in_list(arguments),
+                                         suppress_operation_indicator,
+                                         mctl);
           has_been_mangled = TRUE;
+          /* FIXME: Can there be template arguments here? */
         } else {
           scp = &expr->variant.constant->source_corresp;
         }  /* if */
@@ -3474,17 +3507,30 @@ expression that was used to select expr (it is NULL if no selector was used).
   } else if (is_routine_node(expr)) {
     if (expr->variant.routine->special_kind !=
                                            (a_special_function_kind)sfk_none) {
+      /* See if this routine requires special handlilng. */
+      if (expr->variant.routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
 #if 0
-      /* FIXME: destructors (and others?) */
-      check_assertion(expr->variant.routine->special_kind ==
-                                      (a_special_function_kind)sfk_destructor);
-      add_str_to_mangled_name("dr", mctl);
-      str = unmangled_or_fabricated_name_of(scp);
-      check_assertion(str != NULL && *str == '~');
-      add_str_to_mangled_name(&str[1], mctl);
+        add_str_to_mangled_name("dr", mctl);
+        str = unmangled_or_fabricated_name_of(scp);
+        check_assertion(str != NULL && *str == '~');
+        add_str_to_mangled_name(&str[1], mctl);
 #endif /* 0 */
-      add_FIXME_to_mangled_name(mctl);
-      has_been_mangled = TRUE;
+        add_FIXME_to_mangled_name(mctl);
+        has_been_mangled = TRUE;
+      } else if (expr->variant.routine->special_kind ==
+                                       (a_special_function_kind)sfk_operator) {
+        /* FIXME: may need sr qualification. */
+        add_operator_name_to_mangled_name(
+                                    expr->variant.routine->variant.opname_kind,
+                                    number_of_operands_in_list(arguments),
+                                    suppress_operation_indicator,
+                                    mctl);
+        has_been_mangled = TRUE;
+      } else {
+        /* Compiler generated conversion operations have been stripped. */
+        unexpected_condition();
+      }  /* if */
 #if IA64_ABI
     } else if (emulate_gnu_abi_bugs &&
                ((selector == NULL && !args_are_dependent(arguments)) ||
@@ -3610,6 +3656,8 @@ expression.
     if (node_operator_is(expr, eok_dot_field) &&
         is_variable_node(selector) &&
         selector->variant.variable->is_anonymous_parent_object) {
+      /* FIXME: do we need to know this here or can we just strip it
+         off in skip_non_mangleable_expressions as we did previously? */
       /* A field in an anonymous union. */
       selector = NULL;
     } else if (expr->is_objectless_nonstatic_data_mem_ref) {
