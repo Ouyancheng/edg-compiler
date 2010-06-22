@@ -4197,7 +4197,7 @@ precedence confusion.  Do the output in the way described by octl.
   a_boolean            need_cast_close_paren = FALSE, is_enum;
   a_boolean            need_reinterpret_cast = FALSE;
   a_constant_ptr       equiv_constant;
-  a_boolean            suppress_cast_on_integer_constant = FALSE;
+  a_boolean            cast_already_put_out = FALSE;
 
   orig_type = constant->type;
   /* Watch out for constants (like ck_init_repeat) that have no type. */
@@ -4270,7 +4270,7 @@ precedence confusion.  Do the output in the way described by octl.
               output_optional_open_paren(&need_parens, &need_cast_close_paren,
                                          octl);
               octl->output_str("(void *)", octl);
-              suppress_cast_on_integer_constant = TRUE;
+              cast_already_put_out = TRUE;
             }  /* if */
           }  /* if */
         } else if (is_pointer_type(con_type) &&
@@ -4294,7 +4294,7 @@ precedence confusion.  Do the output in the way described by octl.
         /* Prefix the constant with an explicit cast. */
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         form_general_cast(orig_type, need_reinterpret_cast, octl);
-        suppress_cast_on_integer_constant = TRUE;
+        cast_already_put_out = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4391,7 +4391,7 @@ precedence confusion.  Do the output in the way described by octl.
         output_partial_token_str("'", octl);
       } else {
         /* A normal integer constant. */
-        form_integer_constant(constant, suppress_cast_on_integer_constant,
+        form_integer_constant(constant, cast_already_put_out,
                               need_parens, octl);
       }  /* if */
       break;
@@ -4661,9 +4661,20 @@ precedence confusion.  Do the output in the way described by octl.
                name. */
             form_name(&constant->source_corresp, iek_constant, octl);
           } else {
-            /* An alias for some other constant -- display it. */
-            form_constant(constant->variant.template_param.variant.constant,
-                          /*need_parens=*/FALSE, octl);
+            a_constant_ptr op_con =
+                             constant->variant.template_param.variant.constant;
+            a_boolean      need_local_close_paren = FALSE;
+            if (!cast_already_put_out && constant->type != op_con->type) {
+              /* A cast was not put out above, so put one out here if
+                 the cast changes the type. */
+              output_optional_open_paren(&need_parens, &need_local_close_paren,
+                                         octl);
+              form_cast(constant->type, octl);
+            }  /* if */
+            form_constant(op_con, /*need_parens=*/FALSE, octl);
+            if (need_local_close_paren) {
+              octl->output_str(")", octl);
+            }  /* if */
           }  /* if */
           break;
         case tpck_address:
