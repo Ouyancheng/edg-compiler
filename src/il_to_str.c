@@ -4664,9 +4664,9 @@ precedence confusion.  Do the output in the way described by octl.
             a_constant_ptr op_con =
                              constant->variant.template_param.variant.constant;
             a_boolean      need_local_close_paren = FALSE;
-            if (!cast_already_put_out && constant->type != op_con->type) {
+            if (!cast_already_put_out && octl->debug_output) {
               /* A cast was not put out above, so put one out here if
-                 the cast changes the type. */
+                 we're producing debug output. */
               output_optional_open_paren(&need_parens, &need_local_close_paren,
                                          octl);
               form_cast(constant->type, octl);
