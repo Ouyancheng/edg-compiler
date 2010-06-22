@@ -3721,8 +3721,7 @@ user later during real instantiations.
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions. */
-    (void)push_scope((a_scope_kind)sck_func_prototype,
-                     daefp->cache.decl_info->declaration_scope,
+    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      rout_ptr->type, (a_routine_ptr)NULL);
     if (prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(prototype_scope_symbols);
@@ -8902,8 +8901,7 @@ instantiated.
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions
        (3.4.1p11). */
-    (void)push_scope((a_scope_kind)sck_func_prototype,
-                     daefp->cache.decl_info->declaration_scope,
+    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                      rout_ptr->type, (a_routine_ptr)NULL);
     if (tip->prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
