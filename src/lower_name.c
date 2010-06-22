@@ -3391,6 +3391,48 @@ is suppressed when suppress_operation_indicator is TRUE.
 }  /* add_operator_name_to_mangled_name */
 
 
+static void mangled_destructor_name(a_type_ptr               type,
+                                    a_mangling_control_block *mctl)
+/*
+Add an encoding for a destructor of the specified type.
+*/
+{
+#if IA64_ABI
+  if (emulate_gnu_abi_bugs) {
+    /* g++ encodes destructors with "co" followed by the type, but apparently
+       has a bug where that type doesn't participate in the substitution
+       processing. */
+    a_substitution_ptr  save_first_substitution, save_last_substitution;
+    /* FIXME: When do we need to emit "sr"? */
+    add_str_to_mangled_name("sr", mctl);
+    mangled_encoding_for_type(type, mctl);
+    /* When g++ uses the "co" mangling, it doesn't use or record substitutions,
+       so save the substitution pointers and reset them. */
+    save_first_substitution = mctl->first_substitution;
+    save_last_substitution = mctl->last_substitution;
+    mctl->first_substitution = NULL;
+    mctl->last_substitution = NULL;
+    add_str_to_mangled_name("co", mctl);
+    mangled_encoding_for_type(type, mctl);
+    /* Return any allocated substitutions to the available list. */
+    mctl->last_substitution->next = avail_substitutions;
+    avail_substitutions = mctl->last_substitution;
+    /* Restore original pointers. */
+    mctl->first_substitution = save_first_substitution;
+    mctl->last_substitution = save_last_substitution;
+  } else {
+    add_str_to_mangled_name("dr", mctl);
+    mangled_encoding_for_type(type, mctl);
+  }  /* if */
+#else /* !IA64_ABI */
+  /* FIXME: Need to encode scope resolution in here as well. */
+  add_str_to_mangled_name("__dr__", mctl);
+  mangled_encoding_for_type(type, mctl);
+  add_str_to_mangled_name("__", mctl);
+#endif /* IA64_ABI */
+}  /* mangled_destructor_name */
+
+
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- selector is unused in that case. */
 #endif /* !IA64_ABI */
@@ -3477,21 +3519,11 @@ expression that was used to select expr (it is NULL if no selector was used).
         if (con->source_corresp.name != NULL &&
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
-#if 0
           /* FIXME: Better way to detect destructor? */
-#if IA64_ABI
-          /* FIXME: When do we need to emit "sr"? */
-          /* FIXME: Substitutions? */
-          add_str_to_mangled_name("co", mctl);
-#else /* !IA64_ABI */
-          add_str_to_mangled_name("__", mctl);
-          add_str_to_mangled_name(MANGLING_STRING_FOR_DESTRUCTOR, mctl);
-          /* FIXME: How to mangle the type here? */
-          add_str_to_mangled_name("__", mctl);
-#endif /* IA64_ABI */
           /* FIXME: How to emit template parameter here? */
-#endif /* 0 */
-          add_FIXME_to_mangled_name(mctl);
+          mangled_destructor_name(scp_parent_class(
+                                      &expr->variant.constant->source_corresp),
+                                  mctl);
           has_been_mangled = TRUE;
         } else {
           scp = &expr->variant.constant->source_corresp;
@@ -3510,13 +3542,10 @@ expression that was used to select expr (it is NULL if no selector was used).
       /* See if this routine requires special handling. */
       if (expr->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-#if 0
-        add_str_to_mangled_name("dr", mctl);
-        str = unmangled_or_fabricated_name_of(scp);
-        check_assertion(str != NULL && *str == '~');
-        add_str_to_mangled_name(&str[1], mctl);
-#endif /* 0 */
-        add_FIXME_to_mangled_name(mctl);
+        /* FIXME: may need sr qualification. */
+        mangled_destructor_name(scp_parent_class(
+                                       &expr->variant.routine->source_corresp),
+                                mctl);
         has_been_mangled = TRUE;
       } else if (expr->variant.routine->special_kind ==
                                        (a_special_function_kind)sfk_operator) {
@@ -3707,8 +3736,9 @@ expression.
                             mctl);
   } else {
     /* A vacuous destructor. */
-    /* FIXME: not sure we ever get here. */
-    add_FIXME_to_mangled_name(mctl);
+    /* FIXME: The type on this doesn't appear to reflect the source, e.g.,
+       p1.A::~A() winds up being mangled with a template parameter. */
+    mangled_destructor_name(selector->type, mctl);
   }  /* if */
 #if !IA64_ABI
   if (selector != NULL) add_to_mangled_name('O', mctl);
