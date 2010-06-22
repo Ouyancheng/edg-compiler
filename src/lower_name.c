@@ -3507,7 +3507,7 @@ expression that was used to select expr (it is NULL if no selector was used).
   } else if (is_routine_node(expr)) {
     if (expr->variant.routine->special_kind !=
                                            (a_special_function_kind)sfk_none) {
-      /* See if this routine requires special handlilng. */
+      /* See if this routine requires special handling. */
       if (expr->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
 #if 0
