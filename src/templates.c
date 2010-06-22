@@ -9076,7 +9076,7 @@ created.
   templ_rout = template_sym->variant.template_info->variant.function.routine;
   rout = alloc_routine();
   rout->type = create_error_routine_type(templ_rout, parent_class);
-  rout->special_kind = templ_rout->special_kind;
+  set_routine_special_kind(rout, templ_rout->special_kind);
   if (rout->special_kind == (a_special_function_kind)sfk_operator) {
     rout->variant.opname_kind = templ_rout->variant.opname_kind;
   }  /* if */
