@@ -3330,6 +3330,29 @@ on a tpck_typeid template parameter constant (because the compiler generated
   return expr;
 }  /* skip_non_mangleable_expressions */
 
+#if IA64_ABI
+
+static a_boolean args_are_dependent(an_expr_node_ptr arguments)
+/*
+Returns TRUE if any of the arguments are dependent (according to g++'s
+definition for mangling purposes).  g++ mangles functions with dependent
+arguments using <source-name> and others with <expr-primary>.
+*/
+{
+  a_boolean     result = FALSE;
+
+  for (; !result && arguments != NULL; arguments = arguments->next) {
+    /* FIXME: this needs much work (and needs to reflect g++'s view of whether
+       or not an argument is dependent -- e.g., sizeof(p1) is not dependent
+       for mangling purposes according to g++ 4.5, but p1.A::m is). */
+    if (is_template_dependent_type(arguments->type)) {
+      result = TRUE;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* args_are_dependent */
+
+#endif /* IA64_ABI */
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- selector is unused in that case. */
@@ -3464,11 +3487,14 @@ expression that was used to select expr (it is NULL if no selector was used).
       has_been_mangled = TRUE;
 #if IA64_ABI
     } else if (emulate_gnu_abi_bugs &&
-               (selector == NULL ||
-                (expr->variant.routine->source_corresp.is_class_member &&
+               ((selector == NULL && !args_are_dependent(arguments)) ||
+                (selector != NULL &&
+                 expr->variant.routine->source_corresp.is_class_member &&
                  is_variable_node(selector)))) {
-      /* FIXME: g++ mangles f() and a.f() as <expr-primary>. bug or feature? */
-      /* FIXME: Call this here to prevent extra "ad" from being added. */
+      /* In cases where a (non-member) function is called with non-dependent
+         arguments, or a member function is being called and the selection
+         is known (i.e., a variable), g++ uses <expr-primary> for mangling. */
+      /* Call this here to prevent an extra "ad" from being added. */
       mangled_entity_reference(&expr->variant.routine->source_corresp,
                                (an_il_entry_kind)iek_routine,
                                (a_routine_info_block *)NULL,
