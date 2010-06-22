@@ -3963,11 +3963,17 @@ the name in the abstract.  Set *err to TRUE if there is an error.
       /* A field selection like this names a concrete field.  Get the symbol
          for it and make a locator. */
       check_assertion(op2->kind == (an_expr_node_kind)enk_field);
-      /* Get the symbol from the saved operand, because that's the projection
-         symbol. */
-      sym = eriep->saved_operand.symbol;
-      check_assertion(sym != NULL);
-      make_locator_for_symbol(sym, locator);
+      if (is_error_operand(&eriep->saved_operand)) {
+        *err = TRUE;
+        rcblock->error_detected = TRUE;
+        clear_locator(locator, qualified_member_position);
+      } else {
+        /* Get the symbol from the saved operand, because that's the projection
+           symbol. */
+        sym = eriep->saved_operand.symbol;
+        check_assertion(sym != NULL);
+        make_locator_for_symbol(sym, locator);
+      }  /* if */
       break;
     case eok_dot_static:
     case eok_points_to_static:
