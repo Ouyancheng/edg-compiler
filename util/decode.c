@@ -1885,6 +1885,15 @@ template parameters.
                                               (a_template_param_block_ptr)NULL,
                                       dctl);
       }  /* if */
+    } else if (start_of_id_is("dr__", p, dctl)) {
+      /* Destructor (with type following). */
+      /* Output ~class-name for the destructor name. */
+      is_special_name = TRUE;
+      write_id_ch('~', dctl);
+      end_ptr = full_demangle_type_name(p+4, /*base_name_only=*/TRUE,
+                                        /*temp_par_info=*/
+                                            (a_template_param_block_ptr)NULL,
+                                        dctl);
     } else if (start_of_id_is("op", p, dctl)) {
       /* Conversion function.  Name looks like __opi__... where the part
          after "op" encodes the type (e.g., "opi" is "operator int"). */
@@ -5444,6 +5453,8 @@ template argument value written in terms of template parameters or
 trailing return types specified using decltype).
 The syntax is:
 
+FIXME: needs updating:
+
   <expression> ::= <unary operator-name> <expression>
                ::= <binary operator-name> <expression> <expression>
                ::= <trinary operator-name> <expression> <expression>
@@ -5564,6 +5575,11 @@ The syntax is:
     write_id_str("alignof(", dctl);
     ptr = demangle_type(ptr+2, dctl);
     write_id_ch(')', dctl);
+  } else if (*ptr == 'd' && ptr[1] == 'r') {
+    /* ~T() "dr <type>". */
+    write_id_ch('~', dctl);
+    ptr = demangle_type(ptr+2, dctl);
+    write_id_str("()", dctl);
   } else if (*ptr == 's' && ptr[1] == 'r') {
     /* Scope resolution "::":
          sr <type> <name>
@@ -6193,7 +6209,9 @@ FIXME.
     /* FIXME: This is what g++ does -- don't know if it'll be in the rules: */
     ptr = demangle_literal(ptr, dctl);
   } else if ((ptr[0] == 'o' && ptr[1] == 'n') ||
-             (ptr[0] == 's' && ptr[1] == 'r')) {
+             (ptr[0] == 's' && ptr[1] == 'r') ||
+             (ptr[0] == 'd' && ptr[1] == 'r')) {
+    /* FIXME: better way to do this? */
     ptr = demangle_expression(ptr, dctl);
   } else {
     /* The <name> is limited to <unqualified-name> or
