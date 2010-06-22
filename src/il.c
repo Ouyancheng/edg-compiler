@@ -6051,10 +6051,11 @@ definition of the CC flags in il.h for more information.
             case tpck_unknown_function:
               if (equiv_template_constant_identity(cp1, cp2,
                                                    strictly_identical) &&
-                  cp1->variant.template_param.variant.
-                                                    unknown_function.symbol ==
-                  cp2->variant.template_param.variant.
-                                                    unknown_function.symbol &&
+                  (!strictly_identical ||
+                   (cp1->variant.template_param.variant.
+                                                   unknown_function.symbol ==
+                    cp2->variant.template_param.variant.
+                                                   unknown_function.symbol)) &&
                   cp1->variant.template_param.variant.
                                                 unknown_function.opname_kind ==
                   cp2->variant.template_param.variant.
