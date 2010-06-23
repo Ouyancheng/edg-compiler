@@ -9407,6 +9407,7 @@ parameter can be deduced.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
 					       TTT_DEDUCED_CONTEXTS_ONLY |
+                                               TTT_SKIP_TYPEREFS |
                                                TTT_TEMPLATE_ARGS);
 
   check_assertion_str(!C_mode(),
