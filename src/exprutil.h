@@ -318,12 +318,15 @@ typedef struct an_operand {
 			   used on ok_indefinite_function operands to remember
 			   that a "&" appeared that can't yet be represented
 			   in the IL, because we don't know yet what the
-			   underlying entity will be.  When this is TRUE, the
-			   ampersand_position field gives the position of the
-			   "&" (the normal position field gives the position
-			   of the underlying identifier).  Note that
-			   "immediate operand" does not preclude parentheses
-			   in the source form, as in &(A::f); see also
+			   underlying entity will be.  Also used on some
+			   constant operands that represent indefinite
+			   functions; see operand_allows_is_operand_address_of.
+			   When this is TRUE, the ampersand_position field
+			   gives the position of the "&" (the normal position
+			   field gives the position of the underlying
+			   identifier).  Note that "immediate operand" does
+			   not preclude parentheses in the source form,
+			   as in &(A::f); see also
 			   has_required_ptr_to_member_form. */
   a_bit_field	has_required_ptr_to_member_form:1;
 			/* Similar to is_operand_of_address_of, but indicates

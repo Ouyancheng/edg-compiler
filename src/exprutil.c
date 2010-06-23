@@ -3265,6 +3265,31 @@ This is only used in C++, for some strange cases.
 }  /* discard_operand */
 
 
+static a_boolean operand_allows_is_operand_of_address_of(an_operand *operand)
+/*
+Return TRUE if the given operand is one on which the is_operand_of_address_of
+flag is allowed to be set.  Such cases are indefinite functions in various
+forms.
+*/
+{
+  a_boolean allowed = FALSE;
+
+  if (is_indefinite_function_operand(operand)) {
+    allowed = TRUE;
+  } else if (is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_template_param &&
+        (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+         con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref)) {
+      allowed = TRUE;
+    }  /* if */
+  }  /* if */
+  return allowed;
+}  /* operand_allows_is_operand_of_address_of */
+
+
 void restore_operand_details(an_operand *operand,
                              an_operand *orig_operand)
 /*
@@ -3305,8 +3330,9 @@ destroyed its source position, etc.  Restore such things from
   operand->is_qualified_name = orig_operand->is_qualified_name;
   operand->access_control_error_reported =
                                    orig_operand->access_control_error_reported;
-  operand->is_operand_of_address_of= (orig_operand->is_operand_of_address_of &&
-                                      is_indefinite_function_operand(operand));
+  operand->is_operand_of_address_of =
+                            (orig_operand->is_operand_of_address_of &&
+                             operand_allows_is_operand_of_address_of(operand));
   operand->has_required_ptr_to_member_form =
                                  orig_operand->has_required_ptr_to_member_form;
   operand->ruled_out_expr_kinds |= orig_operand->ruled_out_expr_kinds;
@@ -4683,10 +4709,12 @@ the result is an rvalue.  This is used in prototype instantiations when the
 function to be selected is not known.
 */
 {
-  a_boolean was_lvalue = is_a_function_designator(operand);
+  a_boolean  was_lvalue = is_a_function_designator(operand);
+  an_operand orig_operand;
 
   check_assertion(is_indefinite_function_operand(operand) &&
                   is_template_dependent_context());
+  orig_operand = *operand;
   make_unknown_dependent_function_operand(operand->symbol,
                                           (a_boolean)operand->is_template_id,
                                           operand->template_arg_list,
@@ -4696,6 +4724,7 @@ function to be selected is not known.
   if (!force_to_rvalue && was_lvalue) {
     change_template_param_constant_operand_to_lvalue(operand);
   }  /* if */
+  restore_operand_details(operand, &orig_operand);
 }  /* conv_indefinite_function_operand_to_unknown_dependent_function */
 
 

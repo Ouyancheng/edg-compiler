@@ -24208,7 +24208,6 @@ operand of an "&" operator.
   a_symbol_ptr                  sym = NULL;
   a_boolean                     is_template_id = FALSE;
   a_template_arg_ptr            expl_templ_arg_list = NULL;
-  a_boolean                     is_unknown_func_addr = FALSE;
 
   /* We pass the second argument as NULL because we require explicit
      rescan information on this node. */
@@ -24238,15 +24237,6 @@ operand of an "&" operator.
     a_constant_ptr con;
     check_assertion(is_constant_node(expr));
     con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_template_param &&
-        (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-         con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref)) {
-      /* Remember that the constant is for the address of an unknown
-         function (see below). */
-      is_unknown_func_addr = TRUE;
-    }  /* if */
     /* Do substitution and produce a symbol for the substituted result. */
     sym = symbol_for_template_param_unknown_entity_rescan(
                                                         con,
@@ -24285,12 +24275,6 @@ operand of an "&" operator.
       conv_function_designator_to_ptr_to_function(result,
                                                   &eriep->saved_operand.
                                                             ampersand_position,
-                                                  /*allow_ctor=*/FALSE,
-                                                  /*will_call=*/FALSE);
-    } else if (is_unknown_func_addr) {
-       /* Likewise if the unknown function was represented by a constant. */
-      conv_function_designator_to_ptr_to_function(result,
-                                                  (a_source_position *)NULL,
                                                   /*allow_ctor=*/FALSE,
                                                   /*will_call=*/FALSE);
     }  /* if */
