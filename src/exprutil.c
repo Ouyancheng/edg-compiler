@@ -2049,49 +2049,6 @@ value is TRUE.
 }  /* clone_operand */
 
 
-static an_expr_node_ptr extract_node_from_operand(an_operand *operand)
-/*
-Extract an expression from an operand.  If the operand contains a
-constant, allocate a constant node and copy the constant value to it.
-If the operand is an error operand, create an error node.  If the
-operand is an expression, return the expression node.  This routine
-does not preserve information from the operand as extra information
-added to the expression and should be used when the expression is
-either (a) going to be simply tested or traversed for some property,
-and not saved, or (b) going to be immediately put back into
-an_operand, with the original operand information restored via a call
-to restore_operand_details.  Otherwise, use make_node_from_operand
-instead.
-*/
-{
-  an_expr_node_ptr node;
-
-  switch (operand->kind) {
-    case ok_error:
-      /* Make an error node.  Its type will be error. */
-      node = error_node();
-      break;
-    case ok_expression:
-      /* Just return the node in the operand. */
-      node = operand->variant.expression;
-      break;
-    case ok_constant:
-      /* Create a constant node and copy the constant in the operand to the
-         node. */
-      node = alloc_node_for_constant(&operand->variant.constant);
-      copy_operand_position_to_expr(operand, node);
-      node->is_lvalue = is_an_lvalue(operand);
-      break;
-#if CHECKING
-    default:
-      internal_error
-	("extract_node_from_operand: converting unexpected operand kind");
-#endif /* CHECKING */
-  }  /* switch */
-  return node;
-}  /* extract_node_from_operand */
-
-
 an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
                                     a_boolean        parens_also)
 /*
@@ -2286,7 +2243,9 @@ Do nothing if the operand is not discernibly a cast expression.
   if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr expr = expr_node_from_operand(operand);
     if (expr != NULL) {
-      expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
+      expr = strip_implicit_operations_for_rescan(
+                                            expr,
+                                            (an_expr_rescan_info_entry**)NULL);
       if (is_operation_node(expr) &&
           expr->variant.operation.is_conversion_call) {
         /* This is a non-dependent cast rendered as a call.  Record the
@@ -3119,6 +3078,49 @@ it (using information from rcblock), and return the substituted type in
                                 &operator_tok_seq_number,
                                 (a_source_position *)NULL);
 }  /* make_type_operand_rescan_type */
+
+
+static an_expr_node_ptr extract_node_from_operand(an_operand *operand)
+/*
+Extract an expression from an operand.  If the operand contains a
+constant, allocate a constant node and copy the constant value to it.
+If the operand is an error operand, create an error node.  If the
+operand is an expression, return the expression node.  This routine
+does not preserve information from the operand as extra information
+added to the expression and should be used when the expression is
+either (a) going to be simply tested or traversed for some property,
+and not saved, or (b) going to be immediately put back into
+an_operand, with the original operand information restored via a call
+to restore_operand_details.  Otherwise, use make_node_from_operand
+instead.
+*/
+{
+  an_expr_node_ptr node;
+
+  switch (operand->kind) {
+    case ok_error:
+      /* Make an error node.  Its type will be error. */
+      node = error_node();
+      break;
+    case ok_expression:
+      /* Just return the node in the operand. */
+      node = operand->variant.expression;
+      break;
+    case ok_constant:
+      /* Create a constant node and copy the constant in the operand to the
+         node. */
+      node = alloc_node_for_constant(&operand->variant.constant);
+      copy_operand_position_to_expr(operand, node);
+      node->is_lvalue = is_an_lvalue(operand);
+      break;
+#if CHECKING
+    default:
+      internal_error
+	("extract_node_from_operand: converting unexpected operand kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return node;
+}  /* extract_node_from_operand */
 
 
 an_expr_node_ptr make_node_from_operand(an_operand *operand)
