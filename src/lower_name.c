@@ -3241,7 +3241,7 @@ constant.
 
 #endif /* IA64_ABI */
 
-static an_expr_node_ptr skip_non_mangleable_expressions(
+static an_expr_node_ptr skip_compiler_generated_expressions(
                                an_expr_node_ptr expr,
                                a_boolean        *suppress_address_of_on_typeid)
 /*
@@ -3251,7 +3251,9 @@ operations, parentheses, etc.) so that the mangled output will accurately
 reflect the source code.  *suppress_address_of_on_typeid is set to TRUE
 when the caller (in the IA-64 ABI) needs to suppress an implicit "&" operation
 on a tpck_typeid template parameter constant (because the compiler generated
-"*" has been removed here).
+"*" has been removed here).  Note that not all compiler generated expressions
+are stripped here; some are intentionally left so that the construct can
+be explicitly dealt with later in expression mangling.
 */
 {
   an_expr_operator_kind op;
@@ -3327,7 +3329,7 @@ on a tpck_typeid template parameter constant (because the compiler generated
     }  /* if */
   } while (!done);
   return expr;
-}  /* skip_non_mangleable_expressions */
+}  /* skip_compiler_generated_expressions */
 
 #if IA64_ABI
 
@@ -3448,16 +3450,24 @@ expression that was used to select expr (NULL if no selector was used).
   a_boolean                   suppress_address_of_on_typeid;
   a_boolean                   has_been_mangled = FALSE;
   a_boolean                   suppress_operation_indicator = FALSE;
+#if IA64_ABI
+  a_boolean                   selector_has_known_type = FALSE;
+#endif /* IA64_ABI */
 
   /* Skip any expressions (e.g., compiler added) that don't belong in the
      mangled output. */
-  expr = skip_non_mangleable_expressions(expr, &suppress_address_of_on_typeid);
+  expr = skip_compiler_generated_expressions(expr,
+                                             &suppress_address_of_on_typeid);
   check_assertion(!suppress_address_of_on_typeid);
 #if IA64_ABI
   if (emulate_gnu_abi_bugs && selector != NULL) {
     /* g++ seems to add the "on" mangling to operator names only when there
        is no selector (i.e., for non-member operators). */
     suppress_operation_indicator = TRUE;
+    if (is_variable_node(selector)) {
+      /* g++ provides different manglings if the selector has a known type. */
+      selector_has_known_type = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
   if (is_constant_node(expr)) {
@@ -3523,35 +3533,11 @@ expression that was used to select expr (NULL if no selector was used).
       scp = &expr->variant.variable->source_corresp;
     }  /* if */
   } else if (is_routine_node(expr)) {
-    if (expr->variant.routine->special_kind !=
-                                           (a_special_function_kind)sfk_none) {
-      /* See if this routine requires special handling. */
-      if (expr->variant.routine->special_kind ==
-                                     (a_special_function_kind)sfk_destructor) {
-        /* FIXME: may need sr qualification. */
-        mangled_destructor_name(scp_parent_class(
-                                       &expr->variant.routine->source_corresp),
-                                mctl);
-        has_been_mangled = TRUE;
-      } else if (expr->variant.routine->special_kind ==
-                                       (a_special_function_kind)sfk_operator) {
-        /* FIXME: may need sr qualification. */
-        add_operator_name_to_mangled_name(
-                                    expr->variant.routine->variant.opname_kind,
-                                    number_of_operands_in_list(arguments),
-                                    suppress_operation_indicator,
-                                    mctl);
-        has_been_mangled = TRUE;
-      } else {
-        /* Compiler generated conversion operations have been stripped. */
-        unexpected_condition();
-      }  /* if */
 #if IA64_ABI
-    } else if (emulate_gnu_abi_bugs &&
-               ((selector == NULL && !args_are_dependent(arguments)) ||
-                (selector != NULL &&
-                 expr->variant.routine->source_corresp.is_class_member &&
-                 is_variable_node(selector)))) {
+    if (emulate_gnu_abi_bugs &&
+        (selector_has_known_type ||
+         (selector == NULL &&
+          !args_are_dependent(arguments)))) {
       /* In cases where a (non-member) function is called with non-dependent
          arguments, or a member function is being called and the selection
          is known (i.e., a variable), g++ uses <expr-primary> for mangling. */
@@ -3561,18 +3547,44 @@ expression that was used to select expr (NULL if no selector was used).
                                (a_routine_info_block *)NULL,
                                mctl);
       has_been_mangled = TRUE;
+    } else
 #endif /* IA64_ABI */
-    } else {
-      /* Provide a spelling for the routine. */
-      scp = &expr->variant.routine->source_corresp;
+    /* Do not insert code here. */
+    {
+      template_arg_list = expr->variant.routine->template_arg_list;
+      if (expr->variant.routine->special_kind !=
+                                           (a_special_function_kind)sfk_none) {
+        /* See if this routine requires special handling. */
+        if (expr->variant.routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+          /* FIXME: may need sr qualification. */
+          mangled_destructor_name(scp_parent_class(
+                                     &expr->variant.routine->source_corresp),
+                                  mctl);
+          has_been_mangled = TRUE;
+        } else if (expr->variant.routine->special_kind ==
+                                       (a_special_function_kind)sfk_operator) {
+          /* FIXME: may need sr qualification. */
+          add_operator_name_to_mangled_name(
+                                    expr->variant.routine->variant.opname_kind,
+                                    number_of_operands_in_list(arguments),
+                                    suppress_operation_indicator,
+                                    mctl);
+          has_been_mangled = TRUE;
+        } else {
+          /* Compiler generated conversion operations have been stripped. */
+          unexpected_condition();
+        }  /* if */
+      } else {
+        /* Provide a spelling for the routine. */
+        scp = &expr->variant.routine->source_corresp;
+      }  /* if */
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_field) {
     /* This can happen when a field of an anonymous union is being mangled. */
     scp = &expr->variant.field->source_corresp;
 #if IA64_ABI
-    if (emulate_gnu_abi_bugs &&
-        !(selector != NULL &&
-          is_variable_node(selector))) {
+    if (emulate_gnu_abi_bugs && !selector_has_known_type) {
       /* FIXME: need a flag in the front end to tell us when the field was
          qualified. */
       add_str_to_mangled_name("sr", mctl);
@@ -3592,7 +3604,7 @@ expression that was used to select expr (NULL if no selector was used).
     has_been_mangled = TRUE;
   }  /* if */
   if (template_arg_list != NULL) {
-    /* Put out the template argument list. */
+    /* Put out the template argument list, if any. */
     mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
                                /*old_form=*/FALSE, mctl);
   }  /* if */
@@ -3673,7 +3685,7 @@ expression.
         is_variable_node(selector) &&
         selector->variant.variable->is_anonymous_parent_object) {
       /* FIXME: do we need to know this here or can we just strip it
-         off in skip_non_mangleable_expressions as we did previously? */
+         off in skip_compiler_generated_expressions as we did previously? */
       /* A field in an anonymous union. */
       selector = NULL;
     } else if (expr->is_objectless_nonstatic_data_mem_ref) {
@@ -3742,27 +3754,40 @@ some type of call operation.  In the IA-64 ABI, in_dependent_expr is TRUE if
 this expression is part of a template-dependent expression.
 */
 {
-  an_expr_node_ptr  call_operand, arguments;
+  an_expr_node_ptr  call_operand, arguments, child;
+  a_boolean         mangle_as_call = FALSE;
 
   check_assertion(is_operation_node(expr));
+  child = expr->variant.operation.operands;
   switch (expr->variant.operation.kind) {
     case eok_call:
-      call_operand = expr->variant.operation.operands;
+      call_operand = child;
       arguments = call_operand->next;
+      mangle_as_call = TRUE;
       break;
     case eok_dot_member_call:
+      /* FIXME: the front end doesn't set this flag yet: */
+      if (expr->variant.operation.compiler_generated &&
+          is_routine_node(child) &&
+          child->variant.routine->variant.opname_kind ==
+                                           (an_opname_kind)onk_function_call) {
+        /* Change a compiler generated a.operator()(args) into its original
+           source form, i.e. a(args). */
+        mangle_as_call = TRUE;
+      } /* if */
+      /*FALLTHROUGH*/
     case eok_points_to_member_call:
-      call_operand = expr->variant.operation.operands->next;
+      call_operand = child->next;
       arguments = call_operand->next;
       break;
     case eok_dot_pm_call:
     case eok_points_to_pm_call:
-      call_operand = expr->variant.operation.operands;
+      call_operand = child;
       arguments = call_operand->next->next;
       break;
     case eok_dot_vacuous_destructor_call:
     case eok_points_to_vacuous_destructor_call:
-      call_operand = expr->variant.operation.operands;
+      call_operand = child;
       arguments = NULL;
       break;
 #if CHECKING
@@ -3788,10 +3813,12 @@ this expression is part of a template-dependent expression.
   store_digits_and_underscore(1 + number_of_operands_in_list(arguments),
                               /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
-  if (node_operator_is(expr, eok_call)) {
+  if (mangle_as_call) {
+    /* Source form doesn't have a selection operation. */
     mangled_unresolved_name(call_operand, arguments, /*selector=*/NULL, 
                             in_dependent_expr, mctl);
   } else {
+    /* Mangle the selection operation. */
     mangled_selection_operation(expr, arguments, in_dependent_expr, mctl);
   }  /* if */
   mangled_expression_list(arguments, in_dependent_expr, mctl);
@@ -3825,7 +3852,8 @@ part of a template-dependent expression.
   unsigned long    num_operands;
 #endif /* IA64_ABI */
 
-  expr = skip_non_mangleable_expressions(expr, &suppress_address_of_on_typeid);
+  expr = skip_compiler_generated_expressions(expr,
+                                             &suppress_address_of_on_typeid);
   switch (expr->kind) {
     case enk_constant:
 #if IA64_ABI
