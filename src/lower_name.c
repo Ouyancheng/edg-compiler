@@ -687,17 +687,6 @@ Add the indicated null-terminated string to the mangled name.
                                                    mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
 
-/* FIXME: remove this. */
-static void mangled_name_with_length(char                     *name,
-                                     a_mangling_control_block *mctl);
-/*
-FIXME: In cases that have yet to be implemented, simply add a marker into
-the mangled name indicating that work needs to be done.
-*/
-static void add_FIXME_to_mangled_name(a_mangling_control_block *mctl)
-{
-  mangled_name_with_length("_FIXME_", mctl);
-}  /* add_FIXME_to_mangled_name */
 
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- mctl is not used in that case. */
@@ -3442,8 +3431,6 @@ static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     a_boolean                in_dependent_expr,
                                     a_mangling_control_block *mctl)
 /*
-FIXME: The code doesn't reflect any of the recent changes for <unresolved-name>.
-
 Add to the mangled name an encoding for the entity represented by the
 expression node.  This is not a general purpose routine for representing
 an expression; rather it is used when mangling a call operand or the field of a
@@ -3451,9 +3438,8 @@ selection (e.g., "." or "->") operation.  Often, these entities are unknown
 (e.g., because they are members of a dependent type) so mangle them with a
 "spelling" of the entity name rather than their usual mangling.  arguments
 refers to a (possibly NULL) set of arguments being passed to this entity, and
-is used only in the case where the entity represents a ck_template_param
-operator name (to differentiate unary/binary cases).  selector refers to the
-expression that was used to select expr (it is NULL if no selector was used).
+is used to differentiate unary/binary operators.  selector refers to the
+expression that was used to select expr (NULL if no selector was used).
 */
 {
   char                        *str;
@@ -3520,7 +3506,7 @@ expression that was used to select expr (it is NULL if no selector was used).
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
           /* FIXME: Better way to detect destructor? */
-          /* FIXME: How to emit template parameter here? */
+          /* FIXME: How to emit template arguments here? */
           mangled_destructor_name(scp_parent_class(
                                       &expr->variant.constant->source_corresp),
                                   mctl);
@@ -3598,9 +3584,10 @@ expression that was used to select expr (it is NULL if no selector was used).
 #endif /* IA64_ABI */
   }  /* if */
   if (scp != NULL) {
+    /* Encode this entity with a "spelling" (i.e., <source-name> for IA-64
+       ABI). */
     str = unmangled_or_fabricated_name_of(scp);
     check_assertion(str != NULL);
-    /* FIXME: What do we do about substitutions here? */
     mangled_name_with_length(str, mctl);
     has_been_mangled = TRUE;
   }  /* if */
@@ -3610,7 +3597,7 @@ expression that was used to select expr (it is NULL if no selector was used).
                                /*old_form=*/FALSE, mctl);
   }  /* if */
   if (!has_been_mangled) {
-    /* This isn't a special case, provide usual mangling. */
+    /* This isn't a special case, provide usual mangling for the expression. */
     mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
   }  /* if */
 }  /* mangled_unresolved_name */
@@ -5352,7 +5339,7 @@ that fact should be put out.
            occur only in nonreal classes in configurations that generate
            prototype instantiations. */
         check_assertion(type->variant.class_struct_union.is_nonreal_class);
-        add_FIXME_to_mangled_name(mctl);
+        mangled_name_with_length("?", mctl);
         break;
       default:
         unexpected_condition_str(
