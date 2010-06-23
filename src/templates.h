@@ -380,6 +380,10 @@ extern a_template_ptr rescan_template_template_default_arg
 			              a_template_param_ptr param_ptr,
 				      a_template_arg_ptr   arg_list);
 
+extern void delayed_scan_of_template_param_default_arg(
+					a_symbol_ptr		template_sym,
+					a_template_param_ptr	tpp);
+
 /*
 Bit vector used to pass flags into matches_template_type.
 */

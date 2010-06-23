@@ -433,11 +433,19 @@ static a_boolean
 			   later prescan. */
 #endif /* CHECKING */
 
-/* Forward declaration. */
+/* Forward declarations. */
 static void update_instantiation_required_flag(
 			a_template_instance_ptr			tip,
 			a_boolean				value,
 			a_set_instance_required_options_set	options);
+
+static a_template_ptr copy_template_with_substitution(
+			a_template_ptr			templ,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error);
 
 
 static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
@@ -1443,6 +1451,57 @@ parameter types to see if tparam_type appears in it.  If
 }  /* template_param_appears_in_param_list */
 
 
+static void get_template_arg_value_from_default(
+					a_symbol_ptr		template_sym,
+					a_template_arg_ptr	tap,
+					a_template_param_ptr	tpp)
+/*
+If the template parameter pointed to by tpp has a default value, use that as
+the value for the tap.  template_sym is the template of which tpp
+is a parameter.
+*/
+{
+  if (tpp->has_default_arg) {
+    if (tpp->def_arg_has_not_been_scanned) {
+      /* In some cases the default argument will not have been scanned yet.
+         If it has not been scanned yet, do so now. */
+      delayed_scan_of_template_param_default_arg(template_sym, tpp);
+    }  /* if */
+    switch (tap->kind) {
+      case tak_type:
+        check_assertion(tpp->default_arg.type != NULL);
+        tap->variant.type = tpp->default_arg.type;
+        break;
+      case tak_nontype:
+        check_assertion(tpp->default_arg.constant != NULL);
+        tap->variant.constant = tpp->default_arg.constant;
+        break;
+      case tak_template:
+        check_assertion(tpp->default_arg.templ != NULL);
+        tap->variant.templ.ptr = tpp->default_arg.templ;
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
+}  /* get_template_arg_value_from_default */
+
+
+/* Forward declaration. */
+static void substitute_template_argument(
+			a_template_arg_ptr	templ_arg,
+			a_template_param_ptr	templ_param,
+			a_template_arg_ptr	arg_list_to_copy,
+			a_template_param_ptr	param_list_for_copy,
+			a_template_arg_ptr	templ_arg_list,
+			a_template_param_ptr	templ_param_list,
+			a_source_position	*source_pos,
+			a_ctws_options_set	options,
+			a_boolean		orig_is_nonreal_template,
+			a_boolean		*copy_error);
+
+
 static a_boolean all_templ_params_have_values(
 		a_template_arg_ptr			templ_arg_list,
 		a_template_param_ptr			templ_param_list,
@@ -1475,7 +1534,31 @@ symbol supplement.
   tpp = templ_param_list;
   tap = templ_arg_list;
   for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
-    if (!template_arg_has_value(tap)) {
+    a_boolean	has_value = template_arg_has_value(tap);
+    if (function_template_default_args_allowed && !has_value &&
+        !is_partial_order_check) {
+      /* See if the template parameter has a default value that can be used. */
+      get_template_arg_value_from_default(template_sym, tap, tpp);
+      has_value = template_arg_has_value(tap);
+      if (has_value && tpp->def_arg_involves_template_param) {
+        /* If a default argument value was used, substitute the argument
+           values in case the default depends on one of the previous
+           template parameters. */
+        a_boolean	copy_error = FALSE;
+        substitute_template_argument(tap, tpp, templ_arg_list,
+                                     templ_param_list,
+                                     templ_arg_list, templ_param_list,
+                                     &template_sym->decl_position,
+                                     CTWS_NO_OPTIONS,
+                                     /*orig_is_nonreal_template=*/FALSE,
+                                     &copy_error);
+        if (copy_error) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!has_value) {
       a_boolean	okay_if_no_value = FALSE;
       if (is_partial_order_check) {
         /* We are doing a check during the wrapup processing for partial
@@ -1569,11 +1652,15 @@ during wrapup processing by compare_function_templates.
         /* Check whether this nontype template parameter must be rescanned
            because of a dependence on another template argument. */
         if (tpp->variant.constant.type_involves_template_param) {
-          /* Rescan the tokens that make up the parameter declaration. */
-          constant_type = rescan_template_constant_parameter
-                                     (template_sym, tpp->param_symbol, tpp,
-                                      templ_arg_list, /*do_default_arg=*/FALSE,
-                                      (a_constant_ptr*)NULL);
+          /* Create a substituted version of the nontype value. */
+          a_boolean	copy_error = FALSE;
+          constant_type = copy_type_with_substitution(
+                                  tpp->variant.constant.ptr->type,
+                                  templ_arg_list,
+                                  templ_param_list,
+                                  &template_sym->decl_position,
+                                  CTWS_NO_OPTIONS, &copy_error);
+          if (copy_error) match = FALSE;
         } else {
           constant_type = tpp->variant.constant.ptr->type;
         }  /* if */
@@ -1616,11 +1703,16 @@ during wrapup processing by compare_function_templates.
                               variant.class_template.involves_template_param) {
           /* The template template parameter depends on another template
              parameter (e.g., "template <class T, template <T t> class X>...").
-             Rescan the template template parameter declaration to create a
+             Substitute the template template parameter declaration to create a
              new parameter template. */
-          param_template = rescan_template_template_parameter(
-                                          template_sym, tpp, templ_arg_list);
+          a_boolean	copy_error = FALSE;
+          param_template = copy_template_with_substitution(
+                                                param_template, templ_arg_list,
+                                                templ_param_list,
+                                                &template_sym->decl_position,
+                                                CTWS_NO_OPTIONS, &copy_error);
           tap->variant.templ.substituted_param_template = param_template;
+          if (copy_error) match = FALSE;
         }  /* if */
         /* Compare the parameter list of the (potentially) rescanned template
            template parameter with the template supplied as an argument. */
@@ -7570,6 +7662,136 @@ Return TRUE if the conversion was successful.
 }  /* conv_nontype_arg_to_required_type */
 
 
+static void substitute_template_argument(
+			a_template_arg_ptr	templ_arg,
+			a_template_param_ptr	templ_param,
+			a_template_arg_ptr	arg_list_to_copy,
+			a_template_param_ptr	param_list_for_copy,
+			a_template_arg_ptr	templ_arg_list,
+			a_template_param_ptr	templ_param_list,
+			a_source_position	*source_pos,
+			a_ctws_options_set	options,
+			a_boolean		orig_is_nonreal_template,
+			a_boolean		*copy_error)
+/*
+Perform substitution on the template argument specified by templ_arg.
+templ_param is the parameter associated with templ_arg and may be NULL if
+the parameter list is not known.
+
+See copy_template_arg_list_with_substitution for a description of the other
+parameters.
+*/
+{
+  a_template_param_ptr	tpp = templ_param;
+  a_template_arg_ptr	tap = templ_arg;
+  a_boolean		have_params = (param_list_for_copy != NULL);
+
+  /* Make sure that the template argument kind matches the parameter
+     kind. */
+  if (have_params) {
+    a_symbol_kind	param_sym_kind;
+    param_sym_kind = tpp->param_symbol->kind;
+    if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
+      /* The argument kinds do not match. */
+      *copy_error = TRUE;
+    }  /* if */
+  }  /* if */
+  if (is_type_templ_arg(tap)) {
+    tap->variant.type =
+               copy_type_with_substitution(tap->variant.type,
+                                           templ_arg_list, templ_param_list,
+					   source_pos, options, copy_error);
+  } else if (is_nontype_templ_arg(tap)) {
+    /* Perform the substitution on the type of the constant. */
+    a_type_ptr	const_type;
+    a_type_ptr	new_const_type;
+    /* Pass in the expected type of the constant, i.e., the type of
+       the template parameter after substitution.  A NULL pointer is
+       passed if we do not know the parameter type. */
+    new_const_type = NULL;
+    if (have_params) {
+      /* When we have a template parameter list, and that parameter list was
+         available when the template argument list was scanned (i.e.,
+         orig_is_nonreal_template is FALSE) we know the type of the
+         constant matches the type of the parameter.  In such cases,
+         it is important to use the type from the constant, because in
+         some cases involving partial ordering the parameter type can
+         involve template parameter types that had been substituted when
+         the constant type was produced, but which are unsubstituted when
+         retrieved from the parameter symbol */
+      if (orig_is_nonreal_template) {
+        const_type = tpp->param_symbol->variant.constant->type;
+        if (tpp->variant.constant.type_involves_template_param) {
+          /* The type of the template parameter involves a template
+             parameter.   Substitute the current set of template arguments
+             (the ones being created by this routine) into the type.
+             The outer template arguments will also be substituted below. */
+          const_type =
+             copy_type_with_substitution(const_type,
+                                         arg_list_to_copy, param_list_for_copy,
+					 source_pos, options, copy_error);
+        }  /* if */
+      } else {
+        const_type = tap->variant.constant->type;
+      }  /* if */
+      new_const_type = copy_type_with_substitution(const_type,
+                                                   templ_arg_list,
+                                                   templ_param_list,
+                                                   source_pos, options,
+                                                   copy_error);
+      /* Make sure the new type is a valid type for a nontype template
+         parameter. */
+      if (const_type != new_const_type &&
+          (is_void_type(new_const_type) ||
+           is_class_struct_union_type(new_const_type) ||
+           (rvalue_references_enabled &&
+            is_rvalue_reference_type(new_const_type)) ||
+#if FIXED_POINT_ALLOWED
+           const_type->kind == (a_type_kind)tk_fixed_point ||
+#endif /* FIXED_POINT_ALLOWED */
+           (new_const_type->kind == (a_type_kind)tk_float &&
+            !floating_point_template_parameters_allowed))) {
+        new_const_type = error_type();
+        *copy_error = TRUE;
+      }  /* if */
+    }  /* if */
+    tap->variant.constant =
+         copy_template_param_con_with_substitution(tap->variant.constant,
+                                                   templ_arg_list,
+                                                   templ_param_list,
+						   new_const_type,
+                                                   source_pos,
+                                                   options, copy_error);
+    if (new_const_type != NULL) {
+      /* If the constant does not have the required type, see if it can
+         be converted. */
+      a_type_ptr	type_from_constant = tap->variant.constant->type;
+      if (is_error_type(new_const_type)) {
+        /* The substitution resulted in an error type.  Don't attempt a
+           conversion. */
+        *copy_error = TRUE;
+      } else if (!f_identical_types(skip_typerefs(new_const_type),
+                                    skip_typerefs(type_from_constant),
+                                    ITF_NO_FLAGS)) {
+        /* Attempt to convert the constant. */
+        if (!conv_nontype_arg_to_required_type(tap, new_const_type,
+                                               source_pos)) {
+          /* The conversion failed. */
+          *copy_error = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* A template template argument. */
+    tap->variant.templ.ptr = copy_template_with_substitution(
+                                 tap->variant.templ.ptr,
+                                 templ_arg_list,
+                                 templ_param_list,
+                                 source_pos, options, copy_error);
+  }  /* if */
+}  /* substitute_template_argument */
+
+
 a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
@@ -7617,109 +7839,23 @@ associated parameter.
       *copy_error = TRUE;
       break;
     }  /* if */
-    /* Make sure that the template argument kind matches the parameter
-       kind. */
-    if (have_params) {
-      a_symbol_kind	param_sym_kind;
-      param_sym_kind = tpp->param_symbol->kind;
-      if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
-        /* The argument kinds do not match. */
-        *copy_error = TRUE;
-        break;
-      }  /* if */
-    }  /* if */
+    /* Copy the unsubstituted value to the new argument. */
     if (is_type_templ_arg(tap)) {
-      new_tap->variant.type =
-               copy_type_with_substitution(tap->variant.type,
-                                           templ_arg_list, templ_param_list,
-					   source_pos, options, copy_error);
+      new_tap->variant.type = tap->variant.type;
     } else if (is_nontype_templ_arg(tap)) {
-      /* Perform the substitution on the type of the constant. */
-      a_type_ptr	const_type;
-      a_type_ptr	new_const_type;
-      /* Pass in the expected type of the constant, i.e., the type of
-         the template parameter after substitution.  A NULL pointer is
-         passed if we do not know the parameter type. */
-      new_const_type = NULL;
-      if (have_params) {
-        /* When we have a template parameter list, and that parameter list was
-           available when the template argument list was scanned (i.e.,
-           orig_is_nonreal_template is FALSE) we know the type of the
-           constant matches the type of the parameter.  In such cases,
-           it is important to use the type from the constant, because in
-           some cases involving partial ordering the parameter type can
-           involve template parameter types that had been substituted when
-           the constant type was produced, but which are unsubstituted when
-           retrieved from the parameter symbol */
-        if (orig_is_nonreal_template) {
-          const_type = tpp->param_symbol->variant.constant->type;
-          if (tpp->variant.constant.type_involves_template_param) {
-            /* The type of the template parameter involves a template
-               parameter.   Substitute the current set of template arguments
-               (the ones being created by this routine) into the type.
-               The outer template arguments will also be substituted below. */
-            const_type =
-               copy_type_with_substitution(const_type,
-                                         arg_list_to_copy, param_list_for_copy,
-					 source_pos, options, copy_error);
-          }  /* if */
-        } else {
-          const_type = tap->variant.constant->type;
-        }  /* if */
-        new_const_type = copy_type_with_substitution(const_type,
-                                                     templ_arg_list,
-                                                     templ_param_list,
-                                                     source_pos, options,
-                                                     copy_error);
-        /* Make sure the new type is a valid type for a nontype template
-           parameter. */
-        if (const_type != new_const_type &&
-            (is_void_type(new_const_type) ||
-             is_class_struct_union_type(new_const_type) ||
-             (rvalue_references_enabled &&
-              is_rvalue_reference_type(new_const_type)) ||
-#if FIXED_POINT_ALLOWED
-             const_type->kind == (a_type_kind)tk_fixed_point ||
-#endif /* FIXED_POINT_ALLOWED */
-             (new_const_type->kind == (a_type_kind)tk_float &&
-              !floating_point_template_parameters_allowed))) {
-          new_const_type = error_type();
-          *copy_error = TRUE;
-        }  /* if */
-      }  /* if */
-      new_tap->variant.constant =
-         copy_template_param_con_with_substitution(tap->variant.constant,
-                                                   templ_arg_list,
-                                                   templ_param_list,
-						   new_const_type,
-                                                   source_pos,
-                                                   options, copy_error);
-      if (new_const_type != NULL) {
-        /* If the constant does not have the required type, see if it can
-           be converted. */
-        a_type_ptr	type_from_constant = new_tap->variant.constant->type;
-        if (is_error_type(new_const_type)) {
-          /* The substitution resulted in an error type.  Don't attempt a
-             conversion. */
-          *copy_error = TRUE;
-        } else if (!f_identical_types(skip_typerefs(new_const_type),
-                                      skip_typerefs(type_from_constant),
-                                      ITF_NO_FLAGS)) {
-          /* Attempt to convert the constant. */
-          if (!conv_nontype_arg_to_required_type(new_tap, new_const_type,
-                                                 source_pos)) {
-            /* The conversion failed. */
-            *copy_error = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
+      new_tap->variant.constant = tap->variant.constant;
     } else {
       /* A template template argument. */
-      new_tap->variant.templ.ptr = copy_template_with_substitution(
-                                    tap->variant.templ.ptr, templ_arg_list,
-                                    templ_param_list,
-                                    source_pos, options, copy_error);
+      new_tap->variant.templ.ptr = tap->variant.templ.ptr;
     }  /* if */
+    /* Do the substitution on the argument. */
+    substitute_template_argument(new_tap, tpp, arg_list_to_copy,
+                                 param_list_for_copy,
+                                 templ_arg_list, templ_param_list, source_pos,
+                                 options, orig_is_nonreal_template,
+                                 copy_error);
+    /* Exit the loop if the substitution failed. */
+    if (*copy_error) break;
     if (new_list == NULL) {
       new_list = new_tap;
     } else {
@@ -14341,6 +14477,7 @@ parameter entry for the parameter.
       /* Assign a dummy type.  This can be used if the default argument value
          is needed within the prototype instantiation. */
       template_param->default_arg.type = type_of_unknown_templ_param_nontype;
+      template_param->def_arg_has_not_been_scanned = TRUE;
     } else {
       rescan_copy_of_cache(&def_arg_cache);
       default_arg_type = scan_template_type_argument();
@@ -14496,6 +14633,8 @@ parameter depends on a template parameter.
          the default is needed, but the parameters on which it depends
          are still template dependent. */
       template_param->default_arg.constant = default_arg_constant;
+    } else {
+      template_param->def_arg_has_not_been_scanned = TRUE;
     }  /* if */
     /* Update the default argument information in the template parameter. */
     if (def_arg_involves_template_param) {
@@ -14838,9 +14977,16 @@ the resulting constant is stored in the pointer pointed to by "constant".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   dependent_arg_list = is_template_dependent_context() ||
                        template_arg_list_is_dependent(arg_list);
-  /* If the argument list is dependent, flag this as a nonreal
-     instantiation. */
-  if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
+  if (param_ptr->def_arg_has_not_been_scanned) {
+    /* If the default argument has not yet been scanned, this is the
+       initial scan and should be treated as a prototype instantiation. */
+    ps_options |= PS_PROTOTYPE_INSTANTIATION;
+    param_ptr->def_arg_has_not_been_scanned = FALSE;
+  } else if (dependent_arg_list) {
+    /* If the argument list is dependent, flag this as a nonreal
+       instantiation. */
+    ps_options |= PS_NONREAL_INSTANTIATION;
+  }  /* if */
   if (type_involves_template_param) {
     if (pending_nontype_param_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
@@ -15082,9 +15228,16 @@ existing type is simply used.
       /* Increment the count of pending default argument instantiations.
          This is used to detect infinite recursion. */
       ++pending_type_param_instantiations;
-      /* If the argument list is dependent, flag this as a nonreal
-         instantiation. */
-      if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
+      if (param_ptr->def_arg_has_not_been_scanned) {
+        /* If the default argument has not yet been scanned, this is the
+           initial scan and should be treated as a prototype instantiation. */
+        ps_options |= PS_PROTOTYPE_INSTANTIATION;
+        param_ptr->def_arg_has_not_been_scanned = FALSE;
+      } else if (dependent_arg_list) {
+        /* If the argument list is dependent, flag this as a nonreal
+           instantiation. */
+        ps_options |= PS_NONREAL_INSTANTIATION;
+      }  /* if */
       /* Push the template instantiation scope.  Note that the instance symbol
          passed to push_scope is NULL because we don't yet know which instance
          is being instantiated.  Also note that a class type is not being
@@ -15183,6 +15336,57 @@ existing type is simply used.
   }  /* if */
   return templ;
 }  /* rescan_template_template_default_arg */
+
+
+void delayed_scan_of_template_param_default_arg(
+					a_symbol_ptr		template_sym,
+					a_template_param_ptr	tpp)
+/*
+In some cases a template parameter default argument is not scanned when
+the template parameter list was processed.  This routine is called
+when the default argument value is needed and scans the default argument
+value.  template_sym is the template with which the parameter is associated,
+and tpp is the parameter whose default is to be scanned.
+*/
+{
+  a_template_arg_ptr	arg_list;
+
+  /* Get the prototype instantiation argument list for the template. */
+  if (is_class_template_symbol(template_sym)) {
+    a_symbol_ptr	prototype_sym;
+    prototype_sym = template_sym->variant.template_info->
+                               variant.class_template.prototype_instantiation;
+    arg_list = template_arg_list_for_symbol(prototype_sym);
+  } else {
+    arg_list = template_sym->variant.template_info->
+                                   variant.function.routine->template_arg_list;
+  }  /* if */
+  switch (tpp->param_symbol->kind) {
+    case sk_type:
+      tpp->default_arg.type = rescan_template_type_default_arg(
+                                                  template_sym, tpp, arg_list);
+      /* Determine whether the default depends on a template parameter. */
+      tpp->def_arg_involves_template_param =
+                          is_or_contains_template_param(tpp->default_arg.type);
+      break;
+    case sk_constant:
+      { a_constant_ptr	cp;
+        (void)rescan_template_constant_parameter(
+                                     template_sym, tpp->param_symbol,
+                                     tpp, arg_list,
+                                     /*do_default_arg=*/TRUE, &cp);
+        tpp->default_arg.constant = cp;
+        tpp->def_arg_involves_template_param =
+                           is_or_contains_template_param(cp->type) ||
+                           cp->kind == (a_constant_repr_kind)ck_template_param;
+      }
+      break;
+    case sk_class_template:
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* delayed_scan_of_template_param_default_arg */
 
 
 static void fixup_types_that_refer_to_incomplete_instantiations(
@@ -15961,7 +16165,7 @@ done here.
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
-    if (tpp->has_default_arg) {
+    if (!function_template_default_args_allowed && tpp->has_default_arg) {
       pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
                                                                  : es_error,
                      ec_default_template_arg_not_allowed,

@@ -1,5 +1,19 @@
 Version 4.2
 
+6/23/10  [EDGcpfe/7122]
+Default template arguments for function templates
+
+The C++ standard was updated by core issue 226 to allow default template
+arguments to be specified for function templates.  This is now supported
+by the front end.
+
+  template <class T, class U = T> void f(T, U = 1){}
+  int main() {
+    f(1);      // U uses the default of T (which is int in this case)
+    f(1, 2.0); // U deduced as double
+  }
+
+
 6/19/10  [EDGcpfe/10760]
 Unlowered pointer to member type kind in dynamic initialization
 

@@ -11457,9 +11457,7 @@ This includes symbols for overload sets of block extern declarations.
 }  /* is_block_extern_symbol */
 
 
-static void clear_template_param_default_arg_info(
-		a_template_param_ptr	ptr,
-		a_boolean		def_arg_involves_template_param)
+static void clear_template_param_default_arg_info(a_template_param_ptr	ptr)
 /*
 Clear the default argument fields of a template parameter entry based
 on kind of default argument it has.
@@ -11467,7 +11465,6 @@ on kind of default argument it has.
 {
   a_symbol_kind	kind = ptr->param_symbol->kind;
 
-  ptr->def_arg_involves_template_param = def_arg_involves_template_param;
   if (kind == (a_symbol_kind)sk_type) {
     ptr->default_arg.type = NULL;
   } else if (kind == (a_symbol_kind)sk_constant) {
@@ -11498,6 +11495,7 @@ and return a pointer to it.
   clear_template_cache(&ptr->cache, /*reusable=*/TRUE);
   ptr->has_default_arg = FALSE;
   ptr->def_arg_involves_template_param = FALSE;
+  ptr->def_arg_has_not_been_scanned = FALSE;
 #if CENTERLINE_CHECKING
   ptr->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -11514,8 +11512,7 @@ and return a pointer to it.
     check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
     ptr->variant.templ = sym->variant.template_info;
   }  /* if */
-  clear_template_param_default_arg_info(
-                               ptr, /*def_arg_involves_template_param=*/FALSE);
+  clear_template_param_default_arg_info(ptr);
   db_exit();
   return ptr;
 }  /* alloc_template_param */

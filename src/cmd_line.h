@@ -1288,6 +1288,11 @@ EXTERN a_boolean
 			   from deduced function types. */
 
 EXTERN a_boolean
+		function_template_default_args_allowed;
+			/* TRUE if function template parameters may have
+			   default arguments. */
+
+EXTERN a_boolean
 		do_late_ovl_res_tiebreaker;
 			/* TRUE if the tiebreaker processing in overload
 			   resolution (e.g., to decide between "void f(int &)"

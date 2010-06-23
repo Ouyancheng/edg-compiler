@@ -8946,6 +8946,7 @@ variables declared in cmd_line.h.
   nonstandard_qualifier_deduction = DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION;
   nonstandard_default_arg_deduction =
                                      DEFAULT_NONSTANDARD_DEFAULT_ARG_DEDUCTION;
+  function_template_default_args_allowed = TRUE;
   do_late_ovl_res_tiebreaker = DEFAULT_DO_LATE_OVL_RES_TIEBREAKER;
   single_ref_qual_ovl_res_tiebreaker =
                                     DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER;

@@ -12684,7 +12684,8 @@ all arguments were explicit.
     if (subst_param_templ != NULL) {
       /* There will be no substituted parameter template for non-dependent
          template template parameters or for prototype instantiations. */
-      subst_param_tssp = subst_param_templ->template_info;
+      a_symbol_ptr	subst_param_sym = symbol_for(subst_param_templ);
+      subst_param_tssp = template_supplement_for_symbol(subst_param_sym);
       check_assertion(subst_param_tssp != NULL);
       param_ptr = subst_param_tssp->cache.decl_info->parameters;
     }  /* if */
@@ -12793,6 +12794,12 @@ all arguments were explicit.
          remainder of the parameter list with the defaults. */
       *first_defaulted_arg = arg_number;
       while (param_ptr != NULL) {
+        if (param_ptr->def_arg_has_not_been_scanned) {
+          /* In some cases the default will not have been scanned when the
+             template was first declared.  In such cases, scan it on its first
+             use. */
+          delayed_scan_of_template_param_default_arg(template_sym, param_ptr);
+        }  /* if */
         sym = param_ptr->param_symbol;
         /* Determine the template argument kind for this parameter. */
         arg_kind = templ_arg_kind_for_symbol_kind(sym->kind);

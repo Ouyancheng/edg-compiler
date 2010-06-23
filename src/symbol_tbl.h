@@ -1491,6 +1491,9 @@ typedef struct a_template_param {
 			   that the constant involves a template parameter.
 			   It will also be set TRUE if the type of the
 			   constant involves a template parameter. */
+  a_bit_field	def_arg_has_not_been_scanned:1;
+			/* TRUE if the tokens that make up the default argument
+			   have not yet been scanned. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When param_symbol->kind = sk_type. */
