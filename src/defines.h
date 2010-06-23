@@ -988,6 +988,15 @@ Overwrite freed memory to detect later uses.
 #endif /* ifndef OVERWRITE_FREED_MEM_BLOCKS */
 
 /*
+If EXPENSIVE_CHECKING has been requested, also enable checking pragmas.
+*/
+#ifdef EXPENSIVE_CHECKING
+#if EXPENSIVE_CHECKING
+#define ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING 1
+#endif /* EXPENSIVE_CHECKING */
+#endif /* ifndef EXPENSIVE_CHECKING */
+
+/*
 If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 */

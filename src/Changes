@@ -1,5 +1,15 @@
 Version 4.2
 
+6/23/10  [EDGcpfe/10771]
+Checking pragmas not enabled by default with EXPENSIVE_CHECKING
+
+Formerly, ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING was enabled by default
+when EXPENSIVE_CHECKING was enabled.  Unlike other checks enabled by
+EXPENSIVE_CHECKING, the checking pragmas can change the code that is
+generated, whether functions can be inlined, etc., which may be surprising.
+The default for ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING is now always FALSE.
+
+
 6/23/10  [EDGcpfe/7122]
 Default template arguments for function templates
 

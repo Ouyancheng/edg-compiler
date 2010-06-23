@@ -587,7 +587,7 @@ extern void debug_exit(void);
 /* Include code that tests the processing of pragmas by inserting pragma
    constructs in many locations.  This may increase compilation time
    significantly. */
-#define ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING EXPENSIVE_CHECKING
+#define ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING FALSE
 #endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 
 #ifndef CENTERLINE_CHECKING
