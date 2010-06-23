@@ -13046,8 +13046,10 @@ an explicit cast.  *position gives the source position.
     if (temp_type == NULL) {
       temp_type = class_type;
     } else {
-      check_assertion_str(types_are_compatible_ignoring_qualifiers(class_type,
-                                                                   temp_type),
+      /* Not using types_are_compatible_ignoring_qualifiers because of
+         issues with decltype. */
+      check_assertion_str(types_are_compatible(class_type,
+                                               f_skip_typerefs(temp_type)),
                           "make_constructor_dynamic_init: bad temp_type");
     }  /* if */
   }  /* if */

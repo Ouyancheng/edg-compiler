@@ -4322,7 +4322,7 @@ for exact pointer equality.
 
   error_matches_anything = 
                  (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
-  ignore_type_qualifiers = flags & TCF_IGNORE_TYPE_QUALIFIERS;
+  ignore_type_qualifiers = (flags & TCF_IGNORE_TYPE_QUALIFIERS) != 0;
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls.  Do not use the same_entities
      macro: for this routine a slightly more thorough check is desirable
