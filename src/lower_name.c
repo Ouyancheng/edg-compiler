@@ -1207,7 +1207,8 @@ is available; do not put it out.
       if (sp->kind == kind) {
         switch (kind) {
           case iek_type:
-            if (identical_types((a_type_ptr)entity, sp->variant.type)) {
+            if (f_identical_types((a_type_ptr)entity, sp->variant.type,
+                                  ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
               result = TRUE;
             }  /* if */
             break;
