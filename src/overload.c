@@ -13292,7 +13292,7 @@ The conversion is assumed not to be due to an explicit cast.
     /* Cast the operand to the result type. */
     cast_operand_special(dest_type, source_operand, (a_source_position *)NULL,
                          /*check_cast_access=*/TRUE,
-                         /*is_implicit_cast=*/TRUE,
+                         /*is_implicit_cast=*/!conversion->is_explicit_cast,
                          /*is_reinterpret_cast=*/FALSE,
                          /*reinterpret_semantics=*/FALSE);
   }  /* if */
