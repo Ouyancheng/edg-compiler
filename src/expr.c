@@ -9263,6 +9263,7 @@ indication in *rcblock).
   a_type_ptr        typeid_type;
   a_boolean         err = FALSE;
   a_boolean         microsoft_template_arg_case = FALSE;
+  a_boolean         runtime_case = FALSE;
   an_expr_stack_entry
                     expr_stack_entry;
   a_memory_region_number
@@ -9402,6 +9403,7 @@ indication in *rcblock).
         expr_pos_error(ec_member_ref_requires_object,
                        &objectless_nonstatic_data_ref_pos);
       }  /* if */
+      runtime_case = TRUE;
       if (is_expression_operand(&operand)) {
         /* Passing call_case TRUE here because we want to treat something
            like "*this" in a constructor as having known type, and not go
@@ -9413,24 +9415,28 @@ indication in *rcblock).
             !op_is_null_address_lvalue(&operand)) {
           /* The complete object type can be determined, so runtime processing
              is not needed. */
-          expr = NULL;
-        } else {
-          /* The type must be determined dynamically at runtime. */
-          expr = make_node_from_operand(&operand);
+          runtime_case = FALSE;
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (microsoft_template_arg_case) {
-      if (expr != NULL && !could_be_dependent_class_type(typeid_type)) {
-        /* The Microsoft extension doesn't allow cases that require runtime
-           evaluation. */
+    }  /* if */ 
+   if (microsoft_template_arg_case && runtime_case) {
+      /* The Microsoft extension doesn't allow cases that require runtime
+         evaluation. */
+      if (!could_be_dependent_class_type(typeid_type)) {
         expr_pos_error(ec_bad_constant_operator, &start_position);
-        expr = NULL;
       }  /* if */
+      runtime_case = FALSE;
     }  /* if */
-    if (expr == NULL) {
-      /* We're not keeping the expression in the IL (the typeid is
-         not evaluated at runtime). */
+    if (runtime_case ||
+        (is_template_dependent_context() &&
+         (is_template_dependent_type(typeid_type) ||
+          is_dependent_decltype_type(typeid_type)))) {
+      /* Keep the expression in the typeid, either because the type must be
+         determined at runtime or because we need the expression to be
+         able to rescan a template-dependent case. */
+      expr = make_node_from_operand(&operand);
+    } else {
+      /* We're not keeping the expression in the IL. */
       discard_operand(&operand);
     }  /* if */
   }  /* if */
