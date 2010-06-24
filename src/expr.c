@@ -14133,10 +14133,10 @@ indication in *rcblock).
              const_cast; mark it accordingly. */
           expr->variant.operation.is_const_cast = TRUE;
         }  /* if */
-        record_typed_operator_position_in_expr_rescan_info(expr,
-                                                           &start_position,
-                                                           &type_position,
-                                                           cast_type);
+        record_cast_position_in_expr_rescan_info(expr,
+                                                 &start_position,
+                                                 &type_position,
+                                                 cast_type);
       }  /* if */
     }
   }  /* if */
@@ -14402,15 +14402,23 @@ indication in *rcblock).
   if (err) {
     conv_to_error_operand(result);
   } else if (!ignored) {
-    an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
-    if (expr != NULL) {
-      /* An expression node was created that represents this static_cast:
-         mark it as resulting from a static_cast operation. */
-      expr->is_static_cast = TRUE;
-      record_typed_operator_position_in_expr_rescan_info(expr,
-                                                         &start_position,
-                                                         &type_position,
-                                                         type_cast_to);
+    if (processed_as_udc) {
+      /* This cast was processed as a user-defined conversion. */
+      record_cast_position_in_rescan_info(result,
+                                          &start_position,
+                                          &type_position,
+                                          type_cast_to);
+    } else {
+      an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+      if (expr != NULL) {
+        /* An expression node was created that represents this static_cast:
+           mark it as resulting from a static_cast operation. */
+        expr->is_static_cast = TRUE;
+        record_cast_position_in_expr_rescan_info(expr,
+                                                 &start_position,
+                                                 &type_position,
+                                                 type_cast_to);
+      }  /* if */
     }  /* if */
 #if CHECKING
     if (cast_to_reference && !processed_as_udc) {
@@ -14609,10 +14617,10 @@ indication in *rcblock).
         }  /* if */
 #endif /* CHECKING */
       }  /* if */
-      record_typed_operator_position_in_expr_rescan_info(expr,
-                                                         &start_position,
-                                                         &type_position,
-                                                         type_cast_to);
+      record_cast_position_in_expr_rescan_info(expr,
+                                               &start_position,
+                                               &type_position,
+                                               type_cast_to);
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,

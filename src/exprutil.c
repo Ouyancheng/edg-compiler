@@ -2203,12 +2203,12 @@ void record_typed_operator_position_in_expr_rescan_info(
                                              a_source_position *type_position,
                                              a_type_ptr        type)
 /*
-Record the source position of a cast in the rescan information associated with
-that cast, allocating the rescan info if needed.  expr is the cast expression;
-start_position is the source position of the start of the cast;
-type_position is the source position of the type within the cast;
-and type is the type cast to.  Also used for other operators with a
-salient type, e.g., "new".
+Record the source position in the rescan information associated with
+an operation that involves a salient specified type (e.g., a cast),
+allocating the rescan info if needed.  expr is the operation expression;
+start_position is the source position of the start of the operation;
+type_position is the source position of the type within the operation;
+and type is the specified type.
 */
 {
   if (expr_stack->possible_rescan_context &&
@@ -2225,6 +2225,49 @@ salient type, e.g., "new".
     eriep->type = type;
   }  /* if */
 }  /* record_typed_operator_position_in_expr_rescan_info */
+
+
+void record_cast_position_in_expr_rescan_info(
+                                             an_expr_node_ptr  expr,
+                                             a_source_position *start_position,
+                                             a_source_position *type_position,
+                                             a_type_ptr        cast_type)
+/*
+Record the source position of a cast in the rescan information
+associated with that cast, allocating the rescan info if needed.
+expr is the cast expression; start_position is the source position
+of the start of the cast; type_position is the source position of the
+type within the cast; and cast_type is the type cast to.
+*/
+{
+  if (expr_stack->possible_rescan_context &&
+      !is_error_node(expr)) {
+    if (is_operation_node(expr) &&
+        expr->variant.operation.is_conversion_call) {
+      /* This is a non-dependent cast rendered as a call.  Record the
+         extra position in the form expected for a call.  (Approximately:
+         we don't have the opening and closing paren positions.)  The
+         construct will be rescanned later as a call, not a cast. */
+      record_operator_position_in_expr_rescan_info(expr,
+                                                   start_position,
+                                                   NO_TOKEN_SEQUENCE_NUMBER,
+                                                   start_position);
+    } else {
+      /* Normal case: a cast rendered as a cast. */
+      record_typed_operator_position_in_expr_rescan_info(expr,
+                                                         start_position,
+                                                         type_position,
+                                                         cast_type);
+      if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+        /* Record the same rescan info in an associated dynamic init entry.
+           This is useful in a case like a throw, where the dynamic init
+           might later be separated from the enk_temp_init and used
+           directly. */
+        expr->variant.init.dynamic_init->rescan_info = expr->rescan_info;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* record_cast_position_in_expr_rescan_info */
 
 
 void record_cast_position_in_rescan_info(an_operand        *operand,
@@ -2246,32 +2289,12 @@ Do nothing if the operand is not discernibly a cast expression.
       expr = strip_implicit_operations_for_rescan(
                                             expr,
                                             (an_expr_rescan_info_entry**)NULL);
-      if (is_operation_node(expr) &&
-          expr->variant.operation.is_conversion_call) {
-        /* This is a non-dependent cast rendered as a call.  Record the
-           extra position in the form expected for a call.  (Approximately:
-           we don't have the opening and closing paren positions.)  The
-           construct will be rescanned later as a call, not a cast. */
-        record_operator_position_in_expr_rescan_info(expr,
-                                                     start_position,
-                                                     NO_TOKEN_SEQUENCE_NUMBER,
-                                                     start_position);
-      } else if (is_constant_node(expr)) {
+      if (is_constant_node(expr)) {
         /* The cast was folded into a constant, so there's no place to
            mark as a cast. */
       } else {
-        /* Normal case: a cast rendered as a cast. */
-        record_typed_operator_position_in_expr_rescan_info(expr,
-                                                           start_position,
-                                                           type_position,
-                                                           cast_type);
-        if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-          /* Record the same rescan info in an associated dynamic init entry.
-             This is useful in a case like a throw, where the dynamic init
-             might later be separated from the enk_temp_init and used
-             directly. */
-          expr->variant.init.dynamic_init->rescan_info = expr->rescan_info;
-        }  /* if */
+        record_cast_position_in_expr_rescan_info(expr, start_position,
+                                                 type_position, cast_type);
       }  /* if */
     }  /* if */
   }  /* if */
