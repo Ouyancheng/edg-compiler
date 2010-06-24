@@ -7697,7 +7697,9 @@ parameters.
       *copy_error = TRUE;
     }  /* if */
   }  /* if */
-  if (is_type_templ_arg(tap)) {
+  if (*copy_error) {
+    /* Don't process this argument further if an error occurred. */
+  } else if (is_type_templ_arg(tap)) {
     tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
                                            templ_arg_list, templ_param_list,
@@ -7719,7 +7721,7 @@ parameters.
          some cases involving partial ordering the parameter type can
          involve template parameter types that had been substituted when
          the constant type was produced, but which are unsubstituted when
-         retrieved from the parameter symbol */
+         retrieved from the parameter symbol. */
       if (orig_is_nonreal_template) {
         const_type = tpp->param_symbol->variant.constant->type;
         if (tpp->variant.constant.type_involves_template_param) {
