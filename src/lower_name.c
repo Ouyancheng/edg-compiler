@@ -3412,12 +3412,12 @@ Add an encoding for a destructor of the specified type.
     mctl->first_substitution = save_first_substitution;
     mctl->last_substitution = save_last_substitution;
   } else {
-    add_str_to_mangled_name("dr", mctl);
+    add_str_to_mangled_name("dn", mctl);
     mangled_encoding_for_type(type, mctl);
   }  /* if */
 #else /* !IA64_ABI */
   /* FIXME: Need to encode scope resolution in here as well. */
-  add_str_to_mangled_name("__dr__", mctl);
+  add_str_to_mangled_name("__dn__", mctl);
   mangled_encoding_for_type(type, mctl);
   add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
@@ -3489,7 +3489,7 @@ expression that was used to select expr (NULL if no selector was used).
         a_symbol_ptr   sym =
                    con->variant.template_param.variant.unknown_function.symbol;
         an_opname_kind opname =
-              con->variant.template_param.variant.unknown_function.opname_kind; 
+              con->variant.template_param.variant.unknown_function.opname_kind;
         check_assertion( 
           con->variant.template_param.variant.unknown_function.conversion_type
                                                                       == NULL);
@@ -3698,7 +3698,8 @@ expression.
     add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
     /* Determine the appropriate mangling for the expression.  Note that these
-       mangled operator names are the same in both the IA-64 and Cfront ABIs. */
+       mangled operator names are the same in both the IA-64 and Cfront
+       ABIs. */
     switch (expr->variant.operation.kind) {
       case eok_dot_field:
       case eok_dot_static:
