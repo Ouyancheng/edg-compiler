@@ -522,6 +522,10 @@ typedef unsigned int an_itf_flag_set;
 			/* We are comparing two types to make sure deduction
 			   worked right and we didn't get a function type where
 			   we expected a non-function, or vice-versa. */
+#define ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x100
+			/* TRUE if, when dependent decltypes appear in the
+			   type trees, they must appear in both types and the
+			   expressions must match. */
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
@@ -615,6 +619,10 @@ Bit flags for calls of f_types_are_compatible et al.
 			   worked right and we didn't get a function type where
 			   we expected a non-function, or vice-versa.
 			   See verify_routine_type_matches_template. */
+#define TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x1000
+			/* TRUE if, when dependent decltypes appear in the
+			   type trees, they must appear in both types and the
+			   expressions must match. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 
@@ -658,11 +666,14 @@ circuit some of the processing in common cases.
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
 /* Use routine_types_are_compatible to check types of routines, ignoring
-   top-level calling convention modifiers. */
+   top-level calling convention modifiers.  This is intended for redeclaration
+   checking, as in "are these declaring the same function?" */
 #define routine_types_are_compatible(t1, t2, extra_flags)             \
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
-                       TCF_IGNORE_CALLING_CONVENTIONS | (extra_flags)))
+                                 TCF_IGNORE_CALLING_CONVENTIONS |     \
+                                 TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED | \
+                                 (extra_flags)))
 
 #define types_are_compatible_for_impl_conversion(t1, t2)              \
   ((t1) == (t2) ||                                                    \
