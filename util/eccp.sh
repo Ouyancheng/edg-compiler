@@ -107,8 +107,8 @@ EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-""}
 # EDG_PRELINK_DEFAULT_OPTIONS=$EDG_PRELINK_DEFAULT_OPTIONS
 #
 # edg_decode (demangler) executable.  If no edg_decode is available,
-# use /bin/cat.  The script will work properly, you just won't get
-# demangled names in linker output messages.
+# use /bin/cat (or --no_demangle).  The script will work properly, you just
+# won't get demangled names in linker output messages.
 #
 EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
 #
@@ -676,6 +676,7 @@ check_abbreviation()
 --no_const_string_literals
 --no_defer_parse_function_templates
 --no_definition_list_file
+--no_demangle
 --no_dep_name
 --no_designators
 --no_display_error_number
@@ -993,6 +994,10 @@ process_option()
     -munch | --munch)
 #     Use "munch" for handling static constructors and destructors
       patch_mode=0
+      ;;
+    --no_demangle)
+#     Don't run the compiler output through edg_decode (instead use /bin/cat)
+      EDG_DECODE=/bin/cat
       ;;
     --nm)
 #     Run nm on the generated object files (used for debugging)

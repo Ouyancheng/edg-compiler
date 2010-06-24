@@ -1,5 +1,12 @@
 Version 4.2
 
+6/24/10  [EDGcpfe/10772]
+Add --no_demangle option to eccp
+
+A new option, --no_demangle, has been added to the eccp script to prevent
+the post-processing of linker and nm output by the demangler (edg_decode).
+
+
 3/24/10  [EDGcpfe/10148]
 __cxa_demangle now available in the IA-64 ABI runtime library
 
