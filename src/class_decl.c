@@ -6618,7 +6618,8 @@ When templates_only is TRUE, only function templates members are considered.
       new_rts->this_class = NULL;
       orig_rts->this_class = NULL;
     }  /* if */
-    match = routine_types_are_compatible(orig_type, new_type, TCF_NO_FLAGS);
+    match = routine_types_are_redecl_compatible(orig_type, new_type,
+                                                TCF_NO_FLAGS);
     if (!new_function_is_qualified) {
       /* Restore the implicit "this" parameter types in orig_type and
          new_type. */
@@ -9508,8 +9509,8 @@ declarations.)
                   routine_type_is_nonstatic_member_function(member_type)) {
               error_code = ec_static_nonstatic_with_same_param_types;
               pos_error(error_code, &locator->source_position);
-            } else if (routine_types_are_compatible(tp, member_type,
-                                                    TCF_NO_FLAGS)) {
+            } else if (routine_types_are_redecl_compatible(tp, member_type,
+                                                           TCF_NO_FLAGS)) {
               error_code = ec_member_function_redeclaration;
               pos_sy_error(error_code, &locator->source_position, other_sym);
             }  /* if */

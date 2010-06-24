@@ -2420,7 +2420,8 @@ called by id_linkage.
 	                                   ETP_NO_OPTIONS,
                                            (a_source_position*)NULL,
                                            es_error) &&
-                routine_types_are_compatible(tp, idlbp->type, TCF_NO_FLAGS)) {
+                routine_types_are_redecl_compatible(tp, idlbp->type,
+                                                    TCF_NO_FLAGS)) {
               /* The other_decl template function matches the current
                  declaration. */
               idlbp->linked_symbol = fund_other_decl;
@@ -2447,7 +2448,8 @@ called by id_linkage.
                   fund_other_decl->kind == (a_symbol_kind)sk_routine ||
                   fund_other_decl->kind == (a_symbol_kind)sk_member_function);
             tp = fund_other_decl->variant.routine.ptr->type;
-            if (routine_types_are_compatible(tp, idlbp->type, TCF_NO_FLAGS)) {
+            if (routine_types_are_redecl_compatible(tp, idlbp->type,
+                                                    TCF_NO_FLAGS)) {
               /* Other_decl matches the current declaration.  Null out
                  *overload_symbol in case it was set. */
               other_decl = fund_other_decl;
@@ -3076,7 +3078,8 @@ indicating that error recovery should proceed as if no error had occurred
       } else {
         compat = types_are_strictly_compatible(old_type, type_ptr);
         if (!compat &&
-            routine_types_are_compatible(old_type, type_ptr, TCF_NO_FLAGS)) {
+            routine_types_are_redecl_compatible(old_type, type_ptr,
+                                                TCF_NO_FLAGS)) {
           okay = FALSE;
           incompatible_linkage_spec = TRUE;
         }  /* if */
@@ -3432,7 +3435,7 @@ created; the caller must set it.
           rp = sym->variant.extern_symbol_descr->variant.routine.ptr;
           if (rp->source_corresp.name_linkage ==
                                      (a_name_linkage_kind)nlk_external &&
-              !routine_types_are_compatible(
+              !routine_types_are_redecl_compatible(
                                           type_ptr, rp->type, TCF_NO_FLAGS)) {
             /* Illegal overloading involving two extern "C" functions with
                the same name.  Microsoft and GNU C++ compilers let this
@@ -4293,7 +4296,8 @@ a copy of the previous type).
   if (rout_type != type_ptr) {
     /* We only try to reconcile routine types that have already been
        determined to be compatible. */
-    check_assertion_str(routine_types_are_compatible(type_ptr, rout_type,
+    check_assertion_str(routine_types_are_redecl_compatible(
+                                      type_ptr, rout_type,
                                       TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING),
                         "reconcile_routine_types: types are not compatible");
     /* We cannot be required to preserve the types from both sources. */
@@ -7108,8 +7112,8 @@ for use in generating cross-reference output describing this declaration.
                     fundamental_symbol_of(idlb.prior_decl_in_enclosing_scope);
         if (is_function_symbol(prior_decl)) {
           a_type_ptr  prior_type = routine_symbol_type(prior_decl);
-          if (routine_types_are_compatible(prior_type, type_ptr,
-                                           TCF_NO_FLAGS) &&
+          if (routine_types_are_redecl_compatible(prior_type, type_ptr,
+                                                  TCF_NO_FLAGS) &&
               type_ptr->kind != (a_type_kind)tk_typeref) {
             type_ptr->variant.routine.extra_info->routine_name_linkage =
                  prior_type->variant.routine.extra_info->routine_name_linkage;

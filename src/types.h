@@ -665,10 +665,10 @@ circuit some of the processing in common cases.
    f_types_are_compatible((t1), (t2),                                 \
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
-/* Use routine_types_are_compatible to check types of routines, ignoring
+/* Use routine_types_are_redecl_compatible to check types of routines, ignoring
    top-level calling convention modifiers.  This is intended for redeclaration
    checking, as in "are these declaring the same function?" */
-#define routine_types_are_compatible(t1, t2, extra_flags)             \
+#define routine_types_are_redecl_compatible(t1, t2, extra_flags)      \
          ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_IGNORE_CALLING_CONVENTIONS |     \
