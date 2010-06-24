@@ -9421,16 +9421,11 @@ indication in *rcblock).
       }  /* if */
     }  /* if */
     if (microsoft_template_arg_case) {
-      if (expr != NULL) {
+      if (expr != NULL && !could_be_dependent_class_type(typeid_type)) {
         /* The Microsoft extension doesn't allow cases that require runtime
            evaluation. */
         expr_pos_error(ec_bad_constant_operator, &start_position);
         expr = NULL;
-      } else if (is_template_dependent_type(typeid_type)) {
-        /* For template-dependent cases, we must record the expression (e.g.,
-           for accurate reconstruction in the C++-generating back end). */
-        prep_generic_operand(&operand);
-        expr = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
     if (expr == NULL) {
