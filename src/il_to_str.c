@@ -4663,6 +4663,7 @@ precedence confusion.  Do the output in the way described by octl.
           } else {
             a_constant_ptr op_con =
                              constant->variant.template_param.variant.constant;
+#if DEBUG
             a_boolean      need_local_close_paren = FALSE;
             if (!cast_already_put_out && octl->debug_output) {
               /* A cast was not put out above, so put one out here if
@@ -4671,10 +4672,13 @@ precedence confusion.  Do the output in the way described by octl.
                                          octl);
               form_cast(constant->type, octl);
             }  /* if */
+#endif /* DEBUG */
             form_constant(op_con, /*need_parens=*/FALSE, octl);
+#if DEBUG
             if (need_local_close_paren) {
               octl->output_str(")", octl);
             }  /* if */
+#endif /* DEBUG */
           }  /* if */
           break;
         case tpck_address:
