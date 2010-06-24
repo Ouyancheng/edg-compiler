@@ -3572,8 +3572,18 @@ expression that was used to select expr (NULL if no selector was used).
                                     suppress_operation_indicator,
                                     mctl);
           has_been_mangled = TRUE;
-        } else {
+        } else if (expr->variant.routine->special_kind ==
+                                     (a_special_function_kind)sfk_conversion) {
           /* Compiler generated conversion operations have been stripped. */
+#if IA64_ABI
+          /* Call this here to prevent an extra "ad" from being added. */
+          mangled_entity_reference(&expr->variant.routine->source_corresp,
+                                   (an_il_entry_kind)iek_routine,
+                                   (a_routine_info_block *)NULL,
+                                   mctl);
+          has_been_mangled = TRUE;
+#endif /* IA64_ABI */
+        } else {
           unexpected_condition();
         }  /* if */
       } else {
