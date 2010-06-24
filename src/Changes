@@ -1,5 +1,31 @@
 Version 4.2
 
+6/23/10  [EDGcpfe/10759]
+Enumeration constants as case label constants in C
+
+The type of an enumeration constant in C is int, not the enumeration type.
+The IL does make it possible to determine the enumeration type, however,
+via the variant.integer.enum_info.affiliated_type field in the constant's
+type.  Case label constants are converted to the type of the expression in
+the containing switch statement, and when that type is something other than
+int, a backing expression for an enumeration constant appearing as the
+case_value in a_switch_case_entry is created designating the original
+enumeration constant and thus allowing the affiliated_type to be found.
+When the switch expression's type is int, however, no backing expression
+was created and the constant's type was just int, with no affiliated_type.
+This has now been fixed so that a backing expression is always created for
+a case_value constant resulting from use of an enumeration constant for a
+case label.  For example:
+
+  enum E { e0 };
+  void f(int i) {
+    switch(i) {
+      case e0:  /* Now has backing expression designating "e0". */
+        break;
+    }
+  }
+
+
 6/23/10  [EDGcpfe/10771]
 Checking pragmas not enabled by default with EXPENSIVE_CHECKING
 
