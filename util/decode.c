@@ -1885,7 +1885,7 @@ template parameters.
                                               (a_template_param_block_ptr)NULL,
                                       dctl);
       }  /* if */
-    } else if (start_of_id_is("dr__", p, dctl)) {
+    } else if (start_of_id_is("dn__", p, dctl)) {
       /* Destructor (with type following). */
       /* Output ~class-name for the destructor name. */
       is_special_name = TRUE;
@@ -5575,8 +5575,8 @@ FIXME: needs updating:
     write_id_str("alignof(", dctl);
     ptr = demangle_type(ptr+2, dctl);
     write_id_ch(')', dctl);
-  } else if (*ptr == 'd' && ptr[1] == 'r') {
-    /* ~T() "dr <type>". */
+  } else if (*ptr == 'd' && ptr[1] == 'n') {
+    /* ~T() "dn <type>". */
     write_id_ch('~', dctl);
     ptr = demangle_type(ptr+2, dctl);
     write_id_str("()", dctl);
@@ -6210,7 +6210,7 @@ FIXME.
     ptr = demangle_literal(ptr, dctl);
   } else if ((ptr[0] == 'o' && ptr[1] == 'n') ||
              (ptr[0] == 's' && ptr[1] == 'r') ||
-             (ptr[0] == 'd' && ptr[1] == 'r')) {
+             (ptr[0] == 'd' && ptr[1] == 'n')) {
     /* FIXME: better way to do this? */
     ptr = demangle_expression(ptr, dctl);
   } else {
