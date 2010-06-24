@@ -2256,6 +2256,9 @@ Do nothing if the operand is not discernibly a cast expression.
                                                      start_position,
                                                      NO_TOKEN_SEQUENCE_NUMBER,
                                                      start_position);
+      } else if (is_constant_node(expr)) {
+        /* The cast was folded into a constant, so there's no place to
+           mark as a cast. */
       } else {
         /* Normal case: a cast rendered as a cast. */
         record_typed_operator_position_in_expr_rescan_info(expr,
