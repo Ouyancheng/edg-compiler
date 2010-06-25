@@ -8096,7 +8096,7 @@ outside of the expression-processing routines.
   a_scope_depth           expr_scope_depth;
   a_memory_region_number  region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr  ssep;
+  a_source_sequence_entry_ptr  ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   check_assertion(!C_mode());
@@ -8121,16 +8121,6 @@ outside of the expression-processing routines.
        decltype((x)). */
     leading_paren_seen = (curr_token == tok_lparen);
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* A decltype construct may include embedded statements and declarations if
-     it contains a statement expression.  To allow e.g. the C++-generating back
-     end to associate the resulting source sequence entries with the decltype
-     type, we delimit them by a (iek_type, iek_src_seq_end_of_construct) pair
-     of source sequence entries. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  ssep = add_empty_source_sequence_entry();
-  switch_back_to_original_region(region_to_switch_back_to);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like a template argument,
      switch back.  If we're in a function, any expression nodes allocated must
@@ -8150,6 +8140,19 @@ outside of the expression-processing routines.
     make_rescan_operand(rcblock->expr, rcblock, &operand);
     leading_paren_seen = !operand.is_id_expression;
   } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* A decltype construct may include embedded statements and declarations if
+       it contains a statement expression.  To allow e.g. the C++-generating
+       back end to associate the resulting source sequence entries with the
+       decltype type, we delimit them by a pair of source sequence entries
+       (iek_type, iek_src_seq_end_of_construct).  This must be done after the
+       expression stack entry has been pushed, because in some cases the source
+       sequence entry changes will be "undone" and restored to the state
+       recorded by the push operation. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    ssep = add_empty_source_sequence_entry();
+    switch_back_to_original_region(region_to_switch_back_to);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* This call is done late because we need the expression stack to be pushed
        already. */
     add_matching_stop_token(tok_rparen);
@@ -8172,7 +8175,7 @@ outside of the expression-processing routines.
   if (is_error_type(result)) {
     /* We'll just return the error type. */
     /* The expression is discarded. */
-    undo_side_effects_for_discarded_unevaluated_expression();
+    expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
   } else {
     a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = is_template_dependent_context() &&
@@ -8210,7 +8213,7 @@ outside of the expression-processing routines.
     result = tp;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (ssep == NULL || rcblock != NULL) {
+  if (ssep == NULL) {
     /* No source sequence entries are being recorded. */
   } else if (ssep->next == NULL) {
     /* The decltype argument did not embed source sequence entries.  So we do
@@ -8403,7 +8406,7 @@ the expression-processing routines.
   a_scope_depth               expr_scope_depth;
   a_memory_region_number      region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr ssep;
+  a_source_sequence_entry_ptr ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
@@ -8422,9 +8425,6 @@ the expression-processing routines.
     /* The typeof(type) case doesn't come here (it doesn't require a
        rescan). */
     is_type = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    ssep = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* The operand is picked up later after the expression stack has been
        pushed. */
   } else {
@@ -8434,17 +8434,6 @@ the expression-processing routines.
     report_gnu_extension_if_needed(&pos_curr_token,
                                    ec_typeof_is_gnu_extension);
     (void)get_token();
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* A typeof construct may include embedded statements and declarations if
-       it contains a statement expression.  To allow e.g. the C++-generating
-       back end to associate the resulting source sequence entries with the
-       typeof type, we delimit them by a (iek_type,
-       iek_src_seq_end_of_construct) pair of source sequence entries. */
-    { switch_to_file_scope_region(&region_to_switch_back_to);
-      ssep = add_empty_source_sequence_entry();
-      switch_back_to_original_region(region_to_switch_back_to);
-    }
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Distinguish between the type-name and expression case. */
     if (curr_token == tok_lparen) {
       /* A left parenthesis could indicate a type in parentheses or
@@ -8494,6 +8483,23 @@ the expression-processing routines.
     transfer_expr_context_if_applicable(saved_expr_stack);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (rcblock == NULL) {
+    /* A typeof construct may include embedded statements and declarations if
+       it contains a statement expression.  To allow e.g. the C++-generating
+       back end to associate the resulting source sequence entries with the
+       typeof type, we delimit them by a pair of source sequence entries
+       (iek_type, iek_src_seq_end_of_construct).  This must be done after the
+       expression stack entry has been pushed, because in some cases the source
+       sequence entry changes will be "undone" and restored to the state
+       recorded by the push operation. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    ssep = add_empty_source_sequence_entry();
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (!is_type) {
     if (rcblock != NULL) {
       /* This call is done late because we need the expression stack to be
          pushed already. */
@@ -8551,7 +8557,7 @@ the expression-processing routines.
     /* We'll just return the error type. */
     if (!is_type) {
       /* The expression is discarded. */
-      undo_side_effects_for_discarded_unevaluated_expression();
+      expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
     }  /* if */
   } else {
     a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
