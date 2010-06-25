@@ -12623,7 +12623,6 @@ C++ functional-notation type conversions, and C++ new-style casts.
        for example, when they are hidden in a typedef or template parameter
        type. */
     if (has_explicit_cv_qualifiers) {
-      check_assertion(is_qualified_type(type_cast_to));
       if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
         /* In C++ class rvalues can have qualifiers, so casting to a
            cv-qualified class type is okay. */
