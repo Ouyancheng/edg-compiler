@@ -2382,7 +2382,7 @@ that has it.
       /* An explicit cast is retained.  Also a compound literal. */
       if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
       /* Anything else is implicit and stripped. */
-      expr = rescan_arg_list_from_dyn_init(dip);
+      expr = arg_list_from_dyn_init(dip);
     } else {
       break;
     }  /* if */
@@ -2891,7 +2891,7 @@ template argument list being tried.
 }  /* make_sizeof_et_al_rescan_operands */
 
 
-an_expr_node_ptr rescan_arg_list_from_dyn_init(a_dynamic_init_ptr dip)
+an_expr_node_ptr arg_list_from_dyn_init(a_dynamic_init_ptr dip)
 /*
 Return the effective argument list of the indicated dynamic initialization,
 to be used for expression rescan purposes.  The effective argument list is
@@ -2934,10 +2934,10 @@ top_of_routine:
     case dik_constant:
     case dik_bitwise_copy:
     default:
-      unexpected_condition_str("unexpected dynamic init kind in rescan");
+      unexpected_condition_str("unexpected dynamic init kind");
   }  /* switch */
   return args;
-}  /* rescan_arg_list_from_dyn_init */
+}  /* arg_list_from_dyn_init */
 
 
 void make_cast_rescan_operands(a_rescan_control_block *rcblock,
@@ -2972,7 +2972,7 @@ instead.
        expression. */
     eriep = dip->rescan_info;
     check_assertion(eriep != NULL);
-    op1 = rescan_arg_list_from_dyn_init(dip);
+    op1 = arg_list_from_dyn_init(dip);
   } else {
     /* The cast is specified by an expression. */
     check_assertion(expr != NULL);
@@ -2983,7 +2983,7 @@ instead.
     eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
-      op1 = rescan_arg_list_from_dyn_init(dip);
+      op1 = arg_list_from_dyn_init(dip);
     } else {
       op1 = expr->variant.operation.operands;
     }  /* if */

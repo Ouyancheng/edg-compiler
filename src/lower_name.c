@@ -3327,6 +3327,13 @@ be explicitly dealt with later in expression mangling.
         }  /* if */
 #endif /* IA64_ABI */
       }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+      if (!dip->is_explicit_cast && !dip->is_compound_literal) {
+        /* Remove implicit operations. */
+        expr = skip_parens(arg_list_from_dyn_init(dip));
+        done = FALSE;
+      }  /* if */
     }  /* if */
   } while (!done);
   return expr;
@@ -4150,7 +4157,7 @@ part of a template-dependent expression.
           mangled_encoding_for_type(expr->variant.new_delete->type, mctl);
           if (expr->variant.new_delete->dynamic_init != NULL) {
             /* We need to include an initializer expression list. */
-            args = rescan_arg_list_from_dyn_init(
+            args = arg_list_from_dyn_init(
                                        expr->variant.new_delete->dynamic_init);
           } else {
             args = NULL;
@@ -4202,14 +4209,10 @@ part of a template-dependent expression.
 #else /* !IA64_ABI */
         add_to_mangled_name('1', mctl);
 #endif /* !IA64_ABI */
-        check_assertion(expr->variant.throw_info->dynamic_init != NULL &&
-                        expr->variant.throw_info->dynamic_init->kind ==
-                                         (a_dynamic_init_kind)dik_expression &&
-                    expr->variant.throw_info->dynamic_init->variant.expression
-                                                                      != NULL);
-        mangled_encoding_for_expression(
-                    expr->variant.throw_info->dynamic_init->variant.expression,
-                    /*in_dependent_expr=*/TRUE, mctl);
+        check_assertion(expr->variant.throw_info->dynamic_init != NULL);
+        mangled_encoding_for_expression(arg_list_from_dyn_init(
+                                       expr->variant.throw_info->dynamic_init),
+                                       /*in_dependent_expr=*/TRUE, mctl);
       }  /* if */
 #if !IA64_ABI
       add_to_mangled_name('O', mctl);
@@ -4219,12 +4222,14 @@ part of a template-dependent expression.
       mangled_encoding_for_param_reference(expr, mctl);
       break;
     case enk_temp_init:
-      /* Mangle an enk_temp_init as a conversion operation. */
+      /* Mangle an enk_temp_init as a conversion operation.  Note that some
+         (implicit) enk_temp_init operations are stripped and aren't part of
+         the mangled name. */
       {
         an_expr_node_ptr    args;
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
         check_assertion(dip != NULL && dip->is_explicit_cast);
-        args = rescan_arg_list_from_dyn_init(dip);
+        args = arg_list_from_dyn_init(dip);
 #if IA64_ABI
         add_str_to_mangled_name("cv", mctl);
         mangled_encoding_for_type(expr->type, mctl);

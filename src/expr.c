@@ -11240,7 +11240,7 @@ in *rcblock).
       check_assertion(init_dip != NULL &&
                       !init_dip->is_explicit_cast);
       rcblock->argument_list = arg_expr_list =
-                                       rescan_arg_list_from_dyn_init(init_dip);
+                                              arg_list_from_dyn_init(init_dip);
       if (arg_expr_list != NULL &&
           arg_expr_list->rescan_info != NULL) {
         init_position = arg_expr_list->rescan_info->saved_operand.position;
@@ -25058,7 +25058,7 @@ dynamic initialization after substitution.
   } else {
     /* The dynamic init is not an explicit cast, so it's an implicit
        operation.  Fetch and return its operand. */
-    expr = rescan_arg_list_from_dyn_init(dip);
+    expr = arg_list_from_dyn_init(dip);
     check_assertion(expr->next == NULL);
     make_rescan_operand(expr, rcblock, result);
   }  /* if */

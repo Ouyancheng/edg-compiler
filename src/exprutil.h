@@ -1507,7 +1507,7 @@ void make_sizeof_et_al_rescan_operands(
                               a_token_sequence_number *operator_tok_seq_number,
                               a_source_position       *type_position);
 
-extern an_expr_node_ptr rescan_arg_list_from_dyn_init(a_dynamic_init_ptr dip);
+extern an_expr_node_ptr arg_list_from_dyn_init(a_dynamic_init_ptr dip);
 
 extern void make_cast_rescan_operands(
                               a_rescan_control_block *rcblock,
