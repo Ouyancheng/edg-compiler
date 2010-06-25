@@ -11361,8 +11361,8 @@ apply, but we can't tell).
   *processed = FALSE;
   /* Check for template-dependent operands in a prototype instantiation. */
   if (is_template_dependent_context() &&
-      (is_template_dependent_type(operand_1->type) ||
-       (!unary_operator && is_template_dependent_type(operand_2->type)))) {
+      (operand_is_dependent(operand_1) ||
+       (!unary_operator && operand_is_dependent(operand_2)))) {
     /* There is at least one template-dependent operand, so we cannot
        check for operator overloading.  Just build an expression with a
        generic operator. */
