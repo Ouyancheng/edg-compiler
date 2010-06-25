@@ -14012,9 +14012,14 @@ indication in *rcblock).
   }  /* if */
   /* Except when casting to a reference type, do operand transformations
      on the source operand. */
-  if (!reference_case && !microsoft_lvalue_cast_case) {
-    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  }  /* if */
+  { a_transformation_options_set options = TOPT_NO_OPTIONS;
+    if (reference_case || microsoft_lvalue_cast_case) {
+      options |= (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+    }  /* if */
+    do_operand_transformations(&operand, options);
+  }
   /* Check for casts that aren't valid in this kind of expression.
      Note that this check is done after the operand transformations
      (e.g., turning arrays into pointers). */
