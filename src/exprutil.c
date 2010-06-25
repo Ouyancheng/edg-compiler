@@ -3661,6 +3661,19 @@ position field as the error position.
 }  /* conv_to_error_operand */
 
 
+static void normalize_error_operand(an_operand *operand)
+/*
+Take an operand for which is_error_operand returns TRUE, and normalize it.
+For operands that have an error type but not an ok_error kind, that means
+converting them to full error operands.
+*/
+{
+  if (operand->kind != (an_operand_kind)ok_error) {
+    conv_to_error_operand(operand);
+  }  /* if */
+}  /* normalize_error_operand */
+
+
 void error_and_make_error_operand(an_error_code error_code,
 				  an_operand    *operand)
 /*
@@ -4631,9 +4644,7 @@ was an lvalue or rvalue, etc.
 {
   prep_generic_operand(operand);
   if (is_error_operand(operand)) {
-    /* Note that is_error_operand returns TRUE if the type is error, so
-       make sure we have an actual error operand. */
-    conv_to_error_operand(operand);
+    normalize_error_operand(operand);
   } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
     /* The operand is a constant rvalue, which we can use directly. */
   } else {
@@ -5170,7 +5181,7 @@ used only in C++ mode.
     }  /* if */
   }  /* if */
   if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
+    normalize_error_operand(operand);
   } else {
     did_not_fold = TRUE;
     if (curr_expr_is_evaluated() && expr_stack->favor_constant_result &&
@@ -5230,14 +5241,14 @@ still an lvalue.  This adjustment is implicit (e.g., in binding a
 reference) and not something explicit like a cast.
 */
 {
-  a_type_ptr operand_type = operand->type;
 
-  if (!cast_identical_types(operand_type, dest_type)) {
-    if (is_error_operand(operand)) {
-      /* Leave an error operand alone. */
-    } else if (is_error_type(dest_type)) {
-      conv_to_error_operand(operand);
-    } else {
+  if (is_error_operand(operand)) {
+    normalize_error_operand(operand);
+  } else if (is_error_type(dest_type)) {
+    conv_to_error_operand(operand);
+  } else {
+    a_type_ptr operand_type = operand->type;
+    if (!cast_identical_types(operand_type, dest_type)) {
       /* If you change this, see expr_before_type_adjustment. */
       a_base_class_ptr bcp = NULL;
       an_operand       orig_operand;
@@ -5373,7 +5384,6 @@ can be an rvalue when dest_type is an rvalue reference or when dest_type
 is an lvalue reference to const.
 */
 {
-  a_type_ptr operand_type;
   a_type_ptr underlying_type;
   a_boolean  is_rvalue_ref = FALSE;
 
@@ -5395,12 +5405,12 @@ is an lvalue reference to const.
     (void)check_for_taking_the_address_of_a_bit_field(operand,
                                                       &operand->position);
   }  /* if */
-  operand_type = operand->type;
   if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
+    normalize_error_operand(operand);
   } else if (is_error_type(underlying_type)) {
     conv_to_error_operand(operand);
   } else {
+    a_type_ptr       operand_type = operand->type;
     a_base_class_ptr bcp = NULL;
     a_boolean        derived_class_cast = FALSE;
     a_boolean        need_eok_ref_cast = FALSE;
@@ -5491,14 +5501,13 @@ still an rvalue.  This adjustment is implicit (e.g., in binding a
 reference) and not something explicit like a cast.
 */
 {
-  a_type_ptr operand_type = operand->type;
-
-  if (!cast_identical_types(operand_type, dest_type)) {
-    if (is_error_operand(operand)) {
-      /* Leave an error operand alone. */
-    } else if (is_error_type(dest_type)) {
-      conv_to_error_operand(operand);
-    } else {
+  if (is_error_operand(operand)) {
+    normalize_error_operand(operand);
+  } else if (is_error_type(dest_type)) {
+    conv_to_error_operand(operand);
+  } else {
+    a_type_ptr operand_type = operand->type;
+    if (!cast_identical_types(operand_type, dest_type)) {
       /* If you change this, see expr_before_type_adjustment. */
       an_expr_node_ptr node;
       an_operand       orig_operand;
@@ -7237,7 +7246,9 @@ allows the operand (which has uncertain lvalueness) to be used henceforth
 as an lvalue.
 */
 {
-  if (!is_error_operand(operand)) {
+  if (is_error_operand(operand)) {
+    normalize_error_operand(operand);
+  } else {
     a_constant_ptr   con;
     an_expr_node_ptr expr;
     a_boolean        is_nonreal, is_function;
@@ -7561,7 +7572,9 @@ when gnu_version would ordinarily indicate they should not be.
             expr_pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
           }  /* if */
         }  /* if */
-        if (!is_error_operand(operand)) {
+        if (is_error_operand(operand)) {
+          normalize_error_operand(operand);
+        } else {
           expr = conv_rvalue_expr_to_lvalue(expr, &do_recovery,
                                             /*see_if_possible=*/FALSE,
                                             /*gcc_lvalue=*/gcc_mode,
@@ -8900,9 +8913,7 @@ e.g., if the source operand is an lvalue.
     can_fold = TRUE;
   }  /* if */
   if (is_error_operand(operand)) {
-    /* Leave an error operand alone (change an operand with an error type to
-       a full error operand). */
-    conv_to_error_operand(operand);
+    normalize_error_operand(operand);
   } else if (can_fold) {
     /* Fold a constant cast. */
     check_assertion_str(is_constant_operand(operand) && is_an_rvalue(operand),
@@ -11707,6 +11718,7 @@ explicit "&" operator in the source and *operator_position gives its position.
   if (is_error_operand(operand)) {
     /* Leave an error operand mostly alone.  Mark the address as being taken
        to prevent cascading diagnostics. */
+    normalize_error_operand(operand);
     change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   } else {
 #if CHECKING
@@ -11858,14 +11870,14 @@ designators.  rvalue_reference_case is TRUE if the reference being bound
 is an rvalue reference.
 */
 {
-  if (is_an_lvalue(operand) ||
-      is_a_function_designator(operand)) {
+  if (is_error_operand(operand)) {
+    normalize_error_operand(operand);
+  } else if (is_an_lvalue(operand) ||
+             is_a_function_designator(operand)) {
     take_address_of_or_reference_to_lvalue(operand,
                                            /*reference_case=*/TRUE,
                                            rvalue_reference_case,
                                            (a_source_position *)NULL);
-  } else if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
   } else {
     /* Binding a reference to a class rvalue. */
     an_expr_node_ptr expr;
@@ -11912,8 +11924,9 @@ operand is an rvalue pointer.  Change it to an lvalue for the object pointed
 to (or a function designator).
 */
 {
-  /* Leave an error operand alone. */
-  if (!is_error_operand(operand)) {
+  if (is_error_operand(operand)) {
+    normalize_error_operand(operand);
+  } else {
     an_expr_node_ptr expr;
     an_operand       orig_operand;
     orig_operand = *operand;
@@ -12506,7 +12519,7 @@ initializing it from the rvalue.  This routine is used only in C++ mode.
   an_expr_node_ptr  node;
 
   if (is_error_operand(operand)) {
-    /* Error operand -- leave alone. */
+    normalize_error_operand(operand);
   } else {
     check_assertion(is_an_rvalue(operand) &&
                     (is_class_struct_union_type(operand->type) ||
@@ -12622,7 +12635,7 @@ the class object may escape.  This routine is used only in C++ mode.
 */
 {
   if (is_error_operand(operand)) {
-    /* Error operand -- leave alone. */
+    normalize_error_operand(operand);
 #if CHECKING
   } else if (!is_class_struct_union_type(operand->type) &&
              !is_template_param_type(operand->type)) {
@@ -13307,9 +13320,9 @@ cases so we don't do it here.
     /* Instantiate the type if it is a template. */
     complete_type_is_needed(operand_type);
     if (is_error_operand(operand)) {
-      /* Error operand -- leave it alone (but make sure it's not an lvalue
-         anymore). */
-      conv_to_error_operand(operand);
+      /* Aside from the usual function, the normalization here makes sure the
+         operand is not an lvalue anymore. */
+      normalize_error_operand(operand);
     } else if (is_incomplete_type(operand_type) &&
                (!C_mode() || !is_void_type(operand_type))) {
       /* Converting an lvalue with incomplete type to an rvalue is an
@@ -13829,7 +13842,7 @@ used in generating the function-identifying operand in a call.
   }  /* if */
 
   if (is_error_operand(operand)) {
-    /* Error operand; leave it alone. */
+    normalize_error_operand(operand);
   } else if (is_indefinite_function_operand(operand)) {
     /* An overloaded function where we do not yet have arguments that will
        select a specific instance of the function.  Change to a pointer to an
