@@ -14408,23 +14408,23 @@ indication in *rcblock).
   if (err) {
     conv_to_error_operand(result);
   } else if (!ignored) {
-    if (processed_as_udc) {
-      /* This cast was processed as a user-defined conversion. */
+    an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+    if (expr != NULL) {
+      /* An expression node was created that represents this static_cast:
+         mark it as resulting from a static_cast operation. */
+      expr->is_static_cast = TRUE;
+      record_cast_position_in_expr_rescan_info(expr,
+                                               &start_position,
+                                               &type_position,
+                                               type_cast_to);
+    } else if (processed_as_udc) {
+      /* This cast was processed as a user-defined conversion, and probably
+         ended up as a call.  We can't set the is_static_cast flag, but
+         go ahead and record position information on the call. */
       record_cast_position_in_rescan_info(result,
                                           &start_position,
                                           &type_position,
                                           type_cast_to);
-    } else {
-      an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
-      if (expr != NULL) {
-        /* An expression node was created that represents this static_cast:
-           mark it as resulting from a static_cast operation. */
-        expr->is_static_cast = TRUE;
-        record_cast_position_in_expr_rescan_info(expr,
-                                                 &start_position,
-                                                 &type_position,
-                                                 type_cast_to);
-      }  /* if */
     }  /* if */
 #if CHECKING
     if (cast_to_reference && !processed_as_udc) {
