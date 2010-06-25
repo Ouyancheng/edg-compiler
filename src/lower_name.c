@@ -3867,6 +3867,10 @@ part of a template-dependent expression.
   expr = skip_compiler_generated_expressions(expr,
                                              &suppress_address_of_on_typeid);
   switch (expr->kind) {
+    case enk_error:
+      check_assertion(total_errors != 0);
+      add_to_mangled_name('?', mctl);
+      break;
     case enk_constant:
 #if IA64_ABI
       if (is_typeid_template_param(expr) && !suppress_address_of_on_typeid) {
