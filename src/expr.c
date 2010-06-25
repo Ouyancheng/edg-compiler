@@ -9419,7 +9419,7 @@ indication in *rcblock).
         }  /* if */
       }  /* if */
     }  /* if */ 
-   if (microsoft_template_arg_case && runtime_case) {
+    if (microsoft_template_arg_case && runtime_case) {
       /* The Microsoft extension doesn't allow cases that require runtime
          evaluation. */
       if (!could_be_dependent_class_type(typeid_type)) {
