@@ -11198,7 +11198,7 @@ structure.
        function instantiation entry, and linking all these appropriately.
        Note that the symbol will not be added to the symbol table, since it
        is accessed through the list of function instantiation entries. */
-    if (template_arg_involves_error_entity(*new_list)) {
+    if (template_arg_list_involves_error_entity(*new_list)) {
       /* If the argument list contains an error entity, don't do the partial
          instantiation of the template.  Instead, create an error routine
          that can be used in place of the routine that would normally be
