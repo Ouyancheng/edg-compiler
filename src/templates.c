@@ -11537,7 +11537,7 @@ severity at which any diagnostics should be issued.
 
 
 /* Forward declaration. */
-static a_boolean check_template_nesting_depth(
+static void check_template_nesting_depth(
 					a_symbol_ptr		sym,
 					a_source_position	*pos,
 					a_tmpl_decl_state_ptr	decl_state);
@@ -11628,9 +11628,7 @@ Otherwise, return FALSE.
   if (!decl_state->decl_scope_err && !any_mismatches) {
     /* Make sure the nesting depth of the declaration matches the entity
        being declared. */
-    if (check_template_nesting_depth(member_sym, error_pos, decl_state)) {
-      any_mismatches = TRUE;
-    }  /* if */
+    check_template_nesting_depth(member_sym, error_pos, decl_state);
   }  /* if */
   return !any_mismatches;
 }  /* member_template_param_list_matches_class */
@@ -17978,7 +17976,7 @@ by type.
 }  /* has_matching_template_instance */
 
 
-static a_boolean check_template_nesting_depth(
+static void check_template_nesting_depth(
 					a_symbol_ptr		sym,
 					a_source_position	*pos,
 					a_tmpl_decl_state_ptr	decl_state)
@@ -17986,14 +17984,13 @@ static a_boolean check_template_nesting_depth(
 This routine is used to determine whether the number of template clauses
 in a specialization matches the template nesting depth of the
 entity being specialized.  If a mismatch is found, a diagnostic is
-issued, and TRUE is returned.
+issued.
 */
 {
   a_template_nesting_depth	depth = 0;
   a_template_arg_ptr		arg_list;
   a_boolean			is_template = FALSE;
   a_type_ptr			parent_tp;
-  a_boolean			result = FALSE;
 
   /* The presence of a template argument list indicates that this entity is
      an instance of a class or function template.  A member function of
@@ -18074,7 +18071,6 @@ issued, and TRUE is returned.
     pos_sy_diagnostic(severity, ec_template_depth_mismatch, pos, sym);
     decl_state->nesting_depth_err = TRUE;
   }  /* if */
-  return result;
 }  /* check_template_nesting_depth */
 
 
@@ -18217,8 +18213,7 @@ that follows.
     } else {
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
-      (void)check_template_nesting_depth(sym, &dps->specifiers_pos,
-                                         decl_state);
+      check_template_nesting_depth(sym, &dps->specifiers_pos, decl_state);
       dps->type->variant.class_struct_union.is_specialized = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       { a_boolean	decl_is_definition;
@@ -18532,8 +18527,8 @@ that follows.
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
       if (!microsoft_nonstd_specialization) {
-        (void)check_template_nesting_depth(sym, &locator.source_position,
-                                           decl_state);
+        check_template_nesting_depth(sym, &locator.source_position,
+                                     decl_state);
       }  /* if */
       if (sym->kind == (a_symbol_kind)sk_static_data_member) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
