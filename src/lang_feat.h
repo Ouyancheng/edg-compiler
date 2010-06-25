@@ -843,22 +843,12 @@ version of the Microsoft compiler that is being emulated (for example,
 /*
 Flag that is TRUE if Microsoft attributes should be considered to be
 recognized.  Microsoft attributes are always parsed in Microsoft mode,
-but if this flag is FALSE an "unrecognized attribute" warning will be
-issued on the use of any attribute.  By default, Microsoft attributes
-are recognized when using the C++-generating back end, so that the
-attributes can be emitted in the generated code.  See
-SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING regarding the processing of
-recognized attributes.
+but if this flag is FALSE an "unrecognized attribute" warning will be issued
+on the use of any attribute.  See SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
+regarding the processing of recognized attributes.
 */
 #ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES
-#ifdef BACK_END_IS_CP_GEN_BE
-#if BACK_END_IS_CP_GEN_BE
 #define RECOGNIZE_MICROSOFT_ATTRIBUTES TRUE
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* ifdef BACK_END_IS_CP_GEN_BE */
-#ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES
-#define RECOGNIZE_MICROSOFT_ATTRIBUTES FALSE
-#endif /* ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES */
 #endif /* ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES */
 
 

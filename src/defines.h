@@ -849,10 +849,6 @@ Flags to be set for any version that uses the C++ generating back end.
 /*
 Enable recognition of Microsoft attributes for internal versions.
 */
-#ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES
-#define RECOGNIZE_MICROSOFT_ATTRIBUTES 1
-#endif /* ifndef RECOGNIZE_MICROSOFT_ATTRIBUTES */
-
 #ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING 0
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
