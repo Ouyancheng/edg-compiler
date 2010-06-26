@@ -2479,13 +2479,13 @@ add mangling for an eok_address_of operation.
                                         && gnu_abi_version < 30400
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
                                                                   ;
-  if (add_address_of) {
-    add_str_to_mangled_name("ad", mctl);
-  }  /* if */
   a_boolean  use_sr = parent_class != NULL &&
                       (emulate_old_gnu_behavior ||
                        is_template_dependent_type(parent_class));
 
+  if (add_address_of) {
+    add_str_to_mangled_name("ad", mctl);
+  }  /* if */
   if (use_sr) {
     /* Scope resolution operator "sr". */
     add_str_to_mangled_name("sr", mctl);
