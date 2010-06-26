@@ -2357,6 +2357,14 @@ that has it.
            is_cast_operation_node(expr)) ||
           expr->variant.operation.implicit_step_of_explicit_cast) {
         /* Implicit cast -- keep stripping. */
+        expr = expr->variant.operation.operands;
+      } else if (expr->variant.operation.is_conversion_call &&
+                 expr->variant.operation.compiler_generated) {
+        /* A call that implements an implicit conversion.  Go to the
+           second operand (the input to the conversion function). */
+        expr = expr->variant.operation.operands;
+        check_assertion(expr->next != NULL && expr->next->next == NULL);
+        expr = expr->next;
       } else {
         switch (expr->variant.operation.kind) {
           case eok_reference_to:
@@ -2375,8 +2383,8 @@ that has it.
             /* Something else.  Stop stripping. */
             goto end_of_loop;
         }  /* switch */
+        expr = expr->variant.operation.operands;
       }  /* if */
-      expr = expr->variant.operation.operands;
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
       /* An explicit cast is retained.  Also a compound literal. */
@@ -11233,7 +11241,6 @@ void assemble_function_call(an_operand        *function_operand,
                             an_operand        *bound_function_selector,
                             an_expr_node_ptr  argument_list,
                             a_boolean         compiler_generated,
-                            a_boolean         is_conversion,
                             a_boolean         arg_dep_lookup_suppressed,
                             a_boolean         found_through_adl,
                             a_boolean         uses_operator_syntax,
@@ -11245,19 +11252,19 @@ Assemble a function call from the various pieces.  *function_operand
 identifies the function to be called.  If a selector object is needed,
 it is provided by *bound_function_selector.  argument_list points to the
 (explicit) argument list.  compiler_generated is TRUE if this is a compiler-
-generated call (e.g., for an implicit conversion via a conversion
-function).  is_conversion is TRUE for a call generated for an explicit
-or implicit conversion (e.g., a conversion function call).
-arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was suppressed
-on the call.  found_through_adl is TRUE if the function to be called was
-only found through argument-dependent lookup (not through ordinary lookup).
-uses_operator_syntax is TRUE when a call to an overloaded operator is the
-result of operator notation ("a+b") rather than an explicit function call.
-call_position gives the source position of the call.  An operand for the
-overall call is constructed in *result.  If non-NULL, function_call_node is
-the address of an expression node pointer that will be set to point to the
-actual call node itself (which might be below the expression in the result
-because of transformations on the return value).
+generated call (e.g., to an overloaded operator function).  The call
+is not of a conversion function.  arg_dep_lookup_suppressed is TRUE if
+argument-dependent lookup was suppressed on the call.
+found_through_adl is TRUE if the function to be called was only found
+through argument-dependent lookup (not through ordinary lookup).
+uses_operator_syntax is TRUE when a call to an overloaded operator is
+the result of operator notation ("a+b") rather than an explicit
+function call.  call_position gives the source position of the call.
+An operand for the overall call is constructed in *result.  If
+non-NULL, function_call_node is the address of an expression node
+pointer that will be set to point to the actual call node itself
+(which might be below the expression in the result because of
+transformations on the return value).
 */
 {
   an_expr_node_ptr function_node;
@@ -11335,7 +11342,7 @@ because of transformations on the return value).
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
                        selector_is_object_pointer,
-                       compiler_generated, is_conversion,
+                       compiler_generated, /*is_conversion=*/FALSE,
                        arg_dep_lookup_suppressed, found_through_adl,
                        uses_operator_syntax, call_position, result,
                        function_call_node);
@@ -14063,7 +14070,6 @@ is a "get" if put_operand is NULL.
           assemble_function_call(&function_operand, &bound_function_selector,
                                  argument_list,
                                  /*compiler_generated=*/TRUE,
-                                 /*is_conversion=*/FALSE,
                                  /*arg_dep_lookup_suppressed=*/FALSE,
                                  /*found_through_adl=*/FALSE,
                                  /*uses_operator_syntax=*/FALSE,
