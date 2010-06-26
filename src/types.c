@@ -2434,6 +2434,9 @@ and a diagnostic is issued (unless suppress_error is TRUE).
                                      (char *)array_type,
                                      (a_byte_il_entry_kind)iek_type,
                                      &error_position);
+    array_type->incomplete = TRUE;
+    array_type->size = 0;
+    array_type->alignment = 0;
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
