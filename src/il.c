@@ -11586,6 +11586,9 @@ to operands of the given type.
       }  /* if */
     }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else if (kind1 == (a_type_kind)tk_error ||
+             kind2 == (a_type_kind)tk_error) {
+    result = (a_type_kind)tk_error;
   } else if (kind1 == (a_type_kind)tk_template_param ||
              kind2 == (a_type_kind)tk_template_param ||
              is_template_dependent_type(op1_type) ||
