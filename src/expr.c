@@ -1293,6 +1293,10 @@ prescanned argument list, which preempts the list in rcblock.
            same cv-unqualified type as the destination, so copy constructor
            elision can be done.  In this case the dynamic init entry already
            present is reused. */
+        /* Clear the explicit cast flag.  The caller will set it if this
+           top-level operation is an explicit cast.  We've optimized
+           away the explicit cast one level down. */
+        dip->is_explicit_cast = FALSE;
         check_access_to_elided_copy_constructor(source_type, routine,
                                                 source_pos);
         optimized = TRUE;
