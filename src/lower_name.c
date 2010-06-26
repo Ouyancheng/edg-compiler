@@ -3260,6 +3260,9 @@ constant.
 
 #endif /* IA64_ABI */
 
+#if !IA64_ABI
+/*ARGSUSED*/  /*  <-- suppress_address_of is not used in some configurations.*/
+#endif /* !IA64_ABI */
 static an_expr_node_ptr skip_compiler_generated_expressions(
                                          an_expr_node_ptr expr,
                                          a_boolean        *suppress_address_of)
