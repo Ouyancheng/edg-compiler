@@ -2091,7 +2091,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     (void)get_token();
     add_matching_stop_token(tok_rparen);
   }  /* if */
-  if  (bfk == (a_builtin_function_kind)bfk_choose_expr) {
+  if (bfk == (a_builtin_function_kind)bfk_choose_expr) {
     check_assertion(C_mode());  /* rcblock is not passed down. */
     scan_and_process_builtin_choose_expr_args(result_op);
   } else {
@@ -2120,6 +2120,10 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       /* Convert the previously-scanned expression to an_operand form. */
       make_rescan_operand(rcblock->argument_list, rcblock, &arg);
     }  /* if */
+    do_operand_transformations(&arg,
+                               (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
     /* Now determine the constant result of the pseudo-call by examining the
        (unevaluated) argument expression. */
     result_type = return_type_of(rp->type);
@@ -15487,11 +15491,19 @@ as the cast in place of rcblock->expr.
        handled specially because it may have more than one argument.
        In a constant expression, a cast to a class type is not allowed,
        so go on to the normal cast code. */
+    a_boolean  is_lvalue;
+    a_type_ptr eff_type_cast_to;
     scan_dependent_parenthesized_initializer(rcblock,
                                              (an_arg_operand_ptr *)NULL,
                                              &dip);
-    temp_init_node = alloc_temp_init_node(type_cast_to, dip,
-                                          /*is_lvalue=*/FALSE,
+    if (is_reference_type(type_cast_to)) {
+      eff_type_cast_to = type_pointed_to(type_cast_to);
+      is_lvalue = TRUE;
+    } else {
+      eff_type_cast_to = type_cast_to;
+      is_lvalue = FALSE;
+    }  /* if */
+    temp_init_node = alloc_temp_init_node(eff_type_cast_to, dip, is_lvalue,
                                           /*is_explicit_cast=*/TRUE);
     make_expression_operand(temp_init_node, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
