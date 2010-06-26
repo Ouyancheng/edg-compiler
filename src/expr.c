@@ -14830,7 +14830,7 @@ both C and C++ modes.
     expr_pos_error(ec_expr_not_constant, &start_position);
     err = TRUE;
   }  /* if */
-  if (depth_stmt_stack < 0 ||
+  if (innermost_function_scope == NULL ||
       expr_stack->is_default_arg_expression) {
     /* We're not inside a function, so don't try to scan the statement.
        Just flush to the matching closing brace. */
