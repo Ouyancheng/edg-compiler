@@ -2436,7 +2436,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
                                      &error_position);
     array_type->incomplete = TRUE;
     array_type->size = 0;
-    array_type->alignment = 0;
+    array_type->alignment = 1;
   } else {
     /* Get the number of elements.  Note that this is zero for an incomplete
        type like int a[]. */
