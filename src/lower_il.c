@@ -13321,7 +13321,10 @@ terminates the traversal if a temporary init with a destructor is found.
 */
 {
   if (node->kind == (an_expr_node_kind)enk_temp_init &&
-      node->variant.init.dynamic_init->destructor != NULL) {
+      node->variant.init.dynamic_init->destructor != NULL &&
+      /* Ignore expressions in potentially-evaluated parts of trees that
+         have a destructor but weren't entered into an object lifetime. */
+      node->variant.init.dynamic_init->lifetime != NULL) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */

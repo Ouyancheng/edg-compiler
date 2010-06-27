@@ -2727,7 +2727,12 @@ typedef struct a_dynamic_init {
 			   destructor call is required.  Also used, when
 			   is_freeing_of_storage_on_exception is TRUE, to
 			   point to a delete routine to free storage for a
-			   new-allocation cleanup. */
+			   new-allocation cleanup.  If a destructible
+			   temporary appears in a potentially-evaluated
+			   but not evaluated expression, the destructor will
+			   be non-NULL but the destruction will not be on an
+			   object lifetime list and the lifetime field will
+			   be NULL. */
   an_object_lifetime_ptr
 		lifetime;
 			/* The object lifetime associated with the object

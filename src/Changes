@@ -1,5 +1,30 @@
 Version 4.2
 
+6/26/10  [EDGcpfe/10778]
+Abort on destructible entity in dead code of conditional whose result is
+constant
+
+The front end encountered an internal error in
+discard_constant_expr_object_lifetime in exprutil.c when processing
+a ?, &&, or || operator whose overall result is constant, and that
+has an operand that is unevaluated because the first operand is a
+known constant, and furthermore this unevaluated operand includes a
+destructible temporary.  Now fixed.
+
+  struct A {
+    ~A() {}
+    operator int() { return 0; }
+  };
+  int i = 0 && A();
+  int main() { }
+
+This involves a very small IL CHANGE: a dynamic init entry that is
+potentially evaluated but not evaluated and has a non-NULL destructor
+field may now have a NULL lifetime field indicating that the
+destruction was not put onto any object lifetime list (it's not
+needed, after all, since the initialization is dead code).
+
+
 6/25/10  [EDGcpfe/10687]
 Microsoft compatibility: default attribute behavior
 
