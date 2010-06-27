@@ -3542,8 +3542,8 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 }  /* routine_linkages_are_identical */
 
 
-static void adjust_comparison_types_for_decltype(a_type_ptr *p_type_1,
-                                                 a_type_ptr *p_type_2)
+static a_boolean adjust_comparison_types_for_decltype(a_type_ptr *p_type_1,
+                                                      a_type_ptr *p_type_2)
 /*
 The types pointed to by p_type_1 and p_type_2 are being compared by
 f_identical_types or f_types_are_compatible as part of checking that
@@ -3552,39 +3552,40 @@ type.  If one or the other is a type produced by a decltype, adjust
 the types to account for any differences introduced by the decltype
 itself, e.g., an extra "reference to" on one of the types because the
 operand of the decltype is an lvalue in one case and not in the other.
+Return TRUE if such an adjustment was made.
 */
 {
+  a_boolean  adjustment_made = FALSE;
   a_type_ptr type_1 = *p_type_1;
   a_type_ptr type_2 = *p_type_2;
 
-  for (;;) {
-    /* Remove non-decltype typerefs from both types.  (This code is done
-       after cv-qualifiers have been checked, so they are irrelevant at
-       this point.) */
-    while (type_1->kind == (a_type_kind)tk_typeref &&
-           !typeref_is_decltype_or_typeof(type_1)) {
-      type_1 = type_1->variant.typeref.type;
-    }  /* while */
-    while (type_2->kind == (a_type_kind)tk_typeref &&
-           !typeref_is_decltype_or_typeof(type_2)) {
-      type_2 = type_2->variant.typeref.type;
-    }  /* while */
-    /* If one is a decltype for a non-reference type and the other is
-       a non-decltype for a reference type, strip the reference. */
-    if (type_1->kind == (a_type_kind)tk_typeref &&
-        !is_reference_type(type_1) &&
-        is_reference_type(type_2)) {
-      type_2 = type_pointed_to(type_2);
-    } else if (type_2->kind == (a_type_kind)tk_typeref &&
-               !is_reference_type(type_2) &&
-               is_reference_type(type_1)) {
-      type_1 = type_pointed_to(type_1);
-    } else {
-      break;
-    }  /* if */
-  }  /* for */
+  /* Remove non-decltype typerefs from both types.  (This code is done
+     after cv-qualifiers have been checked, so they are irrelevant at
+     this point.) */
+  while (type_1->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_decltype_or_typeof(type_1)) {
+    type_1 = type_1->variant.typeref.type;
+  }  /* while */
+  while (type_2->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_decltype_or_typeof(type_2)) {
+    type_2 = type_2->variant.typeref.type;
+  }  /* while */
+  /* If one is a decltype for a non-reference type and the other is
+     a reference type, strip the reference. */
+  if (type_1->kind == (a_type_kind)tk_typeref &&
+      !is_reference_type(type_1) &&
+      is_reference_type(type_2)) {
+    type_2 = type_pointed_to(type_2);
+    adjustment_made = TRUE;
+  } else if (type_2->kind == (a_type_kind)tk_typeref &&
+             !is_reference_type(type_2) &&
+             is_reference_type(type_1)) {
+    type_1 = type_pointed_to(type_1);
+    adjustment_made = TRUE;
+  }  /* if */
   *p_type_1 = type_1;
   *p_type_2 = type_2;
+  return adjustment_made;
 }  /* adjust_comparison_types_for_decltype */
 
 
@@ -3795,6 +3796,7 @@ for more information.
 
   /* First check for typeref equivalence: This includes type qualifiers and
      decltype/typeof constructs. */
+check_typerefs:
   if (type_1->kind == (a_type_kind)tk_typeref ||
       type_2->kind == (a_type_kind)tk_typeref) {
     if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
@@ -3803,12 +3805,14 @@ for more information.
       /* identical = FALSE;  -- Already set. */
       goto done;
     }  /* if */
-    if (flags & ITF_CHECKING_DEDUCTION_RESULT) {
+    if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&
+        adjust_comparison_types_for_decltype(&type_1, &type_2)) {
       /* When checking a deduction result, we have to allow some slight
          differences around a typeref for a decltype.  The decltype might
          have been applied to an lvalue in one case and an rvalue in the
-         other, and therefore have an extra "reference to" on it. */
-      adjust_comparison_types_for_decltype(&type_1, &type_2);
+         other, and therefore have an extra "reference to" on it.
+         Go back and check the cv-qualifiers again after the adjustment. */
+      goto check_typerefs;
     } else if ((flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
                distinct_dependent_decltypes(type_1, type_2, flags)) {
       /* type_1 and type_2 are built from decltype (or typeof) constructs
@@ -4381,7 +4385,9 @@ for exact pointer equality.
     compat = TRUE;
   } else {
     /* Test for a qualifier mismatch. */
-    a_boolean qualifier_mismatch = FALSE;
+    a_boolean qualifier_mismatch;
+check_typerefs:
+    qualifier_mismatch = FALSE;
     if (type_1->kind == (a_type_kind)tk_typeref ||
         type_2->kind == (a_type_kind)tk_typeref) {
       if (!ignore_type_qualifiers &&
@@ -4391,12 +4397,14 @@ for exact pointer equality.
       /* Except for potential qualifier mismatches, typeref entries can
          usually be skipped, but some care must be taken with decltype/typeof
          entries. */
-      if (flags & TCF_CHECKING_DEDUCTION_RESULT) {
+      if ((flags & TCF_CHECKING_DEDUCTION_RESULT) &&
+          adjust_comparison_types_for_decltype(&type_1, &type_2)) {
         /* When checking a deduction result, we have to allow some slight
            differences around a typeref for a decltype.  The decltype might
            have been applied to an lvalue in one case and an rvalue in the
-           other, and therefore have an extra "reference to" on it. */
-        adjust_comparison_types_for_decltype(&type_1, &type_2);
+           other, and therefore have an extra "reference to" on it.
+           Go back and check the cv-qualifiers again after the adjustment. */
+        goto check_typerefs;
       } else if ((flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
                  distinct_dependent_decltypes(type_1, type_2, ITF_NO_FLAGS)) {
         /* There's a difference due to a dependent decltype expression, and

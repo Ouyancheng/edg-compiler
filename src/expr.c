@@ -8026,12 +8026,13 @@ id_case:
   } else {
 general_case:
     /* General case: The type T of the expression, or T& if the expression
-       is an lvalue.  If T is template-dependent, do not add the reference
-       since we cannot reliably tell whether the expression will instantiate
-       to an lvalue. */
+       is an lvalue.  If T is template-dependent, the result is unknown because
+       we can't reliably tell whether the operand is an lvalue, and therefore
+       we can't tell if we should add the reference type. */
     result = operand->type;
-    if (is_an_lvalue(operand) && !is_template_dependent_type(result) &&
-        !is_error_type(result)) {
+    if (is_template_dependent_type(result)) {
+      result = type_of_unknown_templ_param_nontype;
+    } else if (is_an_lvalue(operand) && !is_error_type(result)) {
       result = make_reference_type(result);
     }  /* if */
   }  /* if */
