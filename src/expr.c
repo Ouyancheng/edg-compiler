@@ -8071,6 +8071,25 @@ function memory region.  For example:
   return result;
 }  /* scope_depth_to_allocate_decltype_expr */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+static a_source_sequence_entry_ptr fs_add_empty_source_sequence_entry(void)
+/*
+Create an "empty" source sequence entry (one with a null entity pointer and
+an entity kind of iek_none) in file scope memory, and add it to the end of
+source sequence entry list.  Return a pointer to the created entry.
+*/
+{
+  a_source_sequence_entry_ptr  ssep;
+  a_memory_region_number       region_to_switch_back_to;
+  
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  ssep = add_empty_source_sequence_entry();
+  switch_back_to_original_region(region_to_switch_back_to);
+  return ssep;
+}  /* fs_add_empty_source_sequence_entry */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
@@ -8155,9 +8174,7 @@ outside of the expression-processing routines.
        expression stack entry has been pushed, because in some cases the source
        sequence entry changes will be "undone" and restored to the state
        recorded by the push operation. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    ssep = add_empty_source_sequence_entry();
-    switch_back_to_original_region(region_to_switch_back_to);
+    ssep = fs_add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* This call is done late because we need the expression stack to be pushed
        already. */
@@ -8500,9 +8517,7 @@ the expression-processing routines.
        expression stack entry has been pushed, because in some cases the source
        sequence entry changes will be "undone" and restored to the state
        recorded by the push operation. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    ssep = add_empty_source_sequence_entry();
-    switch_back_to_original_region(region_to_switch_back_to);
+    ssep = fs_add_empty_source_sequence_entry();
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!is_type) {
