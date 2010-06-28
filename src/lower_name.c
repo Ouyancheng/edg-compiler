@@ -3370,6 +3370,11 @@ explicitly dealt with later in expression mangling.
 #endif /* ABI_COMPATIBILITY_VERSION < 402 */
           }  /* if */
 #endif /* IA64_ABI */
+          if (op == (an_expr_operator_kind)eok_base_class_cast) {
+            /* Remove a compiler generated base class cast. */
+            expr = skip_parens(child);
+            done = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
@@ -7454,9 +7459,12 @@ mangling of a type as well as an expression), return *is_cast TRUE.
       opkind = (an_opname_kind)onk_subscript;
       break;
     case eok_add:
+    case eok_padd:
       opkind = (an_opname_kind)onk_plus;
       break;
     case eok_subtract:
+    case eok_psubtract:
+    case eok_pdiff:
       opkind = (an_opname_kind)onk_minus;
       break;
     case eok_multiply:
@@ -7541,6 +7549,14 @@ mangling of a type as well as an expression), return *is_cast TRUE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_fjadd:
+    case eok_jfadd:
+    case eok_fjsubtract:
+    case eok_jfsubtract:
+    case eok_jmultiply:
+    case eok_jdivide:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       *bad_operator = TRUE;
   }  /* switch */
