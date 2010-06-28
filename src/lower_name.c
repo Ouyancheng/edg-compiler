@@ -3416,13 +3416,15 @@ arguments using <source-name> and others with <expr-primary>.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- suppress_operation_indicator is unused in that case. */
 #endif /* !IA64_ABI */
-static void add_operator_name_to_mangled_name(
+static void add_operator_or_conversion_function_name_to_mangled_name(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
+                         a_type_ptr               conversion_type,
                          a_boolean                suppress_operation_indicator,
                          a_mangling_control_block *mctl)
 /*
-This routine adds the proper mangling for the specified operator.  num_operands
+This routine adds the proper mangling for the operator specified by kind or
+for a conversion operation if conversion_type is not NULL.  num_operands
 is the number of operands that the operator takes (and is used to differentiate
 unary/binary versions of the operator).  In the IA-64 ABI, the "on" mangling
 is suppressed when suppress_operation_indicator is TRUE.
@@ -3433,11 +3435,18 @@ is suppressed when suppress_operation_indicator is TRUE.
 #else /* !IA64_ABI */
   add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
-  add_str_to_mangled_name(mangled_operator_name(kind, num_operands), mctl);
+  if (conversion_type == NULL) {
+    /* An operator. */
+    add_str_to_mangled_name(mangled_operator_name(kind, num_operands), mctl);
+  } else {
+    /* A conversion operation; include the type being converted to. */
+    add_str_to_mangled_name(MANGLING_STRING_FOR_CONVERSION_FUNC, mctl);
+    mangled_encoding_for_type(conversion_type, mctl);
+  }  /* if */
 #if !IA64_ABI
   add_str_to_mangled_name("__", mctl);
 #endif /* !IA64_ABI */
-}  /* add_operator_name_to_mangled_name */
+}  /* add_operator_or_conversion_function_name_to_mangled_name */
 
 
 static void mangled_destructor_name(a_type_ptr               type,
@@ -3552,29 +3561,17 @@ expression that was used to select expr (NULL if no selector was used).
           check_assertion(opname == (an_opname_kind)onk_none);
           opname = sym->header->opname;
         }  /* if */
-        if (opname != (an_opname_kind)onk_none) {
-          /* An operator. */
-          add_operator_name_to_mangled_name(opname,
+        if (opname != (an_opname_kind)onk_none ||
+             con->variant.template_param.variant.unknown_function.
+                                                     conversion_type != NULL) {
+          /* An operator or a conversion function. */
+          add_operator_or_conversion_function_name_to_mangled_name(
+                                         opname,
                                          number_of_operands_in_list(arguments),
+          con->variant.template_param.variant.unknown_function.conversion_type,
                                          suppress_operation_indicator,
                                          mctl);
           has_been_mangled = TRUE;
-          /* FIXME: Can there be template arguments here? */
-        } else if (con->variant.template_param.variant.unknown_function.
-                                                     conversion_type != NULL) {
-          /* A conversion function. */
-#if IA64_ABI
-          /* FIXME: This doesn't seem quite right either (substitutions
-             are incorrect): */
-          add_str_to_mangled_name("on", mctl);
-          add_str_to_mangled_name("cv", mctl);
-          mangled_encoding_for_type(
-          con->variant.template_param.variant.unknown_function.conversion_type,
-                                    mctl);
-          has_been_mangled = TRUE;
-#else /* !IA64_ABI */
-          /* FIXME: Not exactly sure what to do here. */
-#endif /* IA64_ABI */
           /* FIXME: Can there be template arguments here? */
         } else {
           scp = &expr->variant.constant->source_corresp;
@@ -3629,9 +3626,10 @@ expression that was used to select expr (NULL if no selector was used).
         } else if (expr->variant.routine->special_kind ==
                                        (a_special_function_kind)sfk_operator) {
           /* FIXME: may need sr qualification. */
-          add_operator_name_to_mangled_name(
+          add_operator_or_conversion_function_name_to_mangled_name(
                                     expr->variant.routine->variant.opname_kind,
                                     number_of_operands_in_list(arguments),
+                                    (a_type_ptr)NULL,
                                     suppress_operation_indicator,
                                     mctl);
           has_been_mangled = TRUE;
