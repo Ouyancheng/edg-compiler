@@ -1867,6 +1867,8 @@ void do_binary_operation(an_expr_operator_kind   op,
                          a_source_position       *operator_position,
                          a_token_sequence_number operator_tok_seq_number);
 
+extern a_boolean operand_has_uncertain_lvalueness(an_operand *operand);
+
 extern void prep_generic_operand_full(an_operand *operand,
                                       a_boolean  lvalue_expected,
                                       a_boolean  rvalue_expected);

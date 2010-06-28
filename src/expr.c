@@ -8030,9 +8030,11 @@ general_case:
        we can't reliably tell whether the operand is an lvalue, and therefore
        we can't tell if we should add the reference type. */
     result = operand->type;
-    if (is_template_dependent_type(result)) {
-      result = type_of_unknown_templ_param_nontype;
-    } else if (is_an_lvalue(operand) && !is_error_type(result)) {
+    if (operand_has_uncertain_lvalueness(operand)) {
+      if (!is_error_operand(operand)) {
+        result = type_of_unknown_templ_param_nontype;
+      }  /* if */
+    } else if (is_an_lvalue(operand)) {
       result = make_reference_type(result);
     }  /* if */
   }  /* if */

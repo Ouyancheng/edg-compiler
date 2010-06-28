@@ -8729,6 +8729,96 @@ the parameters.
 }  /* do_binary_operation */
 
 
+static a_boolean expr_has_uncertain_lvalueness(an_expr_node_ptr expr)
+/*
+Sometimes a template-dependent expression can't be known to be an lvalue
+or an rvalue (e.g., T::x might be an lvalue if x is a static data member,
+or an rvalue if x is an enumerator).  Return TRUE if the lvalueness
+of the given expression is uncertain.  The safe answer is TRUE.
+An error node is considered to have uncertain lvalueness even
+outside of a template-dependent context.
+*/
+{
+  a_boolean uncertain = FALSE;
+
+  if (is_error_node(expr) || is_error_type(expr->type)) {
+    uncertain = TRUE;
+  } else if (is_template_dependent_type(expr->type)) {
+    uncertain = TRUE;
+    /* In some cases, we can tell that something is really an lvalue or
+       rvalue based on the operator. */
+    if (is_operation_node(expr)) {
+      an_expr_node_ptr op1 = expr->variant.operation.operands;
+      switch (expr->variant.operation.kind) {
+        case eok_ref_indirect:
+          /* A reference indirection always produces an lvalue. */
+          uncertain = FALSE;
+          break;
+        case eok_indirect:
+          if (is_pointer_type(op1->type)) {
+            /* A "*" returns an lvalue unless it's overloaded. */
+            uncertain = FALSE;
+          }  /* if */
+          break;
+        case eok_lvalue:
+          /* An eok_lvalue produces an lvalue by definition. */
+          uncertain = FALSE;
+          break;
+        case eok_cast:
+          if (!could_be_dependent_class_type(expr->type) &&
+              !could_be_dependent_class_type(op1->type) &&
+              !is_error_type(op1->type)) {
+            /* Casts other than those involving unknown dependent classes
+               have known lvalueness. */
+            uncertain = FALSE;
+          }  /* if */
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* if */
+  }  /* if */
+  return uncertain;
+}  /* expr_has_uncertain_lvalueness */
+
+
+a_boolean operand_has_uncertain_lvalueness(an_operand *operand)
+/*
+Sometimes a template-dependent operand can't be known to be an lvalue
+or an rvalue (e.g., T::x might be an lvalue if x is a static data member,
+or an rvalue if x is an enumerator).  Return TRUE if the lvalueness
+of the given operand is uncertain.  The safe answer is TRUE.
+An error operand is considered to have uncertain lvalueness even
+outside of a template-dependent context.
+*/
+{
+  a_boolean uncertain = FALSE;
+
+  if (is_error_operand(operand)) {
+    uncertain = TRUE;
+  } else if (!is_template_dependent_context()) {
+    uncertain = FALSE;
+  } else if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    uncertain = expr_has_uncertain_lvalueness(expr);
+  } else if (is_template_dependent_type(operand->type)) {
+    uncertain = TRUE;
+    if (is_constant_operand(operand)) {
+      a_constant_ptr con = &operand->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_template_param &&
+          con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        /* A tpck_expression constant is uncertain if the expression is
+           uncertain. */
+        uncertain = expr_has_uncertain_lvalueness(
+                                     con->variant.template_param.variant.expr);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return uncertain;
+}  /* operand_has_uncertain_lvalueness */
+
+
 static void do_generic_operand_transformations(an_operand *operand,
                                                a_boolean  force_to_rvalue)
 /*
