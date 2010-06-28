@@ -1034,12 +1034,22 @@ position following what was demangled.
     } else if (get_char(p+1, dctl) == 'S') {
       /* String literal constant. */
       p+=2;
-      if (type != NULL) {
-        write_id_ch('(', dctl);
+      if (type == NULL) {
+        bad_mangled_name(dctl);
+      } else {
+        /* The type is the type of an array element in the string.  Don't
+           emit the type itself, simply look for a few special cases that
+           make the output look more like the input. */
+        dctl->suppress_id_output++;
         (void)demangle_type(type+1, dctl);
-        write_id_ch(')', dctl);
+        dctl->suppress_id_output--;
+        if (!dctl->err_in_id) {
+          if (type[1] == 'w') {
+            write_id_ch('L', dctl);
+          }  /* if */
+          write_id_str("\"...\"", dctl);
+        }  /* if */
       }  /* if */
-      write_id_str("\"...\"", dctl);
     } else {
       /* Normal literal constant.  Form is something like
            L3n12     encoding for -12
