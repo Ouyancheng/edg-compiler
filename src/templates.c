@@ -24094,8 +24094,14 @@ directive_start_pos points to the beginning of the directive or declaration
   if (curr_token == tok_export) {
     if (!export_template_allowed) {
       /* Export processing is disabled.  Issue a diagnostic. */
-      pos_diagnostic(es_discretionary_error, ec_no_export_support,
-                     &pos_curr_token);
+      if (cpp0x_mode) {
+        /* In C++0x, export is no longer part of the language. */
+        pos_diagnostic(es_discretionary_error, ec_export_removed,
+                      &pos_curr_token);
+      } else {
+        pos_diagnostic(es_discretionary_error, ec_no_export_support,
+                      &pos_curr_token);
+      }  /* if */
     } else {
       export_present = TRUE;
       export_pos = pos_curr_token;

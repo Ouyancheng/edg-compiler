@@ -1951,6 +1951,7 @@ ec_const_var_in_C_const_expr;;"use of a const variable in a constant expression 
 ec_cannot_init_auto_flexible_array_member;;"an initializer cannot be specified for a flexible array member with automatic storage duration"
 ec_bad_type_for_list_init;;"a list initializer is not allowed for type %t"
 ec_final_base_class;;"a \"final\" class type cannot be used as a base class"
+ec_export_removed;;"exported templates are no longer in the standard C++ language"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -3046,7 +3046,8 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!(option_kind_used[(int)optk_export_template])) {
       /* If export template processing was not explicitly set by a command line
          option, set it now. */
-      export_template_allowed = EXPORT_ENABLING_POSSIBLE;
+      export_template_allowed = EXPORT_ENABLING_POSSIBLE &&
+                                !cpp0x_mode; /*lint !e506*/
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
@@ -8994,7 +8995,8 @@ variables declared in cmd_line.h.
   long_long_promotion_allowed = FALSE;
   hex_floating_point_constants_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
-  export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED;
+  export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
+                            !DEFAULT_CPP0X_MODE; /*lint !e506*/
 #else /* !EXPORT_ENABLING_POSSIBLE */
   /* Export is not supported by this configuration -- force it to be
      disabled. */
