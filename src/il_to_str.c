@@ -718,7 +718,7 @@ Output a reference to a tag, doing output in the way described by octl.
   } else {
     /* Default handling. */
     if (il_header.source_language == sl_C ||
-        (!has_name(type) && !type_is_lambda_closure(type))) {
+        (type_is_unnamed(type) && !type_is_lambda_closure(type))) {
       /* In C, put "struct", "union", or "enum" on tags.  In C++, do it
          only for unnamed tags (but not lambda closure classes). */
       form_tag_kind(type->kind, octl);
