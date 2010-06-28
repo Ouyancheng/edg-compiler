@@ -3057,7 +3057,12 @@ enum a_template_param_constant_kind_tag {
 			   pointer or a pointer to member. */
   tpck_cast,		/* The template param constant represents some constant
 			   (ck_template_param or other) cast to a type that
-			   contains a template parameter type. */
+			   contains a template parameter type.  Mostly used
+			   in the form of a cast to the same type to make
+			   something visibly dependent, and for implicit
+			   casts.  Use for explicit casts is deprecated and
+			   has been almost completely phased out in favor of
+			   a tpck_expression representation. */
   tpck_address,		/* Used, pointing to a tpck_member constant, to
 			   indicate the address of the indicated member. */
   tpck_sizeof,		/* The template param constant represents the sizeof

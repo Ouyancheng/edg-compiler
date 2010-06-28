@@ -8863,7 +8863,6 @@ e.g., if the source operand is an lvalue.
 */
 {
   an_operand orig_operand;
-  a_boolean  can_fold = FALSE;
   a_boolean  rvalue_expected = FALSE, lvalue_expected = FALSE;
   a_boolean  is_reference_cast = is_reference_type(dest_type);
   a_boolean  is_rvalue_reference_cast = FALSE;
@@ -8905,40 +8904,19 @@ e.g., if the source operand is an lvalue.
       dest_type = error_type();
     }  /* if */
   }  /* if */
-  /* Determine whether we can fold the cast to a constant. */
-  /* This is necessary in constant expressions, and also for initializers
-     for entities of const integral or enum type (so their values can be used
-     in constant expressions). */
-  if (is_reference_cast) {
-    can_fold = FALSE;
-  } else if (curr_expr_kind_is_const()) {
-    can_fold = TRUE;
-  } else if (is_constant_operand(operand) &&
-             is_an_rvalue(operand) &&
-             !is_class_struct_union_type(dest_type)) {
-    /* In a non-constant expression, fold casts of constant rvalues,
-       except casts to class types. */
-    can_fold = TRUE;
-  }  /* if */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
-  } else if (can_fold) {
-    /* Fold a constant cast. */
-    check_assertion_str(is_constant_operand(operand) && is_an_rvalue(operand),
-                        "generic_cast_operand: non-const or lvalue operand");
-    /* Note that we don't use cast_operand or type_change_constant,
-       because this conversion might be highly invalid. */
-    if (!cast_identical_types(operand->type, dest_type)) {
-      a_constant orig_constant;
-      orig_constant = operand->variant.constant;
-      make_template_param_cast_constant(&orig_constant,
-                                        &operand->variant.constant,
-                                        dest_type, !is_implicit_cast);
-      operand->type = dest_type;
-    }  /* if */
   } else {
-    /* Non-constant expression.  Generate a cast expression.  For an
-       implicit conversion, it's okay to add nothing at all. */
+    /* Generate a cast expression.  For an implicit conversion, it's okay
+       to add nothing at all.  If template_constant is TRUE, we will later put
+       the resulting expression under a tpck_expression constant. */
+    a_boolean template_constant = FALSE;
+    if (!is_reference_cast &&
+        is_constant_operand(operand) &&
+        is_an_rvalue(operand) &&
+        !is_class_struct_union_type(dest_type)) {
+      template_constant = TRUE;
+    }  /* if */
     if (!is_implicit_cast || !cast_identical_types(operand->type, dest_type)) {
       an_expr_node_ptr expr, opexpr;
       if (is_rvalue_reference_cast) {
@@ -9022,6 +9000,9 @@ e.g., if the source operand is an lvalue.
           unexpected_condition();
       }  /* switch */
       make_lvalue_or_rvalue_expression_operand(expr, operand);
+      if (template_constant) {
+        make_template_param_expr_constant_operand(operand);
+      }  /* if */
     }  /* if */
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);

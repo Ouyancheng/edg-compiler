@@ -13376,12 +13376,26 @@ options is a set of name lookup options.
         a_constant_ptr   alloc_con_1, alloc_con_2 = NULL, alloc_con_3 = NULL;
         a_boolean        folded_to_constant = FALSE;
         a_type_ptr       operation_type = expr->type;
+        a_type_ptr       local_guide_type = NULL;
 
+        if (op == (an_expr_operator_kind)eok_cast) {
+          /* Determine the result type of a cast by substitution.
+             This is done early so we have it as a guide type in case
+             the first operand needs one (e.g., if it's an overloaded
+             function). */
+          local_guide_type = copy_type_with_substitution(operation_type,
+                                                         template_arg_list,
+                                                         template_param_list,
+                                                         source_pos,
+                                                         options,
+                                                         copy_error);
+          if (*copy_error) break;
+        }  /* if */
         /* Do substitution on the operands. */
         new_operand_1 = copy_template_param_expr(operand_1,
                                                  template_arg_list,
                                                  template_param_list,
-                                                 (a_type_ptr)NULL,
+                                                 local_guide_type,
                                                  source_pos,
                                                  options,
                                                  copy_error,
@@ -13458,14 +13472,8 @@ options is a set of name lookup options.
                   copy_error);
         if (*copy_error) break;
         if (op == (an_expr_operator_kind)eok_cast) {
-          /* Determine the result type of a cast by substitution. */
-          operation_type = copy_type_with_substitution(operation_type,
-                                                       template_arg_list,
-                                                       template_param_list,
-                                                       source_pos,
-                                                       options,
-                                                       copy_error);
-          if (*copy_error) break;
+          /* The result type for a cast was determined above. */
+          operation_type = local_guide_type;
         } else if (op == (an_expr_operator_kind)eok_parens) {
           /* The result type of a parenthesis operator is its (substituted)
              operand type. */
@@ -14011,7 +14019,7 @@ name lookup options.
              expression.  However, exempt the idiom where a constant is
              converted to its own type as a way of marking it as dependent. */
           *copy_error = TRUE;
-        } else if (is_reference_type(new_type)) {
+        } else if (is_reference_type(new_type) || is_void_type(new_type)) {
           *copy_error = TRUE;
         } else if (!(con->explicit_cast_applied ?
                        expl_conversion_possible(copied_con_type,
