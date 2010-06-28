@@ -10108,6 +10108,12 @@ be returned for a C mode const variable.
       /* For template parameter constants, do a deep copy because there might
          be an expression subtree. */
       an_expr_copy_options_set options = CE_COPIED_CONSTANTS_MAY_BE_SHARED;
+      if (!in_file_scope(con_val) &&
+          var->source_corresp.enclosing_routine != NULL &&
+          var->source_corresp.enclosing_routine->assoc_scope !=
+                                                       curr_il_region_number) {
+        options |= CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER;
+      }  /* if */
       new_con = copy_constant_full(con_val, (a_constant *)NULL, options);
     } else if (backing_expr != NULL && clear_backing_expr) {
       /* Copy to allow clearing the backing expression.  This is a shallow
