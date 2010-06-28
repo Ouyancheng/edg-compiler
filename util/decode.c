@@ -5660,8 +5660,13 @@ FIXME: needs updating:
     } else {
       ptr += length;
       write_id_str("operator ", dctl);
-      write_id_str(op_str, dctl);
-      if (*ptr == 'I') {
+      if (strcmp(op_str, "cast") == 0) {
+        /* A conversion operator has a type. */
+        ptr = demangle_type(ptr, dctl);
+      } else {
+        write_id_str(op_str, dctl);
+      }  /* if */
+      if (!dctl->err_in_id && *ptr == 'I') {
         /* A <template-args> list is present. */
         ptr = demangle_template_args(ptr, dctl);
       }  /* if */
