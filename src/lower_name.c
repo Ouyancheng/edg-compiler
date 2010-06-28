@@ -2215,7 +2215,7 @@ of length specification in the mangling for lengths of literals.
 #if !IA64_ABI
   /* Complex float: the Cfront-like ABI encoding mangles both real and
      imaginary portions of the value as floating point numbers:
-       L_3_0d0_3_1d0 <-- encoding for "0.0+1.0i"
+       L_3_0d0_3_1d1 <-- encoding for "0.0+1.0i"
                  ^^^---- Imaginary portion of complex number.
               ^^^------- Length of the imaginary portion of the number.
            ^^^---------- Real portion of complex number.
@@ -3101,6 +3101,8 @@ do_unknown_function:
         mangled_encoding_for_type(skip_typerefs(elem_type), mctl);
         add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
+        /* The stripped array element had already been emitted by the
+           caller. */
         add_str_to_mangled_name("LS", mctl);
 #endif /* IA64_ABI */
       }
@@ -3148,8 +3150,15 @@ certain template constants (used only in the IA-64 ABI).
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
       con->kind != (a_constant_repr_kind)ck_address) {
     add_to_mangled_name('C', mctl);
-    /* Put out the constant type. */
-    mangled_encoding_for_type(con->type, mctl);
+    if (con->kind == (a_constant_repr_kind)ck_string) {
+      /* Strip any cv-qualifiers from the array element type and use that
+         (rather than the string type). */
+      a_type_ptr  elem_type = array_element_type(con->type);
+      mangled_encoding_for_type(skip_typerefs(elem_type), mctl);
+    } else {
+      /* Put out the constant type. */
+      mangled_encoding_for_type(con->type, mctl);
+    }  /* if */
   }  /* if */
 #endif /* !IA64_ABI */
   /* Put out the literal representation for the constant. */
