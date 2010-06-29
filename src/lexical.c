@@ -14078,6 +14078,7 @@ can be avoided.
 
 
 static a_symbol_ptr select_dual_lookup_symbol(
+					a_type_ptr	field_sel_type,	
 					a_symbol_ptr	normal_fund_sym,
 					a_symbol_ptr	normal_sym,
 					a_symbol_ptr	class_fund_sym,
@@ -14094,7 +14095,9 @@ symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
 Set the specific symbol to the associated nonfundamental symbol.
 If prefer_class_member is TRUE, the class member is preferred over
-the normal lookup symbol.
+the normal lookup symbol.  field_sel_type is the type of the left side
+of a field selection, or NULL if the lookup is not in the context of
+a field selection.
 */
 {
   a_symbol_ptr	result_sym;
@@ -14110,6 +14113,7 @@ the normal lookup symbol.
      will be non-NULL if normal_sym is. */
   check_assertion((normal_sym == NULL) == (normal_fund_sym == NULL));
   if (normal_sym != NULL && class_sym != NULL && might_be_template) {
+    a_boolean	gpp_mode_case = FALSE;
     if (is_template_symbol(class_fund_sym)) {
       /* When the identifier is followed by a "<", and the name is found
          as a template in the class, ignore the other symbol unless it is a
@@ -14126,13 +14130,32 @@ the normal lookup symbol.
     } else if (class_fund_sym->is_nonreal_member &&
                !is_template_symbol(class_fund_sym) &&
                (is_class_or_injected_template_symbol(normal_fund_sym) ||
-                (gpp_mode &&
-                 symbol_is_or_contains_template(normal_fund_sym)))) {
+                (gpp_mode_case =
+                 (gpp_mode &&
+                  symbol_is_or_contains_template(normal_fund_sym))))) {
       /* The class symbol is a nonreal nontemplate and the normal symbol
          is a class template.  Use the normal symbol.  In g++ mode, a function
          template or overload set containing a function template causes
-         the template symbol to be returned. */
-      class_sym = NULL;
+         the template symbol to be returned (except in dependent cases (see
+         below)). */
+      if (gpp_mode_case && is_template_dependent_context() &&
+          is_nontype_template_param_symbol(class_fund_sym)) {
+        /* In g++ mode, a reference like "t->f<1>()" is accepted, but in
+           order to be represented properly in the IL we need to return a
+           template symbol instead of a constant.  Redo the lookup in such
+           a way as to create a nonreal template symbol.  Clear the normal_sym
+           so that the newly created template will be used. */
+        clear_specific_symbol(locator_for_curr_id);
+        check_assertion(field_sel_type != NULL);
+        class_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                              field_sel_type,
+                                              IDL_TREAT_AS_TEMPLATE_ID);
+        class_fund_sym = class_sym == NULL ? NULL
+                                           : fundamental_symbol_of(class_sym);
+        normal_sym = normal_fund_sym = NULL;
+      } else {
+        class_sym = NULL;
+      }  /* if */
     } else {
       /* The name is a member of the class that is not a template.  Use that
          name and ignore the normal lookup name. */
@@ -14350,7 +14373,7 @@ TRUE, the class member is preferred over the normal lookup symbol.
                                                class_type, lookup_kind);
     class_sym = class_fund_sym == NULL ? NULL
                                        : locator_for_curr_id.specific_symbol;
-    sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym, 
+    sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym, 
                                     class_fund_sym, class_sym,
                                     might_be_template, prefer_class_member);
   } else {
@@ -14384,7 +14407,7 @@ TRUE, the class member is preferred over the normal lookup symbol.
                                                  class_type,
                                                  IDL_NO_OPTIONS);
       class_sym = locator_for_curr_id.specific_symbol;
-      sym = select_dual_lookup_symbol(normal_fund_sym, normal_sym,
+      sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym,
                                       class_fund_sym, class_sym,
                                       might_be_template, prefer_class_member);
     } else {

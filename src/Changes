@@ -1,5 +1,19 @@
 Version 4.2
 
+6/29/10  [EDGcpfe/10781]
+GNU C++ compatibility: incorrect C++-generating back end output for
+g++ code with missing template keyword
+
+The g++ compiler accepts a call of a dependent function template without
+the use of the "template" keyword in some cases (see 9/22/08 entry).
+In such cases the code emitted by the C++-generating back end failed to
+include the template argument list for the call.  Now fixed.
+
+  template<int DIM, class T> void get(const T& x) {
+    x.get<DIM>();  // template argument list omitted in output
+  }
+
+
 6/29/10  [EDGcpfe/10783]
 More folding of operands to __builtin_constant_p
 
