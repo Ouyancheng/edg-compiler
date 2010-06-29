@@ -33,19 +33,20 @@ needed, after all, since the initialization is dead code).
 
 
 6/25/10  [EDGcpfe/10687]
-Microsoft compatibility: default attribute behavior
+Microsoft compatibility: default Microsoft attribute behavior
 
-Formerly, the use of attributes in versions other than C++-generating
-back end versions would result in "unrecognized attribute" warnings.
-This was reasonable behavior when attributes were rarely used, but
-with the introduction of source annotation attributes (also known as
-SAL attributes) virtually any program that makes use of the Microsoft
-header files makes some use of attributes.  Consequently, the default
-configuration is now to have attributes recognized (in Microsoft mode).
-Specifically, the default value of RECOGNIZE_MICROSOFT_ATTRIBUTES is
-now always TRUE.  The default value of SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
-continues to be FALSE, meaning that no semantic processing of attributes
-beyond verifying the validity of the attribute name is done.
+Formerly, the use of Microsoft attributes (those of the form "[...]")
+in versions other than C++-generating back end versions would result in
+"unrecognized attribute" warnings.  This was reasonable behavior when
+attributes were rarely used, but with the introduction of source annotation
+attributes (also known as SAL attributes) virtually any program that makes
+use of the Microsoft header files makes some use of attributes.
+Consequently, the default configuration is now to have attributes
+recognized (in Microsoft mode).  Specifically, the default value of
+RECOGNIZE_MICROSOFT_ATTRIBUTES is now always TRUE.  The default value of
+SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING continues to be FALSE, meaning that
+no semantic processing of attributes beyond verifying the validity of the
+attribute name is done.
 
 
 6/23/10  [EDGcpfe/10759]
