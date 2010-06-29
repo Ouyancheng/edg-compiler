@@ -5596,10 +5596,22 @@ are done.
   } else if (node1 == NULL || node2 == NULL) {
     /* Not equal. */
   } else if (node1->kind == node2->kind &&
-             node1->is_lvalue == node2->is_lvalue) {
+             node1->is_lvalue == node2->is_lvalue &&
+             node1->is_static_cast == node2->is_static_cast) {
     switch (node1->kind) {
       case enk_operation:
-        if (node1->variant.operation.kind == node2->variant.operation.kind) {
+        if (node1->variant.operation.kind ==
+                           node2->variant.operation.kind &&
+            node1->variant.operation.is_const_cast ==
+                           node2->variant.operation.is_const_cast &&
+            node1->variant.operation.is_reinterpret_cast ==
+                           node2->variant.operation.is_reinterpret_cast &&
+            node1->variant.operation.compiler_generated ==
+                           node2->variant.operation.compiler_generated &&
+            node1->variant.operation.is_reference_cast ==
+                           node2->variant.operation.is_reference_cast &&
+            node1->variant.operation.is_rvalue_reference_cast ==
+                           node2->variant.operation.is_rvalue_reference_cast) {
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
 

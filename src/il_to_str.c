@@ -4039,10 +4039,27 @@ on every expression.
                      op == (an_expr_operator_kind)eok_ref_cast ||
                      op == (an_expr_operator_kind)eok_lvalue_cast) {
             /* Casts. */
-            octl->output_str("(", octl);
-            form_type(expr->type, octl);
-            octl->output_str(")", octl);
-            form_expression(operand, octl);
+            char *new_style_op = NULL;
+            if (expr->is_static_cast) {
+              new_style_op = "static_cast";
+            } else if (expr->variant.operation.is_const_cast) {
+              new_style_op = "const_cast";
+            } else if (expr->variant.operation.is_reinterpret_cast) {
+              new_style_op = "reinterpret_cast";
+            }  /* if */
+            if (new_style_op != NULL) {
+              octl->output_str(new_style_op, octl);
+              octl->output_str("<", octl);
+              form_type(expr->type, octl);
+              octl->output_str(">(", octl);
+              form_expression(operand, octl);
+              octl->output_str(")", octl);
+             } else {
+              octl->output_str("(", octl);
+              form_type(expr->type, octl);
+              octl->output_str(")", octl);
+              form_expression(operand, octl);
+            }  /* if */
           } else if (op == (an_expr_operator_kind)eok_parens) {
             /* Parentheses.  One set is already put out, so we don't need
                another. */
