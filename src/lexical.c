@@ -14132,7 +14132,8 @@ a field selection.
                (is_class_or_injected_template_symbol(normal_fund_sym) ||
                 (gpp_mode_case =
                  (gpp_mode &&
-                  symbol_is_or_contains_template(normal_fund_sym))))) {
+                  symbol_is_or_contains_template(
+                                          normal_fund_sym))))) { /*lint !e820*/
       /* The class symbol is a nonreal nontemplate and the normal symbol
          is a class template.  Use the normal symbol.  In g++ mode, a function
          template or overload set containing a function template causes
