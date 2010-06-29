@@ -5776,7 +5776,8 @@ error type is used.
   }  /* if */
   /* Add the type to the types list of the appropriate scope.  Pass
      NO_SCOPE_DEPTH to force it to compute the scope list to be used. */
-  if (!type->variant.typeref.is_nonreal || prototype_instantiations_in_il) {
+  if (existing_instance_sym == NULL &&
+      (!type->variant.typeref.is_nonreal || prototype_instantiations_in_il)) {
     add_to_types_list(type, NO_SCOPE_DEPTH);
   }  /* if */
 #if DEBUG
