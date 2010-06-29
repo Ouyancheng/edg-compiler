@@ -15526,7 +15526,7 @@ as the cast in place of rcblock->expr.
     }  /* if */
     temp_init_node = alloc_temp_init_node(eff_type_cast_to, dip, is_lvalue,
                                           /*is_explicit_cast=*/TRUE);
-    make_expression_operand(temp_init_node, result);
+    make_lvalue_or_rvalue_expression_operand(temp_init_node, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (rcblock == NULL) {
       end_position = curr_construct_end_position;
