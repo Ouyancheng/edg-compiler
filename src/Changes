@@ -6,6 +6,7 @@ c++0x: exported templates no longer supported
 The C++0x standard no longer includes exported templates.  This feature is
 now disabled by default in C++0x mode.
 
+
 6/26/10  [EDGcpfe/10778]
 Abort on destructible entity in dead code of conditional whose result is
 constant
