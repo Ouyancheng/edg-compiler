@@ -2094,7 +2094,14 @@ Return TRUE if type's typeinfo is always defined in the runtime library.
 {
   a_boolean result = FALSE;
 
-  if (is_void_type(type) || is_integral_type(type) || is_floating_type(type) ||
+  if (is_void_type(type) ||
+      is_integral_type(type) ||
+#if C99_IL_EXTENSIONS_SUPPORTED
+      /* Complex types are not defined in the runtime library. */
+      is_real_floating_type(type) ||
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+      is_floating_type(type) ||
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       is_or_was_nullptr_type(type)) {
     result = TRUE;
   } else if (is_pointer_type(type)) {
@@ -2102,8 +2109,13 @@ Return TRUE if type's typeinfo is always defined in the runtime library.
     type = type_pointed_to(type);
     quals = get_type_qualifiers (type);
     if ((quals == TQ_NONE || quals == TQ_CONST) &&
-        (is_void_type(type) || is_integral_type(type) ||
-         is_floating_type(type))) {
+        (is_void_type(type) ||
+#if C99_IL_EXTENSIONS_SUPPORTED
+         is_real_floating_type(type) ||
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
+         is_floating_type(type) ||
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+         is_integral_type(type))) {
       result = TRUE;
     }  /* if */
   }  /* if */

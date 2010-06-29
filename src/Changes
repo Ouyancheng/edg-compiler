@@ -1,5 +1,18 @@
 Version 4.2
 
+6/29/10  [EDGcpfe/10744]
+GNU C++ compatibility: Emit typeinfo for complex types
+
+Lowering had mistakenly assumed that the typeinfo for complex types was
+supplied by the runtime library and consequently did not emit it when
+needed, resulting in linker errors.  This has now been fixed.  For example,
+this program (with --g++) had resulted in a linker error and now links cleanly:
+
+  int main() {
+    throw(__I__);
+  }
+
+
 6/29/10  [EDGcpfe/10781]
 GNU C++ compatibility: incorrect C++-generating back end output for
 g++ code with missing template keyword
