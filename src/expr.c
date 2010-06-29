@@ -2107,13 +2107,15 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
-    if (bfk == (a_builtin_function_kind)bfk_constant_p &&
-        !always_fold_calls_to_builtin_constant_p &&
-        innermost_function_scope != NULL) {
-      /* Inside function scopes, __builtin_constant_p is only folded if its
-         argument is a constant-expression.  In such cases, the argument
-         must therefore be treated as "potentially evaluated". */
-      expr_stack->potentially_evaluated = TRUE;
+    if (bfk == (a_builtin_function_kind)bfk_constant_p) {
+      expr_stack->favor_constant_result = TRUE;
+      if (!always_fold_calls_to_builtin_constant_p &&
+          innermost_function_scope != NULL) {
+        /* Inside function scopes, __builtin_constant_p is only folded if its
+           argument is a constant-expression.  In such cases, the argument
+           must therefore be treated as "potentially evaluated". */
+        expr_stack->potentially_evaluated = TRUE;
+      }  /* if */
     }  /* if */
     if (rcblock == NULL) {
       /* Parse the pseudo-call argument.  GNU compilers accept multiple

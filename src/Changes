@@ -1,5 +1,23 @@
 Version 4.2
 
+6/29/10  [EDGcpfe/10783]
+More folding of operands to __builtin_constant_p
+
+Operands to the GNU C builtin function __builtin_constant_p are now more
+aggressively folded to constants, which of course is desirable since the
+point of the builtin is to test whether the operand is constant.  This
+test case formerly got an error in gcc mode and now compiles correctly:
+
+  int f();
+  int main() {
+    sizeof(struct { int x:(__builtin_constant_p(
+                             __builtin_constant_p(1) ? 1 : f()
+                                               )
+                          ); });
+    return 0;
+  }
+
+
 6/28/10  [EDGcpfe/10616]
 c++0x: exported templates no longer supported
 
