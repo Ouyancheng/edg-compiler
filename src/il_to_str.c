@@ -4054,7 +4054,7 @@ on every expression.
               octl->output_str(">(", octl);
               form_expression(operand, octl);
               octl->output_str(")", octl);
-             } else {
+            } else {
               octl->output_str("(", octl);
               form_type(expr->type, octl);
               octl->output_str(")", octl);
