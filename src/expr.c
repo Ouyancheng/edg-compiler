@@ -2044,6 +2044,7 @@ the chosen expression.  Only available in C mode.
   do_operand_transformations(&selector_op, TOPT_NO_OPTIONS);
   pop_expr_stack();
   if (is_error_operand(&selector_op)) {
+    normalize_error_operand(&selector_op);
     err = TRUE;
   } else if (!is_scalar_type(selector_op.type)) {
     error_in_operand(ec_expr_not_scalar, &selector_op);
@@ -4268,6 +4269,7 @@ routine is also called to parse a __builtin_offsetof field construct
     /* The left operand must be (a pointer to) a struct or union. */
     if (is_error_operand(operand_1)) {
       err = TRUE;
+      normalize_error_operand(operand_1);
     } else {
       if (is_arrow_operator) {
         /* "->" operator.  The left operand must be a pointer. */
@@ -4884,6 +4886,7 @@ in *result and *bound_function_selector (or an error indication in
       /* Check the first operand type.  It must be (a pointer to) a class. */
       if (is_error_operand(operand_1)) {
         err = TRUE;
+        normalize_error_operand(operand_1);
       } else {
         if (is_arrow_operator) {
           /* "->*" operator.  The first operand must be a pointer. */
@@ -5513,7 +5516,9 @@ in having type qualifiers.  This routine is called only in C++ mode.
 {
   an_expr_node_ptr node;
 
-  if (!is_error_operand(result)) {
+  if (is_error_operand(result)) {
+    normalize_error_operand(result);
+  } else {
     check_assertion(is_expression_operand(result));
     node = result->variant.expression;
     node->is_lvalue = TRUE;
@@ -5521,8 +5526,8 @@ in having type qualifiers.  This routine is called only in C++ mode.
     node->type = result->type = result_type;
     /* Keep the reference entries from the lvalue operand. */
     result->ref_entries_list = lvalue_operand->ref_entries_list;
+    set_lvalue_operand_state(result);
   }  /* if */
-  set_lvalue_operand_state(result);
 }  /* change_assignment_result_to_lvalue */
 
 
@@ -12308,6 +12313,7 @@ in *rcblock).
     }  /* if */
   } else if (is_error_operand(&operand)) {
     err = TRUE;
+    normalize_error_operand(&operand);
   }  /* if */
   if (!err) {
     ptr_delete_type = operand.type;
@@ -22950,7 +22956,7 @@ bad_start_of_primary:
     if (is_constant_operand(result) && is_an_rvalue(result)) {
       /* Already a constant. */
     } else if (is_error_operand(result)) {
-      /* An error, leave alone. */
+      normalize_error_operand(result);
     } else {
       /* Discard the operand and replace it with a zero constant of the
          same type.  GNU does this with operands of any type, but we
@@ -25050,8 +25056,10 @@ expression-processing routines.
     /* The result is a constant, so return it via *constant. */
     expr = NULL;
     copy_constant(&result.variant.constant, constant);
-  } else if (is_expression_operand(&result) ||
-             is_error_operand(&result)) {
+  } else if (is_error_operand(&result)) {
+    normalize_error_operand(&result);
+    expr = make_node_from_operand(&result);
+  } else if (is_expression_operand(&result)) {
     expr = make_node_from_operand(&result);
   } else {
     /* Some other case, e.g., an overloaded function that isn't meeting a

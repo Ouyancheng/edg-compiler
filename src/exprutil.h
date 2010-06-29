@@ -1772,6 +1772,8 @@ extern void operand_will_not_be_used_because_of_error(an_operand *operand);
 
 extern void conv_to_error_operand(an_operand *operand);
 
+extern void normalize_error_operand(an_operand *operand);
+
 extern void restore_operand_details(an_operand *operand,
                                     an_operand *orig_operand);
 

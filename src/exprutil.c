@@ -3669,7 +3669,7 @@ position field as the error position.
 }  /* conv_to_error_operand */
 
 
-static void normalize_error_operand(an_operand *operand)
+void normalize_error_operand(an_operand *operand)
 /*
 Take an operand for which is_error_operand returns TRUE, and normalize it.
 For operands that have an error type but not an ok_error kind, that means
