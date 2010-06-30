@@ -70,6 +70,49 @@ static void scan_expr_full(an_operand              *result,
                  (local_options))
 
 
+static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Clear the expression stack, returning the old expression stack pointer
+to the caller in *saved_expr_stack, for later restoration by calling
+restore_expr_stack.  This is used at the start of processing of an
+expression that is not part of the surrounding context.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  expr_stack = NULL;
+}  /* save_expr_stack */
+
+
+static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
+/*
+Restore the expression stack to the state it had when save_expr_stack
+was called.
+*/
+{
+  expr_stack = saved_expr_stack;
+}  /* restore_expr_stack */
+
+
+static void transfer_expr_context_if_applicable(
+                                              an_expr_stack_entry *saved_stack)
+/*
+The expression stack has been saved and cleared by save_expr_stack;
+*saved_stack is the saved top of the expression stack.  Now, a new stack
+entry has been pushed.  If it appears that the new expression is part of
+the same context as the previous stack entry, transfer context flags
+to the new entry.  For example, if the old entry indicates we're inside
+of a default argument expression, mark the new entry the same way.
+*/
+{
+  if (saved_stack != NULL && expr_stack != NULL &&
+      saved_stack->scope_number != NO_SCOPE_NUMBER &&
+      saved_stack->scope_number == expr_stack->scope_number) {
+    transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
+                                                     saved_stack, expr_stack);
+  }  /* if */
+}  /* transfer_expr_context_if_applicable */
+
+
 static void deduce_auto_type_if_necessary(a_decl_parse_state *dps)
 /*
 *dps represents a declaration with an "auto" type specifier and a prescanned
@@ -112,15 +155,16 @@ entity to initialize.  The prescanned operand can later be accessed using
 get_prescanned_auto_initializer.
 */
 {
-  an_expr_stack_entry  expr_stack_entry;
-  an_expression_kind   expr_kind = (an_expression_kind)ek_normal;
+  an_expr_stack_entry expr_stack_entry;
+  an_expr_stack_entry *saved_expr_stack;
+  an_expression_kind  expr_kind = (an_expression_kind)ek_normal;
 
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
      is not a full expression and a stack entry will already have been
      pushed in that case. */
   if (!dps->is_new_expr_type) {
-    check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+    save_expr_stack(&saved_expr_stack);
     if (dps->in_class_scope) {
       /* In-class initializers are only valid for static const data members of
          integral or enum type: Scan an integral constant expression.  GNU and
@@ -132,6 +176,7 @@ get_prescanned_auto_initializer.
     push_expr_stack(expr_kind, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    transfer_expr_context_if_applicable(saved_expr_stack);
     if (has_static_storage_duration(dps->storage_class) ||
         favor_constant_result_for_nonstatic_init) {
       expr_stack_entry.favor_constant_result = TRUE;
@@ -154,6 +199,7 @@ get_prescanned_auto_initializer.
       expr_stack->lifetime = NULL;
     }  /* if */
     pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
 }  /* prescan_initializer_for_auto_type_deduction */
 
@@ -7863,49 +7909,6 @@ is returned through *result.
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
-
-static void save_expr_stack(an_expr_stack_entry_ptr *saved_expr_stack)
-/*
-Clear the expression stack, returning the old expression stack pointer
-to the caller in *saved_expr_stack, for later restoration by calling
-restore_expr_stack.  This is used at the start of processing of an
-expression that is not part of the surrounding context.
-*/
-{
-  *saved_expr_stack = expr_stack;
-  expr_stack = NULL;
-}  /* save_expr_stack */
-
-
-static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
-/*
-Restore the expression stack to the state it had when save_expr_stack
-was called.
-*/
-{
-  expr_stack = saved_expr_stack;
-}  /* restore_expr_stack */
-
-
-static void transfer_expr_context_if_applicable(
-                                              an_expr_stack_entry *saved_stack)
-/*
-The expression stack has been saved and cleared by save_expr_stack;
-*saved_stack is the saved top of the expression stack.  Now, a new stack
-entry has been pushed.  If it appears that the new expression is part of
-the same context as the previous stack entry, transfer context flags
-to the new entry.  For example, if the old entry indicates we're inside
-of a default argument expression, mark the new entry the same way.
-*/
-{
-  if (saved_stack != NULL && expr_stack != NULL &&
-      saved_stack->scope_number != NO_SCOPE_NUMBER &&
-      saved_stack->scope_number == expr_stack->scope_number) {
-    transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
-                                                     saved_stack, expr_stack);
-  }  /* if */
-}  /* transfer_expr_context_if_applicable */
-
 
 static a_type_ptr type_of_call(an_expr_node_ptr  expr)
 /*
