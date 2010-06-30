@@ -13280,6 +13280,59 @@ std::nullptr_t, set *copy_error to TRUE.  (No checking is needed or done if
     }  /* switch */
   }  /* if */
 }  /* check_template_nullptr_operation */
+
+
+static a_boolean substituted_cast_is_valid(a_constant *src_con,
+                                           a_type_ptr new_type,
+                                           a_boolean  is_explicit_cast,
+                                           a_boolean  *reinterpret_cast_needed)
+/*
+A cast has been subjected to substitution of template arguments.  It comes
+down to a cast of the constant src_con to the type new_type.  The cast is
+explicit if is_explicit_cast is TRUE.  Return TRUE if the cast is valid.
+If a reinterpret_cast is needed to do the cast, return *reinterpret_cast_needed
+TRUE.
+*/
+{
+  a_boolean        valid = FALSE;
+  a_std_conv_descr std_conv;
+  an_error_code    warning_suggested;
+
+  /* Note that this routine is imperfect for explicit casts; we don't know
+     the exact kind of cast.  However, this routine's processing for
+     explicit casts is mostly for historical compatibility.  When
+     modern SFINAE rules are enabled (cpp0x_sfinae_enabled is TRUE),
+     explicit casts are rescanned in normal expression processing, and
+     all the right checking is done.  So the imperfections here are
+     not important, and may in fact be correct for compatibility with older
+     code. */
+  *reinterpret_cast_needed = FALSE;
+  if (is_reference_type(new_type) || is_void_type(new_type)) {
+    valid = FALSE;
+  } else if (is_explicit_cast ?
+                       expl_conversion_possible(src_con->type,
+                                                /*source_is_constant=*/TRUE,
+                                                /*source_is_string_literal=*/
+                                                                         FALSE,
+                                                src_con,
+                                                new_type,
+                                                reinterpret_cast_needed,
+                                                ec_bad_cast,
+                                                &warning_suggested) :
+                       impl_conversion_possible(src_con->type,
+                                                /*source_is_constant=*/TRUE,
+                                                /*source_is_string_literal=*/
+                                                                         FALSE,
+                                                src_con,
+                                                new_type,
+                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                                /*suppress_extensions=*/FALSE,
+                                                ec_bad_cast,
+                                                &std_conv)) {
+    valid = TRUE;
+  }  /* if */
+  return valid;
+}  /* substituted_cast_is_valid */
                                     
 
 an_expr_node_ptr copy_template_param_expr(
@@ -13370,10 +13423,9 @@ options is a set of name lookup options.
                                                        copy_error);
       } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
-           deduction.  This is a limitation with respect to the standard,
-           but going down this road eventually requires overload
-           resolution during this copy process, so we're going to
-           put that off for now.  See Core Issue 339. */
+           deduction.  Note that this implements old rules for deduction.
+           When cpp0x_sfinae_enabled is TRUE, a broader range of operators
+           are rescanned at the expression level instead of here. */
         *copy_error = TRUE;
       } else {
         an_expr_node_ptr operand_1 = expr->variant.operation.operands;
@@ -13543,24 +13595,31 @@ options is a set of name lookup options.
             } else if (op == (an_expr_operator_kind)eok_cast) {
               a_boolean is_implicit_cast =
                                     expr->variant.operation.compiler_generated;
-              a_boolean is_reinterpret_cast =
+              a_boolean is_reinterpret_cast;
+              if (!substituted_cast_is_valid(&constant_1, operation_type,
+                                             !is_implicit_cast,
+                                             &is_reinterpret_cast)) {
+                *copy_error = TRUE;
+              } else {
+                is_reinterpret_cast =
                                    expr->variant.operation.is_reinterpret_cast;
-              copy_constant(&constant_1, constant);
-              type_change_constant_full(constant, operation_type,
-                                        is_implicit_cast,
-                                        /*constant_context=*/TRUE,
-                                        /*evaluated_context=*/TRUE,
-                                        /*fold_constant_addr_exprs=*/TRUE,
-                                        /*check_cast_access=*/FALSE,
-                                        /*check_ambiguity=*/TRUE,
-                                        is_reinterpret_cast,
-                                        /*maintain_expression=*/FALSE,
-                                        &did_not_fold,
-                                        &error_detected,
-                                        source_pos);
-              check_assertion(!did_not_fold);
-              *alloc_con = NULL;
-              if (error_detected != ec_no_error) *copy_error = TRUE;
+                copy_constant(&constant_1, constant);
+                type_change_constant_full(constant, operation_type,
+                                          is_implicit_cast,
+                                          /*constant_context=*/TRUE,
+                                          /*evaluated_context=*/TRUE,
+                                          /*fold_constant_addr_exprs=*/TRUE,
+                                          /*check_cast_access=*/FALSE,
+                                          /*check_ambiguity=*/TRUE,
+                                          is_reinterpret_cast,
+                                          /*maintain_expression=*/FALSE,
+                                          &did_not_fold,
+                                          &error_detected,
+                                          source_pos);
+                check_assertion(!did_not_fold);
+                *alloc_con = NULL;
+                if (error_detected != ec_no_error) *copy_error = TRUE;
+              }  /* if */
             } else if (op == (an_expr_operator_kind)eok_parens) {
               copy_constant(&constant_1, constant);
               *alloc_con = NULL;
@@ -13949,11 +14008,9 @@ name lookup options.
   a_type_ptr     new_type;
   a_type_ptr     copied_con_type;
   a_boolean      did_not_fold, reinterpret_cast_needed = FALSE;
-  an_error_code  error_detected, warning_suggested;
+  an_error_code  error_detected;
   a_template_param_coordinate_ptr
                  coordinates;
-  a_std_conv_descr
-                 std_conv;
 
   con_copy = con;
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -14031,36 +14088,11 @@ name lookup options.
              expression.  However, exempt the idiom where a constant is
              converted to its own type as a way of marking it as dependent. */
           *copy_error = TRUE;
-        } else if (is_reference_type(new_type) || is_void_type(new_type)) {
+        } else if (!substituted_cast_is_valid(src_con, new_type,
+                                              con->explicit_cast_applied,
+                                              &reinterpret_cast_needed)) {
+          /* The cast is not valid. */
           *copy_error = TRUE;
-        } else if (!(con->explicit_cast_applied ?
-                       expl_conversion_possible(copied_con_type,
-                                                /*source_is_constant=*/TRUE,
-                                                /*source_is_string_literal=*/
-                                                                         FALSE,
-                                                src_con,
-                                                new_type,
-                                                &reinterpret_cast_needed,
-                                                ec_bad_cast,
-                                                &warning_suggested) :
-                       impl_conversion_possible(copied_con_type,
-                                                /*source_is_constant=*/TRUE,
-                                                /*source_is_string_literal=*/
-                                                                         FALSE,
-                                                src_con,
-                                                new_type,
-                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                                /*suppress_extensions=*/FALSE,
-                                                ec_bad_cast,
-                                                &std_conv))) {
-          /* The conversion is not valid. */
-          /* Note that this is crude; we don't really know the kind of cast,
-             and, e.g., a static_cast would allow different things than a
-             const_cast.  However, we try to make all dependent casts
-             written in the source be presented by casts under tpck_expression
-             constants, so the only casts that get here are implicit ones
-             and odd non-source explicit cases. */
-          *copy_error = FALSE;
         } else if (same_entities(new_type, con->type) &&
                    other_con == con->variant.template_param.variant.constant) {
           /* No change in the type or constant. */
