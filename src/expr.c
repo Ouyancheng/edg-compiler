@@ -20266,14 +20266,20 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen &&
           get_nondependent_call_info(paren_tok_seq_number,
                                      (a_nondependent_call_depth)0) == NULL) {
+        a_symbol_ptr	new_sym;
         /* This is a dependent call in a real (not prototype) instantiation.
            g++ 3.4 has a bug with dependent name lookup -- it does not
            ignore entities declared later in the compilation.  Redo the
            lookup, suppressing that part of the processing. */
         clear_specific_symbol(locator);
-        sym_ptr = normal_id_lookup(&locator,
+        new_sym = normal_id_lookup(&locator,
                                    IDL_IS_EXPR_CONTEXT |
                                    IDL_SUPPRESS_DECL_SEQ_CHECK);
+        if (new_sym != NULL && !is_class_template_symbol(new_sym)){
+          /* Most symbols found by this lookup are acceptable.  Don't accept
+             a class template as it would have had to have been coalesced. */
+          sym_ptr = new_sym;
+        }  /* if */
       }  /* if */
     }
 #endif /* GNU_EXTENSIONS_ALLOWED */
