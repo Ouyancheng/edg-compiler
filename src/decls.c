@@ -9379,9 +9379,18 @@ symbol entry, and return a pointer to it in state->sym.
   }  /* if */
   if (!is_redecl) {
     /* Create a new type entry and add it to the types list for the current
-       scope. */
-    tp = alloc_type((a_type_kind)tk_typeref);
-    tp->variant.typeref.type = type_ptr;
+       scope.  If applying attributes to the underlying type yielded a new
+       tk_typeref entry for the purposes of attaching attributes, we can
+       reuse that entry (this ensures that e.g. the may_alias flag is set on
+       the same entry that records the associated ak_may_alias attribute). */
+    if (type_ptr->kind == (a_type_kind)tk_typeref &&
+        type_ptr->variant.typeref.for_type_attributes) {
+      tp = type_ptr;
+      type_ptr = tp->variant.typeref.type;
+    } else {
+      tp = alloc_type((a_type_kind)tk_typeref);
+      tp->variant.typeref.type = type_ptr;
+    }  /* if */
     /* Create a new symbol for this type and bind it to the new type. */
     sym = enter_typedef_symbol(tp, locator, decl_scope_level,
                                suppress_redecl_error);
