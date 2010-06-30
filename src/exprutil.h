@@ -1229,10 +1229,10 @@ extern void convert_function_template_to_single_function_if_possible(
                                                         an_operand *operand,
                                                         a_boolean   will_call);
 
-extern void error_if_indefinite_function(an_operand *operand);
-
 extern void do_operand_transformations(an_operand                   *operand,
                                        a_transformation_options_set options);
+
+extern void eliminate_unusual_operand_kinds(an_operand *operand);
 
 extern a_type_ptr boolean_result_type(void);
 

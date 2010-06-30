@@ -2173,10 +2173,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       /* Convert the previously-scanned expression to an_operand form. */
       make_rescan_operand(rcblock->argument_list, rcblock, &arg);
     }  /* if */
-    do_operand_transformations(&arg,
-                               (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+    eliminate_unusual_operand_kinds(&arg);
     force_operand_to_constant_if_possible(&arg);
     /* Now determine the constant result of the pseudo-call by examining the
        (unevaluated) argument expression. */
@@ -8208,17 +8205,7 @@ outside of the expression-processing routines.
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
   /* Give an error on an indefinite function. */
-  do_operand_transformations(&operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                             TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                             TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                             TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-  if (is_sym_for_member_operand(&operand)) {
-    /* Can't take decltype of a member function.  Diagnose it as an
-       attempt to use a nonstandard pointer to member syntax. */
-    conv_sym_for_member_operand_to_ptr_to_member(&operand,
-                                                 (a_source_position *)NULL);
-  }  /* if */
+  eliminate_unusual_operand_kinds(&operand);
   result = operand.type;
   if (is_error_type(result)) {
     /* We'll just return the error type. */
@@ -8586,7 +8573,7 @@ the expression-processing routines.
         }  /* if */
       }  /* if */
     }  /* if */
-    error_if_indefinite_function(&operand);
+    eliminate_unusual_operand_kinds(&operand);
     force_complete_type_if_a_variable(&operand);
     result = operand.type;
     if (gcc_mode) {
@@ -8713,12 +8700,7 @@ if the type is not appropriate.
 
   /* Scan the expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Do not convert lvalues to rvalues, arrays to pointers, or functions to
-     pointers. */
-  do_operand_transformations(&operand,
-                             (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+  eliminate_unusual_operand_kinds(&operand);
   /* Get its type. */
   if (is_error_operand(&operand)) {
     tp = error_type();
@@ -8986,12 +8968,7 @@ Issue an error and return an error type if the type is not fixed-point.
 
   /* Scan the expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* Do not convert lvalues to rvalues, arrays to pointers, or functions to
-     pointers. */
-  do_operand_transformations(&operand,
-                             (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+  eliminate_unusual_operand_kinds(&operand);
   /* Get its type. */
   if (is_error_operand(&operand)) {
     tp = error_type();
@@ -9424,18 +9401,8 @@ indication in *rcblock).
   } else {
     /* Expression case. */
     /* Rule out indefinite functions. */
-    do_operand_transformations(&operand,
-                               (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
-                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+    eliminate_unusual_operand_kinds(&operand);
     force_complete_type_if_a_variable(&operand);
-    if (is_sym_for_member_operand(&operand)) {
-      /* Can't take typeid of a member function.  Diagnose it as an
-         attempt to use a nonstandard pointer to member syntax. */
-      conv_sym_for_member_operand_to_ptr_to_member(&operand,
-                                                   (a_source_position *)NULL);
-    }  /* if */
     typeid_type = operand.type;
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
@@ -10175,11 +10142,7 @@ indication in *rcblock).  after_keyword is ignored in that case.
   } else {
     /* Expression case. */
     /* Rule out indefinite functions. */
-    do_operand_transformations(&operand,
-                               (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION |
-                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+    eliminate_unusual_operand_kinds(&operand);
     uuidof_type = operand.type;
     /* __uuidof(0) is a special case that yields a zero GUID. */
     if (is_constant_operand(&operand) &&
@@ -14555,10 +14518,7 @@ indication in *rcblock).
       do_operand_transformations(result, TOPT_NO_OPTIONS);
     } else {
       /* Issue an error on an overloaded function. */
-      do_operand_transformations(result,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+      eliminate_unusual_operand_kinds(result);
     }  /* if */
     /* Check for casts that aren't valid in this kind of expression.
        Note that this check is done after the operand transformations
@@ -19385,10 +19345,7 @@ expression, and return the result in *result (or an error indication in
       /* In C++ mode, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus) {
-        do_operand_transformations(&operand_2,
-                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
+        eliminate_unusual_operand_kinds(&operand_2);
         result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
       } else if (gcc_mode) {
         /* gcc leaves an lvalue, but converts a function or array to a
@@ -24093,12 +24050,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
     } else {
       /* Error recovery. */
       check_assertion(total_errors != 0);
-      error_if_indefinite_function(&result);
-      if (is_sym_for_member_operand(&result)) {
-        /* Replace a symbol-for-member operand by a pointer-to-member. */
-        conv_sym_for_member_operand_to_ptr_to_member(&result,
-                                                    (a_source_position *)NULL);
-      }  /* if */
+      eliminate_unusual_operand_kinds(&result);
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */

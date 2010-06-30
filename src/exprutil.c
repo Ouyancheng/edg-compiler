@@ -14288,7 +14288,7 @@ will be called immediately (as opposed to, say, having its address taken).
 }  /* convert_function_template_to_single_function_if_possible */
 
 
-void error_if_indefinite_function(an_operand *operand)
+static void error_if_indefinite_function(an_operand *operand)
 /*
 If the given operand is an indefinite function, issue an error and
 change the operand to an error operand.
@@ -14374,6 +14374,21 @@ transformations.
     }  /* if */
   }  /* if */
 }  /* do_operand_transformations */
+
+
+void eliminate_unusual_operand_kinds(an_operand *operand)
+/*
+Eliminate unusual operand kinds, e.g., indefinite functions and
+symbol-for-member operands, possibly by giving errors for them.
+This can be used to guarantee that going forward the operand will have
+one of the "normal" kinds.
+*/
+{
+  do_operand_transformations(operand,
+                             (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                              TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                              TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+}  /* eliminate_unusual_operand_kinds */
 
 
 a_boolean still_an_lvalue(a_type_ptr type_before_cast,
