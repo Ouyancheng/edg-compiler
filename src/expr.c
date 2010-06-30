@@ -2131,6 +2131,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                (TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
+    force_operand_to_constant_if_possible(&arg);
     /* Now determine the constant result of the pseudo-call by examining the
        (unevaluated) argument expression. */
     result_type = return_type_of(rp->type);
@@ -2146,18 +2147,26 @@ call, and rcblock->argument_list to the previously-scanned argument list.
          call. */
       prep_generic_operand(&arg);
       do_operand_transformations(operand, TOPT_NO_OPTIONS);
+      if (is_error_operand(&arg)) {
+        make_error_operand(result_op);
+      } else {
 #ifdef _lint
       /* We pass dummy_bound_function_selector rather than a null pointer
          constant to avoid a spurious diagnostic by Gimpel lint. */
 #endif /* ifdef _lint */
-      assemble_function_call(operand, &dummy_bound_function_selector,
-                             make_node_from_operand(&arg),
-                             /*compiler_generated=*/FALSE,
-                             /*arg_dep_lookup_suppressed=*/FALSE,
-                             /*found_through_adl=*/FALSE,
-                             /*uses_operator_syntax=*/FALSE,
-                             &operand->position, result_op,
-                             (an_expr_node_ptr *)NULL);
+        assemble_function_call(operand, &dummy_bound_function_selector,
+                               make_node_from_operand(&arg),
+                               /*compiler_generated=*/FALSE,
+                               /*arg_dep_lookup_suppressed=*/FALSE,
+                               /*found_through_adl=*/FALSE,
+                               /*uses_operator_syntax=*/FALSE,
+                               &operand->position, result_op,
+                               (an_expr_node_ptr *)NULL);
+        if (is_constant_operand(&arg) || in_constant_expression ||
+            bfk == (a_builtin_function_kind)bfk_classify_type) {
+          make_template_param_expr_constant_operand(result_op);
+        }  /* if */
+      }  /* if */
       goto result_built;
     }  /* if */
     switch (bfk) {
@@ -2243,6 +2252,9 @@ result_built:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result_op->end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  check_assertion(is_constant_operand(result_op) ||
+                  is_error_operand(result_op) ||
+                  !curr_expr_kind_is_const());
 }  /* scan_gnu_builtin_pseudo_call */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
