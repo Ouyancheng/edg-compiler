@@ -24668,16 +24668,16 @@ set accordingly.
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-    if (dip->is_explicit_cast) {
+    if (dip->is_compound_literal) {
+      /* We don't support rescanning compound literals at this time. */
+      rescannable = FALSE;
+    } else if (dip->is_explicit_cast) {
       if (expr->is_static_cast) {
         operator_token = tok_static_cast;
       } else {
         operator_token = tok_typename;  /* Representing a generic cast. */
       }  /* if */
       *unary = TRUE;
-    } else if (dip->is_compound_literal) {
-      /* We don't support rescanning compound literals at this time. */
-      rescannable = FALSE;
     } else {
       rescannable = FALSE;
     }  /* if */
