@@ -8084,8 +8084,8 @@ function memory region.  For example:
 
 static a_source_sequence_entry_ptr fs_add_empty_source_sequence_entry(void)
 /*
-Create an "empty" source sequence entry (one with a null entity pointer and
-an entity kind of iek_none) in file scope memory, and add it to the end of
+Create an "empty" source sequence entry (one with a null entity pointer and an
+entity kind of iek_none) in file scope memory, and add it to the end of the
 source sequence entry list.  Return a pointer to the created entry.
 */
 {
@@ -8130,7 +8130,8 @@ outside of the expression-processing routines.
   a_scope_depth           expr_scope_depth;
   a_memory_region_number  region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr  ssep = NULL;
+  a_source_sequence_entry_ptr
+                          ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   check_assertion(!C_mode());
