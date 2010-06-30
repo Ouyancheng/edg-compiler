@@ -3600,6 +3600,11 @@ expression that was used to select expr (NULL if no selector was used).
           scp = &expr->variant.constant->source_corresp;
         }  /* if */
       }  /* if */
+    } else if (con->kind == (a_constant_repr_kind)ck_address) {
+      if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
+        /* This can happen, e.g., when calling a GNU builtin. */
+        scp = &con->variant.address.variant.routine->source_corresp;
+      }  /* if */
     }  /* if */
   } else if (is_variable_node(expr)) {
     /* Static data members are mangled with <source-name>, others are
