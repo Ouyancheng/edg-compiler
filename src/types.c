@@ -29,12 +29,12 @@ types.c -- Utility routines that check types.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "func_def.h"
-#include "il_walk.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#include "il_walk.h"
 #include "trans_corresp.h"
 
 /*
@@ -8913,12 +8913,55 @@ the given position.
   (void)traverse_type_tree(type, ttt_warn_about_use_of_deprecated_type,
                            TTT_RETURN_TYPE | TTT_PARAM_TYPES |
                            TTT_EXCEPTION_SPECS | TTT_TEMPLATE_ARGS |
-                           TTT_PARENT_CLASSES);
+                           TTT_PARENT_CLASSES |
+                           TTT_DECLTYPE_AND_TYPEOF_EXPRS);
   error_position = saved_pos;
 }  /* warn_about_use_of_deprecated_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
+static void invoke_type_predicate_for_type(
+                                 a_type_ptr                          type,
+                                 an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from traverse_expr to invoke a type predicate function on the
+specified type.
+*/
+{
+  if (traverse_type_tree(type, tblock->type_predicate_function,
+                         tblock->type_tree_traversal_flags)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* invoke_type_predicate_for_type */
+
+
+static a_boolean traverse_types_for_expr(
+				an_expr_node_ptr		expr,
+				a_type_predicate_function_ptr	func,
+				a_type_tree_traversal_flag_set	flags)
+/*
+Invoke the traverse_type_tree predicate function func on the types used in
+expr.  Pass the flag set flags to traverse_type_tree.  Return TRUE if
+traverse_type_tree returns TRUE.
+*/
+{
+  a_boolean				result;
+  an_expr_or_stmt_traversal_block	tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_type = invoke_type_predicate_for_type;
+  tblock.process_non_dynamic_constants = TRUE;
+  tblock.process_expressions_for_constants = TRUE;
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  tblock.type_predicate_function = func;
+  tblock.type_tree_traversal_flags = flags;
+  traverse_expr(expr, &tblock);
+  result = tblock.result;
+  return result;
+}  /* traverse_types_for_expr */
 
 
 static a_boolean traverse_template_args(
@@ -8988,6 +9031,7 @@ its parameters?).
   a_type_ptr                     tp;
   a_boolean                      status = FALSE;
   a_routine_type_supplement_ptr  rtsp;
+  a_typeref_type_supplement_ptr  ttsp;
 
   if (type_ptr == NULL) {
     /* If a NULL pointer was passed in, simply return FALSE. */
@@ -9099,12 +9143,18 @@ its parameters?).
         break;
       case tk_typeref:
         tp = type_ptr->variant.typeref.type;
+        ttsp = type_ptr->variant.typeref.extra_info;
         status = traverse_type_tree(tp, func, flags);
+        if (!status && flags & TTT_DECLTYPE_AND_TYPEOF_EXPRS &&
+            ttsp->expr != NULL) {
+          /* Traverse the expression under the decltype or typeof. */
+          status = traverse_types_for_expr(ttsp->expr, func, flags);
+        }  /* if */
         if (!status && flags & TTT_TEMPLATE_ARGS) {
           /* Traverse the template argument list, if present (for template
              aliases). */
           a_template_arg_ptr	tap;
-          tap = type_ptr->variant.typeref.extra_info->template_arg_list;
+          tap = ttsp->template_arg_list;
           if (tap != NULL) {
             status = traverse_template_args(tap, func, flags);
           }  /* if */
@@ -9391,8 +9441,8 @@ or is a type tree containing such a type.
                                                TTT_SKIP_TYPEREFS |
                                                TTT_TEMPLATE_ARGS |
                                                TTT_EXCEPTION_SPECS |
-                                               TTT_PARENT_CLASSES);
-
+                                               TTT_PARENT_CLASSES |
+                                               TTT_DECLTYPE_AND_TYPEOF_EXPRS);
   result = traverse_type_tree(type_ptr, ttt_is_error_type, ttt_flags);
   return result;
 }  /* is_or_contains_error_type */

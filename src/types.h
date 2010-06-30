@@ -1044,6 +1044,9 @@ typedef int a_type_tree_traversal_flag_set;
 #define TTT_PARENT_CLASSES 0x200
 			/* When the type being traversed is a class member,
 			   also traverse its parent type. */
+#define TTT_DECLTYPE_AND_TYPEOF_EXPRS 0x400
+			/* If a decltype or typeof typeref is found, traverse
+			   the expression under the decltype or typeof. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */

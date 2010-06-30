@@ -334,6 +334,17 @@ typedef struct an_expr_or_stmt_traversal_block {
 			    (should correspond to orig_params above, with the
 			    exception that the VTT param is missing). */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+  /* Fields used by traverse_types_for_expr: */
+  a_type_predicate_function_ptr
+		type_predicate_function;
+			/* The type predicate function to be passed to
+			   traverse_type_tree to process the types of
+			   expressions. */
+  a_type_tree_traversal_flag_set
+		type_tree_traversal_flags;
+			/* The type traversal flags to be passed to
+			   traverse_type_tree when processing the types of
+			   expressions. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

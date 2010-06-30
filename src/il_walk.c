@@ -2560,6 +2560,8 @@ default values.
   tblock->orig_params = NULL;
   tblock->new_params = NULL;
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+  tblock->type_predicate_function = NULL;
+  tblock->type_tree_traversal_flags = 0;
 }  /* clear_expr_or_stmt_traversal_block */
 
 
