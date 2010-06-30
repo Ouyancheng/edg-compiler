@@ -8347,14 +8347,14 @@ Render code for the given expression node, which represents a lambda.
   save_source_sequence_scan_state(&saved_state);
   curr_source_sequence_entry = scope->source_sequence_list;
   adv_to_signif_source_sequence_entry();
-  save_function_state(&state);
-  innermost_function_scope = scope;
   if (lambda->has_parameter_decl) {
     gen_function_declarator_with_scope(rp->type, scope,
                                        /*top_level_decl=*/TRUE,
                                        /*suppress_def_args=*/FALSE);
     write_space();
   }  /* if */
+  save_function_state(&state);
+  innermost_function_scope = scope;
   push_name_context(scope);
   gen_statement(scope->assoc_block);
   pop_name_context();
