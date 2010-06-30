@@ -12032,8 +12032,8 @@ The caller is responsible for ensuring that the current token is "~" before
 calling this routine.  This routine is called only in C++ mode.
 
 field_sel_type is NULL except when scanning the right operand of a field
-selection operator, in which case it points to the type of the left operand.
-qualifier_sym points to a symbol that describes the qualifier when
+selection operator, in which case it points to the class type of the left
+operand.  qualifier_sym points to a symbol that describes the qualifier when
 the destructor is part of a qualified name (e.g., "A::B::~B").
 */
 {
@@ -14095,8 +14095,8 @@ symbols according to the rules for the dual lookup, issue any
 diagnostics that might be needed, and return the symbol to be used.
 Set the specific symbol to the associated nonfundamental symbol.
 If prefer_class_member is TRUE, the class member is preferred over
-the normal lookup symbol.  field_sel_type is the type of the left side
-of a field selection, or NULL if the lookup is not in the context of
+the normal lookup symbol.  field_sel_type is the class type of the left
+operand of a field selection, or NULL if the lookup is not in the context of
 a field selection.
 */
 {
@@ -14335,7 +14335,7 @@ if the token after the identifier is a "<".  might_be_vacuous_dtor is
 TRUE if the name being looked up is followed by "::~", and a vacuous
 destructor is valid in the current context.  *is_vacuous_dtor is set to
 TRUE if a symbol that can only be a vacuous destructor is returned.
-class_type is the type of the left operand of the field selection.
+class_type is the class type of the left operand of the field selection.
 in_if_exists is TRUE when scanning the identifier of a Microsoft
 __if_exists or __if_not_exists directive.  If prefer_class_member is
 TRUE, the class member is preferred over the normal lookup symbol.
