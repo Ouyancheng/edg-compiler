@@ -5127,9 +5127,13 @@ described by octl.
        type). */
     if (type->kind != (a_type_kind)tk_routine) {
       form_alignment_attributes(type, &need_leading_space, octl);
+      if (type->may_alias) {
+        form_simple_attribute("__may_alias__", &need_leading_space, octl);
+      }  /* if */
     } else {
       /* For routine types, the alignment attributes are emitted by the call
-         to form_routine_type_attributes (below). */
+         to form_routine_type_attributes (below) and the may_alias attribute
+         is rendered by output_type_attributes. */
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
@@ -5161,11 +5165,6 @@ described by octl.
         is_function_type(type_pointed_to(type))) {
       form_routine_type_attributes(f_skip_typerefs(type_pointed_to(type)),
                                    &need_leading_space, octl);
-    }  /* if */
-    if (type->may_alias && type->kind != (a_type_kind)tk_routine) {
-      /* The tk_routine and tk_typeref cases are handled by
-         output_type_attributes. */
-      form_simple_attribute("__may_alias__", &need_leading_space, octl);
     }  /* if */
   }  /* if */
   return need_leading_space;
