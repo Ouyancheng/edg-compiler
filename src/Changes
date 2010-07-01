@@ -1,5 +1,21 @@
 Version 4.2
 
+7/1/10   [EDGcpfe/10229]
+Internal error in create_nonreal_progenitor_symbol
+
+An internal error could occur in create_nonreal_progenitor_symbol when
+doing a prototype instantiations of a function that contains a reference
+to an undefined member of class that has a local class as a base class.
+Now fixed.
+
+  template <class T> void f(T) {
+    class A {};
+    class B : public A {};
+    B b;
+    if (b.B::X == 1) {}  // internal error on lookup of B::X in A
+  }
+
+
 7/1/10   [EDGcpfe/10787]
 Spurious error on new-expression followed by subscript in some GNU modes
 
