@@ -1842,6 +1842,40 @@ the original form used an expression, which expr points to.  "type" is
 ignored if expr != NULL.
 */
 {
+#if ABI_COMPATIBILITY_VERSION >= 402
+  if ((kind == (a_template_param_constant_kind)tpck_sizeof ||
+       kind == (a_template_param_constant_kind)tpck_alignof) &&
+      ((expr == NULL && !is_template_dependent_type(type)) ||
+       (expr != NULL && 
+        is_constant_node(expr) &&
+        !expr_contains_dependent_type(expr)))) {
+    /* For a sizeof/alignof whose argument is not dependent, use a literal
+       representation of the value rather than the mangled encoding for
+       sizeof/alignof.  Often this substitution has already been made by
+       the front end, but this can still occur in cases where the
+       sizeof/alignof is a subexpression in a dependent backing expression. */
+    a_constant  con, *cp;
+    if (expr == NULL) {
+      if (kind == (a_template_param_constant_kind)tpck_sizeof) {
+        set_integer_constant(&con, (a_host_large_integer)type->size,
+                             targ_size_t_int_kind);
+      } else {
+        check_assertion(kind == (a_template_param_constant_kind)tpck_alignof);
+        set_integer_constant(&con, (a_host_large_integer)type->alignment,
+                             targ_size_t_int_kind);
+      }  /* if */
+      cp = &con;
+    } else {
+      cp = expr->variant.constant;
+    }  /* if */
+    mangled_encoding_for_constant(cp,
+                                  /*old_form=*/FALSE,
+                                  /*in_dependent_expr=*/FALSE,
+                                  /*suppress_address_of=*/FALSE,
+                                  mctl);
+    goto end_of_routine;
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if !IA64_ABI
   /* Output has the form
        OszZ1Z0O <-- "sizeof(Z1)", Z1 indicating a template parameter.
@@ -1968,6 +2002,7 @@ ignored if expr != NULL.
   /* Put out the final "O". */
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
+end_of_routine:;
 }  /* mangled_encoding_for_sizeof */
 
 
@@ -5004,8 +5039,8 @@ literals.
       /* A template template argument. */
       mangled_encoding_for_template_template_argument(tap, mctl);
     } else {
+      a_constant_ptr con = tap->variant.constant;
 #if IA64_ABI
-      a_constant_ptr con;
       a_boolean      is_expression = FALSE;
       sizeof_t       save_location;
 #endif /* IA64_ABI */
@@ -5017,10 +5052,20 @@ literals.
          an "X". */
       add_to_mangled_name('X', mctl);
 #else /* IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION >= 402
+      if (con->kind == (a_constant_repr_kind)ck_template_param &&
+          con->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast &&
+          !con->explicit_cast_applied) {
+        /* If the constant is an implicit cast (presumably to the template
+           parameter type), the cast shouldn't be part of the mangled name,
+           so remove it. */
+        con = con->variant.template_param.variant.constant;
+      }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       /* If this argument is an expression, mark it accordingly.  A ck_address
          of reference type doesn't qualify as an expression (unless we're
          trying to be compatible with GNU 3.3 or earlier). */
-      con = tap->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_template_param ||
           con->kind == (a_constant_repr_kind)ck_ptr_to_member ||
           (con->kind == (a_constant_repr_kind)ck_address
@@ -5040,7 +5085,7 @@ literals.
         save_location = mangling_text_buffer->size-1;
       }  /* if */
 #endif /* IA64_ABI */
-      mangled_encoding_for_constant(tap->variant.constant,
+      mangled_encoding_for_constant(con,
                                     old_form,
                                     /*in_dependent_expr=*/FALSE,
                                     /*suppress_address_of=*/FALSE,

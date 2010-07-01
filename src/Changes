@@ -1,5 +1,39 @@
 Version 4.2
 
+7/1/10   [EDGcpfe/10773]
+IA-64 ABI: mangling of sizeof/alignof with non-dependent types
+
+Although not explicitly stated previously in the IA-64 ABI, it was common
+practice to use the value of a non-dependent sizeof/alignof when mangled as
+part of a template name (rather than its explicit mangling).  In cases where
+a non-dependent sizeof/alignof appeared as a subexpression in a larger
+dependent expression (even one with an implied cast that does not appear in the
+mangled name), the sizeof/alignof had been mangled explicitly.  This has been
+changed such that any non-dependent sizeof/alignof is mangled using its value,
+regardless of whether or not it appears in the context of a dependent
+expression.  This provides better compatibility with g++'s behavior in this
+area (though not 100% as g++ generates a different mangled name for the last
+case in this example).  For example (with a configuration where size_t is
+unsigned long):
+
+  template <class T, T N> struct S {};
+  template <class T> void f1(S<T, sizeof(char)>);
+  template <class T> void f2(S<T, sizeof(char)+sizeof(char)>);
+  template <class T> void f3(S<T, (T)sizeof(sizeof(char))>);
+  S<int,sizeof(char)> s1;
+  S<int,sizeof(char)+sizeof(char)> s2;
+  S<int,sizeof(sizeof(char))> s3;
+  int main() {
+    f1(s1); // was: _Z2f1IiEv1SIT_XstcEE
+            // now: _Z2f1IiEv1SIT_Lm1EE
+    f2(s2); // was: _Z2f2IiEv1SIT_XplstcstcEE
+            // now: _Z2f2IiEv1SIT_Lm2EE
+    f3(s3); // was: _Z2f3IiEv1SIT_XcvS1_szstcEE
+            // now: _Z2f3IiEv1SIT_XcvS1_Lm1EEE
+            // g++: _Z2f3IiEv1SIT_XcvS1_szLm1EEE
+  }
+
+
 6/30/10  [EDGcpfe/10764]
 C++-generating back end: names of conversion operators
 
