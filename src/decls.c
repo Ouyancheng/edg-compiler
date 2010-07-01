@@ -9384,7 +9384,8 @@ symbol entry, and return a pointer to it in state->sym.
        reuse that entry (this ensures that e.g. the may_alias flag is set on
        the same entry that records the associated ak_may_alias attribute). */
     if (type_ptr->kind == (a_type_kind)tk_typeref &&
-        type_ptr->variant.typeref.for_type_attributes) {
+        type_ptr->variant.typeref.for_type_attributes &&
+        type_ptr->source_corresp.attributes == NULL) {
       tp = type_ptr;
       type_ptr = tp->variant.typeref.type;
     } else {
