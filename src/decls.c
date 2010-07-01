@@ -10200,7 +10200,7 @@ is_parenthesized comes in FALSE.
   if (state->type != NULL) {
     (skip_typerefs(state->type))->source_corresp.referenced = TRUE;
   }  /* if */
-  if (gpp_mode && gnu_version < 30400 &&
+  if (gpp_mode && gnu_version < 30400 && is_parenthesized &&
       curr_token == tok_rparen && next_token() == tok_lbracket) {
     /* GNU compilers accept new-expressions like "new (int)[n]" where the
        "[n]" is part of the type specifier.  (It also accepts forms like

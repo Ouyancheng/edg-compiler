@@ -1,5 +1,21 @@
 Version 4.2
 
+7/1/10   [EDGcpfe/10787]
+Spurious error on new-expression followed by subscript in some GNU modes
+
+In GNU C++ mode with gnu_version < 30400, the front end previously issued a
+spurious error when a new-expression enclosed in parentheses was followed by
+a subscript operation.  In configurations with EXPENSIVE_CHECKING set to TRUE
+the front end subsequently aborted with an internal error ("stop token array
+not all zero").  For example:
+
+  void f() {
+    (new int)[5];  // Previously triggered a spurious error in some GNU
+  }                // modes (and an internal error in some configurations).
+
+This is now fixed.
+
+
 7/1/10   [EDGcpfe/10773]
 IA-64 ABI: mangling of sizeof/alignof with non-dependent types
 
