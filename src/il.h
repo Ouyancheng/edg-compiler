@@ -284,6 +284,15 @@ Macro to access the parent_scope field of an IL entry.
 #define parent_scope_of(ptr)                                                \
   ((ptr)->source_corresp.parent_scope)
 
+/*
+Macro that returns whether a parent scope was recorded for the give IL entry.
+(This includes cases where the parent scope is recorded indirectly via an
+entry of type a_local_scope_ref.)
+*/
+#define has_parent_scope(ptr)                                               \
+  ((ptr)->source_corresp.parent_scope != NULL ||                            \
+   (ptr)->source_corresp.parent_via_local_scope_ref)
+
 extern a_scope_ptr f_get_parent_scope_of(a_source_correspondence_ptr  scp);
 
 /*

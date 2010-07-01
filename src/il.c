@@ -6750,13 +6750,14 @@ caller is responsible for sorting that out.)
       }  /* if */
     } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
       a_type_ptr              routine_type;
-
       /* A prototype scope must be allocated.  It is always allocated in the
          file scope memory region because it is pointed to from the routine
          type supplement, which is always at file scope. */
-      check_assertion(curr_il_region_number == file_scope_region_number);
+      region_to_switch_back_to = curr_il_region_number;
+      switch_il_region(file_scope_region_number);
       sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                        (a_routine_ptr)NULL);
+      switch_il_region(region_to_switch_back_to);
       ssep->il_scope = sp;
       /* Call add_to_scopes_list only if this is a function prototype nested
          within another function prototype.  A function prototype scope that
@@ -6816,7 +6817,7 @@ or the current scope.  This is used for member constants.
   }  /* if */
   pointers_block->last_constant = con_ptr;
   con_ptr->next = NULL;
-  if (parent_scope_of(con_ptr) == NULL) {
+  if (!has_parent_scope(con_ptr)) {
     /* Set the parent scope the first time the constant is added to a scope.
        IL lowering may add it to a different scope, but in that case we want
        to retain the original scope as the parent scope. */
@@ -7707,8 +7708,7 @@ rather than determined directly.
     type_ptr->next = NULL;
     /* Record the parent scope.  Only update the parent the first time the
        entry is added to the IL. */
-    if (parent_scope_of(type_ptr) == NULL &&
-        !type_ptr->source_corresp.parent_via_local_scope_ref) {
+    if (!has_parent_scope(type_ptr)) {
       set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
     }  /* if */
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
@@ -11205,8 +11205,7 @@ scope depth.
          already recorded, do not perform the update (e.g., when lowering
          moves static data members to file scope, the parent scope should
          remain the original class scope). */
-      if (parent_scope_of(var_ptr) == NULL &&
-          !var_ptr->source_corresp.parent_via_local_scope_ref) {
+      if (!has_parent_scope(var_ptr)) {
         set_parent_scope(&var_ptr->source_corresp, iek_variable, sp);
       }  /* if */
     } else {
