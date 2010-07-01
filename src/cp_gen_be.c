@@ -2133,15 +2133,9 @@ a name.  Never generate a qualified name.
     gen_temp_name((char *)scp);
   } else if (entry_kind == iek_routine &&
              ((a_routine_ptr)scp)->special_kind ==
-                                     (a_special_function_kind)sfk_conversion &&
-             !curr_name_context_is_a_class()) {
-    /* For the definition of a conversion function outside its class,
-       generate the name based on the type it returns.  For a declaration
-       inside its class, however, we use the original form of the name
-       as reflected in the source correspondence; this avoids the
-       possibility that the name, generated from the type appearing in an
-       out-of-class definition, might involve typedefs or template aliases
-       defined after the in-class declaration of the operator function. */
+                                     (a_special_function_kind)sfk_conversion) {
+    /* For conversion functions, generate the routine name from the type
+       name. */
     gen_conversion_function_name((a_routine_ptr)scp);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
