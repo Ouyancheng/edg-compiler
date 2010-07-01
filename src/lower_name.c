@@ -3729,6 +3729,7 @@ expression.
 */
 {
   an_expr_node_ptr selector, selection, operand;
+  a_boolean        use_unresolved_name_mangling = TRUE;
 
   check_assertion(is_operation_node(expr));
   operand = expr->variant.operation.operands;
@@ -3797,9 +3798,11 @@ expression.
         break;
       case eok_dot_pm_call:
         add_str_to_mangled_name("ds", mctl);
+        use_unresolved_name_mangling = FALSE;
         break;
       case eok_points_to_pm_call:
         add_str_to_mangled_name("pm", mctl);
+        use_unresolved_name_mangling = FALSE;
         break;
 #if CHECKING
       default:
@@ -3814,8 +3817,15 @@ expression.
     mangled_encoding_for_expression(selector, in_dependent_expr, mctl);
   }  /* if */
   if (selection != NULL) {
-    mangled_unresolved_name(selection, arguments, selector, in_dependent_expr,
-                            mctl);
+    if (use_unresolved_name_mangling) {
+      mangled_unresolved_name(selection, arguments, selector,
+                              in_dependent_expr, mctl);
+    } else {
+      /* Pointer-to-member calls don't use an id-expression and aren't 
+         subject to <unresolved-name> mangling; just mangle the "selection"
+         as an expression. */
+      mangled_encoding_for_expression(selection, in_dependent_expr, mctl);
+    }  /* if */
   } else {
     /* A vacuous destructor. */
     /* FIXME: The type on this doesn't appear to reflect the source, e.g.,
