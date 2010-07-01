@@ -1633,9 +1633,6 @@ a template argument list or is just a less-than sign.
     /* Get the tokens from the cache that has been accumulated. */
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
                            cache);
-    if (curr_token == tok_end_of_source) {
-      (void)get_token();
-    }  /* if */
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be
      cached. */
