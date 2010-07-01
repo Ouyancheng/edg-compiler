@@ -2508,7 +2508,8 @@ that the final call needs to be cast to the indicated type.
         do_operand_transformations(&ap->operand, TOPT_NO_OPTIONS);
         if (!template_case) {
           check_assertion(ptp != NULL);
-          cast_operand(ptp->type, &ap->operand, /*is_implicit_cast=*/TRUE);
+          prep_argument_operand(&ap->operand, ptp, (a_conv_descr *)NULL,
+                                ec_incompatible_param);
         }  /* if */
         expr_arg = make_node_from_operand(&ap->operand);
         if (*arg_list == NULL) {
