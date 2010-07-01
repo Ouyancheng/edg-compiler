@@ -12287,13 +12287,26 @@ declarator (or NULL if it wasn't recorded).
        (a) function definitions use information from the function parameter
        variables, and (b) we need to suppress return types on constructors,
        destructors, etc. */
-    a_boolean return_type_needed = TRUE;
+    a_boolean  return_type_needed = TRUE;
+    a_type_ptr saved_routine_type = rout->type;
     if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
         rout->special_kind == (a_special_function_kind)sfk_destructor ||
         rout->special_kind == (a_special_function_kind)sfk_conversion) {
       /* Do not put out the return type for a constructor, destructor, or
          conversion function. */
       return_type_needed = FALSE;
+      if (rout->special_kind == (a_special_function_kind)sfk_conversion &&
+          !is_definition) {
+        /* The type given by rout->type reflects the type used in the
+           definition of the function.  That type might involve typedefs
+           and template aliases that have not yet been declared at the
+           point at which the function is declared in the class, so we
+           temporarily replace that type with the type from the secondary
+           declaration.  We will restore the original rout->type after
+           this declaration so that the definition will be generated as
+           it was in the source. */
+        rout->type = qual_rout_type;
+      }  /* if */
     }  /* if */
     if (return_type_needed) {
       /* Write the type specifiers and the first part of the declarator. */
@@ -12386,6 +12399,8 @@ declarator (or NULL if it wasn't recorded).
       form_type_second_part_simple(rout_type->variant.routine.return_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
     }  /* if */
+    /* Restore the routine type in case it was changed above. */
+    rout->type = saved_routine_type;
   }  /* if */
   if (name_context_for_access_reset != NULL) {
     name_context_for_access_reset->class_type_for_access_not_naming = NULL;

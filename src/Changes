@@ -1,5 +1,28 @@
 Version 4.2
 
+6/30/10  [EDGcpfe/10764]
+C++-generating back end: names of conversion operators
+
+The C++-generating back end generated the name of a conversion operator in
+its declaration inside the class based on the type used in its definition
+outside the class.  This could cause problems when that type involves
+typedefs or template aliases that are defined after the declaration of the
+conversion operator.  This has been fixed to use the original types from
+the in-class declaration (the out-of-class definition remains unchanged).
+For example:
+
+  typedef int INT;
+  typedef char CHAR;
+  struct S {
+    operator INT();   // Previously generated as operator int()
+    operator CHAR();  // Previously generated as operator a<char>()
+  };
+  typedef int Int;
+  template<typename T> using a = T;
+  S::operator Int() { return 0; }
+  S::operator a<char>() { return 0; }
+
+
 6/29/10  [EDGcpfe/10744]
 GNU C++ compatibility: Emit typeinfo for complex types
 
