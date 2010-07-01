@@ -104,11 +104,16 @@ to the new entry.  For example, if the old entry indicates we're inside
 of a default argument expression, mark the new entry the same way.
 */
 {
-  if (saved_stack != NULL && expr_stack != NULL &&
-      saved_stack->scope_number != NO_SCOPE_NUMBER &&
-      saved_stack->scope_number == expr_stack->scope_number) {
-    transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
-                                                     saved_stack, expr_stack);
+  if (saved_stack != NULL && expr_stack != NULL) {
+    if (saved_stack->next_stack_push_considered_same_expression) {
+      transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
+                                                       saved_stack, expr_stack);
+    } else if (saved_stack->scope_number != NO_SCOPE_NUMBER &&
+               saved_stack->scope_number == expr_stack->scope_number) {
+      transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
+                                                       saved_stack,
+                                                       expr_stack);
+    }  /* if */
   }  /* if */
 }  /* transfer_expr_context_if_applicable */
 
@@ -6125,12 +6130,13 @@ output operands.
 {
   an_expr_node_ptr    expression;
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           processed = FALSE;
 
   db_enter(3, "scan_asm_operand_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -6196,6 +6202,7 @@ output operands.
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -14987,13 +14994,13 @@ and *result is set to the compound literal.  The source positions in the
 operand are not set appropriately; the caller should set them on return.
 */
 {
-  a_boolean               err = FALSE;
-  a_type_ptr              literal_type = *p_literal_type;
-  a_dynamic_init_ptr      dip;
-  a_boolean               is_static = (expr_stack->in_static_initializer ||
-                                       curr_expr_kind_is_const());
-  an_expr_stack_entry_ptr saved_expr_stack;
-  a_routine_ptr           dtor = NULL;
+  a_boolean          err = FALSE;
+  a_type_ptr         literal_type = *p_literal_type;
+  a_dynamic_init_ptr dip;
+  a_boolean          is_static = (expr_stack->in_static_initializer ||
+                                  curr_expr_kind_is_const());
+  a_routine_ptr      dtor = NULL;
+  a_boolean          saved_same_expression;
 
   check_assertion((C_mode() || gpp_mode) &&
                   !curr_expr_kind_is(ek_pp));
@@ -15053,12 +15060,14 @@ operand are not set appropriately; the caller should set them on return.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Save, clear, and later restore the expression stack, since the
-     initializer is not part of any expression we may currently be
-     inside of. */
-  save_expr_stack(&saved_expr_stack);
+  /* The expression stack push that will be done for the initializer
+     expression is to be considered part of the same expression as the
+     current one. */
+  saved_same_expression=expr_stack->next_stack_push_considered_same_expression;
+  expr_stack->next_stack_push_considered_same_expression = TRUE;
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
+  expr_stack->next_stack_push_considered_same_expression=saved_same_expression;
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
     err = TRUE;
@@ -15068,7 +15077,6 @@ operand are not set appropriately; the caller should set them on return.
   }  /* if */
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;
-  restore_expr_stack(saved_expr_stack);
   if (err) {
     make_error_operand(result);
   } else if (is_static && dip->kind == (a_dynamic_init_kind)dik_constant) {
@@ -23035,14 +23043,16 @@ is TRUE if this is the expression in a switch statement.
 {
   an_expr_node_ptr    expression;
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_integer_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Check that the expression is integral or convertible to an integral
@@ -23051,6 +23061,7 @@ is TRUE if this is the expression in a switch statement.
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -23086,15 +23097,17 @@ expression.
 {
   an_expr_node_ptr    expression;
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           result_used = FALSE;
 
   db_enter(3, "scan_void_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/repeated_in_loop,
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST,
             marked_as_gnu_extension ? EOPT_MARKED_AS_GNU_EXTENSION
@@ -23117,6 +23130,7 @@ expression.
   /* Indicate that the value of the node is not used. */
   if (!result_used) set_expr_result_not_used(expression);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -23142,14 +23156,16 @@ Return a pointer to the expression.
 {
   an_expr_node_ptr    expression;
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_typed_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
@@ -23165,6 +23181,7 @@ Return a pointer to the expression.
   expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -23253,10 +23270,10 @@ in a template instantiation) just do the scan.
 #endif /* NEED_NAME_MANGLING */
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  restore_expr_stack(saved_expr_stack);
   if (gpp_mode && !parameters_visible_late) make_param_syms_invisible(FALSE);
 #if DEBUG
   if (debug_level >= 3) {
@@ -23523,6 +23540,7 @@ required_type will be void if the expression should have void type
   a_type_ptr          routine_type;
   an_expr_node_ptr    expression;
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           return_by_cctor_case, void_return_case = FALSE;
   a_boolean           lambda_implicit_return_case = FALSE;
@@ -23530,7 +23548,7 @@ required_type will be void if the expression should have void type
   db_enter(3, "scan_return_expression");
 
   *dip = NULL;
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
@@ -23634,6 +23652,7 @@ required_type will be void if the expression should have void type
     if (void_return_case) set_expr_result_not_used(expression);
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25104,6 +25123,7 @@ standard form).  Assumes copy-initialization ("="-form).
 */
 {
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_member_constant_initializer_expression");
@@ -25117,7 +25137,7 @@ standard form).  Assumes copy-initialization ("="-form).
   } else {
     /* The kind of expression stack entry pushed here must match that pushed
        by prescan_initializer_for_auto_type_deduction. */
-    check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+    save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_integral_constant,
                     &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
@@ -25140,6 +25160,7 @@ standard form).  Assumes copy-initialization ("="-form).
     /* Make a constant from the operand. */
     extract_constant_from_operand(&result, constant);
     pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25166,16 +25187,18 @@ nonstandard class member constants.  Assumes copy-initialization
 */
 {
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           array_case = FALSE;
   a_boolean           string_literal_case = FALSE;
 
   db_enter(3, "scan_constant_initializer_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (gnu_mode && is_array_type(required_type) && is_array_type(result.type)) {
@@ -25254,6 +25277,7 @@ nonstandard class member constants.  Assumes copy-initialization
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25296,15 +25320,17 @@ elision is possible; see scan_class_initializer_expression and
 scan_aggregate_initializer_expression.
 */
 {
-  an_operand           result;
-  an_expr_stack_entry  expr_stack_entry;
-  a_variable_ptr       sdm_var = NULL;
+  an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry expr_stack_entry;
+  a_variable_ptr      sdm_var = NULL;
 
   db_enter(3, "scan_initializer_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   force_object_lifetime, suppress_object_lifetime);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   if (static_lifetime) expr_stack->in_static_initializer = TRUE;
   if (static_lifetime || favor_constant_result_for_nonstatic_init) {
     /* Fold constant addressing expressions to constants so that constant
@@ -25396,6 +25422,7 @@ scan_aggregate_initializer_expression.
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25569,14 +25596,16 @@ As indicated, this is initialization with the "=" semantics
 */
 {
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           okay = TRUE;
 
   db_enter(3, "scan_class_initializer_expression");
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   if (dps->prescanned_auto_initializer != NULL) {
     (void)get_prescanned_auto_initializer(dps, &result);
@@ -25594,6 +25623,7 @@ As indicated, this is initialization with the "=" semantics
   /* *dip == NULL means there was an error. */
   if (*dip == NULL) okay = FALSE;
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25644,6 +25674,7 @@ string initializers.
 */
 {
   an_operand          result;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           okay = TRUE, ambiguous;
   a_boolean           string_case = FALSE, empty_aggregate = FALSE;
@@ -25652,7 +25683,7 @@ string initializers.
   an_expression_kind  expr_kind;
 
   db_enter(3, "scan_aggregate_initializer_expression");
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   expr_kind = (an_expression_kind)ek_normal;
   if (C_mode() && (static_lifetime || !(c99_mode || gcc_mode))) {
     /* In C89 mode aggregate initializers have to be constant.  In C99 and
@@ -25662,6 +25693,7 @@ string initializers.
   push_expr_stack(expr_kind, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   suppress_object_lifetime);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   if (static_lifetime) expr_stack->in_static_initializer = TRUE;
   if (static_lifetime || favor_constant_result_for_nonstatic_init) {
     /* Fold constant addressing expressions to constants so that constant
@@ -25834,6 +25866,7 @@ required_type_determined:
     }  /* switch */
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25872,6 +25905,7 @@ initialization.  *source_pos is the source position to be used in
 overall errors.
 */
 {
+  an_expr_stack_entry           *saved_expr_stack;
   an_expr_stack_entry           expr_stack_entry;
   a_class_symbol_supplement_ptr cssp;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -25880,12 +25914,13 @@ overall errors.
   an_arg_operand_ptr            prescanned_args = NULL;
 
   db_enter(4, "scan_class_parenthesized_initializer");
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   /* Force an object lifetime around the initialization if this routine is
      called for a ctor-initializer. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/(dps == NULL),
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
@@ -25916,6 +25951,7 @@ overall errors.
     wrap_up_dynamic_init_full_expression(*p_dip);
   }  /* if */
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25935,16 +25971,18 @@ the current token is the one following the opening parenthesis.  On return, the
 current token is the one following the closing parenthesis.
 */
 {
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   an_arg_operand_ptr  prescanned_args = NULL;
 
   db_enter(4, "scan_dependent_type_parenthesized_initializer");
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   /* Force an object lifetime around the initialization if this routine is
      called for a ctor-initializer. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/(dps == NULL),
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   check_assertion(!C_mode());
   if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
     prescanned_args = get_prescanned_auto_initializer(dps, (an_operand*)NULL);
@@ -25956,6 +25994,7 @@ current token is the one following the closing parenthesis.
      to the dynamic initialization entry. */
   wrap_up_dynamic_init_full_expression(*dip);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   db_exit();
 }  /* scan_dependent_type_parenthesized_initializer */
 
@@ -26004,14 +26043,16 @@ class type that can be converted to those types.
 {
   an_operand          result;
   an_expr_node_ptr    expr;
+  an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
 
   db_enter(3, "scan_boolean_controlling_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
@@ -26020,6 +26061,7 @@ class type that can be converted to those types.
   expr = make_node_from_operand(&result);
   expr = wrap_up_full_expression(expr);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

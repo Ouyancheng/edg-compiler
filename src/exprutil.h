@@ -736,6 +736,12 @@ typedef struct an_expr_stack_entry {
 		in_static_initializer;
 			/* TRUE if we're inside the initializer of an entity
 			   with static storage duration. */
+  a_byte_boolean
+		next_stack_push_considered_same_expression;
+			/* Signal to transfer_expr_context_if_applicable that
+			   the next expression stack push should consider that
+			   we are still in the same expression even if we went
+			   into declaration processing and came back. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
