@@ -1447,15 +1447,21 @@ Dump the contents of the indicated type entry, for debug purposes.
         } else {
           if (tp->variant.template_param.kind ==
                      (a_template_param_type_kind)tptk_param) {
-            fprintf(f_debug, "#(%lu,%lu) ",
-                    (unsigned long)tp->variant.
+            if (tp->variant.template_param.extra_info->coordinates.depth ==
+                                                     AUTO_TYPE_NESTING_DEPTH) {
+              fprintf(f_debug, " auto");
+            } else {
+              fprintf(f_debug, "#(%lu,%lu) ",
+                      (unsigned long)tp->variant.
                               template_param.extra_info->coordinates.depth,
-                    (unsigned long)tp->variant.
+                      (unsigned long)tp->variant.
                               template_param.extra_info->coordinates.position);
+              db_name(&tp->source_corresp);
+            }  /* if */
           } else {
             fputc(' ', f_debug);
+            db_name(&tp->source_corresp);
           }  /* if */
-          db_name(&tp->source_corresp);
         }  /* if */
         break;
 #if GNU_VECTOR_TYPES_ALLOWED

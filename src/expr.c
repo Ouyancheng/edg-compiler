@@ -125,7 +125,7 @@ cases.
 {
   a_boolean do_deduction = TRUE;
 
-  if (is_prototype_instantiation_context()) {
+  if (is_template_dependent_context()) {
     if (is_template_dependent_type(
                             dps->prescanned_auto_initializer->operand.type)) {
       /* The initializer is dependent. */
@@ -141,6 +141,8 @@ cases.
   }  /* if */
   if (do_deduction) {
     deduce_auto_type(dps);
+  } else {
+    dps->type = dps->declared_type;
   }  /* if */
 }  /* deduce_auto_type_if_necessary */
 
