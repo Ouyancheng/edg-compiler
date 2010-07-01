@@ -11911,7 +11911,7 @@ in *rcblock).
         /* The constructor selected is a trivial default constructor, which
            does nothing (not even value initialization). */
         needs_initialization = FALSE;
-        check_assertion(new_routine != NULL);
+        check_assertion(new_routine != NULL || function_symbol == NULL);
       } else {
         warn_about_missing_delete_if(TRUE);
         needs_initialization = TRUE;
