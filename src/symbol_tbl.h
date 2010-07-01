@@ -996,7 +996,10 @@ typedef struct a_class_symbol_supplement {
 			   one or more nonstatic data members. */
   a_bit_field	any_nonreal_base_classes:1;
 			/* For a prototype instantiation this is TRUE
-			   if any of its base classes are nonreal classes. */
+			   if any of its base classes are nonreal classes.
+			   This flag is only set for nonreal bases with unknown
+			   members, not for nonreal base classes that are
+			   prototype instantiations or local classes. */
   a_bit_field	any_dependent_base_classes:1;
 			/* TRUE if any of the base classes should be ignored
 			   during dependent lookup. */

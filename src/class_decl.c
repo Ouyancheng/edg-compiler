@@ -6058,7 +6058,15 @@ or struct definition.  The syntax is
         cssp->any_nonstatic_data_members = TRUE;
       }  /* if */
       if (bcp_cssp->any_nonreal_base_classes ||
-          base_class_type->variant.class_struct_union.is_nonreal_class) {
+          (base_class_type->variant.class_struct_union.is_nonreal_class &&
+           !(base_class_type->
+                      variant.class_struct_union.is_prototype_instantiation ||
+             !base_class_type->
+                      variant.class_struct_union.is_template_class))) {
+        /* Do not set the any_nonreal_base_classes field for a base that is a
+           prototype instantiation, or a class defined as part of a
+           prototype instantiation (e.g., a local class defined in the
+           prototype instantiation of a function template). */
         cssp->any_nonreal_base_classes = TRUE;
       }  /* if */
       /* Update the flag indicating whether there are any virtual base
