@@ -220,13 +220,19 @@ Dump a list of template arguments, enclosed by angle brackets.
     fputs("<", f_debug);
     do {
       if (is_type_templ_arg(tap)) {
-        if (tap->variant.type->source_corresp.name == NULL) {
+        if (tap->variant.type == NULL) {
+          fprintf(f_debug, "<NULL type>");
+        } else if (tap->variant.type->source_corresp.name == NULL) {
           db_abbreviated_type(tap->variant.type);
         } else {
           db_type_name(tap->variant.type);
         }  /* if */
       } else if (is_template_templ_arg(tap)) {
-        db_template_name(tap->variant.templ.ptr);
+        if (tap->variant.templ.ptr == NULL) {
+          fprintf(f_debug, "<NULL template>");
+        } else {
+          db_template_name(tap->variant.templ.ptr);
+        }  /* if */
       } else if (tap->is_array_bound_of_unknown_type) {
         fprintf(f_debug, "array-bound=%lu",
                 (unsigned long)tap->variant.integer_value);
