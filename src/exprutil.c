@@ -2522,6 +2522,9 @@ in *bound_function_selector.
         /* Return an expression operand. */
         make_lvalue_or_rvalue_expression_operand(expr_copy, operand);
       }  /* if */
+      if (is_reference_type(operand->type)) {
+        add_reference_indirection(operand);
+      }  /* if */
     }  /* if */
     /* The information in the rescan info was saved for this moment, when
        we can use it to restore operand information that would not otherwise
