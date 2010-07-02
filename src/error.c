@@ -823,8 +823,10 @@ level.
       case sk_member_function:
         {
           a_routine_ptr	rp = sym->variant.routine.ptr;
-          tap = rp->template_arg_list;
-          decl_info = tssp->variant.function.decl_cache.decl_info;
+          if (!rp->is_prototype_instantiation) {
+            tap = rp->template_arg_list;
+            decl_info = tssp->variant.function.decl_cache.decl_info;
+          }  /* if */
         }
         break;
       case sk_static_data_member:

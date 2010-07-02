@@ -1,5 +1,18 @@
 Version 4.2
 
+7/2/10   [EDGcpfe/10799]
+Elimination of "[with T=T]" from prototype instantiation diagnostics
+
+Certain diagnostics that refer to prototype instantiations included
+template argument information of the form "[with T=T]".  This was
+already suppressed in many contexts, and is now suppressed in more
+cases.
+
+  // gets "missing return ..." when nonclass prototype instantiations are
+  // enabled
+  template <class T> int A(T) {}
+
+
 7/1/10   [EDGcpfe/10229]
 Internal error in create_nonreal_progenitor_symbol
 
