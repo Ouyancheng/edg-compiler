@@ -16859,7 +16859,8 @@ next_declaration:
     /* Issue a warning if the current token is in a file different from the
        last token of the class definition. */
     check_for_file_with_unterminated_type_definition(&end_pos);
-    if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
+    if (scope_stack[effective_decl_level].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
       /* Something went wrong if we are in a template declaration scope;
          we ought to be in class_template_declaration instead.  An error
          has been or will be issued elsewhere. */
