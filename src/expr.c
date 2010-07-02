@@ -6829,10 +6829,6 @@ previously-scanned sizeof expression, and return the result in *result
     }  /* if */
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  /* Skip typerefs, but keep dependent decltypes because they will have
-     to be rescanned to get the real type (or detect any errors on the
-     rescan). */
-  sizeof_type = skip_typerefs_not_dependent_decltypes(sizeof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(sizeof_type);
   /* The operand of a sizeof may not have function type or incomplete
