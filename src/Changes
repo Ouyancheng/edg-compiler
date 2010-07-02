@@ -1,5 +1,31 @@
 Version 4.2
 
+7/1/10   [EDGcpfe/10800]
+GNU C++ mode: call of member of current class is falsely considered dependent
+as a call argument
+
+Another wrinkle on the previous change for EDGcpfe/10527: In a template,
+g++ considers a call of a function in the current class to be dependent
+as a call argument even if its return type is known.  Now emulated in
+GNU C++ mode.
+
+  template <class T> struct B {
+    static T* B_func(int);
+  };
+  template <class T> struct D : public B<T> {
+    int D_func();
+    void mf() {
+      B_func(D_func());  // B_func is found because of argument-dependent
+                         // lookup because D_func() is falsely taken to
+                         // be dependent
+    }
+  };
+  int main() {
+    D<char> d;
+    d.mf();
+  }
+
+
 7/1/10   [EDGcpfe/10793]
 Nonreal member name fails to bind to reference-typed nontype template parameter
 

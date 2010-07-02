@@ -5870,20 +5870,28 @@ an argument of a call in gpp mode even though the standard says it's not.
   a_boolean result = FALSE;
 
   /* The cases we care about are "this->x" and "*(this->x)".  g++ sees
-     those as dependent even if the type of x is known. */
+     those as dependent even if the type of x is known.  Also a call
+     of a member function of the current class even if the return type
+     is known. */
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = operand->variant.expression;
     if (is_operation_node(expr) &&
-        node_operator_is(expr, eok_indirect)) {
-      /* Drop "*". */
+        (node_operator_is(expr, eok_indirect) ||
+         node_operator_is(expr, eok_ref_indirect))) {
+      /* Drop "*" or the reference equivalent. */
       expr = expr->variant.operation.operands;
     }  /* if */
     if (is_operation_node(expr) &&
-        node_operator_is(expr, eok_points_to_field) &&
         !expr->variant.operation.compiler_generated) {
-      expr = expr->variant.operation.operands;
-      if (is_variable_node(expr) &&
-          expr->variant.variable->is_this_parameter) {
+      an_expr_node_ptr potential_this = NULL;
+      if (node_operator_is(expr, eok_points_to_field)) {
+        potential_this = expr->variant.operation.operands;
+      } else if (node_operator_is(expr, eok_points_to_member_call)) {
+        potential_this = expr->variant.operation.operands->next;
+      }  /* if */
+      if (potential_this != NULL &&
+          is_variable_node(potential_this) &&
+          potential_this->variant.variable->is_this_parameter) {
         result = TRUE;
       }  /* if */
     }  /* if */
