@@ -8529,6 +8529,7 @@ make_new_type:
                                          *(type->variant.routine.extra_info);
         new_type->variant.routine.extra_info->assoc_routine = NULL;
         new_type->variant.routine.extra_info->this_class = new_this_class;
+        new_type->variant.routine.extra_info->prototype_scope = NULL;
         /* Make copies of the entries on type's param types list, making the
            appropriate substitutions for template parameter type entries. */
         prev_ptp = NULL;
