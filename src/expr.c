@@ -6622,7 +6622,7 @@ previously-scanned sizeof expression, and return the result in *result
   an_operand            operand;
   a_constant            constant;
   a_boolean             is_parenthesized = FALSE, is_type = FALSE;
-  a_type_ptr            sizeof_type, orig_sizeof_type;
+  a_type_ptr            sizeof_type;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
   a_boolean             in_constant_expression = (expr_stack != NULL &&
@@ -6804,7 +6804,6 @@ previously-scanned sizeof expression, and return the result in *result
       template_case = TRUE;
     }  /* if */
   }  /* if */
-  orig_sizeof_type = sizeof_type;
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     /* Determine if the multiplication by THREADS is needed before the
@@ -6938,9 +6937,8 @@ previously-scanned sizeof expression, and return the result in *result
       make_error_operand(result);
     } else {
       /* Make an expression node to represent a sizeof that cannot be
-         evaluated until runtime.  Note the use of orig_sizeof_type
-         to preserve typedefs. */
-      (void)make_sizeof_expr(is_type, orig_sizeof_type, &operand, result);
+         evaluated until runtime. */
+      (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
@@ -6958,7 +6956,7 @@ previously-scanned sizeof expression, and return the result in *result
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
-      (void)make_sizeof_expr(is_type, orig_sizeof_type, &operand, result);
+      (void)make_sizeof_expr(is_type, sizeof_type, &operand, result);
       operand_was_used = !is_type;
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
@@ -6983,9 +6981,11 @@ previously-scanned sizeof expression, and return the result in *result
         constant.type = integer_type(targ_size_t_int_kind);
       } else {
         /* Normal case; known constant sizeof. */
-        set_unsigned_integer_constant(&constant,
-                                      (a_host_large_unsigned)sizeof_type->size,
-                                      targ_size_t_int_kind);
+        a_type_ptr stripped_sizeof_type = skip_typerefs(sizeof_type);
+        set_unsigned_integer_constant(
+                             &constant,
+                             (a_host_large_unsigned)stripped_sizeof_type->size,
+                             targ_size_t_int_kind);
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression. */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -7003,7 +7003,7 @@ previously-scanned sizeof expression, and return the result in *result
                cases, and just record the type. */
             is_type = TRUE;
           }  /* if */
-          constant.expr = make_sizeof_expr(is_type, orig_sizeof_type,
+          constant.expr = make_sizeof_expr(is_type, sizeof_type,
                                            &operand,
                                            (an_operand *)NULL);
           operand_was_used = !is_type;
