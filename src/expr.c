@@ -2158,6 +2158,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
        is parsed "as if" for a sizeof operator).  The expression stack cannot
        be popped until after the argument has been transformed; so we record
        whether we are in a constant-expression prior to updating the stack. */
+    a_boolean  saved_favor_constant_result = expr_stack->favor_constant_result;
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
@@ -2183,6 +2184,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     }  /* if */
     eliminate_unusual_operand_kinds(&arg);
     force_operand_to_constant_if_possible(&arg);
+    expr_stack->favor_constant_result = saved_favor_constant_result;
     /* Now determine the constant result of the pseudo-call by examining the
        (unevaluated) argument expression. */
     result_type = return_type_of(rp->type);

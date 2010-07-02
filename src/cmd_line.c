@@ -3448,10 +3448,13 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-      !option_kind_used[(int)optk_cpp0x_mode]) {
-    cpp0x_sfinae_enabled = (gnu_version >= 30400);
+  if (option_kind_used[(int)optk_cpp0x_sfinae] &&
+      cpp0x_sfinae_enabled &&
+      gnu_version < 30400) {
+    /* Don't allow enabling of C++0x SFINAE in pre-3.4 versions. */
+    command_line_error(ec_cl_incompatible_language_modes);
   }  /* if */
+  cpp0x_sfinae_enabled = (gnu_version >= 30400);
 }  /* check_and_set_gpp_mode_options */
 
 
