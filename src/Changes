@@ -1,5 +1,18 @@
 Version 4.2
 
+7/1/10   [EDGcpfe/10793]
+Nonreal member name fails to bind to reference-typed nontype template parameter
+
+A spurious error was issued on a use of a member of a template parameter
+class as a nontype template argument for a template parameter of reference
+type.  Now fixed.
+
+template<typename A, typename K> class X {};
+template<typename A, typename K, X<A, K> const& RK> struct B {};
+template<typename A>
+class FK : public B<A, typename A::KeyType, A::primaryKey> {};  
+
+
 7/2/10   [EDGcpfe/10799]
 Elimination of "[with T=T]" from prototype instantiation diagnostics
 

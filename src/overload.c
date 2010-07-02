@@ -14797,25 +14797,28 @@ been found to be acceptable, and *conversion describes it.
         prep_generic_operand_full(source_operand,
                                   /*lvalue_expected=*/FALSE,
                                   /*rvalue_expected=*/TRUE);
-      } else if (is_an_lvalue(source_operand)) {
-        /* Okay, an lvalue. */
-      } else if (is_a_function_designator(source_operand) &&
-                 /* Avoid member functions; you can't bind references to
-                    them. */
-                 !is_sym_for_member_operand(source_operand)) {
-        /* Okay, a function designator. */
-        if (is_indefinite_function_operand(source_operand)) {
-          /* Replace an indefinite function by the address of an unknown
-             function in the set. */
-          conv_indefinite_function_operand_to_unknown_dependent_function(
+      } else {
+        change_nonreal_member_constant_operand_to_lvalue(source_operand);
+        if (is_an_lvalue(source_operand)) {
+          /* Okay, an lvalue. */
+        } else if (is_a_function_designator(source_operand) &&
+                   /* Avoid member functions; you can't bind references to
+                      them. */
+                   !is_sym_for_member_operand(source_operand)) {
+          /* Okay, a function designator. */
+          if (is_indefinite_function_operand(source_operand)) {
+            /* Replace an indefinite function by the address of an unknown
+               function in the set. */
+            conv_indefinite_function_operand_to_unknown_dependent_function(
                                                     source_operand,
                                                     /*force_to_rvalue=*/FALSE);
-        }  /* if */
-      } else {
-        /* Binding a reference to an rvalue in a constant expression. */
-        if (!is_error_operand(source_operand)) {
-          error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
-                           source_operand);
+          }  /* if */
+        } else {
+          /* Binding a reference to an rvalue in a constant expression. */
+          if (!is_error_operand(source_operand)) {
+            error_in_operand(ec_expr_not_an_lvalue_or_function_designator,
+                             source_operand);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {

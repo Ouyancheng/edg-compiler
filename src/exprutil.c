@@ -7337,8 +7337,7 @@ member function.  If no nonreal member is found, return NULL.
 }  /* conv_nonreal_member_constant_expr_to_lvalue */
 
 
-static void change_nonreal_member_constant_operand_to_lvalue(
-                                                           an_operand *operand)
+void change_nonreal_member_constant_operand_to_lvalue(an_operand *operand)
 /*
 If the indicated operand is an rvalue indicating the value of a
 member of a nonreal class, change it to an lvalue that refers to
