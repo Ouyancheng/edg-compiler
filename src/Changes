@@ -43,9 +43,12 @@ dependent expression (even one with an implied cast that does not appear in the
 mangled name), the sizeof/alignof had been mangled explicitly.  This has been
 changed such that any non-dependent sizeof/alignof is mangled using its value,
 regardless of whether or not it appears in the context of a dependent
-expression.  This provides better compatibility with g++'s behavior in this
+expression.  This provides better compatibility with g++'s behavior (g++ 4.0
+and later also "fold" non-dependent sizeof/alignof for mangling) in this
 area (though not 100% as g++ generates a different mangled name for the last
-case in this example).  For example (with a configuration where size_t is
+case in this example).  The previous behavior is restored when 
+ABI_COMPATIBILITY_VERSION < 402 or emulate_gnu_abi_bugs is TRUE and
+gnu_version < 40000.  For example (with a configuration where size_t is
 unsigned long):
 
   template <class T, T N> struct S {};
@@ -61,7 +64,7 @@ unsigned long):
     f2(s2); // was: _Z2f2IiEv1SIT_XplstcstcEE
             // now: _Z2f2IiEv1SIT_Lm2EE
     f3(s3); // was: _Z2f3IiEv1SIT_XcvS1_szstcEE
-            // now: _Z2f3IiEv1SIT_XcvS1_Lm1EEE
+            // now: _Z2f3IiEv1SIT_XcvS1_Lm8EEE
             // g++: _Z2f3IiEv1SIT_XcvS1_szLm1EEE
   }
 

@@ -1845,30 +1845,27 @@ ignored if expr != NULL.
 #if ABI_COMPATIBILITY_VERSION >= 402
   if ((kind == (a_template_param_constant_kind)tpck_sizeof ||
        kind == (a_template_param_constant_kind)tpck_alignof) &&
-      ((expr == NULL && !is_template_dependent_type(type)) ||
-       (expr != NULL && 
-        is_constant_node(expr) &&
-        !expr_contains_dependent_type(expr)))) {
+#if IA64_ABI
+      !(emulate_gnu_abi_bugs && gnu_version < 40000) &&
+#endif /* IA64_ABI */
+      (expr == NULL ? !is_template_dependent_type(type) :
+                      !expr_contains_dependent_type(expr))) {
     /* For a sizeof/alignof whose argument is not dependent, use a literal
        representation of the value rather than the mangled encoding for
        sizeof/alignof.  Often this substitution has already been made by
        the front end, but this can still occur in cases where the
-       sizeof/alignof is a subexpression in a dependent backing expression. */
-    a_constant  con, *cp;
-    if (expr == NULL) {
-      if (kind == (a_template_param_constant_kind)tpck_sizeof) {
-        set_integer_constant(&con, (a_host_large_integer)type->size,
-                             targ_size_t_int_kind);
-      } else {
-        check_assertion(kind == (a_template_param_constant_kind)tpck_alignof);
-        set_integer_constant(&con, (a_host_large_integer)type->alignment,
-                             targ_size_t_int_kind);
-      }  /* if */
-      cp = &con;
+       sizeof/alignof is a subexpression in a dependent backing expression.
+       Early version of GNU don't do this. */
+    a_constant           con;
+    a_host_large_integer value;
+    if (kind == (a_template_param_constant_kind)tpck_sizeof) {
+      value = expr == NULL ? type->size : expr->type->size;
     } else {
-      cp = expr->variant.constant;
+      check_assertion(kind == (a_template_param_constant_kind)tpck_alignof);
+      value = expr == NULL ? type->alignment : expr->type->alignment;
     }  /* if */
-    mangled_encoding_for_constant(cp,
+    set_integer_constant(&con, value, targ_size_t_int_kind);
+    mangled_encoding_for_constant(&con,
                                   /*old_form=*/FALSE,
                                   /*in_dependent_expr=*/FALSE,
                                   /*suppress_address_of=*/FALSE,
