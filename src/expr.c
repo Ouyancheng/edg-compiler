@@ -54,6 +54,7 @@ static a_boolean cast_type_pre_check(
                                  a_boolean          has_explicit_cv_qualifiers,
                                  a_boolean          allow_array);
 static void process_boolean_controlling_expression(an_operand *result);
+static a_boolean operand_contains_template_param(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   a_boolean                list_init,
                                   a_source_position        *type_position,
@@ -6797,6 +6798,9 @@ previously-scanned sizeof expression, and return the result in *result
     force_complete_type_if_a_variable(&operand);
     sizeof_type = operand.type;
     type_position = operand.position;
+    if (operand_contains_template_param(&operand)) {
+      template_case = TRUE;
+    }  /* if */
   }  /* if */
   orig_sizeof_type = sizeof_type;
 #if UPC_EXTENSIONS_ALLOWED
@@ -7067,6 +7071,7 @@ result in *result (or an error indication in *rcblock).
   a_boolean           is_parenthesized = FALSE, is_type = FALSE;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           template_case = FALSE;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment    alignment = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7239,6 +7244,9 @@ result in *result (or an error indication in *rcblock).
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
     type_position = operand.position;
+    if (operand_contains_template_param(&operand)) {
+      template_case = TRUE;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     if ((gnu_mode && gnu_version >= 30100) || microsoft_mode) {
       /* If the expression is an lvalue for a variable with an explicit
@@ -7252,14 +7260,40 @@ result in *result (or an error indication in *rcblock).
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  /* Skip typerefs, but keep dependent decltypes because they will have
+     to be rescanned to get the real type (or detect any errors on the
+     rescan). */
+  alignof_type = skip_typerefs_not_dependent_decltypes(alignof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(alignof_type);
+  if (!C_mode() && is_template_dependent_context() &&
+      is_template_dependent_type(alignof_type)) {
+    template_case = TRUE;
+  } else if (is_incomplete_type(alignof_type)) {
+    an_error_severity  severity;
+    if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
+        strict_ansi_mode) {
+      /* Issue an error in strict ANSI mode.  GNU compilers issue an error
+         if the argument was not an expression and was not a void type. */
+      severity = (an_error_severity)es_error;
+    } else {
+      severity = (an_error_severity)es_warning;
+    }  /* if */
+    expr_pos_diagnostic(severity, ec_alignof_incomplete_type,
+                        &start_position);
+  }  /* if */
+  /* Force building a template-dependent representation for cases that
+     involve a dependent expression even though the result type is not
+     dependent.  This is done after the type validity tests above so
+     we can detect any possible errors anyway. */
+  if (is_dependent_decltype_type(alignof_type)) {
+    template_case = TRUE;
+  }  /* if */
   /* The result of __ALIGNOF__ is an integer indicating the alignment of
      the operand, of type size_t. */
   if (is_error_type(alignof_type)) {
     set_error_constant(&constant);
-  } else if (!C_mode() && is_template_dependent_context() &&
-             is_template_dependent_type(alignof_type)) {
+  } else if (template_case) {
     /* For __ALIGNOF__ of a template type, use a ck_template_param. */
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
@@ -7272,13 +7306,17 @@ result in *result (or an error indication in *rcblock).
       operand_was_used = TRUE;
     }  /* if */
     constant.type = integer_type(targ_size_t_int_kind);
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (alignment != 0) {
-    set_unsigned_integer_constant(&constant, (a_host_large_unsigned)alignment,
-                                  targ_size_t_int_kind);
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    a_targ_alignment  alignof_value;
+    /* Normal case; known constant alignof. */
+    a_targ_alignment alignof_value;
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    if (alignment != 0) {
+      /* Previous processing of a special case has already decided what
+         the result should be. */
+      alignof_value = alignment;
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
 #if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
     if (use_field_alignment) {
       alignof_value = field_alignment_for(alignof_type);
@@ -7288,36 +7326,23 @@ result in *result (or an error indication in *rcblock).
     {
       alignof_value = alignment_of_type(alignof_type);
     }  /* if */
-    if (is_incomplete_type(alignof_type)) {
-      an_error_severity  severity;
-      if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
-          strict_ansi_mode) {
-        /* Issue an error in strict ANSI mode.  GNU compilers issue an error
-           if the argument was not an expression and was not a void type. */
-        severity = (an_error_severity)es_error;
-      } else {
-        severity = (an_error_severity)es_warning;
-      }  /* if */
-      expr_pos_diagnostic(severity, ec_alignof_incomplete_type,
-                          &start_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode) {
-        /* In Microsoft mode, the alignment-of operator sometimes returns
-           zero for incomplete types. */
-        if (is_array_type(alignof_type)) {
-          /* Microsoft ignores array declarators to determine alignment.  This
-             matters particularly for arrays of unspecified length:
-             __alignof(int[]) is the same as __alignof(int). */
-          alignof_type = underlying_array_element_type(alignof_type);
-          alignof_value = alignof_type->alignment;
-        }  /* if */
-        if (is_class_struct_union_type(alignof_type) ||
-            (C_mode() && is_void_type(alignof_type))) {
-          alignof_value = 0;
-        }  /* if */
+    if (microsoft_mode && is_incomplete_type(alignof_type)) {
+      /* In Microsoft mode, the alignment-of operator sometimes returns
+         zero for incomplete types. */
+      if (is_array_type(alignof_type)) {
+        /* Microsoft ignores array declarators to determine alignment.  This
+           matters particularly for arrays of unspecified length:
+           __alignof(int[]) is the same as __alignof(int). */
+        alignof_type = underlying_array_element_type(alignof_type);
+        alignof_value = alignment_of_type(alignof_type);
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (is_class_struct_union_type(alignof_type) ||
+          (C_mode() && is_void_type(alignof_type))) {
+        alignof_value = 0;
+      }  /* if */
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_value,
                      targ_size_t_int_kind);
@@ -26343,19 +26368,13 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
-a_boolean arg_operand_contains_template_param(an_arg_operand_ptr arg_operand)
+static a_boolean operand_contains_template_param(an_operand *operand)
 /*
-Return TRUE if the given arg_operand has a template-dependent value,
-including value-dependent cases.  This is used for testing nontype
-template arguments in determining whether a template argument list is
-dependent.  Nontype template arguments that are not yet associated
-with a template parameter, as in explicit template argument lists on
-functions (e.g., f<int,1>(x)), are represented as a_template_arg IL
-entries with the field arg_operand pointing to an arg_operand entry.
+Return TRUE if the given operand has a template-dependent value,
+including value-dependent cases.
 */
 {
   a_boolean      contains_template_param = FALSE;
-  an_operand     *operand = &arg_operand->operand;
   a_constant_ptr con;
 
   if (is_expression_operand(operand) &&
@@ -26372,7 +26391,22 @@ entries with the field arg_operand pointing to an arg_operand entry.
        dependent. */
     if (con->kind == (a_constant_repr_kind)ck_template_param) {
       contains_template_param = TRUE;
-    }  /* if */  }  /* if */
+    }  /* if */
+  }  /* if */
+  return contains_template_param;
+}  /* operand_contains_template_param */
+
+
+a_boolean arg_operand_contains_template_param(an_arg_operand_ptr arg_operand)
+/*
+Return TRUE if the given arg_operand has a template-dependent value,
+including value-dependent cases.   This is used for testing nontype template
+arguments in determining whether a template argument list is dependent.
+*/
+{
+  a_boolean contains_template_param =
+                        operand_contains_template_param(&arg_operand->operand);
+
   return contains_template_param;
 }  /* arg_operand_contains_template_param */
 
