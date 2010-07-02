@@ -3590,8 +3590,6 @@ static char *demangle_name(char                       *ptr,
                            a_demangle_name_option     options,
                            a_decode_control_block_ptr dctl);
 static char *demangle_unresolved_name(char                       *ptr,
-                                      a_func_block               *func_block,
-                                      a_demangle_name_option     options,
                                       a_decode_control_block_ptr dctl);
 static char *demangle_expression(char                       *ptr,
                                  a_decode_control_block_ptr dctl);
@@ -5148,8 +5146,8 @@ caller does not need the value.
       dctl->contains_conversion_operator = TRUE;
     } else {
       /* Other operator function (not conversion function). */
-      int  num_operands, length;
-      char *op_str, *close_str;
+      int       num_operands, length;
+      char      *op_str, *close_str;
       op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
                                  dctl);
       if (op_str == NULL) {
@@ -5479,43 +5477,88 @@ template argument value written in terms of template parameters or
 trailing return types specified using decltype).
 The syntax is:
 
-FIXME: needs updating:
-
   <expression> ::= <unary operator-name> <expression>
                ::= <binary operator-name> <expression> <expression>
-               ::= <trinary operator-name> <expression> <expression>
-                                                                  <expression>
-               ::= cl <expression>+ E          # call
-               ::= cv <type> <expression>      # conversion with one argument
-               ::= cv <type> _ <expression>* E # conversion with a different 
-                                               # number of arguments
-               ::= st <type>                   # sizeof(type)
-               ::= at <type>                   # alignof (a type)
+               ::= <ternary operator-name> <expression> <expression>
+                                                                   <expression>
+               ::= cl <expression>+ E                                   
+                              # call
+               ::= cv <type> <expression>                               
+                              # conversion with one argument
+               ::= cv <type> _ <expression>* E                          
+                              # conversion with a different number of arguments
+               ::= [gs] nw <expression>* _ <type> E                     
+                              # new (expr-list) type
+               ::= [gs] nw <expression>* _ <type> <initializer>         
+                              # new (expr-list) type (init)
+               ::= [gs] na <expression>* _ <type> E                     
+                              # new[] (expr-list) type
+               ::= [gs] na <expression>* _ <type> <initializer>         
+                              # new[] (expr-list) type (init)
+               ::= [gs] dl <expression>                                 
+                              # delete expression
+               ::= [gs] da <expression>                                 
+                              # delete[] expression
+               ::= pp_ <expression>                                     
+                              # prefix ++
+               ::= mm_ <expression>                                     
+                              # prefix --
+               ::= ti <type>                                            
+                              # typeid (type)
+               ::= te <expression>                                      
+                              # typeid (expression)
+               ::= dc <type> <expression>                               
+                              # dynamic_cast<type> (expression)
+               ::= sc <type> <expression>                               
+                              # static_cast<type> (expression)
+               ::= cc <type> <expression>                               
+                              # const_cast<type> (expression)
+               ::= rc <type> <expression>                               
+                              # reinterpret_cast<type> (expression)
+               ::= st <type>                                            
+                              # sizeof (a type)
+               ::= at <type>                                            
+                              # alignof (a type)
                ::= <template-param>
                ::= <function-param>
-               ::= sr <type> <unqualified-name> # dependent name
-               ::= sr <type> <unqualified-name> <template-args>
-                                               # dependent template-id
-               ::= dt <expression> <unqualified-name> # expr.name
-               ::= dt <expression> <unqualified-name> <template-args>
-               ::= pt <expression> <unqualified-name> # expr->name
-               ::= pt <expression> <unqualified-name> <template-args>
-               ::= on <operator-name>          # dependent operator-function-id
-               ::= on <operator-name> <template-args> # dependent operator
-                                                      # template-id
-               ::= <source-name>               # dependent name
-               ::= <source-name> <template-args> # dependent template-id
+               ::= dt <expression> <unresolved-name>                    
+                              # expr.name
+               ::= pt <expression> <unresolved-name>                    
+                              # expr->name
+               ::= ds <expression> <expression>                         
+                              # expr.*expr
+               ::= tw <expression>                                      
+                              # throw expression
+               ::= tr                                                   
+                              # throw with no operand (rethrow)
+               ::= <unresolved-name>                                    
+                              # f(p), N::f(p), ::f(p),
+                              # freestanding dependent name (e.g., T::x),
+                              # objectless nonstatic member reference
                ::= <expr-primary>
 
-  <expr-primary> ::= L <type> <value number> E # integer literal
-                 ::= L <type> <value float> E  # floating literal
-                 ::= L <mangled-name> E        # external name
+  <expr-primary> ::= L <type> <value number> E                          
+                                      # integer literal
+                 ::= L <type> <value float> E                           
+                                      # floating literal
+                 ::= L <character builtin-type> E                       
+                                      # string literal
+		 ::= L <type> <real-part float> _ <imag-part float> E   
+                                      # complex floating point literal (C 2000)
+                 ::= L <mangled-name> E                                 
+                                      # external name
+
+  <function-param> ::= fp_            # first function parameter
+                   ::= fp <parameter-2 non-negative number> _
+                   ::= fL <L-1 non-negative number> p_ 
+                                      # first function parameter
+                   ::= fL <L-1 non-negative number> p 
+                                            <parameter-2 non-negative number> _
 
 */
 {
   int          num_operands, length;
   char         *op_str, *close_str;
-  a_func_block func_block;
 
   if (*ptr == 'L') {
     /* A literal or external name. */
@@ -5564,6 +5607,11 @@ FIXME: needs updating:
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (*ptr == 'g' && ptr[1] == 's') {
+    /* global scope: "::".  This prefix precedes new/delete operations as
+       well as the scope-resolution operator in <unresolved-name>. */
+    write_id_str("::", dctl);
+    ptr = demangle_expression(ptr+2, dctl);
   } else if (*ptr == 'n' && (ptr[1] == 'w' || ptr[1] == 'a')) {
     if (ptr[1] == 'w') {
       write_id_str("new ", dctl);
@@ -5591,121 +5639,33 @@ FIXME: needs updating:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (*ptr == 's' && ptr[1] == 't') {
-    /* sizeof(type): "st <type>". */
-    write_id_str("sizeof(", dctl);
-    ptr = demangle_type(ptr+2, dctl);
-    write_id_ch(')', dctl);
-  } else if (*ptr == 'a' && ptr[1] == 't') {
-    /* alignof(type): "at <type>". */
-    write_id_str("alignof(", dctl);
-    ptr = demangle_type(ptr+2, dctl);
-    write_id_ch(')', dctl);
-  } else if (*ptr == 'd' && ptr[1] == 'n') {
-    /* ~T() "dn <type>". */
-    write_id_ch('~', dctl);
-    ptr = demangle_type(ptr+2, dctl);
-    write_id_str("()", dctl);
-  } else if (*ptr == 'g' && ptr[1] == 's') {
-    /* global scope: "::".  This prefix precedes new/delete operations. */
-    write_id_str("::", dctl);
-    ptr = demangle_expression(ptr+2, dctl);
-  } else if (*ptr == 's' && ptr[1] == 'r') {
-    /* Scope resolution "::":
-         sr <type> <name>
-       The <name> is limited to <unqualified-name> or
-       <unqualified-name> <template-args>, but we don't check that. */
-    a_boolean    gpp_qualified_name = FALSE;
-    ptr += 2;
-    if (emulate_gnu_abi_bugs) {
-      /* g++ 3.2 sometimes puts out a qualified name as the second
-         operand.  Look ahead to see whether that form is used.
-         If so, we want to skip over the type but not output it,
-         because the qualified name repeats that type. */
-      char *ptr2;
-      dctl->suppress_id_output++;
-      dctl->suppress_substitution_recording++;
-      ptr2 = demangle_type(ptr, dctl);
-      dctl->suppress_id_output--;
-      dctl->suppress_substitution_recording--;
-      if (*ptr2 == 'N') {
-        gpp_qualified_name = TRUE;
-        /* Scan the type again to get substitutions recorded. */
-        dctl->suppress_id_output++;
-        ptr = demangle_type(ptr, dctl);
-        dctl->suppress_id_output--;
-      }  /* if */
-    }  /* if */
-    if (!gpp_qualified_name) {
-      ptr = demangle_type(ptr, dctl);
-      write_id_str("::", dctl);
-    }  /* if */
-    ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
-    if (emulate_gnu_abi_bugs) {
-      /* g++ 3.2 puts out the parameter types following the name
-         of a function. */
-      if (*ptr == 'E' || *ptr == '_') {
-        /* No expression or parameter list next. */
-      } else if (*ptr == 'L' ||
-                 get_operator_name(ptr, &num_operands, &length,
-                                   &close_str, dctl) != NULL) {
-        /* Another expression is next, so no parameter list. */
-      } else {
-        /* Scan the parameter list. */
-        dctl->suppress_id_output++;
-        ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
-                                          BFT_PARAMS, dctl);
-        dctl->suppress_id_output--;
-      }  /* if */
-    }  /* if */
   } else if (*ptr == 'd' && ptr[1] == 't') {
-    /* expr.name: "dt <expression> <unqualified-name>" or
-                  "dt <expression> <unqualified-name> <template-args>" */
+    /* expr.name */
     write_id_ch('(', dctl);
     ptr = demangle_expression(ptr+2, dctl);
     if (!dctl->err_in_id) {
       write_id_ch('.', dctl);
-      ptr = demangle_unresolved_name(ptr, &func_block, /*options=*/DNO_ALL,
-                                     dctl);
+      ptr = demangle_unresolved_name(ptr, dctl);
       write_id_ch(')', dctl);
     }  /* if */
   } else if (*ptr == 'p' && ptr[1] == 't') {
-    /* expr->name: "pt <expression> <unqualified-name>" or
-                   "pt <expression> <unqualified-name> <template-args>" */
+    /* expr->name */
     write_id_ch('(', dctl);
     ptr = demangle_expression(ptr+2, dctl);
     if (!dctl->err_in_id) {
       write_id_str("->", dctl);
-      ptr = demangle_unresolved_name(ptr, &func_block, /*options=*/DNO_ALL,
-                                     dctl);
+      ptr = demangle_unresolved_name(ptr, dctl);
       write_id_ch(')', dctl);
-    }  /* if */
-  } else if (*ptr == 'o' && ptr[1] == 'n') {
-    /* dependent operator-function-id: "on <operator-name>" or
-       dependent operator template-id: "on <operator-name> <template-args>" */
-    ptr += 2;
-    op_str = get_operator_name(ptr, &num_operands, &length, &close_str, dctl);
-    if (op_str == NULL) {
-      bad_mangled_name(dctl);
-    } else {
-      ptr += length;
-      write_id_str("operator ", dctl);
-      if (strcmp(op_str, "cast") == 0) {
-        /* A conversion operator has a type. */
-        ptr = demangle_type(ptr, dctl);
-      } else {
-        write_id_str(op_str, dctl);
-      }  /* if */
-      if (!dctl->err_in_id && *ptr == 'I') {
-        /* A <template-args> list is present. */
-        ptr = demangle_template_args(ptr, dctl);
-      }  /* if */
     }  /* if */
   } else if ((op_str = get_operator_name(ptr, &num_operands, &length,
                                          &close_str, dctl)) != NULL) {
     /* An expression beginning with an operator name. */
+    /* As a heuristic, to avoid extraneous parentheses in the demangled output,
+       assume that any operator that has a closing string doesn't need
+       parentheses around it. */
+    a_boolean needs_parens = strcmp(close_str, "") == 0;
     ptr += length;
-    write_id_ch('(', dctl);
+    if (needs_parens) write_id_ch('(', dctl);
     if (strncmp(op_str, "builtin-operation-", 18) == 0) {
       /* Builtin operation.  Has a variable number of operands. */
       int i;
@@ -5768,7 +5728,8 @@ FIXME: needs updating:
         /* sizeof(type). */
         write_id_str(op_str, dctl);
         ptr = demangle_type(ptr, dctl);
-      } else if (strcmp(op_str, "__alignof__(") == 0) {
+      } else if (strcmp(op_str, "alignof(") == 0 ||
+                 strcmp(op_str, "__alignof__(") == 0) {
         /* __alignof__(type). */
         write_id_str(op_str, dctl);
         ptr = demangle_type(ptr, dctl);
@@ -5789,14 +5750,10 @@ FIXME: needs updating:
       }  /* if */
     }  /* if */
     write_id_str(close_str, dctl);
-    write_id_ch(')', dctl);
+    if (needs_parens) write_id_ch(')', dctl);
   } else {
-    /* Assume it's a dependent name:
-      <source-name>                  # dependent name
-      <source-name> <template-args>  # dependent template-id */
-    /* The <name> is limited to <unqualified-name> or
-       <unqualified-name> <template-args>, but we don't check that. */
-    ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+    /* Assume it's an <unresolved-name>. */
+    ptr = demangle_unresolved_name(ptr, dctl);
   }  /* if */
   return ptr;
 }  /* demangle_expression */
@@ -6231,28 +6188,174 @@ as a prefix to specify a module id for an externalized name.
 }  /* demangle_name */
 
 
-static char *demangle_unresolved_name(char                       *ptr,
-                                      a_func_block               *func_block,
-                                      a_demangle_name_option     options,
-                                      a_decode_control_block_ptr dctl)
+static char *demangle_base_unresolved_name(char                       *ptr,
+                                           a_decode_control_block_ptr dctl)
 /*
-Demangle an <unresolved-name>.
-FIXME.
+Demangle a <base-unresolved-name>:
+
+  <base-unresolved-name> ::= <source-name>                              
+                                        # unresolved name
+                         ::= <source-name> <template-args>              
+                                        # unresolved template-id
+                         ::= on <operator-name>                         
+                                        # unresolved operator-function-id
+                         ::= on <operator-name> <template-args>         
+                                        # unresolved operator template-id
+                         ::= dn <type>                       
+                                        # destructor name; e.g. ~X or ~T::X
+
 */
 {
-  if (*ptr == 'L') {
-    /* FIXME: This is what g++ does -- don't know if it'll be in the rules: */
-    ptr = demangle_literal(ptr, dctl);
-  } else if ((ptr[0] == 'o' && ptr[1] == 'n') ||
-             (ptr[0] == 's' && ptr[1] == 'r') ||
-             (ptr[0] == 'd' && ptr[1] == 'n')) {
-    /* FIXME: better way to do this? */
-    ptr = demangle_expression(ptr, dctl);
+  int          num_operands, length;
+  char         *op_str, *close_str;
+  a_func_block func_block;
+
+  if (*ptr == 'o' && ptr[1] == 'n') {
+    /* Operator name. */
+    ptr += 2;
+    op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
+                               dctl);
+    if (op_str == NULL) {
+      bad_mangled_name(dctl);
+    } else {
+      ptr += length;
+      write_id_str("operator ", dctl);
+      if (strcmp(op_str, "cast") == 0) {
+        /* A conversion operator has a type. */
+        ptr = demangle_type(ptr, dctl);
+      } else {
+        write_id_str(op_str, dctl);
+      }  /* if */
+      if (!dctl->err_in_id && *ptr == 'I') {
+        /* A <template-args> list is present. */
+        ptr = demangle_template_args(ptr, dctl);
+      }  /* if */
+    }  /* if */
+  } else if (*ptr == 'd' && ptr[1] == 'n') {
+    /* ~T() */
+    write_id_ch('~', dctl);
+    ptr = demangle_type(ptr+2, dctl);
+    write_id_str("()", dctl);
   } else {
-    /* The <name> is limited to <unqualified-name> or
-       <unqualified-name> <template-args>, but we don't check that. */
-    /* FIXME: should <template-args> must be emitted before the name? */
-    ptr = demangle_name(ptr, func_block, options, dctl);
+    /* <source-name> */
+    ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+    if (emulate_gnu_abi_bugs) {
+      /* g++ 3.2 puts out the parameter types following the name
+         of a function. */
+      if (*ptr == 'E' || *ptr == '_') {
+        /* No expression or parameter list next. */
+      } else if (*ptr == 'L' ||
+                 get_operator_name(ptr, &num_operands,
+                                   &length, &close_str, dctl) != NULL) {
+        /* Another expression is next, so no parameter list. */
+      } else {
+        /* Scan the parameter list. */
+        dctl->suppress_id_output++;
+        ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
+                                          BFT_PARAMS, dctl);
+        dctl->suppress_id_output--;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return ptr;
+}  /* demangle_base_unresolved_name */
+
+
+static char *demangle_unresolved_name(char                       *ptr,
+                                      a_decode_control_block_ptr dctl)
+/*
+Demangle an <unresolved-name>:
+
+  <unresolved-name> ::= [gs] <base-unresolved-name>                     
+                                # x or (with "gs") ::x
+                    ::= sr <unresolved-type> <base-unresolved-name>     
+                                # T::x / decltype(p)::x
+                    ::= srN <unresolved-type> <unresolved-qualifier-level>+ E
+                        <base-unresolved-name>
+                                # T::N::x /decltype(p)::N::x
+                    ::= [gs] sr <unresolved-qualifier-level>+ E 
+                        <base-unresolved-name>  
+                                # A::x, N::y, A<T>::z; "gs" means leading "::"
+
+  <unresolved-type> ::= <template-param>
+                    ::= <decltype>
+
+  <unresolved-qualifier-level> ::= <source-name> [ <template-args> ]
+
+Note that the "gs" may already have been stripped by the caller (since it
+can also appear at the <expression> level).
+*/
+{
+  a_func_block func_block;
+  a_boolean    gpp_qualified_name = FALSE;
+
+  if (*ptr == 'g' && ptr[1] == 's') {
+    /* Global scope: "::". */
+    write_id_str("::", dctl);
+    ptr += 2;
+  }  /* if */
+  if (*ptr == 's' && ptr[1] == 'r') {
+    /* Scope resolution "::":
+
+        ::= sr <unresolved-type> <base-unresolved-name>     
+        ::= srN <unresolved-type> <unresolved-qualifier-level>+ E
+            <base-unresolved-name>
+        ::= [gs] sr <unresolved-qualifier-level>+ E <base-unresolved-name>  
+
+       Differentiate between the first and third cases by looking to see if
+       the character after the "sr" is numeric (in which case if must be
+       an <unresolved-qualifier-level>).
+       */
+    ptr += 2;
+    if (isdigit((unsigned char)*ptr)) {
+      /* We've got this case:
+         ::= [gs] sr <unresolved-qualifier-level>+ E <base-unresolved-name>  
+         */
+      while (!dctl->err_in_id && *ptr != 'E') {
+        ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+        write_id_str("::", dctl);
+      }  /* while */
+      if (*ptr == 'E') ptr++;
+    } else {
+      /* We've got one of these two cases:
+        ::= sr <unresolved-type> <base-unresolved-name>     
+        ::= srN <unresolved-type> <unresolved-qualifier-level>+ E
+            <base-unresolved-name>
+        Use demangle_type to handle both cases (the N ... E portion will be
+        treated as a nested type in the second case).
+        */
+      if (emulate_gnu_abi_bugs) {
+        /* g++ 3.2 sometimes puts out a qualified name as the second
+           operand.  Look ahead to see whether that form is used.
+           If so, we want to skip over the type but not output it,
+           because the qualified name repeats that type. */
+        char *ptr2;
+        dctl->suppress_id_output++;
+        dctl->suppress_substitution_recording++;
+        ptr2 = demangle_type(ptr, dctl);
+        dctl->suppress_id_output--;
+        dctl->suppress_substitution_recording--;
+        if (*ptr2 == 'N') {
+          gpp_qualified_name = TRUE;
+          /* Scan the type again to get substitutions recorded. */
+          dctl->suppress_id_output++;
+          ptr = demangle_type(ptr, dctl);
+          dctl->suppress_id_output--;
+        }  /* if */
+      }  /* if */
+      if (!gpp_qualified_name) {
+        ptr = demangle_type(ptr, dctl);
+        write_id_str("::", dctl);
+      }  /* if */
+    }  /* if */
+    if (!dctl->err_in_id) {
+      /* The qualifiers have been processed, now only a <base-unresolved-name>
+         remains. */
+      ptr = demangle_base_unresolved_name(ptr, dctl);
+    }  /* if */
+  } else {
+    /* <base-unresolved-name> */
+    ptr = demangle_base_unresolved_name(ptr, dctl);
   }  /* if */
   return ptr;
 }  /* demangle_unresolved_name */
