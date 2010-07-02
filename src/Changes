@@ -56,7 +56,7 @@ cases.
 Internal error in create_nonreal_progenitor_symbol
 
 An internal error could occur in create_nonreal_progenitor_symbol when
-doing a prototype instantiations of a function that contains a reference
+doing a prototype instantiation of a function that contains a reference
 to an undefined member of class that has a local class as a base class.
 Now fixed.
 
