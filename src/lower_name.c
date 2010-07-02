@@ -3899,7 +3899,7 @@ this expression is part of a template-dependent expression.
         /* Change a compiler generated a.operator()(args) into its original
            source form, i.e. a(args). */
         mangle_as_call = TRUE;
-      } /* if */
+      }  /* if */
       /*FALLTHROUGH*/
     case eok_points_to_member_call:
       call_operand = child->next;
@@ -4218,26 +4218,33 @@ is TRUE.
            followed by the type, followed by initializer arguments (if any).
            delete is a standard operation with one expression.
              
-             Onw_1_CiL_2_10Z1Z_1_CiL_1_0O <-- encoding for "new (10) T (0)"
-                                        ^---- "O" to end the encoding.
-                                 ^^^^^^^----- Initializers (if any).
-                              ^^^------------ Initializer count (zero or more).
-                           ^^^--------------- Type of new operation.
-                   ^^^^^^^^------------------ Placement arguments (if any).
-                ^^^-------------------------- Placement argument count (zero or
-                                              more).
-              ^^----------------------------- new operation (nw, nwa).
-             ^------------------------------- "O" for operation.
+             Onwg_1_CiL_2_10Z1Z_1_CiL_1_0O <-- encoding for "::new (10) T (0)"
+                                         ^---- "O" to end the encoding.
+                                  ^^^^^^^----- Initializers (if any).
+                               ^^^------------ Initializer count (zero or more).
+                            ^^^--------------- Type of new operation.
+                    ^^^^^^^^------------------ Placement arguments (if any).
+                 ^^^-------------------------- Placement argument count (zero
+                                               or more).
+                ^----------------------------- "g" indicates global new.
+              ^^------------------------------ new operation (nw, nwa).
+             ^-------------------------------- "O" for operation.
              
-             Odl_1_I0_1IO <-- encoding for "delete p1"
-                        ^---- "O" to end the operation encoding.
-                   ^^^^^----- Argument to delete.
-                ^^^---------- Argument count (always one for delete).
-              ^^------------- delete operation (dl, dla).
-             ^--------------- "O" for operation.
+             Odlg_1_I0_1IO <-- encoding for "::delete p1"
+                         ^---- "O" to end the operation encoding.
+                    ^^^^^----- Argument to delete.
+                 ^^^---------- Argument count (always one for delete).
+                ^------------- "g" indicates global delete.
+              ^^-------------- delete operation (dl, dla).
+             ^---------------- "O" for operation.
         */
         add_to_mangled_name('O', mctl);
-#endif /* IA64_ABI */
+#else /* IA64_ABI */
+        if (expr->variant.new_delete->global_new_or_delete) {
+          /* Indicate that this is a global new/delete. */
+          add_str_to_mangled_name("gs", mctl);
+        }  /* if */
+#endif /* !IA64_ABI */
         if (expr->variant.new_delete->is_new) {
           if (is_array_type(expr->variant.new_delete->type)) {
             name = MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW;
@@ -4250,6 +4257,12 @@ is TRUE.
           name = MANGLING_STRING_FOR_OPERATOR_DELETE;
         }  /* if */
         add_str_to_mangled_name(name, mctl);
+#if !IA64_ABI
+        if (expr->variant.new_delete->global_new_or_delete) {
+          /* Indicate that this is a global new/delete. */
+          add_to_mangled_name('g', mctl);
+        }  /* if */
+#endif /* !IA64_ABI */
         if (expr->variant.new_delete->is_new) {
           /* Skip the first argument to the new operator (the size of the
              type). */
