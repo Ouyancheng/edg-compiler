@@ -897,6 +897,8 @@ end_of_routine:
 }  /* demangle_constant_value */
 
 
+/* FIXME: This should probably be re-named as it demangles more than
+   just constants. */
 static char *demangle_constant(char                       *ptr,
                                a_decode_control_block_ptr dctl)
 /*
@@ -1156,7 +1158,8 @@ Demangle an expression.
       bad_mangled_name(dctl);
     }  /* if */
   } else {
-    /* Within an expression, suppress implicit "&"s during the demangling. */
+    /* Used to demangle literals as well as template parameters, operations.
+       Within an expression, suppress implicit "&"s during the demangling. */
     dctl->suppress_address_of++;
     p = demangle_constant(p, dctl);
     dctl->suppress_address_of--;
@@ -1268,10 +1271,16 @@ position following what was demangled.
       has_variable_number_of_operands = TRUE;
     } else if (strcmp(operator_str, "new") == 0 ||
                strcmp(operator_str, "new[]") == 0) {
-      /* new has an optional initial list of placement expressions, followed
+      /* new has an optional "g" (indicating that ::new was used), followed by
+         an optional initial list of placement expressions, followed
          by a type and then another optional list of initializer
          expressions.  Handle the first expression list and the type here,
          then let the generic loop below handle the initializer list. */
+      /* new may have an optional "g" indicating a global scope new. */
+      if (get_char(p, dctl) == 'g') {
+        p++;
+        write_id_str("::", dctl);
+      }  /* if */
       write_id_str(operator_str, dctl);
       write_id_ch(' ', dctl);
       operator_str = "";
@@ -1288,6 +1297,13 @@ position following what was demangled.
         write_id_str(") ", dctl);
       }  /* if */
       p = demangle_type(p, dctl);
+    } else if (strcmp(operator_str, "delete") == 0 ||
+               strcmp(operator_str, "delete[]") == 0) {
+      /* delete may have an optional "g" indicating a global scope delete. */
+      if (get_char(p, dctl) == 'g') {
+        p++;
+        write_id_str("::", dctl);
+      }  /* if */
     }  /* if */
     /* Get the count of operands. */
     p = get_number_with_optional_underscore(p, &num_operands, dctl);
@@ -5590,6 +5606,10 @@ FIXME: needs updating:
     write_id_ch('~', dctl);
     ptr = demangle_type(ptr+2, dctl);
     write_id_str("()", dctl);
+  } else if (*ptr == 'g' && ptr[1] == 's') {
+    /* global scope: "::".  This prefix precedes new/delete operations. */
+    write_id_str("::", dctl);
+    ptr = demangle_expression(ptr+2, dctl);
   } else if (*ptr == 's' && ptr[1] == 'r') {
     /* Scope resolution "::":
          sr <type> <name>
