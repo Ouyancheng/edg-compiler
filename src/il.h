@@ -285,7 +285,7 @@ Macro to access the parent_scope field of an IL entry.
   ((ptr)->source_corresp.parent_scope)
 
 /*
-Macro that returns whether a parent scope was recorded for the give IL entry.
+Macro that returns whether a parent scope was recorded for the given IL entry.
 (This includes cases where the parent scope is recorded indirectly via an
 entry of type a_local_scope_ref.)
 */
