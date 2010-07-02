@@ -7262,10 +7262,6 @@ result in *result (or an error indication in *rcblock).
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  /* Skip typerefs, but keep dependent decltypes because they will have
-     to be rescanned to get the real type (or detect any errors on the
-     rescan). */
-  alignof_type = skip_typerefs_not_dependent_decltypes(alignof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(alignof_type);
   if (!C_mode() && is_template_dependent_context() &&
