@@ -1855,7 +1855,7 @@ ignored if expr != NULL.
        sizeof/alignof.  Often this substitution has already been made by
        the front end, but this can still occur in cases where the
        sizeof/alignof is a subexpression in a dependent backing expression.
-       Early version of GNU don't do this. */
+       Early versions of GNU don't do this. */
     a_constant           con;
     a_host_large_integer value;
     if (kind == (a_template_param_constant_kind)tpck_sizeof) {
