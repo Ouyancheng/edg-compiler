@@ -188,6 +188,11 @@ extern void extract_constant_from_operand_with_fs_fixup(
                                                      an_operand_ptr operand,
                                                      a_constant     *constant);
 
+extern
+void rescan_selector_of_call(a_rescan_control_block *rcblock,
+                             an_operand_ptr         function_operand,
+                             an_operand_ptr         bound_function_selector);
+
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
 #endif /* GNU_EXTENSIONS_ALLOWED */

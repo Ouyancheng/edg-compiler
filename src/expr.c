@@ -3988,6 +3988,7 @@ to the given locator.
 static void get_locator_for_rescanned_selection_second_operand(
                                 a_type_ptr             class_struct_union_type,
                                 a_rescan_control_block *rcblock,
+                                a_boolean              call_rescan_case,
                                 a_symbol_locator       *locator,
                                 a_boolean              *err)
 /*
@@ -3999,10 +4000,12 @@ operand, possibly a non-class type for a vacuous destructor
 reference).  Produce a symbol locator for the second operand, which is
 basically a name, and put that in *locator.  The locator describes the
 result of looking up the name in the first operand's class, not just
-the name in the abstract.  Set *err to TRUE if there is an error.
+the name in the abstract.  If call_rescan_case is TRUE, rcblock->expr
+is a member call, and the locator produced is for its first operand,
+the function.  Set *err to TRUE if there is an error.
 */
 {
-  an_expr_node_ptr              expr = rcblock->expr, op1, op2;
+  an_expr_node_ptr              expr = rcblock->expr, op1, member_op;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
   a_symbol_ptr                  sym;
@@ -4021,9 +4024,13 @@ the name in the abstract.  Set *err to TRUE if there is an error.
   }  /* if */
   check_assertion(expr != NULL && is_operation_node(expr));
   op1 = expr->variant.operation.operands;
-  op2 = op1->next;
-  if (op2 != NULL) {
-    eriep = get_expr_rescan_info(op2, &rescan_info);
+  if (call_rescan_case) {
+    member_op = op1;
+  } else {
+    member_op = op1->next;
+  }  /* if */
+  if (member_op != NULL) {
+    eriep = get_expr_rescan_info(member_op, &rescan_info);
     is_qualified = eriep->saved_operand.is_qualified_name;
     qualified_member_position = &eriep->saved_operand.position;
   } else {
@@ -4036,7 +4043,7 @@ the name in the abstract.  Set *err to TRUE if there is an error.
     case eok_points_to_field:
       /* A field selection like this names a concrete field.  Get the symbol
          for it and make a locator. */
-      check_assertion(op2->kind == (an_expr_node_kind)enk_field);
+      check_assertion(member_op->kind == (an_expr_node_kind)enk_field);
       if (is_error_operand(&eriep->saved_operand)) {
         *err = TRUE;
         rcblock->error_detected = TRUE;
@@ -4049,19 +4056,23 @@ the name in the abstract.  Set *err to TRUE if there is an error.
         make_locator_for_symbol(sym, locator);
       }  /* if */
       break;
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+      check_assertion(call_rescan_case);
+      /*FALLTHROUGH*/
     case eok_dot_static:
     case eok_points_to_static:
       /* Rescan the second operand, producing an operand that essentially
          names something.  Things like parentheses and lvalue-to-rvalue
          conversion code should be dropped off. */
       sym = NULL;
-      op2 = strip_implicit_operations_for_rescan(
-                                        op2,
+      member_op = strip_implicit_operations_for_rescan(
+                                        member_op,
                                         (an_expr_rescan_info_entry_ptr *)NULL);
-      if (is_constant_node(op2)) {
+      if (is_constant_node(member_op)) {
         /* Most template cases come across as ck_template_param constants
            which we can do substitution on and produce a symbol. */
-        a_constant_ptr con = op2->variant.constant;
+        a_constant_ptr con = member_op->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_template_param) {
           a_constant_ptr member_con = NULL;
           if (con->variant.template_param.kind ==
@@ -4140,12 +4151,12 @@ the name in the abstract.  Set *err to TRUE if there is an error.
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
         need_member_sym_check = FALSE;
-      } else if (is_variable_node(op2)) {
+      } else if (is_variable_node(member_op)) {
         /* Static data member. */
-        sym = symbol_for(op2->variant.variable);
-      } else if (is_routine_node(op2)) {
+        sym = symbol_for(member_op->variant.variable);
+      } else if (is_routine_node(member_op)) {
         /* Static member function. */
-        sym = symbol_for(op2->variant.routine);
+        sym = symbol_for(member_op->variant.routine);
       } else {
         unexpected_condition();
       }  /* if */
@@ -4181,8 +4192,8 @@ handle_vacuous_destructor_call:
       unexpected_condition_str("bad selection operator in rescan");
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (op2 != NULL) {
-    locator->source_position = op2->expr_range.start;
+  if (member_op != NULL) {
+    locator->source_position = member_op->expr_range.start;
   } else
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Do not insert code here. */
@@ -4209,6 +4220,7 @@ end_of_routine:;
 static void scan_field_selection_operator(
                                an_operand             *operand_1,
                                a_rescan_control_block *rcblock,
+                               a_boolean              call_rescan_case,
                                a_boolean              offsetof_case,
                                an_operand             *result,
                                an_operand             *bound_function_selector)
@@ -4220,9 +4232,16 @@ the two operands into an expression, and return an operand for that in
 *bound_function_selector.  If rcblock is non-NULL, redo semantic
 analysis on a previously-scanned expression, and return the result in
 *result and *bound_function_selector (or an error indication in
-*rcblock).  operand_1 is expected to be NULL in that case.  This
-routine is also called to parse a __builtin_offsetof field construct
-(offsetof_case will be TRUE in that case).
+*rcblock).  operand_1 is expected to be NULL in that case.
+If call_rescan_case is TRUE, the rescan is of the implied selection
+under a member call operator (e.g., eok_dot_member_call).
+rcblock->expr points to the call, whose second operand is the first
+operand of the selection, and whose first operand is the second
+operand of the selection.  rcblock->operator_token in that case
+indicates the proper token for the selection, not an operator token
+for the call.  This routine is also called to parse a
+__builtin_offsetof field construct (offsetof_case will be TRUE in that
+case).
 */
 {
   a_boolean             is_arrow_operator;
@@ -4255,8 +4274,10 @@ routine is also called to parse a __builtin_offsetof field construct
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
     /* Pick up the first operand now.  The second (basically a name) will
-       be deciphered a bit later. */
-    make_selection_rescan_operands(rcblock, operand_1, offsetof_case,
+       be deciphered a bit later.  For the call rescan case, this picks
+       up the second operand of the call and returns it as operand_1. */
+    make_selection_rescan_operands(rcblock, operand_1,
+                                   call_rescan_case, offsetof_case,
                                    &operator_position,
                                    &operator_tok_seq_number);
   } else {
@@ -4441,6 +4462,7 @@ routine is also called to parse a __builtin_offsetof field construct
     /* Redoing semantic analysis on a previously-scanned selection. */
     get_locator_for_rescanned_selection_second_operand(class_struct_union_type,
                                                        rcblock,
+                                                       call_rescan_case,
                                                        &locator,
                                                        &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4836,6 +4858,7 @@ nonstatic_member_function:
 static void scan_ptr_to_member_operator(
                                an_operand             *operand_1,
                                a_rescan_control_block *rcblock,
+                               a_boolean              call_rescan_case,
                                an_operand             *result,
                                an_operand             *bound_function_selector)
 /*
@@ -4847,6 +4870,15 @@ two operands into an expression, and return an operand for that in
 analysis on a previously-scanned expression, and return the result
 in *result and *bound_function_selector (or an error indication in
 *rcblock).  operand_1 is expected to be NULL in that case.
+If call_rescan_case is TRUE, the rescan is of the implied selection
+under a pointer-to-member call operator (e.g., eok_dot_pm_call).
+rcblock->expr points to the call, whose second operand is the first
+operand of the selection.  The first operand of the call is the second
+operand of the selection, and it has been rescanned already and is
+provided in *result (that's copied and used as the second operand, and
+then the result is built in the original *result operand).
+rcblock->operator_token in that case indicates the proper token for
+the selection, not an operator token for the call.
 */
 {
   a_token_kind      operator_token;
@@ -4870,9 +4902,21 @@ in *result and *bound_function_selector (or an error indication in
     operator_token = rcblock->operator_token;
     check_assertion(operand_1 == NULL);
     operand_1 = &local_operand_1;
-    make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
-                         &operator_position, &operator_tok_seq_number,
-                         (a_source_position *)NULL);
+    if (call_rescan_case) {
+      /* Rescan for a call.  The second operand of the call is the first
+         operand of the selection. */
+      make_rescan_operands(rcblock, (an_operand *)NULL, operand_1,
+                           (an_operand *)NULL,
+                           &operator_position, &operator_tok_seq_number,
+                           (a_source_position *)NULL);
+      /* The operand passed in is the second operand of the selection. */
+      copy_operand(result, &operand_2);
+    } else {
+      /* Normal case, not a rescan for a call. */
+      make_rescan_operands(rcblock, operand_1, &operand_2, (an_operand *)NULL,
+                           &operator_position, &operator_tok_seq_number,
+                           (a_source_position *)NULL);
+    }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
     operator_token = curr_token;
@@ -5107,8 +5151,67 @@ in *result and *bound_function_selector (or an error indication in
   db_exit();
 }  /* scan_ptr_to_member_operator */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
+void rescan_selector_of_call(a_rescan_control_block *rcblock,
+                             an_operand             *operand,
+                             an_operand             *bound_function_selector)
+/*
+Rescan the selector expression of a call and return it in
+*bound_function_selector, also binding it to the function operand
+"operand".  rcblock->expr is the expression for the call.  Its
+selector expression is copied with substitution of template arguments,
+and then semantic analysis is redone on it and on the implied selection
+operator (e.g., "->") between the selector and the function operand.
+rcblock also gives context information for the template deduction being
+done, e.g., the template argument list being tried.
+*/
+{
+  an_expr_node_ptr call_node = rcblock->expr;
+  a_token_kind     saved_operator_token = rcblock->operator_token;
+  a_boolean        pm_case = FALSE;
+
+  check_assertion(is_operation_node(call_node));
+  /* Determine the type of implied selection operation. */
+  switch (call_node->variant.operation.kind) {
+    case eok_dot_member_call:
+      rcblock->operator_token = tok_period;
+      break;
+    case eok_points_to_member_call:
+      rcblock->operator_token = tok_arrow;
+      break;
+    case eok_dot_pm_call:
+      rcblock->operator_token = tok_period_star;
+      pm_case = TRUE;
+      break;
+    case eok_points_to_pm_call:  
+      rcblock->operator_token = tok_arrow_star;
+      pm_case = TRUE;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (pm_case) {
+    /* ".*" and "->*" pointer-to-member operator cases. */
+    scan_ptr_to_member_operator((an_operand *)NULL, rcblock,
+                                /*call_rescan_case=*/TRUE,
+                                operand,
+                                bound_function_selector);
+  } else {
+    /* "." and "->" operator cases. */
+    /* It's easier to let the operator routine work out the second
+       operand itself (it uses a locator form instead of an operand), so
+       discard the operand already created. */
+    discard_operand(operand);
+    scan_field_selection_operator((an_operand *)NULL, rcblock,
+                                  /*call_rescan_case=*/TRUE,
+                                  /*offsetof_case=*/FALSE,
+                                  operand,
+                                  bound_function_selector);
+  }  /* if */
+  rcblock->operator_token = saved_operator_token;
+}  /* rescan_selector_of_call */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static an_expr_node_ptr make_node_from_property_ref_operand(
                                                            an_operand *operand)
@@ -7538,6 +7641,7 @@ indication in *rcblock).
         if (curr_token == tok_period) {
           scan_field_selection_operator(&operand,
                                         (a_rescan_control_block *)NULL,
+                                        /*call_rescan_case=*/FALSE,
                                         /*offsetof_case=*/TRUE,
                                         &local_result, (an_operand*)NULL);
         } else {
@@ -22796,6 +22900,7 @@ bad_start_of_primary:
       case tok_arrow:
         /* Field selectors. */
         scan_field_selection_operator(&operand, (a_rescan_control_block *)NULL,
+                                      /*call_rescan_case=*/FALSE,
                                       /*offsetof_case=*/FALSE, &local_result,
                                       &local_bound_function_selector);
         break;
@@ -22803,6 +22908,7 @@ bad_start_of_primary:
       case tok_arrow_star:
         /* C++ pointer-to-member operators (.* and ->*). */
         scan_ptr_to_member_operator(&operand, (a_rescan_control_block *)NULL,
+                                    /*call_rescan_case=*/FALSE,
                                     &local_result,
                                     &local_bound_function_selector);
         break;
@@ -24941,13 +25047,16 @@ alternative callable from outside, see rescan_expr_with_substitution.
         { a_boolean offsetof_case =
                                (local_options & EOPT_OPERAND_OF_OFFSETOF) != 0;
           scan_field_selection_operator((an_operand *)NULL, rcblock,
+                                        /*call_rescan_case=*/FALSE,
                                         offsetof_case, result,
                                         bound_function_selector);
         }
         break;
       case tok_period_star:
       case tok_arrow_star:
-        scan_ptr_to_member_operator((an_operand *)NULL, rcblock, result,
+        scan_ptr_to_member_operator((an_operand *)NULL, rcblock,
+                                    /*call_rescan_case=*/FALSE,
+                                    result,
                                     bound_function_selector);
         break;
       case tok_star:

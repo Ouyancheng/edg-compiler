@@ -1496,6 +1496,7 @@ extern a_boolean is_uuidof_expr(an_expr_node_ptr expr,
 extern void make_selection_rescan_operands(
                              a_rescan_control_block  *rcblock,
                              an_operand              *operand_1,
+                             a_boolean               call_rescan_case,
                              a_boolean               offsetof_case,
                              a_source_position       *operator_position,
                              a_token_sequence_number *operator_tok_seq_number);

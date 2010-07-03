@@ -2587,7 +2587,9 @@ void make_rescan_operands(a_rescan_control_block  *rcblock,
 As part of redoing semantic analysis on an expression while doing template
 deduction, extract the operands of the expression given by rcblock->expr
 (an operation node) and return them as operand_1, operand_2, and
-operand_3 (unneeded operands are set to NULL).  Also return the
+operand_3 (unneeded operands are set to NULL; as a special trick, operand_1
+can be NULL to indicate that the first operand should not be rescanned,
+presumably because the caller has done it already).  Also return the
 operator position and operator token sequence number in *operator_position
 and *operator_tok_seq_number.  If operator_position_2 is non-NULL,
 return a secondary operator position (if any) in *operator_position_2.
@@ -2598,16 +2600,20 @@ being done, e.g., the template argument list being tried.
   an_expr_node_ptr              expr = rcblock->expr, op1, op2, op3;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
-  a_local_expr_options_set      local_options = EOPT_NO_OPTIONS;
 
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
-  if (node_operator_is(expr, eok_address_of)) {
-    local_options |= EOPT_OPERAND_OF_ADDRESS_OF;
+  /* Don't process the first operand if the caller has passed operand_1
+     as NULL. */
+  if (operand_1 != NULL) {
+    a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
+    if (node_operator_is(expr, eok_address_of)) {
+      local_options |= EOPT_OPERAND_OF_ADDRESS_OF;
+    }  /* if */
+    make_rescan_operand_full(op1, rcblock, local_options,
+                             operand_1, (an_operand *)NULL);
   }  /* if */
-  make_rescan_operand_full(op1, rcblock, local_options,
-                           operand_1, (an_operand *)NULL);
   op2 = op1->next;
   if (op2 != NULL) {
     make_rescan_operand(op2, rcblock, operand_2);
@@ -2663,36 +2669,10 @@ the call, to be converted to operand form later.
   if (operand->bound_function) {
     check_assertion(node_operator_is(expr, eok_call));
   } else {
-    a_boolean has_selector = FALSE;
-    a_boolean selector_is_pointer = FALSE;
-    switch (expr->variant.operation.kind) {
-      case eok_call:
-        has_selector = FALSE;
-        break;
-      case eok_dot_member_call:
-        has_selector = TRUE;
-        selector_is_pointer = FALSE;
-        break;
-      case eok_points_to_member_call:
-        has_selector = TRUE;
-        selector_is_pointer = TRUE;
-        break;
-      case eok_dot_pm_call:
-        has_selector = TRUE;
-        selector_is_pointer = FALSE;
-        break;
-      case eok_points_to_pm_call:
-        has_selector = TRUE;
-        selector_is_pointer = TRUE;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-    if (has_selector) {
-      make_rescan_operand(args, rcblock, bound_function_selector);
-      bind_member_function_operand_to_selector(bound_function_selector,
-                                               selector_is_pointer,
-                                               operand);
+    if (!node_operator_is(expr, eok_call)) {
+      /* For calls other than eok_call, rescan the selector and bind it to
+         the function operand. */
+      rescan_selector_of_call(rcblock, operand, bound_function_selector);
       args = args->next;
     }  /* if */
   }  /* if */
@@ -2706,6 +2686,7 @@ the call, to be converted to operand form later.
 void make_selection_rescan_operands(
                               a_rescan_control_block  *rcblock,
                               an_operand              *operand_1,
+                              a_boolean               call_rescan_case,
                               a_boolean               offsetof_case,
                               a_source_position       *operator_position,
                               a_token_sequence_number *operator_tok_seq_number)
@@ -2715,13 +2696,16 @@ template deduction, extract the operands of the expression given by
 rcblock->expr (a selection node) and return the first as operand_1.
 (The second operand will be handled later.)  Also return the operator
 position and operator token sequence number in *operator_position and
-*operator_tok_seq_number.  rcblock also gives context information for
-the template deduction being done, e.g., the template argument list
-being tried.  offsetof_case is TRUE if we are handling a field selection
-in a __builtin_offsetof.
+*operator_tok_seq_number.  If call_rescan_case is TRUE, rcblock->expr
+is a member call with an included implied selection; pick up the second
+operand of the call (the selector) and return it as operand_1.
+rcblock also gives context information for the template deduction
+being done, e.g., the template argument list being tried.
+offsetof_case is TRUE if we are handling a field selection in a
+__builtin_offsetof.
 */
 {
-  an_expr_node_ptr              expr = rcblock->expr, op1;
+  an_expr_node_ptr              expr = rcblock->expr, op1, sel_op;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
   a_local_expr_options_set      local_options = EOPT_NO_OPTIONS;
@@ -2729,8 +2713,13 @@ in a __builtin_offsetof.
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
+  if (call_rescan_case) {
+    sel_op = op1->next;
+  } else {
+    sel_op = op1;
+  }  /* if */
   if (offsetof_case) local_options |= EOPT_OPERAND_OF_OFFSETOF;
-  make_rescan_operand_full(op1, rcblock, local_options, operand_1,
+  make_rescan_operand_full(sel_op, rcblock, local_options, operand_1,
                            (an_operand *)NULL);
   get_rescan_operator_positions(eriep, operator_position,
                                 operator_tok_seq_number,
