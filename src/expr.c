@@ -10482,36 +10482,65 @@ indication in *rcblock).
 }  /* scan_new_style_cast */
 
 
-static an_expr_node_ptr cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
-                                            an_operand       *operand)
+static an_expr_node_ptr find_primary_cast_node(
+                                          an_expr_node_ptr   orig_operand_expr,
+                                          a_cast_source_form source_form,
+                                          an_operand         *operand)
 /*
-If there is an expression node associated with operand, it is some form of
-cast expression or an enk_temp_init, and it is not the same as
-orig_operand_expr (which may be NULL) -- i.e., it was added to operand by
-processing that occurred after orig_operand_expr was captured -- return
-that node.  Otherwise, return NULL.
+operand is the result of adding a cast (of source form described by
+source_form) to the original expression orig_operand_expr.  Find and
+return the primary expression node for the cast, or return NULL if
+no such node exists.  orig_operand_expr is used to test for the case
+where nothing is added to the original expression, e.g., for a do-nothing
+cast in some modes.  orig_operand_expr can be NULL.
 */
 {
-  an_expr_node_ptr curr_operand_expr = expr_node_from_operand(operand);
+  an_expr_node_ptr expr = expr_node_from_operand(operand);
   an_expr_node_ptr node_to_return = NULL;
 
-  if (curr_operand_expr != NULL &&
-      curr_operand_expr != orig_operand_expr) {
-    /* eok_parens are not dropped on purpose.  We're looking at a compiler-
-       generated IL sequence for a cast, which wouldn't have parens in it. */
-    if (is_operation_node(curr_operand_expr) &&
-        curr_operand_expr->variant.operation.compiler_generated &&
-        node_operator_is(curr_operand_expr, eok_indirect)) {
-      /* Remove the implicit indirection before checking for a cast. */
-      curr_operand_expr = curr_operand_expr->variant.operation.operands;
+  /* This routine is similar to strip_implicit_operations_for_rescan. */
+  while (expr != NULL && expr != orig_operand_expr) {
+    /* Strip implicit operations above the cast. */
+    if (is_operation_node(expr)) {
+      switch (expr->variant.operation.kind) {
+        case eok_ref_indirect:
+        case eok_array_to_pointer:
+        case eok_lvalue:
+        case eok_lvalue_adjust:
+        case eok_class_rvalue_adjust:
+          /* These operations are always implicit.  Keep stripping. */
+          break;
+        default:
+          /* Something else.  Stop stripping. */
+          goto end_of_loop;
+      }  /* switch */
+      expr = expr->variant.operation.operands;
+    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+      /* An explicit cast is retained.  Also a compound literal. */
+      if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
+      /* Anything else is implicit and stripped. */
+      expr = arg_list_from_dyn_init(dip);
+    } else {
+      break;
     }  /* if */
-    if (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
-        is_cast_operation_node(curr_operand_expr)) {
-      node_to_return = curr_operand_expr;
+  }  /* while */
+end_of_loop:
+  if (expr != NULL && expr != orig_operand_expr) {
+    /* Return only a cast node, a temp-init node, or, for static_cast, a
+       conversion function call. */
+    if (expr->kind == (an_expr_node_kind)enk_temp_init ||
+        is_cast_operation_node(expr) ||
+        (source_form == csf_static_cast &&
+         is_operation_node(expr) &&
+         expr->variant.operation.is_conversion_call)) {
+      check_assertion(!(is_operation_node(expr) &&
+                        expr->variant.operation.compiler_generated));
+      node_to_return = expr;
     }  /* if */
   }  /* if */
   return node_to_return;
-}  /* cast_expr_was_added */
+}  /* find_primary_cast_node */
 
 #if CHECKING
 
@@ -14285,9 +14314,11 @@ indication in *rcblock).
       }  /* if */
     }  /* if */
     copy_operand(&operand, result);
-    { an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+    { an_expr_node_ptr expr = find_primary_cast_node(operand_expression,
+                                                     csf_const_cast,
+                                                     result);
       if (expr != NULL) {
-        if (is_operation_node(expr)) {
+        if (is_cast_operation_node(expr)) {
           /* A node was created that can carry the information that this was a
              const_cast; mark it accordingly. */
           expr->variant.operation.is_const_cast = TRUE;
@@ -14561,23 +14592,20 @@ indication in *rcblock).
   if (err) {
     conv_to_error_operand(result);
   } else if (!ignored) {
-    an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+    an_expr_node_ptr expr = find_primary_cast_node(operand_expression,
+                                                   csf_static_cast,
+                                                   result);
     if (expr != NULL) {
       /* An expression node was created that represents this static_cast:
          mark it as resulting from a static_cast operation. */
-      expr->is_static_cast = TRUE;
+      if (is_cast_operation_node(expr) ||
+          expr->kind == (an_expr_node_kind)enk_temp_init) {
+        expr->is_static_cast = TRUE;
+      }  /* if */
       record_cast_position_in_expr_rescan_info(expr,
                                                &start_position,
                                                &type_position,
                                                type_cast_to);
-    } else if (processed_as_udc) {
-      /* This cast was processed as a user-defined conversion, and probably
-         ended up as a call.  We can't set the is_static_cast flag, but
-         go ahead and record position information on the call. */
-      record_cast_position_in_rescan_info(result,
-                                          &start_position,
-                                          &type_position,
-                                          type_cast_to);
     }  /* if */
 #if CHECKING
     if (cast_to_reference && !processed_as_udc) {
@@ -14759,9 +14787,11 @@ indication in *rcblock).
   if (err) {
     conv_to_error_operand(result);
   } else {
-    an_expr_node_ptr expr = cast_expr_was_added(operand_expression, result);
+    an_expr_node_ptr expr = find_primary_cast_node(operand_expression,
+                                                   csf_reinterpret_cast,
+                                                   result);
     if (expr != NULL) {
-      if (is_operation_node(expr)) {
+      if (is_cast_operation_node(expr)) {
         /* A node was created that can carry the information that this was a
            reinterpret_cast; mark it accordingly. */
         expr->variant.operation.is_reinterpret_cast = TRUE;

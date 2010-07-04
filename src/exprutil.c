@@ -2353,6 +2353,7 @@ that has it.
     }  /* if */
   }  /* if */
   for (;;) {
+    /* This routine is similar to find_primary_cast_node. */
     if (is_operation_node(expr)) {
       if ((expr->variant.operation.compiler_generated &&
            is_cast_operation_node(expr)) ||
