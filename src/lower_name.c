@@ -3445,7 +3445,12 @@ arguments using <source-name> and others with <expr-primary>.
     /* FIXME: this needs much work (and needs to reflect g++'s view of whether
        or not an argument is dependent -- e.g., sizeof(p1) is not dependent
        for mangling purposes according to g++ 4.5, but p1.A::m is). */
-    if (is_template_dependent_type(arguments->type)) {
+    a_boolean         suppress_address_of = FALSE;
+    an_expr_node_ptr  arg = skip_compiler_generated_expressions(arguments,
+                                                         &suppress_address_of);
+    if (arg->kind == (an_expr_node_kind)enk_param_ref) {
+      result = TRUE;
+    } else if (is_template_dependent_type(arg->type)) {
       result = TRUE;
     }  /* if */
   }  /* for */
@@ -4011,13 +4016,9 @@ is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       operand = expr->variant.operation.operands;
 #if ABI_COMPATIBILITY_VERSION >= 402
-      if (node_operator_is(expr, eok_call) ||
-          node_operator_is(expr, eok_dot_member_call) ||
-          node_operator_is(expr, eok_points_to_member_call) ||
+      if (is_call_node(expr) ||
           node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
-          node_operator_is(expr, eok_points_to_vacuous_destructor_call) ||
-          node_operator_is(expr, eok_dot_pm_call) ||
-          node_operator_is(expr, eok_points_to_pm_call)) {
+          node_operator_is(expr, eok_points_to_vacuous_destructor_call)) {
         /* Mangle some type of call operation. */
         mangled_call_operation(expr, in_dependent_expr, mctl);
       } else if (node_operator_is(expr, eok_dot_field) ||
@@ -6694,6 +6695,82 @@ operation; compare mangled_class_name (no "_internal").
 #endif /* !IA64_ABI */
 }  /* mangled_class_name_internal */
 
+#if IA64_ABI
+
+static a_boolean gnu_requires_decltype_mangling(a_type_ptr type)
+/*
+Returns TRUE if the specified type (a decltype typeref) requires decltype
+mangling according to the rules that GNU uses.  The IA-64 ABI states that
+instantiation-dependent operands of decltype are required to be mangled as
+expressions (otherwise the known type can be used).  Early versions of GNU
+used a slightly different criteria for deciding when decltype expression
+mangling was needed and that logic is reflected in this routine.
+*/
+{
+  a_boolean         result;
+  an_expr_node_ptr  expr = decltype_arg(type);
+
+  check_assertion(type->variant.typeref.is_decltype && expr != NULL);
+  if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+    /* The front end believes this decltype is instantiation-dependent, i.e.,
+       it or one of its subexpressions is dependent.  There are some cases
+       where GNU believes such types do not need decltype mangling; each
+       of these is handled below. */
+    result = TRUE;
+    if (expr->kind == (an_expr_node_kind)enk_param_ref &&
+        type->variant.typeref.decltype_expr_not_parenthesized) {
+      /* GNU treats an unparenthesized parameter reference as not needing
+         decltype mangling. */
+      result = FALSE;
+    } else if (expr->kind == (an_expr_node_kind)enk_sizeof ||
+               expr->kind == (an_expr_node_kind)enk_typeid) {
+      /* GNU treats a top level sizeof or typeid as not needing
+         mangling (even if it has a dependent subexpression). */
+      result = FALSE;
+    } else if (expr->kind == (an_expr_node_kind)enk_temp_init &&
+               !is_template_dependent_type(expr->type)) {
+      /* Generally speaking, GNU treats a top level temp_init as not needing
+         decltype mangling (unless its type is dependent). */
+      result = FALSE;
+    } else if (is_constant_node(expr)) {
+      a_constant_ptr  con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        if (con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_sizeof ||
+            con->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_alignof ||
+            con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_typeid) {
+          /* A sizeof, alignof, or typeid doesn't require mangling (even if
+             it has a dependent subexpression). */
+          result = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The expression is not dependent, nor does it contain any dependent
+       subexpressions, nevertheless, in some cases, GNU uses decltype mangling
+       anyway. */
+    result = FALSE;
+    if (is_operation_node(expr)) {
+      if (node_operator_is(expr, eok_call)) {
+        /* All calls are mangled using decltype mangling. */
+        result = TRUE;
+      } else if ((node_operator_is(expr, eok_dot_field) ||
+                  node_operator_is(expr, eok_dot_static) ||
+                  node_operator_is(expr, eok_points_to_static) ||
+                  node_operator_is(expr, eok_points_to_field)) &&
+                 type->variant.typeref.decltype_expr_not_parenthesized) {
+        /* a.m and a->m are mangled even when the types for a and m are known
+           (except when parenthesized). */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* gnu_requires_decltype_mangling */
+
+#endif /* IA64_ABI */
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl)
@@ -6743,7 +6820,11 @@ Add to the mangled name the encoding for the type "type".
     /* Mangle a decltype expression here; decltypes without expressions are
        stripped, as are non-dependent types. */
     if (type->variant.typeref.is_decltype &&
-        type->variant.typeref.is_dependent_decltype_or_typeof) {
+#if IA64_ABI
+        emulate_gnu_abi_bugs ?
+                       gnu_requires_decltype_mangling(type) :
+#endif /* IA64_ABI */
+                       type->variant.typeref.is_dependent_decltype_or_typeof) {
       an_expr_node_ptr decltype_expr = decltype_arg(type);
       check_assertion(decltype_expr != NULL);
       if (type->variant.typeref.decltype_expr_not_parenthesized) {
