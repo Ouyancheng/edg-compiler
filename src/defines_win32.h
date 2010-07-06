@@ -85,6 +85,14 @@ layout randomization (ASLR) on Windows Vista.
 #define USE_FIXED_ADDRESS_FOR_MMAP 1
 #define FIXED_ADDRESS_FOR_MMAP 0X2000000
 
+#if 0
+/*
+Use this define if the type_info from the EDG runtime library is to
+be used.
+*/
+#define MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD 1
+#endif /* 0 */
+
 /* The EDG driver on NT does not support one instantiation per object mode. */
 #define ONE_INSTANTIATION_PER_OBJECT 0
 
