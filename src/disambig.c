@@ -1514,7 +1514,9 @@ restore_token_sequence:
     result = state.may_be_decl;
     wrapup_disambig_state(&state);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
 done:
+#endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
   return result;
 }  /* is_decl_not_expr_full */
