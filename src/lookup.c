@@ -616,6 +616,10 @@ as indicated by is_qualified_name and conversion_type.
     set_namespace_membership(sym, scp, parent_namespace);
   }  /* if */
   sym->is_unknown_function = TRUE;
+  /* Set the decl_scope to the file scope of the current translation unit
+     so that we can determine the translation unit with which this
+     unknown function symbol is associated. */
+  sym->decl_scope = curr_translation_unit->primary_scope->number;
   return sym;
 }  /* create_unknown_function_symbol */
 
@@ -640,7 +644,8 @@ of the symbol header.
   for (sym = orig_sym->header->other_symbols; sym != NULL; sym = sym->next) {
     if (sym->is_unknown_function &&
         sym->variant.constant->variant.template_param.is_qualified_name ==
-                                                           is_qualified_name) {
+                                                           is_qualified_name &&
+        trans_unit_for_symbol(sym) == curr_translation_unit) {
       if (sym->is_class_member == orig_sym->is_class_member) {
         if (sym->is_class_member) {
           if (sym_parent_class(sym) == sym_parent_class(orig_sym)) {
