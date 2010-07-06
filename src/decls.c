@@ -3314,9 +3314,11 @@ created; the caller must set it.
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-    if (gcc_mode && gnu_version < 30400 && scp->assoc_info != NULL) {
-      /* In GNU C mode, block-external declarations declared in other function
-         scopes need not be compatible with the current declaration. */
+    if (gcc_mode && scp->assoc_info != NULL &&
+        (gnu_version < 30400 || gnu_version >= 40000)) {
+      /* In most GNU C modes (GCC 3.4.x appears to be an exception), block-
+         external declarations declared in other function scopes need not be
+         compatible with the current declaration. */
       a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
       a_boolean     is_local_to_function;
       if (scope_depth_of_symbol(prev_sym, &is_local_to_function) ==

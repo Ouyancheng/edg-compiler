@@ -4153,6 +4153,17 @@ caused the assertion failure:
     f(3);
   }
 
+[ EDGcpfe/10810: While an error is issued in the example above when
+gnu_version >= 30400, only a warning is issued if one of the conflicting
+declarations is implicit and gnu_version >= 40000.  For example:
+
+  void g(void) { f(1); }  // Implicit declaration with "int" return type.
+  void h(void) {
+    void f(int);  // Conflicting type not an error when gnu_version >= 40000.
+    f(2);
+  }
+]
+
 
 10/29/09 [EDGcpfe/10161]
 Saving backing expressions for constants when IL lowering is done
