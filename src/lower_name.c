@@ -6818,13 +6818,15 @@ Add to the mangled name the encoding for the type "type".
     }  /* if */
 #endif /* DO_IL_LOWERING */
     /* Mangle a decltype expression here; decltypes without expressions are
-       stripped, as are non-dependent types. */
+       stripped, as are non-dependent types.  GNU has a slightly different
+       interpretation of when decltype mangling is needed. */
     if (type->variant.typeref.is_decltype &&
+        (
 #if IA64_ABI
-        emulate_gnu_abi_bugs ?
+         emulate_gnu_abi_bugs ?
                        gnu_requires_decltype_mangling(type) :
 #endif /* IA64_ABI */
-                       type->variant.typeref.is_dependent_decltype_or_typeof) {
+                       type->variant.typeref.is_dependent_decltype_or_typeof)) {
       an_expr_node_ptr decltype_expr = decltype_arg(type);
       check_assertion(decltype_expr != NULL);
       if (type->variant.typeref.decltype_expr_not_parenthesized) {
