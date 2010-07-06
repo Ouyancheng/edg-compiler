@@ -2588,12 +2588,12 @@ void make_rescan_operands(a_rescan_control_block  *rcblock,
 As part of redoing semantic analysis on an expression while doing template
 deduction, extract the operands of the expression given by rcblock->expr
 (an operation node) and return them as operand_1, operand_2, and
-operand_3 (unneeded operands are set to NULL; as a special trick, operand_1
-can be NULL to indicate that the first operand should not be rescanned,
-presumably because the caller has done it already).  Also return the
-operator position and operator token sequence number in *operator_position
-and *operator_tok_seq_number.  If operator_position_2 is non-NULL,
-return a secondary operator position (if any) in *operator_position_2.
+operand_3 (unneeded operands are set to NULL; the caller can use that
+also to rescan only selected operands, e.g., skip operand 1 but rescan
+operands 2 and 3).  Also return the operator position and operator
+token sequence number in *operator_position and
+*operator_tok_seq_number.  If operator_position_2 is non-NULL, return
+a secondary operator position (if any) in *operator_position_2.
 rcblock also gives context information for the template deduction
 being done, e.g., the template argument list being tried.
 */
@@ -2605,8 +2605,6 @@ being done, e.g., the template argument list being tried.
   check_assertion(expr != NULL && is_operation_node(expr));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
-  /* Don't process the first operand if the caller has passed operand_1
-     as NULL. */
   if (operand_1 != NULL) {
     a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
     if (node_operator_is(expr, eok_address_of)) {
@@ -2617,10 +2615,10 @@ being done, e.g., the template argument list being tried.
   }  /* if */
   op2 = op1->next;
   if (op2 != NULL) {
-    make_rescan_operand(op2, rcblock, operand_2);
+    if (operand_2 != NULL) make_rescan_operand(op2, rcblock, operand_2);
     op3 = op2->next;
     if (op3 != NULL) {
-      make_rescan_operand(op3, rcblock, operand_3);
+      if (operand_3 != NULL) make_rescan_operand(op3, rcblock, operand_3);
     }  /* if */
   }  /* if */
   get_rescan_operator_positions(eriep, operator_position,
