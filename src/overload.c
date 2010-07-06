@@ -15698,6 +15698,11 @@ used only in C++ mode.
     p_ambiguity_list = &ambiguity_list;
   }  /* if */
   clear_conv_descr(conv);
+  if (is_indefinite_function_operand(op2)) {
+    /* Can't convert to an indefinite function operand. */
+    possible = FALSE;
+    goto end_of_routine;
+  }  /* if */
   if (is_an_lvalue(op2)) {
     a_boolean ref_to_const, ref_to_const_volatile;
     a_boolean binding_to_rvalue_allowed, dropping_qualifiers;
@@ -15849,6 +15854,7 @@ used only in C++ mode.
     }  /* if */
     conv_to_error_operand(op1);
   }  /* if */
+end_of_routine:
   return possible;
 }  /* conditional_operator_conversion_possible */
 
