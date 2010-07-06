@@ -3624,6 +3624,7 @@ static void scan_selection_second_operand(
                             an_operand        *operand_1,
                             a_type_ptr        class_struct_union_type,
                             a_boolean         is_arrow_operator,
+                            a_boolean         offsetof_case,
                             a_symbol_locator  *locator,
                             a_type_ptr        *updated_class_type,
                             a_boolean         *err)
@@ -3635,14 +3636,15 @@ class_struct_union_type gives the type of the first operand (with
 some vacuous destructor cases it may not be a class type, and it might
 be NULL in some error cases.  It does have cv-qualifiers stripped off,
 however.).  The operator is "->" if is_arrow_operator is TRUE.  The
-second operand is basically a name.  Return a locator for that name in
-*locator.  (For vacuous destructor cases, the locator will be set to
-describe the vacuous destructor name.)  The locator describes the
-result of looking up the name in the first operand's class, not just
-the name in the abstract.  *updated_class_type will be returned
-non-NULL if this routine wants to give the caller a new type to use
-for class_struct_union_type (that's used for some obscure pcc mode
-cases).  Set *err to TRUE if there is an error.
+selection is implicit in a builtin offsetof operation if offsetof_case
+is TRUE.  The second operand is basically a name.  Return a locator
+for that name in *locator.  (For vacuous destructor cases, the locator
+will be set to describe the vacuous destructor name.)  The locator
+describes the result of looking up the name in the first operand's
+class, not just the name in the abstract.  *updated_class_type will be
+returned non-NULL if this routine wants to give the caller a new type
+to use for class_struct_union_type (that's used for some obscure pcc
+mode cases).  Set *err to TRUE if there is an error.
 */
 {
   an_identifier_options_set
@@ -3698,7 +3700,13 @@ cases).  Set *err to TRUE if there is an error.
        position of the "A". */
     member_position = locator_for_curr_id.source_position;
     qualified_member_position = pos_curr_token;
-    if (locator_for_curr_id.is_vacuous_destructor_reference) {
+    if (offsetof_case &&
+        locator_for_curr_id.is_destructor_name) {
+      /* A destructor name is not allowed as a field name for the offsetof
+         case. */
+      expr_pos_error(ec_exp_identifier, &pos_curr_token);
+      *err = TRUE;
+    } else if (locator_for_curr_id.is_vacuous_destructor_reference) {
       /* We have something like p->int::~int, a reference to a vacuous
          destructor.  Also p->A::~A(), where A is a class without a
          destructor. */
@@ -4445,6 +4453,7 @@ case).
     scan_selection_second_operand(operand_1,
                                   class_struct_union_type,
                                   is_arrow_operator,
+                                  offsetof_case,
                                   &locator,
                                   &updated_class_type,
                                   &err);
