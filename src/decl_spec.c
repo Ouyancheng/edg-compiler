@@ -3721,8 +3721,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
        templates correctly.)  At this point we should not be in a template
        declaration scope, unless an earlier syntax error caused us to confuse
        the intended construct; in that case a diagnostic has been or will be
-       issued elsewhere. */
-    if (depth_template_declaration_scope == NO_SCOPE_DEPTH &&
+       issued elsewhere.  Normally there should not be a function scope
+       nested in a template declaration scope, but this can sometimes occur
+       in error cases.   In such cases, do the fixup in case the function
+       contained a local class. */
+    if ((depth_template_declaration_scope == NO_SCOPE_DEPTH ||
+         depth_innermost_function_scope > depth_template_declaration_scope) &&
         !(microsoft_bugs &&
           dps->declared_storage_class == (a_storage_class)sc_typedef)) {
       /* In Microsoft bugs mode, the typedef is processed before member
