@@ -137,6 +137,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
 #define MANGLING_STRING_FOR_DYNAMIC_CAST "dc"
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
+#define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "Da"
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
@@ -240,6 +241,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
 #define MANGLING_STRING_FOR_DYNAMIC_CAST "dc"
 #define MANGLING_STRING_FOR_OPERATOR_DOT_STAR "ds"
+#define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "u"
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "rl"
@@ -3969,20 +3971,20 @@ expression.
       case eok_dot_static:
       case eok_dot_member_call:
       case eok_dot_vacuous_destructor_call:
-        add_str_to_mangled_name("dt", mctl);
+        add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
         break;
       case eok_points_to_field:
       case eok_points_to_static:
       case eok_points_to_member_call:
       case eok_points_to_vacuous_destructor_call:
-        add_str_to_mangled_name("pt", mctl);
+        add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_ARROW, mctl);
         break;
       case eok_dot_pm_call:
-        add_str_to_mangled_name("ds", mctl);
+        add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT_STAR, mctl);
         use_unresolved_name_mangling = FALSE;
         break;
       case eok_points_to_pm_call:
-        add_str_to_mangled_name("pm", mctl);
+        add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_ARROW_STAR, mctl);
         use_unresolved_name_mangling = FALSE;
         break;
 #if CHECKING
