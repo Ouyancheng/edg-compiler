@@ -3315,10 +3315,15 @@ created; the caller must set it.
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
     if (gcc_mode && scp->assoc_info != NULL &&
-        (gnu_version < 30400 || gnu_version >= 40000)) {
-      /* In most GNU C modes (GCC 3.4.x appears to be an exception), block-
-         external declarations declared in other function scopes need not be
-         compatible with the current declaration. */
+        (gnu_version < 30400 ||
+         (gnu_version >= 40000 &&
+          is_function && ext_sym_kind == ext_sym->kind &&
+          (is_implicit_declaration ||
+           esdp->variant.routine.is_implicit_declaration)))) {
+      /* In GCC 3.3.x and earlier, block-external declarations declared in
+         other function scopes are not required to be compatible with the
+         current declaration.  GCC 4.0 and later only issue a warning if one
+         of the declarations is an implicit function declaration. */
       a_symbol_ptr  prev_sym = (a_symbol_ptr)scp->assoc_info;
       a_boolean     is_local_to_function;
       if (scope_depth_of_symbol(prev_sym, &is_local_to_function) ==
