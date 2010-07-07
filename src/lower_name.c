@@ -3547,48 +3547,52 @@ mangling was needed and that logic is reflected in this routine.
   a_boolean         result;
   an_expr_node_ptr  expr = decltype_arg(type);
 
-  check_assertion(type->variant.typeref.is_decltype && expr != NULL);
-  if (type->variant.typeref.is_dependent_decltype_or_typeof) {
-    /* The front end believes this decltype is instantiation-dependent, i.e.,
-       it or one of its subexpressions is dependent.  There are some cases
-       where GNU believes such types do not need decltype mangling; each
-       of these is handled below. */
-    if (expr->kind == (an_expr_node_kind)enk_param_ref &&
-        type->variant.typeref.decltype_expr_not_parenthesized) {
-      /* GNU treats an unparenthesized parameter reference as not needing
-         decltype mangling. */
-      result = FALSE;
-    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-      /* Conversions don't need mangling, unless the type they're converting
-         to is dependent.  For example, A() doesn't require mangling, but
-         A<sizeof(p)>() does. */
-      result = is_template_dependent_type(expr->type);
-    } else if (is_operation_node(expr) &&
-               node_operator_is(expr, eok_call)) {
-      /* Call operations are always mangled. */
-      result = TRUE;
-    } else {
-      /* For most expressions, look at the expression to see if it meets GNU's
-         requirements for decltype mangling. */
-      result = is_gnu_dependent_expression(expr);
-    }  /* if */
-  } else {
-    /* The expression is not dependent, nor does it contain any dependent
-       subexpressions, nevertheless, in some cases, GNU uses decltype mangling
-       anyway. */
+  check_assertion(type->variant.typeref.is_decltype);
+  if (expr == NULL) {
     result = FALSE;
-    if (is_operation_node(expr)) {
-      if (node_operator_is(expr, eok_call)) {
-        /* All calls are mangled using decltype mangling. */
+  } else {
+    if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+      /* The front end believes this decltype is instantiation-dependent, i.e.,
+         it or one of its subexpressions is dependent.  There are some cases
+         where GNU believes such types do not need decltype mangling; each
+         of these is handled below. */
+      if (expr->kind == (an_expr_node_kind)enk_param_ref &&
+          type->variant.typeref.decltype_expr_not_parenthesized) {
+        /* GNU treats an unparenthesized parameter reference as not needing
+           decltype mangling. */
+        result = FALSE;
+      } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+        /* Conversions don't need mangling, unless the type they're converting
+           to is dependent.  For example, A() doesn't require mangling, but
+           A<sizeof(p)>() does. */
+        result = is_template_dependent_type(expr->type);
+      } else if (is_operation_node(expr) &&
+                 node_operator_is(expr, eok_call)) {
+        /* Call operations are always mangled. */
         result = TRUE;
-      } else if ((node_operator_is(expr, eok_dot_field) ||
-                  node_operator_is(expr, eok_dot_static) ||
-                  node_operator_is(expr, eok_points_to_static) ||
-                  node_operator_is(expr, eok_points_to_field)) &&
-                 type->variant.typeref.decltype_expr_not_parenthesized) {
-        /* a.m and a->m are mangled even when the types for a and m are known
-           (except when parenthesized). */
-        result = TRUE;
+      } else {
+        /* For most expressions, look at the expression to see if it meets
+           GNU's requirements for decltype mangling. */
+        result = is_gnu_dependent_expression(expr);
+      }  /* if */
+    } else {
+      /* The expression is not dependent, nor does it contain any dependent
+         subexpressions, nevertheless, in some cases, GNU uses decltype
+         mangling anyway. */
+      result = FALSE;
+      if (is_operation_node(expr)) {
+        if (node_operator_is(expr, eok_call)) {
+          /* All calls are mangled using decltype mangling. */
+          result = TRUE;
+        } else if ((node_operator_is(expr, eok_dot_field) ||
+                    node_operator_is(expr, eok_dot_static) ||
+                    node_operator_is(expr, eok_points_to_static) ||
+                    node_operator_is(expr, eok_points_to_field)) &&
+                   type->variant.typeref.decltype_expr_not_parenthesized) {
+          /* a.m and a->m are mangled even when the types for a and m are known
+             (except when parenthesized). */
+          result = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
