@@ -3754,7 +3754,6 @@ expression that was used to select expr (NULL if no selector was used).
                                          suppress_operation_indicator,
                                          mctl);
           has_been_mangled = TRUE;
-          /* FIXME: Can there be template arguments here? */
         } else {
           scp = &expr->variant.constant->source_corresp;
         }  /* if */
@@ -3764,7 +3763,6 @@ expression that was used to select expr (NULL if no selector was used).
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
           /* FIXME: Better way to detect destructor? */
-          /* FIXME: How to emit template arguments here? */
           mangled_destructor_name(scp_parent_class(
                                       &expr->variant.constant->source_corresp),
                                   mctl);
@@ -3852,15 +3850,25 @@ expression that was used to select expr (NULL if no selector was used).
   if (scp != NULL) {
     /* Encode this entity with a "spelling" (i.e., <source-name> for IA-64
        ABI). */
+#if !IA64_ABI
+    a_length_reservation length_reservation;
+    reserve_space_for_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
     str = unmangled_or_fabricated_name_of(scp);
     check_assertion(str != NULL);
-    mangled_name_with_length(str, mctl);
+#if IA64_ABI
+    add_number_to_mangled_name((unsigned long)strlen(str), mctl);
+#endif /* IA64_ABI */
+    add_str_to_mangled_name(str, mctl);
     has_been_mangled = TRUE;
-  }  /* if */
-  if (template_arg_list != NULL) {
-    /* Put out the template argument list, if any. */
-    mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
-                               /*old_form=*/FALSE, mctl);
+    if (template_arg_list != NULL) {
+      /* Put out the template argument list, if any. */
+      mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
+                                 /*old_form=*/FALSE, mctl);
+    }  /* if */
+#if !IA64_ABI
+    fill_in_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
   }  /* if */
   if (!has_been_mangled) {
     /* This isn't a special case, provide usual mangling for the expression. */
