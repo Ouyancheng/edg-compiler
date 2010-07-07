@@ -1,5 +1,26 @@
 Version 4.2
 
+7/7/10   [EDGcpfe/10810]
+GNU C compatibility: Incompatible block-extern and implicit declarations
+
+GNU C sometimes permits two block-extern declarations of the same function
+to have incompatible types.  The changes for EDGcpfe/10053 (entry of 10/30/09)
+restricted this behavior to gnu_version < 30400.  GCC 4.x, however, also
+allows a block-extern declaration that is incompatible with an implicit
+declaration: This is now emulated when gnu_version >= 40000.  For example:
+
+  void g(void) { f(1); }  // Implicit declaration with "int" return type.
+  void h(void) {
+    void f(int);  // Conflicting type not an error when gnu_version >= 40000.
+    f(2);
+  }
+
+The example above was accepted in all GNU C modes with version 4.1 of the
+front end, but the changes for EDGcpfe/10053 triggered an error when
+gnu_version >= 30400.  Now the example is accepted again (with a warning)
+when gnu_version >= 40000.
+
+
 7/1/10   [EDGcpfe/10800]
 GNU C++ mode: call of member of current class is falsely considered dependent
 as a call argument
@@ -4153,16 +4174,7 @@ caused the assertion failure:
     f(3);
   }
 
-[ EDGcpfe/10810: While an error is issued in the example above when
-gnu_version >= 30400, only a warning is issued if one of the conflicting
-declarations is implicit and gnu_version >= 40000.  For example:
-
-  void g(void) { f(1); }  // Implicit declaration with "int" return type.
-  void h(void) {
-    void f(int);  // Conflicting type not an error when gnu_version >= 40000.
-    f(2);
-  }
-]
+[ See also Changes entry for EDGcpfe/10810. ]
 
 
 10/29/09 [EDGcpfe/10161]
