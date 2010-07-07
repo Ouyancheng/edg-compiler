@@ -21,7 +21,7 @@ gnu_version >= 30400.  Now the example is accepted again (with a warning)
 when gnu_version >= 40000.
 
 
-7/1/10   [EDGcpfe/10800]
+7/2/10   [EDGcpfe/10800]
 GNU C++ mode: call of member of current class is falsely considered dependent
 as a call argument
 
@@ -47,7 +47,7 @@ GNU C++ mode.
   }
 
 
-7/1/10   [EDGcpfe/10793]
+7/2/10   [EDGcpfe/10793]
 Nonreal member name fails to bind to reference-typed nontype template parameter
 
 A spurious error was issued on a use of a member of a template parameter
