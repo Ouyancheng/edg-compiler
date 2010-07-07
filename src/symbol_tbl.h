@@ -4171,7 +4171,8 @@ only be used in C++ mode.
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr) ||               \
      (!microsoft_mode && (!gpp_mode || gnu_version < 30400)))) ||     \
-   ((!gpp_mode || gnu_version < 30400) && is_enum_symbol(sym)))
+   ((!gpp_mode || gnu_version < 30400 || enum_qualifiers_enabled) &&  \
+    is_enum_symbol(sym)))
 
 /*
 Return TRUE if sym represents an entity that can be used as the qualifier
