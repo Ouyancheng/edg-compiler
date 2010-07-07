@@ -1722,7 +1722,7 @@ typedef struct a_name_reference {
 		qualifier;
 			/* Points to a description of the class or namespace
 			   qualifier portion of the name.  NULL if there is
-			   such no qualifier. */
+			   no such qualifier. */
   long		num_template_arguments;
 			/* If is_template_id is TRUE, this is the number of
 			   template arguments used in the last component of
