@@ -5884,10 +5884,20 @@ an argument of a call in gpp mode even though the standard says it's not.
     if (is_operation_node(expr) &&
         !expr->variant.operation.compiler_generated) {
       an_expr_node_ptr potential_this = NULL;
+      an_expr_node_ptr op1 = expr->variant.operation.operands;
       if (node_operator_is(expr, eok_points_to_field)) {
-        potential_this = expr->variant.operation.operands;
+        potential_this = op1;
       } else if (node_operator_is(expr, eok_points_to_member_call)) {
-        potential_this = expr->variant.operation.operands->next;
+        potential_this = op1->next;
+      } else if (node_operator_is(expr, eok_call)) {
+        /* Look for a call of a static member function of the current class.
+           Note that conv_expr_function_designator_to_ptr_to_function forces
+           such functions to be (value-)dependent. */
+        if (is_constant_node(op1) &&
+            op1->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+          result = TRUE;
+        }  /* if */
       }  /* if */
       if (potential_this != NULL &&
           is_variable_node(potential_this) &&
