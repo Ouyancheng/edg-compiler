@@ -7142,7 +7142,10 @@ possibility.
             a_routine_ptr         rp = sym->variant.routine.ptr;
             a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
-            name_ref =qualifiable_name_reference(locator, &rp->source_corresp);
+            if (record_name_references_in_context()) {
+              name_ref = qualifiable_name_reference(locator,
+                                                    &rp->source_corresp);
+            }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
@@ -8982,12 +8985,14 @@ implicitly declared member functions.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
 #if RECORD_FORM_OF_NAME_REFERENCE
-      /* A definition is always the primary declaration.  Record the form of
-         the associated declarator. */
-      a_name_reference_ptr
-        name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
-      if (name_ref != NULL) {
-        name_ref->used_in_primary_declarator = TRUE;
+      if (record_name_references_in_context()) {
+        /* A definition is always the primary declaration.  Record the form of
+           the associated declarator. */
+        a_name_reference_ptr
+          name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
+        if (name_ref != NULL) {
+          name_ref->used_in_primary_declarator = TRUE;
+        }  /* if */
       }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       /* For a definition enter the function type as the "declared_type" in
@@ -9031,7 +9036,9 @@ implicitly declared member functions.
       an_sssd_flag_set      sssd_flags;
       a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
-      name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
+      if (record_name_references_in_context()) {
+        name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
+      }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (func_info->is_movable_member_or_friend_def) {
@@ -10064,7 +10071,9 @@ specific information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if RECORD_FORM_OF_NAME_REFERENCE
-  name_ref = qualifiable_name_reference(locator, &var->source_corresp);
+  if (record_name_references_in_context()) {
+    name_ref = qualifiable_name_reference(locator, &var->source_corresp);
+  }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   { an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED

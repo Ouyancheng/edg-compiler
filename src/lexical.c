@@ -9141,9 +9141,11 @@ position of the __if_exists or __if_not_exists token.
       msiep->is_if_exists = is_if_exists;
       msiep->pending = TRUE;
 #if RECORD_FORM_OF_NAME_REFERENCE
-      msiep->name_reference = qualifiable_name_reference(
+      if (record_name_references_in_context()) {
+        msiep->name_reference = qualifiable_name_reference(
                                              &locator_for_curr_id,
                                              (a_source_correspondence*)entity);
+      }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       add_to_ms_if_exists_list(msiep, decl_scope_level);
       add_to_source_sequence_list((char *)msiep,
@@ -15093,16 +15095,18 @@ selection operator, in which case it points to the type of the left operand.
           mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
-        /* Create an entry that describes this qualifier.  Find a previously
-           created entry if possible. */
-        if (err) {
-          /* Don't try to build a qualifier if an error occurred. */
-          name_qualifier = NULL;
-        } else if (qualifier_is_super) {
-          /* No name qualifier entry is created for the __super level. */
-        } else {
-          make_name_qualifier(&name_qualifier, qualifier_sym, qualifier_type,
-                              qualifier_namespace);
+        if (record_name_references_in_context()) {
+          /* Create an entry that describes this qualifier.  Find a previously
+             created entry if possible. */
+          if (err) {
+            /* Don't try to build a qualifier if an error occurred. */
+            name_qualifier = NULL;
+          } else if (qualifier_is_super) {
+            /* No name qualifier entry is created for the __super level. */
+          } else {
+            make_name_qualifier(&name_qualifier, qualifier_sym, qualifier_type,
+                                qualifier_namespace);
+          }  /* if */
         }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Skip over the class-name, and the "::".  After the two get_token

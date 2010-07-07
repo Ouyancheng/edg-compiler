@@ -2550,7 +2550,10 @@ __extension__.
   a_name_reference_ptr  name_ref = NULL;
 
 #if RECORD_FORM_OF_NAME_REFERENCE
-  name_ref = qualifiable_name_reference(locator, &class_type->source_corresp);
+  if (record_name_references_in_context()) {
+    name_ref = qualifiable_name_reference(locator,
+                                          &class_type->source_corresp);
+  }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (!is_definition) {
     /* Set the first_declaration flag in the associated source-sequence
@@ -3539,8 +3542,10 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         an_sssd_flag_set      flags = SSSD_FIRST_DECLARATION;
         a_name_reference_ptr  name_ref = NULL;
 #if RECORD_FORM_OF_NAME_REFERENCE
-        name_ref = qualifiable_name_reference(&locator,
-                                              &class_type->source_corresp);
+        if (record_name_references_in_context()) {
+          name_ref = qualifiable_name_reference(&locator,
+                                                &class_type->source_corresp);
+        }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_EXTENSIONS_ALLOWED
         if (marked_as_gnu_extension) {
@@ -4422,8 +4427,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         /* Set the first_declaration flag in the associated source-sequence
            secondary declaration entry. */
 #if RECORD_FORM_OF_NAME_REFERENCE
-        name_ref = qualifiable_name_reference(&locator,
-                                              &enum_type->source_corresp);
+        if (record_name_references_in_context()) {
+          name_ref = qualifiable_name_reference(&locator,
+                                                &enum_type->source_corresp);
+        }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         (void)set_src_seq_secondary_decl_fields((char *)enum_type,
                                                 (a_type_ptr)NULL, name_ref,

@@ -5943,7 +5943,9 @@ for use in generating cross-reference output describing this declaration.
      entity is declared in a local scope and a sublist is generated). */
   reload_source_sequence_entry(dps);
 #if RECORD_FORM_OF_NAME_REFERENCE
-  name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
+  if (record_name_references_in_context()) {
+    name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
+  }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     an_sssd_flag_set  flags = SSSD_NO_FLAGS;
@@ -7817,7 +7819,9 @@ skip_overloading:;
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
 #if RECORD_FORM_OF_NAME_REFERENCE
-  name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
+  if (record_name_references_in_context()) {
+    name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
+  }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (is_function_def) {
     /* The defining declaration of the function.  Set a pointer to the

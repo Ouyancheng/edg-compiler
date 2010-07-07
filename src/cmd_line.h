@@ -732,6 +732,13 @@ EXTERN a_boolean
 			/* TRUE if Microsoft and Sun in-class specializations
 			   should be allowed. */
 
+EXTERN a_boolean
+		record_form_of_name_reference;
+			/* TRUE if the form of all name references should be
+			   recorded in the IL.  When this is FALSE, some
+			   name references may still be recorded (e.g.,
+			   if needed for ABI purposes). */
+
 typedef enum /*a_template_instantiation_mode*/ {
   /* Defines the methods of handling template instantiation.  Used to
      determine which template functions and member functions of

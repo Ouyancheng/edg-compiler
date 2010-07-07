@@ -108,7 +108,8 @@ of a default argument expression, mark the new entry the same way.
   if (saved_stack != NULL && expr_stack != NULL) {
     if (saved_stack->next_stack_push_considered_same_expression) {
       transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
-                                                       saved_stack, expr_stack);
+                                                       saved_stack,
+                                                       expr_stack);
     } else if (saved_stack->scope_number != NO_SCOPE_NUMBER &&
                saved_stack->scope_number == expr_stack->scope_number) {
       transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
@@ -2778,7 +2779,8 @@ are expected to be NULL in that case.
 #if RECORD_FORM_OF_NAME_REFERENCE
         if (rcblock == NULL &&
             !operand->name_reference_set &&
-            locator_for_curr_id.is_qualified_name) {
+            locator_for_curr_id.is_qualified_name &&
+            record_name_references_in_context()) {
           /* Remember the form of the name reference (it was set in
              scan_field_selection_operator for cases in which the object
              expression is explicit). */
@@ -6137,6 +6139,7 @@ error indication in *rcblock).
         }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
         if (rcblock == NULL &&
+            record_name_references_in_context() &&
             is_constant_operand(result) &&
             result->variant.constant.kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member) {

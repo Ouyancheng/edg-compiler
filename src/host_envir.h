@@ -927,26 +927,20 @@ is more compact since there is one fewer field in IL entries.
 #endif /* ifndef RECORD_SCOPE_DEPTH_IN_IL */
 
 /*
-Flag that is TRUE if the front end should record information about the
-form of name references in the IL.  This information is used by the C++
-generating back end so that names can be output more closely to the
-form specified in the source program.
+Flag that is TRUE if, by default, the front end should record information
+about the form of name references in the IL.  This information is used by
+the C++ generating back end so that names can be output more closely to the
+form specified in the source program.  Even when not recorded by default,
+name references are sometimes recorded in certain template contexts so that
+the information is available for name mangling purposes.
 */
-#ifndef RECORD_FORM_OF_NAME_REFERENCE
+#ifndef DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 #if BACK_END_IS_CP_GEN_BE
-#define RECORD_FORM_OF_NAME_REFERENCE TRUE
+#define DEFAULT_RECORD_FORM_OF_NAME_REFERENCE TRUE
 #else /* !BACK_END_IS_CP_GEN_BE */
-#define RECORD_FORM_OF_NAME_REFERENCE FALSE
+#define DEFAULT_RECORD_FORM_OF_NAME_REFERENCE FALSE
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-
-#if RECORD_FORM_OF_NAME_REFERENCE && COMPILE_MULTIPLE_TRANSLATION_UNITS
-/* To change this, one would have to (at least) enhance trans_copy.c
-   so that it would handle form-of-reference lists attached to the
-   source correspondence entry. */
- #error -- RECORD_FORM_OF_NAME_REFERENCE cannot be used when \
-           COMPILE_MULTIPLE_TRANSLATION_UNITS is TRUE
-#endif /* RECORD_FORM_OF_NAME_REFERENCE && COMPILE_MULTIPLE_TRANSLATION_UNITS*/
+#endif /* DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
 
 /*
 Previously, a flag REPRESENT_EMPTY_STATEMENTS_IN_IL determined how empty

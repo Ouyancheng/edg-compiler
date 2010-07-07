@@ -2440,6 +2440,8 @@ the scope being pushed.
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_class_specialization  = FALSE;
   ssep->in_template_deduction_context = FALSE;
+  ssep->record_form_of_name_reference = kind == (a_scope_kind)sck_file &&
+                                        record_form_of_name_reference;
   ssep->defer_access_checks      = FALSE;
   ssep->nested_instantiation     = FALSE;
   ssep->is_try_block             = FALSE;
@@ -2664,6 +2666,8 @@ the scope being pushed.
   } else if (kind != (a_scope_kind)sck_file) {
     ssep->inactive_symbols_may_be_visible =
                                    (ssep-1)->inactive_symbols_may_be_visible;
+    ssep->record_form_of_name_reference = 
+                                       (ssep-1)->record_form_of_name_reference;
   }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   /* Determine whether Microsoft __if_exist enties and associated source
@@ -2912,6 +2916,8 @@ the scope being pushed.
     if (kind == (a_scope_kind)sck_template_declaration ||
         (options & PS_DEDUCTION_CONTEXT) != 0) {
       ssep->in_template_deduction_context = TRUE;
+      /* Record name references in deduction contexts. */
+      ssep->record_form_of_name_reference = TRUE;
     } else if (kind == (a_scope_kind)sck_func_prototype) {
       ssep->in_template_deduction_context =
                                        (ssep-1)->in_template_deduction_context;

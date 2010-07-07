@@ -382,6 +382,9 @@ typedef struct a_scope_stack_entry {
 			   participate in template argument deduction
 			   and/or template argument substitution into an
 			   expression. */
+  a_bit_field	record_form_of_name_reference:1;
+			/* TRUE if the form of name references should be
+			   recorded in this scope. */
   a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level
@@ -1134,6 +1137,15 @@ this returns FALSE for deferred prototype instantiations.
    depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
    scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation &&			\
    !is_prototype_instantiation_context())
+
+/*
+TRUE if we are in a context in which the form of name references should
+be recorded.
+*/
+#define record_name_references_in_context()				\
+  (depth_scope_stack != NO_SCOPE_DEPTH ?			        \
+   scope_stack[depth_scope_stack].record_form_of_name_reference : FALSE)
+
 
 /*
 Return a pointer to the class fixup header entry to be used for the

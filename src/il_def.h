@@ -2184,9 +2184,12 @@ typedef struct a_source_correspondence {
   a_name_reference_ptr
 		name_references;
 			/* Points to a list of the various forms of reference
-			   used to name this entity.  This is used to find
-			   a previously allocated entry so that it can be
-			   reused. */
+			   used to name this entity.  This is used by the
+			   front end to find a previously allocated entry so
+			   that it can be reused.  This field should not be
+			   used by back ends as it is sometimes cleared
+			   (when using multiple translation units, for
+			   example). */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_bit_field /* an_access_specifier */
 		access:2;

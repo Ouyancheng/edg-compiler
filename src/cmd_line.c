@@ -2200,6 +2200,7 @@ process.
   namespaces_enabled = FALSE;
   wchar_t_is_keyword = FALSE;
   bool_is_keyword = FALSE;
+  record_form_of_name_reference = FALSE;
   /* Set global flags having to do with the potential sizes of enum types.
      They must be no larger than int in C. */
   enum_types_can_be_larger_than_int = FALSE;
@@ -8831,6 +8832,7 @@ variables declared in cmd_line.h.
   special_subscript_cost = DEFAULT_SPECIAL_SUBSCRIPT_COST;
   long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
   allow_in_class_specializations = FALSE;
+  record_form_of_name_reference = DEFAULT_RECORD_FORM_OF_NAME_REFERENCE;
   defs_from_cmd_line = NULL;
   allow_dollar_in_id_chars = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS;
   display_compilation_time = FALSE;
