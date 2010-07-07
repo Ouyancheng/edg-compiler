@@ -1544,6 +1544,11 @@ extern void make_type_operand_rescan_type(
                                    a_type_ptr             *type,
                                    a_source_position      *type_position);
 
+extern
+an_expr_node_ptr find_primary_cast_node(an_expr_node_ptr   orig_operand_expr,
+                                        a_cast_source_form source_form,
+                                        an_operand         *operand);
+
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 
@@ -1601,10 +1606,12 @@ extern void record_cast_position_in_expr_rescan_info(
                                              a_type_ptr        cast_type);
 
 extern
-void record_cast_position_in_rescan_info(an_operand        *operand,
-                                         a_source_position *start_position,
-                                         a_source_position *type_position,
-                                         a_type_ptr        cast_type);
+void record_cast_position_in_rescan_info(an_operand         *operand,
+                                         an_expr_node_ptr   orig_operand_expr,
+                                         a_cast_source_form source_form,
+                                         a_source_position  *start_position,
+                                         a_source_position  *type_position,
+                                         a_type_ptr         cast_type);
 
 extern
 void restore_operand_info_from_expr_rescan_info_entry(

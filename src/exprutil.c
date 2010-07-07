@@ -2067,6 +2067,66 @@ If parens_also is TRUE, skip parentheses also.
 }  /* strip_ref_indirect */
 
 
+an_expr_node_ptr find_primary_cast_node(an_expr_node_ptr   orig_operand_expr,
+                                        a_cast_source_form source_form,
+                                        an_operand         *operand)
+/*
+operand is the result of adding a cast (of source form described by
+source_form) to the original expression orig_operand_expr.  Find and
+return the primary expression node for the cast, or return NULL if
+no such node exists.  orig_operand_expr is used to test for the case
+where nothing is added to the original expression, e.g., for a do-nothing
+cast in some modes.  orig_operand_expr can be NULL.
+*/
+{
+  an_expr_node_ptr expr = expr_node_from_operand(operand);
+  an_expr_node_ptr node_to_return = NULL;
+
+  /* This routine is similar to strip_implicit_operations_for_rescan. */
+  while (expr != NULL && expr != orig_operand_expr) {
+    /* Strip implicit operations above the cast. */
+    if (is_operation_node(expr)) {
+      switch (expr->variant.operation.kind) {
+        case eok_ref_indirect:
+        case eok_array_to_pointer:
+        case eok_lvalue:
+        case eok_lvalue_adjust:
+        case eok_class_rvalue_adjust:
+          /* These operations are always implicit.  Keep stripping. */
+          break;
+        default:
+          /* Something else.  Stop stripping. */
+          goto end_of_loop;
+      }  /* switch */
+      expr = expr->variant.operation.operands;
+    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+      /* An explicit cast is retained.  Also a compound literal. */
+      if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
+      /* Anything else is implicit and stripped. */
+      expr = arg_list_from_dyn_init(dip);
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+end_of_loop:
+  if (expr != NULL && expr != orig_operand_expr) {
+    /* Return only a cast node, a temp-init node, or, for static_cast, a
+       conversion function call. */
+    if (expr->kind == (an_expr_node_kind)enk_temp_init ||
+        is_cast_operation_node(expr) ||
+        (source_form == csf_static_cast &&
+         is_operation_node(expr) &&
+         expr->variant.operation.is_conversion_call)) {
+      check_assertion(!(is_operation_node(expr) &&
+                        expr->variant.operation.compiler_generated));
+      node_to_return = expr;
+    }  /* if */
+  }  /* if */
+  return node_to_return;
+}  /* find_primary_cast_node */
+
+
 static void clear_expr_rescan_info_entry(an_expr_rescan_info_entry_ptr eriep)
 /*
 Clear the fields of the given expression rescan info entry to default
@@ -2271,32 +2331,33 @@ type within the cast; and cast_type is the type cast to.
 }  /* record_cast_position_in_expr_rescan_info */
 
 
-void record_cast_position_in_rescan_info(an_operand        *operand,
-                                         a_source_position *start_position,
-                                         a_source_position *type_position,
-                                         a_type_ptr        cast_type)
+void record_cast_position_in_rescan_info(an_operand         *operand,
+                                         an_expr_node_ptr   orig_operand_expr,
+                                         a_cast_source_form source_form,
+                                         a_source_position  *start_position,
+                                         a_source_position  *type_position,
+                                         a_type_ptr         cast_type)
 /*
 Record the source position of a cast in the rescan information
 associated with that cast, allocating the rescan info if needed.
-operand is the cast expression; start_position is the source position
-of the start of the cast; type_position is the source position of the
-type within the cast; and cast_type is the type cast to.
-Do nothing if the operand is not discernibly a cast expression.
+operand is the cast expression; source_form indicates its source form;
+start_position is the source position of the start of the cast;
+type_position is the source position of the type within the cast; and
+cast_type is the type cast to.  Do nothing if the operand is not
+discernibly a cast expression.  orig_operand_expr is the expression
+for the operand before the cast was applied, used to detect cases where
+nothing was added for the cast.  For casts that will always add
+something, or when the original operand was not an expression (e.g.,
+it was a constant), it can be NULL.
 */
 {
   if (expr_stack->possible_rescan_context) {
-    an_expr_node_ptr expr = expr_node_from_operand(operand);
+    an_expr_node_ptr expr = find_primary_cast_node(orig_operand_expr,
+                                                   source_form,
+                                                   operand);
     if (expr != NULL) {
-      expr = strip_implicit_operations_for_rescan(
-                                            expr,
-                                            (an_expr_rescan_info_entry**)NULL);
-      if (is_constant_node(expr)) {
-        /* The cast was folded into a constant, so there's no place to
-           mark as a cast. */
-      } else {
-        record_cast_position_in_expr_rescan_info(expr, start_position,
-                                                 type_position, cast_type);
-      }  /* if */
+      record_cast_position_in_expr_rescan_info(expr, start_position,
+                                               type_position, cast_type);
     }  /* if */
   }  /* if */
 }  /* record_cast_position_in_rescan_info */

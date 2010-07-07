@@ -10490,67 +10490,6 @@ indication in *rcblock).
   return !err;
 }  /* scan_new_style_cast */
 
-
-static an_expr_node_ptr find_primary_cast_node(
-                                          an_expr_node_ptr   orig_operand_expr,
-                                          a_cast_source_form source_form,
-                                          an_operand         *operand)
-/*
-operand is the result of adding a cast (of source form described by
-source_form) to the original expression orig_operand_expr.  Find and
-return the primary expression node for the cast, or return NULL if
-no such node exists.  orig_operand_expr is used to test for the case
-where nothing is added to the original expression, e.g., for a do-nothing
-cast in some modes.  orig_operand_expr can be NULL.
-*/
-{
-  an_expr_node_ptr expr = expr_node_from_operand(operand);
-  an_expr_node_ptr node_to_return = NULL;
-
-  /* This routine is similar to strip_implicit_operations_for_rescan. */
-  while (expr != NULL && expr != orig_operand_expr) {
-    /* Strip implicit operations above the cast. */
-    if (is_operation_node(expr)) {
-      switch (expr->variant.operation.kind) {
-        case eok_ref_indirect:
-        case eok_array_to_pointer:
-        case eok_lvalue:
-        case eok_lvalue_adjust:
-        case eok_class_rvalue_adjust:
-          /* These operations are always implicit.  Keep stripping. */
-          break;
-        default:
-          /* Something else.  Stop stripping. */
-          goto end_of_loop;
-      }  /* switch */
-      expr = expr->variant.operation.operands;
-    } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-      /* An explicit cast is retained.  Also a compound literal. */
-      if (dip->is_explicit_cast || dip->is_compound_literal) goto end_of_loop;
-      /* Anything else is implicit and stripped. */
-      expr = arg_list_from_dyn_init(dip);
-    } else {
-      break;
-    }  /* if */
-  }  /* while */
-end_of_loop:
-  if (expr != NULL && expr != orig_operand_expr) {
-    /* Return only a cast node, a temp-init node, or, for static_cast, a
-       conversion function call. */
-    if (expr->kind == (an_expr_node_kind)enk_temp_init ||
-        is_cast_operation_node(expr) ||
-        (source_form == csf_static_cast &&
-         is_operation_node(expr) &&
-         expr->variant.operation.is_conversion_call)) {
-      check_assertion(!(is_operation_node(expr) &&
-                        expr->variant.operation.compiler_generated));
-      node_to_return = expr;
-    }  /* if */
-  }  /* if */
-  return node_to_return;
-}  /* find_primary_cast_node */
-
 #if CHECKING
 
 static void check_reference_cast_flag_is_set(an_operand *operand,
@@ -10859,6 +10798,8 @@ indication in *rcblock).
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   record_cast_position_in_rescan_info(result,
+                                      (an_expr_node_ptr)NULL,
+                                      csf_dynamic_cast,
                                       &start_position,
                                       &type_position,
                                       cast_type);
@@ -15381,11 +15322,15 @@ Also scans GNU statement expressions:
           }  /* if */
         } else {
           /* Check compatibility of the types and do the cast. */
+          an_expr_node_ptr orig_operand_expression =
+                                                expr_node_from_operand(result);
           do_cast(type_cast_to, result, &local_bound_function_selector,
                   csf_old_style, local_options, err,
                   &type_position, &start_position,
                   end_position_or_null(&end_position));
           record_cast_position_in_rescan_info(result,
+                                              orig_operand_expression,
+                                              csf_old_style,
                                               &start_position,
                                               &type_position,
                                               type_cast_to);
@@ -15568,7 +15513,7 @@ as the cast in place of rcblock->expr.
   a_boolean                     allow_array = microsoft_bugs && !C_mode();
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
   a_dynamic_init_ptr            dip;
-  an_expr_node_ptr              temp_init_node;
+  an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
   a_source_position             local_start_position, type_position;
 
   db_enter(4, "scan_functional_notation_type_conversion");
@@ -15800,6 +15745,7 @@ as the cast in place of rcblock->expr.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (rcblock == NULL) end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        orig_operand_expression = expr_node_from_operand(result);
         do_cast(type_cast_to, result, &local_bound_function_selector,
                 csf_functional, local_options, err,
                 &type_position, start_position,
@@ -15817,6 +15763,8 @@ as the cast in place of rcblock->expr.
   }  /* if */
   set_operand_position(result, start_position, &end_position, start_position);
   record_cast_position_in_rescan_info(result,
+                                      orig_operand_expression,
+                                      csf_functional,
                                       start_position,
                                       &type_position,
                                       type_cast_to);
