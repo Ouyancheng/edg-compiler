@@ -1,5 +1,25 @@
 Version 4.2
 
+7/7/10   [EDGcpfe/10780]
+C++-generating back end: references to hidden partial specializations
+
+The C++-generating back end failed to use the necessary qualification when
+referring to a partial specialization of a class template when the name of
+the template is hidden by another entity.  This has now been fixed.  For
+example:
+
+  namespace N {
+    template<typename T> class F;
+    template<typename R> class F<R ()> { };
+    namespace M {
+      namespace F { }     // hides class template F
+      struct S {
+        N::F<void()> fv;  // formerly generated as F<void()>, missing "N::"
+      };
+    }
+  }
+
+
 7/7/10   [EDGcpfe/10817]
 GNU C++ compatibility: allow use of enum as qualifier in C++0x mode
 

@@ -423,6 +423,18 @@ name of an instance of a class template in Microsoft mode.
                                               hidden_sym, tag_hidden_by_nontag,
                                               hidden_class_or_namespace_member,
                                               simulated_hiding, sp, hidden_by);
+        /* However, we do need to record that partial specializations are
+           hidden, as they are treated as separate templates whose
+           instances do not refer back to the primary template. */
+        for (sym = hidden_sym->variant.template_info->
+                                variant.class_template.partial_specializations;
+             sym != NULL;
+             sym = sym->next) {
+          record_defeatable_name_hiding_for_single_entity(
+                                              sym, tag_hidden_by_nontag,
+                                              hidden_class_or_namespace_member,
+                                              simulated_hiding, sp, hidden_by);
+        }  /* for */
         break;
       case sk_function_template:
         /* Enter each instance of a function template. */
