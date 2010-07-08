@@ -8063,7 +8063,7 @@ mangle_template:
               !suppress_parent_encoding;
   /* If we will be adding the class or namespace name or the parameter types,
      put out two underscores to separate the function name from the rest. */
-  if (is_member || !suppress_param_encoding) {
+  if (is_member || needs_to_be_individuated || !suppress_param_encoding) {
     /* Add two underscores after the name. */
     add_str_to_mangled_name("__", mctl);
   }  /* if */
