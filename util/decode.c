@@ -1647,8 +1647,6 @@ not an operator encoding, return NULL.
     s = ".*";
   } else if (start_of_id_is("dt", ptr, dctl)) {
     s = ".";
-  } else if (start_of_id_is("pt", ptr, dctl)) {
-    s = "->";
   } else if (start_of_id_is("ps", ptr, dctl)) {
     s = "+";
   } else if (start_of_id_is("ng", ptr, dctl)) {
