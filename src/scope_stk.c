@@ -2666,6 +2666,8 @@ the scope being pushed.
   } else if (kind != (a_scope_kind)sck_file) {
     ssep->inactive_symbols_may_be_visible =
                                    (ssep-1)->inactive_symbols_may_be_visible;
+  }  /* if */
+  if (kind != (a_scope_kind)sck_file) {
     ssep->record_form_of_name_reference = 
                                        (ssep-1)->record_form_of_name_reference;
   }  /* if */
