@@ -3807,7 +3807,6 @@ FIXME
   /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
      passed in is a pointer to a class. */
   if (is_pointer_type(type)) type = type_pointed_to(type);
-  check_assertion(is_immediate_class_type(type));
 #if IA64_ABI
   if (emulate_gnu_abi_bugs) {
     /* g++ encodes destructors with "co" followed by the type, but apparently
