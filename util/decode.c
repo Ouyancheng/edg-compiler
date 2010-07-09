@@ -2235,6 +2235,11 @@ When base_name_only is TRUE, suppress any function-local information.
   if (get_char(p, dctl) == 'Z') {
     /* A template parameter name. */
     p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
+  } else if (get_char(p, dctl) == 'G') {
+    /* A global scope indicator (e.g., ::A).  The "::" string will be emitted
+    by the caller as part of parsing a list of names, so nothing need
+    be emitted here. */
+    p++;
   } else {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
@@ -5861,6 +5866,9 @@ substitution, the name of the last component in the substitution is used.
     } else if (*ptr == 'T') {
       /* A <template-param>. */
       ptr = demangle_template_param(ptr, dctl);
+    } else if (*ptr == 'D' && (ptr[1] == 't' || ptr[1] == 'T')) {
+      /* A <decltype>. */
+      ptr = demangle_type(ptr, dctl);
     } else {
       /* Not a substitution or template parameter, so an <unqualified-name>. */
       if (*ptr != 'C' && *ptr != 'D') {
@@ -5956,6 +5964,7 @@ The syntax is:
     <prefix> ::= <prefix> <unqualified-name>
              ::= <template-prefix> <template-args>
              ::= <template-param>
+             ::= <decltype>
              ::= # empty
              ::= <substitution>
              ::= <prefix> <data-member-prefix>
@@ -6301,7 +6310,7 @@ can also appear at the <expression> level).
         ::= [gs] sr <unresolved-qualifier-level>+ E <base-unresolved-name>  
 
        Differentiate between the first and third cases by looking to see if
-       the character after the "sr" is numeric (in which case if must be
+       the character after the "sr" is numeric (in which case it must be
        an <unresolved-qualifier-level>).
        */
     ptr += 2;
