@@ -453,6 +453,8 @@ static void mangled_encoding_for_constant(
 static char *compress_mangled_name(char                     *mangled_name,
                                    a_source_correspondence  *scp,
                                    a_mangling_control_block *mctl);
+static void add_nesting_level_encoding(unsigned long            nesting_level,
+                                       a_mangling_control_block *mctl);
 #endif /* !IA64_ABI */
 static char *truncate_mangled_name(char                     *mangled_name,
                                    a_source_correspondence  *scp,
@@ -3604,7 +3606,7 @@ mangling was needed and that logic is reflected in this routine.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- suppress_operation_indicator is unused in that case. */
 #endif /* !IA64_ABI */
-static void add_operator_or_conversion_function_name_to_mangled_name(
+static void mangled_operator_or_conversion_function(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
                          a_type_ptr               conversion_type,
@@ -3631,23 +3633,187 @@ is suppressed when suppress_operation_indicator is TRUE.
     add_str_to_mangled_name(MANGLING_STRING_FOR_CONVERSION_FUNC, mctl);
     mangled_encoding_for_type(conversion_type, mctl);
   }  /* if */
+}  /* mangled_operator_or_conversion_function */
+
+
+#if IA64_ABI
+/*ARGSUSED*/ /* <-- include_length is unused in that case. */
+#endif /* IA64_ABI */
+static void mangled_source_name(a_source_correspondence_ptr scp,
+                                a_template_arg_ptr          template_arg_list,
+                                a_boolean                   include_length,
+                                a_mangling_control_block    *mctl)
+/*
+Add to the mangled name the source name of the entity specified by scp.  
+This is used to implement the <source-name> production in the
+<base-unresolved-name> IA-64 rule and is not meant to be a general purpose
+mechanism for mangling an entity.  The same mangling method is used for
+both IA-64 and Cfront ABIs (i.e., length followed by name and template
+arguments).  template_arg_list is non-NULL, template arguments are also
+mangled.  In the Cfront ABI, if include_length is TRUE, the length of the
+mangled name (including any template arguments) is prefixed to the name.
+*/
+{
+  char                 *str;
 #if !IA64_ABI
-  add_str_to_mangled_name("__", mctl);
+  a_length_reservation length_reservation;
+
+  if (include_length) reserve_space_for_length(&length_reservation, mctl);
 #endif /* !IA64_ABI */
-}  /* add_operator_or_conversion_function_name_to_mangled_name */
+  str = unmangled_or_fabricated_name_of(scp);
+  check_assertion(str != NULL);
+#if IA64_ABI
+  add_number_to_mangled_name((unsigned long)strlen(str), mctl);
+#endif /* IA64_ABI */
+  add_str_to_mangled_name(str, mctl);
+  if (template_arg_list != NULL) {
+    /* Put out the template argument list, if any. */
+    mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE, mctl);
+  }  /* if */
+#if !IA64_ABI
+  if (include_length) fill_in_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_source_name */
+
+
+static void mangled_name_qualifier(a_name_qualifier_ptr     qualifier,
+                                   a_boolean                *need_close,
+                                   unsigned long            nesting_level,
+                                   a_mangling_control_block *mctl)
+/*
+Add a mangled source name for the (class or namespace) qualifier.  In the
+Cfront ABI, qualifier can be NULL, which is an indication that the global
+scope operator (e.g., ::A) was used in the source and should be mangled
+(as though it were another qualifier).  In the IA-64 ABI, *need_close is
+set to TRUE in cases where a terminating "E" needs to be added by the topmost
+caller.  nesting_level is a count of the number of levels of qualifiers
+seen so far (and is set to one at the topmost level).
+*/
+{
+  a_type_ptr                  class_type = NULL;
+  a_template_arg_ptr          template_arg_list = NULL;
+  a_class_type_supplement_ptr ctsp = NULL;
+  a_source_correspondence_ptr scp = NULL;
+
+  if (qualifier != NULL) {
+    if (qualifier->is_class) {
+      class_type = qualifier->qualifier.class_type;
+      if (is_immediate_class_type(class_type)) {
+        ctsp = class_type->variant.class_struct_union.extra_info;
+        check_assertion(ctsp != NULL);
+        template_arg_list = ctsp->template_arg_list;
+      } else {
+        check_assertion(is_template_param_type(class_type));
+      }  /* if */
+      scp = &class_type->source_corresp;
+    } else {
+      scp = &qualifier->qualifier.namespace_ptr->source_corresp;
+    }  /* if */
+  }  /* if */
+  if (qualifier == NULL || qualifier->previous_qualifier == NULL) {
+    /* This is the top-most qualifier. */
+#if IA64_ABI
+    add_str_to_mangled_name("sr", mctl);
+    if (qualifier != NULL &&
+        qualifier->is_class &&
+        (emulate_gnu_abi_bugs ||
+         is_template_param_type(class_type) ||
+         symbol_supplement_for_class(class_type)->
+                                     template_param_for_proxy_class != NULL)) {
+      /* See if this type is a template parameter.  If so, use the 
+         (template parameter) type encoding rather than the type name. */
+      if (nesting_level > 1) {
+        add_to_mangled_name('N', mctl);
+        *need_close = TRUE;
+      }  /* if */
+      mangled_encoding_for_type(class_type, mctl);
+      scp = NULL;
+    } else {
+      /* We're not using an <unresolved-type>, so we need a closing 'E'. */
+      *need_close = TRUE;
+    }  /* if */
+#else /* !IA64_ABI */
+    if (nesting_level > 1) {
+      /* If we have more than one level of qualifiers, add an indicator that
+         contains the total number of qualifiers. */
+      add_nesting_level_encoding(nesting_level, mctl);
+    }  /* if */
+    if (qualifier == NULL) {
+      /* A NULL qualifier indicates a top-most global scope (e.g., ::A). */
+      add_str_to_mangled_name("G", mctl);
+    }  /* if */
+#endif /* IA64_ABI */
+  } else if (qualifier != NULL) {
+    /* Recurse to process any parent(s) first. */
+    nesting_level++;
+    mangled_name_qualifier(qualifier->previous_qualifier, need_close,
+                           nesting_level, mctl);
+  }  /* if */
+  if (ctsp != NULL &&
+      ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+    /* Skip anonymous union classes. */
+    scp = NULL;
+  }  /* if */
+  if (scp != NULL) {
+    /* Emit the source name for this qualifier (with any template args). */
+    mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE, mctl);
+  }  /* if */
+}  /* mangled_name_qualifier */
+
+
+static void mangled_name_reference(a_name_reference_ptr        name_reference,
+                                   a_mangling_control_block    *mctl)
+/*
+Add the qualifiers as specified by name_reference to the mangled name.
+*/
+{
+  a_boolean     need_close = FALSE;
+
+  if (name_reference != NULL) {
+    if (name_reference->is_global_qualified_name) {
+      /* Add an indication that the source form used the global scope
+         operator. */
+#if IA64_ABI
+      if (!emulate_gnu_abi_bugs) add_str_to_mangled_name("gs", mctl);
+#endif /* IA64_ABI */
+    }  /* if */
+    if (name_reference->qualifier != NULL
+#if !IA64_ABI
+        || name_reference->is_global_qualified_name
+#endif /* !IA64_ABI */
+                                                   ) {
+      /* Process each qualifier in turn. */
+      mangled_name_qualifier(name_reference->qualifier, &need_close,
+                             (unsigned long)1, mctl);
+#if IA64_ABI
+      if (need_close) {
+        add_to_mangled_name('E', mctl);
+      }  /* if */
+#endif /* IA64_ABI */
+    }  /* if */
+  }  /* if */
+}  /* mangled_name_reference */
 
 
 static void mangled_destructor_name(a_type_ptr               type,
+                                    a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl)
 /*
 Add an encoding for a destructor of the specified type.
+FIXME
 */
 {
+  /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
+     passed in is a pointer to a class. */
+  if (is_pointer_type(type)) type = type_pointed_to(type);
+  check_assertion(is_immediate_class_type(type));
 #if IA64_ABI
   if (emulate_gnu_abi_bugs) {
     /* g++ encodes destructors with "co" followed by the type, but apparently
        has a bug where that type doesn't participate in the substitution
        processing. */
+    /* FIXME: Not always, sometimes uses <expr-primary> */
     a_substitution_ptr  save_first_substitution, save_last_substitution;
     /* FIXME: When do we need to emit "sr"? */
     add_str_to_mangled_name("sr", mctl);
@@ -3667,6 +3833,8 @@ Add an encoding for a destructor of the specified type.
     mctl->first_substitution = save_first_substitution;
     mctl->last_substitution = save_last_substitution;
   } else {
+    /* FIXME: Do this here or in caller? */
+    mangled_name_reference(name_reference, mctl);
     add_str_to_mangled_name("dn", mctl);
     mangled_encoding_for_type(type, mctl);
   }  /* if */
@@ -3699,19 +3867,25 @@ is used to differentiate unary/binary operators.  selector refers to the
 expression that was used to select expr (NULL if no selector was used).
 */
 {
-  char                        *str;
   a_source_correspondence_ptr scp = NULL;
   a_template_arg_ptr          template_arg_list = NULL;
-  a_boolean                   has_been_mangled = FALSE;
+  a_boolean                   mangle_as_operator = FALSE;
   a_boolean                   suppress_operation_indicator = FALSE;
   a_boolean                   suppress_address_of = FALSE;
+  a_boolean                   needs_qualification = FALSE;
+  a_name_reference_ptr        name_reference;
+  an_opname_kind              opname;
+  a_type_ptr                  conversion_type = NULL, destructor_type = NULL;
 #if IA64_ABI
   a_boolean                   selector_has_known_type = FALSE;
+#else /* !IA64_ABI */
+  a_length_reservation        length_reservation;
 #endif /* IA64_ABI */
 
   /* Skip any expressions (e.g., compiler added) that don't belong in the
      mangled output. */
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
+  name_reference = expr->name_reference;
 #if IA64_ABI
   if (emulate_gnu_abi_bugs && selector != NULL) {
     /* g++ seems to add the "on" mangling to operator names only when there
@@ -3733,16 +3907,19 @@ expression that was used to select expr (NULL if no selector was used).
            tpck_unknown_function constant. */
         template_arg_list = con->variant.template_param.variant.
                                                          template_ref.arg_list;
-        scp = &con->variant.template_param.variant.template_ref.con->
-                                                                source_corresp;
-      } else if (con->variant.template_param.kind ==
+        con = con->variant.template_param.variant.template_ref.con;
+      }  /* if */
+      if (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function) {
         /* An unknown function, which may be a member of a class or namespace,
            and may be a conversion function or operator function. */
         a_symbol_ptr   sym =
                    con->variant.template_param.variant.unknown_function.symbol;
-        an_opname_kind opname =
+        opname =
               con->variant.template_param.variant.unknown_function.opname_kind;
+#if IA64_ABI
+        if (emulate_gnu_abi_bugs && selector == NULL) name_reference = NULL;
+#endif /* IA64_ABI */
         if (sym != NULL && sym->header != NULL &&
             sym->header->opname != (an_opname_kind)onk_none) {
           /* In some cases, the opname kind is in the symbol header. */
@@ -3753,15 +3930,11 @@ expression that was used to select expr (NULL if no selector was used).
              con->variant.template_param.variant.unknown_function.
                                                      conversion_type != NULL) {
           /* An operator or a conversion function. */
-          add_operator_or_conversion_function_name_to_mangled_name(
-                                         opname,
-                                         number_of_operands_in_list(arguments),
-          con->variant.template_param.variant.unknown_function.conversion_type,
-                                         suppress_operation_indicator,
-                                         mctl);
-          has_been_mangled = TRUE;
+          mangle_as_operator = TRUE;
+          conversion_type = con->
+               variant.template_param.variant.unknown_function.conversion_type;
         } else {
-          scp = &expr->variant.constant->source_corresp;
+          scp = &con->source_corresp;
         }  /* if */
       } else if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
@@ -3769,18 +3942,11 @@ expression that was used to select expr (NULL if no selector was used).
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
           /* FIXME: Better way to detect destructor? */
-          mangled_destructor_name(scp_parent_class(
-                                      &expr->variant.constant->source_corresp),
-                                  mctl);
-          has_been_mangled = TRUE;
+          destructor_type = scp_parent_class(
+                                      &expr->variant.constant->source_corresp);
         } else {
-          scp = &expr->variant.constant->source_corresp;
+          scp = &con->source_corresp;
         }  /* if */
-      }  /* if */
-    } else if (con->kind == (a_constant_repr_kind)ck_address) {
-      if (con->variant.address.kind == (an_address_base_kind)abk_routine) {
-        /* This can happen, e.g., when calling a GNU builtin. */
-        scp = &con->variant.address.variant.routine->source_corresp;
       }  /* if */
     }  /* if */
   } else if (is_variable_node(expr)) {
@@ -3809,21 +3975,12 @@ expression that was used to select expr (NULL if no selector was used).
         /* See if this routine requires special handling. */
         if (expr->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
-          /* FIXME: may need sr qualification. */
-          mangled_destructor_name(scp_parent_class(
-                                     &expr->variant.routine->source_corresp),
-                                  mctl);
-          has_been_mangled = TRUE;
+          destructor_type = scp_parent_class(
+                                       &expr->variant.routine->source_corresp);
         } else if (expr->variant.routine->special_kind ==
                                        (a_special_function_kind)sfk_operator) {
-          /* FIXME: may need sr qualification. */
-          add_operator_or_conversion_function_name_to_mangled_name(
-                                    expr->variant.routine->variant.opname_kind,
-                                    number_of_operands_in_list(arguments),
-                                    (a_type_ptr)NULL,
-                                    suppress_operation_indicator,
-                                    mctl);
-          has_been_mangled = TRUE;
+          mangle_as_operator = TRUE;
+          opname = expr->variant.routine->variant.opname_kind;
         } else if (expr->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
           /* Compiler generated conversion operations have been stripped. */
@@ -3843,44 +4000,70 @@ expression that was used to select expr (NULL if no selector was used).
     scp = &expr->variant.field->source_corresp;
 #if IA64_ABI
     if (emulate_gnu_abi_bugs && !selector_has_known_type) {
-      /* FIXME: need a flag in the front end to tell us when the field was
-         qualified. */
+      /* FIXME: This doesn't demangle properly. */
+      /* FIXME: Also doesn't always get the right class (e.g., ambig.c) */
       add_str_to_mangled_name("sr", mctl);
       mangled_encoding_for_type(scp_parent_class(scp), mctl);
-      /* Mangling for field is emitted below. */
+      name_reference = NULL;
+      /* Mangled name for the field is emitted below. */
     }  /* if */
-#else /* !IA64_ABI */
-    /* FIXME: cfront mangling? */
 #endif /* IA64_ABI */
   }  /* if */
-  if (scp != NULL) {
+  /* The code above has determined how to mangle the entity (i.e., whether
+     it should be mangled as an operand, destructor, source name, or
+     otherwise).  Now do the actual mangling.  In the IA-64 ABI, any
+     qualification occurs before the actual entity, but qualification follows
+     the mangled name in the Cfront ABI. */
+  if (name_reference != NULL &&
+      (name_reference->qualifier != NULL ||
+       name_reference->is_global_qualified_name) &&
+      (mangle_as_operator || scp != NULL)) {
+    /* This entity needs name qualification. */
+    needs_qualification = TRUE;
+  }  /* if */
+  if (needs_qualification) {
+#if IA64_ABI
+    /* Emit any qualification that is necessary for this entity. */
+    mangled_name_reference(name_reference, mctl);
+#else /* !IA64_ABI */
+    reserve_space_for_length(&length_reservation, mctl);
+#endif /* IA64_ABI */
+  }  /* if */
+  if (destructor_type != NULL) {
+    /* Mangle the entity as a destructor. */
+    mangled_destructor_name(destructor_type, name_reference, mctl);
+  } else if (mangle_as_operator) {
+    /* Mangle the entity as an operator. */
+    mangled_operator_or_conversion_function(opname,
+                                         number_of_operands_in_list(arguments),
+                                         conversion_type,
+                                         suppress_operation_indicator,
+                                         mctl);
+#if !IA64_ABI
+    if (!needs_qualification) {
+      /* If the operator will be qualified, a pair of underscores will be
+         added prior to the qualification, otherwise emit them here. */
+      add_str_to_mangled_name("__", mctl);
+    }  /* if */
+#endif /* !IA64_ABI */
+  } else if (scp != NULL) {
     /* Encode this entity with a "spelling" (i.e., <source-name> for IA-64
        ABI). */
-#if !IA64_ABI
-    a_length_reservation length_reservation;
-    reserve_space_for_length(&length_reservation, mctl);
-#endif /* !IA64_ABI */
-    str = unmangled_or_fabricated_name_of(scp);
-    check_assertion(str != NULL);
-#if IA64_ABI
-    add_number_to_mangled_name((unsigned long)strlen(str), mctl);
-#endif /* IA64_ABI */
-    add_str_to_mangled_name(str, mctl);
-    has_been_mangled = TRUE;
-    if (template_arg_list != NULL) {
-      /* Put out the template argument list, if any. */
-      mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
-                                 /*old_form=*/FALSE, mctl);
-    }  /* if */
-#if !IA64_ABI
-    fill_in_length(&length_reservation, mctl);
-#endif /* !IA64_ABI */
-  }  /* if */
-  if (!has_been_mangled) {
+    mangled_source_name(scp, template_arg_list,
+                        /*include_length=*/!needs_qualification, mctl);
+  } else {
     /* This isn't a special case, provide usual mangling for the expression. */
     mangled_encoding_for_expression_full(expr, in_dependent_expr, 
                                          suppress_address_of, mctl);
   }  /* if */
+#if !IA64_ABI
+  if (needs_qualification) {
+    /* Emit any qualification that is necessary for this entity. */
+    add_str_to_mangled_name("__", mctl);
+    mangled_name_reference(name_reference, mctl);
+    fill_in_length(&length_reservation, mctl);
+  }  /* if */
+#endif /* !IA64_ABI */
 }  /* mangled_unresolved_name */
 
 
@@ -4017,7 +4200,7 @@ expression.
     /* A vacuous destructor. */
     /* FIXME: The type on this doesn't appear to reflect the source, e.g.,
        p1.A::~A() winds up being mangled with a template parameter. */
-    mangled_destructor_name(selector->type, mctl);
+    mangled_destructor_name(selector->type, expr->name_reference, mctl);
   }  /* if */
 #if !IA64_ABI
   if (selector != NULL) add_to_mangled_name('O', mctl);
