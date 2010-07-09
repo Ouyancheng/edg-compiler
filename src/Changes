@@ -24,7 +24,7 @@ example:
 GNU C++ compatibility: allow use of enum as qualifier in C++0x mode
 
 g++ does not normally find an enumeration name when looking up a name
-that proceeds a "::", but it does find the name in g++'s C++0x mode.  We
+that precedes a "::", but it does find the name in g++'s C++0x mode.  We
 now emulate the g++ behavior in C++0x mode when g++ mode is also used.
 
   typedef enum T {t1} X;
