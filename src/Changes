@@ -1,5 +1,19 @@
 Version 4.2
 
+7/11/10  [EDGcpfe/10816]
+Assertion failure with FULLY_RESOLVED_MACRO_POSITIONS and multibyte characters
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, compiling
+a source file with multibyte characters could result in an assertion failure
+in clone_macro_text_map_entries ("map entry pointer past end of entries
+array").  This is now fixed.  For example:
+
+  #define M(x) x;
+  void f() {
+    M("¡Ö¤¤¤¤"); // Assertion failure with --multibyte_chars
+  }
+
+
 7/7/10   [EDGcpfe/10780]
 C++-generating back end: references to hidden partial specializations
 

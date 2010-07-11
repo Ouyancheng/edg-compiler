@@ -805,7 +805,8 @@ text map entry must be created.
       rel_src_offset = 0;
     }  /* if */
   }  /* if */
-  tmpt->src_region_len = rel_src_offset + len_of_curr_token;
+  tmpt->src_region_len = rel_src_offset + len_of_curr_token -
+                                      (token_part_start - start_of_curr_token);
   check_assertion(!(tmpt->src_slmp != NULL &&
                     tmpt->src_slmp->inserted_text + tmpt->src_region_len >
                     tmpt->src_slmp->end_inserted_text));
