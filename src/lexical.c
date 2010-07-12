@@ -13150,6 +13150,18 @@ a routine to lookup the appropriate instance (or generate one if needed).
               symbol of the class template. */
            new_sym = template_sym;
            goto skip_processing;
+        } else if (microsoft_bugs &&
+                   scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union &&
+                   is_prototype_instantiation_context()) {
+          /* In the definition of a class template, the Microsoft compiler
+             accepts use a reference such as A::i, where A is a different
+             class template and something like A<T>::i should be used.
+             Accept the use and return the prototype instantiation symbol. */
+          a_template_symbol_supplement_ptr	tssp;
+          tssp = template_supplement_for_symbol(template_sym);
+          new_sym = tssp->variant.class_template.prototype_instantiation;
+          goto normal_exit;
         } else {
           /* Issue an error and return an error locator. */
           if (template_sym != NULL) {

@@ -1,5 +1,21 @@
 Version 4.2
 
+7/12/10  [EDGcpfe/10812]
+Microsoft compatibility: use of class template without argument list
+
+The Microsoft compiler allows a class template to reference another class
+template without providing a template argument list.  An error is only
+produced by the Microsoft compiler if the template is actually instantiated.
+We now emulate this behavior in Microsoft bugs mode.
+
+  template<typename X> struct A {   
+    typedef int i;
+  };  
+  template<typename Y> struct B {   
+    typedef typename A::i i;  // should be A<Y>::i
+  };  
+
+
 7/12/10  [EDGcpfe/10765]
 C++-generating back end: nullptr in default argument of template alias
 
