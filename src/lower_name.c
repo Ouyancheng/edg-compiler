@@ -3676,6 +3676,7 @@ mangled name (including any template arguments) is prefixed to the name.
 #endif /* !IA64_ABI */
 }  /* mangled_source_name */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
 
 static void mangled_name_qualifier(a_name_qualifier_ptr     qualifier,
                                    a_boolean                *need_close,
@@ -3761,6 +3762,7 @@ seen so far (and is set to one at the topmost level).
   }  /* if */
 }  /* mangled_name_qualifier */
 
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 static void mangled_name_reference(a_name_reference_ptr        name_reference,
                                    a_mangling_control_block    *mctl)
@@ -3768,6 +3770,7 @@ static void mangled_name_reference(a_name_reference_ptr        name_reference,
 Add the qualifiers as specified by name_reference to the mangled name.
 */
 {
+#if RECORD_FORM_OF_NAME_REFERENCE
   a_boolean     need_close = FALSE;
 
   if (name_reference != NULL) {
@@ -3793,9 +3796,13 @@ Add the qualifiers as specified by name_reference to the mangled name.
 #endif /* IA64_ABI */
     }  /* if */
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 }  /* mangled_name_reference */
 
 
+#if !IA64_ABI
+/*ARGSUSED*/ /* <-- name_reference is unused in that case. */ /* FIXME */
+#endif /* !IA64_ABI */
 static void mangled_destructor_name(a_type_ptr               type,
                                     a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl)
@@ -3884,7 +3891,9 @@ expression that was used to select expr (NULL if no selector was used).
   /* Skip any expressions (e.g., compiler added) that don't belong in the
      mangled output. */
   expr = skip_compiler_generated_expressions(expr, &suppress_address_of);
+#if RECORD_FORM_OF_NAME_REFERENCE
   name_reference = expr->name_reference;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if IA64_ABI
   if (emulate_gnu_abi_bugs && selector != NULL) {
     /* g++ seems to add the "on" mangling to operator names only when there
@@ -4014,8 +4023,10 @@ expression that was used to select expr (NULL if no selector was used).
      qualification occurs before the actual entity, but qualification follows
      the mangled name in the Cfront ABI. */
   if (name_reference != NULL &&
+#if RECORD_FORM_OF_NAME_REFERENCE
       (name_reference->qualifier != NULL ||
        name_reference->is_global_qualified_name) &&
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       (mangle_as_operator || scp != NULL)) {
     /* This entity needs name qualification. */
     needs_qualification = TRUE;
@@ -4199,7 +4210,11 @@ expression.
     /* A vacuous destructor. */
     /* FIXME: The type on this doesn't appear to reflect the source, e.g.,
        p1.A::~A() winds up being mangled with a template parameter. */
+#if RECORD_FORM_OF_NAME_REFERENCE
     mangled_destructor_name(selector->type, expr->name_reference, mctl);
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+    mangled_destructor_name(selector->type, (a_name_reference_ptr)NULL, mctl);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   }  /* if */
 #if !IA64_ABI
   if (selector != NULL) add_to_mangled_name('O', mctl);
