@@ -217,10 +217,12 @@ static char *demangle_operator(char                       *ptr,
                                a_decode_control_block_ptr dctl);
 static char *demangle_type(char                       *ptr,
                            a_decode_control_block_ptr dctl);
-static char *full_demangle_type_name(char                       *ptr,
-                                     a_boolean                  base_name_only,
-                                     a_template_param_block_ptr temp_par_info,
-                                     a_decode_control_block_ptr dctl);
+static char *full_demangle_type_name(
+                                 char                       *ptr,
+                                 a_boolean                  base_name_only,
+                                 a_template_param_block_ptr temp_par_info,
+                                 a_boolean                  is_destructor_name,
+                                 a_decode_control_block_ptr dctl);
 static char *demangle_template_arguments(
                                       char                       *ptr,
                                       a_boolean                  partial_spec,
@@ -242,6 +244,7 @@ Interface to full_demangle_type_name for the simple case.
 #define demangle_type_name(ptr, dctl)                                 \
   full_demangle_type_name((ptr), /*base_name_only=*/FALSE,            \
                           /*temp_par_info=*/(a_template_param_block_ptr)NULL, \
+                          /*is_destructor_name=*/FALSE,               \
                           (dctl))
 static char *full_demangle_identifier(
                      char                       *ptr,
@@ -1892,6 +1895,7 @@ template parameters.
         (void)full_demangle_type_name(mclass, /*base_name_only=*/TRUE,
                                       /*temp_par_info=*/
                                               (a_template_param_block_ptr)NULL,
+                                      /*is_destructor_name=*/FALSE,
                                       dctl);
       }  /* if */
     } else if (start_of_id_is("dt__", p, dctl)) {
@@ -1907,16 +1911,23 @@ template parameters.
         (void)full_demangle_type_name(mclass, /*base_name_only=*/TRUE,
                                       /*temp_par_info=*/
                                               (a_template_param_block_ptr)NULL,
+                                      /*is_destructor_name=*/FALSE,
                                       dctl);
       }  /* if */
     } else if (start_of_id_is("dn__", p, dctl)) {
-      /* Destructor (with type following). */
-      /* Output ~class-name for the destructor name. */
+      /* Destructor name. */
+      /* This differs from the dt__ case above in two ways: its demangling
+         doesn't always have a scope operator (i.e., ::), and it doesn't
+         require that the destructor name be the same as the qualifing type
+         (e.g., it can handle T::~X()).  What follows (a "destructor name")
+         can be parsed as a nested type, but has an implied ~ before the
+         final qualifier.  For example, Q4_1A1B1C1D would demangle as
+         A::B::C::~D. */
       is_special_name = TRUE;
-      write_id_ch('~', dctl);
-      end_ptr = full_demangle_type_name(p+4, /*base_name_only=*/TRUE,
+      end_ptr = full_demangle_type_name(p+4, /*base_name_only=*/FALSE,
                                         /*temp_par_info=*/
                                             (a_template_param_block_ptr)NULL,
+                                        /*is_destructor_name=*/TRUE,
                                         dctl);
     } else if (start_of_id_is("op", p, dctl)) {
       /* Conversion function.  Name looks like __opi__... where the part
@@ -2252,10 +2263,12 @@ When base_name_only is TRUE, suppress any function-local information.
 }  /* demangle_simple_type_name */
 
 
-static char *full_demangle_type_name(char                       *ptr,
-                                     a_boolean                  base_name_only,
-                                     a_template_param_block_ptr temp_par_info,
-                                     a_decode_control_block_ptr dctl)
+static char *full_demangle_type_name(
+                                 char                       *ptr,
+                                 a_boolean                  base_name_only,
+                                 a_template_param_block_ptr temp_par_info,
+                                 a_boolean                  is_destructor_name,
+                                 a_decode_control_block_ptr dctl)
 /*
 Demangle the type name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  The name can be
@@ -2265,7 +2278,9 @@ e.g., put out "A::x" as simply "x".  When temp_par_info != NULL, it
 points to a block that controls output of extra information on template
 parameters.  Note that this routine is called for namespaces too
 (the mangling is the same as for class names; you can't actually tell
-the difference in a mangled name).  See demangle_type_name for an
+the difference in a mangled name).  If is_destructor_name is TRUE, this type is
+actually the name of a destructor and an implied "~" should be emitted before
+the last component of the name (e.g., T::~X).  See demangle_type_name for an
 interface to this routine for the simple case.
 */
 {
@@ -2287,12 +2302,14 @@ interface to this routine for the simple case.
       /* Do not put out the nested type qualifiers if base_name_only is
          TRUE. */
       if (base_name_only && nquals != 1) dctl->suppress_id_output++;
+      if (is_destructor_name && nquals == 1) write_id_ch('~', dctl);
       p = demangle_simple_type_name(p, base_name_only, temp_par_info, dctl);
       if (nquals != 1) write_id_str("::", dctl);
       if (base_name_only && nquals != 1) dctl->suppress_id_output--;
     }  /* for */
   } else {
     /* A simple (non-nested) type name. */
+    if (is_destructor_name) write_id_ch('~', dctl);
     p = demangle_simple_type_name(p, base_name_only, temp_par_info, dctl);
   }  /* if */
   return p;
@@ -2992,7 +3009,9 @@ information.
         temp_par_info.set_final_specialization = TRUE;
       }  /* if */
       end_ptr = full_demangle_type_name(pname, /*base_name_only=*/FALSE,
-                                        &temp_par_info, dctl);
+                                        &temp_par_info,
+                                        /*is_destructor_name=*/FALSE,
+                                        dctl);
       temp_par_info.set_final_specialization = FALSE;
       dctl->suppress_id_output--;
       /* If the name ends here, this is a simple member (e.g., a static
@@ -3034,7 +3053,9 @@ information.
         temp_par_info.actual_template_args_until_final_specialization = TRUE;
       }  /* if */
       (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
-                                    &temp_par_info, dctl);
+                                    &temp_par_info,
+                                    /*is_destructor_name=*/FALSE,
+                                    dctl);
       /* Force template parameter information out on the function even if
          it is specialized. */
       temp_par_info.actual_template_args_until_final_specialization = FALSE;
@@ -3075,7 +3096,9 @@ information.
           temp_par_info.actual_template_args_until_final_specialization = TRUE;
         }  /* if */
         (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
-                                      &temp_par_info, dctl);
+                                      &temp_par_info,
+                                      /*is_destructor_name=*/FALSE,
+                                      dctl);
       }  /* if */
       /* Force template parameter information out on the function even if
          it is specialized. */
