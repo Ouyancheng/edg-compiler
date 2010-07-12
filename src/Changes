@@ -1,5 +1,20 @@
 Version 4.2
 
+7/11/10  [EDGcpfe/10766]
+C++-generating back end: missing qualification for hidden template alias
+
+The C++-generating back end failed to generate the necessary qualification
+for the name of a template alias that is hidden by another declaration.
+This is now fixed.  For example:
+
+  struct A {
+    template<typename T> using B = T;
+  };
+  struct B: A::B<A> {
+    A::B<int> i;   // Previously generated as B<int>, missing "A::"
+  };
+
+
 7/11/10  [EDGcpfe/10816]
 Assertion failure with FULLY_RESOLVED_MACRO_POSITIONS and multibyte characters
 

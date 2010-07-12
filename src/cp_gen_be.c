@@ -2687,13 +2687,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   if (il_header.source_language == sl_Cplusplus) {
     a_boolean save_qualification_needed = scp->qualification_needed;
     if (entry_kind == iek_type) {
-      a_type_ptr tp = (a_type_ptr)scp;
+      a_type_ptr     tp = (a_type_ptr)scp;
+      a_template_ptr assoc_template = NULL;
       if ((tp->kind == (a_type_kind)tk_class ||
            tp->kind == (a_type_kind)tk_struct ||
            tp->kind == (a_type_kind)tk_union) &&
           tp->variant.class_struct_union.is_template_class) {
-        if (tp->variant.class_struct_union.extra_info->assoc_template->
-                                       source_corresp.member_of_unknown_base) {
+        assoc_template = tp->variant.class_struct_union.extra_info->
+                                                                assoc_template;
+        if (assoc_template->source_corresp.member_of_unknown_base) {
           /* A template instance generated from a template that is a member
              of an unknown base is not itself marked as a member of an
              unknown base -- only the template is -- but its qualifier must
@@ -2701,22 +2703,26 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           scp_for_unknown_base_member = &tp->variant.class_struct_union.
                                     extra_info->assoc_template->source_corresp;
         }  /* if */
-        if (tp->variant.class_struct_union.extra_info->assoc_template->
-                                         source_corresp.qualification_needed) {
-          /* If the template requires qualification, so do all of its
-             instances.  (The check for qualified instance names is done
-             this way instead of by putting the instances on the hidden
-             name list to avoid performance problems with huge hidden name
-             lists when there are many instances, with the injected class
-             name of each instance hiding all the other instances.) */
-          if (!(options & GN_NO_TEMPLATE_ARGS)) {
-            /* If we are suppressing template arguments (which happens in a
-               prototype instantiation), we must not qualify the name --
-               the qualified name without the template arguments will refer
-               to the template itself, not the current specialization, and
-               thus won't be a type, as this name is. */
-            scp->qualification_needed = TRUE;
-          }  /* if */
+      } else if (tp->kind == (a_type_kind)tk_typeref &&
+                 tp->variant.typeref.extra_info->template_arg_list != NULL) {
+        /* A type generated from a template alias. */
+        assoc_template = tp->variant.typeref.extra_info->assoc_template;
+      }  /* if */
+      if (assoc_template != NULL &&
+          assoc_template->source_corresp.qualification_needed) {
+        /* If the template requires qualification, so do all of its
+           instances.  (The check for qualified instance names is done this
+           way instead of by putting the instances on the hidden name list
+           to avoid performance problems with huge hidden name lists when
+           there are many instances, with the injected class name of each
+           instance of a class template hiding all the other instances.) */
+        if (!(options & GN_NO_TEMPLATE_ARGS)) {
+          /* If we are suppressing template arguments (which happens in a
+             prototype instantiation), we must not qualify the name -- the
+             qualified name without the template arguments will refer to
+             the template itself, not the current specialization, and thus
+             won't be a type, as this name is. */
+          scp->qualification_needed = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
