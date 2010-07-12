@@ -3231,14 +3231,23 @@ that extra work.
       node->name_reference = find_allocated_name_reference(
                                        &node->variant.variable->source_corresp,
                                        &operand->name_reference);
-    } else if (is_constant_node(node) &&
-               (is_enum_constant(node->variant.constant) ||
-                (node->variant.constant->kind ==
+    } else if (is_constant_node(node)) {
+      a_template_param_constant_kind kind;
+      if (is_enum_constant(node->variant.constant) ||
+          (node->variant.constant->kind ==
                                      (a_constant_repr_kind)ck_template_param &&
-                 node->variant.constant->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_member))) {
-      node->name_reference = find_allocated_name_reference(
+           ((kind = node->variant.constant->variant.template_param.kind),
+            (kind == (a_template_param_constant_kind)tpck_member ||
+             kind == (a_template_param_constant_kind)tpck_unknown_function ||
+             kind == (a_template_param_constant_kind)tpck_address ||
+             kind == (a_template_param_constant_kind)tpck_template_ref)))) {
+        node->name_reference = find_allocated_name_reference(
                                        &node->variant.constant->source_corresp,
+                                       &operand->name_reference);
+      }  /* if */
+    } else if (node->kind == (an_expr_node_kind)enk_field) {
+      node->name_reference = find_allocated_name_reference(
+                                       &node->variant.field->source_corresp,
                                        &operand->name_reference);
     }  /* if */
   }  /* if */
@@ -3463,8 +3472,8 @@ longer an id-expression.
 
 #if RECORD_FORM_OF_NAME_REFERENCE
 
-static void restore_operand_form_of_name_reference(an_operand *operand,
-                                                   an_operand *orig_operand)
+void restore_operand_form_of_name_reference(an_operand *operand,
+                                            an_operand *orig_operand)
 /*
 *operand has been subjected to some sort of modification, which may have
 destroyed its form-of-name-reference information.  Restore that information
@@ -4826,6 +4835,7 @@ function to be selected is not known.
     change_template_param_constant_operand_to_lvalue(operand);
   }  /* if */
   restore_operand_details(operand, &orig_operand);
+  restore_operand_form_of_name_reference(operand, &orig_operand);
 }  /* conv_indefinite_function_operand_to_unknown_dependent_function */
 
 
@@ -10425,6 +10435,7 @@ with extra source positions).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->state = (an_operand_state)os_none;
   result->is_qualified_name = locator->is_qualified_name;
+  set_operand_name_reference_from_locator(result, locator);
 }  /* make_field_operand */
 
 #if UPC_EXTENSIONS_ALLOWED

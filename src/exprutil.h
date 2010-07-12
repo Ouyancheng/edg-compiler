@@ -1800,6 +1800,11 @@ extern void restore_operand_details_incl_ref(an_operand *operand,
 extern void restore_operand_id_details(an_operand *operand,
                                        an_operand *orig_operand);
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+extern void restore_operand_form_of_name_reference(an_operand *operand,
+                                                   an_operand *orig_operand);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
 extern a_boolean check_call_function_pointer_operand(an_operand *operand);
 
 extern void make_function_designator_operand(

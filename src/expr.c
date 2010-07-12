@@ -3045,6 +3045,7 @@ are expected to be NULL in that case.
         operand->bound_function = FALSE;
         operand->selector_is_object_pointer = FALSE;
         restore_operand_id_details(operand, &orig_operand);
+        restore_operand_form_of_name_reference(operand, &orig_operand);
         if (have_selector) {
           /* This comes up with operator() cases. */
           combine_unneeded_selector_with_operand(
