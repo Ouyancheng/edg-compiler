@@ -1,5 +1,25 @@
 Version 4.2
 
+7/12/10  [EDGcpfe/10765]
+C++-generating back end: nullptr in default argument of template alias
+
+In some cases in which nullptr is used in a default argument of a template
+alias, a use of that alias could result in generated code that was missing
+a needed cast of that nullptr argument.  This is now fixed.  For example:
+
+  template<typename T, T (*p)() = nullptr> using A = decltype(p());
+  template<typename T> struct S { };
+  template<typename T> using B = S<A<T>>;
+
+The type in the last line was previously incorrectly generated as
+
+  S<decltype((nullptr()))>
+
+It is now correctly generated as
+
+  S<decltype((((T (*)(void))nullptr)()))>
+
+
 7/11/10  [EDGcpfe/10766]
 C++-generating back end: missing qualification for hidden template alias
 

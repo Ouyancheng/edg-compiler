@@ -4680,22 +4680,27 @@ precedence confusion.  Do the output in the way described by octl.
           } else {
             a_constant_ptr op_con =
                              constant->variant.template_param.variant.constant;
-#if DEBUG
             a_boolean      need_local_close_paren = FALSE;
-            if (!cast_already_put_out && octl->debug_output) {
-              /* A cast was not put out above, so put one out here if
-                 we're producing debug output. */
+            if (!cast_already_put_out &&
+                ((is_pointer_type(con_type) &&
+                  op_con->kind == (a_constant_repr_kind)ck_integer &&
+                  cmplit_integer_constant(op_con,
+                                          (a_host_large_integer)0) == 0)
+#if DEBUG
+                 || octl->debug_output
+#endif /* DEBUG */
+                )) {
+              /* A cast was not put out above, so put one out here if this
+                 is a cast of a null pointer constant or if we're producing
+                 debug output. */
               output_optional_open_paren(&need_parens, &need_local_close_paren,
                                          octl);
               form_cast(constant->type, octl);
             }  /* if */
-#endif /* DEBUG */
             form_constant(op_con, /*need_parens=*/FALSE, octl);
-#if DEBUG
             if (need_local_close_paren) {
               octl->output_str(")", octl);
             }  /* if */
-#endif /* DEBUG */
           }  /* if */
           break;
         case tpck_address:
