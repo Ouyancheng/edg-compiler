@@ -2159,11 +2159,12 @@ call, and rcblock->argument_list to the previously-scanned argument list.
        is parsed "as if" for a sizeof operator).  The expression stack cannot
        be popped until after the argument has been transformed; so we record
        whether we are in a constant-expression prior to updating the stack. */
-    a_boolean  saved_favor_constant_result = expr_stack->favor_constant_result;
+    a_boolean  saved_favor_constant_result;
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    saved_favor_constant_result = expr_stack->favor_constant_result;
     if (bfk == (a_builtin_function_kind)bfk_constant_p) {
       expr_stack->favor_constant_result = TRUE;
       if (!always_fold_calls_to_builtin_constant_p &&
