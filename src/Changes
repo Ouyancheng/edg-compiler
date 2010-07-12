@@ -6,7 +6,7 @@ Microsoft compatibility: use of class template without argument list
 The Microsoft compiler allows a class template to reference another class
 template without providing a template argument list.  An error is only
 produced by the Microsoft compiler if the template is actually instantiated.
-We now emulate this behavior in Microsoft bugs mode.
+We now accept this usage in Microsoft bugs mode, with a warning.
 
   template<typename X> struct A {   
     typedef int i;
