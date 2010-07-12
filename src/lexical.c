@@ -13150,7 +13150,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
               symbol of the class template. */
            new_sym = template_sym;
            goto skip_processing;
-        } else if (microsoft_bugs && template_sym != NULL &&
+        } else if (microsoft_bugs &&
                    scope_stack[depth_scope_stack].kind ==
                                         (a_scope_kind)sck_class_struct_union &&
                    is_prototype_instantiation_context()) {
@@ -13161,8 +13161,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
           a_template_symbol_supplement_ptr	tssp;
           tssp = template_supplement_for_symbol(template_sym);
           new_sym = tssp->variant.class_template.prototype_instantiation;
-          pos_sy_warning(ec_missing_template_arg_list, &start_position,
-                         template_sym);
           goto normal_exit;
         } else {
           /* Issue an error and return an error locator. */
