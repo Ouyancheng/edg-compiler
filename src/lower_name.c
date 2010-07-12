@@ -3696,6 +3696,7 @@ seen so far (and is set to one at the topmost level).
   a_template_arg_ptr          template_arg_list = NULL;
   a_class_type_supplement_ptr ctsp = NULL;
   a_source_correspondence_ptr scp = NULL;
+  a_boolean                   is_template_param = FALSE;
 
   if (qualifier != NULL) {
     if (qualifier->is_class) {
@@ -3704,8 +3705,11 @@ seen so far (and is set to one at the topmost level).
         ctsp = class_type->variant.class_struct_union.extra_info;
         check_assertion(ctsp != NULL);
         template_arg_list = ctsp->template_arg_list;
+        is_template_param = symbol_supplement_for_class(class_type)->
+                                        template_param_for_proxy_class != NULL;
       } else {
         check_assertion(is_template_param_type(class_type));
+        is_template_param = TRUE;
       }  /* if */
       scp = &class_type->source_corresp;
     } else {
@@ -3718,10 +3722,7 @@ seen so far (and is set to one at the topmost level).
     add_str_to_mangled_name("sr", mctl);
     if (qualifier != NULL &&
         qualifier->is_class &&
-        (emulate_gnu_abi_bugs ||
-         is_template_param_type(class_type) ||
-         symbol_supplement_for_class(class_type)->
-                                     template_param_for_proxy_class != NULL)) {
+        (emulate_gnu_abi_bugs || is_template_param)) {
       /* See if this type is a template parameter.  If so, use the 
          (template parameter) type encoding rather than the type name. */
       if (nesting_level > 1) {
@@ -3757,21 +3758,43 @@ seen so far (and is set to one at the topmost level).
     scp = NULL;
   }  /* if */
   if (scp != NULL) {
-    /* Emit the source name for this qualifier (with any template args). */
-    mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE, mctl);
+#if !IA64_ABI
+    if ((qualifier == NULL || qualifier->previous_qualifier == NULL) &&
+        is_template_param) {
+      /* Emit template parameter encoding rather than the parameter's name if
+         this is a top-level template parameter. */
+      mangled_encoding_for_type(class_type, mctl);
+    } else
+#endif /* !IA64_ABI */
+    {
+      /* Emit the source name for this qualifier (with any template args). */
+      mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE,
+                          mctl);
+    }  /* if */
   }  /* if */
 }  /* mangled_name_qualifier */
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+#if IA64_ABI
+/*ARGSUSED*/ /* <-- dtor_type is unused in that case. */
+#endif /* IA64_ABI */
 static void mangled_name_reference(a_name_reference_ptr        name_reference,
+                                   a_type_ptr                  dtor_type,
                                    a_mangling_control_block    *mctl)
 /*
 Add the qualifiers as specified by name_reference to the mangled name.
+In the Cfront ABI, if dtor_type is non-NULL, create a mangling that
+incorporates this type as the last component of a qualified name.  This is
+used to create a "destructor name" qualifier for the __dn mangling, for cases
+like T::~X where the type name is different in the qualifier and the type.
+In the IA-64 ABI, the destructor type is simply appended as another level by
+the caller.
 */
 {
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_boolean     need_close = FALSE;
+  unsigned long nesting_level = 1;
 
   if (name_reference != NULL) {
     if (name_reference->is_global_qualified_name) {
@@ -3787,8 +3810,15 @@ Add the qualifiers as specified by name_reference to the mangled name.
 #endif /* !IA64_ABI */
                                                    ) {
       /* Process each qualifier in turn. */
+#if !IA64_ABI
+      if (dtor_type != NULL) {
+        /* Mangle the destructor type as though it were part of the qualified
+           name. */
+        nesting_level++;
+      }
+#endif /* !IA64_ABI */
       mangled_name_qualifier(name_reference->qualifier, &need_close,
-                             (unsigned long)1, mctl);
+                             nesting_level, mctl);
 #if IA64_ABI
       if (need_close) {
         add_to_mangled_name('E', mctl);
@@ -3796,13 +3826,17 @@ Add the qualifiers as specified by name_reference to the mangled name.
 #endif /* IA64_ABI */
     }  /* if */
   }  /* if */
+#if !IA64_ABI
+  if (dtor_type != NULL) {
+    /* If the caller specified a dtor_type, include it in the qualified
+       mangled type name. */
+    mangled_encoding_for_type(dtor_type, mctl);
+  }  /* if */
+#endif /* !IA64_ABI */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 }  /* mangled_name_reference */
 
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- name_reference is unused in that case. */ /* FIXME */
-#endif /* !IA64_ABI */
 static void mangled_destructor_name(a_type_ptr               type,
                                     a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl)
@@ -3840,14 +3874,15 @@ FIXME
     mctl->last_substitution = save_last_substitution;
   } else {
     /* FIXME: Do this here or in caller? */
-    mangled_name_reference(name_reference, mctl);
+    mangled_name_reference(name_reference, (a_type_ptr)NULL, mctl);
     add_str_to_mangled_name("dn", mctl);
     mangled_encoding_for_type(type, mctl);
   }  /* if */
 #else /* !IA64_ABI */
-  /* FIXME: Need to encode scope resolution in here as well. */
+  /* Pass the destructor type to incorporate it as part of the
+     "destructor name". */
   add_str_to_mangled_name("__dn__", mctl);
-  mangled_encoding_for_type(type, mctl);
+  mangled_name_reference(name_reference, type, mctl);
   add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
 }  /* mangled_destructor_name */
@@ -4034,7 +4069,7 @@ expression that was used to select expr (NULL if no selector was used).
   if (needs_qualification) {
 #if IA64_ABI
     /* Emit any qualification that is necessary for this entity. */
-    mangled_name_reference(name_reference, mctl);
+    mangled_name_reference(name_reference, (a_type_ptr)NULL, mctl);
 #else /* !IA64_ABI */
     reserve_space_for_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
@@ -4070,7 +4105,7 @@ expression that was used to select expr (NULL if no selector was used).
   if (needs_qualification) {
     /* Emit any qualification that is necessary for this entity. */
     add_str_to_mangled_name("__", mctl);
-    mangled_name_reference(name_reference, mctl);
+    mangled_name_reference(name_reference, (a_type_ptr)NULL, mctl);
     fill_in_length(&length_reservation, mctl);
   }  /* if */
 #endif /* !IA64_ABI */
