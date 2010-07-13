@@ -13743,6 +13743,9 @@ options is a set of name lookup options.
         }  /* if */
       }
       break;
+    case enk_error:
+      *copy_error = TRUE;
+      break;
     default:
       /* Other kinds of expressions can come up when copying a non-constant
          expression under a sizeof. */
