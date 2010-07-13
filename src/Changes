@@ -1,5 +1,39 @@
 Version 4.2
 
+7/13/10  [EDGcpfe/10825]
+GNU compatibility: __alignof and attribute "packed"
+
+In GNU modes, __alignof applied to a field selection operation produces the
+alignment of the indicated field (which may include the effect of certain
+attributes and/or pragmas).  Previously, however, the "packed" attribute
+applied the class enclosing an attribute was ignored.  For example:
+
+  struct __attribute((packed)) S {
+    char x;
+    int y;
+  } s;
+  unsigned f() {
+    return __alignof(s.y);  // Previously returned the alignment of "int";
+  }                         // now returns 1.
+
+This is now fixed.
+
+Furthermore, the result of __alignof for a field selection expression
+designating a field declared with the "packed" attribute was previously always
+equal to one, even if the field was explicitly aligned to a larger value.  Now
+this behavior is limited to GNU modes with gnu_version < 30400.  For example:
+
+  struct T {
+    char x;
+    int y __attribute((packed, aligned(2)));
+  } t;
+  unsigned g() {
+    return __alignof(t.y);  // Previously always returned 1; now returns 2 if
+  }                         // gnu_version >= 30400.
+
+(See also the Changes entry of 8/23/07.)
+
+
 7/12/10  [EDGcpfe/10812]
 Microsoft compatibility: use of class template without argument list
 

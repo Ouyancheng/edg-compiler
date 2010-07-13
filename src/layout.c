@@ -866,17 +866,31 @@ explicit alignment value was specified, return FALSE.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
-static a_targ_alignment alignment_of_field(a_field_ptr  field)
+a_targ_alignment alignment_of_field_full(a_field_ptr  field,
+                                         a_boolean    for_alignof)
 /*
 Return the alignment of the given field, taking into account any Microsoft or
-GNU attributes specified on that field.
+GNU attributes specified on that field.  If alignof is TRUE, the alignment of
+the field to return is for an __alignof operator (possible in GNU modes only).
 */
 {
   a_type_ptr        class_type = parent_class_of(field);
-  a_targ_alignment  field_alignment = field_alignment_for(field->type);
+  a_targ_alignment  field_alignment =
+                                for_alignof ? alignment_of_type(field->type)
+                                            : field_alignment_for(field->type);
 
   class_type = skip_typerefs(class_type);
 #if USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED
+  if (field->is_packed && for_alignof && gnu_version < 30400) {
+    /* In early versions of GCC, __alignof applied to a field selection
+       operation for a field declared with the "packed" attribute produced
+       "1" even if the field has a stronger alignment (because of an
+       alignment attribute). */
+    field_alignment = 1;
+    goto done;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (apply_explicit_field_alignment_directive(field, &field_alignment)) {
     /* An explicit field alignment was specified.  field_alignment will have
@@ -906,8 +920,12 @@ GNU attributes specified on that field.
     adjust_alignment_for_packing(&field_alignment, class_type);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+done:
   return field_alignment;
 }  /* alignment_of_field */
+
+#define alignment_of_field(field)                                            \
+  alignment_of_field_full((field), /*ignore_dual_alignment=*/FALSE)
 
 
 static a_boolean increment_field_offsets(

@@ -37,10 +37,10 @@ expr.c -- Expression scanning routines.
 /* widen_string_literal is used by scan_microsoft_lprefix_operator. */
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-/* Needed for access to "field_alignment_for". */
+#if GNU_EXTENSIONS_ALLOWED
+/* Needed for access to "alignment_of_field_full". */
 #include "layout.h"
-#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 /* Needed for GNU statement expression, ({...}). */
 #include "statements.h"
@@ -7185,9 +7185,6 @@ result in *result (or an error indication in *rcblock).
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment    alignment = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-  a_boolean           use_field_alignment = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
   a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                       region_to_switch_back_to;
@@ -7314,34 +7311,22 @@ result in *result (or an error indication in *rcblock).
       if (opkind == (an_expr_operator_kind)eok_dot_field ||
           opkind == (an_expr_operator_kind)eok_points_to_field) {
         an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
-        a_targ_alignment  explicit_alignment = 0;
-#if USER_CONTROL_OF_STRUCT_PACKING
-        /* The "packed" attribute implies an alignment of one, and overrides
-           any value specified with the "aligned" attribute. */
-        explicit_alignment = field_op->variant.field->is_packed ?
-                                       1 : field_op->variant.field->alignment;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
-        if (field_op->kind == (an_expr_node_kind)enk_field &&
-            explicit_alignment != 0) {
-          /* A field selection for a field that has an explicit alignment
-             (presumably set by the "packed" or "aligned" attributes). */
-          alignment = explicit_alignment;
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-        } else if (gnu_version >= 30300) {
-          /* In recent GNU C and C++ compilers, __alignof__ applied to a field
-             selection operation (. or ->) results in the "field alignment"
-             rather than the intrinsic alignment.  For example (assuming recent
-             GNU rules on the IA-32 architecture where long long is
-             intrinsically aligned to 8-byte boundaries, but aligned to 4-byte
-             boundaries when laying out fields):
-               struct S { long long x; } s;
-               int a1 = __alignof__(s.x);      // a1 == 4
-               int a2 = __alignof__((&s)->x);  // a2 == 4
-               int a3 = __alignof__(*&s.x);    // a3 == 8
-          */
-          use_field_alignment = TRUE;
+        /* In recent GNU C and C++ compilers, __alignof__ applied to a field
+           selection operation (. or ->) results in the "field alignment"
+           rather than the intrinsic alignment.  For example (assuming recent
+           GNU rules on the IA-32 architecture where long long is
+           intrinsically aligned to 8-byte boundaries, but aligned to 4-byte
+           boundaries when laying out fields):
+             struct S { long long x; } s;
+             int a1 = __alignof__(s.x);      // a1 == 4
+             int a2 = __alignof__((&s)->x);  // a2 == 4
+             int a3 = __alignof__(*&s.x);    // a3 == 8
+           Early versions of GCC, however, ignored the dual aligment rules. */
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
-        }  /* if */
+        alignment = alignment_of_field_full(
+                               field_op->variant.field,
+                               /*ignore_dual_alignment=*/gnu_version > 30300);
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7417,12 +7402,6 @@ result in *result (or an error indication in *rcblock).
       alignof_value = alignment;
     } else
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-#if GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-    if (use_field_alignment) {
-      alignof_value = field_alignment_for(alignof_type);
-    } else
-#endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
     /* Do not insert code here. */
     {
       alignof_value = alignment_of_type(alignof_type);
