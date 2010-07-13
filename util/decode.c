@@ -5428,12 +5428,11 @@ The syntax is:
     ptr += 3;
   } else {
     /* Integer literal, L <type> <value number> E. */
-    if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == '0') {
-      /* Recognize the literal for nullptr and emit "nullptr" rather than
-         "(std::nullptr_t)0" as would be emitted normally.  This is a
+    if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == 'E') {
+      /* Recognize the literal for nullptr and emit "nullptr".  This is a
          <builtin-type> so substitutions aren't affected by this shortcut. */
       write_id_str("nullptr", dctl);
-      ptr += 4;
+      ptr += 3;
     } else {
       /* Put parentheses around the type to make a cast. */
       write_id_ch('(', dctl);
