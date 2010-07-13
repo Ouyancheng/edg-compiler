@@ -875,10 +875,24 @@ the field to return is for an __alignof operator (possible in GNU modes only).
 */
 {
   a_type_ptr        class_type = parent_class_of(field);
-  a_targ_alignment  field_alignment =
-                                for_alignof ? alignment_of_type(field->type)
-                                            : field_alignment_for(field->type);
+  a_targ_alignment  field_alignment;
 
+  if (for_alignof && gnu_version < 30400) {
+    /* In recent GNU C and C++ compilers, __alignof__ applied to a field
+       selection operation (. or ->) results in the "field alignment" rather
+       than the intrinsic alignment.  For example (assuming recent GNU rules
+       on the IA-32 architecture where long long is intrinsically aligned to
+       8-byte boundaries, but aligned to 4-byte boundaries when laying out
+       fields):
+         struct S { long long x; } s;
+         int a1 = __alignof__(s.x);      // a1 == 4
+         int a2 = __alignof__((&s)->x);  // a2 == 4
+         int a3 = __alignof__(*&s.x);    // a3 == 8
+       Earlier versions of GCC, however, ignored the dual alignment rules. */
+    field_alignment = alignment_of_type(field->type);
+  } else {
+    field_alignment = field_alignment_for(field->type);
+  }  /* if */
   class_type = skip_typerefs(class_type);
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if GNU_EXTENSIONS_ALLOWED

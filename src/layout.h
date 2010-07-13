@@ -78,9 +78,8 @@ The field alignment is equal to the intrinsic alignment of the type.
 #define field_alignment_for(tp) (alignment_of_type(tp))
 #endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
 
-extern a_targ_alignment alignment_of_field_full(
-                                          a_field_ptr  field,
-                                          a_boolean    ignore_dual_alignment);
+extern a_targ_alignment alignment_of_field_full(a_field_ptr  field,
+                                                a_boolean    for_alignof);
 
 extern a_boolean is_empty_class_type(a_type_ptr type);
 

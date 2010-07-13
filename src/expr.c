@@ -7305,28 +7305,16 @@ result in *result (or an error indication in *rcblock).
     if (gnu_mode && is_expression_operand(&operand) &&
         skip_parens(operand.variant.expression)->kind ==
                                             (an_expr_node_kind)enk_operation) {
-      /* Field selection operations need special treatment in GNU modes. */
+      /* Field selection operations need special treatment in GNU modes: The
+         alignment of the field (including field-specific attributes) is
+         produced. */
       an_expr_node_ptr       expr = skip_parens(operand.variant.expression);
       an_expr_operator_kind  opkind = expr->variant.operation.kind;
       if (opkind == (an_expr_operator_kind)eok_dot_field ||
           opkind == (an_expr_operator_kind)eok_points_to_field) {
         an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
-#if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
-        /* In recent GNU C and C++ compilers, __alignof__ applied to a field
-           selection operation (. or ->) results in the "field alignment"
-           rather than the intrinsic alignment.  For example (assuming recent
-           GNU rules on the IA-32 architecture where long long is
-           intrinsically aligned to 8-byte boundaries, but aligned to 4-byte
-           boundaries when laying out fields):
-             struct S { long long x; } s;
-             int a1 = __alignof__(s.x);      // a1 == 4
-             int a2 = __alignof__((&s)->x);  // a2 == 4
-             int a3 = __alignof__(*&s.x);    // a3 == 8
-           Early versions of GCC, however, ignored the dual aligment rules. */
-#endif /* TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
         alignment = alignment_of_field_full(
-                               field_op->variant.field,
-                               /*ignore_dual_alignment=*/gnu_version > 30300);
+                               field_op->variant.field, /*for_alignof=*/TRUE);
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
