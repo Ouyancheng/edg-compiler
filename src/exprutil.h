@@ -1803,6 +1803,9 @@ extern void restore_operand_id_details(an_operand *operand,
 #if RECORD_FORM_OF_NAME_REFERENCE
 extern void restore_operand_form_of_name_reference(an_operand *operand,
                                                    an_operand *orig_operand);
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define restore_operand_form_of_name_reference(operand, orig_operand) \
+  /* Nothing */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 extern a_boolean check_call_function_pointer_operand(an_operand *operand);

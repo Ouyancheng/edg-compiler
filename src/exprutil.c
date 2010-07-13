@@ -3487,11 +3487,7 @@ modification.
   }  /* if */
 }  /* restore_operand_form_of_name_reference */
 
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-#define restore_operand_form_of_name_reference(operand, orig_operand) \
-  /* Nothing */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-
 
 void record_non_access_error_detected(void)
 /*
