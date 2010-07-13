@@ -6899,14 +6899,6 @@ previously-scanned sizeof expression, and return the result in *result
     }  /* if */
   } else {
     /* Expression case. */
-    /* Do not convert a type of "routine returning type" to "pointer to
-       routine returning type".  See section 3.2.2.1 in the C standard.
-       Likewise do not convert arrays to pointers, or lvalues to rvalues. */
-    do_operand_transformations(&operand,
-                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
     if (is_bit_field_operand(&operand)) {
       /* This is a bit field; it is illegal except when in pcc compatibility
 	 mode. */
@@ -6916,6 +6908,7 @@ previously-scanned sizeof expression, and return the result in *result
         error_in_operand(ec_sizeof_bit_field, &operand);
       }  /* if */
     }  /* if */
+    eliminate_unusual_operand_kinds(&operand);
     force_complete_type_if_a_variable(&operand);
     sizeof_type = operand.type;
     type_position = operand.position;
@@ -7352,14 +7345,7 @@ result in *result (or an error indication in *rcblock).
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Do not convert a type of "routine returning type" to "pointer to
-       routine returning type".  See section 3.2.2.1 in the C standard.
-       Likewise do not convert arrays to pointers, or lvalues to rvalues. */
-    do_operand_transformations(&operand,
-                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
-                               TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                               TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+    eliminate_unusual_operand_kinds(&operand);
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
     type_position = operand.position;
