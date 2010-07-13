@@ -3841,8 +3841,8 @@ static void mangled_destructor_name(a_type_ptr               type,
                                     a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl)
 /*
-Add an encoding for a destructor of the specified type.
-FIXME
+Add an encoding for a destructor of the specified type.  The name_reference
+details any qualification that applies to the destructor.
 */
 {
   /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
@@ -3855,11 +3855,16 @@ FIXME
        processing. */
     /* FIXME: Not always, sometimes uses <expr-primary> */
     a_substitution_ptr  save_first_substitution, save_last_substitution;
-    /* FIXME: When do we need to emit "sr"? */
-    add_str_to_mangled_name("sr", mctl);
-    mangled_encoding_for_type(type, mctl);
-    /* When g++ uses the "co" mangling, it doesn't use or record substitutions,
-       so save the substitution pointers and reset them. */
+    if (name_reference != NULL
+#if RECORD_FORM_OF_NAME_REFERENCE
+        && name_reference->qualifier != NULL
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+                                                   ) {
+      add_str_to_mangled_name("sr", mctl);
+      mangled_encoding_for_type(type, mctl);
+    }  /* if */
+    /* When g++ uses the "co" mangling, it doesn't use or record
+       substitutions, so save the substitution pointers and reset them. */
     save_first_substitution = mctl->first_substitution;
     save_last_substitution = mctl->last_substitution;
     mctl->first_substitution = NULL;
@@ -3875,7 +3880,8 @@ FIXME
     mctl->first_substitution = save_first_substitution;
     mctl->last_substitution = save_last_substitution;
   } else {
-    /* FIXME: Do this here or in caller? */
+    /* Precede the destructor indication with any qualification that is
+       appropriate. */
     mangled_name_reference(name_reference, (a_type_ptr)NULL, mctl);
     add_str_to_mangled_name("dn", mctl);
     mangled_encoding_for_type(type, mctl);
