@@ -3868,9 +3868,11 @@ current token will be used as the operand position.
 */
 {
   make_constant_operand(constant, operand);
-  /* Treat a string literal constant as an lvalue. */
-  operand->state = (an_operand_state)os_lvalue;
-  operand->is_simple_string_literal = TRUE;
+  if (!is_error_operand(operand)) {
+    /* Treat a string literal constant as an lvalue. */
+    operand->state = (an_operand_state)os_lvalue;
+    operand->is_simple_string_literal = TRUE;
+  }  /* if */
 }  /* make_string_constant_operand */
 
 
