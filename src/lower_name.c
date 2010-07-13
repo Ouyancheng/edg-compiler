@@ -7872,6 +7872,13 @@ mangling of a type as well as an expression), return *is_cast TRUE.
     case eok_lvalue_cast:
     case eok_bool_cast:
 #if ABI_COMPATIBILITY_VERSION >= 402
+#if IA64_ABI
+      if (emulate_gnu_abi_bugs) {
+        /* GNU doesn't distinguish between cast types. */
+        name = MANGLING_STRING_FOR_CAST;
+      } else
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
       if (expr->is_static_cast) {
         name = MANGLING_STRING_FOR_STATIC_CAST;
       } else if (expr->variant.operation.is_const_cast) {
@@ -7888,7 +7895,16 @@ mangling of a type as well as an expression), return *is_cast TRUE.
       break;
     case eok_dynamic_cast:
     case eok_ref_dynamic_cast:
-      name = MANGLING_STRING_FOR_DYNAMIC_CAST;
+#if IA64_ABI
+      if (emulate_gnu_abi_bugs) {
+        /* GNU doesn't distinguish between cast types. */
+        name = MANGLING_STRING_FOR_CAST;
+      } else
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
+        name = MANGLING_STRING_FOR_DYNAMIC_CAST;
+      }  /* if */
       *is_cast = TRUE;
       break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
