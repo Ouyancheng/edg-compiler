@@ -4343,6 +4343,48 @@ this expression is part of a template-dependent expression.
 }  /* mangled_call_operation */
 
 
+static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
+                                 a_type_ptr               type,
+                                 a_mangling_control_block *mctl)
+
+/*
+Mangle a dynamic initialization with is_explicit_cast set to TRUE as a
+conversion operation to the specified type.  Compound literals are not
+handled at this time.
+*/
+{
+  an_expr_node_ptr    args;
+
+  check_assertion(dip != NULL &&
+                  dip->is_explicit_cast && !dip->is_compound_literal);
+  args = arg_list_from_dyn_init(dip);
+#if IA64_ABI
+  add_str_to_mangled_name("cv", mctl);
+  mangled_encoding_for_type(type, mctl);
+  if (args == NULL || args->next != NULL) add_to_mangled_name('_', mctl);
+  mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+  if (args == NULL || args->next != NULL) add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+  /* Conversion.  Output has the form
+       Ocv1A_1_I0_1IO <-- encoding for "A(p1)"
+                    ^---- "O" to end the operation encoding.
+               ^^^^^----- Arguments to conversion.
+            ^^^---------- Argument count.
+          ^^------------- Type to convert to.
+        ^^--------------- Conversion operation.
+       ^----------------- "O" for operation.
+  */
+  add_to_mangled_name('O', mctl);
+  add_str_to_mangled_name("cv", mctl);
+  mangled_encoding_for_type(type, mctl);
+  store_digits_and_underscore(number_of_operands_in_list(args),
+                              /*old_form=*/FALSE, mctl);
+  mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+  add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_dynamic_init */
+
+
 static void mangled_encoding_for_expression_full(
                                   an_expr_node_ptr         expr,
                                   a_boolean                in_dependent_expr,
@@ -4721,9 +4763,14 @@ is TRUE.
         add_to_mangled_name('1', mctl);
 #endif /* !IA64_ABI */
         check_assertion(expr->variant.throw_info->dynamic_init != NULL);
-        mangled_encoding_for_expression(arg_list_from_dyn_init(
+        if (expr->variant.throw_info->dynamic_init->is_explicit_cast) {
+          mangled_dynamic_init(expr->variant.throw_info->dynamic_init,
+                               expr->variant.throw_info->type, mctl);
+        } else {
+          mangled_encoding_for_expression(arg_list_from_dyn_init(
                                        expr->variant.throw_info->dynamic_init),
                                        /*in_dependent_expr=*/TRUE, mctl);
+        }  /* if */
       }  /* if */
 #if !IA64_ABI
       add_to_mangled_name('O', mctl);
@@ -4737,34 +4784,9 @@ is TRUE.
          (implicit) enk_temp_init operations are stripped and aren't part of
          the mangled name. */
       {
-        an_expr_node_ptr    args;
         a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
         check_assertion(dip != NULL && dip->is_explicit_cast);
-        args = arg_list_from_dyn_init(dip);
-#if IA64_ABI
-        add_str_to_mangled_name("cv", mctl);
-        mangled_encoding_for_type(expr->type, mctl);
-        if (args == NULL || args->next != NULL) add_to_mangled_name('_', mctl);
-        mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-        if (args == NULL || args->next != NULL) add_to_mangled_name('E', mctl);
-#else /* !IA64_ABI */
-        /* Conversion.  Output has the form
-             Ocv1A_1_I0_1IO <-- encoding for "A(p1)"
-                          ^---- "O" to end the operation encoding.
-                     ^^^^^----- Arguments to conversion.
-                  ^^^---------- Argument count.
-                ^^------------- Type to convert to.
-              ^^--------------- Conversion operation.
-             ^----------------- "O" for operation.
-        */
-        add_to_mangled_name('O', mctl);
-        add_str_to_mangled_name("cv", mctl);
-        mangled_encoding_for_type(expr->type, mctl);
-        store_digits_and_underscore(number_of_operands_in_list(args),
-                                    /*old_form=*/FALSE, mctl);
-        mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-        add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
+        mangled_dynamic_init(dip, expr->type, mctl);
       }
       break;
 #if VLA_DEALLOCATIONS_IN_IL
