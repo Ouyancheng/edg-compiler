@@ -5278,7 +5278,7 @@ to the terminating character.
 #else /* !defined(FLT_DIG) */
       ndig = 6;
 #endif /* ifdef FLT_DIG */
-      (void)sprintf(str, "%.*g", ndig, x.f);
+      (void)sprintf(str, "%.*G", ndig, x.f);
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     } else if (i > sizeof(double)) {
 #ifdef LDBL_DIG
@@ -5286,7 +5286,7 @@ to the terminating character.
 #else /* !defined(LDBL_DIG) */
       ndig = 18;
 #endif /* ifdef LDBL_DIG */
-      (void)sprintf(str, "%.*Lg", ndig, x.ld);
+      (void)sprintf(str, "%.*LG", ndig, x.ld);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     } else {
 #ifdef DBL_DIG
@@ -5294,13 +5294,15 @@ to the terminating character.
 #else /* !defined(DBL_DIG) */
       ndig = 15;
 #endif /* ifdef DBL_DIG */
-      (void)sprintf(str, "%.*g", ndig, x.d);
+      (void)sprintf(str, "%.*G", ndig, x.d);
     }  /* if */
-    /* Add trailing ".0" if no decimal point was put out (meaning the
-       value is a whole number). */
+    /* Add trailing ".0" if no decimal point was put out and the last character
+       of the string is a digit (i.e., not INFINITY or NAN). */
+    p = str + strlen(str) - 1;
     if (strchr(str, '.') == NULL &&
-        strchr(str, 'e') == NULL) {
-      p = str + strlen(str);
+        strchr(str, 'e') == NULL &&
+        isdigit(*p)) {
+      p++;
       *p++ = '.';
       *p++ = '0';
       *p++ = '\0';
@@ -5308,7 +5310,7 @@ to the terminating character.
     write_id_str(str, dctl);
   }  /* if */
   return ptr;
-} /* demangle_float_number */
+}  /* demangle_float_number */
 
 
 static char *demangle_float_literal(char                       *ptr,
@@ -5335,7 +5337,7 @@ high-order bytes first, using lower-case letters.
     }  /* if */
   }  /* if */
   return ptr;
-} /* demangle_float_literal */
+}  /* demangle_float_literal */
 
 
 static char *demangle_complex_literal(char                       *ptr,
@@ -5373,7 +5375,7 @@ high-order bytes first, using lower-case letters.
     }  /* if */
   }  /* if */
   return ptr;
-} /* demangle_complex_literal */
+}  /* demangle_complex_literal */
 
 /*
 Macro that returns TRUE if the character represents a floating point type.
