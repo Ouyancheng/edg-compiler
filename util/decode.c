@@ -5278,7 +5278,7 @@ to the terminating character.
 #else /* !defined(FLT_DIG) */
       ndig = 6;
 #endif /* ifdef FLT_DIG */
-      (void)sprintf(str, "%.*G", ndig, x.f);
+      (void)sprintf(str, "%.*g", ndig, x.f);
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     } else if (i > sizeof(double)) {
 #ifdef LDBL_DIG
@@ -5286,7 +5286,7 @@ to the terminating character.
 #else /* !defined(LDBL_DIG) */
       ndig = 18;
 #endif /* ifdef LDBL_DIG */
-      (void)sprintf(str, "%.*LG", ndig, x.ld);
+      (void)sprintf(str, "%.*Lg", ndig, x.ld);
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
     } else {
 #ifdef DBL_DIG
@@ -5294,10 +5294,11 @@ to the terminating character.
 #else /* !defined(DBL_DIG) */
       ndig = 15;
 #endif /* ifdef DBL_DIG */
-      (void)sprintf(str, "%.*G", ndig, x.d);
+      (void)sprintf(str, "%.*g", ndig, x.d);
     }  /* if */
-    /* Add trailing ".0" if no decimal point was put out and the last character
-       of the string is a digit (i.e., not INFINITY or NAN). */
+    /* Add trailing ".0" if no decimal point or exponent indication was put out
+       and the last character of the string is a digit (i.e., not
+       "inf" or "nan"). */
     p = str + strlen(str) - 1;
     if (strchr(str, '.') == NULL &&
         strchr(str, 'e') == NULL &&
