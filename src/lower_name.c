@@ -2998,7 +2998,11 @@ operator on some template constants when suppress_address_of is TRUE
       */
       add_to_mangled_name('L', mctl);
       mangled_encoding_for_type(con->type, mctl);
-      add_str_to_mangled_name(str, mctl);
+      if (!is_or_was_nullptr_type(con->type)) {
+        /* As a special case, nullptr is mangled without the value 
+           (i.e., "L Dn E"). */
+        add_str_to_mangled_name(str, mctl);
+      }  /* if */
       add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
       break;
