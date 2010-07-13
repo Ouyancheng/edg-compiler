@@ -4274,8 +4274,7 @@ some type of call operation.  In the IA-64 ABI, in_dependent_expr is TRUE if
 this expression is part of a template-dependent expression.
 */
 {
-  an_expr_node_ptr  call_operand, arguments, child;
-  a_boolean         mangle_as_call = FALSE;
+  an_expr_node_ptr  call_operand, arguments, child, member = NULL;
 
   check_assertion(is_operation_node(expr));
   child = expr->variant.operation.operands;
@@ -4283,22 +4282,12 @@ this expression is part of a template-dependent expression.
     case eok_call:
       call_operand = child;
       arguments = call_operand->next;
-      mangle_as_call = TRUE;
       break;
     case eok_dot_member_call:
-      /* FIXME: the front end doesn't set this flag yet: */
-      if (expr->variant.operation.compiler_generated &&
-          is_routine_node(child) &&
-          child->variant.routine->variant.opname_kind ==
-                                           (an_opname_kind)onk_function_call) {
-        /* Change a compiler generated a.operator()(args) into its original
-           source form, i.e. a(args). */
-        mangle_as_call = TRUE;
-      }  /* if */
-      /*FALLTHROUGH*/
     case eok_points_to_member_call:
-      call_operand = child->next;
-      arguments = call_operand->next;
+      call_operand = child;
+      member = call_operand->next;
+      arguments = member->next;
       break;
     case eok_dot_pm_call:
     case eok_points_to_pm_call:
@@ -4316,38 +4305,81 @@ this expression is part of a template-dependent expression.
       break;
 #endif /* CHECKING */
   }  /* switch */
+  if (expr->variant.operation.call_uses_operator_syntax) {
+    /* This is a call operator that was added by the compiler, for example,
+       for a+a, and for mangling purposes needs to be represented as it
+       appeared in the source code (i.e., a+a, not operator+(a,a)).  Note that
+       not all operators can have the call_uses_operator_syntax field set to
+       TRUE (for example, those operators represented by enk_new_delete
+       won't get here). */
+    a_routine_ptr    rp = routine_from_function_expr(call_operand);
+    unsigned long    num_arguments = number_of_operands_in_list(arguments);
+    char             *name;
+    check_assertion(rp != NULL);
+    if (member != NULL) num_arguments++;
+    name = mangled_operator_name(rp->variant.opname_kind, num_arguments);
 #if IA64_ABI
-  add_str_to_mangled_name("cl", mctl);
+    add_str_to_mangled_name(name, mctl);
+    if ((rp->variant.opname_kind == (an_opname_kind)onk_plus_plus ||
+         rp->variant.opname_kind == (an_opname_kind)onk_minus_minus) &&
+        num_arguments == 1) {
+      /* Indicate that this is the prefix version of the operator. */
+      add_to_mangled_name('_', mctl);
+    }  /* if */
 #else /* !IA64_ABI */
-  /* Call.  Output has the form
-       Ocl_1_1fI0_1IO <-- encoding for "f(p1)"
-                    ^---- "O" to end the operation encoding.
-               ^^^^^----- First argument.
-             ^^---------- Call operand.
-          ^^^------------ Count of arguments to call (with underscores).
-        ^^--------------- Call operation.
-       ^----------------- "O" for operation.
-  */
-  add_to_mangled_name('O', mctl);
-  add_str_to_mangled_name("cl", mctl);
-  store_digits_and_underscore(1 + number_of_operands_in_list(arguments),
-                              /*old_form=*/FALSE, mctl);
+    add_to_mangled_name('O', mctl);
+    add_str_to_mangled_name(name, mctl);
+    store_digits_and_underscore(num_arguments, /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
-  if (mangle_as_call) {
-    /* Source form doesn't have a selection operation. */
-    mangled_unresolved_name(call_operand, arguments, /*selector=*/NULL, 
-                            in_dependent_expr, mctl);
+    if (member != NULL) {
+      mangled_encoding_for_expression(member, in_dependent_expr, mctl);
+    }  /* if */
+    for (; arguments != NULL; arguments = arguments->next) {
+      mangled_encoding_for_expression(arguments, in_dependent_expr, mctl);
+    }  /* for */
+#if IA64_ABI
+    if (rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
+      /* Need to close a "cl" mangling. */
+      add_to_mangled_name('E', mctl);
+    }  /* if */
+#else /* !IA64_ABI */
+    add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
   } else {
-    /* Mangle the selection operation. */
-    mangled_selection_operation(expr, arguments, in_dependent_expr, mctl);
-  }  /* if */
-  mangled_expression_list(arguments, in_dependent_expr, mctl);
+    /* Mangle as a call of some type. */
 #if IA64_ABI
-  /* Close the "cl" mangling. */
-  add_to_mangled_name('E', mctl);
+    add_str_to_mangled_name("cl", mctl);
 #else /* !IA64_ABI */
-  add_to_mangled_name('O', mctl);
+    /* Call.  Output has the form
+         Ocl_1_1fI0_1IO <-- encoding for "f(p1)"
+                      ^---- "O" to end the operation encoding.
+                 ^^^^^----- First argument.
+               ^^---------- Call operand.
+            ^^^------------ Count of arguments to call (with underscores).
+          ^^--------------- Call operation.
+         ^----------------- "O" for operation.
+    */
+    add_to_mangled_name('O', mctl);
+    add_str_to_mangled_name("cl", mctl);
+    store_digits_and_underscore(1 + number_of_operands_in_list(arguments),
+                                /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
+    if (node_operator_is(expr, eok_call)) {
+      /* Source form doesn't have a selection operation. */
+      mangled_unresolved_name(call_operand, arguments, /*selector=*/NULL, 
+                              in_dependent_expr, mctl);
+    } else {
+      /* Mangle the selection operation. */
+      mangled_selection_operation(expr, arguments, in_dependent_expr, mctl);
+    }  /* if */
+    mangled_expression_list(arguments, in_dependent_expr, mctl);
+#if IA64_ABI
+    /* Close the "cl" mangling. */
+    add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+    add_to_mangled_name('O', mctl);
+#endif /* IA64_ABI */
+  }  /* if */
 }  /* mangled_call_operation */
 
 
@@ -4411,7 +4443,7 @@ is TRUE.
   char             *operation_name;
   an_expr_node_ptr operand;
 #if IA64_ABI
-  a_boolean        add_address_of, need_close = FALSE;
+  a_boolean        add_address_of;
 #else /* !IA64_ABI */
   unsigned long    num_operands;
 #endif /* IA64_ABI */
@@ -4561,13 +4593,8 @@ is TRUE.
             mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
           }  /* if */
         }  /* for */
-#if IA64_ABI
-        /* Add an "E" for conversions with other than one argument. */
-        if (need_close) {
-          add_to_mangled_name('E', mctl);
-        }  /* if */
-#else /* !IA64_ABI */
-        /* Put out the final "O". */
+#if !IA64_ABI
+        /* Put out the closing "O". */
         add_to_mangled_name('O', mctl);
 #endif /* IA64_ABI */
       }  /* if */
