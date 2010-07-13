@@ -2066,10 +2066,9 @@ extern a_hash_value hash_constant(a_constant *cp);
 
 extern a_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
 
-extern a_boolean compare_template_param_constant_expressions(
-				an_expr_node_ptr		node1,
-				an_expr_node_ptr		node2,
-				a_compare_constants_options_set	options);
+extern a_boolean compare_expressions(an_expr_node_ptr                node1,
+                                     an_expr_node_ptr                node2,
+                                     a_compare_constants_options_set options);
 
 extern void rebuild_structures_on_il_read(void);
 

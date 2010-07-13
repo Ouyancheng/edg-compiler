@@ -5501,7 +5501,7 @@ Return the hash value for the indicated constant.
 }  /* hash_constant */
 
 
-static a_boolean compare_template_param_constant_expression_lists(
+static a_boolean compare_expression_lists(
 				an_expr_node_ptr		list1,
 				an_expr_node_ptr		list2,
 				a_compare_constants_options_set	options)
@@ -5520,17 +5520,16 @@ a set of flags that control the way in which certain comparisons are done.
     } else if (expr1 == NULL || expr2 == NULL) {
       eq = FALSE;
       break;
-    } else if (!compare_template_param_constant_expressions(expr1, expr2,
-                                                            options)) {
+    } else if (!compare_expressions(expr1, expr2, options)) {
       eq = FALSE;
       break;
     }  /* if */
   }  /* for */
   return eq;
-}  /* compare_template_param_constant_expression_lists */
+}  /* compare_expression_lists */
 
 
-static a_boolean compare_template_param_dynamic_inits(
+static a_boolean compare_dynamic_inits(
 				a_dynamic_init_ptr		dip1,
 				a_dynamic_init_ptr		dip2,
 				a_compare_constants_options_set	options)
@@ -5557,44 +5556,38 @@ are done.
         eq = TRUE;
         break;
       case dik_constant:
+      case dik_nonconstant_aggregate:
         eq = compare_constants(dip1->variant.constant, dip2->variant.constant,
                                options);
         break;
       case dik_expression:
       case dik_call_returning_class_via_cctor:
-        eq = compare_template_param_constant_expressions(
-                                                     dip1->variant.expression,
-                                                     dip2->variant.expression,
-                                                     options);
+        eq = compare_expressions(dip1->variant.expression,
+                                 dip2->variant.expression,
+                                 options);
         break;
       case dik_constructor:
         eq = (same_entities(dip1->variant.constructor.ptr,
                             dip2->variant.constructor.ptr) &&
               dip1->variant.constructor.value_initialization ==
               dip2->variant.constructor.value_initialization &&
-              compare_template_param_constant_expression_lists(
-                                              dip1->variant.constructor.args,
-                                              dip2->variant.constructor.args,
-                                              options));
+              compare_expression_lists(dip1->variant.constructor.args,
+                                       dip2->variant.constructor.args,
+                                       options));
         break;
       default:
-        unexpected_condition_str(
-                            "compare_template_param_dynamic_inits: bad kind"); 
+        unexpected_condition_str("compare_dynamic_inits: bad kind"); 
     }  /* switch */
   }  /* if */
   return eq;
-}  /* compare_template_param_dynamic_inits */
+}  /* compare_dynamic_inits */
 
 
-a_boolean compare_template_param_constant_expressions(
-				an_expr_node_ptr		node1,
-				an_expr_node_ptr		node2,
-				a_compare_constants_options_set	options)
+a_boolean compare_expressions(an_expr_node_ptr                node1,
+                              an_expr_node_ptr                node2,
+                              a_compare_constants_options_set options)
 /*
-Return TRUE if node1 and node2 are equivalent expression trees.  Note
-that while this is used to compare expressions in template arguments,
-node1 and node2 can be non-constant expressions because such expressions
-are allowed under a sizeof (etc.) in a template argument expression.
+Return TRUE if node1 and node2 are equivalent expression trees.
 options is a set of flags that control the way in which certain comparisons
 are done.
 */
@@ -5629,8 +5622,7 @@ are done.
 
           check_assertion(op1 != NULL && op2 != NULL);
           do {
-            if (!compare_template_param_constant_expressions(op1, op2,
-                                                             options)) {
+            if (!compare_expressions(op1, op2, options)) {
               /* Operands are not equivalent. */
               break;
             } else {
@@ -5662,10 +5654,9 @@ are done.
         eq = same_entities(node1->variant.field, node2->variant.field);
         break;
       case enk_temp_init:
-        eq = compare_template_param_dynamic_inits(
-                                             node1->variant.init.dynamic_init,
-                                             node2->variant.init.dynamic_init,
-                                             options);
+        eq = compare_dynamic_inits(node1->variant.init.dynamic_init,
+                                   node2->variant.init.dynamic_init,
+                                   options);
         break;
       case enk_new_delete:
         { a_new_delete_supplement_ptr ndsp1 = node1->variant.new_delete;
@@ -5675,12 +5666,10 @@ are done.
                 ndsp1->array_delete == ndsp2->array_delete &&
                 identical_types(ndsp1->type, ndsp2->type) &&
                 same_entities(ndsp1->routine, ndsp2->routine) &&
-                compare_template_param_constant_expression_lists(ndsp1->arg,
-                                                                 ndsp2->arg,
-                                                                 options) &&
-                compare_template_param_dynamic_inits(ndsp1->dynamic_init,
-                                                     ndsp2->dynamic_init,
-                                                     options));
+                compare_expression_lists(ndsp1->arg, ndsp2->arg, options) &&
+                compare_dynamic_inits(ndsp1->dynamic_init,
+                                      ndsp2->dynamic_init,
+                                      options));
         }
         break;
       case enk_lambda:
@@ -5697,25 +5686,23 @@ are done.
             eq = FALSE;
           } else {
             eq = (identical_types(tsp1->type, tsp2->type) &&
-                  compare_template_param_dynamic_inits(tsp1->dynamic_init,
-                                                       tsp2->dynamic_init,
-                                                       options));
+                  compare_dynamic_inits(tsp1->dynamic_init,
+                                        tsp2->dynamic_init,
+                                        options));
           }  /* if */
         }
         break;       
       case enk_object_lifetime:
-        eq = compare_template_param_constant_expressions(
-                                          node1->variant.object_lifetime.expr,
-                                          node2->variant.object_lifetime.expr,
-                                          options);
+        eq = compare_expressions(node1->variant.object_lifetime.expr,
+                                 node2->variant.object_lifetime.expr,
+                                 options);
         break;
       case enk_typeid:
         eq = (identical_types(node1->variant.typeid_info.type,
                               node2->variant.typeid_info.type) &&
-              compare_template_param_constant_expressions(
-                                             node1->variant.typeid_info.expr,
-                                             node2->variant.typeid_info.expr,
-                                             options));
+              compare_expressions(node1->variant.typeid_info.expr,
+                                  node2->variant.typeid_info.expr,
+                                  options));
         break;
       case enk_sizeof:
         eq = (node1->variant.sizeof_info.is_type ==
@@ -5723,16 +5710,15 @@ are done.
               (node1->variant.sizeof_info.is_type ?
                  identical_types(node1->variant.sizeof_info.variant.type,
                                  node2->variant.sizeof_info.variant.type) :
-                 compare_template_param_constant_expressions(
+                 compare_expressions(
                                  node1->variant.sizeof_info.variant.expr,
                                  node2->variant.sizeof_info.variant.expr,
                                  options)));
         break;
       case enk_reuse_value:
-        eq = compare_template_param_dynamic_inits(
-                                             node1->variant.reused_value_init,
-                                             node2->variant.reused_value_init,
-                                             options);
+        eq = compare_dynamic_inits(node1->variant.reused_value_init,
+                                   node2->variant.reused_value_init,
+                                   options);
         break;
       case enk_address_of_ellipsis:
         eq = TRUE;
@@ -5761,9 +5747,7 @@ are done.
             } else if (op1 == NULL || op2 == NULL) {
               /* One operand list longer than the other. */
               break;
-            } else if (!compare_template_param_constant_expressions(op1,
-                                                                    op2,
-                                                                    options)) {
+            } else if (!compare_expressions(op1, op2, options)) {
               /* Operands are not equivalent. */
               break;
             } else {
@@ -5791,12 +5775,11 @@ are done.
       case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
       default:
-        unexpected_condition_str(
-                        "compare_template_param_constant_expr: bad expr kind");
+        unexpected_condition_str("compare_expressions: bad expr kind");
     }  /* switch */
   }  /* if */
   return eq;
-}  /* compare_template_param_constant_expressions */
+}  /* compare_expressions */
 
 
 static a_boolean equiv_template_constant_identity(
@@ -5854,7 +5837,10 @@ definition of the CC flags in il.h for more information.
     /* eq = FALSE; */
     goto end_of_routine;
   }  /* if */
-  if (!strictly_identical) {
+  if (cp1_type == NULL || cp2_type == NULL) {
+    /* Some constant kinds have null types (e.g., ck_init_repeat). */
+    same_types = (cp1_type == cp2_type);
+  } else if (!strictly_identical) {
     /* The types must be "the same", but it is sufficient that they be
        compatible (don't use the types_are_compatible or
        types_are_redecl_compatible macros because we don't want errors
@@ -6031,6 +6017,36 @@ definition of the CC flags in il.h for more information.
           }  /* if */
         }  /* if */
         break;
+      case ck_aggregate:
+        { a_constant_ptr ac1 = cp1->variant.aggregate.first_constant;
+          a_constant_ptr ac2 = cp2->variant.aggregate.first_constant;
+          eq = TRUE;
+          for (; ac1 != NULL && ac2 != NULL;
+               ac1 = ac1->next, ac2 = ac2->next) {
+            if (!compare_constants(ac1, ac2, options)) {
+              eq = FALSE;
+              break;
+            }  /* if */
+          }  /* for */
+          if (ac1 != NULL || ac2 != NULL) eq = FALSE;
+        }
+        break;
+      case ck_init_repeat:
+        eq = compare_constants(cp1->variant.init_repeat.constant,
+                               cp2->variant.init_repeat.constant,
+                               options) &&
+             (cp1->variant.init_repeat.count ==
+              cp2->variant.init_repeat.count) &&
+             (cp1->variant.init_repeat.
+                              multidimensional_aggr_tail_not_repeated ==
+              cp2->variant.init_repeat.
+                              multidimensional_aggr_tail_not_repeated);
+        break;
+      case ck_dynamic_init:
+        eq = compare_dynamic_inits(cp1->variant.dynamic_init,
+                                   cp2->variant.dynamic_init,
+                                   options);
+        break;
 #if GNU_EXTENSIONS_ALLOWED
       case ck_label_difference:
         eq = compare_constants(cp1->variant.label_difference.from_address,
@@ -6063,7 +6079,7 @@ definition of the CC flags in il.h for more information.
                         cp2->variant.template_param.variant.coordinates.depth);
               break;
             case tpck_expression:
-              eq = compare_template_param_constant_expressions(
+              eq = compare_expressions(
                                     cp1->variant.template_param.variant.expr,
                                     cp2->variant.template_param.variant.expr,
                                     options);
@@ -6121,9 +6137,7 @@ definition of the CC flags in il.h for more information.
                 } else if (expr1 == NULL || expr2 == NULL) {
                   eq = FALSE;
                 } else {
-                  eq = compare_template_param_constant_expressions(expr1,
-                                                                   expr2,
-                                                                   options);
+                  eq = compare_expressions(expr1, expr2, options);
                 } /* if */
               }  /* if */
               break;

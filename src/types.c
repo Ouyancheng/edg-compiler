@@ -3759,8 +3759,7 @@ top_of_loop:
           cc_options = (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED)
                                         ? CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
                                         : CC_NO_OPTIONS;
-          result = !compare_template_param_constant_expressions(expr1, expr2,
-                                                                cc_options);
+          result = !compare_expressions(expr1, expr2, cc_options);
         }  /* if */
       }  /* if */
       if (!result) {
