@@ -3867,8 +3867,10 @@ FIXME
     add_str_to_mangled_name("co", mctl);
     mangled_encoding_for_type(type, mctl);
     /* Return any allocated substitutions to the available list. */
-    mctl->last_substitution->next = avail_substitutions;
-    avail_substitutions = mctl->last_substitution;
+    if (mctl->last_substitution != NULL) {
+      mctl->last_substitution->next = avail_substitutions;
+      avail_substitutions = mctl->last_substitution;
+    }  /* if */
     /* Restore original pointers. */
     mctl->first_substitution = save_first_substitution;
     mctl->last_substitution = save_last_substitution;
