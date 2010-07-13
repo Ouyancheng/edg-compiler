@@ -6891,8 +6891,10 @@ previously-scanned sizeof expression, and return the result in *result
   if (is_type) {
     /* Type case. */
     /* If the top type is a reference, drop the reference so that the sizeof
-       applies to the type referenced. */
-    if (is_reference_type(sizeof_type)) {
+       applies to the type referenced.  Keep a dependent reference. */
+    if (is_reference_type(sizeof_type) &&
+        !(is_template_dependent_context() &&
+          is_template_dependent_type(sizeof_type))) {
       sizeof_type = type_pointed_to(sizeof_type);
     }  /* if */
   } else {
@@ -7301,8 +7303,10 @@ result in *result (or an error indication in *rcblock).
   if (is_type) {
     /* Type case. */
     /* If the top type is a reference, drop the reference so that the operator
-       applies to the type referenced. */
-    if (is_reference_type(alignof_type)) {
+       applies to the type referenced.  Keep a dependent reference. */
+    if (is_reference_type(alignof_type) &&
+        !(is_template_dependent_context() &&
+          is_template_dependent_type(alignof_type))) {
       alignof_type = type_pointed_to(alignof_type);
     }  /* if */
   } else {
