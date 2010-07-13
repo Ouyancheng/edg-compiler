@@ -12034,12 +12034,18 @@ is an rvalue reference.
     an_expr_node_ptr expr;
     an_operand       orig_operand;
     check_assertion(is_an_rvalue(operand) &&
-                    is_expression_operand(operand) &&
                     (is_class_struct_union_type(operand->type) ||
                      is_template_param_type(operand->type) ||
                      is_error_type(operand->type)));
     orig_operand = *operand;
-    expr = operand->variant.expression;
+    if (is_expression_operand(operand)) {
+      expr = make_node_from_operand(operand);
+    } else if (is_template_param_expression_constant_operand(operand)) {
+      expr = expr_node_from_operand(operand);
+      check_assertion(expr != NULL);
+    } else {
+      unexpected_condition();
+    }  /* if */
     expr = add_reference_to_to_node(expr);
     make_expression_operand(expr, operand);
     restore_operand_details(operand, &orig_operand);
