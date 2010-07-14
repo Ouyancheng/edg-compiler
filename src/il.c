@@ -5601,6 +5601,7 @@ are done.
   } else if (node1 == NULL || node2 == NULL) {
     /* Not equal. */
   } else if (node1->kind == node2->kind &&
+             identical_types(node1->type, node2->type) &&
              node1->is_lvalue == node2->is_lvalue &&
              node1->is_static_cast == node2->is_static_cast) {
     switch (node1->kind) {
