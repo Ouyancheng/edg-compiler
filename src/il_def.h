@@ -90,8 +90,8 @@ typedef struct a_new_delete_supplement
    field in the IL; its structure is not known here). */
 typedef struct an_arg_operand *an_arg_operand_ptr;
 /* Opaque type definition for an_expr_rescan_info_entry (used in the
-   expression processing routines, but a pointer to it appears in a
-   front-end only field in the IL; its structure is not known here).
+   expression processing routines, but a pointer to it appears in some
+   front-end only fields in the IL; its structure is not known here).
    It is defined in exprutil.h. */
 typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
 
@@ -3183,6 +3183,13 @@ typedef struct a_constant {
                         /* If the constant is not just a literal this points
                            to an expression node representing that constant.
                            Otherwise, NULL. */
+  an_expr_rescan_info_entry_ptr
+		rescan_info;
+			/* For constants (particularly for nontype template
+			   arguments) scanned in templates that might be
+			   rescanned later to redo semantic analysis,
+			   points to extra front-end-only information that
+			   is needed for the rescan.  NULL otherwise. */
   a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
@@ -5359,12 +5366,6 @@ typedef struct a_template_arg {
 			   the front end proper.  Used only in the same
 			   cases as the "constant" field above, i.e., for
 			   nontype parameters. */
-  an_expr_rescan_info_entry_ptr
-		rescan_info;
-			/* For template arguments scanned in templates that
-			   might be rescanned later to redo semantic analysis,
-			   points to extra front-end-only information that
-			   is needed for the rescan.  NULL otherwise. */
 } a_template_arg;
 
 

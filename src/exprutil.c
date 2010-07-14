@@ -3344,6 +3344,15 @@ Extract the constant value from the operand *operand and place it in
       set_error_constant(constant);
       break;
   }  /* switch */
+  /* Note that scan_integral_constant_expression has a spot where the
+     expression stack has already been popped before the constant is
+     extracted. */
+  if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+    /* Save rescan info if we may rescan this constant later. */
+    constant->rescan_info = save_operand_info_in_rescan_info_entry(
+                                          operand,
+                                          (an_expr_rescan_info_entry_ptr)NULL);
+  }  /* if */
 }  /* extract_constant_from_operand */
 
 
@@ -4748,12 +4757,6 @@ so it can go into the IL.
       extract_constant_from_operand_with_fs_fixup(operand, constant);
       tap->variant.constant = constant;
       switch_back_to_original_region(region_to_switch_back_to);
-      if (expr_stack->possible_rescan_context) {
-        /* Save rescan info if we may rescan this argument later. */
-        tap->rescan_info = save_operand_info_in_rescan_info_entry(
-                                          operand,
-                                          (an_expr_rescan_info_entry_ptr)NULL);
-      }  /* if */
       free_arg_operand_list(tap->arg_operand);
       tap->arg_operand = NULL;
     } else if (tap->kind == (a_templ_arg_kind)tak_type) {

@@ -3952,7 +3952,10 @@ on the rescan info recorded in the entries on orig_template_arg_list.
     if (is_nontype_templ_arg(tap) &&
         !tap->is_array_bound_of_unknown_type) {
       an_operand_ptr                operand;
-      an_expr_rescan_info_entry_ptr eriep = orig_tap->rescan_info;
+      an_expr_rescan_info_entry_ptr eriep;
+      check_assertion(is_nontype_templ_arg(orig_tap) &&
+                      !orig_tap->is_array_bound_of_unknown_type);
+      eriep = orig_tap->variant.constant->rescan_info;
       check_assertion_str(eriep != NULL,
                           "missing rescan info on explicit template argument");
       check_assertion(tap->arg_operand == NULL);

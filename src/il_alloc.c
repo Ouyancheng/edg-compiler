@@ -795,6 +795,7 @@ associated variant fields to default values.
   cp->next           = NULL;
   cp->type           = NULL;
   cp->expr           = NULL;
+  cp->rescan_info    = NULL;
   cp->character_kind = (a_character_kind)chk_default;
   cp->implicit_cast  = FALSE;
   cp->explicit_cast_applied = FALSE;
@@ -1051,7 +1052,6 @@ allocated.
       break;
   }  /* switch */
   tap->arg_operand = NULL;
-  tap->rescan_info = NULL;
   return tap;
 }  /* alloc_template_arg */
 
