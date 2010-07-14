@@ -3930,7 +3930,7 @@ expression that was used to select expr (NULL if no selector was used).
   an_opname_kind              opname;
   a_type_ptr                  conversion_type = NULL, destructor_type = NULL;
 #if IA64_ABI
-  a_boolean                   selector_has_known_type = FALSE;
+  a_boolean                   dummy, selector_has_known_type = FALSE;
 #else /* !IA64_ABI */
   a_length_reservation        length_reservation;
 #endif /* IA64_ABI */
@@ -3946,6 +3946,7 @@ expression that was used to select expr (NULL if no selector was used).
     /* g++ seems to add the "on" mangling to operator names only when there
        is no selector (i.e., for non-member operators). */
     suppress_operation_indicator = TRUE;
+    selector = skip_compiler_generated_expressions(selector, &dummy);
     if (is_variable_node(selector)) {
       /* g++ provides different manglings if the selector has a known type. */
       selector_has_known_type = TRUE;
@@ -4051,16 +4052,26 @@ expression that was used to select expr (NULL if no selector was used).
       }  /* if */
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_field) {
-    /* This can happen when a field of an anonymous union is being mangled. */
+    /* A field (possibly of an anonymous union). */
     scp = &expr->variant.field->source_corresp;
 #if IA64_ABI
-    if (emulate_gnu_abi_bugs && !selector_has_known_type) {
-      /* FIXME: This doesn't demangle properly. */
-      /* FIXME: Also doesn't always get the right class (e.g., ambig.c) */
+    if (emulate_gnu_abi_bugs &&
+        name_reference != NULL
+#if RECORD_FORM_OF_NAME_REFERENCE
+        && name_reference->qualifier != NULL
+        && name_reference->qualifier->qualifier.class_type ==
+                                                       scp_parent_class(scp)
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+                                                                            ) {
+      /* For items (that were qualified in the source) like p.B::A::m, GNU
+         mangles the field as "sr1A1m"; emulate that here.  Note that such a
+         mangled name cannot be demangled using the existing IA-64 ABI
+         rules. */
       add_str_to_mangled_name("sr", mctl);
       mangled_encoding_for_type(scp_parent_class(scp), mctl);
+      /* Mangled name for the field is emitted below, but we've already
+         emitted the necessary qualification, so don't do that below. */
       name_reference = NULL;
-      /* Mangled name for the field is emitted below. */
     }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
