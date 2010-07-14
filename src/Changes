@@ -1,5 +1,17 @@
 Version 4.2
 
+7/14/10  [EDGcpfe/10832]
+Spurious error on initializer expression that starts with a string literal
+
+The front end previously sometimes issued a spurious error if an initializer
+expression started with a string literal but was followed by an operation
+(e.g., a subscript).  For example:
+
+  char x[] = { "abc"[1], 0 };  // Previously triggered a spurious error.
+
+This is now fixed.
+
+
 7/14/10  [EDGcpfe/10831]
 Microsoft compatibility: "static" specifier on out-of-class member declaration
 

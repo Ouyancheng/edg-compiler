@@ -248,8 +248,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_removed_default_arg */
    (an_opname_kind)onk_none,          /* tok_removed_template_body */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
-   (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbrace */
-   (an_opname_kind)onk_none,          /* tok_rbrace */
+   (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
+   (an_opname_kind)onk_none,          /* tok_rbracket */
    (an_opname_kind)onk_function_call, /* operator() starts with tok_lparen */
    (an_opname_kind)onk_none,          /* tok_rparen */
    (an_opname_kind)onk_none,          /* tok_period */
