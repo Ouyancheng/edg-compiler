@@ -454,11 +454,15 @@ initialization; otherwise, these pointers are NULL.
         is_string_init = TRUE;
       }  /* if */
       /* If the current token is a string literal (or equivalent), check
-         whether it is "standalone" or followed by an operator.  If it is
-         the latter, it is not a string initializer. */
-      if (is_string_init &&
-          opname_kind_for_token[next_token()] != (an_opname_kind)onk_none) {
-        is_string_init = FALSE;
+         whether it is "standalone" or followed by an operator (a comma is not
+         an operator in this context).  The latter case is not a string
+         initializer case. */
+      if (is_string_init) {
+        a_token_kind  next_tok = next_token();
+        if (opname_kind_for_token[next_tok] != (an_opname_kind)onk_none &&
+            next_tok != tok_comma) {
+          is_string_init = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
