@@ -13153,7 +13153,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
         } else if (microsoft_bugs &&
                    scope_stack[depth_scope_stack].kind ==
                                         (a_scope_kind)sck_class_struct_union &&
-                   is_prototype_instantiation_context()) {
+                   is_prototype_instantiation_context() &&
+                   next_tok == tok_colon_colon) {
           /* In the definition of a class template, the Microsoft compiler
              accepts use a reference such as A::i, where A is a different
              class template and something like A<T>::i should be used.
