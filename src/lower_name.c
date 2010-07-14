@@ -4074,6 +4074,15 @@ expression that was used to select expr (NULL if no selector was used).
       name_reference = NULL;
     }  /* if */
 #endif /* IA64_ABI */
+    if (selector == NULL &&
+        class_type_supp(scp_parent_class(scp))->anonymous_union_kind !=
+                                           (an_anonymous_union_kind)auk_none) {
+      /* This is a field of an anonymous union (whose compiler generated
+         member selection has been stripped off); mangle it as an entity
+         through the normal mechanism. */
+      name_reference = NULL;
+      scp = NULL;
+    }  /* if */
   }  /* if */
   /* The code above has determined how to mangle the entity (i.e., whether
      it should be mangled as an operand, destructor, source name, or
@@ -4651,6 +4660,24 @@ is TRUE.
                                /*add_address_of=*/FALSE, mctl);
 #else /* !IA64_ABI */
       mangled_variable_name(expr->variant.variable, mctl);
+#endif /* IA64_ABI */
+      break;
+    case enk_field:
+      /* This should only happen for fields of anonymous unions. */
+      check_assertion(class_type_supp(
+                      scp_parent_class(&expr->variant.field->source_corresp))->
+                                                        anonymous_union_kind !=
+                                            (an_anonymous_union_kind)auk_none);
+#if IA64_ABI
+      mangled_entity_reference(&expr->variant.field->source_corresp,
+                               (an_il_entry_kind)iek_field,
+                               (a_routine_info_block *)NULL,
+                               /*add_address_of=*/FALSE, mctl);
+#else /* !IA64_ABI */
+      mangled_source_name(&expr->variant.field->source_corresp,
+                          (a_template_arg_ptr)NULL,
+                          /*include_length=*/TRUE,
+                          mctl);
 #endif /* IA64_ABI */
       break;
     case enk_routine:
