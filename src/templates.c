@@ -9454,9 +9454,16 @@ information.
       if (parent_class == NULL && locator->is_class_member) {
         /* This is a member template declaration outside the class definition,
            so a storage class may not be specified (as in the nontemplate
-           case). */
+           case).  Microsoft compilers simply ignore the "static" keyword
+           here. */
         if (state->declared_storage_class != (a_storage_class)sc_unspecified) {
-          pos_error(ec_storage_class_not_allowed, &state->storage_class_pos);
+          an_error_severity  sev = es_error;
+          if (microsoft_bugs &&
+              state->declared_storage_class == (a_storage_class)sc_static) {
+            sev = es_warning;
+          }  /* if */
+          pos_diagnostic(sev, ec_storage_class_not_allowed,
+                         &state->storage_class_pos);
           state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
