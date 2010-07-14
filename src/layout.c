@@ -870,13 +870,15 @@ a_targ_alignment alignment_of_field_full(a_field_ptr  field,
                                          a_boolean    for_alignof)
 /*
 Return the alignment of the given field, taking into account any Microsoft or
-GNU attributes specified on that field.  If alignof is TRUE, the alignment of
-the field to return is for an __alignof operator (possible in GNU modes only).
+GNU attributes specified on that field.  If for_alignof is TRUE, the alignment
+of the field to return is for an __alignof operator (possible in GNU modes
+only).
 */
 {
   a_type_ptr        class_type = parent_class_of(field);
   a_targ_alignment  field_alignment;
 
+  check_assertion(!for_alignof || gnu_mode);
   if (for_alignof && gnu_version < 30400) {
     /* In recent GNU C and C++ compilers, __alignof__ applied to a field
        selection operation (. or ->) results in the "field alignment" rather
@@ -936,10 +938,10 @@ the field to return is for an __alignof operator (possible in GNU modes only).
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 done:
   return field_alignment;
-}  /* alignment_of_field */
+}  /* alignment_of_field_full */
 
 #define alignment_of_field(field)                                            \
-  alignment_of_field_full((field), /*ignore_dual_alignment=*/FALSE)
+  alignment_of_field_full((field), /*for_alignof=*/FALSE)
 
 
 static a_boolean increment_field_offsets(
