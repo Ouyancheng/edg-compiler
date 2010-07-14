@@ -32,7 +32,7 @@ GNU compatibility: __alignof and attribute "packed"
 In GNU modes, __alignof applied to a field selection operation produces the
 alignment of the indicated field (which may include the effect of certain
 attributes and/or pragmas).  Previously, however, the "packed" attribute
-applied the class enclosing an attribute was ignored.  For example:
+applied to the class enclosing the field was ignored.  For example:
 
   struct __attribute((packed)) S {
     char x;
