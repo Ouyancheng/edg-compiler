@@ -3012,7 +3012,18 @@ operator on some template constants when suppress_address_of is TRUE
       break;
     case ck_address:
       /* Address.  Put out the name of the entity whose address is involved. */
-      mangled_encoding_for_address_constant(con, mctl);
+      if (con->variant.address.kind == (an_address_base_kind)abk_constant &&
+          con->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+        /* Mangle the string constant. */
+        mangled_encoding_for_constant(con->variant.address.variant.constant,
+                                      /*old_form=*/FALSE,
+                                      /*in_dependent_expr=*/FALSE,
+                                      /*suppress_address_of=*/FALSE,
+                                      mctl);
+      } else {
+        mangled_encoding_for_address_constant(con, mctl);
+      }  /* if */
       break;
     case ck_ptr_to_member:
       /* Pointer to member. */
