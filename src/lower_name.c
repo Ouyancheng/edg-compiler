@@ -4368,18 +4368,48 @@ this expression is part of a template-dependent expression.
        won't get here). */
     a_routine_ptr    rp = routine_from_function_expr(call_operand);
     unsigned long    num_arguments = number_of_operands_in_list(arguments);
-    char             *name;
+    char             *name = NULL;
+    a_boolean        remove_last_arg = FALSE;
+#if IA64_ABI
+    a_boolean        is_prefix = FALSE;
+#endif /* IA64_ABI */
     check_assertion(rp != NULL);
     if (member != NULL) num_arguments++;
-    name = mangled_operator_name(rp->variant.opname_kind, num_arguments);
+    if (rp->variant.opname_kind == (an_opname_kind)onk_plus_plus ||
+        rp->variant.opname_kind == (an_opname_kind)onk_minus_minus) {
+      if (num_arguments == 1) {
+        /* This is a prefix increment/decrement.  The Cfront ABI has
+           separate operators for prefix increment/decrements, but the IA-64
+           ABI uses a special flag. */
+#if IA64_ABI
+        is_prefix = TRUE;
+#endif /* IA64_ABI */
+      } else {
+        /* This is a postfix increment/decrement.  The front end has added
+           an extra argument (a constant zero) which should be removed for
+           mangling purposes. */
+        check_assertion(num_arguments == 2);
+        num_arguments--;
+        remove_last_arg = TRUE;
+#if !IA64_ABI
+        /* There is a separate mangled name for Cfront postfix increment/
+           decrements. */
+        if (rp->variant.opname_kind == (an_opname_kind)onk_plus_plus) {
+          name = MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX;
+        } else {
+          check_assertion(rp->variant.opname_kind ==
+                                              (an_opname_kind)onk_minus_minus);
+          name = MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX;
+        }  /* if */
+#endif /* !IA64_ABI */
+      }  /* if */
+    }  /* if */
+    if (name == NULL) {
+      name = mangled_operator_name(rp->variant.opname_kind, num_arguments);
+    }  /* if */
 #if IA64_ABI
     add_str_to_mangled_name(name, mctl);
-    if ((rp->variant.opname_kind == (an_opname_kind)onk_plus_plus ||
-         rp->variant.opname_kind == (an_opname_kind)onk_minus_minus) &&
-        num_arguments == 1) {
-      /* Indicate that this is the prefix version of the operator. */
-      add_to_mangled_name('_', mctl);
-    }  /* if */
+    if (is_prefix) add_to_mangled_name('_', mctl);
 #else /* !IA64_ABI */
     add_to_mangled_name('O', mctl);
     add_str_to_mangled_name(name, mctl);
@@ -4389,6 +4419,7 @@ this expression is part of a template-dependent expression.
       mangled_encoding_for_expression(member, in_dependent_expr, mctl);
     }  /* if */
     for (; arguments != NULL; arguments = arguments->next) {
+      if (remove_last_arg && arguments->next == NULL) break;
       mangled_encoding_for_expression(arguments, in_dependent_expr, mctl);
     }  /* for */
 #if IA64_ABI
