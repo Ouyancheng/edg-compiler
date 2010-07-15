@@ -3187,6 +3187,11 @@ EXTERN a_boolean
 			   PREDEFINED_MACRO_FILE_NAME should be used to
 			   predefine macros at the start of compilation. */
 
+EXTERN a_boolean
+		create_template_deduction_name_references;
+			/* TRUE if name references should be created in
+			   template deduction contexts. */
+
 typedef enum a_predef_macro_mode {
   pmm_none,
   pmm_gnu,		/* Any GNU mode. */

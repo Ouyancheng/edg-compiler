@@ -13848,6 +13848,16 @@ original type or namespace that was specified.
   a_namespace_ptr	new_namespace = NULL;
 
   check_assertion(qualifier_sym != NULL);
+  if (!prototype_instantiations_in_il &&
+      is_prototype_instantiation_context() &&
+      (!create_template_deduction_name_references ||
+       !is_template_deduction_context())) {
+    /* Don't build name reference information for prototype instantiations
+       when prototype instantiations are not being included in the IL,
+       except in template deduction contexts where the information may
+       be needed for name mangling purposes. */
+    goto done;
+  }  /* if */
   /* Get the class or namespace represented by the qualifier.  A
      "class" can actually be an enum type or template parameter type
      in certain cases. */
@@ -13921,6 +13931,7 @@ original type or namespace that was specified.
   }  /* if */
   /* Update the name qualifier pointer passed by the caller. */
   *nqp = new_nqp;
+done:
   return;
 }  /* make_name_qualifier */
 
@@ -13939,6 +13950,7 @@ describes the name specified by "locator".
   nrp->is_global_qualified_name = locator->is_global_qualified_name;
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
+  nrp->from_prototype_instantiation = is_prototype_instantiation_context();
   if (locator->is_template_id) {
     /* Set the number of template arguments appearing in the reference. */
     a_template_arg_ptr argp;
@@ -13963,6 +13975,16 @@ a previously created entry that can be reused.
   a_name_reference_ptr		nrp = NULL;
 
   check_assertion(!C_mode());
+  if (!prototype_instantiations_in_il &&
+      is_prototype_instantiation_context() &&
+      (!create_template_deduction_name_references ||
+       !is_template_deduction_context())) {
+    /* Don't build name reference information for prototype instantiations
+       when prototype instantiations are not being included in the IL,
+       except in template deduction contexts where the information may
+       be needed for name mangling purposes. */
+    goto done;
+  }  /* if */
   /* Look for a previously created name reference that matches the
      information in the locator. */
   for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
@@ -13971,6 +13993,8 @@ a previously created entry that can be reused.
         nrp->is_global_qualified_name ==
                                      entry_to_copy->is_global_qualified_name &&
         nrp->is_template_id == entry_to_copy->is_template_id &&
+        nrp->from_prototype_instantiation ==
+                                 entry_to_copy->from_prototype_instantiation &&
         nrp->is_super_qualified == entry_to_copy->is_super_qualified) {
       /* A match was found. */
       break;
@@ -13984,11 +14008,14 @@ a previously created entry that can be reused.
     nrp->is_global_qualified_name = entry_to_copy->is_global_qualified_name;
     nrp->is_template_id = entry_to_copy->is_template_id;
     nrp->is_super_qualified = entry_to_copy->is_super_qualified;
+    nrp->from_prototype_instantiation =
+                                   entry_to_copy->from_prototype_instantiation;
     /* Put this on the list of name references pointed to by the source
        correspondence. */
     nrp->next = scp->name_references;
     scp->name_references = nrp;
   }  /* if */
+done:
   return nrp;
 }  /* find_allocated_name_reference */
 

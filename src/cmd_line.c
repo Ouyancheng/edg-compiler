@@ -8564,6 +8564,9 @@ enable_microsoft_mode:
      not generated when doing IL lowering. */
   prototype_instantiations_in_il = FALSE;
 #endif /* DO_IL_LOWERING */
+  /* When name mangling is being done, name references are needed for entities
+     from template deduction contexts. */
+  create_template_deduction_name_references = NEED_NAME_MANGLING;
   /* If the -o option appeared, its file should have been taken for
      something. */
   if (ofile_name != NULL) {

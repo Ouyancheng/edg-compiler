@@ -4043,6 +4043,7 @@ Initialize the fields of a name reference entry.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   nrp->used_in_primary_declarator = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  nrp->from_prototype_instantiation = FALSE;
 }  /* clear_name_reference */
 
 

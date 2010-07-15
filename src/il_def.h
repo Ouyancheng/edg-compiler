@@ -1742,6 +1742,13 @@ typedef struct a_name_reference {
 			/* TRUE if the primary declaration specified the
 			   name in this form. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	from_prototype_instantiation:1;
+			/* TRUE if this name reference entry was created
+			   in a prototype instantiation context.  Such
+			   entries can have qualifiers that refer to
+			   prototype instantiations and so cannot be written
+			   to an IL file unless prototype instantiations are
+			   included in the IL. */
 } a_name_reference;
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
