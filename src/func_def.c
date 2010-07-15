@@ -221,18 +221,11 @@ compilation.
     if (cssp->destructor != NULL) {
       a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
       if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
-          (dtor_rout->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_none ||
-           dtor_rout->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_internal) &&
           !routine_has_been_defined(dtor_rout)) {
         /* Force generation of a compiler-generated virtual destructor.
            This is done only at the top level because virtual destructors
            in base classes would be overridden and therefore would not be
-           pointed to from the virtual function table in the derived class.
-           It's also done only for destructors without external linkage;
-           those with external linkage can be defined in another translation
-           unit. */
+           pointed to from the virtual function table in the derived class. */
         define_special_member_function(dtor_rout);
       }  /* if */
     }  /* if */
