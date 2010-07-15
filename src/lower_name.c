@@ -2575,6 +2575,13 @@ add mangling for an eok_address_of operation.
         /* Not a routine entry, but it represents a routine (this might be
            the address of an overloaded function, and we can't tell which
            specific function is to be used). */
+#if ABI_COMPATIBILITY_VERSION >= 402
+        if (!emulate_gnu_abi_bugs &&
+            rinfo->special_kind != (an_opname_kind)onk_none) {
+          /* An operator must be preceded by "on" within an "sr" production. */
+          add_str_to_mangled_name("on", mctl);
+        }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
         mangled_function_base_name(scp,
                                    rinfo->special_kind,
                                    rinfo->opname_kind,
