@@ -2527,15 +2527,17 @@ add mangling for an eok_address_of operation.
     add_str_to_mangled_name("sr", mctl);
     /* First operand is the parent class type. */
     mangled_encoding_for_type(parent_class, mctl);
+#if 0 /* FIXME */
 #if ABI_COMPATIBILITY_VERSION >= 402
     if (!emulate_gnu_abi_bugs && 
-        !is_template_dependent_type(parent_class)) {
+        !is_template_param_type(parent_class)) {
     /* Previous versions didn't require the 'E' here (and current GNU versions
        don't emit it), but it is now required if the name is to be properly
        demangled. */
       add_to_mangled_name('E', mctl);
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+#endif /* FIXME */
     /* Second operand is an unqualified name, more or less. */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
