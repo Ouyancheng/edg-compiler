@@ -4137,16 +4137,7 @@ routine.
   a_boolean     need_parens = FALSE;
 
   if (rout->superseded_external ||
-#if STANDALONE_C_GEN_BE
-      /* identical_types is not available in standalone configurations.  Use a
-         simplified criterion instead and note that in non-Microsoft C++ modes
-         a type mismatch never occurs. */
-      ((C_mode() || microsoft_mode) &&
-       skip_typerefs(expr_rout_type) != skip_typerefs(rout_type))
-#else /* !STANDALONE_C_GEN_BE */
-      !identical_types(expr_rout_type, rout_type)
-#endif /* STANDALONE_C_GEN_BE */
-                                                               ) {
+      !standalone_identical_types(expr_rout_type, rout_type)) {
     /* The type of the routine and the type in the call are different.
        This is probably because the call was generated and then
        the routine type was updated by a redeclaration.  Use a cast to

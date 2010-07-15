@@ -3437,6 +3437,7 @@ checking instead of equivalence checking).
   return equiv;
 }  /* equiv_class_types */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean equiv_pointer_modifiers(a_pointer_modifier_set  pms1,
@@ -3455,7 +3456,6 @@ __ptr64 modifier.  On non-64-bit platforms, "equivalent" means "identical".
 }  /* equiv_pointer_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean routine_linkages_are_compatible(a_name_linkage_kind  nlk1,
                                           a_name_linkage_kind  nlk2,
@@ -3518,7 +3518,6 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
   return compat;
 }  /* routine_linkages_are_compatible */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean routine_linkages_are_identical(a_name_linkage_kind nlk1,
                                                 a_name_linkage_kind nlk2)
@@ -3541,6 +3540,7 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
   return (c_and_cpp_function_types_are_distinct ? (nlk1 == nlk2) : TRUE);
 }  /* routine_linkages_are_identical */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static a_boolean adjust_comparison_types_for_decltype(a_type_ptr *p_type_1,
                                                       a_type_ptr *p_type_2)
@@ -4897,6 +4897,209 @@ casts involving pointers or std::nullptr_t should be allowed.
   return (dest_type->size >= source_type->size);
 }  /* dest_of_ptr_cast_big_enough */
 
+#else /* STANDALONE_UTILITY_PROGRAM */
+
+a_boolean f_standalone_identical_types(a_type_ptr type_1,
+                                       a_type_ptr type_2)
+/*
+Return TRUE if the two types are identical, including separate copies of
+identical types and pointers to identical types.  This is similar to the
+processing in f_identical_types but limited so it does not use facilities
+that are not present in standalone back ends and utilities.
+*/
+{
+  a_boolean identical;
+
+  if (type_1->kind == (a_type_kind)tk_typeref ||
+      type_2->kind == (a_type_kind)tk_typeref) {
+    if (!type_qualifiers_match(type_1, type_2)) {
+      /* The type qualifiers are not identical, so the types are not. */
+      identical = FALSE;
+      goto done;
+    }  /* if */
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
+  }  /* if */
+  if (same_entities(type_1, type_2)) {
+    /* The types are the same. */
+    identical = TRUE;
+    goto done;
+  }  /* if */
+  if (type_1->kind != type_2->kind) {
+    /* Different type kinds, so the types are different. */
+    identical = FALSE;
+    goto done;
+  }  /* if */
+  switch (type_1->kind) {
+    case tk_error:
+    case tk_unknown:
+    case tk_void:
+    case tk_nullptr:
+      identical = TRUE;
+      break;
+    case tk_integer:
+      identical = (!type_1->variant.integer.enum_type &&
+                   !type_2->variant.integer.enum_type &&
+                   type_1->variant.integer.int_kind ==
+                                            type_2->variant.integer.int_kind &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   type_1->variant.integer.microsoft_sized_int_type ==
+                            type_2->variant.integer.microsoft_sized_int_type &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                   type_1->variant.integer.wchar_t_type ==
+                                        type_2->variant.integer.wchar_t_type &&
+                   type_1->variant.integer.bool_type ==
+                                            type_2->variant.integer.bool_type);
+      break;
+#if FIXED_POINT_ALLOWED
+    case tk_fixed_point:
+      identical = same_fixed_point_type(type_1, type_2);
+      break;
+#endif /* FIXED_POINT_ALLOWED */
+    case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      identical = (type_1->variant.float_kind == type_2->variant.float_kind);
+      break;
+    case tk_pointer:
+      identical = (type_1->variant.pointer.is_reference ==
+                                        type_2->variant.pointer.is_reference &&
+                   type_1->variant.pointer.is_rvalue_reference ==
+                                 type_1->variant.pointer.is_rvalue_reference &&
+#ifdef pointer_types_have_same_repr
+                   pointer_types_have_same_repr(type_1, type_2) &&
+#endif /* ifdef pointer_types_have_same_repr */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   equiv_pointer_modifiers(
+                                          type_1->variant.pointer.modifiers,
+                                          type_2->variant.pointer.modifiers) &&
+                   type_1->variant.pointer.base_variable ==
+                                       type_2->variant.pointer.base_variable &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                   standalone_identical_types(type_1->variant.pointer.type,
+                                              type_2->variant.pointer.type));
+      break;
+    case tk_array:
+      identical = (!has_unknown_specified_bound(type_1) &&
+                   !has_unknown_specified_bound(type_2) &&
+                   type_1->variant.array.variant.number_of_elements ==
+                            type_2->variant.array.variant.number_of_elements &&
+                   standalone_identical_types(
+                                          type_1->variant.array.element_type,
+                                          type_2->variant.array.element_type));
+      break;
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      /* Class/struct/union types that are not the same entity are not
+         identical. */
+      identical = FALSE;
+      break;
+    case tk_routine:
+      {
+        a_boolean                     this_class_matches;
+        a_type_ptr                    this1;
+        a_type_ptr                    this2;
+        a_param_type_ptr              list1;
+        a_param_type_ptr              list2;
+        a_routine_type_supplement_ptr rtsp1 =
+                                            type_1->variant.routine.extra_info;
+        a_routine_type_supplement_ptr rtsp2 =
+                                            type_2->variant.routine.extra_info;
+        this1 = rtsp1->this_class;
+        this2 = rtsp2->this_class;
+        if (this1 == NULL && this2 == NULL) {
+          /* Both this parameter types are NULL.  We still need to check
+             the qualifiers for cases like "typedef void F() const". */
+          this_class_matches = (rtsp1->qualifiers == rtsp2->qualifiers);
+        } else if (this1 == NULL || this2 == NULL) {
+          /* One, but not both, of the this parameter types are NULL, so
+             the types do not match. */
+          this_class_matches = FALSE;
+        } else {
+          /* Both types are non-null, see if they are identical. */
+          this_class_matches = (rtsp1->qualifiers == rtsp2->qualifiers &&
+                                standalone_identical_types(this1, this2));
+        }  /* if */
+        /* For functions, the return types must be identical, the parameter
+           lists must be identical, and the implicit "this" parameter type
+           (if any) must be identical. */
+        identical = (this_class_matches &&
+                     standalone_identical_types(type_1->
+                                                variant.routine.return_type,
+                                                type_2->
+                                                variant.routine.return_type) &&
+                     rtsp1->prototyped == rtsp2->prototyped &&
+                     rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
+                     routine_linkages_are_identical(
+                            (a_name_linkage_kind)rtsp1->routine_name_linkage,
+                            (a_name_linkage_kind)rtsp2->routine_name_linkage));
+        /* Compare the types of the parameters on the two lists. */
+        for (list1 = rtsp1->param_type_list, list2 = rtsp2->param_type_list;
+             identical && list1 != NULL && list2 != NULL;
+             list1 = list1->next, list2 = list2->next) {
+          identical = standalone_identical_types(list1->type, list2->type);
+        }  /* for */
+        if (identical) {
+          /* The parameter lists are identical if they both ended
+             together. */
+          identical = (list1 == NULL && list2 == NULL);
+        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (identical) {
+          /* The types are identical so far.  Check the calling
+             conventions.  (Note that this test simply checks that the
+             conventions are the same; the corresponding test in
+             f_identical_types uses calling_conventions_are_compatible,
+             which is not available in a standalone utility because of its
+             use of default_calling_convention, a front-end-only
+             variable.) */
+          identical = (rtsp1->calling_convention == rtsp2->calling_convention);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }
+      break;
+    case tk_ptr_to_member:
+      identical = (
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   type_1->variant.ptr_to_member.modifiers ==
+                                     type_2->variant.ptr_to_member.modifiers &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                   f_standalone_identical_types(pm_class_type(type_1),
+                                                pm_class_type(type_2)) &&
+                   f_standalone_identical_types(pm_member_type(type_1),
+                                                pm_member_type(type_2)));
+      break;
+    case tk_template_param:
+      /* Comparing template parameter types can only be done using
+         front-end facilities. */
+      identical = FALSE;
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      identical = (type_1->size == type_2->size &&
+                   standalone_identical_types(type_1->
+                                                 variant.vector.element_type,
+                                              type_2->
+                                                 variant.vector.element_type));
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if CHECKING
+    case tk_typeref:
+    default:
+      internal_error("f_standalone_identical_types: bad type");
+#endif /* CHECKING */
+  }  /* switch */
+#if GNU_EXTENSIONS_ALLOWED
+  if (identical) {
+    identical = same_alignment_attributes(type_1, type_2);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+done:
+  return identical;
+}  /* f_standalone_identical_types */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_address_of_string_constant(a_constant *constant)

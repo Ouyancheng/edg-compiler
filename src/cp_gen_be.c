@@ -2346,7 +2346,7 @@ currently active selector class.
   selector_type = curr_name_context->class_type;
   check_assertion(selector_type != NULL);
   parent_class = parent_class_of(type);
-  if (same_entities(parent_class, selector_type)) {
+  if (standalone_identical_types(parent_class, selector_type)) {
     result =  TRUE;
   } else {
     result = (find_direct_base_class_of(selector_type, type) != NULL);

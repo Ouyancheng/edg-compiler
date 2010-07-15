@@ -535,6 +535,19 @@ typedef unsigned int an_itf_flag_set;
   ((t1) == (t2) || f_identical_types((t1), (t2), \
                                      ITF_IGNORE_TOP_LEVEL_QUALIFIERS))
 
+#if STANDALONE_UTILITY_PROGRAM
+/* Compare types using a subset of the processing in f_identical_types to
+   minimize the size of standalone back ends and utilities. */
+extern a_boolean f_standalone_identical_types(a_type_ptr type_1,
+                                              a_type_ptr type_2);
+#define standalone_identical_types(t1, t2) \
+  ((t1) == (t2) || f_standalone_identical_types((t1), (t2)))
+#else /* !STANDALONE_UTILITY_PROGRAM */
+/* Use the full processing of f_identical_types to compare types. */
+#define standalone_identical_types(t1, t2) \
+  identical_types((t1), (t2))
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
 /* Compare one level of two array types. */
 extern a_boolean f_identical_types(a_type_ptr      type_1,
                                    a_type_ptr      type_2,

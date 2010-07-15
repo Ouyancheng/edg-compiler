@@ -2789,12 +2789,11 @@ Do the output in the way described by octl.
             member_class = parent_class_of(field);
           }  /* if */
         }  /* if */
-        if (member_type != NULL) {
-          /* The cast is not needed if the old and new types are the same.
-             This test is done with a pointer comparison so as not to
-             drag in front-end only routines, but that means it probably
-             does nothing for pointers to functions. */
-          if (same_entities(member_type, new_member_type)) member_type = NULL;
+        if (member_type != NULL &&
+            standalone_identical_types(member_type, new_member_type)) {
+          /* The cast is not needed if the old and new types are the
+             same. */
+          member_type = NULL;
         }  /* if */
         /* No cast is needed for a null pointer-to-member constant. */
         if (member_type != NULL) {
@@ -3462,7 +3461,7 @@ precedence confusion.  Do the output in the way described by octl.
          to get the right result. */
         need_desired_type = TRUE;
       } else if (is_class_struct_union_type(var_type) &&
-                 !same_entities(target_type, var_type)) {
+                 !standalone_identical_types(target_type, var_type)) {
         /* Similarly, if the variable is of a class type and the type of the
            constant is different (indicating that the constant addresses a
            member of the class/struct/union object and not the object itself),
@@ -3542,7 +3541,7 @@ precedence confusion.  Do the output in the way described by octl.
   direct_desired_type = (desired_type == NULL) ? (a_type_ptr)NULL
                                                : skip_typedefs(desired_type);
   if (desired_type != NULL &&
-      !same_entities(direct_achieved_type, direct_desired_type)) {
+      !standalone_identical_types(direct_achieved_type, direct_desired_type)) {
     if (!constant->implicit_cast &&
         constant->variant.address.kind == (an_address_base_kind)abk_routine) {
       /* Function declarators don't get shared, so a pointer equality test
@@ -4809,7 +4808,7 @@ way described by octl.
         (object_type = type_pointed_to(constant->type),
          element_type = array_element_type(
                             constant->variant.address.variant.constant->type),
-         same_entities(object_type, element_type)))) {
+         standalone_identical_types(object_type, element_type)))) {
     /* An address constant (the usual case).  Drop one level of "&". */
     form_address_constant(constant, /*form_lvalue=*/TRUE, need_parens, octl);
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
