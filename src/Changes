@@ -1,5 +1,14 @@
 Version 4.2
 
+7/14/10  [EDGcpfe/10838]
+decltype(...) as the type in a functional-notation cast
+
+The type in a functional-notation cast can now be specified by way of the
+decltype construct, e.g.,
+
+  k = decltype(i)(j);  // Casts "j" to the decltype of "i"
+
+
 7/14/10  [EDGcpfe/10835]
 Implicit definition of virtual destructor forced in fewer places
 

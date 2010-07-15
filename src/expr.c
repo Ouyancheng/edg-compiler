@@ -22687,6 +22687,7 @@ handle_trapped_left_paren:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_typename:
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+    case tok_decltype:
 type_start:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
       /* In C++, these type keywords begin a functional-notation type
@@ -22705,6 +22706,9 @@ type_start:
         } else if (curr_token == tok_typeof) {
           cast_type = scan_typeof_operator((a_rescan_control_block *)NULL,
                                            (a_decl_pos_block*)NULL);
+        } else if (curr_token == tok_decltype) {
+          cast_type = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                             (a_decl_pos_block*)NULL);
         } else if (gpp_mode && gnu_version < 30400 &&
                    (is_class_type_keyword(curr_token) ||
                     curr_token == tok_enum)) {
