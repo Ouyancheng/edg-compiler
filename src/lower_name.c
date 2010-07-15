@@ -3156,18 +3156,15 @@ do_unknown_function:
          no mangling should be needed for them. */
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
-      { /* Strings can appear in expressions (e.g., in decltype). */
+      /* Strings can appear in expressions (e.g., in decltype). */
 #if IA64_ABI
-        a_type_ptr  elem_type = array_element_type(con->type);
-        add_to_mangled_name('L', mctl);
-        mangled_encoding_for_type(skip_typerefs(elem_type), mctl);
-        add_to_mangled_name('E', mctl);
+      add_to_mangled_name('L', mctl);
+      mangled_encoding_for_type(con->type, mctl);
+      add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
-        /* The stripped array element had already been emitted by the
-           caller. */
-        add_str_to_mangled_name("LS", mctl);
+      /* The array element type has already been emitted by the caller. */
+      add_str_to_mangled_name("LS", mctl);
 #endif /* IA64_ABI */
-      }
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
@@ -3212,15 +3209,8 @@ certain template constants (used only in the IA-64 ABI).
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
       con->kind != (a_constant_repr_kind)ck_address) {
     add_to_mangled_name('C', mctl);
-    if (con->kind == (a_constant_repr_kind)ck_string) {
-      /* Strip any cv-qualifiers from the array element type and use that
-         (rather than the string type). */
-      a_type_ptr  elem_type = array_element_type(con->type);
-      mangled_encoding_for_type(skip_typerefs(elem_type), mctl);
-    } else {
-      /* Put out the constant type. */
-      mangled_encoding_for_type(con->type, mctl);
-    }  /* if */
+    /* Put out the constant type. */
+    mangled_encoding_for_type(con->type, mctl);
   }  /* if */
 #endif /* !IA64_ABI */
   /* Put out the literal representation for the constant. */

@@ -1042,18 +1042,11 @@ position following what was demangled.
       if (type == NULL) {
         bad_mangled_name(dctl);
       } else {
-        /* The type is the type of an array element in the string.  Don't
-           emit the type itself, simply look for a few special cases that
-           make the output look more like the input. */
-        dctl->suppress_id_output++;
+        /* The type is the type of the string.  Emit "..." cast to the
+           proper type. */
+        write_id_ch('(', dctl);
         (void)demangle_type(type+1, dctl);
-        dctl->suppress_id_output--;
-        if (!dctl->err_in_id) {
-          if (type[1] == 'w') {
-            write_id_ch('L', dctl);
-          }  /* if */
-          write_id_str("\"...\"", dctl);
-        }  /* if */
+        write_id_str(")\"...\"", dctl);
       }  /* if */
     } else {
       /* Normal literal constant.  Form is something like
@@ -5393,7 +5386,7 @@ The syntax is:
 
   <expr-primary> ::= L <type> <value number> E    # integer literal
                  ::= L <type> <value float> E     # floating literal
-                 ::= L <character builtin-type> E # string literal
+                 ::= L <string type> E            # string literal
                  ::= L <type> <real-part float> _ <imag-part float> E
                                       # complex floating point literal (C 2000)
                  ::= L_Z <encoding> E             # external name
@@ -5416,16 +5409,6 @@ The syntax is:
   } else if (ptr[1] == 'C' && is_floating_point_type(ptr[2])) {
     /* Complex floating point literal. */
     ptr = demangle_complex_literal(ptr, dctl);
-  } else if ((ptr[1] == 'c' || ptr[1] == 'a' || ptr[1] == 'h') &&
-              ptr[2] == 'E') {
-    /* A narrow string literal. */
-    write_id_str("\"...\"", dctl);
-    ptr += 3;
-  } else if ((ptr[1] == 'w') &&
-              ptr[2] == 'E') {
-    /* A wide string literal. */
-    write_id_str("L\"...\"", dctl);
-    ptr += 3;
   } else {
     /* Integer literal, L <type> <value number> E. */
     if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == 'E') {
@@ -5438,21 +5421,26 @@ The syntax is:
       write_id_ch('(', dctl);
       ptr = demangle_type(ptr+1, dctl);
       write_id_ch(')', dctl);
-      /* Copy the literal value.  "n" is translated to a "-". */
-      if (*ptr == 'n') {
-        write_id_ch('-', dctl);
-        ptr++;
-      }  /* if */
-      /* g++ 3.2 puts out L1xE instead of L_Z1xE, which gets demangled
-         sort of okay in the g++ demangler because the name is treated
-         as a type and a cast is put out with nothing following it: (x) */
-      if (!isdigit((unsigned char)*ptr) && !emulate_gnu_abi_bugs) {
-        bad_mangled_name(dctl);
+      if (*ptr == 'E') {
+        /* There's no value -- must have been a string literal. */
+        write_id_str("\"...\"", dctl);
       } else {
-        while (isdigit((unsigned char)*ptr)) {
-          write_id_ch(*ptr, dctl);
+        /* Copy the literal value.  "n" is translated to a "-". */
+        if (*ptr == 'n') {
+          write_id_ch('-', dctl);
           ptr++;
-        }  /* while */
+        }  /* if */
+        /* g++ 3.2 puts out L1xE instead of L_Z1xE, which gets demangled
+           sort of okay in the g++ demangler because the name is treated
+           as a type and a cast is put out with nothing following it: (x) */
+        if (!isdigit((unsigned char)*ptr) && !emulate_gnu_abi_bugs) {
+          bad_mangled_name(dctl);
+        } else {
+          while (isdigit((unsigned char)*ptr)) {
+            write_id_ch(*ptr, dctl);
+            ptr++;
+          }  /* while */
+        }  /* if */
       }  /* if */
     }  /* if */
     ptr = advance_past('E', ptr, dctl);
