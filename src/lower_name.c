@@ -490,6 +490,10 @@ static a_boolean function_name_mangling_needed(
                                        a_boolean     *suppress_param_encoding);
 static char *mangled_operator_name(an_opname_kind kind,
                                    unsigned int   num_operands);
+static a_boolean entity_needs_parent_qualifier(a_source_correspondence *scp,
+                                               an_il_entry_kind        kind);
+static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
+                                                 an_il_entry_kind        kind);
 
 #if !IA64_ABI
 /*
@@ -2527,17 +2531,24 @@ add mangling for an eok_address_of operation.
     add_str_to_mangled_name("sr", mctl);
     /* First operand is the parent class type. */
     mangled_encoding_for_type(parent_class, mctl);
-#if 0 /* FIXME */
 #if ABI_COMPATIBILITY_VERSION >= 402
     if (!emulate_gnu_abi_bugs && 
-        !is_template_param_type(parent_class)) {
-    /* Previous versions didn't require the 'E' here (and current GNU versions
-       don't emit it), but it is now required if the name is to be properly
-       demangled. */
+        !((is_template_param_type(parent_class) ||
+           (symbol_supplement_for_class(parent_class)->
+                                      template_param_for_proxy_class != NULL &&
+           symbol_supplement_for_class(parent_class)->
+                                        template_param_for_proxy_class->kind ==
+                                            (a_type_kind)tk_template_param)) ||
+          (entity_needs_parent_qualifier(&parent_class->source_corresp,
+                                        iek_type) ||
+           entity_needs_to_be_individuated(&parent_class->source_corresp,
+                                           iek_type)))) {
+    /* If the parent class mangled above was mangled as a template parameter
+       or as nested type, then we require an 'E' here in order for the mangled
+       name to be properly decoded.  GNU doesn't emit an 'E' here. */
       add_to_mangled_name('E', mctl);
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-#endif /* FIXME */
     /* Second operand is an unqualified name, more or less. */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
