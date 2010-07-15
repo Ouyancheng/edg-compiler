@@ -5608,18 +5608,20 @@ The syntax is:
        emit T(expr). */
     char      *nptr;
     a_boolean one_argument = FALSE;
-    /* Take a peek (without emitting the type) to see which case we have. */
+    /* Take a peek (without emitting the type, but recording substitutions)
+       to see which case we have. */
     dctl->suppress_id_output++;
-    dctl->suppress_substitution_recording++;
     nptr = demangle_type(ptr+2, dctl);
     dctl->suppress_id_output--;
-    dctl->suppress_substitution_recording--;
     if (!dctl->err_in_id && *nptr != '_') {
       one_argument = TRUE;
       write_id_ch('(', dctl);
     }  /* if */
-    /* Re-scan the type, this time emitting it. */
+    /* Re-scan the type, this time emitting it (but not recording
+       substitutions). */
+    dctl->suppress_substitution_recording++;
     ptr = demangle_type(ptr+2, dctl);
+    dctl->suppress_substitution_recording--;
     if (!dctl->err_in_id) {
       if (one_argument) {
         /* Exactly one expression. */
