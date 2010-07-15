@@ -951,7 +951,9 @@ position following what was demangled.
                                       /*suppress_parent_and_local_info=*/FALSE,
                                       dctl);
   } else if (ch == 'L') {
-    if (get_char(p+1, dctl) == 'M') {
+    if (type == NULL) {
+      bad_mangled_name(dctl);
+    } else if (get_char(p+1, dctl) == 'M') {
       /* Pointer-to-member-function.  The form of the constant is
            LM0_L2n1_1j  Non-virtual function
            LM0_L11_0    Virtual function
