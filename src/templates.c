@@ -9985,9 +9985,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       /* Also save the parameter-id list to later reconstruct the declared
          types of parameters for the associated parameter variables. */
       tip->param_id_list = func_info.param_id_list;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Clear the func_info field to prevent deallocation: */
       func_info.param_id_list = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       done_with_func_info(func_info);
 #if DECL_MODIFIERS_IN_USE
       locator_position = locator.source_position;

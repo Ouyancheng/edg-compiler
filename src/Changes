@@ -1,5 +1,14 @@
 Version 4.2
 
+7/15/10  [EDGcpfe/10839]
+Use of freed param_id entry for parameter of function template instance
+
+The param_id entry for a parameter of an instance of a function template
+was being freed even though the parameter symbol still made use of it.
+This could result in various kinds of errors or internal errors.  Now
+fixed.  The error occurred in versions without source sequence lists
+during the instantiation of a default argument of the function template.
+
 7/15/10  [EDGcpfe/10835]
 Implicit definition of virtual destructor forced in fewer places
 
