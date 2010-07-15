@@ -1,5 +1,40 @@
 Version 4.2
 
+7/14/10  [EDGcpfe/10835]
+Implicit definition of virtual destructor forced in fewer places
+
+The implicit definition of a virtual destructor is now forced in
+fewer places.  That allows an example like the following to compile,
+where defining the destructor in this compilation formerly caused an
+error.  (The destructor will be required somewhere in the linked
+program, but it doesn't have to be defined in this translation
+unit.)
+
+
+  template<typename T> struct A {
+    ~A() {
+      m->f();  // Formerly, an error was issued here
+    }
+    T *m;
+  };
+  struct Base {
+   virtual ~Base();
+   int f();
+  };
+  struct D1 : public Base {
+   virtual ~D1();
+  };
+  class B;
+  struct D2 : public Base {
+   virtual void foo();
+   A<B> m_name;
+  };
+  void check () {
+    D1* v = 0;
+    (void*) dynamic_cast<const D2*>(v);
+  }
+
+
 7/14/10  [EDGcpfe/10832]
 Spurious error on initializer expression that starts with a string literal
 
