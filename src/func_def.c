@@ -226,7 +226,19 @@ compilation.
            This is done only at the top level because virtual destructors
            in base classes would be overridden and therefore would not be
            pointed to from the virtual function table in the derived class. */
-        define_special_member_function(dtor_rout);
+#if DO_IL_LOWERING
+        a_routine_ptr decider = vtbl_decider_function_for_class(class_type);
+        if (decider != NULL && !routine_has_been_defined(decider)) {
+          /* The vtable is not being put out in this compilation, so don't
+             force the definition of the destructor here.  If the decider
+             function gets defined later, we'll get back to this code and
+             decide at that point to put out the destructor definition. */
+        } else
+#endif /* DO_IL_LOWERING */
+        /* Do not insert code here. */
+        {
+          define_special_member_function(dtor_rout);
+        }  /* if */
       }  /* if */
     }  /* if */
     r_require_definitions_of_virtual_functions_in_class(class_type);
