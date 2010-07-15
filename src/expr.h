@@ -230,6 +230,8 @@ extern a_boolean scan_aggregate_initializer_expression(
                                    a_dynamic_init_ptr *dip,
                                    a_constant         *constant);
 
+extern a_boolean token_ends_initializer(a_token_kind  token);
+
 #if !STANDALONE_UTILITY_PROGRAM
 extern void scan_class_parenthesized_initializer(
                                    a_type_ptr         class_type,

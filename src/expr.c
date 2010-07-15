@@ -548,6 +548,16 @@ current expression (used to decide how a comma should be treated).
 }  /* token_ends_expr */
 
 
+a_boolean token_ends_initializer(a_token_kind  token)
+/*
+Return TRUE if a token of the given kind following an initializer expression
+should not be taken as continuing that expression.
+*/
+{
+  return token_ends_expr(token, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+}  /* token_ends_initializer */
+
+
 /*
 Macro to record source positions in an_operand at the end of scanning
 an expression.  result is the result operand.  start_pos and end_pos
