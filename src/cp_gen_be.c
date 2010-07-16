@@ -13448,6 +13448,7 @@ from the primary source file name in the IL information.
   /* Initialize the components of the front end needed by standalone
      utility programs. */
   standalone_utility_init();
+  prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
   /* Initialize. */
   init_cp_gen_be();
   initialize_opname_names();
