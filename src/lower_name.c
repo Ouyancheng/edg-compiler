@@ -426,6 +426,8 @@ static void mangled_member_variable_name(a_variable_ptr           variable,
 static char *mangled_expr_operator_name(an_expr_node_ptr expr,
                                         a_boolean        *bad_operator,
                                         a_boolean        *is_cast);
+static char *first_field_name(a_type_ptr              class_type,
+                              a_source_correspondence **field_scp);
 
 /*
 Macro for the typical invocation of mangled_encoding_for_expression_full
@@ -2361,6 +2363,12 @@ template classes.
       /* Normal variable. */
 #if !IA64_ABI
       str = unmangled_or_fabricated_name_of(&variable->source_corresp);
+      if (str == NULL && variable->is_anonymous_parent_object) {
+        a_source_correspondence *field_scp;
+        /* Give a name to an anonymous union variable based on its first
+           member's name. */
+        str = first_field_name(variable->type, &field_scp);
+      }  /* if */
       check_assertion_str(str != NULL,
                      "mangled_encoding_for_address_constant: addr of unnamed");
       add_str_to_mangled_name(str, mctl);
@@ -6240,14 +6248,24 @@ is replaced by a reference to a default argument in a local function).
         && !((kind) == (an_il_entry_kind)iek_type &&
              mangle_as_lambda_in_default_argument((a_type_ptr)(scp)))
 #endif /* IA64_ABI */
-                                                                   ) ||
+                                                                     ) ||
     scp_is_enum_member(scp))
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
     && !(((kind) == (an_il_entry_kind)iek_type) &&
          ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling)
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
                                                                             ) {
-    result = TRUE;
+    if (scp->is_class_member &&
+        class_type_supp(scp_parent_class(scp))->anonymous_union_kind !=
+                                           (an_anonymous_union_kind)auk_none) {
+      /* Anonymous union qualifiers aren't emitted in mangled names, so we
+         don't need a qualifier unless our parent needs a qualifier. */
+      result = entity_needs_parent_qualifier(
+                                        &scp_parent_class(scp)->source_corresp,
+                                        (an_il_entry_kind)iek_type);
+    } else {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* entity_needs_parent_qualifier */
@@ -6594,6 +6612,13 @@ static data member is used as the parent entity for mangling purposes.
       add_str_to_mangled_name(name, mctl);
       goto done;
     }  /* if */
+    if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+      /* This class is an anonymous union and doesn't appear in the mangling;
+         decrement the nesting level (to indicate that the level is being
+         skipped), but continue with any further nested names. */
+      check_assertion(nesting_level != 0);
+      nesting_level--;
+    }  /* if */
 #endif /* !IA64_ABI */
     parent_scp = &type->source_corresp;
     parent_kind = iek_type;
@@ -6687,55 +6712,71 @@ static data member is used as the parent entity for mangling purposes.
 #endif /* IA64_ABI */
   } else if (scp->is_class_member) {
     /* Class name. */
+    if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
 #if IA64_ABI
-    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
-      goto done;
-    } else {
-      a_template_ptr              tmpl;
-      tmpl = class_template_of(type);
-      if (tmpl != NULL &&
-          add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
-        mangled_template_arguments(ctsp->template_arg_list,
-                                   /*partial_spec=*/FALSE,
-                                   /*old_form=*/FALSE,
-                                   mctl);
+      if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+        goto done;
+      } else {
+        a_template_ptr              tmpl;
+        tmpl = class_template_of(type);
+        if (tmpl != NULL &&
+            add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
+          mangled_template_arguments(ctsp->template_arg_list,
+                                     /*partial_spec=*/FALSE,
+                                     /*old_form=*/FALSE,
+                                     mctl);
+          goto new_substitution;
+        }  /* if */
+        if (more_levels) {
+          /* This level is nested inside something else.  Do a recursive call
+             to deal with all of the parents. */
+          r_mangled_parent_qualifier(parent_scp, parent_kind,
+                                     nesting_level + 1,
+                                     needs_to_be_individuated,
+                                     discriminator_scp,
+                                     mctl);
+        }  /* if */
+        if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
+      }  /* if */
+      if (emulate_gnu_abi_bugs
+#if ABI_COMPATIBILITY_VERSION >= 402
+          && gnu_abi_version < 30400
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+                                    ) {
+        /* g++ versions prior to 3.4.0 had a bug with template parameters as
+           parents: they used the parameter name instead of a template
+           parameter encoding. */
+        mangled_full_class_name(type,
+                                show_partial_spec_args,
+                                is_template_specialization,
+                                is_specialization,
+                                mctl);
         goto new_substitution;
       }  /* if */
+#endif /* IA64_ABI */
+      mangled_class_encoding(type,
+                             show_partial_spec_args,
+                             is_template_specialization,
+                             is_specialization,
+                             mctl);
+#if IA64_ABI
+  new_substitution:
+      /* Add a substitution for this type. */
+      alloc_substitution((char *)type, iek_type, mctl);
+#endif /* IA64_ABI */
+    } else {
+      /* Don't include anonymous unions in a nested name (but recurse in
+         case we're nested). */
       if (more_levels) {
-        /* This level is nested inside something else.  Do a recursive call to
-           deal with all of the parents. */
-        r_mangled_parent_qualifier(parent_scp, parent_kind, nesting_level + 1,
-                                   needs_to_be_individuated, discriminator_scp,
+        /* This level is nested inside something else.  Do a recursive call
+           to deal with all of the parents. */
+        r_mangled_parent_qualifier(parent_scp, parent_kind,
+                                   nesting_level + 1,
+                                   needs_to_be_individuated,
+                                   discriminator_scp,
                                    mctl);
       }  /* if */
-      if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
-    if (emulate_gnu_abi_bugs
-#if ABI_COMPATIBILITY_VERSION >= 402
-        && gnu_abi_version < 30400
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-                                  ) {
-      /* g++ versions prior to 3.4.0 had a bug with template parameters as
-         parents: they used the parameter name instead of a template parameter
-         encoding. */
-      mangled_full_class_name(type,
-                              show_partial_spec_args,
-                              is_template_specialization,
-                              is_specialization,
-                              mctl);
-      goto new_substitution;
-    }  /* if */
-#endif /* IA64_ABI */
-    mangled_class_encoding(type,
-                           show_partial_spec_args,
-                           is_template_specialization,
-                           is_specialization,
-                           mctl);
-#if IA64_ABI
-new_substitution:
-    /* Add a substitution for this type. */
-    alloc_substitution((char *)type, iek_type, mctl);
-#endif /* IA64_ABI */
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
 #if IA64_ABI
