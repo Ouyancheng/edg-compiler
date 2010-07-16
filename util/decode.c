@@ -3727,6 +3727,7 @@ static char *demangle_substitution(
                              a_boolean                  under_lhs_declarator,
                              a_boolean                  need_trailing_space,
                              char                       **last_component_name,
+                             char                       **substitution,
                              a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <substitution> and output the demangled form.
@@ -3758,12 +3759,15 @@ last_component_name is non-NULL, and the substitution decoded is a
 prefix of a nested name, a pointer to the encoding for the last
 component of the nested name is returned in *last_component_name.  It
 will not be a substitution.  This is needed for generating the names
-of constructors and destructors.
+of constructors and destructors.  If substitution is non-NULL, *substitution
+is set to the point in the mangled name where previously encoded string
+occurred (in case the caller needs to examine it).
 */
 {
   char ch2 = ptr[1];
 
   if (last_component_name != NULL) *last_component_name = NULL;
+  if (substitution != NULL) *substitution = NULL;
   if (islower((unsigned char)ch2)) {
     /* Predefined substitution. */
     char *str = "";
@@ -3829,6 +3833,7 @@ of constructors and destructors.
       ptr = advance_past_underscore(ptr, dctl);
       subp = &substitutions[number];
       p = subp->start;
+      if (substitution != NULL) *substitution = p;
       /* Rescan the encoding for the entity, outputting the demangled form
          again at the current output position.  Don't record substitutions
          when rescanning. */
@@ -4339,6 +4344,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
                               under_lhs_declarator,
                               need_trailing_space,
                               (char **)NULL,
+                              (char **)NULL,
                               dctl);
     record_substitution = FALSE;
     if (*p == 'I') {
@@ -4506,6 +4512,7 @@ to be on top of the type.
     p = demangle_substitution(p, 2, cv_quals,
                               under_lhs_declarator,
                               /*need_trailing_space=*/FALSE,
+                              (char **)NULL,
                               (char **)NULL,
                               dctl);
     /* No need to scan the <template-args> list if there is one -- 
@@ -5389,12 +5396,28 @@ The syntax is:
   <expr-primary> ::= L <type> <value number> E    # integer literal
                  ::= L <type> <value float> E     # floating literal
                  ::= L <string type> E            # string literal
+                 ::- L <std::nullptr_t type> E    # nullptr literal
                  ::= L <type> <real-part float> _ <imag-part float> E
                                       # complex floating point literal (C 2000)
                  ::= L_Z <encoding> E             # external name
 
 */
 {
+  char        *sub = NULL;
+
+  if (ptr[1] == 'S') {
+    /* Most of the types used in literals are <builtin-type>s, so there are no
+       substitutions, but complex literals and string literals can have
+       substitutions, so watch out for these. */
+    dctl->suppress_id_output++;
+    (void)demangle_substitution(ptr+1, 0, CVQ_NONE,
+                                /*under_lhs_declarator=*/FALSE,
+                                /*need_trailing_space=*/FALSE,
+                                (char **)NULL,
+                                &sub,
+                                dctl);
+    dctl->suppress_id_output--;
+  }  /* if */
   if (ptr[1] == '_') {
     /* External name, L_Z <encoding> E. */
     if (ptr[2] != 'Z') {
@@ -5408,41 +5431,41 @@ The syntax is:
        representation of the value, high-order bytes first, with
        lower-case hex letters. */
     ptr = demangle_float_literal(ptr, dctl);
-  } else if (ptr[1] == 'C' && is_floating_point_type(ptr[2])) {
+  } else if ((ptr[1] == 'C' && is_floating_point_type(ptr[2])) ||
+             (sub != NULL &&
+              (sub[0] == 'C' && is_floating_point_type(sub[1])))) {
     /* Complex floating point literal. */
     ptr = demangle_complex_literal(ptr, dctl);
+  } else if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == 'E') {
+    /* Recognize the literal for nullptr and emit "nullptr".  This is a
+       <builtin-type> so substitutions aren't affected by this shortcut. */
+    write_id_str("nullptr", dctl);
+    ptr += 3;
   } else {
-    /* Integer literal, L <type> <value number> E. */
-    if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == 'E') {
-      /* Recognize the literal for nullptr and emit "nullptr".  This is a
-         <builtin-type> so substitutions aren't affected by this shortcut. */
-      write_id_str("nullptr", dctl);
-      ptr += 3;
+    /* Integer literal, or string literal. */
+    /* Put parentheses around the type to make a cast. */
+    write_id_ch('(', dctl);
+    ptr = demangle_type(ptr+1, dctl);
+    write_id_ch(')', dctl);
+    if (*ptr == 'E') {
+      /* There's no value -- must have been a string literal. */
+      write_id_str("\"...\"", dctl);
     } else {
-      /* Put parentheses around the type to make a cast. */
-      write_id_ch('(', dctl);
-      ptr = demangle_type(ptr+1, dctl);
-      write_id_ch(')', dctl);
-      if (*ptr == 'E') {
-        /* There's no value -- must have been a string literal. */
-        write_id_str("\"...\"", dctl);
+      /* Copy the literal value.  "n" is translated to a "-". */
+      if (*ptr == 'n') {
+        write_id_ch('-', dctl);
+        ptr++;
+      }  /* if */
+      /* g++ 3.2 puts out L1xE instead of L_Z1xE, which gets demangled
+         sort of okay in the g++ demangler because the name is treated
+         as a type and a cast is put out with nothing following it: (x) */
+      if (!isdigit((unsigned char)*ptr) && !emulate_gnu_abi_bugs) {
+        bad_mangled_name(dctl);
       } else {
-        /* Copy the literal value.  "n" is translated to a "-". */
-        if (*ptr == 'n') {
-          write_id_ch('-', dctl);
+        while (isdigit((unsigned char)*ptr)) {
+          write_id_ch(*ptr, dctl);
           ptr++;
-        }  /* if */
-        /* g++ 3.2 puts out L1xE instead of L_Z1xE, which gets demangled
-           sort of okay in the g++ demangler because the name is treated
-           as a type and a cast is put out with nothing following it: (x) */
-        if (!isdigit((unsigned char)*ptr) && !emulate_gnu_abi_bugs) {
-          bad_mangled_name(dctl);
-        } else {
-          while (isdigit((unsigned char)*ptr)) {
-            write_id_ch(*ptr, dctl);
-            ptr++;
-          }  /* while */
-        }  /* if */
+        }  /* while */
       }  /* if */
     }  /* if */
     ptr = advance_past('E', ptr, dctl);
@@ -5874,7 +5897,9 @@ substitution, the name of the last component in the substitution is used.
       ptr = demangle_substitution(ptr, 0, CVQ_NONE,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
-                                  &prev_component_name, dctl);
+                                  &prev_component_name,
+                                  (char **)NULL,
+                                  dctl);
       /* A substitution cannot be the last thing; it must be followed
          by another name or a template argument list. */
       if (*ptr == 'E') {
@@ -6186,7 +6211,9 @@ as a prefix to specify a module id for an externalized name.
       ptr = demangle_substitution(ptr, 0, CVQ_NONE,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
-                                  (char **)NULL, dctl);
+                                  (char **)NULL,
+                                  (char **)NULL,
+                                  dctl);
     } else {
       /* An <unscoped-name>, possibly as the whole of an
          <unscoped-template-name>.  */
