@@ -9,6 +9,7 @@ This could result in various kinds of errors or internal errors.  Now
 fixed.  The error occurred in versions without source sequence lists
 during the instantiation of a default argument of the function template.
 
+
 7/15/10  [EDGcpfe/10835]
 Implicit definition of virtual destructor forced in fewer places
 
