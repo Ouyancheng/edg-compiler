@@ -4569,7 +4569,12 @@ is TRUE.
                                  (an_il_entry_kind)iek_constant,
                                  (a_routine_info_block *)NULL, 
                                  /*add_address_of=*/TRUE,
-                                 expr->name_reference, mctl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+                                 expr->name_reference,
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+                                 (a_name_reference_ptr)NULL,
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+                                 mctl);
       } else
 #endif /* IA64_ABI */
       /* Do not insert code here. */
@@ -4578,7 +4583,11 @@ is TRUE.
                                       /*old_form=*/FALSE,
                                       in_dependent_expr,
                                       suppress_address_of,
+#if RECORD_FORM_OF_NAME_REFERENCE
                                       expr->name_reference,
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+                                      (a_name_reference_ptr)NULL,
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
                                       mctl);
       }  /* if */
       break;
@@ -4743,7 +4752,12 @@ is TRUE.
                                (an_il_entry_kind)iek_variable,
                                (a_routine_info_block *)NULL,
                                /*add_address_of=*/FALSE,
-                               expr->name_reference, mctl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+                               expr->name_reference,
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+                               (a_name_reference_ptr)NULL,
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+                               mctl);
 #else /* !IA64_ABI */
       mangled_variable_name(expr->variant.variable, mctl);
 #endif /* IA64_ABI */
@@ -4759,7 +4773,12 @@ is TRUE.
                                (an_il_entry_kind)iek_field,
                                (a_routine_info_block *)NULL,
                                /*add_address_of=*/FALSE,
-                               expr->name_reference, mctl);
+#if RECORD_FORM_OF_NAME_REFERENCE
+                               expr->name_reference,
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+                               (a_name_reference_ptr)NULL,
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+                               mctl);
 #else /* !IA64_ABI */
       mangled_source_name(&expr->variant.field->source_corresp,
                           (a_template_arg_ptr)NULL,
@@ -4786,7 +4805,11 @@ is TRUE.
                                (an_il_entry_kind)iek_routine,
                                (a_routine_info_block *)NULL,
                                add_address_of,
+#if RECORD_FORM_OF_NAME_REFERENCE
                                expr->name_reference,
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+                               (a_name_reference_ptr)NULL,
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
                                mctl);
 #else /* !IA64_ABI */
       mangled_routine_name(expr->variant.routine, mctl);
