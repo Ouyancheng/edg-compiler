@@ -6310,7 +6310,6 @@ Note that the "gs" may already have been stripped by the caller (since it
 can also appear at the <expression> level).
 */
 {
-  a_func_block func_block;
   a_boolean    gpp_qualified_name = FALSE;
 
   if (*ptr == 'g' && ptr[1] == 's') {
@@ -6336,7 +6335,11 @@ can also appear at the <expression> level).
          ::= [gs] sr <unresolved-qualifier-level>+ E <base-unresolved-name>  
          */
       while (!dctl->err_in_id && *ptr != 'E') {
-        ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
+        ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+        if (*ptr == 'I') {
+          /* Scan the template argument list. */
+          ptr = demangle_template_args(ptr, dctl);
+        }  /* if */
         write_id_str("::", dctl);
       }  /* while */
       if (*ptr == 'E') ptr++;
