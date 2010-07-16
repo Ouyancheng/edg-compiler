@@ -13966,11 +13966,40 @@ name lookup options.
              guide_type != NULL && is_address) {
     /* A member function is acceptable as a pointer or pointer-to-member.
        Choose a function from the overload set based on the guide type. */
-    choose_function_and_make_address_constant(sym,
-                                              is_template_ref, ref_arg_list,
-                                              guide_type, constant, &err);
-    unhandled_template_args = FALSE;
-    con_copy = NULL;
+    if (is_template_dependent_type(guide_type)) {
+      /* The guide type is dependent, so we can't choose a particular function
+         yet.  Build a constant to represent the unresolved function. */
+      a_constant_ptr fcon;
+      a_symbol_ptr   unk_sym;
+      check_assertion(con->kind == (a_constant_repr_kind)ck_template_param);
+      unk_sym = find_unknown_function_symbol(
+                                sym,
+                                con->variant.template_param.is_qualified_name);
+      check_assertion(unk_sym->kind == (a_symbol_kind)sk_constant);
+      fcon = unk_sym->variant.constant;
+      if (is_template_ref) {
+        /* Add a tpck_template_ref for the template arguments. */
+        a_constant tcon;
+        clear_constant(&tcon, (a_constant_repr_kind)ck_template_param);
+        set_template_param_constant_kind(&tcon,
+                            (a_template_param_constant_kind)tpck_template_ref);
+        tcon.variant.template_param.variant.template_ref.con = fcon;
+        tcon.variant.template_param.variant.template_ref.arg_list=ref_arg_list;
+        tcon.type = type_of_unknown_templ_param_nontype;
+        fcon = alloc_shareable_constant(&tcon);
+        unhandled_template_args = FALSE;
+      }  /* if */
+      /* Add a tpck_cast to the guide type. */
+      make_template_param_cast_constant(fcon, constant, guide_type,
+                                        /*is_explicit=*/FALSE);
+      con_copy = NULL;
+    } else {
+      choose_function_and_make_address_constant(sym,
+                                                is_template_ref, ref_arg_list,
+                                                guide_type, constant, &err);
+      unhandled_template_args = FALSE;
+      con_copy = NULL;
+    }  /* if */
     type_check_needed = FALSE;
   } else {
     err = TRUE;
