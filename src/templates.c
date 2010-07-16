@@ -9211,26 +9211,61 @@ created.
   a_symbol_ptr			sym;
   a_routine_ptr			rout;
   a_routine_ptr			templ_rout;
+  a_template_instance_ptr	tip;
+  a_template_param_ptr		templ_param_list;
+  a_template_symbol_supplement_ptr
+				tssp;
   a_memory_region_number	region_to_switch_back_to;
+  a_template_arg_ptr		tap;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
+  tssp = template_supplement_for_symbol(template_sym);
   templ_rout = template_sym->variant.template_info->variant.function.routine;
   rout = alloc_routine();
   rout->type = create_error_routine_type(templ_rout, parent_class);
+  rout->is_template_function = TRUE;
+  rout->assoc_template = tssp->il_template_entry;
+  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  /* Create an appropriate argument list with empty argument values. */
+  rout->template_arg_list = create_initial_template_arg_list(
+                                           templ_param_list,
+                                           (a_template_arg_ptr)NULL,
+                                           (a_source_position_ptr)NULL);
+  /* Fill in the template argument list with error values. */
+  for (tap = rout->template_arg_list; tap != NULL; tap = tap->next) {
+    switch (tap->kind) {
+      case tak_type:
+        tap->variant.type = error_type();
+        break;
+      case tak_nontype:
+        tap->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
+        break;
+      case tak_template:
+        tap->variant.templ.ptr = error_class_template()->
+                                      variant.template_info->il_template_entry;
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* for */
   set_routine_special_kind(rout, templ_rout->special_kind);
   if (rout->special_kind == (a_special_function_kind)sfk_operator) {
     rout->variant.opname_kind = templ_rout->variant.opname_kind;
   }  /* if */
-  sym = alloc_symbol(parent_class == NULL ? (a_symbol_kind)sk_routine
-                                          : (a_symbol_kind)sk_member_function,
-                     template_sym->header,
-                     &null_source_position);
-  sym->variant.routine.ptr = rout;
-  sym->is_error = TRUE;
-  set_source_corresp(&rout->source_corresp, sym);
+  sym = make_template_function_symbol(template_sym,
+                                      &null_source_position,
+                                      error_type());
   if (parent_class != NULL) {
     set_class_membership(sym, &rout->source_corresp, parent_class);
   }  /* if */
+  sym->variant.routine.ptr = rout;
+  sym->is_error = TRUE;
+  set_source_corresp(&rout->source_corresp, sym);
+  tip = alloc_template_instance();
+  tip->template_sym = template_sym;
+  tip->instance_sym = sym;
+  sym->variant.routine.instance_ptr = tip;
   switch_back_to_original_region(region_to_switch_back_to);
   return sym;
 }  /* create_error_routine */
