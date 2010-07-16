@@ -5111,6 +5111,27 @@ function required use of anachronisms.
 }  /* has_anachronism_match */
 
 
+static a_param_type_ptr orig_unevaluated_param_type(a_param_type_ptr ptp)
+/*
+Chase the orig_param_type_for_unevaluated_default_arg_expr link for the
+indicated parameter type entry, and return the ultimate entry pointed to.
+*/
+{
+  a_param_type_ptr res_ptp = 
+                         ptp->orig_param_type_for_unevaluated_default_arg_expr;
+
+  if (res_ptp != NULL) {
+    for (;;) {
+      a_param_type_ptr next_ptp = 
+                     res_ptp->orig_param_type_for_unevaluated_default_arg_expr;
+      if (next_ptp == NULL || next_ptp == res_ptp) break;
+      res_ptp = next_ptp;
+    }  /* for */
+  }  /* if */
+  return res_ptp;
+}  /* orig_unevaluated_param_type */
+
+
 static a_boolean equiv_template_routine_types(a_type_ptr type1,
                                               a_type_ptr type2)
 /*
@@ -5133,8 +5154,8 @@ a general-purpose routine.
     for (; ptp1 != NULL && ptp2 != NULL;
          ptp1 = ptp1->next, ptp2 = ptp2->next) {
       if (ptp1->orig_param_type_for_unevaluated_default_arg_expr != NULL &&
-          ptp1->orig_param_type_for_unevaluated_default_arg_expr ==
-                      ptp2->orig_param_type_for_unevaluated_default_arg_expr) {
+          orig_unevaluated_param_type(ptp1) ==
+          orig_unevaluated_param_type(ptp2)) {
         equiv = TRUE;
         break;
       }  /* if */
