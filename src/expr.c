@@ -956,7 +956,7 @@ for a rescan case, which preempts rcblock->argument_list.
        expressions into an argument operand list. */
     an_expr_node_ptr arg_expr = rcblock->argument_list;
     arg_operand_list = end_arg_operand_list = NULL;
-    while (arg_expr != NULL) {
+    while (arg_expr != NULL && !arg_expr->generated_default_arg) {
       an_arg_operand_ptr arg_op = alloc_arg_operand();
       make_rescan_operand(arg_expr, rcblock, &arg_op->operand);
       if (arg_operand_list == NULL) {
