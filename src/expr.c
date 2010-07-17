@@ -14938,12 +14938,15 @@ both C and C++ modes.
     err = TRUE;
   }  /* if */
   if (innermost_function_scope == NULL ||
-      expr_stack->is_default_arg_expression) {
+      expr_stack->is_default_arg_expression ||
+      expr_stack->is_template_arg_expression) {
     /* We're not inside a function, so don't try to scan the statement.
        Just flush to the matching closing brace. */
     /* Statement expressions are not allowed in default argument
        expressions (we don't have the code to copy them -- see
        copy_expr_tree). */
+    /* Also in template argument expressions, because we can't push
+       another object lifetime later. */
     if (!err) {
       if (depth_stmt_stack < 0) {
         expr_pos_error(ec_statement_expression_in_function_only,
