@@ -9265,6 +9265,7 @@ created.
   tip = alloc_template_instance();
   tip->template_sym = template_sym;
   tip->instance_sym = sym;
+  tip->suppress_instantiation = TRUE;
   sym->variant.routine.instance_ptr = tip;
   switch_back_to_original_region(region_to_switch_back_to);
   return sym;
