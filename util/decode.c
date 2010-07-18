@@ -3871,7 +3871,6 @@ occurred (in case the caller needs to examine it).
                 if (subp->num_levels > 0) write_id_str("::", dctl);
                 p = demangle_unqualified_name(p, &is_no_return_name, dctl);
               }  /* if */
-              if (need_trailing_space) write_id_ch(' ', dctl);
             }
             break;
           case subk_type:
@@ -4378,6 +4377,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     need_trailing_space = TRUE;
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
+      need_trailing_space = FALSE;
     }  /* if */
     p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                                  need_trailing_space, 
@@ -4473,7 +4473,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     p = demangle_vector_size_qualifier(p, dctl);
     p = demangle_type_specifier(p, parse_template_args, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
-    if (record_substitution_for_type(unqualp)) {
+    if (!record_substitution_for_type(unqualp)) {
       /* Do not record a substitution for (most) <builtin-type>s. */
       record_substitution = FALSE;
     }  /* if */
