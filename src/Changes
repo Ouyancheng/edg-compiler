@@ -1,5 +1,25 @@
 Version 4.2
 
+7/18/10  [EDGcpfe/10712]
+Multibyte characters ending in '\' followed only by white space
+
+In configurations in which MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED and
+BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR are both TRUE, the front end
+incorrectly treated a 0x5c occurring as the last byte of a multibyte
+character as if it were a backslash character when it is followed only
+by one or more white space characters.  The result of this error was an
+incorrect line splice in GNU modes (see the 3/15/05 entry) and a spurious
+warning in non-GNU modes (see the 1/14/09 entry).  This is now fixed.  For
+example, the front end formerly issued a warning about a "\" followed by
+white space for the following when compiled in --microsoft mode:
+
+  #pragma setlocale(".932")
+  void f() {
+    // The characters after the // below are 0x8b 0x40 0x94 0x5c 0x20
+    //‹@”\ 
+  }
+
+
 7/18/10  [EDGcpfe/9244]
 Value of __LINE__ in a multi-line macro invocation
 

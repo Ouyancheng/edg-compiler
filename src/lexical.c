@@ -5911,6 +5911,7 @@ for the GNU C multiline string extension.
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
   unsigned long   white_space_chars_after_backslash = 0;
+  char            *backslash_loc;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -6136,6 +6137,7 @@ for the GNU C multiline string extension.
              splice if the line ended with white space, but we check for
              that case in the splice handling code so we can display a
              warning message.) */
+          backslash_loc = cp;
           white_space_chars_after_backslash = loc_in_line - cp - 1;
           goto line_splice;
         }  /* if */
@@ -6490,6 +6492,7 @@ entry_for_expand_buffer:
         /* Possible line splice.  (In non-GNU modes, it is not a line
            splice if the line ended with white space, but we check for
            that case below so we can display a warning message.) */
+        backslash_loc = cp;
         white_space_chars_after_backslash = loc_in_line - cp - 1;
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -6501,11 +6504,12 @@ entry_for_line_splice:
                                                         ) {
           /* See whether the backslash is actually a backslash, or a character
              after the first in a multibyte sequence. */
-          find_offset_for_source_line_mbc_including(loc_in_line-1,
+          find_offset_for_source_line_mbc_including(backslash_loc,
                                                     &mbc_offset);
-          if (mbc_offset != loc_in_line-1-curr_source_line) {
-            /* The backslash is not really a backslash.  But it is followed
-               by a newline. */
+          if (curr_source_line + mbc_offset != backslash_loc) {
+            /* The backslash is not really a backslash.  It is followed by
+               a newline, though. */
+            white_space_chars_after_backslash = 0;
             goto add_newline_and_line_end_and_return;
           }  /* if */
         }  /* if */
