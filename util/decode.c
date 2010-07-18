@@ -3871,6 +3871,7 @@ occurred (in case the caller needs to examine it).
                 if (subp->num_levels > 0) write_id_str("::", dctl);
                 p = demangle_unqualified_name(p, &is_no_return_name, dctl);
               }  /* if */
+              if (need_trailing_space) write_id_ch(' ', dctl);
             }
             break;
           case subk_type:
@@ -4160,6 +4161,20 @@ static char *demangle_source_name(
                                  a_decode_control_block_ptr dctl);
 
 
+/*
+Macro to determine if the character string pointed to by "p" is a
+<builtin-type>.  <builtin-type>s are a single lower-case letter or two
+characters starting with the character "D".
+*/
+#define is_builtin_type(p) (islower((unsigned char)*(p)) || *(p) == 'D')
+
+/*
+Macro to determine if the type pointed to by "p" needs a substitution
+recorded for it.  <builtin-type>s are not recorded with the exception of
+vendor extended types which are recorded.
+*/
+#define record_substitution_for_type(p) (!(is_builtin_type(p)) || *(p) == 'u')
+
 static char *demangle_type_specifier(
                                 char                       *ptr,
                                 a_boolean                  parse_template_args,
@@ -4186,7 +4201,7 @@ demangled as part of the template function instead).
 
   /* Builtin type encodings are typically lower-case (with some exceptions).
      Names begin with a digit or an upper-case letter. */
-  if (!(islower((unsigned char)*p) || *p == 'D')) {
+  if (!is_builtin_type(p)) {
     if (*p == 'T') {
       /* A template parameter, possibly a template template parameter. */
       char *tstart = p;
@@ -4363,7 +4378,6 @@ to be on top of the type.  If parse_template_args is TRUE then any
     need_trailing_space = TRUE;
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
-      need_trailing_space = FALSE;
     }  /* if */
     p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                                  need_trailing_space, 
@@ -4459,9 +4473,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
     p = demangle_vector_size_qualifier(p, dctl);
     p = demangle_type_specifier(p, parse_template_args, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
-    if (p == unqualp+1) {
-      /* Do not record a substitution for a builtin type.  (Builtin types
-         are the only one-character encodings.) */
+    if (record_substitution_for_type(unqualp)) {
+      /* Do not record a substitution for (most) <builtin-type>s. */
       record_substitution = FALSE;
     }  /* if */
   }  /* if */
