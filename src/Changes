@@ -1,5 +1,23 @@
 Version 4.2
 
+7/18/10  [EDGcpfe/9244]
+Value of __LINE__ in a multi-line macro invocation
+
+When expanding the __LINE__ macro inside the expansion of a macro whose
+invocation covers more than one line, the front end previously used the
+source position of the macro name.  The C and C++ Standards are not
+completely clear on this point, but other major compilers use the source
+position of the closing right parenthesis.  The front end has now been
+changed to follow suit.  For example:
+
+  extern "C" int printf(const char*, ...);
+  #define M() printf("%d\n", __LINE__)
+  int main() {
+    M(        // Prevously printed "4", now "5"
+     );
+  }
+
+
 7/15/10  [EDGcpfe/10839]
 Use of freed param_id entry for parameter of function template instance
 

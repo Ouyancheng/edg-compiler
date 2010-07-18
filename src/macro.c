@@ -3896,7 +3896,7 @@ end_scan_for_macro_modifs:;
         /* __LINE__.  Make and return the string for a decimal integer
            indicating the current line number. */
         /* Convert the sequence number to a line number. */
-        conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
+        conv_seq_to_file_and_line(curr_seq_number, &file_name, &full_name,
                                   &line_number, &at_end_of_source);
         /* We assume we don't need to call ensure_arg_raw_text_space. */
         (void)sprintf(repl_text, "%lu", line_number);
