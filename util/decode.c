@@ -5437,10 +5437,12 @@ The syntax is:
     /* Complex floating point literal. */
     ptr = demangle_complex_literal(ptr, dctl);
   } else if (ptr[1] == 'D' && ptr[2] == 'n' && ptr[3] == 'E') {
-    /* Recognize the literal for nullptr and emit "nullptr".  This is a
-       <builtin-type> so substitutions aren't affected by this shortcut. */
+    /* Recognize the literal for nullptr and emit "nullptr". */
+    dctl->suppress_id_output++;
+    (void)demangle_type(ptr+1, dctl);
+    dctl->suppress_id_output--;
     write_id_str("nullptr", dctl);
-    ptr += 3;
+    ptr += 4;
   } else {
     /* Integer literal, or string literal. */
     /* Put parentheses around the type to make a cast. */
