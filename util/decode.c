@@ -4374,13 +4374,11 @@ to be on top of the type.  If parse_template_args is TRUE then any
                ::= O <type> # rvalue reference-to (C++0x)
                ::= C <type> # complex pair (C 2000)
        */
-    need_trailing_space = TRUE;
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
-      need_trailing_space = FALSE;
     }  /* if */
     p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                 need_trailing_space, 
+                                 /*need_trailing_space=*/TRUE,
                                  parse_template_args, dctl);
     if (kind == 'P') {
       write_id_ch('*', dctl);
