@@ -448,7 +448,6 @@ static void mangled_encoding_for_constant(
                                   a_boolean                old_form,
                                   a_boolean                in_dependent_expr,
                                   a_boolean                suppress_address_of,
-                                  a_name_reference_ptr     name_reference,
                                   a_mangling_control_block *mctl);
 #if !IA64_ABI
 static char *compress_mangled_name(char                     *mangled_name,
@@ -491,13 +490,6 @@ static a_boolean function_name_mangling_needed(
                                        a_boolean     *suppress_param_encoding);
 static char *mangled_operator_name(an_opname_kind kind,
                                    unsigned int   num_operands);
-static a_boolean entity_needs_parent_qualifier(a_source_correspondence *scp,
-                                               an_il_entry_kind        kind);
-static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
-                                                 an_il_entry_kind        kind);
-static void mangled_name_reference(a_name_reference_ptr        name_reference,
-                                   a_type_ptr                  dtor_type,
-                                   a_mangling_control_block    *mctl);
 
 #if !IA64_ABI
 /*
@@ -1833,9 +1825,7 @@ to the type "type".  This is used for template-dependent casts.
      dependent casts. */
   mangled_encoding_for_constant(con, /*old_form=*/FALSE,
                                 /*in_dependent_expr=*/TRUE,
-                                /*suppress_address_of=*/FALSE,
-                                (a_name_reference_ptr)NULL,
-                                mctl);
+                                /*suppress_address_of=*/FALSE, mctl);
 #if !IA64_ABI
   if (!cast_to_unknown) {
     /* Put out the final "O". */
@@ -1883,7 +1873,6 @@ ignored if expr != NULL.
                                   /*old_form=*/FALSE,
                                   /*in_dependent_expr=*/FALSE,
                                   /*suppress_address_of=*/FALSE,
-                                  (a_name_reference_ptr)NULL,
                                   mctl);
     goto end_of_routine;
   }  /* if */
@@ -2507,7 +2496,6 @@ static void mangled_entity_reference(a_source_correspondence  *scp,
                                      an_il_entry_kind         kind,
                                      a_routine_info_block     *rinfo,
                                      a_boolean                add_address_of,
-                                     a_name_reference_ptr     name_reference,
                                      a_mangling_control_block *mctl)
 /*
 Add the encoding for a reference to an entity in an expression, for
@@ -2515,9 +2503,7 @@ the IA-64 ABI.  scp is the source correspondence of the entity, which
 has kind "kind".  If rinfo != NULL, the entity is not a routine entry
 but it represents a routine, and rinfo points to the information
 describing it.  In some cases (as indicated by add_address_of being TRUE)
-add mangling for an eok_address_of operation.  For cases where the entity is a
-class member and the member needs to be qualified, name_reference specifies the
-qualification to be used.
+add mangling for an eok_address_of operation.
 */
 {
   a_source_correspondence
@@ -2537,25 +2523,10 @@ qualification to be used.
     add_str_to_mangled_name("ad", mctl);
   }  /* if */
   if (use_sr) {
-#if ABI_COMPATIBILITY_VERSION >= 402
-    /* There was a major change in the way the scope resolution ("sr")
-       mangling is handled (as part of the SFINAE mangling changes).
-       When emulating GNU, use the old mechanism which only encodes the
-       parent class.  The newer method relies on name_references so that
-       the original source encoding is replicated in the mangled name. */
-    if (!emulate_gnu_abi_bugs) {
-      /* Replicate the mangled name from the original source. */
-      check_assertion(name_reference != NULL);
-      mangled_name_reference(name_reference, (a_type_ptr)NULL, mctl);
-    } else
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-    /* Do not insert code here. */
-    {
-      /* Old-style scope resolution operator "sr". */
-      add_str_to_mangled_name("sr", mctl);
-      /* First operand is the parent class type. */
-      mangled_encoding_for_type(parent_class, mctl);
-    }  /* if */
+    /* Scope resolution operator "sr". */
+    add_str_to_mangled_name("sr", mctl);
+    /* First operand is the parent class type. */
+    mangled_encoding_for_type(parent_class, mctl);
     /* Second operand is an unqualified name, more or less. */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
@@ -2863,8 +2834,7 @@ specification in the mangling for lengths of literals.
   }  /* if */
   if (scp != NULL) {
     mangled_entity_reference(scp, kind, (a_routine_info_block *)NULL,
-                             /*add_address_of=*/TRUE, 
-                             (a_name_reference_ptr)NULL, mctl);
+                             /*add_address_of=*/TRUE, mctl);
   } else {
     /* We have a NULL pointer-to-member constant.  Although not allowed by the
        standard, some compilers accept this as an extension.  The IA64 ABI
@@ -2880,14 +2850,13 @@ specification in the mangling for lengths of literals.
 
 
 #if !IA64_ABI
-/*ARGSUSED*/  /* <-- add_address_of, name_reference are not used. */
+/*ARGSUSED*/  /* <-- add_address_of is not used in that case. */
 #endif /* !IA64_ABI */
 static void mangled_encoding_for_unknown_function(
                                     a_constant_ptr           con,
                                     a_boolean                has_template_args,
                                     a_template_arg_ptr       template_arg_list,
                                     a_boolean                add_address_of,
-                                    a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the constant con, which is
@@ -2896,8 +2865,7 @@ to encode unknown functions that appear in template argument lists
 of prototype instantiations.  If has_template_args is TRUE, the function
 has an explicit template argument list, given by template_arg_list.
 If add_address_of is TRUE, mangling for an "&" operation is added (IA-64 ABI
-only).  name_reference specifies the qualification used in the source code
-for the unknown function (IA-64 ABI only).
+only).
 */
 {
   a_type_ptr              conversion_type =
@@ -2945,7 +2913,7 @@ for the unknown function (IA-64 ABI only).
       rinfo.template_arg_list = template_arg_list;
     }  /* if */
     mangled_entity_reference(&con->source_corresp, iek_constant,
-                             &rinfo, add_address_of, name_reference, mctl);
+                             &rinfo, add_address_of, mctl);
   }
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_unknown_function */
@@ -2958,7 +2926,6 @@ static void literal_representation(
                                   a_boolean                old_form,
                                   a_boolean                in_dependent_expr,
                                   a_boolean                suppress_address_of,
-                                  a_name_reference_ptr     name_reference,
                                   a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the constant con.
@@ -2968,8 +2935,7 @@ specification in the mangling for lengths of literals.  For the IA-64
 ABI, if in_dependent_expr is TRUE this constant is part of a
 template-dependent expression.  Suppress mangling of the implied "address of"
 operator on some template constants when suppress_address_of is TRUE
-(only in the IA-64 ABI).  name_reference represents the qualification of
-the constant in the source code (and is only used in the IA-64 ABI).
+(only in the IA-64 ABI).
 */
 {
 #if !IA64_ABI
@@ -3013,8 +2979,7 @@ the constant in the source code (and is only used in the IA-64 ABI).
         mangled_entity_reference(&con->source_corresp,
                                  iek_constant,
                                  (a_routine_info_block *)NULL,
-                                 /*add_address_of=*/FALSE,
-                                 name_reference, mctl);
+                                 /*add_address_of=*/FALSE, mctl);
         break;
       }  /* if */
 #endif /* IA64_ABI */
@@ -3062,7 +3027,6 @@ the constant in the source code (and is only used in the IA-64 ABI).
                                       /*old_form=*/FALSE,
                                       /*in_dependent_expr=*/FALSE,
                                       /*suppress_address_of=*/FALSE,
-                                      (a_name_reference_ptr)NULL,
                                       mctl);
       } else {
         mangled_encoding_for_address_constant(con, mctl);
@@ -3120,7 +3084,6 @@ do_unknown_function:
                                                   has_template_args,
                                                   template_arg_list,
                                                   !suppress_address_of,
-                                                  name_reference,
                                                   mctl);
 #if !IA64_ABI
             fill_in_length(&length_reservation, mctl);
@@ -3139,8 +3102,7 @@ do_unknown_function:
           mangled_entity_reference(&con->source_corresp,
                                    iek_constant,
                                    (a_routine_info_block *)NULL,
-                                   /*add_address_of=*/FALSE,
-                                   name_reference, mctl);
+                                   /*add_address_of=*/FALSE, mctl);
 #endif /* !IA64_ABI */
           break;
         case tpck_cast:
@@ -3156,7 +3118,6 @@ do_unknown_function:
                                  old_form,
                                  /*in_dependent_expr=*/TRUE,
                                  /*suppress_address_of=*/FALSE,
-                                 name_reference,
                                  mctl);
 #else /* IA64_ABI */
           con = con->variant.template_param.variant.constant;
@@ -3166,8 +3127,7 @@ do_unknown_function:
                                   (a_template_param_constant_kind)tpck_member);
           mangled_entity_reference(&con->source_corresp, iek_constant,
                                    (a_routine_info_block *)NULL, 
-                                   /*add_address_of=*/TRUE,
-                                   name_reference, mctl);
+                                   /*add_address_of=*/TRUE, mctl);
 #endif /* IA64_ABI */
           break;
         case tpck_sizeof:
@@ -3222,7 +3182,6 @@ static void mangled_encoding_for_constant(
                                   a_boolean                old_form,
                                   a_boolean                in_dependent_expr,
                                   a_boolean                suppress_address_of,
-                                  a_name_reference_ptr     name_reference,
                                   a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the constant con.
@@ -3230,9 +3189,7 @@ If old_form is TRUE, use the old form of length specification in the
 mangling for lengths of literals.  For the IA-64 ABI, if in_dependent_expr
 is TRUE this constant is part of a template-dependent expression.
 Suppress mangling for the implied "address of" operation that is part of
-certain template constants (used only in the IA-64 ABI).  name_reference
-represents the qualification of the constant in the source code (and is only
-used in the IA-64 ABI).
+certain template constants (used only in the IA-64 ABI).
 */
 {
 #if !IA64_ABI
@@ -3254,7 +3211,7 @@ used in the IA-64 ABI).
 #endif /* !IA64_ABI */
   /* Put out the literal representation for the constant. */
   literal_representation(con, old_form, in_dependent_expr, suppress_address_of,
-                         name_reference, mctl);
+                         mctl);
 }  /* mangled_encoding_for_constant */
 
 
@@ -3304,7 +3261,6 @@ something in error or skipped over.  The mangling used is a constant zero.
                                 /*old_form=*/FALSE,
                                 /*in_dependent_expr=*/FALSE,
                                 /*suppress_address_of=*/FALSE,
-                                (a_name_reference_ptr)NULL,
                                 mctl);
 }  /* add_mangling_for_placeholder_expression */
 
@@ -4568,13 +4524,7 @@ is TRUE.
         mangled_entity_reference(&expr->variant.constant->source_corresp,
                                  (an_il_entry_kind)iek_constant,
                                  (a_routine_info_block *)NULL, 
-                                 /*add_address_of=*/TRUE,
-#if RECORD_FORM_OF_NAME_REFERENCE
-                                 expr->name_reference,
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-                                 (a_name_reference_ptr)NULL,
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-                                 mctl);
+                                 /*add_address_of=*/TRUE, mctl);
       } else
 #endif /* IA64_ABI */
       /* Do not insert code here. */
@@ -4583,11 +4533,6 @@ is TRUE.
                                       /*old_form=*/FALSE,
                                       in_dependent_expr,
                                       suppress_address_of,
-#if RECORD_FORM_OF_NAME_REFERENCE
-                                      expr->name_reference,
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-                                      (a_name_reference_ptr)NULL,
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
                                       mctl);
       }  /* if */
       break;
@@ -4751,13 +4696,7 @@ is TRUE.
       mangled_entity_reference(&expr->variant.variable->source_corresp,
                                (an_il_entry_kind)iek_variable,
                                (a_routine_info_block *)NULL,
-                               /*add_address_of=*/FALSE,
-#if RECORD_FORM_OF_NAME_REFERENCE
-                               expr->name_reference,
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-                               (a_name_reference_ptr)NULL,
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-                               mctl);
+                               /*add_address_of=*/FALSE, mctl);
 #else /* !IA64_ABI */
       mangled_variable_name(expr->variant.variable, mctl);
 #endif /* IA64_ABI */
@@ -4772,13 +4711,7 @@ is TRUE.
       mangled_entity_reference(&expr->variant.field->source_corresp,
                                (an_il_entry_kind)iek_field,
                                (a_routine_info_block *)NULL,
-                               /*add_address_of=*/FALSE,
-#if RECORD_FORM_OF_NAME_REFERENCE
-                               expr->name_reference,
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-                               (a_name_reference_ptr)NULL,
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-                               mctl);
+                               /*add_address_of=*/FALSE, mctl);
 #else /* !IA64_ABI */
       mangled_source_name(&expr->variant.field->source_corresp,
                           (a_template_arg_ptr)NULL,
@@ -4805,11 +4738,6 @@ is TRUE.
                                (an_il_entry_kind)iek_routine,
                                (a_routine_info_block *)NULL,
                                add_address_of,
-#if RECORD_FORM_OF_NAME_REFERENCE
-                               expr->name_reference,
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-                               (a_name_reference_ptr)NULL,
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
                                mctl);
 #else /* !IA64_ABI */
       mangled_routine_name(expr->variant.routine, mctl);
@@ -5692,7 +5620,6 @@ literals.
                                     old_form,
                                     /*in_dependent_expr=*/FALSE,
                                     /*suppress_address_of=*/FALSE,
-                                    (a_name_reference_ptr)NULL,
                                     mctl);
 #if IA64_ABI
       if (is_expression) {
@@ -7728,7 +7655,6 @@ Add to the mangled name the encoding for the type "type".
                             /*old_form=*/FALSE,
                             /*in_dependent_expr=*/FALSE,
                             /*suppress_address_of=*/FALSE,
-                            (a_name_reference_ptr)NULL,
                             mctl);
 #if IA64_ABI
         } else if (!type->variant.array.bound_is_zero && 
