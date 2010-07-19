@@ -2009,13 +2009,14 @@ end_of_routine:;
 
 static unsigned long number_of_operands_in_list(an_expr_node_ptr expr)
 /*
-Return the number of expressions in the specified list.
+Return the number of expressions in the specified list.  Note that any
+generated default arguments are not represented in the returned value.
 */
 {
   unsigned long    num_operands;
 
   for (num_operands = 0;
-       expr != NULL;
+       expr != NULL && !expr->generated_default_arg;
        num_operands++, expr = expr->next) {}
   return num_operands;
 }  /* number_of_operands_in_list */
@@ -4162,7 +4163,7 @@ in_dependent_expr is TRUE if this expression is part of a template-dependent
 expression. 
 */
 {
-  for (; expr != NULL; expr = expr->next) {
+  for (; expr != NULL && !expr->generated_default_arg; expr = expr->next) {
     mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
   }  /* for */
 }  /* mangled_expression_list */
