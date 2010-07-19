@@ -7229,7 +7229,7 @@ Add to the mangled name the encoding for the type "type".
 #if ABI_COMPATIBILITY_VERSION < 230
   a_type_ptr named_typedef = NULL;
 #endif /* ABI_COMPATIBILITY_VERSION < 230 */
-  char       *s;
+  char       *s = NULL;
   a_type_qualifier_set
              qualifiers;
 #if IA64_ABI
@@ -7715,18 +7715,17 @@ Add to the mangled name the encoding for the type "type".
 have_whole_mangled_name:;
 #if IA64_ABI
   /* Create a substitution for the unqualified type.  No substitutions are
-     created for <builtin-type>s. */
-  if ((!is_integral_type(type) &&
-       !is_floating_type(type) && 
-       !is_or_was_nullptr_type(type) &&
-       !is_auto_type(type) &&
-       !is_void_type(type))
-#if ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED
+     created for <builtin-type>s (which are indicated by a single lowercase
+     character or a string beginning with the letter "D"). */
+  if (!(s != NULL &&
+        (islower((unsigned char)*s) ||
+         *s == 'D'))
+#if ABI_COMPATIBILITY_VERSION < 402 && C99_IL_EXTENSIONS_SUPPORTED
       /* The IA-64 ABI mandates substitutions for complex types (versions
          prior to 4.2 mistakenly omitted these). */
-      || type->kind == (a_type_kind)tk_complex
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED */
-                         ) {
+      && type->kind != (a_type_kind)tk_complex
+#endif /* ABI_COMPATIBILITY_VERSION < 402 && C99_IL_EXTENSIONS_SUPPORTED */
+                                              ) {
     alloc_substitution((char *)type, iek_type, mctl);
   }  /* if */
 add_substitution_for_qualified_type:
