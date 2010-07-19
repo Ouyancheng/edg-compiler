@@ -13157,6 +13157,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
         new_sym = current_instantiation_sym;
         goto normal_exit;
       } else {
+        a_scope_stack_entry_ptr	ssep = &scope_stack_top();
+        /* First find the nearest enclosing non-function prototype scope. */
+        while (ssep->kind == (a_scope_kind)sck_func_prototype) ssep -= 1;
         if ((options & GID_TEMPLATE_ARGS_OPTIONAL) != 0  ||
             (options & GID_IN_IF_EXISTS) != 0) {
            /* Template arguments are not required -- simply return the
@@ -13165,8 +13168,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
            goto skip_processing;
         } else if (microsoft_bugs &&
                    (options & GID_IS_TAG_NAME) == 0 &&
-                   scope_stack[depth_scope_stack].kind ==
-                                        (a_scope_kind)sck_class_struct_union &&
+                   ssep->kind == (a_scope_kind)sck_class_struct_union &&
                    is_prototype_instantiation_context()) {
           /* In the definition of a class template, the Microsoft compiler
              accepts use a reference such as A::i, where A is a different
