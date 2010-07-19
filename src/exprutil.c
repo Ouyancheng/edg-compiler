@@ -3249,6 +3249,17 @@ that extra work.
       node->name_reference = find_allocated_name_reference(
                                        &node->variant.field->source_corresp,
                                        &operand->name_reference);
+    } else if (is_operation_node(node)) {
+      an_expr_operator_kind op = node->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_dot_vacuous_destructor_call ||
+          op == (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
+        a_type_ptr dtor_name_type = 0; /* operand->name_reference.xxx; */
+        if (dtor_name_type != NULL) {
+          node->name_reference = find_allocated_name_reference(
+                                       &dtor_name_type->source_corresp,
+                                       &operand->name_reference);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -3281,6 +3292,7 @@ to the indicated operand.
 */
 {
   if (!C_mode() && !is_error_operand(operand) &&
+      !expr_stack->template_deduction_context &&
       record_name_references_in_context()) {
     make_name_reference_from_locator(locator, &operand->name_reference);
     operand->name_reference_set = TRUE;

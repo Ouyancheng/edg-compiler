@@ -4606,6 +4606,7 @@ case).
                               void_type(),
                               node);
     make_expression_operand(node, result);
+    set_operand_name_reference_from_locator(result, &locator);
   } else {
     /* Normal selection, not a vacuous destructor reference. */
     /* Record that the field was referenced, for cross-reference (etc.)
