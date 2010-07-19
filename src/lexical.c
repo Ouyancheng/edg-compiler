@@ -13164,10 +13164,10 @@ a routine to lookup the appropriate instance (or generate one if needed).
            new_sym = template_sym;
            goto skip_processing;
         } else if (microsoft_bugs &&
+                   (options & GID_IS_TAG_NAME) == 0 &&
                    scope_stack[depth_scope_stack].kind ==
                                         (a_scope_kind)sck_class_struct_union &&
-                   is_prototype_instantiation_context() &&
-                   next_tok == tok_colon_colon) {
+                   is_prototype_instantiation_context()) {
           /* In the definition of a class template, the Microsoft compiler
              accepts use a reference such as A::i, where A is a different
              class template and something like A<T>::i should be used.

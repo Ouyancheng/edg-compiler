@@ -1017,7 +1017,8 @@ caution when modifying this routine.
   *tag_resolution = FALSE;
   /* Coalesce the identifier that follows the class, struct, union, or
      enum keyword. */
-  options = GID_TEMPLATE_ARGS_OPTIONAL | GID_IMPLICIT_TYPE_CONTEXT;
+  options = GID_TEMPLATE_ARGS_OPTIONAL | GID_IMPLICIT_TYPE_CONTEXT |
+            GID_IS_TAG_NAME;
   if (is_ref_within_new_expr) options |= GID_IS_NEW_TYPE_NAME;
   if (is_generalized_identifier_start(options)) {
     /* Determine whether this is a definition or something else (a
@@ -1271,7 +1272,7 @@ caution when modifying this routine.
         tag_sym = coalesce_template_class_reference(
                      templ_sym,
                      implicit_template_allowed ? GID_TEMPLATE_ARGS_OPTIONAL
-                                               : GID_NO_OPTIONS,
+                                               : GID_IS_TAG_NAME,
                      &err);
         if (is_class_template_symbol(templ_sym)) {
           if (implicit_template_allowed) {
