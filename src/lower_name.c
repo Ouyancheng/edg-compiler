@@ -6922,7 +6922,10 @@ does not specify a mangling for template aliases as they do not appear in
 externally visible mangled names.  Mangle a template alias as though it were a
 class template (there should not be a class template with the same name as
 an alias template in the same scope).  No demangling changes are required for
-the template alias case.
+the template alias case.  Note that this provides a mangled name for the
+template alias itself, but when a template alias appears as part of a
+mangled name, the typeref indicating the alias is stripped and the underlying
+type is mangled in its place.
 */
 {
   char                 *name =
@@ -7242,7 +7245,8 @@ Add to the mangled name the encoding for the type "type".
 #endif /* IA64_ABI */
   /* Walk through any typerefs above the type.  Remember type qualifiers
      and skip down to the "real" underlying type.  decltype and typeof typerefs
-     are handled here. */
+     are handled here.  Template alias typerefs are stripped here so that the
+     underlying type is mangled. */
   qualifiers = 0;
   /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type->kind == (a_type_kind)tk_typeref;
@@ -7268,9 +7272,9 @@ Add to the mangled name the encoding for the type "type".
         (
 #if IA64_ABI
          emulate_gnu_abi_bugs ?
-                       gnu_requires_decltype_mangling(type) :
+                      gnu_requires_decltype_mangling(type) :
 #endif /* IA64_ABI */
-                       type->variant.typeref.is_dependent_decltype_or_typeof)) {
+                      type->variant.typeref.is_dependent_decltype_or_typeof)) {
       an_expr_node_ptr decltype_expr = decltype_arg(type);
       check_assertion(decltype_expr != NULL);
       if (type->variant.typeref.decltype_expr_not_parenthesized) {
