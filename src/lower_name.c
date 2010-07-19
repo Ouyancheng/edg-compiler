@@ -7719,6 +7719,7 @@ have_whole_mangled_name:;
   if ((!is_integral_type(type) &&
        !is_floating_type(type) && 
        !is_or_was_nullptr_type(type) &&
+       !is_auto_type(type) &&
        !is_void_type(type))
 #if ABI_COMPATIBILITY_VERSION >= 402 && C99_IL_EXTENSIONS_SUPPORTED
       /* The IA-64 ABI mandates substitutions for complex types (versions
