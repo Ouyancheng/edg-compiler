@@ -3712,7 +3712,7 @@ seen so far (and is set to one at the topmost level).
 
   if (qualifier != NULL) {
     if (qualifier->is_class) {
-      class_type = qualifier->qualifier.class_type;
+      class_type = skip_typerefs(qualifier->qualifier.class_type);
       if (is_immediate_class_type(class_type)) {
         ctsp = class_type->variant.class_struct_union.extra_info;
         check_assertion(ctsp != NULL);
