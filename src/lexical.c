@@ -5911,7 +5911,10 @@ for the GNU C multiline string extension.
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
   unsigned long   white_space_chars_after_backslash = 0;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && \
+    BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
   char            *backslash_loc;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && ... */
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -6137,7 +6140,10 @@ for the GNU C multiline string extension.
              splice if the line ended with white space, but we check for
              that case in the splice handling code so we can display a
              warning message.) */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && \
+    BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
           backslash_loc = cp;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && ... */
           white_space_chars_after_backslash = loc_in_line - cp - 1;
           goto line_splice;
         }  /* if */
@@ -6492,7 +6498,10 @@ entry_for_expand_buffer:
         /* Possible line splice.  (In non-GNU modes, it is not a line
            splice if the line ended with white space, but we check for
            that case below so we can display a warning message.) */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && \
+    BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
         backslash_loc = cp;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED && ... */
         white_space_chars_after_backslash = loc_in_line - cp - 1;
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
