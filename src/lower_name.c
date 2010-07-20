@@ -2677,13 +2677,16 @@ qualifiers seen so far (and is typically set to zero by the initial caller).
       mangled_encoding_for_type(skip_typerefs((a_type_ptr)scp), mctl);
     } else {
       /* Emit the source name for this qualifier (with any template args). */
-      if (kind == iek_type &&
-          is_immediate_class_type(skip_typerefs((a_type_ptr)scp))) {
-        ctsp = class_type_supp(skip_typerefs((a_type_ptr)scp));
-        check_assertion(ctsp != NULL &&
-                        ctsp->anonymous_union_kind ==
+      if (kind == iek_type) {
+        /* Skip any typedefs. */
+        scp = &skip_typerefs((a_type_ptr)scp)->source_corresp;
+        if (is_immediate_class_type((a_type_ptr)scp)) {
+          ctsp = class_type_supp((a_type_ptr)scp);
+          check_assertion(ctsp != NULL &&
+                          ctsp->anonymous_union_kind ==
                                             (an_anonymous_union_kind)auk_none);
-        template_arg_list = ctsp->template_arg_list;
+          template_arg_list = ctsp->template_arg_list;
+        }  /* if */
       }  /* if */
       mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE,
                           mctl);
@@ -4414,9 +4417,9 @@ expression.
       mangled_encoding_for_expression(selection, in_dependent_expr, mctl);
     }  /* if */
   } else {
-    /* A vacuous destructor. */
-    /* FIXME: The type on this doesn't appear to reflect the source, e.g.,
-       p1.A::~A() winds up being mangled with a template parameter. */
+    /* A vacuous destructor.  Vacuous destructors of the type int::~int()
+       don't get a name_reference structure, so they appear in demangled
+       names as ~int(). */
 #if RECORD_FORM_OF_NAME_REFERENCE
     mangled_destructor_name(selector->type, expr->name_reference, mctl);
 #else /* !RECORD_FORM_OF_NAME_REFERENCE */
