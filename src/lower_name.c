@@ -478,6 +478,9 @@ static void close_ia64_nested_name(
                               a_boolean                 need_nested_name_close,
                               a_source_correspondence  *discriminator_scp,
                               a_mangling_control_block *mctl);
+static void mangled_encoding_for_scope_resolution(
+                                               a_type_ptr               type,
+                                               a_mangling_control_block *mctl);
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
@@ -2524,11 +2527,9 @@ add mangling for an eok_address_of operation.
     add_str_to_mangled_name("ad", mctl);
   }  /* if */
   if (use_sr) {
-    /* Scope resolution operator "sr". */
-    add_str_to_mangled_name("sr", mctl);
-    /* First operand is the parent class type. */
-    mangled_encoding_for_type(parent_class, mctl);
-    /* Second operand is an unqualified name, more or less. */
+    /* Emit the scope resolution qualification for the entity. */
+    mangled_encoding_for_scope_resolution(parent_class, mctl);
+    /* What follows is a <base-unresolved-name>. */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
       mangled_function_name(rout,
@@ -3689,6 +3690,138 @@ mangled name (including any template arguments) is prefixed to the name.
 #endif /* !IA64_ABI */
 }  /* mangled_source_name */
 
+
+static a_boolean is_unresolved_type(a_type_ptr type)
+/*
+Returns TRUE if type is an <unresolved-type>.  The type must not have had
+its typerefs skipped by the caller.
+*/
+{
+  a_boolean       result = FALSE;
+
+  if (type->kind == (a_type_kind)tk_typeref &&
+      type->variant.typeref.is_decltype) {
+    result = TRUE;
+  } else {
+    type = skip_typerefs(type);
+    if (is_immediate_class_type(type) &&
+        symbol_supplement_for_class(type)->template_param_for_proxy_class
+                                                                     != NULL) {
+      result = TRUE;
+    } else if (is_template_param_type(type)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_unresolved_type */
+
+#if IA64_ABI
+
+static void mangled_encoding_for_scope_resolution_step(
+                                       a_source_correspondence_ptr scp,
+                                       an_il_entry_kind            kind,
+                                       a_boolean                   nested,
+                                       a_boolean                   *need_close,
+                                       a_mangling_control_block    *mctl)
+/*
+Provide a mangling for scp (of the specified type or namespace kind) as
+part of an IA-64 ABI scope resolution encoding for the <unresolved-name>
+production.  *need_close is set to FALSE if no closing "E" is needed.
+nested should be set to TRUE if at least one nesting level has been seen
+during the recursive ascent.  This routine is very similar to
+mangled_name_qualifier, but follows parent pointers through the hierarchy
+rather than name_reference qualifiers.
+*/
+{
+  a_source_correspondence_ptr parent_scp;
+  an_il_entry_kind            parent_kind;
+  a_template_arg_ptr          template_arg_list = NULL;
+
+  if (scp->is_class_member) {
+    /* Parent is a class. */
+    parent_scp = &(scp_parent_class(scp))->source_corresp;
+    parent_kind = iek_type;
+  } else if (scp_is_namespace_member(scp)) {
+    /* Parent is a namespace. */
+    parent_scp = &scp_parent_namespace(scp)->source_corresp;
+    parent_kind = iek_namespace;
+  } else {
+    parent_scp = NULL;
+  }  /* if */
+  if (parent_scp != NULL) {
+    /* We have a parent, so recurse to emit all parent qualifiers first. */
+    mangled_encoding_for_scope_resolution_step(parent_scp, parent_kind,
+                                               /*nested=*/TRUE, need_close,
+                                               mctl);
+  } else {
+    /* We're at the top-level. */
+    if (kind == iek_type &&
+        is_unresolved_type((a_type_ptr)scp)) {
+      /* We have an <unresolved-type> at the top-level.  If there were
+         multiple types, emit a nesting indication, otherwise there was only
+         a single type so no closing "E" is necessary. */
+      if (nested) {
+        add_to_mangled_name('N', mctl);
+      } else {
+        *need_close = FALSE;
+      }  /* if */
+      /* Mangle a top-level <unresolved-type> as a type. */
+      mangled_encoding_for_type((a_type_ptr)scp, mctl);
+      scp = NULL;
+    }  /* if */
+  }  /* if */
+  if (scp != NULL) {
+    /* Mangle as <unresolved-qualifier-level>. */
+    if (kind == iek_type && is_immediate_class_type((a_type_ptr)scp)) {
+      a_class_type_supplement_ptr ctsp = class_type_supp((a_type_ptr)scp);
+      check_assertion(ctsp != NULL &&
+                      ctsp->anonymous_union_kind ==
+                                            (an_anonymous_union_kind)auk_none);
+      template_arg_list = ctsp->template_arg_list;
+    }  /* if */
+    mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_scope_resolution_step */
+
+
+static void mangled_encoding_for_scope_resolution(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
+/*
+Provide a scope resolution ("sr") mangling for the specified type.  This
+routine only emits the qualification portion of <unresolved-name>, the
+caller must emit the final <base-unresolved-name> portion.  This routine is
+very similar to mangled_name_reference, but follows the parent pointers
+through the type hierarchy rather than qualifier pointers.  This routine is
+used to provide scope resolution for "resolved name"s, while 
+mangled_name_reference is used when scope resolution is needed in an
+"unresolved name" context.
+*/
+{
+  a_boolean   need_close = TRUE;
+
+  add_str_to_mangled_name("sr", mctl);
+#if ABI_COMPATIBILITY_VERSION >= 402
+  if (!emulate_gnu_abi_bugs) {
+    /* There was a major change in the way the scope resolution ("sr")
+       mangling is handled (as part of the SFINAE mangling changes).
+       This branch represents the newer way that scope resolution
+       mangling is handled. */
+    mangled_encoding_for_scope_resolution_step(&type->source_corresp,
+                                               iek_type, /*nested=*/FALSE,
+                                               &need_close, mctl);
+    if (need_close) add_to_mangled_name('E', mctl);
+  } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+  /* Do not insert code here. */
+  {
+    /* Use the old-style scope resolution operator "sr".  Note that in some
+       cases the mangled names that are produced here cannot be demangled. */
+    mangled_encoding_for_type(type, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_scope_resolution */
+
+#endif /* IA64_ABI */
 #if RECORD_FORM_OF_NAME_REFERENCE
 
 static void mangled_name_qualifier(a_name_qualifier_ptr     qualifier,
@@ -3705,24 +3838,20 @@ caller.  nesting_level is a count of the number of levels of qualifiers
 seen so far (and is set to one at the topmost level).
 */
 {
-  a_type_ptr                  class_type = NULL;
+  a_type_ptr                  orig_type = NULL, class_type = NULL;
   a_template_arg_ptr          template_arg_list = NULL;
   a_class_type_supplement_ptr ctsp = NULL;
   a_source_correspondence_ptr scp = NULL;
-  a_boolean                   is_template_param = FALSE;
+  a_boolean                   is_top_level_unresolved_type = FALSE;
 
   if (qualifier != NULL) {
     if (qualifier->is_class) {
-      class_type = skip_typerefs(qualifier->qualifier.class_type);
+      orig_type = qualifier->qualifier.class_type;
+      class_type = skip_typerefs(orig_type);
       if (is_immediate_class_type(class_type)) {
-        ctsp = class_type->variant.class_struct_union.extra_info;
+        ctsp = class_type_supp(class_type);
         check_assertion(ctsp != NULL);
         template_arg_list = ctsp->template_arg_list;
-        is_template_param = symbol_supplement_for_class(class_type)->
-                                        template_param_for_proxy_class != NULL;
-      } else {
-        check_assertion(is_template_param_type(class_type));
-        is_template_param = TRUE;
       }  /* if */
       scp = &class_type->source_corresp;
     } else {
@@ -3731,12 +3860,15 @@ seen so far (and is set to one at the topmost level).
   }  /* if */
   if (qualifier == NULL || qualifier->previous_qualifier == NULL) {
     /* This is the top-most qualifier. */
+    if (orig_type != NULL) {
+      is_top_level_unresolved_type = is_unresolved_type(orig_type);
+    }  /* if */
 #if IA64_ABI
     add_str_to_mangled_name("sr", mctl);
     if (qualifier != NULL &&
         qualifier->is_class &&
-        (emulate_gnu_abi_bugs || is_template_param)) {
-      /* See if this type is a template parameter.  If so, use the 
+        (emulate_gnu_abi_bugs || is_top_level_unresolved_type)) {
+      /* See if this type is an <unresolved-type>.  If so, use the 
          (template parameter) type encoding rather than the type name. */
       if (nesting_level > 1) {
         add_to_mangled_name('N', mctl);
@@ -3765,21 +3897,15 @@ seen so far (and is set to one at the topmost level).
     mangled_name_qualifier(qualifier->previous_qualifier, need_close,
                            nesting_level, mctl);
   }  /* if */
-  if (ctsp != NULL &&
-      ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
-    /* Skip anonymous union classes. */
-    scp = NULL;
-  }  /* if */
+  check_assertion(ctsp == NULL ||
+                  ctsp->anonymous_union_kind ==
+                                            (an_anonymous_union_kind)auk_none);
   if (scp != NULL) {
-#if !IA64_ABI
-    if ((qualifier == NULL || qualifier->previous_qualifier == NULL) &&
-        is_template_param) {
+    if (is_top_level_unresolved_type) {
       /* Emit template parameter encoding rather than the parameter's name if
-         this is a top-level template parameter. */
+         this is a top-level unresolved type. */
       mangled_encoding_for_type(class_type, mctl);
-    } else
-#endif /* !IA64_ABI */
-    {
+    } else {
       /* Emit the source name for this qualifier (with any template args). */
       mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE,
                           mctl);
@@ -3802,7 +3928,9 @@ incorporates this type as the last component of a qualified name.  This is
 used to create a "destructor name" qualifier for the __dn mangling, for cases
 like T::~X where the type name is different in the qualifier and the type.
 In the IA-64 ABI, the destructor type is simply appended as another level by
-the caller.
+the caller.  See also mangled_encoding_for_scope_resolution which also provides
+a scope resolution mangling, but using parent pointers rather than name
+references.
 */
 {
 #if RECORD_FORM_OF_NAME_REFERENCE
