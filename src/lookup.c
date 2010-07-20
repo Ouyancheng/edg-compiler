@@ -2642,7 +2642,7 @@ If no match is found, return NULL.
       /* Do the wrapup processing to make sure that all of the parameters
          have been deduced. */
       if (wrapup_function_template_argument_deduction(
-               templ_arg_list, fund_sym, (a_template_param_ptr)NULL,
+               &templ_arg_list, fund_sym, (a_template_param_ptr)NULL,
                /*is_partial_order_check=*/FALSE) != NULL) {
         /* We have a match.  Add the matching template to a list of matching
            candidates.  Any poorer matches will be removed by this process.

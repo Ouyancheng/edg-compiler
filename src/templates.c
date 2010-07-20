@@ -1488,7 +1488,12 @@ is a parameter.
 }  /* get_template_arg_value_from_default */
 
 
-/* Forward declaration. */
+/* Forward declarations. */
+static a_template_arg_ptr create_initial_template_arg_list(
+			a_template_param_ptr		templ_param_list,
+			a_template_arg_ptr		partial_arg_list,
+			a_source_position		*source_pos);
+
 static void substitute_template_argument(
 			a_template_arg_ptr	templ_arg,
 			a_template_param_ptr	templ_param,
@@ -1631,15 +1636,10 @@ during wrapup processing by compare_function_templates.
     templ_param_list = tdip != NULL ? tdip->parameters : NULL;
   }  /* if */
   /* Make an initial pass through the argument list to see if all of the
-     arguments have deduced values.  In certain error cases, the template
-     argument list can be NULL. */
-  if (templ_arg_list == NULL) {
-    match = FALSE;
-  } else {
-    match = all_templ_params_have_values(templ_arg_list, templ_param_list,
-                                         is_partial_order_check, template_sym,
-                                         tssp);
-  }  /* if */
+     arguments have deduced values. */
+  match = all_templ_params_have_values(templ_arg_list, templ_param_list,
+                                       is_partial_order_check, template_sym,
+                                       tssp);
   if (match) {
     tpp = templ_param_list;
     tap = templ_arg_list;
@@ -1795,7 +1795,7 @@ that is an abstract class type.
 
 
 a_type_ptr wrapup_function_template_argument_deduction(
-				a_template_arg_ptr   templ_arg_list,
+				a_template_arg_ptr   *templ_arg_list,
                                 a_symbol_ptr         rout_templ_sym,
                                 a_template_param_ptr templ_param_list,
 				a_boolean	     is_partial_order_check)
@@ -1804,6 +1804,9 @@ Calls wrapup_template_argument_deduction and then produces a final
 routine type by substituting the completed template arguments into the
 template routine type.  The new routine type is returned.  If an error
 occurred in the substitution process, a NULL pointer is returned.
+*templ_arg_list is the template argument list to be used, and can be
+NULL if all of the template arguments are coming from default values.
+If it is NULL, it will be created by this routine.
 
 is_partial_order_check is TRUE when this function is called by
 compare_function_templates.
@@ -1811,10 +1814,19 @@ compare_function_templates.
 {
   a_type_ptr	new_type = NULL;
 
-  if (wrapup_template_argument_deduction(templ_arg_list, rout_templ_sym,
+  /* If there is no template argument list yet, create it now.  This can
+     occur if all of the template arguments are from default arguments
+     (it can also occur in certain error cases). */
+  if (*templ_arg_list == NULL) {
+    *templ_arg_list = create_initial_template_arg_list(
+                                           templ_param_list,
+                                           (a_template_arg_ptr)NULL,
+                                           &rout_templ_sym->decl_position);
+  }  /* if */
+  if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
                                          templ_param_list,
                                          is_partial_order_check)) {
-    new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
+    new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
                                              templ_param_list,
                                              is_partial_order_check);
@@ -2070,7 +2082,7 @@ which the entire function type should be considered.
     /* Do the wrapup processing for the first argument list. */
     match1 = FALSE;
     if (wrapup_function_template_argument_deduction(
-               dummy_arg_list1, templ_sym2, templ_param_list1,
+               &dummy_arg_list1, templ_sym2, templ_param_list1,
                /*is_partial_order_check=*/TRUE) != NULL) {
       match1 = TRUE;
     }  /* if */
@@ -2079,7 +2091,7 @@ which the entire function type should be considered.
     /* Do the wrapup processing for the second argument list. */
     match2 = FALSE;
     if (wrapup_function_template_argument_deduction(
-               dummy_arg_list2, templ_sym1, templ_param_list2,
+               &dummy_arg_list2, templ_sym1, templ_param_list2,
                /*is_partial_order_check=*/TRUE) != NULL) {
       match2 = TRUE;
     }  /* if */
@@ -10384,7 +10396,7 @@ matching process.
     /* Make sure the final type, after substitution of nondeduced contexts,
        is correct. */
     new_type = wrapup_function_template_argument_deduction(
-                                *templ_arg_list, templ_sym, templ_param_list,
+                                templ_arg_list, templ_sym, templ_param_list,
                                 /*is_partial_order_check=*/FALSE);
     match = FALSE;
     if (new_type != NULL) {

@@ -2899,7 +2899,7 @@ template arguments, or NULL if deduction failed.
      have been deduced.  Create a routine type with all the substitution
      done. */
   updated_routine_type = wrapup_function_template_argument_deduction(
-                                           *template_arg_list,
+                                           template_arg_list,
                                            template_sym,
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE);
@@ -9440,7 +9440,7 @@ This routine is only used in C++ mode.
       /* Make a version of the routine type with the proper types/values
          substituted for the template parameters. */
       conv_routine_type = wrapup_function_template_argument_deduction(
-                                           template_arg_list, 
+                                           &template_arg_list, 
                                            base_conversion_symbol,
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE);
@@ -16005,7 +16005,7 @@ constructor.
           goto reject_function;
         }  /* if */
         routine_type = wrapup_function_template_argument_deduction(
-                                           template_arg_list, sym,
+                                           &template_arg_list, sym,
                                            (a_template_param_ptr)NULL,
                                            /*is_partial_order_check=*/FALSE);
         if (routine_type == NULL) {
