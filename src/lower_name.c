@@ -131,6 +131,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_NULLPTR "Dn"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "Dt"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "DT"
+#define MANGLING_STRING_FOR_TYPEOF_TYPE "Dy"
+#define MANGLING_STRING_FOR_TYPEOF_EXPR "DY"
 #define MANGLING_STRING_FOR_CAST "cv"
 #define MANGLING_STRING_FOR_STATIC_CAST "sc"
 #define MANGLING_STRING_FOR_CONST_CAST "cc"
@@ -236,6 +238,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_CAST "cs"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "y"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "Y"
+#define MANGLING_STRING_FOR_TYPEOF_TYPE "t"
+#define MANGLING_STRING_FOR_TYPEOF_EXPR "p"
 #define MANGLING_STRING_FOR_STATIC_CAST "sc"
 #define MANGLING_STRING_FOR_CONST_CAST "cc"
 #define MANGLING_STRING_FOR_REINTERPRET_CAST "rc"
@@ -7423,25 +7427,36 @@ Add to the mangled name the encoding for the type "type".
        argument (rather than an expression), the typeref will be stripped and
        the underlying type mangled as appropriate. */
     if (type->variant.typeref.is_typeof &&
-        !type->variant.typeref.is_typeof_with_type_operand &&
         type->variant.typeref.is_dependent_decltype_or_typeof) {
-      an_expr_node_ptr typeof_expr = decltype_arg(type);
-      check_assertion(typeof_expr != NULL);
-      /* typeof(expression). */
+      /* typeof (type or expression). */
+#if ABI_COMPATIBILITY_VERSION >= 402
+      /* There is no IA-64 ABI encoding for typeof (a GNU extension) and
+         GNU doesn't provide a mangling for typeof that we can emulate, so
+         these "Dy" and "DY" manglings are an EDG extension:
+
+         <type> ::= Dy <type> E       # typeof(type)
+                ::= DY <expression> E # typeof(expression)
+         */
+      if (type->variant.typeref.is_typeof_with_type_operand) {
+        add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
+        mangled_encoding_for_type(type->variant.typeref.type, mctl);
+      } else {
+        check_assertion(decltype_arg(type) != NULL);
+        add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_EXPR, mctl);
+        mangled_encoding_for_expression(decltype_arg(type),
+                                        /*in_dependent_expr=*/TRUE, mctl);
+      }  /* if */
+#if IA64_ABI
+      add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
 #if IA64_ABI
       /* Use a vendor extension for typeof. */
       add_str_to_mangled_name("u6typeof", mctl);
 #else /* !IA64_ABI */
       mangled_name_with_length("__typeof", mctl);
 #endif /* IA64_ABI */
-#if 0
-      /* FIXME: We really should encode the expression into the type name,
-         but the vendor type extension doesn't allow for this (unless we
-         somehow add it to the type name itself).  Also, g++ doesn't seem to
-         provide a mangling for typeof that we can mimic. */
-      mangled_encoding_for_expression(typeof_expr,
-                                      /*in_dependent_expr=*/TRUE, mctl);
-#endif /* 0 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       goto have_whole_mangled_name;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7845,7 +7860,10 @@ have_whole_mangled_name:;
 #if IA64_ABI
   /* Create a substitution for the unqualified type.  No substitutions are
      created for <builtin-type>s (which are indicated by a single lowercase
-     character or a string beginning with the letter "D"). */
+     character or a string beginning with the letter "D").  Note that
+     the manglings for decltype (i.e., "DT" and "Dt") as well as the EDG
+     extension for typeof (i.e., "DY" and "Dy") are not <builtin-type>s,
+     but they are handled outside of this routine. */
   if (!(s != NULL &&
         (islower((unsigned char)*s) ||
          *s == 'D'))
