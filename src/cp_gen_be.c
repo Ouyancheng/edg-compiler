@@ -2971,7 +2971,6 @@ unqualified_part:
 #define gen_field_name(field)                                         \
   gen_unqualified_name(&(field)->source_corresp, iek_field)
 
-#if RECORD_FORM_OF_NAME_REFERENCE
 
 static a_name_reference_ptr get_current_name_ref(void)
 /*
@@ -3139,7 +3138,6 @@ to indicate that the name reference was successfully emitted.
   return name_generated;
 }  /* gen_name_from_name_reference */
 
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 static void gen_name_from_routine_node(an_expr_node_ptr node,
                                        a_boolean        unqualified,
@@ -3156,15 +3154,11 @@ TRUE, prefix the name with "&".
   if (use_ampersand) {
     write_tok_ch('&');
   }  /* if */
-#if RECORD_FORM_OF_NAME_REFERENCE
   if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
                                    iek_routine, /*is_declaration=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
-  } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  /* Do not insert code here. */
-  if (unqualified) {
+  } else if (unqualified) {
     gen_unqualified_name(&rout->source_corresp, iek_routine);
   } else {
     gen_routine_name(rout);
@@ -3482,15 +3476,11 @@ Generate the name of a variable from an enk_variable node.
 
   check_assertion(is_variable_node(node));
   var = node->variant.variable;
-#if RECORD_FORM_OF_NAME_REFERENCE
   if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
                                    iek_variable, /*is_declaration=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
-  } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  /* Do not insert code here. */
-  {
+  } else {
     gen_variable_name(var);
   }  /* if */
 }  /* gen_name_from_variable_node */
@@ -4877,9 +4867,6 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
-#if !RECORD_FORM_OF_NAME_REFERENCE
-/*ARGSUSED*/ /* <-- name_ref is not used in that case. */
-#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- mode is not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -4939,14 +4926,10 @@ recorded).
       set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the name. */
-#if RECORD_FORM_OF_NAME_REFERENCE
     if (gen_name_from_name_reference(name_ref, scp, entry_kind,
                                      /*is_declaration=*/TRUE)) {
       /* We generated the name reference in its source form. */
-    } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    /* Do not insert code here. */
-    if (options & GDO_FUNCTION_FRIEND_DECL) {
+    } else if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration (using typedef type).  The rules for using
          qualified names are different than for ordinary declarations. */
       gen_friend_function_decl_name(scp, /*omit_template_args=*/TRUE);
@@ -5938,9 +5921,6 @@ the current state have in common.
 }  /* adjust_current_namespace */
 
 
-#if !RECORD_FORM_OF_NAME_REFERENCE
-/*ARGSUSED*/ /* <-- name_ref is not used in that case. */
-#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 static void adjust_namespace_state_for_specialization(
                                          a_source_correspondence *scp,
                                          a_scope_ptr             *common_scope,
@@ -5965,7 +5945,6 @@ declarator.
        curr_name_context->assoc_scope->kind == (a_scope_kind)sck_file)) {
     /* See if it's necessary to adjust the current namespace before putting
        out this specialization. */
-#if RECORD_FORM_OF_NAME_REFERENCE
     /* If we know the declarator is qualified with an enclosing namespace
        name, then work with the outermost qualifier instead of the given
        scp.  This prevents us (for example) from erroneously emitting a
@@ -5986,7 +5965,6 @@ declarator.
                                         ->source_corresp;
       }  /* if */
     }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Find the scope in which the specialization must be put out, which is
        the innermost namespace scope that contains the entity. */
     if (scp->is_class_member) {
@@ -7642,17 +7620,13 @@ function reference.
           suppress_this = TRUE;
         }  /* if */
       }  /* if */
-#if RECORD_FORM_OF_NAME_REFERENCE
       if (func_expr->name_reference != NULL &&
           func_expr->name_reference->is_super_qualified) {
         /* The __super Microsoft extension does not work if "this->" is
            explicitly coded. */
         suppress_this = TRUE;
-      } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-      /* Do not insert code here. */
-      if (!msvc_is_generated_code_target ||
-          msvc_target_version_number != 1000) {
+      } else if (!msvc_is_generated_code_target ||
+                 msvc_target_version_number != 1000) {
         /* Now that we've done all the work, suppress "this->" only in
            Microsoft version 4.2 mode, where it's needed to get around some
            bugs.  Otherwise, it doesn't seem to add much. */
@@ -7726,16 +7700,12 @@ function reference.
     if (force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
     gen_name(&rout->source_corresp, iek_routine, options, (a_boolean *)NULL);
   } else {
-#if RECORD_FORM_OF_NAME_REFERENCE
     if (gen_name_from_name_reference(func_expr->name_reference,
                                      &rout->source_corresp, iek_routine,
                                      /*is_declaration=*/FALSE)) {
       /* We have the form of the name reference in the original source and
          used it to generate the name. */
-    } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    /* Do not insert code here. */
-    {
+    } else {
       /* Use a qualifier on the name if one is forced or if the routine was
          named in a class other than the selector class.  Don't use a qualifier
          on a virtual function (that would suppress the virtual-ness of the
@@ -9199,7 +9169,6 @@ done_with_operation_after_parens:
       break;
     case enk_constant:
       { a_constant_ptr constant = expr->variant.constant;
-#if RECORD_FORM_OF_NAME_REFERENCE
         if ((is_enum_constant(constant) ||
              (constant->kind == (a_constant_repr_kind)ck_template_param &&
               constant->variant.template_param.kind ==
@@ -9210,10 +9179,7 @@ done_with_operation_after_parens:
                                          iek_constant,
                                          /*is_declaration=*/FALSE)) {
           /* We generated the name in its source form. */
-        } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-        /* Do not insert code here. */
-        { 
+        } else { 
           if ((expr->is_lvalue ||
                (constant->kind == (a_constant_repr_kind)ck_address &&
                 constant->type != NULL &&
@@ -9223,7 +9189,7 @@ done_with_operation_after_parens:
           } else {
             gen_constant(constant, need_parens);
           }  /* if */
-        }
+        }  /* if */
       }
       break;
     case enk_variable:
@@ -10393,9 +10359,7 @@ Generate code for an instantiation directive.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   a_name_reference_ptr           name_ref = NULL;
 
-#if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Advance past the source sequence entry for the instantiation directive. */
   adv_curr_source_sequence_entry();
   kind = (an_il_entry_kind)idp->entity.kind;
@@ -10524,21 +10488,17 @@ the __if_exist appears between top-level declarations of the class.
     set_output_position(&msiep->position);
     write_tok_str((char *)(msiep->is_if_exists ? "__if_exists("
                                                : "__if_not_exists("));
-#if RECORD_FORM_OF_NAME_REFERENCE
     if (gen_name_from_name_reference(msiep->name_reference,
                                      (a_source_correspondence*)entity,
                                      (an_il_entry_kind)msiep->entity.kind,
                                      /*is_declaration=*/FALSE)) {
       /* We have information on the exact form of reference and used that
          to generate the name. */
-    } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    /* Do not insert code here. */
-    {
+    } else {
       gen_name((a_source_correspondence*)entity,
                (an_il_entry_kind)msiep->entity.kind,
                GN_NO_OPTIONS, (a_boolean*)NULL);
-    }
+    }  /* if */
     write_tok_str(") {");
   } else {
     /* Mark the end of the block. */
@@ -11720,9 +11680,7 @@ declaration following this one is such a continuation.
   a_name_reference_ptr         name_ref = NULL;
   an_attribute_ptr             attributes;
                             
-#if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* Deal with the primary/secondary declaration difference. */
   if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
     if (ss_entry_kind(sec_decl) == iek_template) {
@@ -12216,10 +12174,6 @@ flags on the classes found on an earlier call.
 }  /* gen_typedefs_for_template_classes_in_default_arguments */
 
 
-#if !RECORD_FORM_OF_NAME_REFERENCE
-/*ARGSUSED*/ /* name_ref is not used unless the form of name references is
-                recorded in the IL. */
-#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 static void gen_routine_specifiers_and_declaration(
                           a_routine_ptr                rout,
                           a_type_ptr                   rout_type,
@@ -12337,14 +12291,10 @@ declarator (or NULL if it wasn't recorded).
       set_decl_position(scp, sec_decl);
     }  /* if */
     /* Write the routine name. */
-#if RECORD_FORM_OF_NAME_REFERENCE
     if (gen_name_from_name_reference(name_ref, scp, iek_routine,
                                      /*is_declaration=*/TRUE)) {
       /* We generated the name in source form. */
-    } else
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    /* Do not insert code here. */
-    if (friend_decl) {
+    } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
          different than for ordinary declarations. */
       gen_friend_function_decl_name(scp, is_definition);
@@ -12499,9 +12449,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     saved_expl_template_arg_list_used;
   an_attribute_ptr              attributes;
 
-#if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
@@ -13410,9 +13358,7 @@ Initialize for the C++/C-generating back end.
   octl.output_class_qualifier = gen_class_qualifier_wrapper;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;
-#if RECORD_FORM_OF_NAME_REFERENCE
   octl.output_name_reference = gen_name_from_name_reference;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   octl.output_attributes = gen_attributes;
   octl.is_typedef_invisible = is_typedef_invisible_in_cp_gen_be;
   octl.gen_compilable_code = TRUE;

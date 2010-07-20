@@ -519,10 +519,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
-#if RECORD_FORM_OF_NAME_REFERENCE
   iek_name_reference,	/* a_name_reference */
   iek_name_qualifier,	/* a_name_qualifier */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_ms_attribute,	/* an_ms_attribute */
   iek_ms_attribute_arg,	/* an_ms_attribute_arg */
@@ -664,10 +662,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_template_decl */			"template-decl",
 /* iek_template_parameter */		"template-parameter",
-#if RECORD_FORM_OF_NAME_REFERENCE
 /* iek_name_reference */		"name-reference",
 /* iek_name_qualifier */		"name-qualifier",
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_ms_attribute */			"ms-attribute",
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
@@ -1183,9 +1179,7 @@ typedef struct a_decl_position_supplement {
 
 /*
 The type "pointer-to-name-reference" is used in secondary source sequence
-entries.  The complete a_name_reference type is defined later.  (Note that
-this pointer type is defined even when RECORD_FORM_OF_NAME_REFERENCE is
-FALSE because the type appears in some function declarations.)
+entries.  The complete a_name_reference type is defined later.
 */
 typedef struct a_name_reference *a_name_reference_ptr;
 
@@ -1327,12 +1321,10 @@ typedef struct a_src_seq_secondary_decl {
 			   needn't be.  It appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
-#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_reference_ptr
 		name_reference;
 			/* The form of the declarator used in the declaration
 			   referred to by this entry. */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   an_attribute_ptr
 		attributes;	
 			/* The attributes list specified on this declaration.
@@ -1603,11 +1595,9 @@ typedef struct an_ms_if_exists {
 			/* The position of the start of the __if_exists
 			   block, or the position of the closing brace if
 			   this entry marks the end of the block. */
-#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_reference_ptr
 		name_reference;
 			/* The form of the identifier used. */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_byte_boolean
 		is_if_exists;
 			/* TRUE if this an __if_exists, FALSE if it is
@@ -1678,7 +1668,6 @@ typedef struct a_per_instantiation_needed_flags_entry {
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-#if RECORD_FORM_OF_NAME_REFERENCE
 
 /*
 Entry used to represent the qualifier portion of a qualified name.
@@ -1757,7 +1746,6 @@ typedef struct a_name_reference {
 			   included in the IL. */
 } a_name_reference;
 
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 typedef struct an_attribute_group *an_attribute_group_ptr;
 typedef struct an_attribute_group {
@@ -2193,7 +2181,6 @@ typedef struct a_source_correspondence {
 			   position information about the declaration.
 			   May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_reference_ptr
 		name_references;
 			/* Points to a list of the various forms of reference
@@ -2203,7 +2190,6 @@ typedef struct a_source_correspondence {
 			   used by back ends as it is sometimes cleared
 			   (when using multiple translation units, for
 			   example). */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_bit_field /* an_access_specifier */
 		access:2;
 			/* The access control specified at the point of
@@ -3407,12 +3393,10 @@ typedef struct a_constant {
 			   to which the pointer-to-member has been cast.
 			   Always NULL for a NULL pointer-to-member
 			   constant. */
-#if RECORD_FORM_OF_NAME_REFERENCE
       a_name_reference_ptr
 		name_reference;
 			/* The form of the expression that caused the creation
 			   of this entry. */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       a_bit_field
 		cast_to_base:1;
 			/* If TRUE, the base class given by casting_base_class
@@ -12775,14 +12759,12 @@ typedef struct an_expr_node {
 			   at which the operator appears in the source.
 			   Otherwise, null_source_position. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_reference_ptr
 		name_reference;
 			/* If non-NULL, points to information about the
 			   form of reference to a name that this expression
 			   node refers to (e.g., a function name for an
 			   enk_routine). */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For expressions scanned in templates that might
@@ -15127,10 +15109,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sizeof(a_template_decl),
   sizeof(a_template_parameter),
-#if RECORD_FORM_OF_NAME_REFERENCE
   sizeof(a_name_reference),
   sizeof(a_name_qualifier),
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(an_ms_attribute),
   sizeof(an_ms_attribute_arg),

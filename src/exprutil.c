@@ -1556,9 +1556,7 @@ values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->is_routine_name_followed_by_left_paren = FALSE;
   operand->is_dummy_lvalue = FALSE;
-#if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3221,7 +3219,6 @@ that extra work.
 {
   an_expr_node_ptr node = extract_node_from_operand(operand);
 
-#if RECORD_FORM_OF_NAME_REFERENCE
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
       node->name_reference = find_allocated_name_reference(
@@ -3266,7 +3263,6 @@ that extra work.
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   check_assertion(expr_stack != NULL);
   if (expr_stack->possible_rescan_context) {
     an_expr_node_ptr preexisting_node = expr_node_from_operand(operand);
@@ -3286,7 +3282,6 @@ that extra work.
   return node;
 }  /* make_node_from_operand */
 
-#if RECORD_FORM_OF_NAME_REFERENCE
 
 void set_operand_name_reference_from_locator(an_operand       *operand,
                                              a_symbol_locator *locator)
@@ -3313,7 +3308,6 @@ locator_for_curr_id to the indicated operand.
   set_operand_name_reference_from_locator(operand, &locator_for_curr_id);
 }  /* set_operand_name_reference_from_locator_for_curr_id */
 
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 void force_operand_to_constant_if_possible(an_operand *operand)
 /*
@@ -3495,7 +3489,6 @@ longer an id-expression.
                           orig_operand->is_routine_name_followed_by_left_paren;
 }  /* restore_operand_id_details */
 
-#if RECORD_FORM_OF_NAME_REFERENCE
 
 void restore_operand_form_of_name_reference(an_operand *operand,
                                             an_operand *orig_operand)
@@ -3512,7 +3505,6 @@ modification.
   }  /* if */
 }  /* restore_operand_form_of_name_reference */
 
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 void record_non_access_error_detected(void)
 /*

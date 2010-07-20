@@ -82,9 +82,7 @@ Clear an output control block to default values.
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
   octl->output_expression         = NULL;
-#if RECORD_FORM_OF_NAME_REFERENCE
   octl->output_name_reference     = NULL;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
@@ -351,7 +349,7 @@ is put out.
 */
 {
   if (tap != NULL) {
-#if RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
     an_output_name_reference_function_ptr saved_output_name_reference =
                                                    octl->output_name_reference;
     if (octl->gen_compilable_code) {
@@ -367,7 +365,7 @@ is put out.
          list. */
       octl->output_name_reference = NULL;
     }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
     octl->output_str("<", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
@@ -391,9 +389,9 @@ is put out.
          with ">". */
       octl->output_str(" ", octl);
     }  /* if */
-#if RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
     octl->output_name_reference = saved_output_name_reference;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
   }  /* if */
 }  /* form_template_args */
 
@@ -2812,7 +2810,6 @@ Do the output in the way described by octl.
     octl->output_str("&", octl);
     /* Output the name, either in the original form or as a qualified
        name. */
-#if RECORD_FORM_OF_NAME_REFERENCE
     if (constant->variant.ptr_to_member.name_reference != NULL) {
 #if BACK_END_IS_CP_GEN_BE
       if (constant->variant.ptr_to_member.name_reference->qualifier == NULL &&
@@ -2840,9 +2837,6 @@ Do the output in the way described by octl.
       /* There's no name reference available; use a qualified name. */
       force_qualified_name = TRUE;
     }  /* if */
-#else /* !RECORD_FORM_OF_NAME_REFERENCE */
-    force_qualified_name = TRUE;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     if (force_qualified_name) {
       a_boolean saved_force_qualified_name = octl->force_qualified_name;
       octl->force_qualified_name = TRUE;

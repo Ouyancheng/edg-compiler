@@ -18594,25 +18594,21 @@ that follows.
            represent the current declaration. */
         if (!dps->is_definition) {
           an_sssd_flag_set  flags = SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
-#if RECORD_FORM_OF_NAME_REFERENCE
           if (record_name_references_in_context()) {
             name_ref = qualifiable_name_reference(&locator, scp);
           }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
           (void)update_src_seq_secondary_decl((char *)vp, dps->type, name_ref,
                                               flags, &decl_pos_block);
         } else {
           /* The defining declaration of the variable.  Record the type and
              the form of the declarator.  */
-#if RECORD_FORM_OF_NAME_REFERENCE
           if (record_name_references_in_context()) {
             name_ref = qualifiable_name_reference(&locator, scp);
             if (name_ref != NULL) {
               name_ref->used_in_primary_declarator = TRUE;
             }  /* if */
           }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
           check_assertion(vp != NULL);  /* For Coverity. */
           if (vp->declared_type == NULL) vp->declared_type = dps->type;
         }  /* if */
@@ -18700,20 +18696,16 @@ that follows.
           a_name_reference_ptr  name_ref = NULL;
 
           declared_type = form_declared_type(dps->type, &func_info);
-#if RECORD_FORM_OF_NAME_REFERENCE
           if (record_name_references_in_context()) {
             name_ref = qualifiable_name_reference(&locator, scp);
           }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
           if (first_decl) flags |= SSSD_FIRST_DECLARATION;
           if (dps->is_definition) {
             /* The defining declaration of the routine.  Record the declared
                type and the form of the declarator. */
-#if RECORD_FORM_OF_NAME_REFERENCE
             if (name_ref != NULL) {
               name_ref->used_in_primary_declarator = TRUE;
             }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
             check_assertion(rp->declared_type == NULL);
             set_routine_declared_type(rp, declared_type);
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

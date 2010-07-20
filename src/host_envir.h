@@ -933,7 +933,22 @@ the C++ generating back end so that names can be output more closely to the
 form specified in the source program.  Even when not recorded by default,
 name references are sometimes recorded in certain template contexts so that
 the information is available for name mangling purposes.
+
+Name references used to be conditional on RECORD_FORM_OF_NAME_REFERENCE.
+If that macro is defined, use its value to define the replacement
+macro DEFAULT_RECORD_FORM_OF_NAME_REFERENCE.
 */
+#ifndef DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
+#ifdef RECORD_FORM_OF_NAME_REFERENCE
+#if RECORD_FORM_OF_NAME_REFERENCE
+#define DEFAULT_RECORD_FORM_OF_NAME_REFERENCE TRUE
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define DEFAULT_RECORD_FORM_OF_NAME_REFERENCE FALSE
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* ifdef RECORD_FORM_OF_NAME_REFERENCE */
+#endif /* ifndef DEFAULT_RECORD_FORM_OF_NAME_REFERENCE */
+
+
 #ifndef DEFAULT_RECORD_FORM_OF_NAME_REFERENCE
 #if BACK_END_IS_CP_GEN_BE
 #define DEFAULT_RECORD_FORM_OF_NAME_REFERENCE TRUE

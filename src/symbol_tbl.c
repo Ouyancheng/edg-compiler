@@ -2557,9 +2557,7 @@ return a pointer to it.
 #if GNU_EXTENSIONS_ALLOWED
   nssp->strong_using_directives = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if RECORD_FORM_OF_NAME_REFERENCE
   nssp->name_qualifiers = NULL;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if NEED_NAME_MANGLING
   nssp->last_unnamed_type_number = 0;
   nssp->last_closure_type_number = 0;
@@ -2787,9 +2785,7 @@ state.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->super_lookup_symbols = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if RECORD_FORM_OF_NAME_REFERENCE
         cssp->name_qualifiers = NULL;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         cssp->prev_entry_on_types_list = NULL;
 #if NEED_NAME_MANGLING
         cssp->discriminator = 0;
@@ -12416,9 +12412,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.parent.class_type               = NULL;
   cleared_locator.template_arg_list               = NULL;
-#if RECORD_FORM_OF_NAME_REFERENCE
   cleared_locator.name_qualifier                  = NULL;
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* The following initializations are typically redundant, but are helpful
      in some testing modes (e.g., union-as-struct). */
   cleared_locator.variant.opname                  = (an_opname_kind)onk_none;
