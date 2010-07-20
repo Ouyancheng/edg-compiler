@@ -4636,11 +4636,6 @@ file.
   comment_undefined_macro_name(
                      DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
 #endif /* defined(DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE) */
-#if defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE)
-  define_numeric_valued_macro(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE);
-#else /* !defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
-  comment_undefined_macro_name(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE);
-#endif /* defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
 #if defined(DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE)
   define_numeric_valued_macro(
                      DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE);
@@ -5825,6 +5820,11 @@ file.
 #else /* !defined(RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
   comment_undefined_macro_name(RECORD_BACKING_EXPRS_WITH_IL_LOWERING);
 #endif /* defined(RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
+#if defined(RECORD_FORM_OF_NAME_REFERENCE)
+  define_numeric_valued_macro(RECORD_FORM_OF_NAME_REFERENCE);
+#else /* !defined(RECORD_FORM_OF_NAME_REFERENCE) */
+  comment_undefined_macro_name(RECORD_FORM_OF_NAME_REFERENCE);
+#endif /* defined(RECORD_FORM_OF_NAME_REFERENCE) */
 #if defined(RECORD_HIDDEN_NAMES_IN_IL)
   define_numeric_valued_macro(RECORD_HIDDEN_NAMES_IN_IL);
 #else /* !defined(RECORD_HIDDEN_NAMES_IN_IL) */

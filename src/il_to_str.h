@@ -41,6 +41,7 @@ typedef an_output_func_declarator_function
 typedef void an_output_expression_function(an_expr_node_ptr expr,
                                            a_boolean        suppress_parens);
 typedef an_output_expression_function *an_output_expression_function_ptr;
+#if RECORD_FORM_OF_NAME_REFERENCE
 typedef a_boolean an_output_name_reference_function(
                                      a_name_reference_ptr      name_ref,
                                      a_source_correspondence*  scp,
@@ -48,6 +49,7 @@ typedef a_boolean an_output_name_reference_function(
                                      a_boolean                 is_declaration);
 typedef an_output_name_reference_function
                                         *an_output_name_reference_function_ptr;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 typedef void an_output_temp_name_function(char *entry);
 typedef an_output_temp_name_function *an_output_temp_name_function_ptr;
 typedef a_boolean a_typedef_visibility_test_function(a_type_ptr type);
@@ -138,6 +140,7 @@ typedef struct an_il_to_str_output_control_block {
 			/* Function to output expressions in various contexts
 			   (e.g., VLA declarators).  NULL if a default routine
 			   should be used (it puts out non-compilable code). */
+#if RECORD_FORM_OF_NAME_REFERENCE
   an_output_name_reference_function_ptr
 	output_name_reference;
 			/* Function to output a name as described by a given
@@ -147,6 +150,7 @@ typedef struct an_il_to_str_output_control_block {
 			   output using the supplied name_reference pointer
 			   and FALSE otherwise (if the name_reference pointer
 			   is NULL, for instance). */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   an_output_attributes_function_ptr
 	output_attributes;
 			/* Function to output attributes.  NULL if no

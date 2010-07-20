@@ -526,6 +526,7 @@ string.
 }  /* disp_source_range */
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
 
 static void disp_name_reference(a_name_reference_ptr ptr)
 /*
@@ -569,6 +570,7 @@ Display a_name_qualifier entry.
            iek_name_qualifier);
 }  /* disp_name_qualifier */
 
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* "kind" is only used to display extra source info. */
@@ -611,10 +613,12 @@ Display the indicated source correspondence entry.
     }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
   if (scp->name_references != NULL) {
     disp_ptr("  name_references", (char *)scp->name_references,
              iek_name_reference);
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (scp->is_class_member) {
     disp_boolean("  is_class_member", TRUE);
     disp_access("  access", (an_access_specifier)scp->access);
@@ -1050,9 +1054,11 @@ display_constant_value:
       disp_ptr("casting_base_class",
                (char *)ptr->variant.ptr_to_member.casting_base_class,
                iek_base_class);
+#if RECORD_FORM_OF_NAME_REFERENCE
       disp_ptr("name_reference",
                (char *)ptr->variant.ptr_to_member.name_reference,
                iek_name_reference);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       disp_boolean("cast_to_base",
                    (a_boolean)ptr->variant.ptr_to_member.cast_to_base);
       disp_boolean("is_function_ptr",
@@ -4582,10 +4588,12 @@ Display the indicated Microsoft __if_exists entry.
     disp_boolean("is_if_exists", (a_boolean)ptr->is_if_exists);
   }  /* if */
   disp_source_position("position", &ptr->position);
+#if RECORD_FORM_OF_NAME_REFERENCE
   if (ptr->name_reference != NULL) {
     disp_ptr("name_reference", (char *)ptr->name_reference,
              iek_name_reference);
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (ptr->pending) disp_boolean("pending", (a_boolean)ptr->pending);
 }  /* disp_ms_if_exists */
 
@@ -5574,10 +5582,12 @@ Display the indicated source sequence secondary declaration entry.
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
   disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);
+#if RECORD_FORM_OF_NAME_REFERENCE
   if (sssdp->name_reference != NULL) {
     disp_ptr("name_reference", (char *)sssdp->name_reference,
              iek_name_reference);
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   disp_ptr("attributes", (char *)sssdp->attributes, iek_attribute);
   if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
   if (sssdp->embedded_source_sequence_entries) {
@@ -5920,12 +5930,14 @@ This routine is called during IL walking.
                                   (a_scope_orphaned_list_header_ptr)entry_ptr);
           break;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_FORM_OF_NAME_REFERENCE
         case iek_name_reference:
           disp_name_reference((a_name_reference_ptr)entry_ptr);
           break;
         case iek_name_qualifier:
           disp_name_qualifier((a_name_qualifier_ptr)entry_ptr);
           break;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         case iek_seq_number_lookup_entry:
           disp_seq_number_lookup_entry(
                                     (a_seq_number_lookup_entry_ptr)entry_ptr);

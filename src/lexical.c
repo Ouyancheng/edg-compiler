@@ -9153,11 +9153,13 @@ position of the __if_exists or __if_not_exists token.
       msiep->position = *start_pos;
       msiep->is_if_exists = is_if_exists;
       msiep->pending = TRUE;
+#if RECORD_FORM_OF_NAME_REFERENCE
       if (record_name_references_in_context()) {
         msiep->name_reference = qualifiable_name_reference(
                                              &locator_for_curr_id,
                                              (a_source_correspondence*)entity);
       }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       add_to_ms_if_exists_list(msiep, decl_scope_level);
       add_to_source_sequence_list((char *)msiep,
                                   (an_il_entry_kind)iek_ms_if_exists);
@@ -13794,6 +13796,8 @@ by the options.  Returns TRUE if any errors were diagnosed.
   return any_errors;
 }  /* f_check_for_generalized_identifier_errors */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+
 #if DEBUG
 
 void db_name_qualifier(a_name_qualifier_ptr	nqp)
@@ -14063,6 +14067,7 @@ a previously created entry that can be reused.
   return nrp;
 }  /* make_name_reference */
 
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 static a_boolean qualifier_delimiter_does_not_follow_token(void)
 /*
@@ -14699,7 +14704,9 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			is_conversion_type = FALSE;
   a_boolean			qualified_conversion_operator = FALSE;
   a_boolean			separator_warning_issued = FALSE;
+#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr          name_qualifier = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 /* Macro used to determine whether we are processing the identifier in
    a Microsoft __if_exists or __if_not_exists directive. */
@@ -15142,6 +15149,7 @@ selection operator, in which case it points to the type of the left operand.
              symbol. */
           mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
         }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE
         if (record_name_references_in_context()) {
           /* Create an entry that describes this qualifier.  Find a previously
              created entry if possible. */
@@ -15155,6 +15163,7 @@ selection operator, in which case it points to the type of the left operand.
                                 qualifier_namespace);
           }  /* if */
         }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Skip over the class-name, and the "::".  After the two get_token
            calls, the current token will be whatever follows the
            qualifier. */
@@ -15806,7 +15815,9 @@ wrapup:
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor;
     locator_for_curr_id.qualifier_is_super = qualifier_is_super;
     locator_for_curr_id.is_super_qualified = is_super_qualified;
+#if RECORD_FORM_OF_NAME_REFERENCE
     locator_for_curr_id.name_qualifier = name_qualifier;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

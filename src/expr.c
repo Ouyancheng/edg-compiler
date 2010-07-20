@@ -2787,6 +2787,7 @@ are expected to be NULL in that case.
                                          end_position_or_null(
                                                           &saved_end_position),
                                          operand->ref_entries_list, operand);
+#if RECORD_FORM_OF_NAME_REFERENCE
         if (rcblock == NULL &&
             !operand->name_reference_set &&
             locator_for_curr_id.is_qualified_name &&
@@ -2796,6 +2797,7 @@ are expected to be NULL in that case.
              expression is explicit). */
           set_operand_name_reference_from_locator_for_curr_id(operand);
         }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Note that the function designator will be converted to a pointer
            by the do_operand_transformations call just below. */
       } else {
@@ -2996,15 +2998,19 @@ are expected to be NULL in that case.
 
   if (overloaded_function_case) {
     an_operand        orig_operand;
+#if RECORD_FORM_OF_NAME_REFERENCE
     a_boolean         name_reference_was_saved = FALSE;
     a_name_reference  saved_name_reference;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     orig_operand = *operand;
+#if RECORD_FORM_OF_NAME_REFERENCE
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save
          it for incorporation in the call expression later. */
       saved_name_reference = operand->name_reference;
       name_reference_was_saved = TRUE;
     }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
     routine_type = select_and_prepare_to_call_overloaded_function(
@@ -3063,11 +3069,13 @@ are expected to be NULL in that case.
     } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
+#if RECORD_FORM_OF_NAME_REFERENCE
     } else if (name_reference_was_saved) {
       /* Restore information on the form of the name reference for the
          function name. */
       operand->name_reference = saved_name_reference;
       operand->name_reference_set = TRUE;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     }  /* if */
   } else if (vacuous_destructor_case) {
     /* A vacuous destructor call.  The argument list should have no
@@ -6145,6 +6153,7 @@ error indication in *rcblock).
           }  /* if */
           make_error_operand(result);
         }  /* if */
+#if RECORD_FORM_OF_NAME_REFERENCE
         if (rcblock == NULL &&
             record_name_references_in_context() &&
             is_constant_operand(result) &&
@@ -6155,6 +6164,7 @@ error indication in *rcblock).
                                 make_name_reference(&locator_for_curr_id,
                                                     &constant->source_corresp);
         }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
       check_assertion(!result->is_id_expression);
     }  /* if */

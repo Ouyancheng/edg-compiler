@@ -126,9 +126,11 @@ static unsigned long
 		num_template_parameters_allocated;
 static unsigned long
 		num_templates_allocated;
+#if RECORD_FORM_OF_NAME_REFERENCE
 static unsigned long
 		num_name_references_allocated,
                 num_name_qualifiers_allocated;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
 static unsigned long
 		num_macros_allocated;
@@ -730,7 +732,9 @@ fields to default values.
       break;
     case ck_ptr_to_member:
       cp->variant.ptr_to_member.casting_base_class = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
       cp->variant.ptr_to_member.name_reference     = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       cp->variant.ptr_to_member.cast_to_base    = FALSE;
       cp->variant.ptr_to_member.is_function_ptr = FALSE;
 #if CENTERLINE_CHECKING
@@ -2758,7 +2762,9 @@ its kind to the indicated kind.
   node->expr_range = null_source_range; 
   node->operator_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
   node->name_reference = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   node->rescan_info = NULL;
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
@@ -3664,7 +3670,9 @@ and return a pointer to it.
   sssdp->decl_pos_info               = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   clear_tagged_ptr(sssdp->entity);
+#if RECORD_FORM_OF_NAME_REFERENCE
   sssdp->name_reference              = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   sssdp->attributes                  = NULL;
   sssdp->declared_type               = NULL;
   sssdp->autonomous_tag_decl         = FALSE;
@@ -3998,6 +4006,7 @@ initialize its fields, and return a pointer to it.
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
 
 a_name_qualifier_ptr alloc_name_qualifier(void)
 /*
@@ -4055,6 +4064,7 @@ to it.
   return nrp;
 }  /* alloc_name_reference */
 
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 a_seq_number_lookup_entry_ptr alloc_seq_number_lookup_entry(void)
 /*
@@ -4094,7 +4104,9 @@ and return a pointer to it.
   msiep->next = NULL;
   clear_tagged_ptr(msiep->entity);
   msiep->position = null_source_position;
+#if RECORD_FORM_OF_NAME_REFERENCE
   msiep->name_reference = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   msiep->is_if_exists = FALSE;
   msiep->pending = FALSE;
   return msiep;
@@ -4460,10 +4472,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("template_decls", num_template_decls_allocated,
                 a_template_decl);
   db_space_used("templates", num_templates_allocated, a_template);
+#if RECORD_FORM_OF_NAME_REFERENCE
   db_space_used("name references", num_name_references_allocated,
                 a_name_reference);
   db_space_used("name qualifiers", num_name_qualifiers_allocated,
                 a_name_qualifier);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
@@ -4589,7 +4603,9 @@ in il_alloc_init.)
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_FORM_OF_NAME_REFERENCE
   def_source_corresp.name_references = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   /* access is set to "public" because "no access restriction" is the default
      for everything except class members.  For the latter the field must be
      set manually. */
@@ -4754,8 +4770,10 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_template_parameters_allocated),
       pch_saved_var_array_elem(num_template_decls_allocated),
       pch_saved_var_array_elem(num_templates_allocated),
+#if RECORD_FORM_OF_NAME_REFERENCE
       pch_saved_var_array_elem(num_name_references_allocated),
       pch_saved_var_array_elem(num_name_qualifiers_allocated),
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
@@ -4932,8 +4950,10 @@ initializations that are done for each compilation.
   num_template_parameters_allocated      = 0;
   num_template_decls_allocated           = 0;
   num_templates_allocated                = 0;
+#if RECORD_FORM_OF_NAME_REFERENCE
   num_name_references_allocated          = 0;
   num_name_qualifiers_allocated          = 0;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */

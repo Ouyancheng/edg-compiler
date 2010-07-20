@@ -2531,6 +2531,9 @@ attributes are attached as part of the template instantiation process.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
+#if !RECORD_FORM_OF_NAME_REFERENCE
+/*ARGSUSED*/ /* locator is not used in some configurations. */
+#endif /* !RECORD_FORM_OF_NAME_REFERENCE */
 static void update_sse_for_first_class_declaration(
                                               a_type_ptr        class_type,
                                               a_symbol_locator  *locator,
@@ -2547,10 +2550,12 @@ __extension__.
 {
   a_name_reference_ptr  name_ref = NULL;
 
+#if RECORD_FORM_OF_NAME_REFERENCE
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator,
                                           &class_type->source_corresp);
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (!is_definition) {
     /* Set the first_declaration flag in the associated source-sequence
        secondary declaration entry.  The corresponding field in the class
@@ -2589,9 +2594,11 @@ __extension__.
                                             name_ref, flags);
 #if GNU_EXTENSIONS_ALLOWED
   } else {
+#if RECORD_FORM_OF_NAME_REFERENCE
     if (name_ref != NULL) {
       name_ref->used_in_primary_declarator = TRUE;
     }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     class_type->source_corresp.marked_as_gnu_extension = gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -3535,10 +3542,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
            associated source-sequence secondary declaration entry. */
         an_sssd_flag_set      flags = SSSD_FIRST_DECLARATION;
         a_name_reference_ptr  name_ref = NULL;
+#if RECORD_FORM_OF_NAME_REFERENCE
         if (record_name_references_in_context()) {
           name_ref = qualifiable_name_reference(&locator,
                                                 &class_type->source_corresp);
         }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if GNU_EXTENSIONS_ALLOWED
         if (marked_as_gnu_extension) {
           flags |= SSSD_MARKED_AS_GNU_EXTENSION;
@@ -4418,10 +4427,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Set the first_declaration flag in the associated source-sequence
            secondary declaration entry. */
+#if RECORD_FORM_OF_NAME_REFERENCE
         if (record_name_references_in_context()) {
           name_ref = qualifiable_name_reference(&locator,
                                                 &enum_type->source_corresp);
         }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
         (void)set_src_seq_secondary_decl_fields((char *)enum_type,
                                                 (a_type_ptr)NULL, name_ref,
                                                 SSSD_FIRST_DECLARATION);

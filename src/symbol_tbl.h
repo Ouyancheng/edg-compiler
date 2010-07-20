@@ -247,6 +247,7 @@ typedef struct a_symbol_locator {
 			   specified.  Typically, the reference cannot be
 			   coalesced to a pointer to a template instance
 			   until the function type is known. */
+#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr
 		name_qualifier;
 			/* When recording the form of name references, this
@@ -257,6 +258,7 @@ typedef struct a_symbol_locator {
 			   qualifier, or if we are in a prototype instantiation
 			   and we are not recording prototype instantiations
 			   in the IL. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   union {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
@@ -893,12 +895,14 @@ typedef struct a_class_symbol_supplement {
 			   subsequent lookups so that the symbols may be
 			   reused. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr
 		name_qualifiers;
 			/* Points to a list of the various forms of name
 			   qualifiers used to name this class.  This is used
 			   to find a previously allocated entry so that it
 			   can be reused. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_type_ptr	prev_entry_on_types_list;
 			/* When non-NULL, this points to an entry believed
 			   to have the associated class type as its "next"
@@ -2347,12 +2351,14 @@ typedef struct a_namespace_symbol_supplement {
 			   for which this namespace is an associated
 			   namespace. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if RECORD_FORM_OF_NAME_REFERENCE
   a_name_qualifier_ptr
 		name_qualifiers;
 			/* Points to a list of the various forms of name
 			   qualifiers used to name this namespace.  This is
 			   used to find a previously allocated entry so that it
 			   can be reused. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if NEED_NAME_MANGLING
   a_discriminator
 		last_unnamed_type_number;

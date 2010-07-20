@@ -5942,9 +5942,11 @@ for use in generating cross-reference output describing this declaration.
      must be updated, since it may have been replaced (e.g., when a file scope
      entity is declared in a local scope and a sublist is generated). */
   reload_source_sequence_entry(dps);
+#if RECORD_FORM_OF_NAME_REFERENCE
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
@@ -5957,9 +5959,11 @@ for use in generating cross-reference output describing this declaration.
   } else {
     /* The defining declaration of the variable.  Record the type and the
        form of the declarator. */
+#if RECORD_FORM_OF_NAME_REFERENCE
     if (name_ref != NULL) {
       name_ref->used_in_primary_declarator = TRUE;
     }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     if (variable_ptr->declared_type == NULL) {
       variable_ptr->declared_type = declared_type;
     }  /* if */
@@ -7814,15 +7818,19 @@ skip_overloading:;
      represent the current declaration.  Note that declaration_ssep is not
      used, since it may have been replaced (e.g., when a file scope entity
      is declared in a local scope and a sublist is generated). */
+#if RECORD_FORM_OF_NAME_REFERENCE
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, source_corresp_ptr);
   }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   if (is_function_def) {
     /* The defining declaration of the function.  Set a pointer to the
        declared type and record the form of reference. */
+#if RECORD_FORM_OF_NAME_REFERENCE
     if (name_ref != NULL) {
       name_ref->used_in_primary_declarator = TRUE;
     }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
     set_routine_declared_type(routine_ptr, func_info->declared_type);
     if (is_friend_decl) {
       /* If there were any default arguments, they still need to be scanned.

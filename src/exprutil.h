@@ -362,6 +362,7 @@ typedef struct an_operand {
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
+#if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
   a_name_reference
@@ -370,6 +371,7 @@ typedef struct an_operand {
 			   some operands that represent named entities
 			   (e.g., a function name).  Valid when
 			   name_reference_set is TRUE. */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_ruled_out_expr_kind_set
 		ruled_out_expr_kinds;
 			/* Bits indicating kinds of expressions ruled out.
@@ -1655,11 +1657,16 @@ extern void make_call_rescan_operands(
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
+#if RECORD_FORM_OF_NAME_REFERENCE
 extern
 void set_operand_name_reference_from_locator(an_operand       *operand,
                                              a_symbol_locator *locator);
 extern void set_operand_name_reference_from_locator_for_curr_id(
                                                           an_operand *operand);
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define set_operand_name_reference_from_locator(x, y) /* Nothing */
+#define set_operand_name_reference_from_locator_for_curr_id(x) /* Nothing */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 extern void force_operand_to_constant_if_possible(an_operand *operand);
 
@@ -1793,8 +1800,13 @@ extern void restore_operand_details_incl_ref(an_operand *operand,
 extern void restore_operand_id_details(an_operand *operand,
                                        an_operand *orig_operand);
 
+#if RECORD_FORM_OF_NAME_REFERENCE
 extern void restore_operand_form_of_name_reference(an_operand *operand,
                                                    an_operand *orig_operand);
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define restore_operand_form_of_name_reference(operand, orig_operand) \
+  /* Nothing */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 extern a_boolean check_call_function_pointer_operand(an_operand *operand);
 

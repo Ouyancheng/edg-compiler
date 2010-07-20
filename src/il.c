@@ -3772,9 +3772,11 @@ members), and does not enter those.
           }  /* if */
         }
         break;
+#if RECORD_FORM_OF_NAME_REFERENCE
       case iek_name_reference:
         could_be_orphan = TRUE;
         break;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       case iek_template_arg:
         /* A tpck_template_ref constant might be allocated in function scope
            and pointing to an entry of type a_template_arg (in file scope). */
@@ -4208,7 +4210,9 @@ constant that has the same value.
 #if ONE_INSTANTIATION_PER_OBJECT
   sc->per_instantiation_needed_flags = NULL;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+#if RECORD_FORM_OF_NAME_REFERENCE
   sc->name_references = NULL;
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 }  /* break_instance_source_corresp */
 
 
@@ -6484,11 +6488,13 @@ put it on a list of constants).
     /* Constants that track the expression that generated them should
        not be shared. */
     scp = alloc_unshared_constant(cp);
+#if RECORD_FORM_OF_NAME_REFERENCE
   } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              cp->variant.ptr_to_member.name_reference != NULL) {
     /* Pointer to member constants with an attached name reference should
        not be shared. */
     scp = alloc_unshared_constant(cp);
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
     /* Template param constants should not be made part of the IL tree proper,
        unless prototype instantiations are recorded in the IL.  In the latter

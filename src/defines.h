@@ -994,6 +994,13 @@ If EXPENSIVE_CHECKING has been requested, also enable checking pragmas.
 #endif /* ifndef EXPENSIVE_CHECKING */
 
 /*
+Temporary change to always enable name references.
+*/
+#ifndef RECORD_FORM_OF_NAME_REFERENCE
+#define RECORD_FORM_OF_NAME_REFERENCE 1
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
+/*
 If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 */
