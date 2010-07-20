@@ -1,5 +1,23 @@
 Version 4.2
 
+7/20/10  [EDGcpfe/10833]
+GNU ABI compatibility: #pragma pack(n) and attribute "aligned"
+
+Previously, when a "#pragma pack(n)" construct was in effect in GNU mode (with
+a nonzero n), the effect of the GNU attribute "aligned" applied to a bit field
+was mistakenly ignored.  This is now fixed.
+
+  #pragma pack(4)
+  struct S {
+    char c;
+    int i:1 __attribute((aligned(4)));
+  };  // Previously, S had size 4 on a typical 32-bit int platform;
+      // now S has size 8 on that same platform.
+
+(See also the Changes entry of 10/20/03 for GNU-mode effects of "#pragma pack"
+on bit fields.)
+
+
 7/18/10  [EDGcpfe/10712]
 Multibyte characters ending in '\' followed only by white space
 

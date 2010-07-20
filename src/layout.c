@@ -1392,11 +1392,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
   if (targ_user_control_of_struct_packing_affects_bit_fields) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
   }  /* if */
-#if IA64_ABI
+#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
   /* In GNU compilers, when #pragma pack(n) is in effect (with a nonzero n) a
      bit field is not aligned, but the overall alignment of the enclosing class
      is updated if needed. */ 
   if (gnu_mode && !targ_microsoft_bit_field_allocation &&
+      field->alignment == 0 &&
       curr_max_member_alignment > 0 && field->bit_size != 0 &&
       !(gnu_abi_version < 30300 && is_union_type(lob->class_type))) {
     a_targ_alignment declared_alignment = field_alignment_for(field->type);
@@ -1415,7 +1416,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
       goto done;
     }  /* if */
   }  /* if */
-#endif /* IA64_ABI */
+#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   /* We want to make sure that the bit field can be grabbed using one
      load of the size of the container aligned the way the container
