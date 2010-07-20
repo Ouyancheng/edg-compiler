@@ -13807,7 +13807,9 @@ Display a name qualifier, for debugging purposes.
 {
   /* Display any parent qualifiers. */
   if (nqp->previous_qualifier != NULL) {
+    fprintf(f_debug, "[");
     db_name_qualifier(nqp->previous_qualifier);
+    fprintf(f_debug, "]");
   }  /* if */
   if (nqp->is_class) {
     db_type_name(nqp->qualifier.class_type);
