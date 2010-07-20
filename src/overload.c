@@ -326,14 +326,12 @@ destination type (this comes up in a Microsoft-mode extension).
          member decay can be done to get a match.  For rvalue reference
          cases, the source must already be an rvalue, i.e., be in "&f"
          form. */
-      a_type_ptr         match_routine_type = NULL;
-      a_template_arg_ptr match_template_arg_list = NULL;
-      a_type_ptr         eff_dest_type = dest_type;
+      a_type_ptr match_routine_type = NULL;
+      a_type_ptr eff_dest_type = dest_type;
       if (is_ref) eff_dest_type = type_pointed_to(eff_dest_type);
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
-        a_template_arg_ptr new_template_arg_list = NULL;
         /* Remove projections added for namespaces, if any. */
         sym = fundamental_symbol_of(proj_sym);
         routine_type = NULL;
@@ -343,6 +341,7 @@ destination type (this comes up in a Microsoft-mode extension).
           /* Template.  If we have an explicit template argument list that
              selects a unique instance, use that. */
           if (is_template_id) {
+            a_template_arg_ptr new_template_arg_list;
             routine_type =
                  explicit_arg_list_identifies_specialization(
                                                        sym,
@@ -439,7 +438,6 @@ destination type (this comes up in a Microsoft-mode extension).
               /* A match. */
               match_sym = proj_sym;
               match_routine_type = routine_type;
-              match_template_arg_list = template_arg_list;
               *match_level = aml_std_conversion;
               *std_conv = std_conversion;
               number_of_matches++;
@@ -449,11 +447,11 @@ destination type (this comes up in a Microsoft-mode extension).
         }  /* if */
       }  /* for */
       if (number_of_matches == 1) {
-        if (match_template_arg_list != NULL) {
+        if (is_template_id) {
           /* Make the template instance for the best match. */
           match_sym = matching_template_function(
                                             match_sym, match_routine_type,
-                                            match_template_arg_list,
+                                            template_arg_list,
                                             is_template_id,
                                             /*is_decl_context=*/FALSE,
                                             /*in_class_specialization=*/FALSE,
