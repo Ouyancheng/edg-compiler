@@ -2483,7 +2483,6 @@ first named field; leave it unchanged if there is no named field.
   return name;
 }  /* first_field_name */
 
-#if RECORD_FORM_OF_NAME_REFERENCE
 
 static a_boolean is_unresolved_type(a_type_ptr type)
 /*
@@ -2693,7 +2692,6 @@ qualifiers seen so far (and is typically set to zero by the initial caller).
   }  /* if */
 }  /* mangled_scope_resolution */
 
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if IA64_ABI
 
 /*
@@ -3946,7 +3944,6 @@ In the IA-64 ABI, the destructor type is simply appended as another level by
 the caller.
 */
 {
-#if RECORD_FORM_OF_NAME_REFERENCE
   a_boolean               need_close = FALSE;
   unsigned long           nesting_level = 0;
   a_scope_resolution_step step;
@@ -3979,7 +3976,6 @@ the caller.
     mangled_encoding_for_type(dtor_type, mctl);
   }  /* if */
 #endif /* !IA64_ABI */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 }  /* mangled_name_reference */
 
 
