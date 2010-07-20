@@ -2599,11 +2599,10 @@ caller -- except for the is_global_qualified_name setting).
 }  /* next_scope_resolution_step */
 
 
-static void mangled_scope_resolution_step(
-                                        a_scope_resolution_step  *current,
-                                        a_boolean                *need_close,
-                                        unsigned long            nesting_level,
-                                        a_mangling_control_block *mctl)
+static void mangled_scope_resolution(a_scope_resolution_step  *current,
+                                     a_boolean                *need_close,
+                                     unsigned long            nesting_level,
+                                     a_mangling_control_block *mctl)
 /*
 Adds scope resolution mangling for the entity represented by "current"
 (and recursively all of its parents) to the mangled name.  In the IA-64 ABI,
@@ -2630,7 +2629,7 @@ qualifiers seen so far (and is typically set to zero by the initial caller).
   if (!is_top_level) {
     /* Recurse to process any parents first. */
     nesting_level++;
-    mangled_scope_resolution_step(&parent, need_close, nesting_level, mctl);
+    mangled_scope_resolution(&parent, need_close, nesting_level, mctl);
   } else {
     /* This is the top-most qualifier (or there were no qualifiers). */
     if (kind == iek_type) {
@@ -2692,7 +2691,7 @@ qualifiers seen so far (and is typically set to zero by the initial caller).
                           mctl);
     }  /* if */
   }  /* if */
-}  /* mangled_scope_resolution_step */
+}  /* mangled_scope_resolution */
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if IA64_ABI
@@ -2757,7 +2756,7 @@ add mangling for an eok_address_of operation.
       step.is_global_qualified_name = FALSE;
       step.variant.scp_kind.scp     = &parent_class->source_corresp;
       step.variant.scp_kind.kind    = iek_type;
-      mangled_scope_resolution_step(&step, &need_close, /*nesting_level=*/0,
+      mangled_scope_resolution(&step, &need_close, /*nesting_level=*/0,
                                     mctl);
       if (need_close) add_to_mangled_name('E', mctl);
     } else
@@ -3963,10 +3962,10 @@ the caller.
     if (dtor_type != NULL) {
       /* Mangle the destructor type as though it were part of the qualified
          name. */
-      nesting_level++;
+      nesting_level += 2;
     }
 #endif /* !IA64_ABI */
-    mangled_scope_resolution_step(&step, &need_close, nesting_level, mctl);
+    mangled_scope_resolution(&step, &need_close, nesting_level, mctl);
 #if IA64_ABI
     if (need_close) {
       add_to_mangled_name('E', mctl);
@@ -3997,35 +3996,51 @@ details any qualification that applies to the destructor.
   if (is_pointer_type(type)) type = type_pointed_to(type);
 #if IA64_ABI
   if (emulate_gnu_abi_bugs) {
-    /* g++ encodes destructors with "co" followed by the type, but apparently
-       has a bug where that type doesn't participate in the substitution
-       processing. */
-    /* FIXME: Not always, sometimes uses <expr-primary> */
-    a_substitution_ptr  save_first_substitution, save_last_substitution;
-    if (name_reference != NULL
+    if (is_template_dependent_type(type)) {
+      /* g++ encodes dependent destructors with "co" followed by the type,
+         but apparently has a bug where that type doesn't participate in the
+         substitution processing. */
+      a_substitution_ptr  save_first_substitution, save_last_substitution;
+      if (name_reference != NULL
 #if RECORD_FORM_OF_NAME_REFERENCE
-        && name_reference->qualifier != NULL
+          && name_reference->qualifier != NULL
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-                                                   ) {
-      add_str_to_mangled_name("sr", mctl);
+                                                     ) {
+        add_str_to_mangled_name("sr", mctl);
+        mangled_encoding_for_type(type, mctl);
+      }  /* if */
+      /* When g++ uses the "co" mangling, it doesn't use or record
+         substitutions, so save the substitution pointers and reset them. */
+      save_first_substitution = mctl->first_substitution;
+      save_last_substitution = mctl->last_substitution;
+      mctl->first_substitution = NULL;
+      mctl->last_substitution = NULL;
+      add_str_to_mangled_name("co", mctl);
       mangled_encoding_for_type(type, mctl);
+      /* Return any allocated substitutions to the available list. */
+      if (mctl->last_substitution != NULL) {
+        mctl->last_substitution->next = avail_substitutions;
+        avail_substitutions = mctl->last_substitution;
+      }  /* if */
+      /* Restore original pointers. */
+      mctl->first_substitution = save_first_substitution;
+      mctl->last_substitution = save_last_substitution;
+    } else {
+      /* g++ encodes dependent destructors with <expr-primary>, but since
+         we don't have the destructor routine, generate the mangled name
+         for the complete destructor here. */
+#if 1 /* FIXME */
+      add_str_to_mangled_name("L_ZN", mctl);
+      mangled_encoding_for_type(type, mctl);
+      add_str_to_mangled_name(MANGLING_STRING_FOR_DESTRUCTOR, mctl);
+      add_str_to_mangled_name("EvE", mctl);
+#else
+      mangled_entity_reference(xyzzy,
+                               (an_il_entry_kind)iek_routine,
+                               (a_routine_info_block *)NULL, 
+                               /*add_address_of=*/FALSE, mctl);
+#endif
     }  /* if */
-    /* When g++ uses the "co" mangling, it doesn't use or record
-       substitutions, so save the substitution pointers and reset them. */
-    save_first_substitution = mctl->first_substitution;
-    save_last_substitution = mctl->last_substitution;
-    mctl->first_substitution = NULL;
-    mctl->last_substitution = NULL;
-    add_str_to_mangled_name("co", mctl);
-    mangled_encoding_for_type(type, mctl);
-    /* Return any allocated substitutions to the available list. */
-    if (mctl->last_substitution != NULL) {
-      mctl->last_substitution->next = avail_substitutions;
-      avail_substitutions = mctl->last_substitution;
-    }  /* if */
-    /* Restore original pointers. */
-    mctl->first_substitution = save_first_substitution;
-    mctl->last_substitution = save_last_substitution;
   } else {
     /* Precede the destructor indication with any qualification that is
        appropriate. */
