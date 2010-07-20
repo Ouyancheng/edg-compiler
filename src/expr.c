@@ -24430,6 +24430,9 @@ operand of an "&" operator.
   /* Set the proper source position, and any flags like whether the
      identifier reference was qualified. */
   restore_operand_details(result, &eriep->saved_operand);
+  /* The operand may become a bound function, but it isn't yet at this
+     level.  Clear the flag if it just got set by restore_operand_details. */
+  result->bound_function = FALSE;
   restore_operand_id_details(result, &eriep->saved_operand);
   if (is_a_function_designator(result)) {
     if (result->is_operand_of_address_of) {
