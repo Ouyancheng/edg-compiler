@@ -2193,7 +2193,6 @@ extern a_preinclude_file_ptr alloc_preinclude_file(void);
 extern void get_definition_of_class(a_type_ptr	class_type);
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
 
-#if RECORD_FORM_OF_NAME_REFERENCE
 extern a_name_reference_ptr make_name_reference(
 					a_symbol_locator	*locator,
 					a_source_correspondence	*scp);
@@ -2214,7 +2213,6 @@ and all entities declared in functions.
 #define qualifiable_name_reference(loc, scp)                                  \
   ((C_mode() || !in_file_scope(scp)) ? (a_name_reference_ptr)NULL             \
                                      : make_name_reference((loc), (scp)))
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 #if DEBUG
 /* Show space used in the lexical routines, for debugging purposes. */

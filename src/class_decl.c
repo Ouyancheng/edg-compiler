@@ -2172,12 +2172,10 @@ nested class.
                definition.  The primary source sequence entry was deferred
                till now, when the class definition is complete. */
             a_source_sequence_entry_ptr  ssep;
-#if CHECKING || RECORD_FORM_OF_NAME_REFERENCE
             if (!sym->is_error) {
               ssep = rp->source_corresp.source_sequence_entry;
               check_assertion(ss_entry_kind(ssep) ==
                                 (an_il_entry_kind)iek_src_seq_secondary_decl);
-#if RECORD_FORM_OF_NAME_REFERENCE
               /* Since the definition is being moved out of the class, the
                  associated "name reference" is no longer "primary".
                  Instead, it should be associated with the secondary source
@@ -2194,9 +2192,7 @@ nested class.
                   }  /* if */
                 }  /* for */
               }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
             }  /* if */
-#endif /* CHECKING || RECORD_FORM_OF_NAME_REFERENCE */
             /* Now put out the source sequence entry for the routine, after
                clearing the source-sequence pointer to be sure it will be
                reset. */
@@ -7141,12 +7137,10 @@ possibility.
           if (!func_info->is_definition) {
             a_routine_ptr         rp = sym->variant.routine.ptr;
             a_name_reference_ptr  name_ref = NULL;
-#if RECORD_FORM_OF_NAME_REFERENCE
             if (record_name_references_in_context()) {
               name_ref = qualifiable_name_reference(locator,
                                                     &rp->source_corresp);
             }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
@@ -8984,7 +8978,6 @@ implicitly declared member functions.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
-#if RECORD_FORM_OF_NAME_REFERENCE
       if (record_name_references_in_context()) {
         /* A definition is always the primary declaration.  Record the form of
            the associated declarator. */
@@ -8994,7 +8987,6 @@ implicitly declared member functions.
           name_ref->used_in_primary_declarator = TRUE;
         }  /* if */
       }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
       /* For a definition enter the function type as the "declared_type" in
          the routine entry itself. Avoid adding a redundant type to the IL
          if possible. */
@@ -9035,11 +9027,9 @@ implicitly declared member functions.
          source sequence list. */
       an_sssd_flag_set      sssd_flags;
       a_name_reference_ptr  name_ref = NULL;
-#if RECORD_FORM_OF_NAME_REFERENCE
       if (record_name_references_in_context()) {
         name_ref = qualifiable_name_reference(locator, &rtn->source_corresp);
       }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (func_info->is_movable_member_or_friend_def) {
         /* Set the flag that indicates the definition appears outside the
@@ -10070,11 +10060,9 @@ specific information about the member declaration, respectively.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-#if RECORD_FORM_OF_NAME_REFERENCE
   if (record_name_references_in_context()) {
     name_ref = qualifiable_name_reference(locator, &var->source_corresp);
   }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   { an_sssd_flag_set  flags = SSSD_NO_FLAGS;
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_state->marked_as_gnu_extension) {

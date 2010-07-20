@@ -2131,10 +2131,8 @@ running them through the indicated remapping function.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   remap_orphan_entry_first(iek_template_parameter);
   remap_orphan_entry_first(iek_template_decl);
-#if RECORD_FORM_OF_NAME_REFERENCE
   remap_orphan_entry_first(iek_name_reference);
   remap_orphan_entry_first(iek_name_qualifier);
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   remap_orphan_entry_first(iek_lambda);
   remap_orphan_entry_first(iek_lambda_capture);
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
@@ -2227,10 +2225,8 @@ running them through the indicated remapping function.
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
   remap_orphan_entry_last(iek_template_parameter);
   remap_orphan_entry_last(iek_template_decl);
-#if RECORD_FORM_OF_NAME_REFERENCE
   remap_orphan_entry_last(iek_name_reference);
   remap_orphan_entry_last(iek_name_qualifier);
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
   remap_orphan_entry_last(iek_lambda);
   remap_orphan_entry_last(iek_lambda_capture);
   /* Note that nothing is needed for iek_source_sequence_entry nor for its
