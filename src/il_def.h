@@ -1723,6 +1723,12 @@ typedef struct a_name_reference {
 			/* Points to a description of the class or namespace
 			   qualifier portion of the name.  NULL if there is
 			   no such qualifier. */
+  a_type_ptr	destructor_type;
+			/* If the name refers to a destructor name in which
+			   the name after the "~" is not the same as the class
+			   name, this points to the type of the identifier
+			   after the "~".  This also points to the type when
+			   a type keyword is used.  NULL otherwise. */
   long		num_template_arguments;
 			/* If is_template_id is TRUE, this is the number of
 			   template arguments used in the last component of

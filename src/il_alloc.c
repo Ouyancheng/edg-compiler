@@ -4036,6 +4036,7 @@ Initialize the fields of a name reference entry.
 {
   nrp->next = NULL;
   nrp->qualifier = NULL;
+  nrp->destructor_type = NULL;
   nrp->num_template_arguments = -1L;
   nrp->is_global_qualified_name = FALSE;
   nrp->is_template_id = FALSE;

@@ -12049,6 +12049,8 @@ operand.  qualifier_sym points to a symbol that describes the qualifier when
 the destructor is part of a qualified name (e.g., "A::B::~B").
 */
 {
+  a_type_ptr	dtor_type = NULL;
+
   /* Skip past the "~", check for an identifier. */
   (void)get_token();
   if (!f_is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
@@ -12291,6 +12293,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
            that was found. */
         saved_position = locator_for_curr_id.source_position;
         tp = type_symbol_type(type_sym);
+        dtor_type = tp;
         tp = skip_typerefs(tp);
         if (symbol_for(tp) != NULL) {
           /* In some error cases involving aliases the underlying type may
@@ -12305,6 +12308,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
     /* Convert the locator to a locator for the destructor. */
     if (!is_error_locator(locator_for_curr_id)) {
       tildize_locator(&locator_for_curr_id);
+      locator_for_curr_id.variant.destructor_type = dtor_type;
     }  /* if */
   }  /* if */
 }  /* get_destructor_name */
@@ -13966,6 +13970,12 @@ describes the name specified by "locator".
   nrp->is_template_id = locator->is_template_id;
   nrp->is_super_qualified = locator->is_super_qualified;
   nrp->from_prototype_instantiation = is_prototype_instantiation_context();
+  if (locator->is_destructor_name) {
+    a_type_ptr	dtor_type = locator->variant.destructor_type;
+    if (dtor_type != NULL) {
+      nrp->destructor_type = dtor_type;
+    }  /* if */
+  }  /* if */
   if (locator->is_template_id) {
     /* Set the number of template arguments appearing in the reference. */
     a_template_arg_ptr argp;
@@ -14008,6 +14018,7 @@ a previously created entry that can be reused.
         nrp->is_global_qualified_name ==
                                      entry_to_copy->is_global_qualified_name &&
         nrp->is_template_id == entry_to_copy->is_template_id &&
+        nrp->destructor_type == entry_to_copy->destructor_type &&
         nrp->from_prototype_instantiation ==
                                  entry_to_copy->from_prototype_instantiation &&
         nrp->is_super_qualified == entry_to_copy->is_super_qualified) {
@@ -14022,6 +14033,7 @@ a previously created entry that can be reused.
     nrp->num_template_arguments = entry_to_copy->num_template_arguments;
     nrp->is_global_qualified_name = entry_to_copy->is_global_qualified_name;
     nrp->is_template_id = entry_to_copy->is_template_id;
+    nrp->destructor_type = entry_to_copy->destructor_type;
     nrp->is_super_qualified = entry_to_copy->is_super_qualified;
     nrp->from_prototype_instantiation =
                                    entry_to_copy->from_prototype_instantiation;
@@ -15814,6 +15826,17 @@ wrapup:
     error_position = orig_error_position;
     /* Perform error checks as specified in "options". */
     err |= check_for_generalized_identifier_errors(options, &pos_curr_token);
+  }  /* if */
+  if (locator_for_curr_id.is_destructor_name &&
+      locator_for_curr_id.is_vacuous_destructor_reference &&
+      locator_for_curr_id.is_nonclass_destructor) {
+    /* For nonclass vacuous destructors, the parent class will be set to the
+       type after the "~".  For classes, the destructor type will have
+       already been set by get_destructor_name. */
+    a_type_ptr	dtor_type = locator_for_curr_id.parent.class_type;
+    if (dtor_type != NULL) {
+      locator_for_curr_id.variant.destructor_type = dtor_type;
+    }  /* if */
   }  /* if */
   if (err) {
     locator_for_curr_id.is_error = TRUE;

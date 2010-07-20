@@ -270,6 +270,12 @@ typedef struct a_symbol_locator {
     a_type_ptr  conversion_result_type;
 			/* The return type when a user-defined conversion
 			   name is scanned. */
+    /* When is_destructor_name is TRUE: */
+    a_type_ptr	destructor_type;
+			/* This is the type of the name that follows the
+			   "~" in a destructor name.  This field is only
+			   guaranteed to be non-NULL for destructor names
+			   from field selection operations. */
   } variant;
 } a_symbol_locator;
 

@@ -461,24 +461,24 @@ pointer.  The name qualifier is either ignored or cleared if the name
 reference came from a prototype instantiation and we are not recording
 prototype instantiations in the IL.
 */
-#undef clear_or_walk_name_qualifier
+#undef clear_or_walk_name_reference_field
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-#define clear_or_walk_name_qualifier(name_ref_ptr) \
+#define clear_or_walk_name_reference_field(name_ref_ptr, field, \
+                                           ptr_type, entry_kind) \
 { if (prototype_instantiations_in_il || \
       !(name_ref_ptr)->from_prototype_instantiation) { \
-    walk_ptr((name_ref_ptr)->qualifier, a_name_qualifier_ptr, \
-             iek_name_qualifier); \
+    walk_ptr((field), ptr_type, (entry_kind)); \
   }  /* if */ \
 }
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
-#define clear_or_walk_name_qualifier(name_ref_ptr) \
+#define clear_or_walk_name_reference_field(name_ref_ptr, field, \
+                                           ptr_type, entry_kind) \
 { if (prototype_instantiations_in_il || \
       !(name_ref_ptr)->from_prototype_instantiation) { \
-    walk_ptr((name_ref_ptr)->qualifier, a_name_qualifier_ptr, \
-             iek_name_qualifier); \
+    walk_ptr((field), ptr_type, (entry_kind)); \
   } else { \
     if (clear_fe_pointers_during_walk) { \
-      (name_ref_ptr)->qualifier = NULL; \
+      (field) = NULL; \
     }  /* if */ \
   }  /* if */ \
 }
@@ -2042,7 +2042,16 @@ do_set_proper_definition_needed_flag:
       {
         a_name_reference_ptr ptr = (a_name_reference_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_name_reference_ptr, iek_name_reference);
-        if (ptr->qualifier != NULL) clear_or_walk_name_qualifier(ptr);
+        if (ptr->qualifier != NULL) {
+          clear_or_walk_name_reference_field(ptr, ptr->qualifier,
+                                             a_name_qualifier_ptr,
+                                             iek_name_qualifier);
+        }  /* if */
+        if (ptr->destructor_type != NULL) {
+          clear_or_walk_name_reference_field(ptr, ptr->destructor_type,
+                                             a_type_ptr,
+                                             iek_type);
+        }  /* if */
       }
       break;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
@@ -3370,7 +3379,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_orphan_entry_list
 #undef walk_orphan_entry_list_for_entry_kind
 #undef walk_name_reference_list
-#undef clear_or_walk_name_qualifier
+#undef clear_or_walk_name_reference_field
 #endif /* ifdef UNDEF_WALK_ENTRY_MACROS_AT_END */
 
 

@@ -12419,7 +12419,11 @@ are handled in symbol_tbl_init.)
 #if RECORD_FORM_OF_NAME_REFERENCE
   cleared_locator.name_qualifier                  = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  /* The following initializations are typically redundant, but are helpful
+     in some testing modes (e.g., union-as-struct). */
+  cleared_locator.variant.opname                  = (an_opname_kind)onk_none;
   cleared_locator.variant.conversion_result_type  = NULL;
+  cleared_locator.variant.destructor_type         = NULL;
 
   /* Static variables in symbol_tbl.c: */
   ident_buffer = NULL;

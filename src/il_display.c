@@ -535,6 +535,9 @@ Display a_name_reference entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_name_reference);
   disp_ptr("qualifier", (char *)ptr->qualifier, iek_name_qualifier);
+  if (ptr->destructor_type != NULL) {
+    disp_ptr("destructor_type", (char *)ptr->destructor_type, iek_type);
+  }  /* if */
   disp_long("num_template_arguments", ptr->num_template_arguments);
   disp_boolean("is_global_qualified_name",
                (a_boolean)ptr->is_global_qualified_name);

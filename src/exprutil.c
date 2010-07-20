@@ -3253,8 +3253,12 @@ that extra work.
       an_expr_operator_kind op = node->variant.operation.kind;
       if (op == (an_expr_operator_kind)eok_dot_vacuous_destructor_call ||
           op == (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
-        a_type_ptr dtor_name_type = 0; /* operand->name_reference.xxx; */
-        if (dtor_name_type != NULL) {
+        /* For vacuous destructors, look for a destructor type in the name
+           reference.  If one is found, and the type is a named typeref or
+           class type (i.e., not a built-in type), attach a name reference
+           to the node. */
+        a_type_ptr dtor_name_type = operand->name_reference.destructor_type;
+        if (dtor_name_type != NULL && has_name(dtor_name_type)) {
           node->name_reference = find_allocated_name_reference(
                                        &dtor_name_type->source_corresp,
                                        &operand->name_reference);
