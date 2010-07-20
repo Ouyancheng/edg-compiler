@@ -2531,6 +2531,18 @@ to the character position following what was demangled.
       case 'u':
         s = "auto";
         break;
+      case 't':
+        /* typeof(type) */
+        write_id_str("typeof (", dctl);
+        p = demangle_type(p, dctl);
+        s = ")";
+        break;
+      case 'p':
+        /* typeof(expression) */
+        write_id_str("typeof (", dctl);
+        p = demangle_expression(p, dctl);
+        s = ")";
+        break;
       case 'y':
         /* decltype(type) */
         write_id_str("decltype ", dctl);
@@ -4163,9 +4175,14 @@ static char *demangle_source_name(
 /*
 Macro to determine if the character string pointed to by "p" is a
 <builtin-type>.  <builtin-type>s are a single lower-case letter or two
-characters starting with the character "D".
+characters starting with the character "D".  Exceptions to this rule are
+the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
+for typeof (i.e., "DY" and "Dy").
 */
-#define is_builtin_type(p) (islower((unsigned char)*(p)) || *(p) == 'D')
+#define is_builtin_type(p)                                                \
+  (islower((unsigned char)*(p)) ||                                        \
+   (*(p) == 'D' &&                                                        \
+    !((p)[1] == 'T' || (p)[1] == 't' || (p)[1] == 'Y' || (p)[1] == 'y')))
 
 /*
 Macro to determine if the type pointed to by "p" needs a substitution
@@ -4464,6 +4481,23 @@ to be on top of the type.  If parse_template_args is TRUE then any
       p = demangle_expression(p+2, dctl);
       write_id_ch(')', dctl);
     }  /* if */
+    p = advance_past('E', p, dctl);
+  } else if (kind == 'D' &&
+             (p[1] == 'y' || p[1] == 'Y')) {
+    /* typeof:
+       This is an EDG extension to the IA-64 ABI spec to handle GNU typeof
+       (and GNU doesn't provide a mangling that we can follow):
+
+          <type> ::= Dy <type> E       # typeof(type)
+                 ::= DY <expression> E # typeof(expression)
+       */
+    write_id_str("typeof(", dctl);
+    if (p[1] == 'y') {
+      p = demangle_type(p+2, dctl);
+    } else {
+      p = demangle_expression(p+2, dctl);
+    }  /* if */
+    write_id_ch(')', dctl);
     p = advance_past('E', p, dctl);
   } else {
     /* No declarator part to process.  Handle the specifier type. */
