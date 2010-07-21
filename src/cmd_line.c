@@ -3413,8 +3413,13 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   gpp_using_directive_lookup = TRUE;
   /* g++ 4.3.x and earlier do not make parameters visible in their own
      function prototype scope.  (Later versions still keep them invisible
-     in default argument expressions, but not in other contexts.) */
-  parameters_visible_late = gnu_version < 40400;
+     in default argument expressions, but not in other contexts.)  We disable
+     the emulation of that feature also if trailing return type or lambdas
+     (which include trailing return type syntax) are enabled since it not that
+     unusual for a trailing return type to refer to a parameter. */
+  parameters_visible_late = gnu_version < 40400 &&
+                            !(trailing_return_types_enabled ||
+                              lambdas_enabled);
   /* Some versions of g++ allow a namespace and class with the same name
      to be declared in a scope. */
   gnu_namespace_and_class_in_same_scope = (gnu_version < 40300);

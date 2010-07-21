@@ -1,5 +1,15 @@
 Version 4.2
 
+7/21/10  [EDGcpfe/10853]
+Parameter visibility in GNU C++ modes with trailing return types
+
+GNU C++ compilers prior to version 4.4 keep parameters invisible until the
+associated function declarator is completed (see Changes entries of 9/1/05 and
+5/7/10).  The emulation of this behavior is now disabled if trailing return
+types or lambdas (which can use trailing return type syntax) are enabled,
+because it is not unusual for a trailing return type to refer to a parameter.
+
+
 7/21/10  [EDGcpfe/10855]
 Abort on GNU statement expression in ctor-initializer
 
