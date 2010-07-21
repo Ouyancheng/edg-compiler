@@ -7346,6 +7346,13 @@ Add to the mangled name the encoding for the type "type".
   a_boolean  saved_force_dependent_array_mangling;
 #endif /* IA64_ABI */
 
+  if (total_errors != 0) {
+    /* When there are errors in the front end, some of the data structures
+       may contain incomplete information, so simply give this type a
+       bogus encoding. */
+    mangled_name_with_length("?", mctl);
+    goto end_of_routine;
+  }  /* if */
 #if IA64_ABI
   /* If the type has appeared previously, use a substitution for it. */
   if (add_substitution_if_available((char *)type, iek_type, mctl)) {
@@ -7856,8 +7863,8 @@ add_substitution_for_qualified_type:
   if (qualifiers != TQ_NONE) {
     alloc_substitution((char *)qualified_type, iek_type, mctl);
   }  /* if */
-end_of_routine:;
 #endif /* IA64_ABI */
+end_of_routine:;
 }  /* mangled_encoding_for_type */
 
 
