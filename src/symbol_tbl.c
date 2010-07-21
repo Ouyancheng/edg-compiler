@@ -10777,12 +10777,13 @@ storage_class are the type and storage class for the parameter.
   a_boolean       is_prototype_param_decl = (type_ptr != NULL);
 
   /* See if this identifier name already appears on the list.  If so, issue
-     an error (except in GNU modes, where duplicate parameter names are only
-     diagnosed in function definitions).  Create a param_id entry if this is
-     a prototype parameter list, but not otherwise. */
+     an error (except in some GNU modes, where duplicate parameter names are
+     only diagnosed in function definitions).  Create a param_id entry if this
+     is a prototype parameter list, but not otherwise. */
   if (!is_error_locator(*locator)) {
     if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
-      if (gpp_mode || (gcc_mode && !is_prototype_param_decl)) {
+      if ((gpp_mode && gnu_version < 40300) ||
+          (gcc_mode && !is_prototype_param_decl)) {
         ambiguous = TRUE;
       } else {
         error(ec_dupl_param_name);

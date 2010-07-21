@@ -1,5 +1,13 @@
 Version 4.2
 
+7/21/10  [EDGcpfe/10860]
+GNU C++ compatibility: Duplicate parameter names
+
+Previously, the front end accepted duplicate function parameter names in all
+GNU C++ modes.  Now, this is only the case when gnu_version < 40300.  (See
+also the Changes entry of 2/28/06.)
+
+
 7/21/10  [EDGcpfe/10853]
 Parameter visibility in GNU C++ modes with trailing return types
 
