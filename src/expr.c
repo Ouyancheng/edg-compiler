@@ -2461,8 +2461,8 @@ that the final call needs to be cast to the indicated type.
       err = TRUE;
       goto done;
     }  /* if */
-    if (template_case || is_template_dependent_type(dispatch_type)) {
-      template_case = TRUE;
+    if (template_case) {
+      /* Skip some checks for a template parameter type. */
     } else if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
       if (expr_error_should_be_issued()) expect_error();
@@ -2471,6 +2471,11 @@ that the final call needs to be cast to the indicated type.
                !is_pointer_type(dispatch_type)) {
       expr_pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       err = TRUE;
+    } else if (is_template_dependent_type(dispatch_type)) {
+      /* This catches cases like "pointer to T".  Note that the test is
+         after the integer/enum/pointer test above so that we don't let class
+         types get by as dispatch_type. */
+      template_case = TRUE;
     } else if (dispatch_type->size != 1 && dispatch_type->size != 2 &&
                dispatch_type->size != 4 && dispatch_type->size != 8) {
       expr_pos_error(ec_invalid_gnu_sync_size, &first_arg_pos);
