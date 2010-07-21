@@ -3655,18 +3655,16 @@ explicitly dealt with later in expression mangling.
               expr = skip_parens(child->variant.operation.operands);
               done = FALSE;
             }  /* if */
-#if ABI_COMPATIBILITY_VERSION < 402
-          } else if (op == (an_expr_operator_kind)eok_dot_field &&
-                     is_variable_node(child) &&
-                     child->variant.variable->is_anonymous_parent_object) {
+          }  /* if */
+#endif /* IA64_ABI */
+          if (op == (an_expr_operator_kind)eok_dot_field &&
+              is_variable_node(child) &&
+              child->variant.variable->is_anonymous_parent_object) {
             /* Remove a compiler generated "." operation added to access a
                member of an anonymous union. */
             expr = skip_parens(child->next);
             done = FALSE;
-#endif /* ABI_COMPATIBILITY_VERSION < 402 */
-          }  /* if */
-#endif /* IA64_ABI */
-          if (op == (an_expr_operator_kind)eok_base_class_cast) {
+          } else if (op == (an_expr_operator_kind)eok_base_class_cast) {
             /* Remove a compiler generated base class cast. */
             expr = skip_parens(child);
             done = FALSE;
@@ -4018,20 +4016,13 @@ details any qualification that applies to the destructor.
       mctl->first_substitution = save_first_substitution;
       mctl->last_substitution = save_last_substitution;
     } else {
-      /* g++ encodes dependent destructors with <expr-primary>, but since
-         we don't have the destructor routine, generate the mangled name
-         for the complete destructor here. */
-#if 1 /* FIXME */
+      /* g++ encodes non-dependent destructors with <expr-primary>.  In cases
+         where such a destructor is vacuous, there isn't a routine entry
+         to mangle, so just provide the required mangling here. */
       add_str_to_mangled_name("L_ZN", mctl);
       mangled_encoding_for_type(type, mctl);
       add_str_to_mangled_name(MANGLING_STRING_FOR_DESTRUCTOR, mctl);
       add_str_to_mangled_name("EvE", mctl);
-#else
-      mangled_entity_reference(xyzzy,
-                               (an_il_entry_kind)iek_routine,
-                               (a_routine_info_block *)NULL, 
-                               /*add_address_of=*/FALSE, mctl);
-#endif
     }  /* if */
   } else {
     /* Precede the destructor indication with any qualification that is
@@ -4145,7 +4136,6 @@ expression that was used to select expr (NULL if no selector was used).
         if (con->source_corresp.name != NULL &&
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
-          /* FIXME: Better way to detect destructor? */
           destructor_type = scp_parent_class(
                                       &expr->variant.constant->source_corresp);
         } else {
@@ -4349,21 +4339,10 @@ expression.
       break;
 #endif /* CHECKING */
   }  /* switch */
-  if (expr->variant.operation.compiler_generated) {
-    /* Look for some cases where the front end has added a selection
-       operation that isn't in the source code and remove these operations
-       for mangling purposes. */
-    if (node_operator_is(expr, eok_dot_field) &&
-        is_variable_node(selector) &&
-        selector->variant.variable->is_anonymous_parent_object) {
-      /* FIXME: do we need to know this here or can we just strip it
-         off in skip_compiler_generated_expressions as we did previously? */
-      /* A field in an anonymous union. */
-      selector = NULL;
-    } else if (expr->is_objectless_nonstatic_data_mem_ref) {
-      /* An implied "this" has been added. */
-      selector = NULL;
-    }  /* if */
+  if (expr->variant.operation.compiler_generated &&
+      expr->is_objectless_nonstatic_data_mem_ref) {
+    /* An implied "this" has been added. */
+    selector = NULL;
   }  /* if */
   if (selector != NULL) {
 #if !IA64_ABI
