@@ -4380,7 +4380,7 @@ expression.
     }  /* switch */
 #if !IA64_ABI
     /* Count of operands. */
-    add_to_mangled_name('2', mctl);
+    store_digits_and_underscore((unsigned long)2, /*old_form=*/FALSE, mctl);
 #endif /* !IA64_ABI */
     mangled_encoding_for_expression(selector, in_dependent_expr, mctl);
   }  /* if */
