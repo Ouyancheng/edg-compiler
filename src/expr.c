@@ -14930,14 +14930,14 @@ both C and C++ modes.
     expr_pos_error(ec_expr_not_constant, &start_position);
     err = TRUE;
   }  /* if */
-  if (innermost_function_scope == NULL ||
+  if (depth_stmt_stack < 0 || innermost_function_scope == NULL ||
       expr_stack->is_default_arg_expression ||
       expr_stack->is_template_arg_expression) {
-    /* We're not inside a function, so don't try to scan the statement.
-       Just flush to the matching closing brace. */
-    /* Statement expressions are not allowed in default argument
-       expressions (we don't have the code to copy them -- see
-       copy_expr_tree). */
+    /* We're not inside the compound statement of a function definition, so
+       don't try to scan the statement.  Just flush to the matching closing
+       brace. */
+    /* Statement expressions are not allowed in default argument expressions
+       (we don't have the code to copy them -- see copy_expr_tree). */
     /* Also in template argument expressions, because we can't push
        another object lifetime later. */
     if (!err) {

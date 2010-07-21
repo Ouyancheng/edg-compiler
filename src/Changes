@@ -1,5 +1,21 @@
 Version 4.2
 
+7/21/19  [EDGcpfe/10855]
+Abort on GNU statement expression in ctor-initializer
+
+In configurations with MICROSOFT_EXTENSIONS_ALLOWED set to TRUE, the front
+could abort with an internal error in compound_statement (statements.c) if
+a GNU statement expression appeared in a ctor-initializer.  For example:
+
+  struct S {
+    S(): i(({ int x = 3; x;})) {}
+    int i;
+  };
+
+This is now fixed: The internal error is no longer triggered (but statement
+expressions are still not allowed in ctor-initializers).
+
+
 7/21/10  [EDGcpfe/10854]
 Invalid scope stack pointer used when get_definition_of_class is used
 
