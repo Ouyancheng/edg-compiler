@@ -3585,6 +3585,7 @@ the "x").
 {
   a_boolean err = FALSE;
 
+  check_assertion(!locator->is_vacuous_destructor_reference);
   if (is_error_locator(*locator)) {
     /* There was an error in the qualified name. */
     err = TRUE;
@@ -4167,7 +4168,6 @@ the function.  Set *err to TRUE if there is an error.
                                                          eriep,
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
-        need_member_sym_check = FALSE;
       } else if (is_variable_node(member_op)) {
         /* Static data member. */
         sym = symbol_for(member_op->variant.variable);
@@ -4204,6 +4204,7 @@ handle_vacuous_destructor_call:
       if (!is_class_struct_union_type(class_struct_union_type)) {
         locator->is_nonclass_destructor = TRUE;
       }  /* if */
+      need_member_sym_check = FALSE;
       break;
     default:
       unexpected_condition_str("bad selection operator in rescan");
@@ -4783,6 +4784,7 @@ nonstatic_member_function:
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
+          result->is_qualified_name = locator.is_qualified_name;
           set_operand_name_reference_from_locator(result, &locator);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
