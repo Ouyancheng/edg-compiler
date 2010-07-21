@@ -2028,7 +2028,11 @@ do_set_proper_definition_needed_flag:
     case iek_name_reference:
       {
         a_name_reference_ptr ptr = (a_name_reference_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_name_reference_ptr, iek_name_reference);
+        if (ptr->next != NULL) {
+          clear_or_walk_name_reference_field(ptr, ptr->next,
+                                             a_name_reference_ptr,
+                                             iek_name_reference);
+        }  /* if */
         if (ptr->qualifier != NULL) {
           clear_or_walk_name_reference_field(ptr, ptr->qualifier,
                                              a_name_qualifier_ptr,
