@@ -1636,10 +1636,15 @@ during wrapup processing by compare_function_templates.
     templ_param_list = tdip != NULL ? tdip->parameters : NULL;
   }  /* if */
   /* Make an initial pass through the argument list to see if all of the
-     arguments have deduced values. */
-  match = all_templ_params_have_values(templ_arg_list, templ_param_list,
-                                       is_partial_order_check, template_sym,
-                                       tssp);
+     arguments have deduced values.  In certain error cases, the template
+     argument list can be NULL. */
+  if (templ_arg_list == NULL) {
+    match = FALSE;
+  } else {
+    match = all_templ_params_have_values(templ_arg_list, templ_param_list,
+                                         is_partial_order_check, template_sym,
+                                         tssp);
+  }  /* if */
   if (match) {
     tpp = templ_param_list;
     tap = templ_arg_list;
