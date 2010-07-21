@@ -23459,6 +23459,17 @@ test is useful for that reason).
                                      var->type,
                                      func_type->variant.routine.return_type)) {
         eligible = TRUE;
+#if DO_IL_LOWERING
+#if !DO_FULL_PORTABLE_EH_LOWERING && GENERATE_EH_TABLES
+        if (exceptions_enabled &&
+            symbol_supplement_for_class(var->type)->is_class_aggregate) {
+          /* Can't do return value optimization on aggregate types, because
+             the table representation for partially-lowered EH can't represent
+             indirection through the return-value parameter plus an offset. */
+          eligible = FALSE;
+        }  /* if */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING && GENERATE_EH_TABLES */
+#endif /* DO_IL_LOWERING */
       }  /* if */
     } else {
       /* Throw case. */

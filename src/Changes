@@ -1,5 +1,30 @@
 Version 4.2
 
+7/21/10  [EDGcpfe/10848]
+Abort on return optimization of aggregate class initialized with { ... }
+
+In versions configured to do partial lowering of exception-handling
+constructs (IL lowering plus DO_FULL_PORTABLE_EH_LOWERING FALSE and
+GENERATE_EH_TABLES TRUE), the front end aborted in
+make_handle_for_entity ("non-simple indirection") while attempting
+to handle return value optimization for a returned variable that has
+an "aggregate" class type and is initialized by a brace-enclosed
+aggregate initialization.  Now fixed, by disabling the return
+value optimization for variables of aggregate class type in such
+configurations.
+
+  struct A { virtual ~A(); };
+  struct B {
+    A a;
+    A a2;
+    A a3;
+  };
+  B f() {
+    B b = { A(), A(), A() };
+    return b;
+  }
+
+
 7/20/10  [EDGcpfe/10833]
 GNU ABI compatibility: #pragma pack(n) and attribute "aligned"
 
