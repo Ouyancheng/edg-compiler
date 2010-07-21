@@ -3866,7 +3866,6 @@ The following fixups need to be performed:
 {
   a_scope_depth			primary_instantiation_depth = NO_SCOPE_DEPTH;
   a_scope_depth			depth;
-  a_scope_stack_entry_ptr	primary_ssep;
   a_boolean			exclude_from_context_output = FALSE;
   a_boolean			decl_scope_reached = FALSE;
 
@@ -3913,11 +3912,14 @@ The following fixups need to be performed:
       }  /* if */
     }  /* if */
   }  /* for */
-  primary_ssep = &scope_stack[primary_instantiation_depth];
-  /* Mark the initial instantiation scope as nonnested. */
-  primary_ssep->nested_instantiation = FALSE;
-  primary_ssep->instantiation_context_depth = context_depth;
-  primary_ssep->instantiation_common_depth = common_depth;
+  if (primary_instantiation_depth != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr	primary_ssep;
+    primary_ssep = &scope_stack[primary_instantiation_depth];
+    /* Mark the initial instantiation scope as nonnested. */
+    primary_ssep->nested_instantiation = FALSE;
+    primary_ssep->instantiation_context_depth = context_depth;
+    primary_ssep->instantiation_common_depth = common_depth;
+  }  /* if */
   /* The previous_scope of the initial definition context scope will have
      already been set properly. */
   /* The scope pushed after the definition namespace context has been
