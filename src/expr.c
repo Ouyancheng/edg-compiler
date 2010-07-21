@@ -2794,7 +2794,8 @@ are expected to be NULL in that case.
           /* Remember the form of the name reference (it was set in
              scan_field_selection_operator for cases in which the object
              expression is explicit). */
-          set_operand_name_reference_from_locator_for_curr_id(operand);
+          set_operand_name_reference_from_locator(operand,
+                                                  &locator_for_curr_id);
         }  /* if */
         /* Note that the function designator will be converted to a pointer
            by the do_operand_transformations call just below. */
@@ -4599,7 +4600,7 @@ case).
                               void_type(),
                               node);
     make_expression_operand(node, result);
-    set_operand_name_reference_from_locator(result, &locator);
+    set_operand_id_details_from_locator(result, &locator);
   } else {
     /* Normal selection, not a vacuous destructor reference. */
     /* Record that the field was referenced, for cross-reference (etc.)
@@ -4675,6 +4676,7 @@ case).
                               &member_position,
                               end_position_or_null(&end_position),
                               result, rep);
+          set_operand_id_details_from_locator(result, &locator);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
@@ -4784,8 +4786,7 @@ nonstatic_member_function:
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
-          result->is_qualified_name = locator.is_qualified_name;
-          set_operand_name_reference_from_locator(result, &locator);
+          set_operand_id_details_from_locator(result, &locator);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
@@ -20464,8 +20465,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
         case sk_constant:
           /* Constant (e.g., an enum constant).  Make a constant operand. */
           make_sym_constant_operand(sym_ptr, result);
-          result->is_qualified_name = locator.is_qualified_name;
-          set_operand_name_reference_from_locator(result, &locator);
+          set_operand_id_details_from_locator(result, &locator);
           if (curr_expr_kind_is(ek_integral_constant)) {
             /* In an integral constant expression, check that the constant
                is integral or enum.  This is needed for nontype template
@@ -20534,7 +20534,7 @@ variable:
             change_refs_to_error(rep);
             rep = NULL;
           } else {
-            set_operand_name_reference_from_locator(result, &locator);
+            set_operand_id_details_from_locator(result, &locator);
           }  /* if */
           break;
         case sk_routine:

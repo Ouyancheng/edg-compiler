@@ -3299,14 +3299,16 @@ to the indicated operand.
 }  /* set_operand_name_reference_from_locator */
 
 
-void set_operand_name_reference_from_locator_for_curr_id(an_operand *operand)
+void set_operand_id_details_from_locator(an_operand       *operand,
+                                         a_symbol_locator *locator)
 /*
-Transfer the form-of-reference information (if any) from the
-locator_for_curr_id to the indicated operand.
+Transfer any id-related information from the locator to the given operand.
+This includes in particular name reference information.
 */
 {
-  set_operand_name_reference_from_locator(operand, &locator_for_curr_id);
-}  /* set_operand_name_reference_from_locator_for_curr_id */
+  set_operand_name_reference_from_locator(operand, locator);
+  operand->is_qualified_name = locator->is_qualified_name;
+}  /* set_operand_id_details_from_locator */
 
 
 void force_operand_to_constant_if_possible(an_operand *operand)
@@ -3979,11 +3981,10 @@ and is a function designator.
   operand->symbol = routine_sym;
   set_operand_position_to_pos_curr_token(operand);
   if (locator != NULL) {
-    operand->is_qualified_name = locator->is_qualified_name;
     operand->is_template_id = locator->is_template_id;
     operand->template_arg_list = locator->template_arg_list;
     operand->id_position = locator->source_position;
-    set_operand_name_reference_from_locator_for_curr_id(operand);
+    set_operand_id_details_from_locator(operand, locator);
   } else {
     operand->id_position = operand->position;
   }  /* if */
@@ -10443,8 +10444,7 @@ with extra source positions).
   set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->state = (an_operand_state)os_none;
-  result->is_qualified_name = locator->is_qualified_name;
-  set_operand_name_reference_from_locator(result, locator);
+  set_operand_id_details_from_locator(result, locator);
 }  /* make_field_operand */
 
 #if UPC_EXTENSIONS_ALLOWED

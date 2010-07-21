@@ -1658,8 +1658,9 @@ extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 extern
 void set_operand_name_reference_from_locator(an_operand       *operand,
                                              a_symbol_locator *locator);
-extern void set_operand_name_reference_from_locator_for_curr_id(
-                                                          an_operand *operand);
+
+extern void set_operand_id_details_from_locator(an_operand       *operand,
+                                                a_symbol_locator *locator);
 
 extern void force_operand_to_constant_if_possible(an_operand *operand);
 
