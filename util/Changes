@@ -5,7 +5,7 @@ Mangling changes to support new SFINAE rules
 
 Substantial additions have been made to both IA-64 and Cfront ABI mangling in
 order to accommodate the additional expression operators and constructs that
-can arise because of the new SFINAE rules of WG21 paper N2634, and that, in the
+can arise because of the new SFINAE rules of WG21 paper N2634, and, in the
 case of the IA-64 ABI, we've submitted updates to the ABI spec and we conform
 to the updated specification.  The front end documentation has been updated to
 include the new mangling codes for the Cfront ABI.
