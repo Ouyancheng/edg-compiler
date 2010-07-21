@@ -15824,7 +15824,7 @@ wrapup:
     /* For nonclass vacuous destructors, the parent class will be set to the
        type after the "~".  For classes, the destructor type will have
        already been set by get_destructor_name. */
-    a_type_ptr	dtor_type = locator_for_curr_id.parent.class_type;
+    dtor_type = locator_for_curr_id.parent.class_type;
     if (dtor_type != NULL) {
       locator_for_curr_id.variant.destructor_type = dtor_type;
     }  /* if */
