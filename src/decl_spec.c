@@ -4133,9 +4133,10 @@ An enumeration-constant is an identifier.  enum-base is a Microsoft C++
 extension specifying the underlying integer type of the enumeration.
 
 The type is returned in *type_ptr.  *declares_something is set to indicate
-whether or not this specifier declares something, and *defines_something
-to indicate whether an enumeration is actually defined.  p_ms_attributes
-describes Microsoft attributes preceding the enum specifier (if any).
+whether or not this specifier declares something.  If defines_something is
+non-NULL, *defines_something is set to indicate whether an enumeration is
+actually defined.  p_ms_attributes describes Microsoft attributes preceding
+the enum specifier (if any).
 dsi_flags is the set of input flags passed to decl_specifiers.
 */
 {
@@ -4178,7 +4179,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   db_enter(3, "enum_specifier");
 
   *declares_something = FALSE;
-  *defines_something = FALSE;
   if (scope_stack[decl_scope_level].kind ==
                                      (a_scope_kind)sck_class_struct_union) {
     class_of_which_a_member = scope_stack[decl_scope_level].assoc_type;
@@ -4512,7 +4512,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        allocated in the file scope memory region, all its components should
        also be.  Switch to the file scope memory region here at the start of
        the definition and switch back when we reach the right brace. */
-    *defines_something = TRUE;
     (void)required_token(tok_lbrace, ec_exp_lbrace);
     if (is_scoped_enum) {
       enum_type->variant.integer.is_scoped_enum = TRUE;
@@ -4963,7 +4962,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     decl_pos_block->specifiers_range.end =
                              local_decl_pos_block.specifiers_range.end;
   }  /* if */
-  if (*defines_something || !is_redeclaration) {
+  if (is_definition || !is_redeclaration) {
     /* This is either the definition of the enumeration or its initial
        declaration.  Update the extra source position information in the
        type entry. */
@@ -4977,7 +4976,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (*declares_something && !(*defines_something)) {
+  if (*declares_something && !is_definition) {
     /* Update source range information in the secondary-decl entry. */
     a_source_sequence_entry_ptr     ssep;
     a_src_seq_secondary_decl_ptr    sssdp;
@@ -5014,7 +5013,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     if (!is_redeclaration) {
       /* This is the initial declaration of this enum type. */
       add_to_types_list(enum_type, effective_decl_level);
-    } else if (*defines_something) {
+    } else if (is_definition) {
       /* This is a redeclaration and also a definition.  Remove the enum type
          from the types list and reenter it at the end. */
       move_to_end_of_types_list(enum_type, effective_decl_level);
@@ -5028,6 +5027,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     pop_class_reactivation_scope();
   }  /* if */
   *type_ptr = enum_type;
+  if (defines_something != NULL) *defines_something = is_definition;
 return_point:;
   db_exit();
 }  /* enum_specifier */
@@ -8120,7 +8120,8 @@ process_class_specifier:
             /* Scan the specifier anyway, but throw it away. */
             enum_specifier(state, input_flags, /*vacuous_decl_allowed=*/FALSE,
                            &dummy_type, (an_ms_attribute_ptr*)NULL,
-                           &dummy_flag, &dummy_flag, decl_pos_block);
+                           &dummy_flag, /*defines_something=*/NULL,
+                           decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
