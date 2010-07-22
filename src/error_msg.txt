@@ -1156,7 +1156,7 @@ REMOVED;ec_attribute_only_in_func_def;;"attribute %sq is only allowed in a funct
 ec_transparent_type_is_not_union;;"the \"transparent_union\" attribute only applies to unions, and %t is not a union"
 ec_transparent_attribute_ignored;;"the \"transparent_union\" attribute is ignored on incomplete types"
 ec_union_cannot_be_transparent_sym;;"%t cannot be transparent because %n does not have the same size as the first field"
-ec_union_cannot_be_transparent;;"%t cannot be transparent because it has a field of type %t which is not the same size as the first field"
+ec_union_cannot_be_transparent;;"%t1 cannot be transparent because it has a field of type %t2 which is not the same size as the first field"
 REMOVED;ec_transparent_variable;;"only parameters can be transparent"
 ec_attribute_does_not_apply_to_local_variable;;"attribute %sq does not apply to local variables"
 ec_attributes_in_rout_defn;;"attributes are not permitted in a function definition"

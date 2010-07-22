@@ -1,5 +1,22 @@
 Version 4.2
 
+7/22/10  [EDGcpfe/10849]
+Abort on GNU C transparent union with large unnamed bit field
+
+In GNU C mode, the front end previously aborted with an internal error in
+check_if_fill_in_used ("provided diagnostic fill-in was not used") if a union
+with the transparent_union attribute contains an unnamed bit field whose size
+exceeds the first field of the union (which is invalid for a transparent
+union).  For example:
+
+  union U {
+    char c;
+    long long : 48;  // Previously triggered an internal error.
+  } __attribute((transparent_union));
+
+This is now fixed (an error is emitted for the invalid field size).
+
+
 7/22/10  [EDGcpfe/10861]
 Abort on use of PCH in file whose first token is a constant
 
