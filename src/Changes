@@ -14,7 +14,7 @@ union).  For example:
     long long : 48;  // Previously triggered an internal error.
   } __attribute((transparent_union));
 
-This is now fixed (an error is emitted for the invalid field size).
+This is now fixed (a warning is emitted for the invalid attribute).
 
 
 7/22/10  [EDGcpfe/10861]
