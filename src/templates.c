@@ -8099,8 +8099,8 @@ static a_symbol_ptr look_up_member_in_substituted_parent(
 			a_ctws_options_set		options,
 			a_boolean			*copy_error)
 /*
-parent_type is a class type that has been substituted.  orig_sym is the
-symbol from the original parent type.  is_type is TRUE if the entity
+parent_type is a class or enum type that has been substituted.  orig_sym is
+the symbol from the original parent type.  is_type is TRUE if the entity
 being looked up is known to be a type.
 */
 {
@@ -8120,18 +8120,23 @@ being looked up is known to be a type.
     new_sym = look_up_conversion_function(parent_type, conv_type, source_pos);
   } else {
     a_symbol_locator		locator;
-    an_id_lookup_options_set	lookup_options;
     clear_locator(&locator, source_pos);
     locator.symbol_header = orig_sym->header;
-    /* If the entity being looked up is known the be the parent of another
-       entity, then it must be a class or a namespace.  Otherwise, use the
-       is_type parameter to determine whether a typename lookup is needed. */
-    if (options & CTWS_IS_PARENT) {
-      lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
+    if (is_enum_type(parent_type)) {
+      new_sym = enum_qualified_id_lookup(&locator, parent_type);
     } else {
-      lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
+      an_id_lookup_options_set	lookup_options;
+      /* If the entity being looked up is known the be the parent of another
+         entity, then it must be a class or a namespace.  Otherwise, use the
+         is_type parameter to determine whether a typename lookup is needed. */
+      if (options & CTWS_IS_PARENT) {
+        lookup_options = IDL_MUST_BE_CLASS_OR_NAMESPACE;
+      } else {
+        lookup_options = is_type ? IDL_TYPENAME_LOOKUP : IDL_NO_OPTIONS;
+      }  /* if */
+      new_sym = class_qualified_id_lookup(&locator, parent_type,
+                                          lookup_options);
     }  /* if */
-    new_sym = class_qualified_id_lookup(&locator, parent_type, lookup_options);
   }  /* if */
   return new_sym;
 }  /* look_up_member_in_substituted_parent */
@@ -8188,9 +8193,10 @@ entity is known to be a type.
        original symbol. */
     new_sym = sym;
   } else if (!is_class_struct_union_type(parent_type) &&
-             !is_template_param_type(parent_type)) {
-    /* The new type is not a class type or a template parameter type, and so
-       cannot be a parent. */
+             !is_template_param_type(parent_type) &&
+             !(enum_qualifiers_enabled && is_enum_type(parent_type))) {
+    /* The new type is not a class type, a template parameter type or
+       an enum type (in some modes), and so cannot be a parent. */
     *copy_error = TRUE;
     goto done;
   } else {
