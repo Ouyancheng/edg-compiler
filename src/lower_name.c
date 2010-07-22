@@ -2246,17 +2246,51 @@ of length specification in the mangling for lengths of literals.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
+static void repr_for_complex_constant(a_constant_ptr           con,
+                                      an_internal_float_value *real,
+                                      an_internal_float_value *imag)
+/*
+This routine returns the real and imaginary values of a complex constant
+(which can be a ck_complex or ck_aggregate).
+FIXME: This doesn't handle lowered complex constants.
+*/
+{
+  check_assertion(con->kind == (a_constant_repr_kind)ck_complex ||
+                  con->kind == (a_constant_repr_kind)ck_aggregate);
+
+  if (con->kind == (a_constant_repr_kind)ck_complex) {
+    *real = con->variant.complex_value->real;
+    *imag = con->variant.complex_value->imag;
+  } else {
+    check_assertion(con->variant.aggregate.first_constant->kind ==
+                                              (a_constant_repr_kind)ck_float &&
+                    con->variant.aggregate.last_constant->kind ==
+                                               (a_constant_repr_kind)ck_float);
+    *real = con->variant.aggregate.first_constant->variant.float_value;
+    *imag = con->variant.aggregate.last_constant->variant.float_value;
+  }  /* if */
+}  /* repr_for_complex_constant */
+
+
 static void mangled_encoding_for_complex_constant(
                                              a_constant_ptr           con,
                                              a_boolean                old_form,
                                              a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the ck_complex constant con.
-This is used to encode complex floating-point constants as part of the
-mangled names of expressions.  If old_form is TRUE, use the old form
-of length specification in the mangling for lengths of literals.
+Add to the mangled name the encoding for the ck_complex (or ck_aggregate
+that represents complex) constant con.  This is used to encode complex
+floating-point constants as part of the mangled names of expressions.  If
+old_form is TRUE, use the old form of length specification in the mangling for
+lengths of literals.
 */
 {
+  an_internal_float_value  real, imag;
+
+  check_assertion(con->kind == (a_constant_repr_kind)ck_complex ||
+                  con->kind == (a_constant_repr_kind)ck_aggregate);
+
+  /* Extract the values to be encoded from the constant. */
+  repr_for_complex_constant(con, &real, &imag);
 #if !IA64_ABI
   /* Complex float: the Cfront-like ABI encoding mangles both real and
      imaginary portions of the value as floating point numbers:
@@ -2269,11 +2303,9 @@ of length specification in the mangling for lengths of literals.
      cfront 3.0.1 does not implement this, so we made it up. */
   add_to_mangled_name('L', mctl);
   add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
-                                  &con->variant.complex_value->real, old_form,
-                                  mctl);
+                                  &real, old_form, mctl);
   add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
-                                  &con->variant.complex_value->imag, old_form,
-                                  mctl);
+                                  &imag, old_form, mctl);
 #else /* IA64_ABI */
   /* For IA-64, the encoding is
        L <type> <real-part float> _ <imag-part float> E
@@ -2285,13 +2317,11 @@ of length specification in the mangling for lengths of literals.
   mangled_encoding_for_type(con->type, mctl);
   /* Add the hex digits for the real portion of the complex number. */
   add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
-                                  &con->variant.complex_value->real, old_form,
-                                  mctl);
+                                  &real, old_form, mctl);
   add_to_mangled_name('_', mctl);
   /* Add the hex digits for the imaginary portion of the complex number. */
   add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
-                                  &con->variant.complex_value->imag, old_form,
-                                  mctl);
+                                  &imag, old_form, mctl);
   /* Add the end-of-literal marker. */
   add_to_mangled_name('E', mctl);
 #endif /* !IA64_ABI */
@@ -3402,6 +3432,10 @@ do_unknown_function:
 #endif /* IA64_ABI */
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_aggregate:
+      /* FIXME: Doesn't work for lowered complex constants. */
+      check_assertion(con->type->kind == (a_type_kind)tk_complex);
+      /*FALLTHROUGH*/
     case ck_complex:
       mangled_encoding_for_complex_constant(con, old_form, mctl);
       break;
