@@ -3682,7 +3682,7 @@ in a friend declaration.
                           "curr_tag_symbol: bad symbol kind");
       tp = assoc_symbol->variant.type.ptr;
       /* If the type is a typedef, use the underlying type. */
-      tp = skip_typedefs(tp);
+      tp = skip_typedefs_not_dependent_decltypes(tp);
       new_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       /* Issue a diagnostic because this usage is no longer permitted by
          the Working Paper. */
