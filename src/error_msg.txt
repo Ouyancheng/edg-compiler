@@ -1952,6 +1952,7 @@ ec_cannot_init_auto_flexible_array_member;;"an initializer cannot be specified f
 ec_bad_type_for_list_init;;"a list initializer is not allowed for type %t"
 ec_final_base_class;;"a \"final\" class type cannot be used as a base class"
 ec_export_removed;;"exported templates are no longer in the standard C++ language"
+ec_template_dependent_designator;;"a template-dependent designator is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

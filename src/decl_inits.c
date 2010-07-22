@@ -1498,9 +1498,11 @@ if an error occurs; otherwise TRUE is returned and *subscript is set to the
 scanned value.
 */
 {
-  a_constant constant;
-  a_boolean  okay = TRUE;
+  a_constant         constant;
+  a_boolean          okay = TRUE;
+  a_source_position  pos;
 
+  pos = pos_curr_token;
   scan_integral_constant_expression(&constant);
   switch (constant.kind) {
     case ck_integer:
@@ -1518,7 +1520,7 @@ scanned value.
           if (overflow ||
               (!is_incomplete_type(dest_type) &&
                value >= dest_type->variant.array.variant.number_of_elements)) {
-            error(ec_subscript_out_of_range);
+            pos_error(ec_subscript_out_of_range, &pos);
             okay = FALSE;
           } else {
             *subscript = value;
@@ -1526,9 +1528,13 @@ scanned value.
         }  /* if */
       } else {
         /* Negative subscript. */
-        error(ec_subscript_out_of_range);
+        pos_error(ec_subscript_out_of_range, &pos);
         okay = FALSE;
       }  /* if */
+      break;
+    case ck_template_param:
+      pos_error(ec_template_dependent_designator, &pos);
+      okay = FALSE;
       break;
     case ck_error:
       okay = FALSE;

@@ -1,5 +1,22 @@
 Version 4.2
 
+7/22/10  [EDGcpfe/10865]
+Abort on template-dependent designator subscript (GNU C++ mode)
+
+In GNU C++ mode, the front end accepts designated initializers, but previously
+it would abort with an internal error ("bad constant kind") in decl_inits.c
+(function scan_array_element_subscript) when attempting to process a template-
+dependent array designator.  For example:
+
+  template<int N> void f() {
+    int x[10] = { [N] = 2 };  // Previously aborted during prototype
+  }                           // instantiation.
+  template void f<1>();
+
+This is now fixed: Template-dependent array designators are diagnosed with an
+error (since GCC does not appear to accept them either).
+
+
 7/22/10  [EDGcpfe/10864]
 Abort on GNU statement expression in function prototype scope
 
