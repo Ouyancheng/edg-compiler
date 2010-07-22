@@ -25623,6 +25623,7 @@ and the array repetition.
     an_operand           operand;
     a_type_ptr           src_type, dst_type = cip->variant.field->type;
     a_type_ptr           el_type;
+    a_boolean            full_expr_wrapup_done = FALSE;
     check_assertion(is_array_type(dst_type));
     el_type = underlying_array_element_type(dst_type);
     el_type = skip_typerefs(el_type);
@@ -25666,13 +25667,18 @@ and the array repetition.
          matches the destination array.  We'll return a dik_none entry, but
          if necessary, we also record the expression we saw. */
       if (prototype_instantiations_in_il) {
-        cip->source_expr = make_node_from_operand(&operand);
+        an_expr_node_ptr expr = make_node_from_operand(&operand);
+        expr = wrap_up_full_expression(expr);
+        cip->source_expr = expr;
+        full_expr_wrapup_done = TRUE;
       }  /* if */
     } else {
-      if (expr_error_should_be_issued()) {
+      if (!is_error_operand(&operand) &&
+          expr_error_should_be_issued()) {
         sym_error(ec_bad_array_member_initialization, field_sym);
       }  /* if */
     }  /* if */
+    if (!full_expr_wrapup_done) wrap_up_dynamic_init_full_expression(dip);
     pop_expr_stack();
   }  /* if */
   if (dip == NULL) {
