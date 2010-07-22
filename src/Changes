@@ -1,5 +1,27 @@
 Version 4.2
 
+7/22/10  [EDGcpfe/10861]
+Abort on use of PCH in file whose first token is a constant
+
+If a file that uses a precompiled header file has a constant as the first
+token after the portion of the compilation that comes from the PCH,
+an abort could occur (in f_set_trans_unit_corresp).  Now fixed.  Note that
+a constant in such a location results in a syntax error.
+
+
+  // File that creates the PCH
+  #define ASDF
+  #pragma hdrstop
+  int i = 0;
+
+  // File that uses the PCH
+  #define ASDF
+  #pragma hdrstop
+  0
+  int i = 0;
+
+
+
 7/22/10  [EDGcpfe/10865]
 Abort on template-dependent designator subscript (GNU C++ mode)
 

@@ -658,6 +658,7 @@ information.
 {
   a_source_position	saved_pos_curr_token;
   a_source_position	saved_error_position;
+  a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
 
   saved_pos_curr_token = pos_curr_token;
   saved_error_position = error_position;
@@ -665,6 +666,7 @@ information.
      information.  This affects the way in which preprocessing directives
      are handled and the way end-of-file is processed. */
   building_pch_prefix = TRUE;
+  fetch_pp_tokens = TRUE;
   /* If any preinclude files were specified, create an event for them. */
   if (preinclude_file_list != NULL || macro_preinclude_file_list) {
     create_preinclude_pch_event();
@@ -691,6 +693,7 @@ information.
   building_pch_prefix = FALSE;
   pos_curr_token = saved_pos_curr_token;
   error_position = saved_error_position;
+  fetch_pp_tokens = save_fetch_pp_tokens;
 }  /* build_prefix_information */
 
 
