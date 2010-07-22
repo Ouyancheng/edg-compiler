@@ -2870,8 +2870,18 @@ add mangling for an eok_address_of operation.
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
+      a_boolean     suppress_param_encoding = FALSE;
+#if ABI_COMPATIBILITY_VERSION >= 402 && GNU_EXTENSIONS_ALLOWED
+      if (emulate_gnu_abi_bugs &&
+          rout->special_kind == (a_special_function_kind)sfk_none &&
+          rout->variant.builtin_function_kind !=
+                                          (a_builtin_function_kind)bfk_none) {
+        /* GNU suppresses parameter encodings on builtin functions. */
+        suppress_param_encoding = TRUE;
+      }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 && GNU_EXTENSIONS_ALLOWED */
       mangled_function_name(rout,
-                            /*suppress_param_encoding=*/FALSE,
+                            suppress_param_encoding,
                             /*suppress_parent_encoding=*/FALSE,
                             /*force_primary_name=*/TRUE,
                             force_individuation,
