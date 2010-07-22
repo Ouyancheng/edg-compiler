@@ -7327,6 +7327,28 @@ operation; compare mangled_class_name (no "_internal").
 #endif /* !IA64_ABI */
 }  /* mangled_class_name_internal */
 
+#if IA64_ABI
+
+/*  
+Macro to determine if the character string pointed to by "p" is a
+<builtin-type>.  <builtin-type>s are a single lower-case letter or two
+characters starting with the character "D".  Exceptions to this rule are
+the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
+for typeof (i.e., "DY" and "Dy").
+*/
+#define is_builtin_type(p)                                                \
+  (islower((unsigned char)*(p)) ||                                        \
+   (*(p) == 'D' &&                                                        \
+    !((p)[1] == 'T' || (p)[1] == 't' || (p)[1] == 'Y' || (p)[1] == 'y')))
+
+/*
+Macro to determine if the type pointed to by "p" needs a substitution
+recorded for it.  <builtin-type>s are not recorded with the exception of
+vendor extended types which are recorded.
+*/
+#define record_substitution_for_type(p) (!(is_builtin_type(p)) || *(p) == 'u')
+
+#endif /* IA64_ABI */
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl)
@@ -7843,13 +7865,10 @@ have_whole_mangled_name:;
 #if IA64_ABI
   /* Create a substitution for the unqualified type.  No substitutions are
      created for <builtin-type>s (which are indicated by a single lowercase
-     character or a string beginning with the letter "D").  Note that
+     character or a string beginning with the letter "D" -- except that
      the manglings for decltype (i.e., "DT" and "Dt") as well as the EDG
-     extension for typeof (i.e., "DY" and "Dy") are not <builtin-type>s,
-     but they are handled outside of this routine. */
-  if (!(s != NULL &&
-        (islower((unsigned char)*s) ||
-         *s == 'D'))
+     extension for typeof (i.e., "DY" and "Dy") are not <builtin-type>s). */
+  if ((s == NULL || record_substitution_for_type(s))
 #if ABI_COMPATIBILITY_VERSION < 402 && C99_IL_EXTENSIONS_SUPPORTED
       /* The IA-64 ABI mandates substitutions for complex types (versions
          prior to 4.2 mistakenly omitted these). */
