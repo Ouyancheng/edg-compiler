@@ -14910,6 +14910,27 @@ in *rcblock).
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
+static a_boolean inside_template_arg_expression(void)
+/*
+Return TRUE if we're currently inside a template argument.  This differs
+from the is_template_arg_expression flag in the expression stack in that
+it returns TRUE for nested expressions inside template argument expressions,
+and not just for the top-level expression.
+*/
+{
+  a_boolean               result = FALSE;
+  an_expr_stack_entry_ptr esep;
+
+  for (esep = expr_stack; esep != NULL; esep = esep->prev) {
+    if (esep->is_template_arg_expression) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* inside_template_arg_expression */
+
+
 static void scan_gnu_statement_expression(an_operand *result)
 /*
 Scan the GNU statement expression:
@@ -14938,7 +14959,7 @@ both C and C++ modes.
   }  /* if */
   if (depth_stmt_stack < 0 || innermost_function_scope == NULL ||
       expr_stack->is_default_arg_expression ||
-      expr_stack->is_template_arg_expression) {
+      inside_template_arg_expression()) {
     /* We're not inside the compound statement of a function definition, so
        don't try to scan the statement.  Just flush to the matching closing
        brace. */
@@ -14947,7 +14968,7 @@ both C and C++ modes.
     /* Also in template argument expressions, because we can't push
        another object lifetime later. */
     if (!err) {
-      if (depth_stmt_stack < 0) {
+      if (!expr_stack->is_default_arg_expression) {
         expr_pos_error(ec_statement_expression_in_function_only,
                        &start_position);
       } else {
