@@ -1050,6 +1050,14 @@ Make sure the specified scope depth is a valid depth on the scope stack.
 #define assert_is_valid_scope_depth(depth)				\
   { check_assertion(depth == NO_SCOPE_DEPTH || depth <= depth_scope_stack); }
 
+/*
+Determine whether a given scope kind is one that is "local" (i.e., one in
+which variables have automatic storage duration by default).
+*/
+#define is_local_scope_kind(kind)                                        \
+  (kind == (a_scope_kind)sck_function ||                                 \
+   kind == (a_scope_kind)sck_block ||                                    \
+   kind == (a_scope_kind)sck_condition)
 
 /*
 Given a pointer to a scope stack entry, return TRUE if and only if the

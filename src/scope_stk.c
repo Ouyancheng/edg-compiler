@@ -652,9 +652,7 @@ unnamed type ends up being an "anonymous union".
 {
   a_scope_stack_entry_ptr
              ssep = &scope_stack[scope_depth];
-  a_boolean  local_scope = (ssep->kind == (a_scope_kind)sck_function ||
-                            ssep->kind == (a_scope_kind)sck_block ||
-                            ssep->kind == (a_scope_kind)sck_condition);
+  a_boolean  local_scope = is_local_scope_kind(ssep->kind);
 
   if (local_scope) {
     /* Local scope entities use a "collision table". */
@@ -706,9 +704,7 @@ discriminator field in the symbol supplement.
 {
   a_scope_stack_entry_ptr
               ssep = &scope_stack[scope_depth];
-  a_boolean   local_scope = (ssep->kind == (a_scope_kind)sck_function ||
-                             ssep->kind == (a_scope_kind)sck_block ||
-                             ssep->kind == (a_scope_kind)sck_condition);
+  a_boolean   local_scope = is_local_scope_kind(ssep->kind);
   a_type_ptr  type = type_symbol_type(sym);
 
   check_assertion(is_unnamed_tag_symbol(sym) &&
@@ -2151,9 +2147,7 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
           a_scope_depth            func_depth;
           a_scope_stack_entry_ptr  declssep = &scope_stack[decl_scope_level];
           func_depth = declssep->depth_innermost_function_scope;
-          if (declssep->kind == (a_scope_kind)sck_block ||
-              declssep->kind == (a_scope_kind)sck_condition ||
-              declssep->kind == (a_scope_kind)sck_function) {
+          if (is_local_scope_kind(declssep->kind)) {
             /* The normal cases. */
           } else {
             /* An unexpected parent scope for a local class/enum.  Use the
@@ -2571,9 +2565,7 @@ the scope being pushed.
   ssep->fx_accum_overflow_state = curr_fx_accum_overflow_state;
 #endif /* FIXED_POINT_ALLOWED */
 #if NEED_NAME_MANGLING
-  if (ssep->kind == (a_scope_kind)sck_function ||
-      ssep->kind == (a_scope_kind)sck_block ||
-      ssep->kind == (a_scope_kind)sck_condition) {
+  if (is_local_scope_kind(ssep->kind)) {
     ssep->name_discr.local_name_collision_table = NULL;
   } else {
     ssep->name_discr.last_unnamed_type_number = 0;
@@ -3063,9 +3055,7 @@ the scope being pushed.
                              (an_object_lifetime_kind)(olk_global_static));
       }  /* if */
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
-    } else if (kind == (a_scope_kind)sck_function ||
-               kind == (a_scope_kind)sck_block ||
-               kind == (a_scope_kind)sck_condition) {
+    } else if (is_local_scope_kind(kind)) {
       /* This is the sort of scope for which a new block object lifetime is
          pushed. */
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
@@ -7251,9 +7241,7 @@ End a name scope by popping an entry off the scope stack.
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */
-    if (kind == (a_scope_kind)sck_block ||
-        kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_condition) {
+    if (is_local_scope_kind(kind)) {
       /* For a function, block, or condition scope, pop the current object
          lifetime, which ought to be the one created when this scope was
          pushed. */

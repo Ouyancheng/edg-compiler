@@ -1,5 +1,21 @@
 Version 4.2
 
+7/22/10  [EDGcpfe/10864]
+Abort on GNU statement expression in function prototype scope
+
+The front end previously abort with an internal error in push_object_lifetime
+("parent is in file scope memory, new olp is not") when a GNU statement
+expression appeared in the function prototype scope of a declaration appearing
+in a local scope.  For example:
+
+  int f() {
+    void g(decltype(({f();}))*);  // Previously triggered an internal error.
+  }
+
+This is now fixed: The front end now issues an error (without aborting) on
+such cases.
+
+
 7/21/10  [EDGcpfe/10860]
 GNU C++ compatibility: Duplicate parameter names
 

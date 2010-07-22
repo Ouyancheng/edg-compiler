@@ -17848,12 +17848,8 @@ lifetimes, since those are never bound.
     case olk_block:
       switch (entity_kind) {
         case iek_scope:
-          check_assertion_str2((((a_scope_ptr)entity_ptr)->kind ==
-                                           (a_scope_kind)sck_function) ||
-                               (((a_scope_ptr)entity_ptr)->kind ==
-                                         (a_scope_kind)sck_block) ||
-                               (((a_scope_ptr)entity_ptr)->kind ==
-                                         (a_scope_kind)sck_condition),
+          check_assertion_str2(is_local_scope_kind(
+                                             ((a_scope_ptr)entity_ptr)->kind),
                                str, "bad scope kind for olk_block");
           break;
         case iek_local_static_variable_init:

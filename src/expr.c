@@ -14957,7 +14957,7 @@ both C and C++ modes.
     expr_pos_error(ec_expr_not_constant, &start_position);
     err = TRUE;
   }  /* if */
-  if (depth_stmt_stack < 0 || innermost_function_scope == NULL ||
+  if (!is_local_scope_kind(scope_stack_top().kind) ||
       expr_stack->is_default_arg_expression ||
       inside_template_arg_expression()) {
     /* We're not inside the compound statement of a function definition, so
@@ -19682,11 +19682,7 @@ look_for_var:
        sd--) {}
   /* Look at the block and function scopes immediately enclosing the
      lambda class to see if the variable is declared there. */
-  for (;
-       (scope_stack[sd].kind == (a_scope_kind)sck_block ||
-        scope_stack[sd].kind == (a_scope_kind)sck_condition ||
-        scope_stack[sd].kind == (a_scope_kind)sck_function);
-       sd--) {
+  for (; is_local_scope_kind(scope_stack[sd].kind); sd--) {
     if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
       /* The variable is in an appropriate scope and can be captured. */
       goto done;
