@@ -4626,9 +4626,17 @@ handled at this time.
 #if IA64_ABI
   add_str_to_mangled_name("cv", mctl);
   mangled_encoding_for_type(type, mctl);
-  if (args == NULL || args->next != NULL) add_to_mangled_name('_', mctl);
-  mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
-  if (args == NULL || args->next != NULL) add_to_mangled_name('E', mctl);
+  if ((args == NULL || args->generated_default_arg) ||
+      (args->next != NULL && !args->next->generated_default_arg)) {
+    /* Zero or more than one argument (args with generated_default_arg
+       are ignored). */
+    add_to_mangled_name('_', mctl);
+    mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+    add_to_mangled_name('E', mctl);
+  } else {
+    /* Exactly one argument. */
+    mangled_expression_list(args, /*in_dependent_expr=*/TRUE, mctl);
+  }  /* if */
 #else /* !IA64_ABI */
   /* Conversion.  Output has the form
        Ocv1A_1_I0_1IO <-- encoding for "A(p1)"
