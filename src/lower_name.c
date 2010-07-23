@@ -498,6 +498,8 @@ static void mangled_source_name(a_source_correspondence_ptr scp,
                                 a_template_arg_ptr          template_arg_list,
                                 a_boolean                   include_length,
                                 a_mangling_control_block    *mctl);
+static char *first_field_name(a_type_ptr              class_type,
+                              a_source_correspondence **field_scp);
 
 #if !IA64_ABI
 /*
@@ -2389,6 +2391,12 @@ template classes.
       /* Normal variable. */
 #if !IA64_ABI
       str = unmangled_or_fabricated_name_of(&variable->source_corresp);
+      if (str == NULL && variable->is_anonymous_parent_object) {
+        a_source_correspondence *field_scp;
+        /* Give a name to an anonymous union variable based on its first
+           member's name. */
+        str = first_field_name(variable->type, &field_scp);
+      }  /* if */
       check_assertion_str(str != NULL,
                      "mangled_encoding_for_address_constant: addr of unnamed");
       add_str_to_mangled_name(str, mctl);
