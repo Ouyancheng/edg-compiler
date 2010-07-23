@@ -7381,24 +7381,99 @@ operation; compare mangled_class_name (no "_internal").
 
 #if IA64_ABI
 
-/*  
-Macro to determine if the character string pointed to by "p" is a
-<builtin-type>.  <builtin-type>s are a single lower-case letter or two
-characters starting with the character "D".  Exceptions to this rule are
-the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
-for typeof (i.e., "DY" and "Dy").
-*/
-#define is_builtin_type(p)                                                \
-  (islower((unsigned char)*(p)) ||                                        \
-   (*(p) == 'D' &&                                                        \
-    !((p)[1] == 'T' || (p)[1] == 't' || (p)[1] == 'Y' || (p)[1] == 'y')))
-
+static a_boolean record_substitution_for_type(a_type_ptr type)
 /*
-Macro to determine if the type pointed to by "p" needs a substitution
-recorded for it.  <builtin-type>s are not recorded with the exception of
-vendor extended types which are recorded.
+This routine returns TRUE if a substitution should be allocated for the
+specified type.  Substitutions are not allocated for <builtin-type>s
+(except for any vendor extended types).
 */
-#define record_substitution_for_type(p) (!(is_builtin_type(p)) || *(p) == 'u')
+{
+  a_boolean result = TRUE;
+
+  switch (type->kind) {
+    case tk_error:
+      check_assertion(total_errors != 0);
+      /* FALLTHROUGH */
+    case tk_void:
+    case tk_float:
+    case tk_nullptr:
+      /* These are <builtin-type>s according to the IA-64 ABI, so no
+         substitution is allocated for them. */
+      result = FALSE;
+      break;
+    case tk_integer:
+      /* Integers are <builtin-type>s, enums are not. */
+      if (type->variant.integer.enum_type) {
+        result = TRUE;
+      } else {
+        result = FALSE;
+      }  /* if */
+      break;
+    case tk_routine:
+    case tk_array:
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+    case tk_ptr_to_member:
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* These are not <builtin-type>s, so a substitution is required. */
+      result = TRUE;
+      break;
+    case tk_template_param:
+      if (is_auto_type(type)) {
+        /* This occurs, for example, when mangling decltype(new auto(p1)). */
+        result = FALSE;
+      } else {
+        result = TRUE;
+      }  /* if */
+      break;
+    case tk_typeref:
+      /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
+         should have been stripped, leaving only dependent decltype/typeof
+         typerefs (for which substitutions are created). */
+      check_assertion(type->variant.typeref.is_decltype ||
+                      type->variant.typeref.is_typeof);
+      result = TRUE;
+      break;
+    case tk_pointer:
+      /* Pointers, reference, rvalue reference all get substitutions
+         (unless it's a lowered std::nullptr_t type). */
+#if DO_IL_LOWERING
+      if (!is_or_was_nullptr_type(type))
+#endif /* DO_IL_LOWERING */
+      /* Do not insert code here. */
+      {
+        result = TRUE;
+      }  /* if */
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      /* A complex type has a substitution recorded. */
+#if ABI_COMPATIBILITY_VERSION >= 402
+      result = TRUE;
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
+      /* Versions prior to 4.2 mistakenly omitted this substitution. */
+      result = FALSE;
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+      break;
+#if CHECKING
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
+    case tk_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
+    case tk_unknown:
+    default:
+      /* These are unexpected. */
+      unexpected_condition();
+#endif /* CHECKING */
+  }  /* switch */
+  return result;
+}  /* record_substitution_for_type */
 
 #endif /* IA64_ABI */
 
@@ -7916,17 +7991,9 @@ Add to the mangled name the encoding for the type "type".
 have_whole_mangled_name:;
 #if IA64_ABI
   /* Create a substitution for the unqualified type.  No substitutions are
-     created for <builtin-type>s (which are indicated by a single lowercase
-     character or a string beginning with the letter "D" -- except that
-     the manglings for decltype (i.e., "DT" and "Dt") as well as the EDG
-     extension for typeof (i.e., "DY" and "Dy") are not <builtin-type>s). */
-  if ((s == NULL || record_substitution_for_type(s))
-#if ABI_COMPATIBILITY_VERSION < 402 && C99_IL_EXTENSIONS_SUPPORTED
-      /* The IA-64 ABI mandates substitutions for complex types (versions
-         prior to 4.2 mistakenly omitted these). */
-      && type->kind != (a_type_kind)tk_complex
-#endif /* ABI_COMPATIBILITY_VERSION < 402 && C99_IL_EXTENSIONS_SUPPORTED */
-                                              ) {
+     created for <builtin-type>s (with the exception of vendor extended
+     types). */
+  if (record_substitution_for_type(type)) {
     alloc_substitution((char *)type, iek_type, mctl);
   }  /* if */
 add_substitution_for_qualified_type:
