@@ -7543,9 +7543,9 @@ Add to the mangled name the encoding for the type "type".
       break;
     }  /* if */
 #endif /* DO_IL_LOWERING */
-    /* Mangle a decltype expression here; decltypes without expressions are
-       stripped, as are non-dependent types.  GNU has a slightly different
-       interpretation of when decltype mangling is needed. */
+    /* Decltypes without expressions are stripped, as are non-dependent types.
+       GNU has a slightly different interpretation of when decltype mangling is
+       needed. */
     if (type->variant.typeref.is_decltype &&
         (
 #if IA64_ABI
@@ -7553,56 +7553,14 @@ Add to the mangled name the encoding for the type "type".
                       gnu_requires_decltype_mangling(type) :
 #endif /* IA64_ABI */
                       type->variant.typeref.is_dependent_decltype_or_typeof)) {
-      an_expr_node_ptr decltype_expr = decltype_arg(type);
-      check_assertion(decltype_expr != NULL);
-      if (type->variant.typeref.decltype_expr_not_parenthesized) {
-        add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_TYPE, mctl);
-      } else {
-        add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_EXPR, mctl);
-      }  /* if */
-      mangled_encoding_for_expression(decltype_expr,
-                                      /*in_dependent_expr=*/TRUE, mctl);
-#if IA64_ABI
-      add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
-      goto have_whole_mangled_name;
+      /* This decltype needs to appear in the mangled name. */
+      break;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    /* Mangle a typeof expression here.  In cases where typeof has a type
-       argument (rather than an expression), the typeref will be stripped and
-       the underlying type mangled as appropriate. */
     if (type->variant.typeref.is_typeof &&
         type->variant.typeref.is_dependent_decltype_or_typeof) {
-      /* typeof (type or expression). */
-#if ABI_COMPATIBILITY_VERSION >= 402
-      /* There is no IA-64 ABI encoding for typeof (a GNU extension) and
-         GNU doesn't provide a mangling for typeof that we can emulate, so
-         these "Dy" and "DY" manglings are an EDG extension:
-
-         <type> ::= Dy <type> E       # typeof(type)
-                ::= DY <expression> E # typeof(expression)
-         */
-      if (type->variant.typeref.is_typeof_with_type_operand) {
-        add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
-        mangled_encoding_for_type(type->variant.typeref.type, mctl);
-      } else {
-        check_assertion(decltype_arg(type) != NULL);
-        add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_EXPR, mctl);
-        mangled_encoding_for_expression(decltype_arg(type),
-                                        /*in_dependent_expr=*/TRUE, mctl);
-      }  /* if */
-#if IA64_ABI
-      add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
-#else /* ABI_COMPATIBILITY_VERSION < 402 */
-#if IA64_ABI
-      /* Use a vendor extension for typeof. */
-      add_str_to_mangled_name("u6typeof", mctl);
-#else /* !IA64_ABI */
-      mangled_name_with_length("__typeof", mctl);
-#endif /* IA64_ABI */
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-      goto have_whole_mangled_name;
+      /* This typeof needs to appear in the mangled name. */
+      break;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* for */
@@ -7874,6 +7832,63 @@ Add to the mangled name the encoding for the type "type".
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
         s = MANGLING_STRING_FOR_NULLPTR;
+        break;
+      case tk_typeref:
+        /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
+           should have been stripped, leaving only dependent decltype/typeof
+           typerefs. */
+        check_assertion(type->variant.typeref.is_decltype ||
+                        type->variant.typeref.is_typeof);
+        if (type->variant.typeref.is_decltype) {
+          /* Provide mangling for decltype. */
+          an_expr_node_ptr decltype_expr = decltype_arg(type);
+          check_assertion(decltype_expr != NULL);
+          if (type->variant.typeref.decltype_expr_not_parenthesized) {
+            add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_TYPE, mctl);
+          } else {
+            add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_EXPR, mctl);
+          }  /* if */
+          mangled_encoding_for_expression(decltype_expr,
+                                          /*in_dependent_expr=*/TRUE, mctl);
+#if IA64_ABI
+          add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+          goto have_whole_mangled_name;
+        }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+        if (type->variant.typeref.is_typeof) {
+          /* Provide mangling for typeof. */
+#if ABI_COMPATIBILITY_VERSION >= 402
+          /* There is no IA-64 ABI encoding for typeof (a GNU extension) and
+             GNU doesn't provide a mangling for typeof that we can emulate, so
+             these "Dy" and "DY" manglings are an EDG extension:
+
+             <type> ::= Dy <type> E       # typeof(type)
+                    ::= DY <expression> E # typeof(expression)
+             */
+          if (type->variant.typeref.is_typeof_with_type_operand) {
+            add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
+            mangled_encoding_for_type(type->variant.typeref.type, mctl);
+          } else {
+            check_assertion(decltype_arg(type) != NULL);
+            add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_EXPR, mctl);
+            mangled_encoding_for_expression(decltype_arg(type),
+                                            /*in_dependent_expr=*/TRUE, mctl);
+          }  /* if */
+#if IA64_ABI
+          add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
+#if IA64_ABI
+          /* Use a vendor extension for typeof. */
+          add_str_to_mangled_name("u6typeof", mctl);
+#else /* !IA64_ABI */
+          mangled_name_with_length("__typeof", mctl);
+#endif /* IA64_ABI */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+          goto have_whole_mangled_name;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
 #if CHECKING
       default:
