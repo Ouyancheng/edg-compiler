@@ -4473,6 +4473,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* decltype:
        Dt <expression> E  # decltype of an id-expression or class member access
        DT <expression> E  # decltype of an expression */
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
     write_id_str("decltype ", dctl);
     if (p[1] == 't') {
       p = demangle_expression(p+2, dctl);
@@ -4491,6 +4492,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
           <type> ::= Dy <type> E       # typeof(type)
                  ::= DY <expression> E # typeof(expression)
        */
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
     write_id_str("typeof(", dctl);
     if (p[1] == 'y') {
       p = demangle_type(p+2, dctl);
