@@ -6368,7 +6368,11 @@ be individuated in late specified return types as well.
 
   if (local_types_as_template_args_enabled) {
     if (kind == iek_type) {
-      if ((is_immediate_class_type((a_type_ptr)scp) ||
+      if (((is_immediate_class_type((a_type_ptr)scp) &&
+            scp->assoc_info != NULL &&
+            symbol_supplement_for_class((a_type_ptr)scp) != NULL &&
+            symbol_supplement_for_class((a_type_ptr)scp)->
+                                      template_param_for_proxy_class == NULL) ||
            is_immediate_enum_type((a_type_ptr)scp)) &&
           type_is_unnamed((a_type_ptr)scp) &&
           !scp->is_class_member &&
