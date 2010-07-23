@@ -3260,7 +3260,8 @@ operator on some template constants when suppress_address_of is TRUE
       break;
     case ck_integer:
 #if IA64_ABI
-      if (emulate_gnu_abi_bugs && in_dependent_expr && has_name(con)) {
+      if (emulate_gnu_abi_bugs && in_dependent_expr && has_name(con) &&
+          emulate_gnu_abi_bugs && gnu_abi_version <= 30200) {
         /* g++ 3.2 puts out the names of enum constants instead of their
            values in dependent expressions. */
         mangled_entity_reference(&con->source_corresp,
