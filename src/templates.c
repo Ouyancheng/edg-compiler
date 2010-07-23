@@ -10587,29 +10587,28 @@ templ_arg_list is the explicitly specified argument list.  If the template
 matches, a new argument list is returned in *new_arg_list.
 */
 {
-  a_type_ptr				result_type;
+  a_type_ptr				result_type = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_template_param_ptr			templ_param_list;
 
-  *new_arg_list = NULL;
   template_sym = fundamental_symbol_of(template_sym);
   /* Get the parameter list of the template. */
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = template_supplement_for_symbol(template_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
-  result_type = substitute_template_arguments(
-                           template_sym, templ_arg_list, new_arg_list,
+  *new_arg_list = create_initial_template_arg_list(
+                                           templ_param_list, templ_arg_list,
+                                           &template_sym->decl_position);
+  /* Start by making sure all of the template parameters have values.  This
+     will fill in default values, if needed. */
+  if (all_templ_params_have_values(*new_arg_list, templ_param_list,
+                                   /*is_partial_order_check=*/FALSE,
+                                   template_sym, tssp)) {
+    /* Create a substituted type based on the template arguments. */
+    result_type = substitute_template_arguments(
+                           template_sym, *new_arg_list,
+                           (a_template_arg_ptr*)NULL,
                            templ_param_list, /*is_partial_order_check=*/FALSE);
-  if (result_type != NULL) {
-    /* The template argument list matches the template and the substitution
-       of arguments was successful.  If all of the template parameters have
-       values, then we have a match. */
-    if (!all_templ_params_have_values(*new_arg_list, templ_param_list,
-                                      /*is_partial_order_check=*/FALSE,
-                                      template_sym, tssp)) {
-      /* Some parameters do not have values -- no match. */
-      result_type = NULL;
-    }  /* if */
   }  /* if */
   /* If there was no match, free the new template argument list, if any. */
   if (result_type == NULL && *new_arg_list != NULL) {
