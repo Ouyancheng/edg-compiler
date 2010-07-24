@@ -4932,7 +4932,8 @@ is TRUE.
              Onwg_1_CiL_2_10Z1Z_1_CiL_1_0O <-- encoding for "::new (10) T (0)"
                                          ^---- "O" to end the encoding.
                                   ^^^^^^^----- Initializers (if any).
-                               ^^^------------ Initializer count (zero or more).
+                               ^^^------------ Initializer count (zero or
+                                               more).
                             ^^^--------------- Type of new operation.
                     ^^^^^^^^------------------ Placement arguments (if any).
                  ^^^-------------------------- Placement argument count (zero
@@ -6372,7 +6373,7 @@ be individuated in late specified return types as well.
             scp->assoc_info != NULL &&
             symbol_supplement_for_class((a_type_ptr)scp) != NULL &&
             symbol_supplement_for_class((a_type_ptr)scp)->
-                                      template_param_for_proxy_class == NULL) ||
+                                     template_param_for_proxy_class == NULL) ||
            is_immediate_enum_type((a_type_ptr)scp)) &&
           type_is_unnamed((a_type_ptr)scp) &&
           !scp->is_class_member &&
