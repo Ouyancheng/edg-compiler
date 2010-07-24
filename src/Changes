@@ -1,5 +1,31 @@
 Version 4.2
 
+7/24/10  [EDGcpfe/10873]
+Use virtual destructor final overrider for delete [] (GNU and Microsoft modes)
+
+A change has been made to emulate GNU and Microsoft's behavior when the
+object of an array delete operation has a virtual destructor.  Rather than
+pass the address of the object's destructor to the appropriate runtime
+routine, the address of the final overrider for the destructor from the
+object's vtable is now passed instead.  This non-standard behavior can
+result in unpredictable behavior when the size of the base and derived
+classes are not the same.  The previous behavior is retained in all modes
+except GNU and Microsoft emulation modes.  For example:
+
+  int result = 0;
+  struct B {
+    virtual ~B() {}
+  };
+  struct D: B {
+    ~D(){ result = 1; }
+  };
+  int main() {
+    B *b = new D[2];
+    delete [] b;
+    return result;    // now returns 1 in GNU and Microsoft emulation modes
+  }
+
+
 7/22/10  [EDGcpfe/10849]
 Abort on GNU C transparent union with large unnamed bit field
 

@@ -11057,6 +11057,88 @@ created.
 }  /* make_vtbl_entry_node */
 
 
+an_expr_node_ptr get_virtual_function_selector(
+                                             an_expr_node_ptr func_node,
+                                             an_expr_node_ptr *object_node,
+                                             a_boolean        vars_can_change,
+                                             a_variable_ptr   *vtbl_temp_var,
+                                             an_expr_node_ptr *assign_node)
+/*
+Returns an expression that represents the address of the virtual function
+in the virtual function table for *object_node that corresponds to the function
+specified in func_node.  func_node is a simple expression node (i.e., one
+from which an a_routine_ptr can be extracted) that represents a virtual
+function routine.  *object_node specifies the object and is overwritten with a
+reusable copy of itself.  vars_can_change should be set to TRUE if the
+encompassing expression context is one in which variables can have their values
+changed (possibly necessitating a temporary for *object_node).  In the Cfront
+ABI, a temporary variable that represents the vtable for *object_node is
+returned in *vtbl_temp_var.  If a temporary variable assignment is necessary,
+an expression is returned in *assign_node (otherwise set to NULL).  The caller
+is responsible for ensuring that the assignment is performed before the
+returned expression is executed.
+*/
+{
+  an_expr_node_ptr  object_node_copy, vtbl_entry_node, func_select_node;
+#if !IA64_ABI
+  an_expr_node_ptr  vtbl_temp_node;
+#endif /* !IA64_ABI */
+
+  check_assertion(assign_node != NULL);
+  *assign_node = NULL;
+#if IA64_ABI
+  /* IA-64 ABI: The returned expression is:
+       (object->__vptr[index])
+     or, if the object is not simple,
+       (temp = object,  <- this is added by the caller
+        temp->__vptr[index])
+  */
+  if (!is_invariant_expr(*object_node, vars_can_change)) {
+    /* The object node is not invariant, so assign it to a temporary. */
+    *assign_node = *object_node;
+    *object_node = assign_expr_to_temp_and_make_expr_for_reuse(*object_node);
+  }  /* if */
+  /* Make a copy of the object address. */
+  object_node_copy = make_reusable_copy(*object_node, vars_can_change);
+  /* Make a node for the address of the virtual table entry for the
+     function. */
+  vtbl_entry_node = make_vtbl_entry_node(func_node, *object_node);
+  /* Get the function pointer stored in the virtual function table. */
+  func_select_node = add_cast_if_necessary(vtbl_entry_node,
+                                           make_pointer_type(func_node->type));
+  func_select_node = add_indirection_to_node(func_select_node);
+  func_select_node = rvalue_expr_for_lvalue(func_select_node);
+#else /* !IA64_ABI */
+  /* Cfront-like ABI: The returned expression is:
+       (vtbl_temp = (object->__vptr)+index),  <- this is added by the caller
+        vtbl_temp->f)
+     index is the virtual function table index for the virtual function.
+     If "object" is not a reusable expression, the first occurrence of
+     "object" above is replaced by "(object_temp = object)". */
+  check_assertion(vtbl_temp_var != NULL);
+  /* Make a reusable copy of the object address. */
+  object_node_copy = make_reusable_copy(*object_node,
+                                        /*vars_can_change=*/FALSE);
+  /* Make a node for the address of the virtual table entry for the
+     function. */
+  vtbl_entry_node = make_vtbl_entry_node(func_node, *object_node);
+  /* Make the vtbl_temp temporary and an lvalue for it, and assign the
+     virtual function table entry address to it. */
+  *vtbl_temp_var = make_local_temporary(vtbl_entry_node->type);
+  *assign_node = make_var_assignment_expr(*vtbl_temp_var, vtbl_entry_node);
+  /* Make an expression that extracts the "f" (function pointer) from the
+     virtual table entry and casts it to the right function pointer type. */
+  vtbl_temp_node = var_rvalue_expr(*vtbl_temp_var);
+  func_select_node = field_rvalue_selection_expr(vtbl_temp_node, mptr_f_field);
+  func_select_node = add_cast_if_necessary(func_select_node, func_node->type);
+#endif /* !IA64_ABI */
+  /* The expression pointed to by object_node may have been modified,
+     so return the copy we made to the caller. */
+  *object_node = object_node_copy;
+  return func_select_node;
+}  /* get_virtual_function_selector */
+
+
 void lower_virtual_function_call(an_expr_node_ptr expr)
 /*
 Do IL Lowering of a virtual function call.  The operands of the expression
@@ -11072,9 +11154,9 @@ have already been lowered.
   an_expr_node_ptr d_value_node;
   an_expr_node_ptr vtbl_temp_node, padd_node;
   an_expr_node_ptr cast_node; /*lint !e578*/
-  a_variable_ptr   vtbl_temp_var;
 #endif /* !IA64_ABI */
-  an_expr_node_ptr vtbl_entry_node, object_node_copy;
+  a_boolean        args_have_side_effects = FALSE;
+  a_variable_ptr   vtbl_temp_var = NULL;
 
   /* The original tree has a member call node with operands as follows:
        (1) an enk_routine node for the virtual function.
@@ -11112,39 +11194,26 @@ have already been lowered.
   func_node->next = NULL;
   object_node->next = NULL;
 #if IA64_ABI
+  args_have_side_effects = expr_list_has_side_effects(additional_args,
+                                                          (a_boolean *)NULL) ||
+                           (return_node != NULL &&
+                            node_has_side_effects(return_node,
+                                                  (a_boolean *)NULL));
+#endif /* IA64_ABI */
+  /* Get an expression that represents the address of the function in the
+     virtual function table for the object pointer. */
+  func_select_node = get_virtual_function_selector(func_node,
+                                    &object_node,
+                                    /*vars_can_change=*/args_have_side_effects,
+                                    &vtbl_temp_var,
+                                    &assign_node);
+#if IA64_ABI
   /* IA-64 ABI: The rewritten form is
        (object->__vptr[index])(object, additional_args ...)
      or, if the object is not simple,
        (temp = object,
         (temp->__vptr[index])(temp, additional_args ...))
   */
-  { a_boolean args_have_side_effects =
-                               expr_list_has_side_effects(additional_args,
-                                                          (a_boolean *)NULL) ||
-                               (return_node != NULL &&
-                                node_has_side_effects(return_node,
-                                                      (a_boolean *)NULL));
-    if (!is_invariant_expr(object_node,
-                           /*vars_can_change=*/args_have_side_effects)) {
-      /* The object node is not invariant, so assign it to a temporary. */
-      assign_node = object_node;
-      object_node = assign_expr_to_temp_and_make_expr_for_reuse(object_node);
-    }  /* if */
-    /* Make a copy of the object address. */
-    object_node_copy = make_reusable_copy(object_node,
-                                   /*vars_can_change=*/args_have_side_effects);
-    /* Make a node for the address of the virtual table entry for the
-       function. */
-    vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
-    /* Get the function pointer stored in the virtual function table. */
-    func_select_node = add_cast_if_necessary(vtbl_entry_node,
-                                           make_pointer_type(func_node->type));
-    func_select_node = add_indirection_to_node(func_select_node);
-    func_select_node = rvalue_expr_for_lvalue(func_select_node);
-    /* The expression pointed to by object_node may have been modified,
-       so use the copy we made. */
-    object_node = object_node_copy;
-  }
   if (return_node != NULL) {
     func_select_node->next = return_node;
     return_node->next = object_node;
@@ -11160,28 +11229,11 @@ have already been lowered.
      If "object" is not a reusable expression, the first occurrence of
      "object" above is replaced by "(object_temp = object)", and the
      second by "object_temp". */
-  /* Make a reusable copy of the object address. */
-  object_node_copy = make_reusable_copy(object_node,
-                                   /*vars_can_change=*/FALSE);
-  /* Make a node for the address of the virtual table entry for the
-     function. */
-  vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
-  /* Make the vtbl_temp temporary and an lvalue for it, and assign the
-     virtual function table entry address to it. */
-  vtbl_temp_var = make_local_temporary(vtbl_entry_node->type);
-  assign_node = make_var_assignment_expr(vtbl_temp_var, vtbl_entry_node);
-  /* Make an expression that extracts the "f" (function pointer) from the
-     virtual table entry and casts it to the right function pointer type. */
-  vtbl_temp_node = var_rvalue_expr(vtbl_temp_var);
-  func_select_node = field_rvalue_selection_expr(vtbl_temp_node, mptr_f_field);
-  func_select_node = add_cast_if_necessary(func_select_node, func_node->type);
+  check_assertion(vtbl_temp_var != NULL);
   /* Make an expression that selects the "d" (delta) from the virtual
      table entry and adds it to the object pointer. */
   vtbl_temp_node = var_rvalue_expr(vtbl_temp_var);
   d_value_node = field_rvalue_selection_expr(vtbl_temp_node, mptr_d_field);
-  /* The expression pointed to by object_node may have been modified,
-     so use the copy we made. */
-  object_node = object_node_copy;
   /* Cast the node to "char *" to suppress scaling on the pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
   /* Add the object pointer and the delta value. */

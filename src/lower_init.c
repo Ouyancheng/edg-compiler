@@ -2924,7 +2924,7 @@ IA-64 ABI, the routines called are different.
 static an_expr_node_ptr make_vec_delete_call(
                                           an_expr_node_ptr entity_node,
                                           an_expr_node_ptr num_elem_node,
-                                          a_routine_ptr    dtor_routine,
+                                          an_expr_node_ptr dtor_addr_node,
                                           a_routine_ptr    delete_routine,
                                           a_boolean        free_storage)
 /*
@@ -2934,16 +2934,16 @@ that will call a destructor for each element of an array and then
 deallocate the array.  entity_node gives the address of the array.
 num_elem_node is an expression giving the number of elements
 in the array, or NULL for an array allocated with new[] (whose
-size is known to the runtime).  dtor_routine is the destructor routine to
-be called, or NULL if no destructor is to be called.  delete_routine
-is the delete routine to be called, or NULL if the normal delete
-routine should be called.  free_storage is TRUE if the storage for
-the array is to be freed.  A pointer to the expression created is
-returned.
+size is known to the runtime).  dtor_addr_node is an expression
+for the address of the destructor routine to be called, or NULL if no
+destructor is to be called.  delete_routine is the delete routine to be called,
+or NULL if the normal delete routine should be called.  free_storage is TRUE if
+the storage for the array is to be freed.  A pointer to the expression created
+is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
-  an_expr_node_ptr dtor_addr_node, delete_addr_node;
+  an_expr_node_ptr delete_addr_node;
 #if !IA64_ABI
   an_expr_node_ptr is_two_arg_node, free_storage_node;
 #else /* IA64_ABI */
@@ -2952,8 +2952,6 @@ returned.
 
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
-  /* Build an expression for the address of the destructor. */
-  dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
 #if !IA64_ABI
   if (num_elem_node == NULL) {
     /* -1 tells the runtime to use the array size from the "new[]". */
@@ -2961,7 +2959,7 @@ returned.
   }  /* if */
   if (delete_routine == NULL) {
     /* The call looks like
-         __vec_delete(entity_node, num_elems, size_elem, dtor_routine,
+         __vec_delete(entity_node, num_elems, size_elem, dtor_addr_node,
                       free_storage, 0)
        The final argument is never used.  It's there for cfront compatibility.
     */
@@ -2979,7 +2977,7 @@ returned.
                                        void_type(), arg_expr_list);
   } else {
     /* There's a special delete routine, so use the call
-       __array_delete(entity_node, num_elems, size_elem, dtor_routine,
+       __array_delete(entity_node, num_elems, size_elem, dtor_addr_node,
                       delete_routine, is_two_arg)
        is_two_arg is 1 to indicate that the delete routine is a 2-argument
        routine, 0 otherwise.
@@ -3013,7 +3011,7 @@ returned.
   if (delete_routine == NULL) {
     if (num_elem_node != NULL) {
       /* The call looks like
-           __cxa_vec_dtor(entity_node, num_elems, size_elem, dtor_routine)
+           __cxa_vec_dtor(entity_node, num_elems, size_elem, dtor_addr_node)
       */
       check_assertion(!free_storage);
       /* Splice in the node for the number of elements. */
@@ -3023,7 +3021,7 @@ returned.
                                          void_type(), arg_expr_list);
     } else {
       /* The call looks like
-           __cxa_vec_delete(entity_node, size_elem, padding, dtor_routine)
+           __cxa_vec_delete(entity_node, size_elem, padding, addr_node)
          The runtime uses a cookie to determine the array size.
       */
       check_assertion(free_storage);
@@ -3037,7 +3035,7 @@ returned.
     check_assertion(num_elem_node == NULL && free_storage);
     if (is_two_argument_delete(delete_routine)) {
       /* The call looks like
-           __cxa_vec_delete3(entity_node, size_elem, padding, dtor_routine,
+           __cxa_vec_delete3(entity_node, size_elem, padding, dtor_addr_node,
                              delete_routine)
          The runtime uses a cookie to determine the array size.  The
          delete routine is a two-argument version.
@@ -3047,7 +3045,7 @@ returned.
                                          arg_expr_list);
     } else {
       /* The call looks like
-           __cxa_vec_delete2(entity_node, size_elem, padding, dtor_routine,
+           __cxa_vec_delete2(entity_node, size_elem, padding, dtor_addr_node,
                              delete_routine)
          The runtime uses a cookie to determine the array size.
       */
@@ -4528,7 +4526,7 @@ dynamic init pointer because of the make_destruction_routine case.
 */
 {
   an_expr_node_ptr entity_node, call_node, num_elem_node;
-  an_expr_node_ptr implied_arg_list;
+  an_expr_node_ptr implied_arg_list, dtor_addr_node;
   a_type_ptr       this_param_type;
 
   /* Make an expression for the object to be destroyed. */
@@ -4554,8 +4552,10 @@ dynamic init pointer because of the make_destruction_routine case.
        it automatically. */
 #endif /* !IA64_ABI */
     /* Generate the __vec_delete call. */
+    /* Build an expression for the address of the destructor. */
+    dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
     call_node = make_vec_delete_call(entity_node, num_elem_node,
-                                     dtor_routine, (a_routine *)NULL,
+                                     dtor_addr_node, (a_routine *)NULL,
                                      /*free_storage=*/FALSE);
     /* Make a statement containing the call and insert it at the right
        location. */
@@ -8388,6 +8388,8 @@ i.e., arrays with class elements.
   a_routine_ptr               delete_routine = ndsp->routine;
   a_routine_ptr               dtor_routine;
   an_expr_node_ptr            ptr_node = ndsp->arg, vec_delete_node;
+  an_expr_node_ptr            dtor_addr_node, assign_node = NULL;
+  a_variable_ptr              vtbl_temp_var;
 
   /* Lower "arg". */
   lower_expr(ptr_node);
@@ -8400,17 +8402,37 @@ i.e., arrays with class elements.
                                          (a_ctor_or_dtor_kind)cdk_complete,
                                          /*define_now=*/FALSE);
 #endif /* IA64_ABI */
+    if (dtor_routine->is_virtual && (gnu_mode || microsoft_mode)) {
+      /* We're doing an array delete on a class that has a virtual destructor.
+         GNU and Microsoft use the destructor address found in the
+         virtual function table.  This can cause errors at runtime if the
+         sizes of the base and derived classes are not the same. */
+      dtor_addr_node = get_virtual_function_selector(
+                                        function_addr_expr(dtor_routine),
+                                        &ptr_node,
+                                        /*object_node_has_side_effects=*/FALSE,
+                                        &vtbl_temp_var,
+                                        &assign_node);
+    } else {
+      /* Build an expression for the address of the destructor. */
+      dtor_addr_node = expr_for_pointer_to_destructor(dtor_routine);
+    }  /* if */
   } else {
     /* There is no dynamic init entry, and therefore no destruction need be
        done along with the deallocation. */
-    dtor_routine = NULL;
+    dtor_addr_node = expr_for_pointer_to_destructor(NULL);
   }  /* if */
   vec_delete_node = make_vec_delete_call(ptr_node,
                                          /*num_elem_node=*/
                                                         (an_expr_node_ptr)NULL,
-                                         dtor_routine,
+                                         dtor_addr_node,
                                          delete_routine,
                                          /*free_storage=*/TRUE);
+  if (assign_node != NULL) {
+    /* If an assignment to a temporary was necessary, create a comma node
+       to perform the assignment before the temporary is used. */
+    vec_delete_node = make_comma_node(assign_node, vec_delete_node);
+  }  /* if */
   /* Overwrite the original node with the __vec_delete call. */
   overwrite_node(expr, vec_delete_node);
 }  /* lower_array_delete */

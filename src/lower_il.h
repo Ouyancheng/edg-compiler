@@ -760,6 +760,13 @@ extern a_type_ptr pointer_to_vtbl_type(void);
 
 extern a_type_ptr make_virtual_table_table_pointer_type(void);
 
+extern an_expr_node_ptr get_virtual_function_selector(
+                                             an_expr_node_ptr func_node,
+                                             an_expr_node_ptr *object_node,
+                                             a_boolean        vars_can_change,
+                                             a_variable_ptr   *vtbl_temp_var,
+                                             an_expr_node_ptr *assign_node);
+
 #if IA64_ABI
 
 extern a_boolean contains_ptr_to_data_member(a_type_ptr type);
