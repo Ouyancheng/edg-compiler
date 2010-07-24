@@ -11059,8 +11059,10 @@ created.
 
 #if IA64_ABI
 /*ARGSUSED*/  /* <--- vtbl_temp_var is not used in that case. */
+#else /* !IA64_ABI */
+/*ARGSUSED*/  /* <--- vars_can_change is not used in that case. */
 #endif /* IA64_ABI */
-an_expr_node_ptr get_virtual_function_selector(
+an_expr_node_ptr get_virtual_function_address(
                                              an_expr_node_ptr func_node,
                                              an_expr_node_ptr *object_node,
                                              a_boolean        vars_can_change,
@@ -11072,14 +11074,14 @@ in the virtual function table for *object_node that corresponds to the function
 specified in func_node.  func_node is a simple expression node (i.e., one
 from which an a_routine_ptr can be extracted) that represents a virtual
 function routine.  *object_node specifies the object and is overwritten with a
-reusable copy of itself.  vars_can_change should be set to TRUE if the
-encompassing expression context is one in which variables can have their values
-changed (possibly necessitating a temporary for *object_node).  In the Cfront
-ABI, a temporary variable that represents the vtable for *object_node is
-returned in *vtbl_temp_var.  If a temporary variable assignment is necessary,
-an expression is returned in *assign_node (otherwise set to NULL).  The caller
-is responsible for ensuring that the assignment is performed before the
-returned expression is executed.
+reusable copy of itself (if necessary).  vars_can_change (only used in the
+IA-ABI case) should be set to TRUE if the encompassing expression context is
+one in which variables can have their values changed (possibly necessitating a
+temporary for *object_node).  In the Cfront ABI, a temporary variable that
+represents the vtable for *object_node is returned in *vtbl_temp_var.  If a
+temporary variable assignment is necessary, an expression is returned in
+*assign_node (otherwise set to NULL).  The caller is responsible for ensuring
+that the assignment is performed before the returned expression is executed.
 */
 {
   an_expr_node_ptr  object_node_copy, vtbl_entry_node, func_select_node;
@@ -11139,7 +11141,7 @@ returned expression is executed.
      so return the copy we made to the caller. */
   *object_node = object_node_copy;
   return func_select_node;
-}  /* get_virtual_function_selector */
+}  /* get_virtual_function_address */
 
 
 void lower_virtual_function_call(an_expr_node_ptr expr)
@@ -11205,7 +11207,7 @@ have already been lowered.
 #endif /* IA64_ABI */
   /* Get an expression that represents the address of the function in the
      virtual function table for the object pointer. */
-  func_select_node = get_virtual_function_selector(func_node,
+  func_select_node = get_virtual_function_address(func_node,
                                     &object_node,
                                     /*vars_can_change=*/args_have_side_effects,
                                     &vtbl_temp_var,

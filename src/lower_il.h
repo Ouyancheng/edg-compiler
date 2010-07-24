@@ -760,7 +760,7 @@ extern a_type_ptr pointer_to_vtbl_type(void);
 
 extern a_type_ptr make_virtual_table_table_pointer_type(void);
 
-extern an_expr_node_ptr get_virtual_function_selector(
+extern an_expr_node_ptr get_virtual_function_address(
                                              an_expr_node_ptr func_node,
                                              an_expr_node_ptr *object_node,
                                              a_boolean        vars_can_change,

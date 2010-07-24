@@ -2936,10 +2936,10 @@ num_elem_node is an expression giving the number of elements
 in the array, or NULL for an array allocated with new[] (whose
 size is known to the runtime).  dtor_addr_node is an expression
 for the address of the destructor routine to be called, or NULL if no
-destructor is to be called.  delete_routine is the delete routine to be called,
-or NULL if the normal delete routine should be called.  free_storage is TRUE if
-the storage for the array is to be freed.  A pointer to the expression created
-is returned.
+destructor is to be called.  delete_routine is the delete routine to
+be called, or NULL if the normal delete routine should be called.
+free_storage is TRUE if the storage for the array is to be freed.
+A pointer to the expression created is returned.
 */
 {
   an_expr_node_ptr call_node, arg_expr_list, size_elem_node;
@@ -8407,7 +8407,7 @@ i.e., arrays with class elements.
          GNU and Microsoft use the destructor address found in the
          virtual function table.  This can cause errors at runtime if the
          sizes of the base and derived classes are not the same. */
-      dtor_addr_node = get_virtual_function_selector(
+      dtor_addr_node = get_virtual_function_address(
                                         function_addr_expr(dtor_routine),
                                         &ptr_node,
                                         /*object_node_has_side_effects=*/FALSE,
