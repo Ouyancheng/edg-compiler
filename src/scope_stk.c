@@ -4158,6 +4158,12 @@ class to be defined.
     get_parent_information_for_template(decl_info->enclosing_scope,
                                         template_sym, instance_sym,
                                         &parent_nsp, &parent_class);
+    if (parent_class != NULL) {
+      check_assertion(!parent_class->
+                       variant.class_struct_union.is_prototype_instantiation ||
+                       (options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
+                       (options & PS_NONREAL_INSTANTIATION) != 0);
+    }  /* if */
     reference_nsp = referencing_namespace_for_instance(instance_sym);
     push_instantiation_context(enclosing_tdip, parent_nsp, parent_class,
                                reference_nsp, &common_depth, &definition_depth,
