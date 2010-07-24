@@ -3837,8 +3837,10 @@ user later during real instantiations.
     }  /* if */
     /* Reactivate the tokens comprising the function body and scan them. */
     rescan_reusable_cache(&daefp->cache.tokens);
+    daefp->param_type->default_being_instantiated = TRUE;
     delayed_scan_of_default_arg_expr(daefp->param_type, rout_sym,
                                      /*check_for_errors=*/FALSE);
+    daefp->param_type->default_being_instantiated = FALSE;
     record_default_arg_instantiation(rout_ptr, daefp->param_type);
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
@@ -9043,9 +9045,15 @@ instantiated.
   /* We should always find the corresponding parameter of the template,
      unless some error occurred earlier. */
   check_assertion(daefp != NULL || total_errors != 0);
+  if (daefp->param_type->default_being_instantiated) {
+    /* This default argument instantiation of the prototype instantiation is
+       still in progress.  Don't attempt another instantiation. */
+    error(ec_recursive_def_arg_instantiation);
+    daefp = NULL;
+  }  /* if */
   /* Now that we've found the corresponding parameter of the template,
      instantiate that default argument value. */
-  if (daefp != NULL) {
+  if (daefp != NULL && !daefp->param_type->default_being_instantiated) {
     a_boolean         trans_unit_pushed;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position saved_curr_construct_end_position;
