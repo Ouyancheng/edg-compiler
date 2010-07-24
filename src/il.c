@@ -13960,9 +13960,12 @@ name lookup options.
              guide_type != NULL && is_address) {
     /* A member function is acceptable as a pointer or pointer-to-member.
        Choose a function from the overload set based on the guide type. */
-    if (is_template_dependent_type(guide_type)) {
-      /* The guide type is dependent, so we can't choose a particular function
-         yet.  Build a constant to represent the unresolved function. */
+    if (is_template_dependent_type(guide_type) ||
+        template_arg_list_is_dependent(ref_arg_list)) {
+      /* The guide type is dependent or the template argument list being used
+         still contains template parameters, so we can't choose a particular
+         function yet.  Build a constant to represent the unresolved
+         function. */
       a_constant_ptr fcon;
       a_symbol_ptr   unk_sym;
       check_assertion(con->kind == (a_constant_repr_kind)ck_template_param);
