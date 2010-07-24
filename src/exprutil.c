@@ -10563,13 +10563,20 @@ Interface to select_default_constructor_full for use within expression
 processing.  Supplies some arguments from expression stack values.
 */
 {
+  a_boolean     local_err;
+  a_boolean     *error_detected = (expr_stack->suppress_diagnostics ?
+                                     &local_err : (a_boolean *)NULL);
   a_routine_ptr ctor_routine =
          select_default_constructor_full(class_type,
                                          err_pos,
                                          class_type,
                                          curr_expr_is_potentially_evaluated(),
                                          expr_access_checking_should_be_done(),
+                                         error_detected,
                                          err);
+  if (error_detected != NULL && local_err) {
+    record_non_access_error_detected();
+  }  /* if */
   return ctor_routine;
 }  /* expr_select_default_constructor */
 
@@ -10586,6 +10593,9 @@ Interface to select_copy_constructor_full for use within expression processing.
 Supplies some arguments from expression stack values.
 */
 {
+  a_boolean     local_err;
+  a_boolean     *error_detected = (expr_stack->suppress_diagnostics ?
+                                     &local_err : (a_boolean *)NULL);
   a_routine_ptr cctor_routine;
 
   cctor_routine = select_copy_constructor_full(
@@ -10598,7 +10608,11 @@ Supplies some arguments from expression stack values.
                                         record_ref,
                                         curr_expr_is_potentially_evaluated(),
                                         /*allow_suppressed_ctor=*/FALSE,
-                                        expr_access_checking_should_be_done());
+                                        expr_access_checking_should_be_done(),
+                                        error_detected);
+  if (error_detected != NULL && local_err) {
+    record_non_access_error_detected();
+  }  /* if */
   return cctor_routine;
 }  /* expr_select_copy_constructor */
 
@@ -10612,6 +10626,9 @@ Interface to select_destructor_full for use within expression processing.
 Supplies some arguments from expression stack values.
 */
 {
+  a_boolean     local_err;
+  a_boolean     *error_detected = (expr_stack->suppress_diagnostics ?
+                                     &local_err : (a_boolean *)NULL);
   a_routine_ptr dtor_routine;
 
   dtor_routine = select_destructor_full(
@@ -10622,7 +10639,11 @@ Supplies some arguments from expression stack values.
                                      curr_expr_is_potentially_evaluated(),
                                      /*instantiate=*/
                                         !expr_stack->is_default_arg_expression,
-                                     expr_access_checking_should_be_done());
+                                     expr_access_checking_should_be_done(),
+                                     error_detected);
+  if (error_detected != NULL && local_err) {
+    record_non_access_error_detected();
+  }  /* if */
   return dtor_routine;
 }  /* expr_select_destructor */
 

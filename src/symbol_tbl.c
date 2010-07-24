@@ -7114,6 +7114,7 @@ a_routine_ptr select_default_constructor_full(
                                          a_type_ptr        object_class_type,
                                          a_boolean         evaluated,
                                          a_boolean         check_access,
+                                         a_boolean         *error_detected,
                                          a_boolean         *err)
 /*
 Find and return a pointer to a routine representing a default constructor for
@@ -7128,7 +7129,11 @@ error if the constructor is not accessible.  object_class_type points
 to the type of the object being created; class_type may be a base
 class of object_class_type.  This is needed for protected member
 access checking.  If evaluated is FALSE, the reference is within an
-unevaluated expression.  This routine is only used in C++ mode.
+unevaluated expression.  If error_detected is non-NULL, return
+*error_detected set to TRUE if there was an error, and do not issue
+any diagnostics (including warnings).  (That return value duplicates the
+one in *err, but it keeps the interface consistent with the other
+similar select_xxx_full routines below.)
 */
 {
   a_routine_ptr ctor_routine = NULL;
@@ -7136,6 +7141,10 @@ unevaluated expression.  This routine is only used in C++ mode.
   a_boolean     local_err = FALSE, ambiguous, trivial;
 
   /* This routine is similar to select_overloaded_function. */
+  if (error_detected != NULL) {
+    *error_detected = FALSE;
+    check_assertion(!check_access);
+  }  /* if */
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, &ambiguous, &trivial);
   if (ctor_sym == NULL) {
@@ -7145,12 +7154,20 @@ unevaluated expression.  This routine is only used in C++ mode.
       ctor_routine = NULL;
     } else {
       /* No default constructor at all. */
-      pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+      if (error_detected != NULL) {
+        *error_detected = TRUE;
+      } else {
+        pos_ty_error(ec_no_default_constructor, err_pos, class_type);
+      }  /* if */
       local_err = TRUE;
     }  /* if */
   } else if (ambiguous) {
     /* More than one default constructor. */
-    pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
+    if (error_detected != NULL) {
+      *error_detected = TRUE;
+    } else {
+      pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
+    }  /* if */
     local_err = TRUE;
   } else {
     /* Exactly one default constructor. */
@@ -7190,6 +7207,8 @@ Interface to select_default_constructor for the simple case.
                                                  object_class_type,
                                                  /*evaluated=*/TRUE,
                                                  /*check_access=*/TRUE,
+                                                 /*error_detected=*/
+                                                             (a_boolean *)NULL,
                                                  err);
   return ctor_routine;
 }  /* select_default_constructor */
@@ -7201,7 +7220,8 @@ a_routine_ptr select_destructor_full(a_type_ptr        class_type,
                                      a_boolean         honor_virtual,
                                      a_boolean         evaluated,
                                      a_boolean         instantiate,
-                                     a_boolean         check_access)
+                                     a_boolean         check_access,
+                                     a_boolean         *error_detected)
 /*
 If the indicated class has a destructor, check that it is accessible (if
 check_access is TRUE), mark it as referenced, and return a pointer to
@@ -7213,7 +7233,9 @@ not needed.  If honor_virtual is TRUE, and if the destructor is
 virtual, consider this reference a virtual function call.  If
 evaluated is FALSE, the reference is within an unevaluated expression.
 If instantiate is TRUE, the destructor is instantiated if necessary.
-*position is the source position of the reference.
+*position is the source position of the reference.  If error_detected
+is non-NULL, return *error_detected set to TRUE if there was an error,
+and do not issue any diagnostics (including warnings).
 */
 {
   a_symbol_ptr  dtor_sym;
@@ -7221,6 +7243,10 @@ If instantiate is TRUE, the destructor is instantiated if necessary.
   a_class_symbol_supplement_ptr
                 cssp = symbol_supplement_for_class(class_type);
 
+  if (error_detected != NULL) {
+    *error_detected = FALSE;
+    check_assertion(!check_access);
+  }  /* if */
   if (cssp != NULL) {
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
@@ -7231,8 +7257,15 @@ If instantiate is TRUE, the destructor is instantiated if necessary.
         /* MSVC++ versions before 8.0 simply do not invoke an inaccessible
            subobject destructor if the declaration of the complete object's
            destructor was suppressed. */
-        pos_ty2_diagnostic(es_warning, ec_inaccessible_dtor_not_invoked,
-                           position, class_type, object_class_type);
+        if (error_detected != NULL) {
+          if (is_effective_error(ec_inaccessible_dtor_not_invoked,
+                                 es_warning)) {
+            *error_detected = TRUE;
+          }  /* if */
+        } else {
+          pos_ty2_diagnostic(es_warning, ec_inaccessible_dtor_not_invoked,
+                             position, class_type, object_class_type);
+        }  /* if */
       } else {
         /* Check that the destructor is accessible and mark it referenced. */
         if (cssp->has_trivial_destructor) {
@@ -7257,8 +7290,15 @@ If instantiate is TRUE, the destructor is instantiated if necessary.
                microsoft_version >= 1400) {
       /* MSVC++ 8.0 issues an error if a suppressed destructor would have
          been called. */
-      pos_ty_diagnostic(es_discretionary_error, ec_suppressed_dtor_needed,
-                        position, class_type);
+      if (error_detected != NULL) {
+        if (is_effective_error(ec_suppressed_dtor_needed,
+                               es_discretionary_error)) {
+          *error_detected = TRUE;
+        }  /* if */
+      } else {
+        pos_ty_diagnostic(es_discretionary_error, ec_suppressed_dtor_needed,
+                          position, class_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   return dtor_routine;
@@ -7280,7 +7320,8 @@ Interface to select_destructor_full for the simple case.
                                         /*honor_virtual=*/FALSE,
                                         /*evaluated=*/TRUE,
                                         /*instantiate=*/TRUE,
-                                        /*check_access=*/TRUE);
+                                        /*check_access=*/TRUE,
+                                        /*error_detected=*/(a_boolean *)NULL);
   return dtor_routine;
 }  /* select_destructor */
 
@@ -7295,7 +7336,8 @@ a_routine_ptr select_copy_constructor_full(
                                   a_boolean             record_ref,
                                   a_boolean             evaluated,
                                   a_boolean             allow_suppressed_ctor,
-                                  a_boolean             check_access)
+                                  a_boolean             check_access,
+                                  a_boolean             *error_detected)
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type and accepting a first parameter whose type
@@ -7315,14 +7357,19 @@ is checked (if check_access is TRUE), and an error issued if the copy
 constructor is inaccessible.  If evaluated is FALSE, the reference is
 within an unevaluated expression.  If class_type has no copy
 constructor because its declaration was suppressed, no diagnostic will
-be emitted if allow_suppressed_ctor is TRUE.  This routine is only
-used in C++ mode.
+be emitted if allow_suppressed_ctor is TRUE.  If error_detected is
+non-NULL, return *error_detected set to TRUE if there was an error,
+and do not issue any diagnostics (including warnings).
 */
 {
   a_symbol_ptr  cctor_sym;
   a_routine_ptr cctor_routine = NULL;
   a_boolean     ambiguous;
 
+  if (error_detected != NULL) {
+    *error_detected = FALSE;
+    check_assertion(!check_access);
+  }  /* if */
   cctor_sym = find_copy_constructor(class_type, required_qualifiers,
                                     source_is_rvalue,
                                     err_pos, &ambiguous, class_bitwise_copy);
@@ -7332,7 +7379,11 @@ used in C++ mode.
                                           check_access);
   } else if (ambiguous) {
     /* More than one applicable copy constructor. */
-    pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
+    if (error_detected != NULL) {
+      *error_detected = TRUE;
+    } else {
+      pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
+    }  /* if */
   } else if (cctor_sym == NULL) {
     /* No applicable copy constructor. */
     if (class_type->variant.class_struct_union.copy_ctor_decl_suppressed &&
@@ -7341,10 +7392,18 @@ used in C++ mode.
          Microsoft compatibility).  Do not report an error at this point. */
     } else if (required_qualifiers == TQ_CONST) {
       /* The common case:  missing const copy constructor. */
-      pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
+      if (error_detected != NULL) {
+        *error_detected = TRUE;
+      } else {
+        pos_ty_error(ec_missing_const_copy_constructor, err_pos, class_type);
+      }  /* if */
     } else {
       /* Unusual case: volatile or const-volatile expected. */
-      pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
+      if (error_detected != NULL) {
+        *error_detected = TRUE;
+      } else {
+        pos_ty_error(ec_no_suitable_copy_constructor, err_pos, class_type);
+      }  /* if */
     }  /* if */
   } else {
     /* Exactly one copy constructor is best. */
@@ -7386,7 +7445,9 @@ Interface to select_copy_constructor_full for the simple case.
                                                /*record_ref=*/TRUE,
                                                /*evaluated=*/TRUE,
                                                allow_suppressed_ctor,
-                                               /*check_access=*/TRUE);
+                                               /*check_access=*/TRUE,
+                                               /*error_detected=*/
+                                                            (a_boolean *)NULL);
   return cctor_routine;
 }  /* select_copy_constructor */
 
