@@ -11057,6 +11057,9 @@ created.
 }  /* make_vtbl_entry_node */
 
 
+#if IA64_ABI
+/*ARGSUSED*/  /* <--- vtbl_temp_var is not used in that case. */
+#endif /* IA64_ABI */
 an_expr_node_ptr get_virtual_function_selector(
                                              an_expr_node_ptr func_node,
                                              an_expr_node_ptr *object_node,
