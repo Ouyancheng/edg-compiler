@@ -11882,7 +11882,7 @@ with the matching base class.
   a_type_ptr		type_to_find = NULL;
   a_boolean		is_nonreal = FALSE;
 
-  if (sym_to_find != NULL) {
+  if (sym_to_find != NULL && !sym_to_find->is_error) {
     type_to_find = type_symbol_type(sym_to_find);
     is_nonreal = type_to_find->variant.class_struct_union.is_nonreal_class;
   }  /* if */
