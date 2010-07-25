@@ -11075,7 +11075,7 @@ specified in func_node.  func_node is a simple expression node (i.e., one
 from which an a_routine_ptr can be extracted) that represents a virtual
 function routine.  *object_node specifies the object and is overwritten with a
 reusable copy of itself (if necessary).  vars_can_change (only used in the
-IA-ABI case) should be set to TRUE if the encompassing expression context is
+IA-64 ABI case) should be set to TRUE if the encompassing expression context is
 one in which variables can have their values changed (possibly necessitating a
 temporary for *object_node).  In the Cfront ABI, a temporary variable that
 represents the vtable for *object_node is returned in *vtbl_temp_var.  If a
