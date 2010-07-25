@@ -4038,19 +4038,27 @@ Add an encoding for a destructor of the specified type.  The name_reference
 details any qualification that applies to the destructor.
 */
 {
-  /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
-     passed in is a pointer to a class. */
-  if (is_pointer_type(type)) type = type_pointed_to(type);
+  a_type_ptr  destructor_type;
+
+  if (name_reference != NULL && name_reference->destructor_type != NULL) {
+    /* Use the destructor_type from the name_reference if it's available. */
+    destructor_type = name_reference->destructor_type;
+  } else {
+    /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
+       passed in is a pointer to a class. */
+    if (is_pointer_type(type)) type = type_pointed_to(type);
+    destructor_type = type;
+  }  /* if */
 #if IA64_ABI
   if (emulate_gnu_abi_bugs) {
-    if (is_template_dependent_type(type)) {
+    if (is_template_dependent_type(destructor_type)) {
       /* g++ encodes dependent destructors with "co" followed by the type,
          but apparently has a bug where that type doesn't participate in the
          substitution processing. */
       a_substitution_ptr  save_first_substitution, save_last_substitution;
       if (name_reference != NULL && name_reference->qualifier != NULL) {
         add_str_to_mangled_name("sr", mctl);
-        mangled_encoding_for_type(type, mctl);
+        mangled_encoding_for_type(destructor_type, mctl);
       }  /* if */
       /* When g++ uses the "co" mangling, it doesn't use or record
          substitutions, so save the substitution pointers and reset them. */
@@ -4059,7 +4067,7 @@ details any qualification that applies to the destructor.
       mctl->first_substitution = NULL;
       mctl->last_substitution = NULL;
       add_str_to_mangled_name("co", mctl);
-      mangled_encoding_for_type(type, mctl);
+      mangled_encoding_for_type(destructor_type, mctl);
       /* Return any allocated substitutions to the available list. */
       if (mctl->last_substitution != NULL) {
         mctl->last_substitution->next = avail_substitutions;
@@ -4073,7 +4081,7 @@ details any qualification that applies to the destructor.
          where such a destructor is vacuous, there isn't a routine entry
          to mangle, so just provide the required mangling here. */
       add_str_to_mangled_name("L_ZN", mctl);
-      mangled_encoding_for_type(type, mctl);
+      mangled_encoding_for_type(destructor_type, mctl);
       add_str_to_mangled_name(MANGLING_STRING_FOR_DESTRUCTOR, mctl);
       add_str_to_mangled_name("EvE", mctl);
     }  /* if */
@@ -4082,13 +4090,13 @@ details any qualification that applies to the destructor.
        appropriate. */
     mangled_name_reference(name_reference, (a_type_ptr)NULL, mctl);
     add_str_to_mangled_name("dn", mctl);
-    mangled_encoding_for_type(type, mctl);
+    mangled_encoding_for_type(destructor_type, mctl);
   }  /* if */
 #else /* !IA64_ABI */
   /* Pass the destructor type to incorporate it as part of the
      "destructor name". */
   add_str_to_mangled_name("__dn__", mctl);
-  mangled_name_reference(name_reference, type, mctl);
+  mangled_name_reference(name_reference, destructor_type, mctl);
   add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
 }  /* mangled_destructor_name */
