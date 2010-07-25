@@ -408,24 +408,31 @@ are recognized for all entry kinds.
     /* Only do this for named declarative entries. */
     if (source_corresp_for_il_entry((char *)scp, entry_kind) != NULL &&
         scp->name != NULL) {
-      /* Get the entity name. */
-      char *name = db_name_str_full(scp, entry_kind,
-                                    /*include_func_params=*/FALSE);
+      char *name = NULL;
       unsigned long len_of_name_without_params = 0;
-      if (entry_kind == (an_il_entry_kind)iek_routine) {
-        len_of_name_without_params = strlen(name);
-        /* Generate a version with parameter types in case it's needed. */
-        name = db_name_str_full(scp, entry_kind, /*include_func_params=*/TRUE);
-      }  /* if */
       /* Compare it against the list of debug requests. */
       for (request = debug_requests;
            request != NULL;
            request = request->next) {
         if (request->action == da_name) {
-          char      *eff_name = name;
+          char      *eff_name;
           char      *eff_request_name = request->name;
           char      name_char_to_restore = '\0';
           a_boolean restore_char = FALSE;
+          if (name == NULL) {
+            /* Get the entity name.  Do it lazily in case the only debug
+               requests are for allocation sequence number checks. */
+            name = db_name_str_full(scp, entry_kind,
+                                    /*include_func_params=*/FALSE);
+            if (entry_kind == (an_il_entry_kind)iek_routine) {
+              len_of_name_without_params = strlen(name);
+              /* Generate a version with parameter types in case it's
+                 needed. */
+              name = db_name_str_full(scp, entry_kind,
+                                      /*include_func_params=*/TRUE);
+            }  /* if */
+          }  /* if */
+          eff_name = name;
           if (len_of_name_without_params != 0 &&
               strchr(eff_request_name, '(') == NULL) {
             /* The request has no left parenthesis, so compare against the
