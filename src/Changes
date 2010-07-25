@@ -132,13 +132,6 @@ This is now fixed: The internal error is no longer triggered (but statement
 expressions are still not allowed in ctor-initializers).
 
 
-7/21/10  [EDGcpfe/10854]
-Invalid scope stack pointer used when get_definition_of_class is used
-
-An invalid scope stack pointer (scope_stack[-1]) could be dereferenced in
-fixup_instantiation_scopes when get_definition_of_class is used (see
-1/29/10 entry).  Now fixed.
-
 7/21/10  [EDGcpfe/10463]
 Mangling changes to support new SFINAE rules
 
