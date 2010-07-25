@@ -1734,6 +1734,7 @@ to the secondary translation unit.
       routine->befriending_classes = NULL;
     } else {
       /* Remove this entry from the list. */
+      keep_body = FALSE;
       if (prev_routine == NULL) {
         scope->routines = routine->next;
       } else {
