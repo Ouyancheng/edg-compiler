@@ -7486,8 +7486,12 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
          should have been stripped, leaving only dependent decltype/typeof
          typerefs (for which substitutions are created). */
+#if GNU_EXTENSIONS_ALLOWED
       check_assertion(type->variant.typeref.is_decltype ||
                       type->variant.typeref.is_typeof);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+      check_assertion(type->variant.typeref.is_decltype);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       result = TRUE;
       break;
     case tk_pointer:
@@ -7877,8 +7881,12 @@ Add to the mangled name the encoding for the type "type".
         /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/typeofs
            should have been stripped, leaving only dependent decltype/typeof
            typerefs. */
+#if GNU_EXTENSIONS_ALLOWED
         check_assertion(type->variant.typeref.is_decltype ||
                         type->variant.typeref.is_typeof);
+#else /* !GNU_EXTENSIONS_ALLOWED */
+        check_assertion(type->variant.typeref.is_decltype);
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (type->variant.typeref.is_decltype) {
           /* Provide mangling for decltype. */
           an_expr_node_ptr decltype_expr = decltype_arg(type);
