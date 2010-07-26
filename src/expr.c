@@ -14958,6 +14958,7 @@ both C and C++ modes.
     err = TRUE;
   }  /* if */
   if (!is_local_scope_kind(scope_stack_top().kind) ||
+      depth_stmt_stack < 0 ||
       expr_stack->is_default_arg_expression ||
       inside_template_arg_expression()) {
     /* We're not inside the compound statement of a function definition, so
