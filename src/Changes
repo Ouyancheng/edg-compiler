@@ -85,8 +85,8 @@ error (since GCC does not appear to accept them either).
 7/22/10  [EDGcpfe/10864]
 Abort on GNU statement expression in function prototype scope
 
-The front end previously abort with an internal error in push_object_lifetime
-("parent is in file scope memory, new olp is not") when a GNU statement
+The front end previously aborted in push_object_lifetime with an internal
+error ("parent is in file scope memory, new olp is not") when a GNU statement
 expression appeared in the function prototype scope of a declaration appearing
 in a local scope.  For example:
 
