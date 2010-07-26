@@ -7605,13 +7605,14 @@ typedef struct a_variable {
 #endif /* NAMED_REGISTERS_ALLOWED */
   } asm_name_or_reg;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED || ... */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
+    USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
 			   variable, or zero if there was no explicit
 			   alignment. */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority
@@ -8035,13 +8036,11 @@ typedef struct a_field {
 			   bit-fields; for the others, the size is gotten from
 			   the type. */
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment
   		alignment;
 			/* The explicit alignment specified for the
 			   field, or zero if there was no explicit
 			   alignment. */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	is_packed:1;
 			/* TRUE if the field was declared with the GNU "packed"

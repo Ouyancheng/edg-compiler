@@ -13901,6 +13901,7 @@ function parameter declaration: This routine does nothing in that case.
 }  /* add_src_seq_end_of_variable_if_needed */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if USER_CONTROL_OF_STRUCT_PACKING
 
 void record_std_alignment_attr(a_decl_parse_state_ptr  dps)
 /*
@@ -13969,6 +13970,7 @@ if prior declarations specified an alignment attribute.
   }  /* if */
 }  /* record_std_alignment_attr */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
@@ -14349,7 +14351,9 @@ if one is present.
 #if DECL_MODIFIERS_IN_USE
     check_variable_decl_modifiers(var_ptr, state);
 #endif /* DECL_MODIFIERS_IN_USE */
+#if USER_CONTROL_OF_STRUCT_PACKING
     record_std_alignment_attr(state);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 #if DEBUG

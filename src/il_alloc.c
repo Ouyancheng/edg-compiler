@@ -1931,9 +1931,10 @@ Clear the fields of the given variable to default values.
     NAMED_REGISTERS_ALLOWED
   vp->asm_name_or_reg.name        = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED || ... */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
+    USER_CONTROL_OF_STRUCT_PACKING
   vp->alignment                   = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   vp->init_priority               = 0;
@@ -2086,9 +2087,7 @@ to it.
   fp->offset_bit_remainder = 0;
   fp->bit_size             = 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   fp->alignment            = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   fp->is_packed            = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED */

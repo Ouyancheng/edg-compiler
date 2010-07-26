@@ -913,7 +913,9 @@ extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
 extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
                                                  a_symbol_locator    *locator);
 
+#if USER_CONTROL_OF_STRUCT_PACKING
 extern void record_std_alignment_attr(a_decl_parse_state_ptr  dps);
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 extern void decls_one_time_init(void);
 

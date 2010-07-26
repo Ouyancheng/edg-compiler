@@ -20634,12 +20634,13 @@ scan_alignof_operator for details).
 {
   a_targ_alignment  result;
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || \
+    USER_CONTROL_OF_STRUCT_PACKING
   if (vp->alignment != 0) {
     /* Alignment was specified explicitly on the variable declaration. */
     result = vp->alignment;
   } else
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED || ... */
   /* Do not insert code here. */
   {
     result = alignment_of_type(vp->type);

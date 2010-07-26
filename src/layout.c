@@ -819,7 +819,6 @@ if necessary.
   }  /* if */
 } /* adjust_alignment_for_packing */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean apply_explicit_field_alignment_directive(
                                                  a_field_ptr       field,
@@ -863,7 +862,6 @@ explicit alignment value was specified, return FALSE.
   return result;
 }  /* apply_explicit_field_alignment_directive */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 a_targ_alignment alignment_of_field_full(a_field_ptr  field,
@@ -907,7 +905,6 @@ only).
     goto done;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (apply_explicit_field_alignment_directive(field, &field_alignment)) {
     /* An explicit field alignment was specified.  field_alignment will have
        been updated as needed.  Nothing more to be done. */
@@ -928,15 +925,14 @@ only).
     /* Microsoft does not apply packing/alignment directives to fields of
        types with explicit alignment requirements. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
+  } else {
     /* Adjust the field's alignment for packing, if required. */
     adjust_alignment_for_packing(&field_alignment, class_type);
   }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_EXTENSIONS_ALLOWED
 done:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   return field_alignment;
 }  /* alignment_of_field_full */
 
@@ -1286,10 +1282,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
 #endif /* CHECKING */
       }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } else if (targ_bit_field_container_size == 0) {
       /* Use the smallest integral type into which the field will fit as
@@ -1352,10 +1346,8 @@ targ_microsoft_bit_field_allocation is FALSE.)
         }  /* if */
       }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       (void)apply_explicit_field_alignment_directive(field,
                                                      &container_alignment);
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     } else {
       /* targ_bit_field_container_size < 0 */
@@ -1444,18 +1436,18 @@ targ_microsoft_bit_field_allocation is FALSE.)
       lob->curr_container_avail_bits = (container_size * targ_char_bit);
     } /* if */
   } else if (bit_size == 0 ||
-#if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
+#if USER_CONTROL_OF_STRUCT_PACKING
              field->alignment != 0 ||
-#endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
              !fits_in_container(container_size, container_alignment)) {
     /* Force alignment. */
     overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
                              container_alignment);
   }  /* if */
   update_class_alignment_for_bit_field(field, container_alignment, lob);
-#if IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED && IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING
 done:
-#endif /* IA64_ABI && USER_CONTROL_OF_STRUCT_PACKING */
+#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI && USER_CONTROL_... */
   db_exit();
   return !overflow;
 }  /* align_offsets_for_bit_field */
