@@ -500,6 +500,11 @@ static void mangled_source_name(a_source_correspondence_ptr scp,
                                 a_mangling_control_block    *mctl);
 static char *first_field_name(a_type_ptr              class_type,
                               a_source_correspondence **field_scp);
+static void mangled_unresolved_name(an_expr_node_ptr         expr,
+                                    an_expr_node_ptr         arguments,
+                                    an_expr_node_ptr         selector,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl);
 
 #if !IA64_ABI
 /*
@@ -2118,8 +2123,32 @@ extensions, e.g., Microsoft __is_base_of).
 #endif /* IA64_ABI */
       mangled_encoding_for_type(operand->variant.type_operand.type, mctl);
     } else {
-      mangled_encoding_for_expression(operand, /*in_dependent_expr=*/TRUE,
-                                      mctl);
+      an_expr_node_ptr expr_to_mangle = operand;
+      if (kind == (a_builtin_operation_kind)bok_offsetof) {
+        /* The second argument to __builtin_offsetof has a compiler generated
+           "((*(int)0)." or eok_dot_static operation added to the expression
+           for the field.  Remove those for mangling purposes. */
+        check_assertion(operand ==
+                               expr->variant.builtin_operation.operands->next);
+        if (is_operation_node(operand) &&
+            (node_operator_is(operand, eok_dot_static) ||
+             (is_operation_node(operand) &&
+              node_operator_is(operand, eok_dot_field) &&
+              is_operation_node(operand->variant.operation.operands) &&
+              node_operator_is(operand->variant.operation.operands,
+                                                             eok_indirect)))) {
+          expr_to_mangle = operand->variant.operation.operands->next;
+          /* Mangle as an <unresolved-name> to get the proper qualification. */
+          mangled_unresolved_name(expr_to_mangle, (an_expr_node_ptr)NULL,
+                                  operand, /*in_dependent_expr=*/FALSE, mctl);
+          expr_to_mangle = NULL;
+        }  /* if */
+      }  /* if */
+      if (expr_to_mangle != NULL) {
+        mangled_encoding_for_expression(expr_to_mangle,
+                                        /*in_dependent_expr=*/TRUE,
+                                        mctl);
+      }  /* if */
     }  /* if */
   }  /* for */
 #if !IA64_ABI
