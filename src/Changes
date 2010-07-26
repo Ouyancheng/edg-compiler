@@ -1,5 +1,20 @@
 Version 4.2
 
+7/26/10  [EDGcpfe/10846]
+Abort on invalid friend declaration of main() in a class template
+
+Instantiating a class template containing an invalid friend declaration of
+main() after the definition of main() started previously resulted in an abort
+(an erroneous pointer dereference).  For example:
+
+  template<class T> struct S {
+    friend int main(T x, int* = 0);
+  };
+  int main() { S<int> s; }
+
+This is now fixed (an error is of course still issued).
+
+
 7/24/10  [EDGcpfe/10873]
 Use virtual destructor final overrider for delete [] (GNU and Microsoft modes)
 
