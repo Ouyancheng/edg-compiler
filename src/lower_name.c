@@ -3914,8 +3914,10 @@ mangling was needed and that logic is reflected in this routine.
          mangling anyway. */
       result = FALSE;
       if (is_operation_node(expr)) {
-        if (node_operator_is(expr, eok_call)) {
-          /* All calls are mangled using decltype mangling. */
+        if (node_operator_is(expr, eok_call) &&
+            !expr->variant.operation.call_uses_operator_syntax) {
+          /* Calls (other than to operator routines) are mangled using
+             decltype mangling. */
           result = TRUE;
         } else if ((node_operator_is(expr, eok_dot_field) ||
                     node_operator_is(expr, eok_dot_static) ||
