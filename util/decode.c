@@ -6308,7 +6308,6 @@ Demangle a <base-unresolved-name>:
 {
   int          num_operands, length;
   char         *op_str, *close_str;
-  a_func_block func_block;
 
   if (*ptr == 'o' && ptr[1] == 'n') {
     /* Operator name. */
@@ -6338,23 +6337,10 @@ Demangle a <base-unresolved-name>:
     write_id_str("()", dctl);
   } else {
     /* <source-name> */
-    ptr = demangle_name(ptr, &func_block, /*options=*/DNO_ALL, dctl);
-    if (emulate_gnu_abi_bugs) {
-      /* g++ 3.2 puts out the parameter types following the name
-         of a function. */
-      if (*ptr == 'E' || *ptr == '_') {
-        /* No expression or parameter list next. */
-      } else if (*ptr == 'L' ||
-                 get_operator_name(ptr, &num_operands,
-                                   &length, &close_str, dctl) != NULL) {
-        /* Another expression is next, so no parameter list. */
-      } else {
-        /* Scan the parameter list. */
-        dctl->suppress_id_output++;
-        ptr = demangle_bare_function_type(ptr, /*no_return_type=*/TRUE,
-                                          BFT_PARAMS, dctl);
-        dctl->suppress_id_output--;
-      }  /* if */
+    ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+    if (!dctl->err_in_id && *ptr == 'I') {
+      /* A <template-args> list is present. */
+      ptr = demangle_template_args(ptr, dctl);
     }  /* if */
   }  /* if */
   return ptr;
