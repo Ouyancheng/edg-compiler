@@ -1967,8 +1967,10 @@ Clear the fields of the given variable to default values.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   vp->entities_defined_in_initializer = NULL;
   vp->assoc_template              = NULL;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   vp->section                     = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   vp->aliased_variable            = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI

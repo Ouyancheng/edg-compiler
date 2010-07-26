@@ -4852,11 +4852,13 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                    !sym->variant.variable.used)) &&
 #if GNU_EXTENSIONS_ALLOWED
                  !var_type->variables_are_implicitly_referenced &&
-                 var_ptr->section == NULL &&
                  !var_ptr->has_gnu_unused_attribute &&
                  !var_ptr->has_gnu_used_attribute &&
                  !var_ptr->is_weakref &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+                 var_ptr->section == NULL &&
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
                  !could_be_dependent_class_type(skip_array_types(var_type)) &&
                  !is_error_type(var_type)) {
         /* An unreferenced or unused variable or an unused parameter.
@@ -5964,12 +5966,14 @@ it is an external definition).
          because the initialization may have side effects.  Mark it as
          needed now. */
       is_needed = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     } else if (var->section != NULL) {
       /* GNU C concatenates all variables in the same named section.
          This creates tables that can be accessed from any translation unit
          even though the individual entries may have had internal linkage. */
       is_needed = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
     } else if (var->storage_class == (a_storage_class)sc_static &&
                (var->has_gnu_used_attribute || var->is_weak)) {
       /* GNU C doesn't eliminate unreferenced static variables.  This front end

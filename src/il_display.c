@@ -2262,10 +2262,12 @@ Display the indicated variable.
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->section != NULL) {
     disp_string_ptr("section", ptr->section, iek_other_text, (sizeof_t)0);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   if (ptr->aliased_variable != NULL) {
     disp_ptr("aliased_variable", (char*)ptr->aliased_variable, iek_variable);
   }  /* if */

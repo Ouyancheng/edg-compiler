@@ -1124,6 +1124,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+        walk_string_ptr(ptr->section, iek_other_text, 0);
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
         if (ptr->cleanup_routine != NULL) {
           remap_ptr(ptr->cleanup_routine, a_routine_ptr, iek_routine);
@@ -1132,7 +1135,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         if (ptr->asm_name_is_valid) {
           walk_string_ptr(ptr->asm_name_or_reg.name, iek_other_text, 0);
         }  /* if */
-        walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_variable, a_variable_ptr, iek_variable);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && IA64_ABI
