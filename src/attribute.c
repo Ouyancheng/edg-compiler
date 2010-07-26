@@ -3252,6 +3252,7 @@ their syntactic location recorded as al_implicit.
   return result;
 }  /* get_param_variable_attr_copies */
 
+#if USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED
 
 static a_boolean get_attr_arg_integer(an_attribute_arg_ptr  aap,
                                       an_attribute_ptr      ap,
@@ -3290,6 +3291,7 @@ other than returning FALSE.)
   return known_good_value;
 }  /* get_attr_arg_integer */
 
+#endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED */
 
 static a_type_ptr get_func_type_for_attr(an_attribute_ptr  ap,
                                          char              **entity,
