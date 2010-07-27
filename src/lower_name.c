@@ -4189,7 +4189,7 @@ expression that was used to select expr (NULL if no selector was used).
        is no selector (i.e., for non-member operators). */
     suppress_operation_indicator = TRUE;
     selector = skip_compiler_generated_expressions(selector, &dummy);
-    if (is_variable_node(selector)) {
+    if (!is_template_dependent_type(selector->type)) {
       /* g++ provides different manglings if the selector has a known type. */
       selector_has_known_type = TRUE;
     }  /* if */
