@@ -5003,8 +5003,10 @@ is TRUE.
              Onwg_1_CiL_2_10Z1Z_1_CiL_1_0O <-- encoding for "::new (10) T (0)"
                                          ^---- "O" to end the encoding.
                                   ^^^^^^^----- Initializers (if any).
-                               ^^^------------ Initializer count (zero or
-                                               more).
+                               ^^^------------ Optional initializer count (zero
+                                               or more).  Omitted (along with
+                                               initializers) if none were
+                                               specified.
                             ^^^--------------- Type of new operation.
                     ^^^^^^^^------------------ Placement arguments (if any).
                  ^^^-------------------------- Placement argument count (zero
@@ -5070,18 +5072,15 @@ is TRUE.
             /* We need to include an initializer expression list. */
             args = arg_list_from_dyn_init(
                                        expr->variant.new_delete->dynamic_init);
-          } else {
-            args = NULL;
-          }  /* if */
-#if !IA64_ABI
-          store_digits_and_underscore(number_of_operands_in_list(args), 
-                                      /*old_form=*/FALSE, mctl);
-#endif /* !IA64_ABI */
-          if (args != NULL) {
 #if IA64_ABI
             add_str_to_mangled_name("pi", mctl);
+#else /* !IA64_ABI */
+            store_digits_and_underscore(number_of_operands_in_list(args), 
+                                        /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
-            mangled_expression_list(args, in_dependent_expr, mctl);
+            if (args != NULL) {
+              mangled_expression_list(args, in_dependent_expr, mctl);
+            }  /* if */
           }  /* if */
 #if IA64_ABI
           add_to_mangled_name('E', mctl);
