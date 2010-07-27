@@ -4612,7 +4612,7 @@ this expression is part of a template-dependent expression.
     }  /* if */
 #if IA64_ABI
     add_str_to_mangled_name(name, mctl);
-    if (is_prefix) add_to_mangled_name('_', mctl);
+    if (is_prefix && !emulate_gnu_abi_bugs) add_to_mangled_name('_', mctl);
 #else /* !IA64_ABI */
     add_to_mangled_name('O', mctl);
     add_str_to_mangled_name(name, mctl);
