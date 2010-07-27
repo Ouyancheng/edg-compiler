@@ -1179,7 +1179,7 @@ position following what was demangled.
   int           op_length;
   unsigned long num_operands, i;
   a_boolean     takes_type, is_new_style_cast, is_postfix;
-  a_boolean     has_variable_number_of_operands = FALSE, is_new = FALSE;
+  a_boolean     has_variable_number_of_operands = FALSE;
   a_boolean     is_call = FALSE, is_builtin_operation = FALSE;
 
   /* An operation has the form
@@ -1283,7 +1283,6 @@ position following what was demangled.
       write_id_ch(' ', dctl);
       operator_str = "";
       has_variable_number_of_operands = TRUE;
-      is_new = TRUE;
       /* Get the count of operands. */
       p = get_number_with_optional_underscore(p, &num_operands, dctl);
       if (num_operands != 0) {
@@ -1295,6 +1294,12 @@ position following what was demangled.
         write_id_str(") ", dctl);
       }  /* if */
       p = demangle_type(p, dctl);
+      if (get_char(p, dctl) == 'O') {
+        /* There are no initializers; skip the loop below. */
+        goto skip_operand_loop;
+      }  /* if */
+      write_id_ch('(', dctl);
+      close_str = ")";
     } else if (strcmp(operator_str, "delete") == 0 ||
                strcmp(operator_str, "delete[]") == 0) {
       /* delete may have an optional "g" indicating a global scope delete. */
@@ -1310,10 +1315,6 @@ position following what was demangled.
       if (has_variable_number_of_operands) {
         /* Operation has a variable number of operations, and
            they may be type operands (i.e., builtin-operation). */
-        if (is_new) {
-          write_id_ch('(', dctl);
-          close_str = ")";
-        }  /* if */
         for (i = 1; i <= num_operands; i++) {
           if (get_char(p, dctl) == 'T') {
             /* Type operand. */
@@ -1377,6 +1378,7 @@ position following what was demangled.
       write_id_str(operator_str, dctl);
     }  /* if */
     write_id_str(close_str, dctl);
+skip_operand_loop:
     write_id_ch(')', dctl);
     /* Check for the final "O". */
     if (get_char(p, dctl) != 'O') {
