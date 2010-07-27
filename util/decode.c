@@ -1439,6 +1439,8 @@ block that controls output of extra information on template parameters.
   p = advance_past_underscore(p, dctl);
   /* Loop to process the arguments. */
   for (position = 1;; position++) {
+    /* Check for zero arguments case. */
+    if ((unsigned long)(p - arg_base) >= nchars) break;
     if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
     ch = get_char(p, dctl);
     if (ch == '\0' || ch == '_') {
@@ -5858,7 +5860,7 @@ Demangle an IA-64 <template-args> and output the demangled form.
 Return a pointer to the character position following what was demangled.
 A <template-args> encodes a template argument list.  The syntax is:
 
-  <template-args> ::= I <template-arg>+ E
+  <template-args> ::= I <template-arg>* E
   <template-arg> ::= <type>                     # type or template
                  ::= L <type> <value number> E  # literal
                  ::= L_Z <encoding> E           # external name
@@ -5877,6 +5879,9 @@ A <template-args> encodes a template argument list.  The syntax is:
     } else if (*ptr == 'L') {
       /* Literal or external name. */
       ptr = demangle_literal(ptr, dctl);
+    } else if (*ptr == 'E') {
+      /* No template arguments. */
+      break;
     } else {
       /* Type template argument. */
       ptr = demangle_type(ptr, dctl);
