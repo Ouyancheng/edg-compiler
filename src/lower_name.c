@@ -4170,6 +4170,7 @@ expression that was used to select expr (NULL if no selector was used).
   a_boolean                   suppress_operation_indicator = FALSE;
   a_boolean                   suppress_address_of = FALSE;
   a_boolean                   needs_qualification = FALSE;
+  a_boolean                   suppress_qualification = FALSE;
   a_name_reference_ptr        name_reference;
   an_opname_kind              opname;
   a_type_ptr                  conversion_type = NULL, destructor_type = NULL;
@@ -4255,8 +4256,7 @@ expression that was used to select expr (NULL if no selector was used).
   } else if (is_routine_node(expr)) {
 #if IA64_ABI
     if (emulate_gnu_abi_bugs &&
-        !(expr->name_reference != NULL &&
-          expr->name_reference->is_template_id) &&
+        !(name_reference != NULL && name_reference->is_template_id) &&
         (selector_has_known_type ||
          (selector == NULL &&
           !args_are_dependent(arguments)))) {
@@ -4293,6 +4293,15 @@ expression that was used to select expr (NULL if no selector was used).
       } else {
         /* Provide a spelling for the routine. */
         scp = &expr->variant.routine->source_corresp;
+#if IA64_ABI
+        if (emulate_gnu_abi_bugs &&
+            (name_reference != NULL && name_reference->is_template_id)) {
+          /* Suppress any qualification, but don't set name_reference to
+             NULL as we need the information about the template arguments
+             so the template arguments are mangled properly. */
+          suppress_qualification = TRUE;
+        }  /* if */
+#endif /* IA64_ABI */
       }  /* if */
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_field) {
@@ -4329,7 +4338,8 @@ expression that was used to select expr (NULL if no selector was used).
      otherwise).  Now do the actual mangling.  In the IA-64 ABI, any
      qualification occurs before the actual entity, but qualification follows
      the mangled name in the Cfront ABI. */
-  if (name_reference != NULL &&
+  if (!suppress_qualification &&
+      name_reference != NULL &&
       (name_reference->qualifier != NULL ||
        name_reference->is_global_qualified_name) &&
       (mangle_as_operator || scp != NULL)) {
