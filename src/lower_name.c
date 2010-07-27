@@ -4285,6 +4285,13 @@ expression that was used to select expr (NULL if no selector was used).
                                      (a_special_function_kind)sfk_conversion) {
           /* Compiler generated conversion operations have been stripped. */
 #if IA64_ABI
+          if (!emulate_gnu_abi_bugs) {
+            /* Mangle as a conversion operation. */
+            mangle_as_operator = TRUE;
+            opname = (an_opname_kind)onk_none;
+            conversion_type = expr->variant.routine->type->
+                                                   variant.routine.return_type;
+          }  /* if */
           suppress_address_of = TRUE;
 #endif /* IA64_ABI */
         } else {
