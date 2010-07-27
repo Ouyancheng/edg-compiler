@@ -3207,7 +3207,6 @@ issue_diagnostic:
                             ec_incompatible_linkage_specifier :
                             ec_decl_incompatible_with_previous_use,
                           position, ext_sym);
-        if (incompatible_severity == es_error) okay = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
