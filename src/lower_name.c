@@ -4255,12 +4255,15 @@ expression that was used to select expr (NULL if no selector was used).
   } else if (is_routine_node(expr)) {
 #if IA64_ABI
     if (emulate_gnu_abi_bugs &&
+        !(expr->name_reference != NULL &&
+          expr->name_reference->is_template_id) &&
         (selector_has_known_type ||
          (selector == NULL &&
           !args_are_dependent(arguments)))) {
       /* In cases where a (non-member) function is called with non-dependent
-         arguments, or a member function is being called and the selection
-         is known (i.e., a variable), g++ uses <expr-primary> for mangling. */
+         arguments, or a member function is being called and the type of the
+         selection is known, g++ uses <expr-primary> for mangling.  
+         <expr-primary> mangling is not used for template-ids. */
       suppress_address_of = TRUE;
     } else
 #endif /* IA64_ABI */
