@@ -487,6 +487,7 @@ static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
                                     a_boolean                partial_spec,
                                     a_boolean                old_form,
+                                    a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl);
 static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
 static a_boolean function_name_mangling_needed(
@@ -496,6 +497,7 @@ static char *mangled_operator_name(an_opname_kind kind,
                                    unsigned int   num_operands);
 static void mangled_source_name(a_source_correspondence_ptr scp,
                                 a_template_arg_ptr          template_arg_list,
+                                a_name_reference_ptr        name_reference,
                                 a_boolean                   include_length,
                                 a_mangling_control_block    *mctl);
 static char *first_field_name(a_type_ptr              class_type,
@@ -1782,6 +1784,7 @@ template template parameter), if any.
     mangled_template_arguments(args,
                                /*partial_spec=*/FALSE,
                                /*old_form=*/FALSE,
+                               (a_name_reference_ptr)NULL,
                                mctl);
   }  /* if */
 #if !IA64_ABI
@@ -2753,8 +2756,8 @@ qualifiers seen so far (and is typically set to zero by the initial caller).
           template_arg_list = ctsp->template_arg_list;
         }  /* if */
       }  /* if */
-      mangled_source_name(scp, template_arg_list, /*include_length=*/TRUE,
-                          mctl);
+      mangled_source_name(scp, template_arg_list, (a_name_reference_ptr)NULL,
+                          /*include_length=*/TRUE, mctl);
     }  /* if */
   }  /* if */
 }  /* mangled_scope_resolution */
@@ -2878,6 +2881,7 @@ add mangling for an eok_address_of operation.
           mangled_template_arguments(rinfo->template_arg_list,
                                      /*partial_spec=*/FALSE,
                                      /*old_form=*/FALSE,
+                                     (a_name_reference_ptr)NULL,
                                      mctl);
         }  /* if */
       } else {
@@ -2948,6 +2952,7 @@ add mangling for an eok_address_of operation.
           mangled_template_arguments(rinfo->template_arg_list,
                                      /*partial_spec=*/FALSE,
                                      /*old_form=*/FALSE,
+                                     (a_name_reference_ptr)NULL,
                                      mctl);
         }  /* if */
       } else {
@@ -3210,6 +3215,7 @@ only).
     mangled_template_arguments(template_arg_list,
                                /*partial_spec=*/FALSE,
                                /*old_form=*/FALSE,
+                               (a_name_reference_ptr)NULL,
                                mctl);
   }  /* if */
   if (is_class_or_namespace_member(con)) {
@@ -3974,6 +3980,7 @@ is suppressed when suppress_operation_indicator is TRUE.
 #endif /* IA64_ABI */
 static void mangled_source_name(a_source_correspondence_ptr scp,
                                 a_template_arg_ptr          template_arg_list,
+                                a_name_reference_ptr        name_reference,
                                 a_boolean                   include_length,
                                 a_mangling_control_block    *mctl)
 /*
@@ -3985,6 +3992,9 @@ both IA-64 and Cfront ABIs (i.e., length followed by name and template
 arguments).  template_arg_list is non-NULL, template arguments are also
 mangled.  In the Cfront ABI, if include_length is TRUE, the length of the
 mangled name (including any template arguments) is prefixed to the name.
+name_reference (when non-NULL) is used to ensure that the mangled list of
+template arguments accurately represents those that appeared in the source
+form.
 */
 {
   char                 *str;
@@ -3999,10 +4009,11 @@ mangled name (including any template arguments) is prefixed to the name.
   add_number_to_mangled_name((unsigned long)strlen(str), mctl);
 #endif /* IA64_ABI */
   add_str_to_mangled_name(str, mctl);
-  if (template_arg_list != NULL) {
-    /* Put out the template argument list, if any. */
+  if (name_reference == NULL ? template_arg_list != NULL :
+                               name_reference->is_template_id) {
+    /* Put out the template argument list (or a null list), if any. */
     mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
-                               /*old_form=*/FALSE, mctl);
+                               /*old_form=*/FALSE, name_reference, mctl);
   }  /* if */
 #if !IA64_ABI
   if (include_length) fill_in_length(&length_reservation, mctl);
@@ -4350,7 +4361,7 @@ expression that was used to select expr (NULL if no selector was used).
   } else if (scp != NULL) {
     /* Encode this entity with a "spelling" (i.e., <source-name> for IA-64
        ABI). */
-    mangled_source_name(scp, template_arg_list,
+    mangled_source_name(scp, template_arg_list, name_reference,
                         /*include_length=*/!needs_qualification, mctl);
   } else {
     /* This isn't a special case, provide usual mangling for the expression. */
@@ -4924,6 +4935,7 @@ is TRUE.
 #else /* !IA64_ABI */
       mangled_source_name(&expr->variant.field->source_corresp,
                           (a_template_arg_ptr)NULL,
+                          expr->name_reference,
                           /*include_length=*/TRUE,
                           mctl);
 #endif /* IA64_ABI */
@@ -5721,22 +5733,27 @@ static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
                                     a_boolean                partial_spec,
                                     a_boolean                old_form,
+                                    a_name_reference_ptr     name_reference,
                                     a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the template arguments given
 by template_arg_list.  If partial_spec is TRUE, this argument list is
 the first one on a partial specialization.  If old_form is TRUE, use
 the old form of length specification in the mangling for lengths of
-literals.
+literals.  name_reference (when non-NULL) is used to ensure that the
+mangled list of template arguments accurately represents those that
+appeared in the source form (this is used when mangling template arguments
+for function templates that appear in a <source-name>).  If name_reference
+is NULL, all of the arguments pointed to by template_arg_list are mangled.
 */
 {
   a_template_arg_ptr   tap;
+  long                 tap_no;
 #if !IA64_ABI
   char                 *str;
   a_length_reservation length_reservation;
   a_boolean            saved_suppress_partial_spec_args =
                                               mctl->suppress_partial_spec_args;
-
   /* The mangled form of template arguments is something like
        __tm__3_ii
                ^^--- Two template arguments of type int.
@@ -5768,7 +5785,16 @@ literals.
 #endif /* IA64_ABI */
   /* Run through the template argument list, determining the representation
      for each argument. */
-  for (tap = template_arg_list; tap != NULL; tap = tap->next) {
+  for (tap = template_arg_list, tap_no = 0;
+       tap != NULL;
+       tap = tap->next, tap_no++) {
+    if (name_reference != NULL &&
+        name_reference->is_template_id &&
+        tap_no >= name_reference->num_template_arguments) {
+      /* If a name_reference has been specified, it specifies the number
+         of arguments to emit (which could be zero). */
+      break;
+    }  /* if */
     if (is_type_templ_arg(tap)) {
       /* Type argument. */
       /* Avoid problems on weird case of missing type in Microsoft mode
@@ -6139,6 +6165,7 @@ should be put out.
     mangled_template_arguments(proto_ctsp->template_arg_list,
                                /*partial_spec=*/TRUE,
                                /*old_form=*/FALSE,
+                               (a_name_reference_ptr)NULL,
                                mctl);
     /* The second argument list is the deduced argument values for the
        template parameter list of the partial specialization. */
@@ -6162,6 +6189,7 @@ should be put out.
     mangled_template_arguments(template_args,
                                /*partial_spec=*/FALSE,
                                old_form,
+                               (a_name_reference_ptr)NULL,
                                mctl);
   }  /* if */
 #if !IA64_ABI
@@ -6839,6 +6867,7 @@ static data member is used as the parent entity for mangling purposes.
         mangled_template_arguments(ctsp->template_arg_list,
                                    /*partial_spec=*/FALSE,
                                    /*old_form=*/FALSE,
+                                   (a_name_reference_ptr)NULL,
                                    mctl);
         goto new_substitution;
       }  /* if */
@@ -7164,6 +7193,7 @@ type is mangled in its place.
                            type->variant.typeref.extra_info->template_arg_list,
                            /*partial_spec=*/FALSE,
                            /*old_form=*/FALSE,
+                           (a_name_reference_ptr)NULL,
                            mctl);
 #if !IA64_ABI
   fill_in_length(&length_reservation, mctl);
@@ -7240,6 +7270,7 @@ potential performance improvement, allowing re-use of a mangled name).
       mangled_template_arguments(ctsp->template_arg_list,
                                  /*partial_spec=*/FALSE,
                                  /*old_form=*/FALSE,
+                                 (a_name_reference_ptr)NULL,
                                  mctl);
       if (need_close) add_to_mangled_name('E', mctl);
       goto done;
@@ -8773,6 +8804,7 @@ mangle_template:
       mangled_template_arguments(routine->template_arg_list,
                                  /*partial_spec=*/FALSE,
                                  /*old_form=*/FALSE,
+                                 (a_name_reference_ptr)NULL,
                                  mctl);
     }  /* if */
 #if !IA64_ABI
