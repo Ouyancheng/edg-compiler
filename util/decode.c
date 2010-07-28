@@ -1923,11 +1923,19 @@ template parameters.
          final qualifier.  For example, Q4_1A1B1C1D would demangle as
          A::B::C::~D. */
       is_special_name = TRUE;
-      end_ptr = full_demangle_type_name(p+4, /*base_name_only=*/FALSE,
-                                        /*temp_par_info=*/
-                                            (a_template_param_block_ptr)NULL,
-                                        /*is_destructor_name=*/TRUE,
-                                        dctl);
+      if (get_char(p+4, dctl) == 'Q' ||
+          isdigit((unsigned char)get_char(p+4, dctl))) {
+        /* Destructor is qualified. */
+        end_ptr = full_demangle_type_name(p+4, /*base_name_only=*/FALSE,
+                                          /*temp_par_info=*/
+                                              (a_template_param_block_ptr)NULL,
+                                          /*is_destructor_name=*/TRUE,
+                                          dctl);
+      } else {
+        /* An unqualified type. */
+        write_id_ch('~', dctl);
+        end_ptr = demangle_type(p+4, dctl);
+      }  /* if */
     } else if (start_of_id_is("op", p, dctl)) {
       /* Conversion function.  Name looks like __opi__... where the part
          after "op" encodes the type (e.g., "opi" is "operator int"). */
