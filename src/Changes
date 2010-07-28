@@ -1,5 +1,18 @@
 Version 4.2
 
+7/28/10  [EDGcpfe/10877]
+Abort on aggregate initializer involving GNU-mode zero-length array
+
+Previously, in GNU modes, an aggregate (i.e., brace-enclosed) initializer for 
+a multidimensional array with a non-top-level dimension of zero triggered an
+assertion error in start_aggregate_init_scan_loop (decl_inits.c).
+For example:
+
+  int x[2][0] = {};  // Previously aborted in GNU modes.
+
+This is now fixed.
+
+
 7/28/10  [EDGcpfe/10858]
 C++-generating back end: qualified name in function call to avoid
 argument-dependent lookup
@@ -22,6 +35,7 @@ to determine when a function name must be qualified.  For example:
                   // because of argument-dependent lookup
     }
   }
+
 
 7/24/10  [EDGcpfe/10873]
 Use virtual destructor final overrider for delete [] (GNU and Microsoft modes)
