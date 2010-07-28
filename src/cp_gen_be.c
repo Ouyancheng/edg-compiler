@@ -3141,19 +3141,16 @@ to indicate that the name reference was successfully emitted.
 
 static void gen_name_from_routine_node(an_expr_node_ptr node,
                                        a_boolean        unqualified,
-                                       a_boolean        use_ampersand)
+                                       a_boolean        qualified)
 /*
 Generate the name of a routine from an enk_routine node.  If unqualified is
-TRUE, force the generation of an unqualified name.  If use_ampersand is
-TRUE, prefix the name with "&".
+TRUE, force the generation of an unqualified name.  If qualified is TRUE,
+force the generation of a qualified name.
 */
 {
   a_routine_ptr rout = routine_from_function_expr(node);
 
   check_assertion(rout != NULL);
-  if (use_ampersand) {
-    write_tok_ch('&');
-  }  /* if */
   if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
                                    iek_routine, /*is_declaration=*/FALSE)) {
     /* We have information on the exact form of reference and used that
@@ -3161,7 +3158,13 @@ TRUE, prefix the name with "&".
   } else if (unqualified) {
     gen_unqualified_name(&rout->source_corresp, iek_routine);
   } else {
+    a_boolean saved_qualification_needed =
+                                     rout->source_corresp.qualification_needed;
+    if (qualified) {
+      rout->source_corresp.qualification_needed = TRUE;
+    }  /* if */
     gen_routine_name(rout);
+    rout->source_corresp.qualification_needed = saved_qualification_needed;
   }  /* if */
 }  /* gen_name_from_routine_node */
 
@@ -8098,7 +8101,7 @@ call.
         gen_name_from_routine_node(
                func_expr,
                expr->variant.operation.only_found_through_arg_dependent_lookup,
-               /*use_ampersand=*/FALSE);
+               expr->variant.operation.call_with_qualified_function_name);
       }  /* if */
     } else {
       if (is_constant_node(func_expr) &&
@@ -9197,7 +9200,7 @@ done_with_operation_after_parens:
       break;
     case enk_routine:
       gen_name_from_routine_node(expr, /*unqualified=*/FALSE,
-                                 /*use_ampersand=*/FALSE);
+                                 /*qualified=*/FALSE);
       break;
     case enk_throw:
       /* Throw. */

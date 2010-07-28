@@ -3389,6 +3389,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.arg_dependent_lookup_suppressed_on_call) {
         disp_boolean("arg_dependent_lookup_suppressed_on_call", TRUE);
       }  /* if */
+      if (ptr->variant.operation.call_with_qualified_function_name) {
+        disp_boolean("call_with_qualified_function_name", TRUE);
+      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.operation.only_found_through_arg_dependent_lookup) {
         disp_boolean("only_found_through_arg_dependent_lookup", TRUE);

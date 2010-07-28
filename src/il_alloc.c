@@ -2596,6 +2596,7 @@ fields to default values.
       node->variant.operation.implicit_step_of_explicit_cast = FALSE;
       node->variant.operation.is_conversion_call = FALSE;
       node->variant.operation.arg_dependent_lookup_suppressed_on_call = FALSE;
+      node->variant.operation.call_with_qualified_function_name = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       node->variant.operation.only_found_through_arg_dependent_lookup = FALSE;
       node->variant.operation.keep_cast_for_cp_gen_be = FALSE;

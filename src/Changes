@@ -1,5 +1,28 @@
 Version 4.2
 
+7/28/10  [EDGcpfe/10858]
+C++-generating back end: qualified name in function call to avoid
+argument-dependent lookup
+
+In configurations in which DEFAULT_RECORD_FORM_OF_NAME_REFERENCE is FALSE,
+the C++-generating back end failed to qualify the name of a function in a
+call expression when it was qualified in the original source form.  The
+resulting generated code could thus trigger argument-dependent lookup in
+calls where the original source did not.  The front end now flags call
+expressions in which argument-dependent lookup was suppressed because the
+function name was qualified, and the C++-generating back end uses this flag
+to determine when a function name must be qualified.  For example:
+
+  struct S { };
+  void f(S*);
+  namespace N {
+    void f(S*);
+    void g(S* p) {
+      N::f(p);    // Previously generated as f(p), which is ambiguous
+                  // because of argument-dependent lookup
+    }
+  }
+
 7/24/10  [EDGcpfe/10873]
 Use virtual destructor final overrider for delete [] (GNU and Microsoft modes)
 

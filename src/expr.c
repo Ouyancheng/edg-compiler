@@ -2223,6 +2223,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                make_node_from_operand(&arg),
                                /*compiler_generated=*/FALSE,
                                /*arg_dep_lookup_suppressed=*/FALSE,
+                               /*qualified_function_name=*/FALSE,
                                /*found_through_adl=*/FALSE,
                                /*uses_operator_syntax=*/FALSE,
                                &operand->position, result_op,
@@ -2275,6 +2276,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                    make_node_from_operand(&arg),
                                    /*compiler_generated=*/FALSE,
                                    /*arg_dep_lookup_suppressed=*/FALSE,
+                                   /*qualified_function_name=*/FALSE,
                                    /*found_through_adl=*/FALSE,
                                    /*uses_operator_syntax=*/FALSE,
                                    &operand->position, result_op,
@@ -2612,6 +2614,7 @@ are expected to be NULL in that case.
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
   a_boolean         arg_dep_lookup_suppressed = FALSE;
+  a_boolean         adl_suppressed_by_qualification = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
   an_expr_node_ptr  function_call_node = NULL;
@@ -2677,6 +2680,8 @@ are expected to be NULL in that case.
         if (!operand->symbol->is_class_member) {
           arg_dep_lookup_suppressed = TRUE;
         }  /* if */
+      } else if (operand->is_qualified_name) {
+        adl_suppressed_by_qualification = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3159,6 +3164,9 @@ are expected to be NULL in that case.
       call_node->variant.operation.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
     }  /* if */
+    if (adl_suppressed_by_qualification) {
+      call_node->variant.operation.call_with_qualified_function_name = TRUE;
+    }  /* if */
     make_expression_operand(call_node, result);
     result_operand_is_call = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3189,6 +3197,7 @@ are expected to be NULL in that case.
     assemble_function_call(operand, bound_function_selector, argument_list,
                            /*compiler_generated=*/FALSE,
                            arg_dep_lookup_suppressed,
+                           adl_suppressed_by_qualification,
                            found_through_adl, uses_operator_syntax,
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
