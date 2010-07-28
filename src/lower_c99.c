@@ -3464,45 +3464,6 @@ If the constant represents a lowered complex constant and type != NULL, then
 
 #endif /* LOWER_COMPLEX */
 
-void repr_for_complex_constant(a_constant_ptr           con,
-                               an_internal_float_value *real,
-                               an_internal_float_value *imag)
-/*
-This routine returns the real and imaginary values of a complex constant
-(which can be a ck_complex or ck_aggregate).  In the aggregate case, the
-aggregate can be a constant created by the front end, or it can be a lowered
-complex constant.
-*/
-{
-  check_assertion(con->kind == (a_constant_repr_kind)ck_complex ||
-                  con->kind == (a_constant_repr_kind)ck_aggregate);
-
-  if (con->kind == (a_constant_repr_kind)ck_complex) {
-    /* Values are part of the complex constant. */
-    *real = con->variant.complex_value->real;
-    *imag = con->variant.complex_value->imag;
-#if LOWER_COMPLEX
-  } else if (is_lowered_complex_constant(con, (a_type_ptr *)NULL)) {
-    check_assertion(con->variant.aggregate.first_constant->kind ==
-                                          (a_constant_repr_kind)ck_aggregate);
-    /* The complex constant has been lowered into a structure that contains
-       an array of two elements; set con to point to the array aggregate and
-       extract the values below. */
-    con = con->variant.aggregate.first_constant;
-#endif /* LOWER_COMPLEX */
-  }  /* if */
-  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
-    /* The values are in the aggregate. */
-    check_assertion(con->variant.aggregate.first_constant->kind ==
-                                              (a_constant_repr_kind)ck_float &&
-                    con->variant.aggregate.last_constant->kind ==
-                                               (a_constant_repr_kind)ck_float);
-    *real = con->variant.aggregate.first_constant->variant.float_value;
-    *imag = con->variant.aggregate.last_constant->variant.float_value;
-  }  /* if */
-}  /* repr_for_complex_constant */
-
-
 static void lower_c99_temp_init(an_expr_node_ptr expr)
 /*
 Lower the given enk_temp_init expression.  An enk_temp_init is used

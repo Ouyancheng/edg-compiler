@@ -113,10 +113,6 @@ extern void create_element_count_variable_for_vla(a_statement_ptr  stmt);
 
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 
-extern void repr_for_complex_constant(a_constant_ptr           con,
-                                      an_internal_float_value *real,
-                                      an_internal_float_value *imag);
-
 #if LOWER_COMPLEX
 
 extern void lower_c99_nonreal_float_types(void);
