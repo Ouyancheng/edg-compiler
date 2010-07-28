@@ -12069,6 +12069,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
     } else {
       a_symbol_ptr	field_sym;
       a_symbol_ptr	type_sym = NULL;
+      a_symbol_ptr	orig_type_sym = NULL;
       a_symbol_locator	normal_locator;
       a_symbol_locator	other_locator;
       a_symbol_ptr	normal_sym = NULL;
@@ -12139,6 +12140,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
                  dependent but X is not, use X for T because after this
                  routine exits, we have only the name of T not its
                  actual type. */
+              orig_type_sym = normal_sym;
               type_sym = qualifier_sym;
             } else {
               type_sym = normal_sym;
@@ -12290,6 +12292,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         /* Create a locator that points to the type described by the symbol
            that was found. */
         saved_position = locator_for_curr_id.source_position;
+        if (orig_type_sym == NULL) orig_type_sym = type_sym;
         tp = type_symbol_type(type_sym);
         dtor_type = tp;
         tp = skip_typerefs(tp);
@@ -12301,6 +12304,13 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         }  /* if */
         make_locator_for_symbol(type_sym, &locator_for_curr_id);
         locator_for_curr_id.source_position = saved_position;
+        if (orig_type_sym != NULL) {
+          /* Above, for X::~T we used X as the type for the destructor.
+             We want ~X for the tildized locator below, but we want to return
+             T as the destructor type. */
+          dtor_type = type_symbol_type(orig_type_sym);
+          dtor_type = skip_typerefs(dtor_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* Convert the locator to a locator for the destructor. */
@@ -15715,7 +15725,8 @@ selection operator, in which case it points to the type of the left operand.
             /* Set the class type to NULL as an indicator to the
 	       coalesce routine that an error has occurred. */
              qualifier_type = NULL;
-          } else if (!destructor_name_matches_class_name(class_sym)) {
+          } else if (!is_template_dependent_type(dtor_type) &&
+                     !destructor_name_matches_class_name(class_sym)) {
             if (!in_if_exists) {
               pos_ty_error(ec_destructor_name_mismatch, &tilde_position,
                            qualifier_type);
