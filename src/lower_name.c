@@ -2280,32 +2280,6 @@ of length specification in the mangling for lengths of literals.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
-static void repr_for_complex_constant(a_constant_ptr           con,
-                                      an_internal_float_value *real,
-                                      an_internal_float_value *imag)
-/*
-This routine returns the real and imaginary values of a complex constant
-(which can be a ck_complex or ck_aggregate).
-FIXME: This doesn't handle lowered complex constants.
-*/
-{
-  check_assertion(con->kind == (a_constant_repr_kind)ck_complex ||
-                  con->kind == (a_constant_repr_kind)ck_aggregate);
-
-  if (con->kind == (a_constant_repr_kind)ck_complex) {
-    *real = con->variant.complex_value->real;
-    *imag = con->variant.complex_value->imag;
-  } else {
-    check_assertion(con->variant.aggregate.first_constant->kind ==
-                                              (a_constant_repr_kind)ck_float &&
-                    con->variant.aggregate.last_constant->kind ==
-                                               (a_constant_repr_kind)ck_float);
-    *real = con->variant.aggregate.first_constant->variant.float_value;
-    *imag = con->variant.aggregate.last_constant->variant.float_value;
-  }  /* if */
-}  /* repr_for_complex_constant */
-
-
 static void mangled_encoding_for_complex_constant(
                                              a_constant_ptr           con,
                                              a_boolean                old_form,
@@ -2319,12 +2293,17 @@ lengths of literals.
 */
 {
   an_internal_float_value  real, imag;
+  a_type_ptr               con_type = con->type;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_complex ||
                   con->kind == (a_constant_repr_kind)ck_aggregate);
 
   /* Extract the values to be encoded from the constant. */
   repr_for_complex_constant(con, &real, &imag);
+#if LOWER_COMPLEX
+  /* Use unlowered complex type if the complex constant has been lowered. */
+  (void)is_lowered_complex_constant(con, &con_type);
+#endif /* LOWER_COMPLEX */
 #if !IA64_ABI
   /* Complex float: the Cfront-like ABI encoding mangles both real and
      imaginary portions of the value as floating point numbers:
@@ -2336,9 +2315,9 @@ lengths of literals.
        ^---------------- "L" indicates a number.
      cfront 3.0.1 does not implement this, so we made it up. */
   add_to_mangled_name('L', mctl);
-  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+  add_float_value_to_mangled_name(skip_typerefs(con_type)->variant.float_kind,
                                   &real, old_form, mctl);
-  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+  add_float_value_to_mangled_name(skip_typerefs(con_type)->variant.float_kind,
                                   &imag, old_form, mctl);
 #else /* IA64_ABI */
   /* For IA-64, the encoding is
@@ -2348,13 +2327,13 @@ lengths of literals.
   */
   add_to_mangled_name('L', mctl);
   /* Add the encoding for the type. */
-  mangled_encoding_for_type(con->type, mctl);
+  mangled_encoding_for_type(con_type, mctl);
   /* Add the hex digits for the real portion of the complex number. */
-  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+  add_float_value_to_mangled_name(skip_typerefs(con_type)->variant.float_kind,
                                   &real, old_form, mctl);
   add_to_mangled_name('_', mctl);
   /* Add the hex digits for the imaginary portion of the complex number. */
-  add_float_value_to_mangled_name(skip_typerefs(con->type)->variant.float_kind,
+  add_float_value_to_mangled_name(skip_typerefs(con_type)->variant.float_kind,
                                   &imag, old_form, mctl);
   /* Add the end-of-literal marker. */
   add_to_mangled_name('E', mctl);
@@ -3487,9 +3466,18 @@ do_unknown_function:
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_aggregate:
-      /* FIXME: Doesn't work for lowered complex constants. */
-      check_assertion(con->type->kind == (a_type_kind)tk_complex);
-      /*FALLTHROUGH*/
+      /* Mangle a complex aggregate.  Since complex constants are shared, it's
+         possible that we've run into one that's already been lowered. */
+      if (con->type->kind == (a_type_kind)tk_complex
+#if LOWER_COMPLEX
+          || is_lowered_complex_constant(con, (a_type_ptr *)NULL)
+#endif /* LOWER_COMPLEX */
+                                             ) {
+        mangled_encoding_for_complex_constant(con, old_form, mctl);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
     case ck_complex:
       mangled_encoding_for_complex_constant(con, old_form, mctl);
       break;
@@ -3531,9 +3519,14 @@ certain template constants (used only in the IA-64 ABI).
      the type.  Likewise for an address constant. */
   if (con->kind != (a_constant_repr_kind)ck_template_param &&
       con->kind != (a_constant_repr_kind)ck_address) {
+    a_type_ptr con_type = con->type;
     add_to_mangled_name('C', mctl);
     /* Put out the constant type. */
-    mangled_encoding_for_type(con->type, mctl);
+#if LOWER_COMPLEX
+    /* Use unlowered complex type if the complex constant has been lowered. */
+    (void)is_lowered_complex_constant(con, &con_type);
+#endif /* LOWER_COMPLEX */
+    mangled_encoding_for_type(con_type, mctl);
   }  /* if */
 #endif /* !IA64_ABI */
   /* Put out the literal representation for the constant. */

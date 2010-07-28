@@ -3234,7 +3234,7 @@ typedef struct a_constant {
   a_bit_field	assoc_var_assigned:1;
 			/* If TRUE, an associated variable has been assigned
 			   by IL lowering, and source_corresp.assoc_info
-			   points to it.  Used for pointer-to-member
+			   points to it.  Used for pointer-to-member, complex,
 			   and string literal constants.  Also used in the
 			   C-generating back end, for wide string literal
 			   constants that are rewritten to refer to a
