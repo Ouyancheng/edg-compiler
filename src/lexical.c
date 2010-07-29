@@ -15116,8 +15116,9 @@ selection operator, in which case it points to the type of the left operand.
             if (!is_vacuous_dtor) {
               /* Qualifiers need to be preserved for vacuous destructors
                  because the type must match the type specified for the
-                 destructor name. */
-              qualifier_type = skip_typerefs(qualifier_type);
+                 destructor name.  Don't skip past a dependent decltype. */
+              qualifier_type =
+                         skip_typerefs_not_dependent_decltypes(qualifier_type);
             }  /* if */
             qualifier_is_type = TRUE;
             qualifier_type_is_class = FALSE;
