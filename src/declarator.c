@@ -2184,6 +2184,13 @@ if this is the function declarator in a friend function declaration.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
+#if GNU_EXTENSIONS_ALLOWED
+          if (last_param_id->symbol != NULL) {
+            /* Record whether the name of this parameter is a duplicate of
+               an earlier one. */
+            ptp->duplicate_name = last_param_id->symbol->ambiguous;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }
         if (C_mode()) {
           /* Default argument processing not needed in C mode. */

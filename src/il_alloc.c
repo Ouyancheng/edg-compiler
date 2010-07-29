@@ -886,6 +886,7 @@ at file scope.
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;
   ptp->nonnull = FALSE;
+  ptp->duplicate_name = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;

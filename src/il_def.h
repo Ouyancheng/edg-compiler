@@ -4315,6 +4315,10 @@ typedef struct a_param_type {
   a_bit_field	nonnull:1;
 			/* TRUE if this represents a parameter of pointer type
 			   that must be passed a non-NULL argument. */
+  a_bit_field	duplicate_name:1;
+			/* TRUE if the name of this parameter is the same as
+			   that of an earlier parameter, which is allowed in
+			   some GNU modes. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr

@@ -1844,16 +1844,27 @@ is non-NULL, in which case that is the function scope.
             /* This is just a declaration, so put out the type and no name. */
             char *temp = NULL;
             char *name = NULL;
-            /* If we have the name, put it out (unless it is reserved). */
-            if (param->name != NULL && !is_C_reserved_word(param->name)) {
-              name = param->name;
-            }  /* if */
-            if (gcc_is_generated_code_target && c99_mode && name == NULL) {
-              /* gcc has difficulty with [*] VLA parameter types when the
-                 parameter is unnamed, so generate a temporary name in C99
-                 mode.  (We don't have an easy way to test whether the
-                 parameter has a VLA [*] in it.) */
+#if GNU_EXTENSIONS_ALLOWED
+            if (param->duplicate_name) {
+              /* The name of this parameter is the same as that of an
+                 earlier one.  Use a temporary name instead to avoid
+                 invalid generated code. */
               temp = (char *)param;
+            } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              /* If we have the name, put it out (unless it is reserved). */
+              if (param->name != NULL && !is_C_reserved_word(param->name)) {
+                name = param->name;
+              }  /* if */
+              if (gcc_is_generated_code_target && c99_mode && name == NULL) {
+                /* gcc has difficulty with [*] VLA parameter types when the
+                   parameter is unnamed, so generate a temporary name in C99
+                   mode.  (We don't have an easy way to test whether the
+                   parameter has a VLA [*] in it.) */
+                temp = (char *)param;
+              }  /* if */
             }  /* if */
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
