@@ -6343,6 +6343,14 @@ typedef struct a_typeref_type_supplement {
 			   default arguments); -1 for non-template types
 			   and for template aliases in which all template
 			   arguments were always explicitly specified. */
+  a_type_ptr	proxy_class;
+			/* If this is the typeref for a dependent decltype
+			   this points to the corresponding "proxy" class.
+                           template parameter. This is needed if the decltype
+			   is used in a context in which a class type is
+			   required (e.g., decltype(...)::X). NULL for other
+			   kinds of typerefs or if no class use has been
+			   encountered. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		type_id_range;

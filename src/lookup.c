@@ -473,33 +473,30 @@ initializing the class and assigning a scope number. The class type is
 created the first time that a template parameter is used in a context
 in which a class type is required.  This includes use in a qualified
 name lookup where the template parameter is used as the class type, and
-use as a base class.  When orig_type is a dependent decltype a new proxy
-class is created for each use.
+use as a base class.
 */
 {
   a_type_ptr				type;
-  a_template_param_type_supplement_ptr	tptsp;
   a_symbol_ptr				sym;
   a_symbol_ptr				orig_sym;
   a_class_symbol_supplement_ptr		cssp;
   a_type_ptr				templ_param_type;
-  a_type_ptr				result_type;
+  a_type_ptr				*proxy_class;
 
   /* If the original type is a template parameter, get a pointer to the
-     template parameter supplement. */
+     template parameter.  In any case, get a pointer to the proxy class
+     pointer. */
   if (orig_type->kind == (a_type_kind)tk_template_param) {
     templ_param_type = orig_type;
-    tptsp = templ_param_type->variant.template_param.extra_info;
+    proxy_class = &templ_param_type->
+                                 variant.template_param.extra_info->class_type;
   } else {
     templ_param_type = NULL;
-    tptsp = NULL;
+    proxy_class = &orig_type->variant.typeref.extra_info->proxy_class;
   }  /* if */
   /* If the template parameter does not yet have a proxy class, create one
-     now.  If orig_type is not a template parameter type, we don't attempt
-     to reuse the proxy class. */
-  if (tptsp != NULL && tptsp->class_type != NULL) {
-    result_type = tptsp->class_type;
-  } else {
+     now. */
+  if (*proxy_class == NULL) {
     /* Create a new proxy class. */
     /* Get the symbol pointer, if any,  associated with the original type. */
     orig_sym = (a_symbol_ptr)orig_type->source_corresp.assoc_info;
@@ -543,8 +540,7 @@ class is created for each use.
       set_class_membership(sym, &type->source_corresp,
                            parent_class_of(orig_type));
     }  /* if */
-    if (tptsp != NULL) tptsp->class_type = type;
-    result_type = type;
+    *proxy_class = type;
     /* Set the scope number. */
     cssp = symbol_supplement_for_class(type);
     cssp->member_decl_scope = take_next_scope_number();
@@ -566,7 +562,7 @@ class is created for each use.
       add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
     }  /* if */
   }  /* if */
-  return result_type;
+  return *proxy_class;
 }  /* proxy_class_for_template_param */
 
 
