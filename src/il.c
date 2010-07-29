@@ -8728,11 +8728,12 @@ building a type from nested declarators outward.  class_type must be non-NULL.)
   a_type_ptr         tp;
   a_based_type_kind  kind = (a_based_type_kind)btk_ptr_to_member;
 
-  class_type = skip_typerefs(class_type);
   if (is_template_param_type(class_type)) {
     /* The class type is a template parameter.  Substitute the template
        parameter's proxy class. */
     class_type = proxy_class_for_template_param(class_type);
+  } else {
+    class_type = skip_typerefs(class_type);
   }  /* if */
   if (member_type != NULL && is_function_type(member_type)) {
     /* This is a pointer-to-member-function type.  Be sure the implicit this

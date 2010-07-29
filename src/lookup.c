@@ -464,33 +464,46 @@ member function is defined.
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
-a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type)
+a_type_ptr proxy_class_for_template_param(a_type_ptr   orig_type)
 /*
-Return the proxy class associated with a template parameter.  If one does
-not already exist, one is created.  Creation of the proxy class consists
-of allocating and initializing the class and assigning a scope number.
-The class type is created the first time that a template parameter is
-used in a context in which a class type is required.  This includes
-use in a qualified name lookup where the template parameter is used
-as the class type, and use as a base class. 
+Return the proxy class associated with the template parameter or dependent
+decltype specified by orig_type.  If one does not already exist, one is
+created.  Creation of the proxy class consists of allocating and
+initializing the class and assigning a scope number. The class type is
+created the first time that a template parameter is used in a context
+in which a class type is required.  This includes use in a qualified
+name lookup where the template parameter is used as the class type, and
+use as a base class.  When orig_type is a dependent decltype a new proxy
+class is created for each use.
 */
 {
   a_type_ptr				type;
   a_template_param_type_supplement_ptr	tptsp;
   a_symbol_ptr				sym;
-  a_symbol_ptr				templ_param_sym;
+  a_symbol_ptr				orig_sym;
   a_class_symbol_supplement_ptr		cssp;
+  a_type_ptr				templ_param_type;
+  a_type_ptr				result_type;
 
-  check_assertion_str(templ_param_type->kind == (a_type_kind)tk_template_param,
-                      "proxy_class_for_template_param: bad type");
-  tptsp = templ_param_type->variant.template_param.extra_info;
+  /* If the original type is a template parameter, get a pointer to the
+     template parameter supplement. */
+  if (orig_type->kind == (a_type_kind)tk_template_param) {
+    templ_param_type = orig_type;
+    tptsp = templ_param_type->variant.template_param.extra_info;
+  } else {
+    templ_param_type = NULL;
+    tptsp = NULL;
+  }  /* if */
   /* If the template parameter does not yet have a proxy class, create one
-     now. */
-  if (tptsp->class_type == NULL) {
-    /* Get the symbol pointer associated with the template parameter. */
-    templ_param_sym =
-                     (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
-    if (templ_param_sym == NULL) {
+     now.  If orig_type is not a template parameter type, we don't attempt
+     to reuse the proxy class. */
+  if (tptsp != NULL && tptsp->class_type != NULL) {
+    result_type = tptsp->class_type;
+  } else {
+    /* Create a new proxy class. */
+    /* Get the symbol pointer, if any,  associated with the original type. */
+    orig_sym = (a_symbol_ptr)orig_type->source_corresp.assoc_info;
+    if (orig_sym == NULL) {
       /* No template parameter symbol.  This is the case when getting the
          proxy class for type_of_unknown_templ_param_nontype. */
       sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -500,8 +513,8 @@ as the class type, and use as a base class.
          as the template parameter symbol.  mark_declared is not called
          because this symbol is not visible to the user. */
       sym = alloc_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                         templ_param_sym->header,
-                         &templ_param_sym->decl_position);
+                         orig_sym->header,
+                         &orig_sym->decl_position);
     }  /* if */
     /* The class will be considered to be at file scope.  If this is changed
        to be some other scope then set_source_corresp_with_scope_depth may
@@ -518,26 +531,28 @@ as the class type, and use as a base class.
     type->incomplete = FALSE;
     set_source_corresp(&(type->source_corresp), sym);
     type->source_corresp.member_of_unknown_base =
-                       templ_param_type->source_corresp.member_of_unknown_base;
+                       orig_type->source_corresp.member_of_unknown_base;
     type->source_corresp.qualified_unknown_base_member =
-                templ_param_type->source_corresp.qualified_unknown_base_member;
+                orig_type->source_corresp.qualified_unknown_base_member;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     type->source_corresp.member_of_unknown_super =
-                      templ_param_type->source_corresp.member_of_unknown_super;
+                      orig_type->source_corresp.member_of_unknown_super;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym->variant.class_struct_union.type = type;
-    if (templ_param_type->source_corresp.is_class_member) {
+    if (orig_type->source_corresp.is_class_member) {
       set_class_membership(sym, &type->source_corresp,
-                           parent_class_of(templ_param_type));
+                           parent_class_of(orig_type));
     }  /* if */
-    tptsp->class_type = type;
+    if (tptsp != NULL) tptsp->class_type = type;
+    result_type = type;
     /* Set the scope number. */
     cssp = symbol_supplement_for_class(type);
     cssp->member_decl_scope = take_next_scope_number();
-    cssp->template_param_for_proxy_class = templ_param_type;
+    cssp->template_param_for_proxy_class = orig_type;
     type->variant.class_struct_union.is_nonreal_class = TRUE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (templ_param_type->variant.template_param.kind ==
+    if (templ_param_type != NULL &&
+        templ_param_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
       /* Allow users of the proxy class to find the associated template
          parameter type. */
@@ -551,7 +566,7 @@ as the class type, and use as a base class.
       add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
     }  /* if */
   }  /* if */
-  return tptsp->class_type;
+  return result_type;
 }  /* proxy_class_for_template_param */
 
 

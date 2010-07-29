@@ -837,9 +837,9 @@ typedef struct a_class_symbol_supplement {
 			   a lookup is done. */
   a_type_ptr    template_param_for_proxy_class;
 			/* If the class is a proxy class associated with
-			   a template parameter type this field points
-			   back to the template parameter; otherwise
-			   it is NULL. */
+			   a template parameter type or dependent decltype
+			   this field points back to the template parameter
+			   or the decltype typeref; otherwise it is NULL. */
   a_symbol_ptr	corresp_prototype_sym;
 			/* If the class is a template class instance, or a
 			   class nested within a template class, this points
