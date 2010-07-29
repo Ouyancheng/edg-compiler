@@ -2856,8 +2856,7 @@ Allocate bcp (an empty base class).
          reposition_gnu_disconnected_virtual_bases. */
       lob->byte_offset = offset;
     }  /* if */
-    size = bcp->type->variant.class_struct_union.extra_info->
-                                        alignment_without_virtual_base_classes;
+    size = class_type_supp(bcp->type)->alignment_without_virtual_base_classes;
     while (base_subobject_conflict(bcp, offset)) {
       if (!increment_field_offsets(&offset, &dummy, size, 
                                    (an_unnormalized_bit_offset)0)) {
@@ -2878,6 +2877,9 @@ done:
   /* Ensure the alignment of the class as a whole is at least as strict as
      that of the empty base.  (Early versions of g++ do not do this.) */
   alignment = alignment_of_type(bcp->type);
+  if (packing_applies_to_base_classes) {
+    adjust_alignment_for_packing(&alignment, bcp->derived_class);
+  }  /* if */
   if (alignment > lob->alignment &&
       !(emulate_gnu_abi_bugs && gnu_abi_version < 40300)) {
     lob->alignment = alignment;
@@ -3090,10 +3092,12 @@ Lay out the nonvirtual direct base class bcp.
       /* For a nonvirtual base classes reserve space for all the base
          class except what is required for its own virtual base classes.
          The latter will be added at the end of the storage. */
-      alignment = bcp->type->variant.class_struct_union.extra_info->
-                                    alignment_without_virtual_base_classes;
-      size = bcp->type->variant.class_struct_union.extra_info->
-                                    size_without_virtual_base_classes;
+      a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
+      size = base_ctsp->size_without_virtual_base_classes;
+      alignment = base_ctsp->alignment_without_virtual_base_classes;
+      if (packing_applies_to_base_classes) {
+        adjust_alignment_for_packing(&alignment, bcp->derived_class);
+      }  /* if */
     }  /* if */
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
 #if DEBUG
@@ -4262,10 +4266,12 @@ Set bcp->offset.  The base class bcp must be a virtual base.
 #endif /* IA64_ABI */
   /* Do not add code here. */
   {
-    size = bcp->type->variant.class_struct_union.extra_info->
-                                            size_without_virtual_base_classes;
-    alignment = bcp->type->variant.class_struct_union.extra_info->
-                                       alignment_without_virtual_base_classes;
+    a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
+    size = base_ctsp->size_without_virtual_base_classes;
+    alignment = base_ctsp->alignment_without_virtual_base_classes;
+    if (packing_applies_to_base_classes) {
+      adjust_alignment_for_packing(&alignment, bcp->derived_class);
+    }  /* if */
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
   }  /* if */
 #if IA64_ABI

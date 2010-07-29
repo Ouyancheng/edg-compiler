@@ -1,5 +1,25 @@
 Version 4.2
 
+7/29/10  [EDGcpfe/10876]
+Effect of "#pragma pack(n)" on base classes
+
+Previously, the front end did not consider "#pragma pack(n)" directives when 
+aligning base class subobjects.  Now, when the new configuration macro
+TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES is set to TRUE, base
+classes are handled much like fields in this respect.  The new macro is TRUE
+by default when ABI_COMPATIBILITY_VERSION >= 402 (and hence this is a
+potential ABI CHANGE).  For example:
+
+  struct B { int i; };  // Usually aligned on a 4-byte boundary.
+  #pragma pack(1)
+  struct D: B {
+    char c;
+  };  // Previously, struct D always had the same alignment as struct B.
+      // Now it may have an alignment of 1 in some configurations.
+
+The new behavior matches that of GNU and Microsoft compilers.
+
+
 7/29/10  [EDGcpfe/10869]
 Abort creating string form of address constant of anonymous union member
 

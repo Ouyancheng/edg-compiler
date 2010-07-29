@@ -1555,6 +1555,20 @@ the container boundary/alignment at all times.
 #endif /* ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS */
 
 /*
+Flag that is TRUE if "#pragma pack(n)" and the command-line option
+"--pack_alignment=n", when supported, affects the alignment of base classes.
+(In versions prior to 4.2, base class subobjects were not affected.)  This is
+the initial value of the global variable packing_applies_to_base_classes.
+*/
+#ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES
+#if USER_CONTROL_OF_STRUCT_PACKING && ABI_COMPATIBILITY_VERSION >= 402
+#define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES TRUE
+#else /* !(USER_CONTROL_OF_STRUCT_PACKING && ...) */
+#define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES FALSE
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && ABI_COMPATIBILITY_VERSION >= 402 */
+#endif /* ifndef TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES */
+
+/*
 Flag that is TRUE if bit fields longer than their base types are
 padded out to the full declared length.  FALSE means allocate only as
 many bits as are in the base type.  In either case, the bit field

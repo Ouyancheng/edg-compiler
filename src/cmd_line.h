@@ -1560,6 +1560,12 @@ EXTERN a_boolean
 #endif /* IA64_ABI */
 
 EXTERN a_boolean
+		packing_applies_to_base_classes;
+			/* TRUE if "#pragma pack(n)" affects the alignment of
+			   base classes (in addition to that of proper
+			   fields). */
+
+EXTERN a_boolean
 		IEEE_handling_on_float_operation_exceptions;
 			/* TRUE if exceptions in compile-time floating-point
 			   conversions and operation folding (e.g., division

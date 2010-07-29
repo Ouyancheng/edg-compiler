@@ -1705,6 +1705,7 @@ static a_flag_name
   { "warn_about_tail_padding_use", &warn_about_tail_padding_use },
   { "reuse_tail_padding", &targ_reuse_tail_padding },
 #endif /* IA64_ABI */
+  { "packing_applies_to_base_classes", &packing_applies_to_base_classes },
   { "stack_referenced_include_directories",
     &stack_referenced_include_directories },
 #if DEBUG
@@ -9105,6 +9106,8 @@ variables declared in cmd_line.h.
   cpp0x_sfinae_enabled = DEFAULT_CPP0X_SFINAE_ENABLED;
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
+  packing_applies_to_base_classes =
+                     TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
 }  /* cmd_line_static_var_init */
 
 
