@@ -3519,7 +3519,8 @@ the line number to 0.
 
 a_line_number db_line_for_seq(a_seq_number seq_number)
 /*
-Return the line number that corresponds to the given sequence number.
+Return the line number that corresponds to the given sequence number.  Also
+print the file name and line number.
 */
 {
   char          *file_name, *full_name;
@@ -3528,6 +3529,7 @@ Return the line number that corresponds to the given sequence number.
 
   conv_seq_to_file_and_line(seq_number, &file_name, &full_name,
                             &line_number, &at_end_of_source);
+  fprintf(f_debug, "\nfile %s, line %ld\n", file_name, (long)line_number);
   return line_number;
 }  /* db_line_for_seq */
 
