@@ -1,5 +1,21 @@
 Version 4.2
 
+7/29/10  [EDGcpfe/10869]
+Abort creating string form of address constant of anonymous union member
+
+Calling form_address_constant (in a context other than from the C- or
+C++-generating back ends) with an address constant designating a member of
+an anonymous union and cast to a non-pointer type resulted in an assertion
+failure in select_union_field_for_addr_constant.  This is now fixed.  For
+example, the following code previously aborted while attempting to display
+the return type of the function in a diagnostic warning about the missing
+return statement in the function's definition:
+
+  static union { int i; };
+  template<typename T>
+  auto f(T x)->T(*)[sizeof((decltype(__alignof__(*x)))&i)] { }
+
+
 7/29/10  [EDGcpfe/10818]
 Recording the form of name references
 

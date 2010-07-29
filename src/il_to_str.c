@@ -2948,38 +2948,39 @@ static a_field_ptr select_union_field_for_addr_constant(
                                                    a_type_ptr desired_type,
                                                    a_boolean  will_use_as_addr)
 /*
-union_type is a union type.  Try to find a field of that union that has type
-desired_type, and return a pointer to it.  If no field matches, return NULL.
-If will_use_as_addr is TRUE, array-to-pointer decay can be considered in
-matching the type.
+union_type is a union type.  Try to find a field of that union that has
+type desired_type, and return a pointer to it.  If desired_type is NULL or
+if no field matches, return NULL.  If will_use_as_addr is TRUE,
+array-to-pointer decay can be considered in matching the type.
 */
 {
   a_field_ptr field, selected_field = NULL;
   a_boolean   type_decay_used;
 
-  check_assertion(desired_type != NULL);
-  /* Go through the fields, looking for one with the right type. */
-  for (field = union_type->variant.class_struct_union.field_list;
-       field != NULL;
-       field = field->next) {
-    if (type_matches_desired_type(field->type, desired_type,
-                                  will_use_as_addr, &type_decay_used)) {
-      /* If there are several fields with the same type, favor the one with
-         the most access. */
-      if (field->source_corresp.access == (an_access_specifier)as_public) {
-        selected_field = field;
-        break;
+  if (desired_type != NULL) {
+    /* Go through the fields, looking for one with the right type. */
+    for (field = union_type->variant.class_struct_union.field_list;
+         field != NULL;
+         field = field->next) {
+      if (type_matches_desired_type(field->type, desired_type,
+                                    will_use_as_addr, &type_decay_used)) {
+        /* If there are several fields with the same type, favor the one with
+           the most access. */
+        if (field->source_corresp.access == (an_access_specifier)as_public) {
+          selected_field = field;
+          break;
+        }  /* if */
+        if (selected_field == NULL ||
+            is_more_accessible(field->source_corresp.access,
+                               selected_field->source_corresp.access)) {
+          /* This field is not public, but it's the most accessible field of
+             the right type we've seen so far, so remember it and keep
+             looking. */
+          selected_field = field;
+        }  /* if */
       }  /* if */
-      if (selected_field == NULL ||
-          is_more_accessible(field->source_corresp.access,
-                             selected_field->source_corresp.access)) {
-        /* This field is not public, but it's the most accessible field of
-           the right type we've seen so far, so remember it and keep
-           looking. */
-        selected_field = field;
-      }  /* if */
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
   return selected_field;
 }  /* select_union_field_for_addr_constant */
 
