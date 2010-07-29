@@ -1,5 +1,22 @@
 Version 4.2
 
+7/29/10  [EDGcpfe/10818]
+Recording the form of name references
+
+The C++0x SFINAE rules (see 4/26/10 entry) require that the exact form
+of certain names be recorded in order to generate the required mangled
+names.  As a result, the code to record name references is now always
+present in the front end.   Formerly it was only present when the macro
+RECORD_FORM_OF_NAME_REFERENCE was TRUE.  The record_form_of_name_reference
+variable is now used to specify whether name references should be recorded
+for all names (name references are always recorded in contexts in which
+the information is needed for name mangling).  The default value of the
+variable is specified by the macro DEFAULT_RECORD_FORM_OF_NAME_REFERENCE.
+For compatibility with earlier defines.h files, RECORD_FORM_OF_NAME_REFERENCE
+is used to set the default for DEFAULT_RECORD_FORM_OF_NAME_REFERENCE if
+it has not been explicitly defined.
+
+
 7/28/10  [EDGcpfe/10877]
 Abort on aggregate initializer involving GNU-mode zero-length array
 
