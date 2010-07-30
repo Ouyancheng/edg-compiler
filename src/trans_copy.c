@@ -314,7 +314,7 @@ top_of_routine:
       if (entry_to_be_merged(ptr)) {
         switch (kind) {
           case iek_type:
-           ptr = (char *)((a_type_ptr)ptr)->next;
+            ptr = (char *)((a_type_ptr)ptr)->next;
             break;
           case iek_variable:
             ptr = (char *)((a_variable_ptr)ptr)->next;
@@ -1048,6 +1048,14 @@ passing any entry that has a source correspondence field.
   f_entry_requires_merge_because_of_attributes(&(ptr)->source_corresp)
 
 
+/*
+Return TRUE if the given entity requires merging because of some details,
+e.g., it has attributes that must be merged into the composite entity.
+*/
+#define entry_requires_merge_because_of_details(ptr) \
+  entry_requires_merge_because_of_attributes(ptr)
+
+
 static void merge_attributes(a_source_correspondence *expiring_scp,
                              a_source_correspondence *surviving_scp)
 /*
@@ -1100,6 +1108,17 @@ must be merged in.
     }  /* if */
   }  /* if */
 }  /* merge_attributes */
+
+
+static void merge_entity_details(a_source_correspondence *expiring_scp,
+                                 a_source_correspondence *surviving_scp)
+/*
+Transfer from the expiring_scp to the surviving_scp any details that
+must be merged in.  For example, merge the lists of attributes, if any.
+*/
+{
+  merge_attributes(expiring_scp, surviving_scp);
+}  /* merge_entity_details */
 
 
 static void transfer_type_details(a_type_ptr type,
@@ -1162,7 +1181,7 @@ not being eliminated.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Move any attributes that must be saved to the surviving entry. */
-  merge_attributes(&type->source_corresp, &corresp_type->source_corresp);
+  merge_entity_details(&type->source_corresp, &corresp_type->source_corresp);
 }  /* transfer_type_details */
 
 
@@ -1177,8 +1196,8 @@ eliminated.
 {
   corresp_variable->address_taken |= variable->address_taken;
   /* Move any attributes that must be saved to the surviving entry. */
-  merge_attributes(&variable->source_corresp,
-                   &corresp_variable->source_corresp);
+  merge_entity_details(&variable->source_corresp,
+                       &corresp_variable->source_corresp);
 }  /* transfer_variable_flags */
 
 
@@ -1259,7 +1278,8 @@ not being eliminated.
     corresp_routine->suppress_inline_body &= routine->suppress_inline_body;
   }  /* if */
   /* Move any attributes that must be saved to the surviving entry. */
-  merge_attributes(&routine->source_corresp, &corresp_routine->source_corresp);
+  merge_entity_details(&routine->source_corresp,
+                       &corresp_routine->source_corresp);
 }  /* transfer_routine_flags */
 
 
@@ -1291,7 +1311,7 @@ to the secondary translation unit.
   a_namespace_ptr    nsp, prev_nsp;
   a_pragma_ptr       pragma, prev_pragma;
   a_type_ptr         class_type;
-  a_boolean          keep_on_list;
+  a_boolean          keep_on_list, keep_body;
   a_scope_pointers_block
                      *pointers_block;
 
@@ -1375,10 +1395,11 @@ to the secondary translation unit.
          as we look at the members. */
       keep_on_parent_list = FALSE;
       check_member_merges = TRUE;
-      if (entry_requires_merge_because_of_attributes(class_type)) {
-        /* The class type has some attributes that must be merged into the
-           canonical entry.  Count that like a member needing a merge. */
-        any_members_to_process = TRUE;
+      if (entry_requires_merge_because_of_details(class_type)) {
+        /* The class type has some details that must be merged into the
+           canonical entry. */
+        keep_on_parent_list = TRUE;
+        mark_to_merge(class_type, iek_type);
       }  /* if */
       if (symbol_supplement_for_class(class_type)->
                                                 has_field_with_attr_to_merge) {
@@ -1434,15 +1455,18 @@ to the secondary translation unit.
       /* The type doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(type) ||
-               entry_requires_merge_because_of_attributes(type)) {
+    } else if (entry_should_overwrite_primary_entry(type)) {
       /* The type overwrites the corresponding type in the primary IL.
          This happens, for example, when the type is an enum with a definition
          in the secondary translation unit but only a declaration in the
          primary IL. */
-      /* Or, the type has some attributes that must be merged into the
-         canonical entry. */
       check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(type, iek_type);
+    } else if (check_member_merges &&
+               entry_requires_merge_because_of_details(type)) {
+      /* The type has some details that must be merged into the
+         canonical entry. */
       keep_on_list = TRUE;
       mark_to_merge(type, iek_type);
     } else {
@@ -1497,15 +1521,18 @@ to the secondary translation unit.
       /* The variable doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(variable) ||
-               entry_requires_merge_because_of_attributes(variable)) {
+    } else if (entry_should_overwrite_primary_entry(variable)) {
       /* The variable overwrites the corresponding variable in the primary IL.
          This happens, for example, when the variable has a definition
          in the secondary translation unit but only a declaration in the
          primary IL. */
-      /* Or, the variable has some attributes that must be merged into the
-         canonical entry. */
       check_assertion(check_member_merges);
+      keep_on_list = TRUE;
+      mark_to_merge(variable, iek_variable);
+    } else if (check_member_merges &&
+               entry_requires_merge_because_of_details(variable)) {
+      /* The variable has some details that must be merged into the
+         canonical entry. */
       keep_on_list = TRUE;
       mark_to_merge(variable, iek_variable);
     } else {
@@ -1580,6 +1607,7 @@ to the secondary translation unit.
        routine = routine->next) {
     check_correspondences(&routine->source_corresp, iek_routine);
     keep_on_list = TRUE;
+    keep_body = TRUE;
     /* If we're supposed to copy only generated templates, other routines
        are made external (if necessary) and their definitions are
        dropped. */
@@ -1588,16 +1616,21 @@ to the secondary translation unit.
       /* The routine doesn't exist in the primary IL, and just gets copied
          over. */
       keep_on_list = TRUE;
-    } else if (entry_should_overwrite_primary_entry(routine) ||
-               entry_requires_merge_because_of_attributes(routine)) {
+    } else if (entry_should_overwrite_primary_entry(routine)) {
       /* The routine overwrites the corresponding routine in the primary IL.
          This happens, for example, when the routine has a definition
          in the secondary translation unit but only a declaration in the
          primary IL. */
-      /* Or, the routine has some attributes that must be merged into the
-         canonical entry. */
       check_assertion(check_member_merges);
       keep_on_list = TRUE;
+      mark_to_merge(routine, iek_routine);
+    } else if (check_member_merges &&
+               entry_requires_merge_because_of_details(routine)) {
+      /* The routine has some details that must be merged into the
+         canonical entry.  We delete the body but keep the routine entry
+         so we can do the merge from the copy of it. */
+      keep_on_list = TRUE;
+      keep_body = FALSE;
       mark_to_merge(routine, iek_routine);
     } else {
       /* The routine is a duplicate of one elsewhere and should be
@@ -1621,6 +1654,7 @@ to the secondary translation unit.
       routine->befriending_classes = NULL;
     } else {
       /* Remove this entry from the list. */
+      keep_body = FALSE;
       if (prev_routine == NULL) {
         scope->routines = routine->next;
       } else {
@@ -1631,6 +1665,8 @@ to the secondary translation unit.
                                  (a_routine_ptr)canonical_il_entry_of(routine);
         transfer_routine_flags(routine, corresp_routine);
       }
+    }  /* if */
+    if (!keep_body) {
       if (routine->assoc_scope != NULL_region_number) {
         /* Delete the body of this routine. */
         clear_body_for_routine(routine);
@@ -2215,8 +2251,8 @@ unit set to the primary translation unit.
                         (a_field_ptr)checked_trans_unit_copy_address_of(field);
           a_field_ptr primary_field =
                 (a_field_ptr)checked_trans_unit_copy_address_of(corresp_field);
-          merge_attributes(&corresp_field->source_corresp,
-                           &primary_field->source_corresp);
+          merge_entity_details(&corresp_field->source_corresp,
+                               &primary_field->source_corresp);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -2253,36 +2289,41 @@ unit set to the primary translation unit.
         }  /* if */
 #endif /* DEBUG */
         add_to_list = FALSE;
-        if (primary_variable->storage_class ==
-                                             (a_storage_class)sc_unspecified) {
-          /* Eliminate the definition of the primary variable (this happens
-             when the secondary has a specialization and the primary does
-             not). */
-          clear_variable_definition(primary_variable);
-        }  /* if */
-        /* Copy this variable and its definition, overwriting the
-           existing primary variable.  Move the primary IL variable
-           to the end of the variables list so that it appears on
-           the list at the point where the definition appears.
-           Class members are not moved to the end of the list.
-           Also do not move if a specialization declaration replaces
-           an unspecialized variable (with or without a definition). */
-        move_to_end = (!is_class_scope &&
-                       corresp_variable->storage_class ==
+        if (!entry_should_overwrite_primary_entry(variable)) {
+          /* No overwriting is needed, so we're done. */
+          transfer_variable_flags(corresp_variable, primary_variable);
+        } else {
+          /* Copy this variable and its definition, overwriting the
+             existing primary variable.  Move the primary IL variable
+             to the end of the variables list so that it appears on
+             the list at the point where the definition appears.
+             Class members are not moved to the end of the list.
+             Also do not move if a specialization declaration replaces
+             an unspecialized variable (with or without a definition). */
+          move_to_end = (!is_class_scope &&
+                         corresp_variable->storage_class ==
                                               (a_storage_class)sc_unspecified);
-        if (move_to_end) {
-          remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
-          /* coverity[var_deref_op] */
-          last_variable = pointers_block->last_variable;
-          add_to_list = TRUE;
-        }  /* if */
+          if (move_to_end) {
+            remove_from_variables_list(primary_variable, NO_SCOPE_DEPTH);
+            /* coverity[var_deref_op] */
+            last_variable = pointers_block->last_variable;
+            add_to_list = TRUE;
+          }  /* if */
+          if (primary_variable->storage_class ==
+                                             (a_storage_class)sc_unspecified) {
+            /* Eliminate the definition of the primary variable (this happens
+               when the secondary has a specialization and the primary does
+               not). */
+            clear_variable_definition(primary_variable);
+          }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
-        /* Eliminate any default argument object lifetimes associated with
-           the entry that is about to be overwritten. */
-        eliminate_variable_default_arg_object_lifetimes(primary_variable);
+          /* Eliminate any default argument object lifetimes associated with
+             the entry that is about to be overwritten. */
+          eliminate_variable_default_arg_object_lifetimes(primary_variable);
 #endif /* MAINTAIN_NEEDED_FLAGS */
-        overwrite_primary_variable(corresp_variable, primary_variable);
-        corresp_variable = primary_variable;
+          overwrite_primary_variable(corresp_variable, primary_variable);
+          corresp_variable = primary_variable;
+        }  /* if */
       }  /* if */
       if (add_to_list) {
         /* Add the variable to the end of the list. */
