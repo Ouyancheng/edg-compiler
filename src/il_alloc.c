@@ -2267,9 +2267,12 @@ to it.  The entry is allocated in the file scope memory region.
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
   rp->allocates_memory            = FALSE;
-#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if (GNU_EXTENSIONS_ALLOWED && GNU_NAKED_ATTRIBUTE_ALLOWED) || \
+    MICROSOFT_EXTENSIONS_ALLOWED
   rp->is_naked                    = FALSE;
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /*  (GNU_EXTENSIONS_ALLOWED && GNU_NAKED_ATTRIBUTE_ALLOWED) || ... */
+#if GNU_EXTENSIONS_ALLOWED
   rp->no_instrument_function      = FALSE;
   rp->no_check_memory_usage       = FALSE;
   rp->never_inline                = FALSE;
