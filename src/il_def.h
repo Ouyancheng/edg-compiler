@@ -12480,9 +12480,9 @@ typedef struct an_expr_node {
 			   in this flag. */
       a_bit_field
 		call_with_qualified_function_name:1;
-			/* TRUE for a call to a non-member function that
-			   was named using a qualified name (suppressing
-			   argument-dependent lookup). */
+			/* TRUE for a call on which argument-dependent
+			   lookup was suppressed because the name of the
+			   function was qualified. */
 #if BACK_END_IS_CP_GEN_BE
       a_bit_field
 		only_found_through_arg_dependent_lookup:1;
