@@ -1229,6 +1229,7 @@ extern void change_binary_operand_types(a_type_ptr             type,
 extern void rewrite_property_field_reference(an_operand *operand,
                                              an_operand *put_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void convert_function_template_to_single_function_if_possible(
                                                         an_operand *operand,
                                                         a_boolean   will_call);

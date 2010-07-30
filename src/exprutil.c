@@ -14300,99 +14300,106 @@ will be called immediately (as opposed to, say, having its address taken).
 */
 {
   if (is_indefinite_function_operand(operand) &&
-      operand->is_template_id &&
-      !(is_template_dependent_context() &&
-        template_arg_list_is_dependent(operand->template_arg_list))) {
-    a_template_arg_ptr new_arg_list;
-    a_symbol_ptr       orig_sym = operand->symbol, base_sym;
-    a_symbol_ptr       matching_sym = NULL;
-    a_template_arg_ptr matching_arg_list;
+      operand->is_template_id) {
+    a_symbol_ptr orig_sym = operand->symbol;
+    if (operand_is_dependent(operand)) {
+      /* Don't try to resolve cases where the result is still dependent. */
+      conv_indefinite_function_operand_to_unknown_dependent_function(
+                                                    operand,
+                                                    /*force_to_rvalue=*/FALSE);
+    } else {
+      a_template_arg_ptr new_arg_list;
+      a_symbol_ptr       base_sym;
+      a_symbol_ptr       matching_sym = NULL;
+      a_template_arg_ptr matching_arg_list;
 
-    base_sym = fundamental_symbol_of(orig_sym);
-    if (base_sym->kind == (a_symbol_kind)sk_function_template) {
-      if (explicit_arg_list_identifies_specialization(
+      base_sym = fundamental_symbol_of(orig_sym);
+      if (base_sym->kind == (a_symbol_kind)sk_function_template) {
+        if (explicit_arg_list_identifies_specialization(
                                                     base_sym,
                                                     operand->template_arg_list,
                                                     &new_arg_list)) {
-        matching_sym = orig_sym;
-        matching_arg_list = new_arg_list;
-      }  /* if */
-    } else if (base_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      /* An overload set possibly containing function templates. */
-      a_symbol_ptr proj_sym;
-      for (proj_sym = base_sym->variant.overloaded_function.symbols;
-           proj_sym != NULL;
-           proj_sym = proj_sym->next) {
-        /* Remove projections for namespaces, if any. */
-        base_sym = fundamental_symbol_of(proj_sym);
-        if (base_sym->kind == (a_symbol_kind)sk_function_template) {
-          if (explicit_arg_list_identifies_specialization(
+          matching_sym = orig_sym;
+          matching_arg_list = new_arg_list;
+        }  /* if */
+      } else if (base_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        /* An overload set possibly containing function templates. */
+        a_symbol_ptr proj_sym;
+        for (proj_sym = base_sym->variant.overloaded_function.symbols;
+             proj_sym != NULL;
+             proj_sym = proj_sym->next) {
+          /* Remove projections for namespaces, if any. */
+          base_sym = fundamental_symbol_of(proj_sym);
+          if (base_sym->kind == (a_symbol_kind)sk_function_template) {
+            if (explicit_arg_list_identifies_specialization(
                                                     base_sym,
                                                     operand->template_arg_list,
                                                     &new_arg_list)) {
-            if (matching_sym != NULL) {
-              /* There's more than one matching function template, so leave
-                 the operand as it is. */
-              matching_sym = NULL;
-              free_template_arg_list(matching_arg_list);
-              break;
-            } else {
-              matching_sym = proj_sym;
-              matching_arg_list = new_arg_list;
+              if (matching_sym != NULL) {
+                /* There's more than one matching function template, so leave
+                   the operand as it is. */
+                matching_sym = NULL;
+                free_template_arg_list(matching_arg_list);
+                break;
+              } else {
+                matching_sym = proj_sym;
+                matching_arg_list = new_arg_list;
+              }  /* if */
             }  /* if */
           }  /* if */
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    if (matching_sym != NULL) {
-      /* The template reference -- something like f<1> -- corresponds to
-         a single function. */
-      an_operand        orig_operand;
-      a_symbol_ptr      sym;
-      a_source_position *ampersand_pos = NULL;
-
-      orig_operand = *operand;
-      if (orig_operand.is_operand_of_address_of) {
-        ampersand_pos = &orig_operand.ampersand_position;
+        }  /* for */
       }  /* if */
-      sym = find_template_function(matching_sym,
-                                   &matching_arg_list,
-                                   /*explicit_arg_list_present=*/TRUE,
-                                   &orig_operand.position);
-      check_assertion(sym != NULL &&
-                      (sym->kind == (a_symbol_kind)sk_routine ||
-                       sym->kind == (a_symbol_kind)sk_member_function));
-      if (sym->kind == (a_symbol_kind)sk_member_function &&
-          routine_type_is_nonstatic_member_function(
+      if (matching_sym != NULL) {
+        /* The template reference -- something like f<1> -- corresponds to
+           a single function. */
+        an_operand        orig_operand;
+        a_symbol_ptr      sym;
+        a_source_position *ampersand_pos = NULL;
+
+        orig_operand = *operand;
+        if (orig_operand.is_operand_of_address_of) {
+          ampersand_pos = &orig_operand.ampersand_position;
+        }  /* if */
+        sym = find_template_function(matching_sym,
+                                     &matching_arg_list,
+                                     /*explicit_arg_list_present=*/TRUE,
+                                     &orig_operand.position);
+        check_assertion(sym != NULL &&
+                        (sym->kind == (a_symbol_kind)sk_routine ||
+                         sym->kind == (a_symbol_kind)sk_member_function));
+        if (sym->kind == (a_symbol_kind)sk_member_function &&
+            routine_type_is_nonstatic_member_function(
                                              sym->variant.routine.ptr->type)) {
-        /* A nonstatic member function. */
-        make_sym_for_member_operand(sym,
+          /* A nonstatic member function. */
+          make_sym_for_member_operand(sym,
                                     (a_boolean)orig_operand.is_qualified_name,
                                     orig_operand.ref_entries_list,
                                     operand);
-        restore_operand_details(operand, &orig_operand);
-        if (orig_operand.has_required_ptr_to_member_form) {
-          operand->is_id_expression = TRUE;
-        }  /* if */
-        if (is_an_rvalue(&orig_operand)) {
-          conv_sym_for_member_operand_to_ptr_to_member(operand, ampersand_pos);
-        }  /* if */
-      } else {
-        /* A nonmember function or static member function. */
-        make_function_designator_operand(sym,
-                                         (a_boolean)
+          restore_operand_details(operand, &orig_operand);
+          if (orig_operand.has_required_ptr_to_member_form) {
+            operand->is_id_expression = TRUE;
+          }  /* if */
+          if (is_an_rvalue(&orig_operand)) {
+            conv_sym_for_member_operand_to_ptr_to_member(operand,
+                                                         ampersand_pos);
+          }  /* if */
+        } else {
+          /* A nonmember function or static member function. */
+          make_function_designator_operand(sym,
+                                           (a_boolean)
                                                 orig_operand.is_qualified_name,
-                                         &orig_operand.position,
-                                         end_position_of_operand(
+                                           &orig_operand.position,
+                                           end_position_of_operand(
                                                                 &orig_operand),
-                                         orig_operand.ref_entries_list,
-                                         operand);
-        restore_operand_details(operand, &orig_operand);
-        if (is_an_rvalue(&orig_operand)) {
-          conv_function_designator_to_ptr_to_function(operand,
-                                                      ampersand_pos,
-                                                      /*allow_ctor=*/FALSE,
-                                                      will_call);
+                                           orig_operand.ref_entries_list,
+                                           operand);
+          restore_operand_details(operand, &orig_operand);
+          if (is_an_rvalue(&orig_operand)) {
+            conv_function_designator_to_ptr_to_function(operand,
+                                                        ampersand_pos,
+                                                        /*allow_ctor=*/FALSE,
+                                                        will_call);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

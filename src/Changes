@@ -1,5 +1,23 @@
 Version 4.2
 
+7/30/10  [EDGcpfe/10882]
+Members of prototype instantiations were sometimes instantiated
+
+Sometimes, the front end instantiated members of the current prototype
+instantiation.  This is incorrect, though it was hard to observe
+any negative consequences from doing so (versions with EXPENSIVE_CHECKING
+sometimes caught this and aborted).  Now fixed: these instantiations are
+no longer done.
+
+  template <class T> struct A {
+    template <class U> void f(U) {}
+    void g() {
+      &A::f<int>;  // A::f<int> should not be instantiated in the prototype
+                   // instantiation
+    }
+  };
+
+
 7/29/10  [EDGcpfe/10859]
 C-generating back end: duplicate parameter names in function declarations
 

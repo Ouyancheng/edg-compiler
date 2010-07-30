@@ -99,6 +99,25 @@ Clear a conversion description.
 }  /* clear_conv_descr */
 
 
+static a_boolean symbol_is_member_of_nonreal_class(a_symbol_ptr sym)
+/*
+Return TRUE if the given symbol is a member of a nonreal class.
+*/
+{
+  a_boolean is_nonreal = FALSE;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (sym->is_class_member) {
+    a_type_ptr parent = sym_parent_class(sym);
+    check_assertion(is_immediate_class_type(parent));
+    if (parent->variant.class_struct_union.is_nonreal_class) {
+      is_nonreal = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_nonreal;
+}  /* symbol_is_member_of_nonreal_class */
+
+
 a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_symbol_ptr       ovl_sym,
                                 a_boolean          is_template_id,
@@ -160,10 +179,11 @@ destination type (this comes up in a Microsoft-mode extension).
   if (is_template_dependent_context() &&
       (is_template_dependent_type(dest_type) ||
        (is_template_id &&
-        template_arg_list_is_dependent(template_arg_list)))) {
+        template_arg_list_is_dependent(template_arg_list)) ||
+       symbol_is_member_of_nonreal_class(ovl_sym))) {
     /* The destination type is not fully known, or the template argument
-       list contains template-dependent types (in a prototype
-       instantiation). */
+       list contains template-dependent types or the function is a member
+       of a nonreal class. */
     *unknown_dependent_function = TRUE;
   } else if (is_pointer_type(dest_type)) {
     dest_class = NULL;
@@ -5807,7 +5827,7 @@ function.
 }  /* is_template_dependent_indefinite_function */
 
 
-static a_boolean operand_is_dependent(an_operand *operand)
+a_boolean operand_is_dependent(an_operand *operand)
 /*
 Return TRUE if the indicated operand is dependent.  Specifically, this
 means type-dependent and not value-dependent.

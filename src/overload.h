@@ -519,6 +519,8 @@ extern void selector_match_with_this_param(
 extern
 a_boolean is_template_dependent_indefinite_function(an_operand *operand);
 
+extern a_boolean operand_is_dependent(an_operand *operand);
+
 extern a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,
