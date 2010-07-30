@@ -6315,34 +6315,40 @@ that fact should be put out.
   if (template_param != NULL) {
     /* This class is the proxy for a template parameter.  Use the encoding
        for the template parameter as the name for the class. */
-    check_assertion(template_param->kind == (a_type_kind)tk_template_param);
-    switch (template_param->variant.template_param.kind) {
-      case tptk_param:
-        mangled_encoding_for_template_parameter(
+    if (template_param->kind == (a_type_kind)tk_template_param) {
+      switch (template_param->variant.template_param.kind) {
+        case tptk_param:
+          mangled_encoding_for_template_parameter(
                &template_param->variant.template_param.extra_info->coordinates,
                (a_template_arg *)NULL,
                mctl);
-        break;
-      case tptk_member:
-        /* For something like T::x, where T is a template parameter, just
-           put out "x" here. */
-        name = unmangled_or_fabricated_name_of(&type->source_corresp);
-        check_assertion_str(name != NULL,
+          break;
+        case tptk_member:
+          /* For something like T::x, where T is a template parameter, just
+             put out "x" here. */
+          name = unmangled_or_fabricated_name_of(&type->source_corresp);
+          check_assertion_str(name != NULL,
                             "mangled_class_encoding: tptk_member has no name");
-        mangled_name_with_length(name, mctl);
-        break;
-      case tptk_unknown:
-        /* For something like T::x, where T is a template parameter and the
-           type of "x" isn't known here, just put out a "?".  This should
-           occur only in nonreal classes in configurations that generate
-           prototype instantiations. */
-        check_assertion(type->variant.class_struct_union.is_nonreal_class);
-        mangled_name_with_length("?", mctl);
-        break;
-      default:
-        unexpected_condition_str(
+          mangled_name_with_length(name, mctl);
+          break;
+        case tptk_unknown:
+          /* For something like T::x, where T is a template parameter and the
+             type of "x" isn't known here, just put out a "?".  This should
+             occur only in nonreal classes in configurations that generate
+             prototype instantiations. */
+          check_assertion(type->variant.class_struct_union.is_nonreal_class);
+          mangled_name_with_length("?", mctl);
+          break;
+        default:
+          unexpected_condition_str(
                             "mangled_class_encoding: bad template param kind");
-    }  /* switch */
+      }  /* switch */
+    } else {
+      /* It's possible for a proxy class to be a typeref (most likely a
+         decltype), so provide an encoding for that. */
+      check_assertion(template_param->kind == (a_type_kind)tk_typeref);
+      mangled_encoding_for_type(template_param, mctl);
+    }  /* if */
   } else {
     /* Not a proxy for a template parameter. */
     /* See whether this is the proxy for a template template parameter. */
