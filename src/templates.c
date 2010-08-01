@@ -1819,6 +1819,12 @@ compare_function_templates.
 {
   a_type_ptr	new_type = NULL;
 
+  if (templ_param_list == NULL) {
+    /* Get the template parameter list, if one was not passed in. */
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_supplement_for_symbol(rout_templ_sym);
+    templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
+  }  /* if */
   /* If there is no template argument list yet, create it now.  This can
      occur if all of the template arguments are from default arguments
      (it can also occur in certain error cases). */
