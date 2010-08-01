@@ -5614,7 +5614,10 @@ are done.
             node1->variant.operation.is_reference_cast ==
                            node2->variant.operation.is_reference_cast &&
             node1->variant.operation.is_rvalue_reference_cast ==
-                           node2->variant.operation.is_rvalue_reference_cast) {
+                           node2->variant.operation.is_rvalue_reference_cast &&
+            /* For casts in particular, the result type is independent of
+               the operand types. */
+            identical_types(node1->type, node2->type)) {
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
 
