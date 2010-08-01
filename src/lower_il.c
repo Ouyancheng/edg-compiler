@@ -7818,14 +7818,17 @@ this routine to do a relatively simple copy of the all the fields.
                                                                             )
 #if IA64_ABI
       && (!targ_reuse_tail_padding ||
+          class_type->kind == (a_type_kind)tk_union ||
           ctsp->size_without_virtual_base_classes == class_type->size)
 #endif /* IA64_ABI */
                                                                       ) {
-    /* There are no virtual base classes, so the type to use as a subobject
-       is the same as the class type itself. */
+    /* There are no virtual base classes and no tail padding that can be used
+       by a base class (unions cannot have base classes), so the type to use
+       as a subobject is the same as the class type itself. */
     subobject_type = class_type;
   } else {
     /* Make a copy of the class type for use as the subobject type. */
+    check_assertion(class_type->kind != (a_type_kind)tk_union);
     subobject_type = make_lowered_class_type((a_type_kind)tk_struct);
     subobject_ctsp = subobject_type->variant.class_struct_union.extra_info;
     subobject_ctsp->compiler_generated = TRUE;

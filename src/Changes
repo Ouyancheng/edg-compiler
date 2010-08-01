@@ -1,5 +1,25 @@
 Version 4.2
 
+8/1/10   [EDGcpfe/10884]
+Invalid "type_as_subobject" created for certain unions
+
+In configurations with IA64_ABI and TARG_REUSE_TAIL_PADDING set to TRUE,
+IL lowering incorrectly recorded a struct type as the type to be used for
+a base class subobject (the "type_as_subobject" field) for a non-POD union
+with tail padding.  For example:
+
+  union U {
+  private:      // Private members make U a non-POD.
+    int i;      // Assume a 4-byte aligned int type.
+    char c[6];
+  };  // Usually U has size 8 including 2 bytes of tail padding.
+      // Previously, type_as_subobject for U mistakenly pointed to a
+      // struct type.
+
+This is now fixed: The type_as_subobject field for a union now always points
+to the union itself.
+
+
 7/30/10  [EDGcpfe/10882]
 Members of prototype instantiations were sometimes instantiated
 
