@@ -3981,14 +3981,16 @@ static void mangled_operator_or_conversion_function(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
                          a_type_ptr               conversion_type,
+                         a_template_arg_ptr       template_arg_list,
                          a_boolean                suppress_operation_indicator,
                          a_mangling_control_block *mctl)
 /*
 This routine adds the proper mangling for the operator specified by kind or
 for a conversion operation if conversion_type is not NULL.  num_operands
 is the number of operands that the operator takes (and is used to differentiate
-unary/binary versions of the operator).  In the IA-64 ABI, the "on" mangling
-is suppressed when suppress_operation_indicator is TRUE.
+unary/binary versions of the operator).  If template_arg_list is non-NULL,
+include a mangling for the specified template arguments.  In the IA-64 ABI,
+the "on" mangling is suppressed when suppress_operation_indicator is TRUE.
 */
 {
 #if IA64_ABI
@@ -4003,6 +4005,12 @@ is suppressed when suppress_operation_indicator is TRUE.
     /* A conversion operation; include the type being converted to. */
     add_str_to_mangled_name(MANGLING_STRING_FOR_CONVERSION_FUNC, mctl);
     mangled_encoding_for_type(conversion_type, mctl);
+  }  /* if */
+  if (template_arg_list != NULL) {
+    /* Put out the template argument list (or a null list), if any. */
+    mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE, (a_name_reference_ptr)NULL,
+                               mctl);
   }  /* if */
 }  /* mangled_operator_or_conversion_function */
 
@@ -4401,6 +4409,7 @@ expression that was used to select expr (NULL if no selector was used).
     mangled_operator_or_conversion_function(opname,
                                          number_of_operands_in_list(arguments),
                                          conversion_type,
+                                         template_arg_list,
                                          suppress_operation_indicator,
                                          mctl);
 #if !IA64_ABI
