@@ -1,5 +1,15 @@
 Version 4.2
 
+8/2/10   [EDGcpfe/10885]
+Handling va_list that is an array type
+
+The support for the builtin operations of <stdarg.h> now correctly
+handles the case where the builtin va_list type is an array type.
+This became more important with the addition of an array-typed
+va_list for USE_X86_64 configurations, as described in the Changes
+entry for EDGcpfe/10180 below.
+
+
 8/2/10   [EDGcpfe/8844]
 Performance in the presence of a large number of #includes
 

@@ -20690,6 +20690,7 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_OPND2_IS_RVALUE			0x8
 #define LVRV_OPND2_IS_LVALUE			0x10
 #define LVRV_OPND2_IS_LVALUE_IF_EXPR_IS		0x20
+#define LVRV_VA_LIST_OPERATION			0x40
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
@@ -20840,12 +20841,17 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_dot_pm_call: */		LVRV_OPND1_IS_RVALUE,
   /* eok_points_to_pm_call: */		LVRV_OPND1_IS_RVALUE,
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE,
-  /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_va_end: */			LVRV_OPND1_IS_LVALUE,
+					LVRV_OPND2_IS_LVALUE |
+					LVRV_VA_LIST_OPERATION,
+  /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_VA_LIST_OPERATION,
+  /* eok_va_end: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_VA_LIST_OPERATION,
   /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE,
-  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
+					LVRV_OPND2_IS_LVALUE |
+					LVRV_VA_LIST_OPERATION,
+  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE |
+					LVRV_VA_LIST_OPERATION,
   /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
@@ -20866,6 +20872,24 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
     an_expr_node_ptr      operand_2 = operand_1->next;
 
+    if (flags & LVRV_VA_LIST_OPERATION) {
+      /* The builtin operations for stdarg support usually take va_list
+         lvalues, but if va_list is an array type they take rvalue pointer
+         operands. */
+      check_assertion(builtin_va_list_type != NULL);
+      if ((flags & LVRV_OPND1_IS_LVALUE) &&
+          !operand_1->is_lvalue &&
+          is_pointer_type(operand_1->type)) {
+        flags ^= LVRV_OPND1_IS_LVALUE;
+        flags |= LVRV_OPND1_IS_RVALUE;
+      }  /* if */
+      if ((flags & LVRV_OPND2_IS_LVALUE) &&
+          !operand_2->is_lvalue &&
+          is_pointer_type(operand_2->type)) {
+        flags ^= LVRV_OPND2_IS_LVALUE;
+        flags |= LVRV_OPND2_IS_RVALUE;
+      }  /* if */
+    }  /* if */
     if (flags & LVRV_OPND1_IS_RVALUE) {
       /* The first operand is supposed to be an rvalue. */
       if (operand_1->is_lvalue) {

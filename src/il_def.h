@@ -12041,17 +12041,21 @@ enum an_expr_operator_kind_tag {
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
 			   (usually) an lvalue for the last parameter
-			   before the "..."  of the function.  (The second
-			   operand will be an rvalue in g++ mode if the
-			   parameter has a reference type.) */
+			   before the "..."  of the function.  The second
+			   operand will be an rvalue if va_list is an array
+			   type (Or, in g++ mode, if the parameter has a
+			   reference type). */
   eok_va_arg,		/* va_arg macro reference.  First operand is an lvalue
-			   variable of type va_list.  Second argument of macro
+			   variable of type va_list (or an rvalue as described
+			   under eok_va_start).  Second argument of macro
 			   is represented by the result type of the expression
 			   node.  The result can be an lvalue or an rvalue. */
   eok_va_end,		/* va_end macro reference.  First operand is an lvalue
-			   variable of type va_list. */
+			   variable of type va_list (or an rvalue as described
+			   under eok_va_start). */
   eok_va_copy,		/* va_copy macro reference.  Both operands are
-			   lvalue variables of type va_list. */
+			   lvalue variables of type va_list (or rvalues as
+			   described under eok_va_start). */
   eok_va_start_single_operand,
 			/* Same as eok_va_start, but without the second
 			   operand.  This is typically used to implement the

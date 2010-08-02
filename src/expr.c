@@ -9664,29 +9664,42 @@ indication in *rcblock).
 }  /* scan_typeid_operator */
 
 
-static an_expr_node_ptr scan_va_list_lvalue_expr(a_boolean     value_used,
-                                                 an_error_code err_code,
-                                                 a_boolean     *err)
+static an_expr_node_ptr scan_va_list_operand(a_boolean     value_used,
+                                             an_error_code err_code,
+                                             a_boolean     *err)
 /*
-Scan an lvalue expression and return a pointer to it.  Check that the
-type of the expression is the builtin type va_list from <stdarg.h>.  If it
-isn't, or the expression isn't an lvalue, issue the error err_code, set
-*err to TRUE, and return NULL.  The value of the lvalue is used if
-value_used is TRUE.  The lvalue is assumed always to be set (since we don't
-know what the underlying implementation is).
+Scan an expression that is a va_list operand of a stdarg operation and
+return a pointer to it.  Check that the expression is an lvalue of the
+builtin type va_list from <stdarg.h>, or an rvalue of that type decayed
+to a pointer if va_list is an array type.  If the type or lvalueness is
+wrong, issue the error err_code, set *err to TRUE, and return NULL.
+For the non-array case, the value of the lvalue is used if value_used is
+TRUE; the lvalue is assumed always to be set (since we don't know what
+the underlying implementation is).
 */
 {
-  an_operand       operand;
-  an_expr_node_ptr node;
+  an_operand               operand;
+  an_expr_node_ptr         node;
+  a_local_expr_options_set local_options = TOPT_NO_OPTIONS;
+  a_boolean                array_va_list = FALSE;
+  a_type_ptr               eff_va_list_type;
 
-  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  do_operand_transformations(&operand,
-                             (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION));
-  /* The operand must be an lvalue of the builtin type va_list. */
   check_assertion(builtin_va_list_type != NULL);
-  if (!is_an_lvalue(&operand) ||
-      !types_are_compatible_ignoring_qualifiers(builtin_va_list_type,
+  eff_va_list_type = builtin_va_list_type;
+  if (is_array_type(builtin_va_list_type)) {
+    array_va_list = TRUE;
+    eff_va_list_type =
+                  type_after_array_to_pointer_transformation(eff_va_list_type);
+  } else {
+    local_options = TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
+  }  /* if */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  do_operand_transformations(&operand, local_options);
+  /* The operand must be an lvalue of the builtin type va_list (or an rvalue
+     of that type decayed to a pointer, if va_list is an array type. */
+  if ((array_va_list ? !is_an_rvalue(&operand) : !is_an_lvalue(&operand)) ||
+      !types_are_compatible_ignoring_qualifiers(eff_va_list_type,
                                                 operand.type)) {
     if (!is_error_operand(&operand)) {
       error_in_operand(err_code, &operand);
@@ -9694,14 +9707,14 @@ know what the underlying implementation is).
     *err = TRUE;
   }  /* if */
   if (!*err) {
-    modifying_lvalue(&operand, value_used);
+    if (!array_va_list) modifying_lvalue(&operand, value_used);
     node = make_node_from_operand(&operand);
   } else {
     operand_will_not_be_used_because_of_error(&operand);
     node = NULL;
   }  /* if */
   return node;
-}  /* scan_va_list_lvalue_expr */
+}  /* scan_va_list_operand */
 
 
 static void scan_va_start_operator(an_operand *result,
@@ -9768,8 +9781,8 @@ When single_operand is TRUE, the <varargs.h> form is expected:
     add_stop_token(tok_comma);
   }  /* if */
   /* Scan the first expression. */
-  node1 = scan_va_list_lvalue_expr(/*value_used=*/FALSE,
-                                   ec_bad_va_start, &err);
+  node1 = scan_va_list_operand(/*value_used=*/FALSE,
+                               ec_bad_va_start, &err);
   if (!single_operand) {
     /* Check for and pass over the comma. */
     add_stop_token(tok_identifier);
@@ -9887,7 +9900,7 @@ and type is the type of the argument to be extracted.
   add_matching_stop_token(tok_rparen);
   add_stop_token(tok_comma);
   /* Scan the expression. */
-  node = scan_va_list_lvalue_expr(/*value_used=*/TRUE, ec_bad_va_arg, &err);
+  node = scan_va_list_operand(/*value_used=*/TRUE, ec_bad_va_arg, &err);
   /* Check for and pass over the comma. */
   add_stop_token(tok_identifier);
   (void)required_token(tok_comma, ec_exp_comma);
@@ -9993,7 +10006,7 @@ where va_list_var is a variable declared with the builtin type va_list.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   /* Scan the expression. */
-  node = scan_va_list_lvalue_expr(/*value_used=*/TRUE, ec_bad_va_end, &err);
+  node = scan_va_list_operand(/*value_used=*/TRUE, ec_bad_va_end, &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -10051,16 +10064,16 @@ builtin type va_list.
   add_matching_stop_token(tok_rparen);
   add_stop_token(tok_comma);
   /* Scan the first expression. */
-  node1 = scan_va_list_lvalue_expr(/*value_used=*/FALSE,
-                                   ec_bad_va_copy, &err);
+  node1 = scan_va_list_operand(/*value_used=*/FALSE,
+                               ec_bad_va_copy, &err);
   /* Check for and pass over the comma. */
   add_stop_token(tok_identifier);
   (void)required_token(tok_comma, ec_exp_comma);
   remove_stop_token(tok_identifier);
   remove_stop_token(tok_comma);
   /* Scan the second expression. */
-  node2 = scan_va_list_lvalue_expr(/*value_used=*/TRUE,
-                                   ec_bad_va_copy, &err);
+  node2 = scan_va_list_operand(/*value_used=*/TRUE,
+                               ec_bad_va_copy, &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
