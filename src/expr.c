@@ -1385,6 +1385,7 @@ prescanned argument list, which preempts the list in rcblock.
         /* MSVC++ doesn't do this optimization, at least not in 7.1 and 8.0
            beta. */
         is_temp_after_conv = TRUE;
+        arg_match->conversion.class_object_adjustment_required = FALSE;
         optimized = TRUE;
       } else if (routine->is_trivial_copy_function) {
         /* The constructor selected is a bitwise copy constructor.  A copy

@@ -1,5 +1,27 @@
 Version 4.2
 
+8/2/10   [EDGcpfe/10887]
+Abort on copy optimization with conversion function returning volatile class
+
+The front end aborted (in expr.c, scan_ctor_arguments) while attempting to
+do copy constructor elision in a case where the source is the result of
+calling a conversion function that returns a volatile class type.
+(In theory, this could also occur for conversion functions returning
+any customer-added cv-qualifiers.)  Now fixed.
+
+  struct A {
+    A();
+    A(const A&);
+  };
+  struct B {
+    operator volatile A();
+  };
+  int main() {
+    B b;
+    A a(b);
+  }
+
+
 8/1/10   [EDGcpfe/10884]
 Invalid "type_as_subobject" created for certain unions
 
