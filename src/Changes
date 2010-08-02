@@ -1,5 +1,16 @@
 Version 4.2
 
+8/2/10   [EDGcpfe/8844]
+Performance in the presence of a large number of #includes
+
+The mechanism used to eliminate the redundant inclusion of files did
+not perform well when using a very large number of include files
+spread over a very large number of directories (e.g., thousands of
+files spread over thousands of directories).  The hash table used
+to track such includes is now resized as needed resulting in much
+better performance.
+
+
 8/2/10   [EDGcpfe/10887]
 Abort on copy optimization with conversion function returning volatile class
 
