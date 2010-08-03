@@ -2745,9 +2745,6 @@ qualifiers seen so far (and is typically set to one by the initial caller).
       if (scp != NULL) *need_close = TRUE;
     }  /* if */
 #else /* !IA64_ABI */
-    /* We now know the total number of levels of qualification; add an
-       additional level for globally qualified names. */
-    if (current->is_global_qualified_name) nesting_level++;
     if (nesting_level > 1) {
       /* If we have more than one level of qualifiers, add an indicator that
          contains the total number of qualifiers. */
