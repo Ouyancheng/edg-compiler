@@ -10615,7 +10615,8 @@ matches, a new argument list is returned in *new_arg_list.
                                            &template_sym->decl_position);
   /* Start by making sure all of the template parameters have values.  This
      will fill in default values, if needed. */
-  if (all_templ_params_have_values(*new_arg_list, templ_param_list,
+  if (*new_arg_list != NULL &&
+      all_templ_params_have_values(*new_arg_list, templ_param_list,
                                    /*is_partial_order_check=*/FALSE,
                                    template_sym, tssp)) {
     /* Create a substituted type based on the template arguments. */
