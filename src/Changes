@@ -87,9 +87,9 @@ C-generating back end: duplicate parameter names in function declarations
 In some GNU modes (see the 2/28/06 and 7/21/10 entries below), the front
 end accepts duplicate parameter names in function declarations.  Preserving
 those names in the generated C, however, results in invalid code.  The
-front end has now been changed to replace the name of a parameter that is
-the same as that of an earlier one with a generated temporary name.  For
-example:
+C-generating back end has now been changed to replace the name of a
+parameter that is the same as that of an earlier one with a generated
+temporary name.  For example:
 
   void f(int i, int i);  // Now generated (with IA64_ABI) as
                          // void _Z1fii(int i, int __T22766712);
