@@ -8124,8 +8124,15 @@ being looked up is known to be a type.
     conv_type = copy_type_with_substitution(conv_type, templ_arg_list,
                                             templ_param_list,
                                             source_pos, options, copy_error);
-    /* Look for a conversion function that converts to the new type. */
-    new_sym = look_up_conversion_function(parent_type, conv_type, source_pos);
+    if (!is_immediate_class_type(parent_type)) {
+      /* If the parent is not a class type (e.g., an enum qualified name),
+         this is an error. */
+      *copy_error = TRUE;
+    } else {
+      /* Look for a conversion function that converts to the new type. */
+      new_sym = look_up_conversion_function(parent_type, conv_type,
+                                            source_pos);
+    }  /* if */
   } else {
     a_symbol_locator		locator;
     clear_locator(&locator, source_pos);
