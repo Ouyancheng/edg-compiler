@@ -2695,7 +2695,7 @@ Adds scope resolution mangling for the entity represented by "current"
 (and recursively all of its parents) to the mangled name.  In the IA-64 ABI,
 *need_close is set to TRUE in cases where a terminating "E" needs to be added
 by the topmost caller.  nesting_level is a count of the number of levels of
-qualifiers seen so far (and is typically set to zero by the initial caller).
+qualifiers seen so far (and is typically set to one by the initial caller).
 */
 {
   a_template_arg_ptr          template_arg_list = NULL;
@@ -2734,7 +2734,7 @@ qualifiers seen so far (and is typically set to zero by the initial caller).
         (emulate_gnu_abi_bugs || is_top_level_unresolved_type)) {
       /* See if this type is an <unresolved-type>.  If so, use the 
          (template parameter) type encoding rather than the type name. */
-      if (nesting_level > 0) {
+      if (nesting_level > 1) {
         add_to_mangled_name('N', mctl);
         *need_close = TRUE;
       }  /* if */
@@ -2842,8 +2842,7 @@ add mangling for an eok_address_of operation.
       step.is_global_qualified_name = FALSE;
       step.variant.scp_kind.scp     = &parent_class->source_corresp;
       step.variant.scp_kind.kind    = iek_type;
-      mangled_scope_resolution(&step, &need_close, /*nesting_level=*/0,
-                                    mctl);
+      mangled_scope_resolution(&step, &need_close, /*nesting_level=*/1, mctl);
       if (need_close) add_to_mangled_name('E', mctl);
     } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
@@ -4082,7 +4081,7 @@ the caller.
 */
 {
   a_boolean               need_close = FALSE;
-  unsigned long           nesting_level = 0;
+  unsigned long           nesting_level = 1;
   a_scope_resolution_step step;
 
   if (name_reference != NULL &&
@@ -4096,7 +4095,7 @@ the caller.
     if (dtor_type != NULL) {
       /* Mangle the destructor type as though it were part of the qualified
          name. */
-      nesting_level += 2;
+      nesting_level++;
     }
 #endif /* !IA64_ABI */
     mangled_scope_resolution(&step, &need_close, nesting_level, mctl);
