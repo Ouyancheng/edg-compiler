@@ -117,9 +117,6 @@ typedef struct a_decode_control_block {
 			   the mangled name.  When sections with indicated
 			   lengths are scanned, set temporarily to just after
 			   that section of the name. */
-  unsigned long	suppress_address_of;
-			/* If > 0, suppress automatic addition of "&"
-			   when demangling constants. */
 #else /* IA64_ABI */
   unsigned long	suppress_substitution_recording;
 			/* If > 0, suppress recording of substitutions. */
@@ -152,7 +149,6 @@ Clear a decoding control block.
   dctl->uncompressed_length = 0;
 #if !IA64_ABI
   dctl->end_of_name = NULL;
-  dctl->suppress_address_of = 0;
 #else /* IA64_ABI */
   dctl->suppress_substitution_recording = 0;
   dctl->contains_conversion_operator = FALSE;
@@ -900,14 +896,16 @@ end_of_routine:
 }  /* demangle_constant_value */
 
 
-/* FIXME: This should probably be re-named as it demangles more than
-   just constants. */
 static char *demangle_constant(char                       *ptr,
+                               a_boolean                  suppress_address_of,
                                a_decode_control_block_ptr dctl)
 /*
 Demangle a constant (e.g., a nontype template class argument) beginning at
-ptr, and output the demangled form.  Return a pointer to the character
-position following what was demangled.
+ptr, and output the demangled form.  When suppress_address_of is TRUE, the
+ampersand that is normally emitted before an address constant is suppressed
+(this is used when demangling expressions where any "address of" operation is
+explicit).  Return a pointer to the character position following what was
+demangled.
 */
 {
   char          *p = ptr, *type = NULL, *index, *prev_end;
@@ -944,7 +942,7 @@ position following what was demangled.
   ch = get_char(p, dctl);
   if (isdigit((unsigned char)ch)) {
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
-    if (dctl->suppress_address_of == 0) write_id_ch('&', dctl);
+    if (!suppress_address_of) write_id_ch('&', dctl);
     /* Process the length and name. */
     p = demangle_identifier_with_preceding_length(
                                       p,
@@ -1103,31 +1101,42 @@ static char *demangle_parameter_reference(char                       *ptr,
                                           a_decode_control_block_ptr dctl)
 /*
 Demangle a function parameter reference (e.g., in a late specified return
-type) as pointed to by ptr.
+type) as pointed to by ptr:
+
+      vv----- These are optional.
+    I1_2I <-- "param#1 two levels up"
+        ^---- Terminating non-digit character so parameter number won't run
+              into an entity with an initial length.
+      ^^----- Number of "levels up" for this parameter (0-based).  Omitted
+              if zero.
+     ^------- Parameter number (1-based).
+    ^-------- "I" indicates parameter reference.
 */
 {
   char          *p = ptr;
-  unsigned long num, level;
+  unsigned long num, level = 0;
   char          buffer[50];
 
   /* Advance past the initial "I" (verified by caller). */
   p++;
-  p = get_number(p, &level, dctl);
+  p = get_number(p, &num, dctl);
   if (!dctl->err_in_id) {
-    p = advance_past_underscore(p, dctl);
-    if (!dctl->err_in_id) {
-      p = get_number(p, &num, dctl);
+    if (get_char(p, dctl) != 'I') {
+      p = advance_past_underscore(p, dctl);
       if (!dctl->err_in_id) {
-        if (level == 0) {
-          (void)sprintf(buffer, "param#%ld", num);
-        } else {
-          (void)sprintf(buffer, "param#%ld[up %ld level%s]", num, level, 
-                                level > 1 ? "s" : "");
-        }  /* if */
-        write_id_str(buffer, dctl);
-        p = advance_past('I', p, dctl);
+        p = get_number(p, &level, dctl);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!dctl->err_in_id) {
+    if (level == 0) {
+      (void)sprintf(buffer, "param#%ld", num);
+    } else {
+      (void)sprintf(buffer, "param#%ld[up %ld level%s]", num, level, 
+                            level > 1 ? "s" : "");
+    }  /* if */
+    write_id_str(buffer, dctl);
+    p = advance_past('I', p, dctl);
   }  /* if */
   return p;
 }  /* demangle_parameter_reference */
@@ -1145,7 +1154,11 @@ Demangle an expression.
     /* A function parameter reference. */
     p = demangle_parameter_reference(p, dctl);
   } else if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
-    /* A special name (e.g., an operator). */
+    /* Certain special names can occur here, for example operator names.
+       In the case of operator names, any arguments to the operator are
+       handled as part of processing of the call (i.e., this only outputs
+       the name of the call operand, arguments to the call are processed
+       at a higher level). */
     p = demangle_name(p, (unsigned long)0, /*stop_on_underscores=*/TRUE,
                       (unsigned long *)NULL, (char *)NULL,
                       (a_template_param_block_ptr)NULL, (a_boolean *)NULL,
@@ -1158,9 +1171,7 @@ Demangle an expression.
   } else {
     /* Used to demangle literals as well as template parameters, operations.
        Within an expression, suppress implicit "&"s during the demangling. */
-    dctl->suppress_address_of++;
-    p = demangle_constant(p, dctl);
-    dctl->suppress_address_of--;
+    p = demangle_constant(p, /*suppress_address_of=*/TRUE, dctl);
   }  /* if */
   return p;
 }  /* demangle_expression */
@@ -1180,7 +1191,7 @@ position following what was demangled.
   unsigned long num_operands, i;
   a_boolean     takes_type, is_new_style_cast, is_postfix;
   a_boolean     has_variable_number_of_operands = FALSE;
-  a_boolean     is_call = FALSE, is_builtin_operation = FALSE;
+  a_boolean     is_call = FALSE;
 
   /* An operation has the form
        Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
@@ -1243,7 +1254,6 @@ position following what was demangled.
     } else if (strcmp(operator_str, "builtin-operation") == 0) {
       unsigned long kind;
       /* A builtin operation. */
-      is_builtin_operation = TRUE;
       has_variable_number_of_operands = TRUE;
       write_id_str("builtin-operation-", dctl);
       /* Extract the operation number following the "bi". */
@@ -1318,23 +1328,19 @@ position following what was demangled.
         for (i = 1; i <= num_operands; i++) {
           if (get_char(p, dctl) == 'T') {
             /* Type operand. */
-            p++;
-            if (get_char(p, dctl) == 'Z') {
-              /* A template parameter name. */
-              p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
-            } else {
-              p = demangle_type(p, dctl);
-            }  /* if */
+            p = demangle_type(p+1, dctl);
           } else {
             p = demangle_expression(p, dctl);
           }  /* if */
           if (is_call) {
-            /* This is a call to the target just emitted, the rest are
+            /* This is a call to the target just emitted; the rest are
                arguments. */
             write_id_str("(", dctl);
             close_str = ")";
             is_call = FALSE;
-          } else if (i != num_operands) write_id_str(", ", dctl);
+          } else if (i != num_operands) {
+            write_id_str(", ", dctl);
+          }  /* if */
         }  /* for */
       } else {
         /* Normal case, not a builtin operation. */
@@ -1492,7 +1498,7 @@ block that controls output of extra information on template parameters.
     if (nontype) {
       /* Nontype argument. */
       p++;  /* Advance past the "X". */
-      p = demangle_constant(p, dctl);
+      p = demangle_constant(p, /*suppress_address_of=*/FALSE, dctl);
     } else {
       /* Type argument. */
       p = demangle_type(p, dctl);
@@ -1685,7 +1691,7 @@ not an operator encoding, return NULL.
   } else if (start_of_id_is("cs", ptr, dctl)) {
     s = "cast";
     *takes_type = TRUE;
-  } else if (start_of_id_is("cv", ptr, dctl)) {
+  } else if (start_of_id_is("op", ptr, dctl)) {
     s = "conversion";
     *takes_type = TRUE;
   } else if (start_of_id_is("af", ptr, dctl)) {
@@ -2254,9 +2260,9 @@ When base_name_only is TRUE, suppress any function-local information.
     /* A template parameter name. */
     p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
   } else if (get_char(p, dctl) == 'G') {
-    /* A global scope indicator (e.g., ::A).  The "::" string will be emitted
-    by the caller as part of parsing a list of names, so nothing need
-    be emitted here. */
+    /* A global scope indicator (e.g., ::A).  This only occurs in the
+       context of a qualified name, so the caller will emit the requisite
+       "::" string (this is basically treated as a null qualifier). */
     p++;
   } else {
     /* A simple mangled type name consists of digits indicating the length of
@@ -2545,27 +2551,27 @@ to the character position following what was demangled.
         break;
       case 't':
         /* typeof(type) */
-        write_id_str("typeof (", dctl);
+        write_id_str("typeof(", dctl);
         p = demangle_type(p, dctl);
         s = ")";
         break;
       case 'p':
         /* typeof(expression) */
-        write_id_str("typeof (", dctl);
+        write_id_str("typeof(", dctl);
         p = demangle_expression(p, dctl);
         s = ")";
         break;
       case 'y':
-        /* decltype(type) */
-        write_id_str("decltype ", dctl);
-        p = demangle_expression(p, dctl);
-        s = "";
-        break;
-      case 'Y':
-        /* decltype(expression) */
-        write_id_str("decltype (", dctl);
+        /* decltype of an id-expression or class member access. */
+        write_id_str("decltype(", dctl);
         p = demangle_expression(p, dctl);
         s = ")";
+        break;
+      case 'Y':
+        /* decltype of an expression. */
+        write_id_str("decltype((", dctl);
+        p = demangle_expression(p, dctl);
+        s = "))";
         break;
       default:
         bad_mangled_name(dctl);
@@ -2747,7 +2753,7 @@ not empty, because it contains a name or a derived type).
          parameters.  Ignore the expression. */
       p++;
       dctl->suppress_id_output++;
-      p = demangle_constant(p, dctl);
+      p = demangle_constant(p, /*suppress_address_of=*/FALSE, dctl);
       dctl->suppress_id_output--;
     } else {
       /* Normal constant number of elements. */
@@ -2838,7 +2844,7 @@ use of parentheses around parts of the declarator.)
       /* Length is specified by a constant expression based on template
          parameters. */
       p++;
-      p = demangle_constant(p, dctl);
+      p = demangle_constant(p, /*suppress_address_of=*/FALSE, dctl);
     } else {
       /* Normal constant number of elements. */
       if (get_char(p, dctl) == '0' && get_char(p+1, dctl) == '_') {
@@ -3784,8 +3790,9 @@ prefix of a nested name, a pointer to the encoding for the last
 component of the nested name is returned in *last_component_name.  It
 will not be a substitution.  This is needed for generating the names
 of constructors and destructors.  If substitution is non-NULL, *substitution
-is set to the point in the mangled name where previously encoded string
-occurred (in case the caller needs to examine it).
+is set to the point in the mangled name where the substitution source
+occurrs (in case the caller needs to examine it -- for example to see what
+type the substitution represents).
 */
 {
   char ch2 = ptr[1];
@@ -4189,12 +4196,15 @@ Macro to determine if the character string pointed to by "p" is a
 <builtin-type>.  <builtin-type>s are a single lower-case letter or two
 characters starting with the character "D".  Exceptions to this rule are
 the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
-for typeof (i.e., "DY" and "Dy").
+for typeof (i.e., "DY" and "Dy").  The lower case letter "r" is used in
+<CV-qualifiers> for "restrict" and is not a <builtin-type>.
 */
 #define is_builtin_type(p)                                                \
-  (islower((unsigned char)*(p)) ||                                        \
+  ((islower((unsigned char)*(p)) &&                                       \
+    *(p) != 'r') ||                                                       \
    (*(p) == 'D' &&                                                        \
-    !((p)[1] == 'T' || (p)[1] == 't' || (p)[1] == 'Y' || (p)[1] == 'y')))
+    !((p)[1] == 'T' || (p)[1] == 't' ||                                   \
+      (p)[1] == 'Y' || (p)[1] == 'y')))
 
 /*
 Macro to determine if the type pointed to by "p" needs a substitution
@@ -4242,6 +4252,39 @@ demangled as part of the template function instead).
                                     dctl);
         p = demangle_template_args(p, dctl);
       }  /* if */
+    } else if (*p == 'D' && 
+               (p[1] == 't' || p[1] == 'T')) {
+      /* decltype:
+         Dt <expression> E  # decltype of an id-expression or class member
+                            # access
+         DT <expression> E  # decltype of an expression */
+      write_id_str("decltype(", dctl);
+      if (p[1] == 't') {
+        p = demangle_expression(p+2, dctl);
+      } else {
+        write_id_ch('(', dctl);
+        p = demangle_expression(p+2, dctl);
+        write_id_ch(')', dctl);
+      }  /* if */
+      write_id_ch(')', dctl);
+      p = advance_past('E', p, dctl);
+    } else if (*p == 'D' &&
+               (p[1] == 'y' || p[1] == 'Y')) {
+      /* typeof:
+         This is an EDG extension to the IA-64 ABI spec to handle GNU typeof
+         (and GNU doesn't provide a mangling that we can follow):
+
+            <type> ::= Dy <type> E       # typeof(type)
+                   ::= DY <expression> E # typeof(expression)
+         */
+      write_id_str("typeof(", dctl);
+      if (p[1] == 'y') {
+        p = demangle_type(p+2, dctl);
+      } else {
+        p = demangle_expression(p+2, dctl);
+      }  /* if */
+      write_id_ch(')', dctl);
+      p = advance_past('E', p, dctl);
     } else {
       /* <class-enum-type>, i.e., <name> */
       a_func_block func_block;
@@ -4480,39 +4523,6 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch('(', dctl);
-  } else if (kind == 'D' && 
-             (p[1] == 't' || p[1] == 'T')) {
-    /* decltype:
-       Dt <expression> E  # decltype of an id-expression or class member access
-       DT <expression> E  # decltype of an expression */
-    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
-    write_id_str("decltype ", dctl);
-    if (p[1] == 't') {
-      p = demangle_expression(p+2, dctl);
-    } else {
-      write_id_ch('(', dctl);
-      p = demangle_expression(p+2, dctl);
-      write_id_ch(')', dctl);
-    }  /* if */
-    p = advance_past('E', p, dctl);
-  } else if (kind == 'D' &&
-             (p[1] == 'y' || p[1] == 'Y')) {
-    /* typeof:
-       This is an EDG extension to the IA-64 ABI spec to handle GNU typeof
-       (and GNU doesn't provide a mangling that we can follow):
-
-          <type> ::= Dy <type> E       # typeof(type)
-                 ::= DY <expression> E # typeof(expression)
-       */
-    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
-    write_id_str("typeof(", dctl);
-    if (p[1] == 'y') {
-      p = demangle_type(p+2, dctl);
-    } else {
-      p = demangle_expression(p+2, dctl);
-    }  /* if */
-    write_id_ch(')', dctl);
-    p = advance_past('E', p, dctl);
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
@@ -4653,17 +4663,6 @@ to be on top of the type.
     /* Process the element type. */
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
                               dctl);
-  } else if (kind == 'D' && 
-             (p[1] == 't' || p[1] == 'T')) {
-    /* decltype:
-       Dt <expression> E  # decltype of an id-expression or class member access
-       DT <expression> E  # decltype of an expression */
-    dctl->suppress_id_output++;
-    dctl->suppress_substitution_recording++;
-    p = demangle_expression(p+2, dctl);
-    dctl->suppress_substitution_recording--;
-    dctl->suppress_id_output--;
-    p = advance_past('E', p, dctl);
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -4751,12 +4750,12 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
         } else if (ch2 == 'S') {
           str = "=";
         } else if (ch2 == 't') {
-          /* alignof(type) -- new */
+          /* alignof(type) -- newer mangling form */
           str = "alignof(";
           *num_operands = 0;
           *close_str = ")";
         } else if (ch2 == 'z') {
-          /* alignof(expression) -- new */
+          /* alignof(expression) -- newer mangling form */
           str = "alignof(";
           *close_str = ")";
           *num_operands = 1;
@@ -4926,15 +4925,15 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
         break;
       case 't':
         if (ch2 == 'e') {
-          /* typeid(expression) --new */
+          /* typeid(expression) -- newer mangling form */
           str = "typeid(";
+          *close_str = ")";
           *num_operands = 1;
-          *close_str = ")";
         } else if (ch2 == 'i') {
-          /* typeid(type) --new */
+          /* typeid(type) -- newer mangling form */
           str = "typeid(";
-          *num_operands = 0;
           *close_str = ")";
+          *num_operands = 0;
         } else if (ch2 == 'r') {
           /* rethrow (no arguments) */
           str = "throw";
@@ -4948,13 +4947,13 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
       case 'v':
         /* Vendor extended operators. */
         if (start_of_id_is("v18alignofe", ptr)) {
-          /* __alignof__(expr) -- old */
+          /* __alignof__(expr) -- older mangling form */
           str = "__alignof__(";
           *close_str = ")";
           *num_operands = 1;
           *length = 11;
         } else if (start_of_id_is("v17alignof", ptr)) {
-          /* __alignof__(type) -- old */
+          /* __alignof__(type) -- older mangling form */
           str = "__alignof__(";
           *close_str = ")";
           *num_operands = 0;
@@ -4972,13 +4971,13 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           *num_operands = 0;
           *length = 11;
         } else if (start_of_id_is("v17typeide", ptr)) {
-          /* typeid(expr) -- old */
+          /* typeid(expr) -- older mangling form */
           str = "typeid(";
           *close_str = ")";
           *num_operands = 1;
           *length = 10;
         } else if (start_of_id_is("v16typeid", ptr)) {
-          /* typeid(type) -- old */
+          /* typeid(type) -- older mangling form */
           str = "typeid(";
           *close_str = ")";
           *num_operands = 0;
@@ -5363,7 +5362,7 @@ to the terminating character.
     p = str + strlen(str) - 1;
     if (strchr(str, '.') == NULL &&
         strchr(str, 'e') == NULL &&
-        isdigit(*p)) {
+        isdigit((unsigned char)*p)) {
       p++;
       *p++ = '.';
       *p++ = '0';
@@ -5445,8 +5444,8 @@ Macro that returns TRUE if the character represents a floating point type.
 #define is_floating_point_type(ch)                                        \
  ((ch) == 'd' || (ch) == 'e' || (ch) == 'f' || (ch) == 'g')
 
-static char *demangle_literal(char                       *ptr,
-                              a_decode_control_block_ptr dctl)
+static char *demangle_expr_primary(char                       *ptr,
+                                   a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 literal or external name and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -5532,38 +5531,34 @@ The syntax is:
     ptr = advance_past('E', ptr, dctl);
   }  /* if */
   return ptr;
-}  /* demangle_literal */
+}  /* demangle_expr_primary */
 
 
 static char *demangle_expression_list(
                                  char                       *ptr,
-                                 a_boolean                  stop_on_underscore,
+                                 char                       stop_char,
                                  a_decode_control_block_ptr dctl)
 /*
-Demangle zero or more expressions, terminated by an E or an underscore (only
-if stop_on_underscore, is TRUE).  The expression list is enclosed in
-parentheses and separated by commas.  Returns a pointer to the character after
-the closing E, or a pointer to the terminating underscore (unless an error is
-found).
+Demangle zero or more expressions, terminated by stop_char.  The expression
+list output is enclosed in parentheses and separated by commas.  Returns a
+pointer to the terminating character (unless an error occurs).
 */
 {
+  a_boolean first_time = TRUE;
+
   write_id_ch('(', dctl);
-  while (!(*ptr == 'E' ||
-          (stop_on_underscore && *ptr == '_'))) {
+  while (*ptr != stop_char && !dctl->err_in_id) {
     if (*ptr == '\0') {
       bad_mangled_name(dctl);
       break;
     }  /* if */
-    ptr = demangle_expression(ptr, dctl);
-    if (*ptr == 'E' ||
-        (stop_on_underscore && *ptr == '_') ||
-        dctl->err_in_id) {
-      break;
+    if (!first_time) {
+      write_id_str(", ", dctl);
+    } else {
+      first_time = FALSE;
     }  /* if */
-    write_id_str(", ", dctl);
+    ptr = demangle_expression(ptr, dctl);
   }  /* while */
-  /* Consume the closing 'E' (but not an underscore). */
-  if (!dctl->err_in_id && *ptr == 'E') ptr++;
   write_id_ch(')', dctl);
   return ptr;
 }  /* demangle_expression_list */
@@ -5643,9 +5638,9 @@ The syntax is:
                                       # integer literal
                  ::= L <type> <value float> E                           
                                       # floating literal
-                 ::= L <character builtin-type> E                       
+                 ::= L <string type> E                       
                                       # string literal
-		 ::= L <type> <real-part float> _ <imag-part float> E   
+                 ::= L <type> <real-part float> _ <imag-part float> E   
                                       # complex floating point literal (C 2000)
                  ::= L <mangled-name> E                                 
                                       # external name
@@ -5664,7 +5659,7 @@ The syntax is:
 
   if (*ptr == 'L') {
     /* A literal or external name. */
-    ptr = demangle_literal(ptr, dctl);
+    ptr = demangle_expr_primary(ptr, dctl);
   } else if (*ptr == 'T') {
     /* A template parameter. */
     ptr = demangle_template_param(ptr, dctl);
@@ -5675,7 +5670,8 @@ The syntax is:
     /* Call expression: "cl <expression>+ E" */
     ptr += 2;
     ptr = demangle_expression(ptr, dctl);
-    ptr = demangle_expression_list(ptr, /*stop_on_underscore=*/FALSE, dctl);
+    ptr = demangle_expression_list(ptr, 'E', dctl);
+    ptr = advance_past('E', ptr, dctl);
   } else if (*ptr == 'c' && ptr[1] == 'v') {
     /* Cast/conversion (with one type and zero or more arguments).  When
        exactly one expression is specified, emit "(T)expr", otherwise
@@ -5706,8 +5702,8 @@ The syntax is:
         if (*ptr != '_') {
           bad_mangled_name(dctl);
         } else {
-          ptr = demangle_expression_list(ptr+1, /*stop_on_underscore=*/FALSE,
-                                         dctl);
+          ptr = demangle_expression_list(ptr+1, 'E', dctl);
+          ptr = advance_past('E', ptr, dctl);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5717,26 +5713,28 @@ The syntax is:
     write_id_str("::", dctl);
     ptr = demangle_expression(ptr+2, dctl);
   } else if (*ptr == 'n' && (ptr[1] == 'w' || ptr[1] == 'a')) {
+    /* new or new[] */
     if (ptr[1] == 'w') {
       write_id_str("new ", dctl);
     } else {
       write_id_str("new[] ", dctl);
     }  /* if */
     ptr+=2;
-    /*  Optional placement expressions. */
+    /* Optional placement expressions. */
     if (*ptr != '_') {
-      ptr = demangle_expression_list(ptr, /*stop_on_underscore=*/TRUE, dctl);
+      ptr = demangle_expression_list(ptr, '_', dctl);
       write_id_ch(' ', dctl);
     }  /* if */
-    if (!dctl->err_in_id && *ptr == '_') {
-      ptr = demangle_type(ptr+1, dctl);
+    ptr = advance_past('_', ptr, dctl);
+    if (!dctl->err_in_id) {
+      ptr = demangle_type(ptr, dctl);
       if (!dctl->err_in_id) {
         if (*ptr == 'E') {
           ptr++;
         } else {
           if (*ptr == 'p' && ptr[1] == 'i') {
-            ptr = demangle_expression_list(ptr+2, /*stop_on_underscore=*/FALSE,
-                                           dctl);
+            ptr = demangle_expression_list(ptr+2, 'E', dctl);
+            ptr = advance_past('E', ptr, dctl);
           } else {
             bad_mangled_name(dctl);
           }  /* if */
@@ -5888,7 +5886,7 @@ A <template-args> encodes a template argument list.  The syntax is:
       ptr = advance_past('E', ptr, dctl);
     } else if (*ptr == 'L') {
       /* Literal or external name. */
-      ptr = demangle_literal(ptr, dctl);
+      ptr = demangle_expr_primary(ptr, dctl);
     } else if (*ptr == 'E') {
       /* No template arguments. */
       break;
@@ -6349,7 +6347,6 @@ Demangle a <base-unresolved-name>:
     /* ~T() */
     write_id_ch('~', dctl);
     ptr = demangle_type(ptr+2, dctl);
-    write_id_str("()", dctl);
   } else {
     /* <source-name> */
     ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
@@ -6411,7 +6408,7 @@ can also appear at the <expression> level).
       /* We've got this case:
          ::= [gs] sr <unresolved-qualifier-level>+ E <base-unresolved-name>  
          */
-      while (!dctl->err_in_id && *ptr != 'E') {
+      while (!dctl->err_in_id && *ptr != 'E' && *ptr != '\0') {
         ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
         if (*ptr == 'I') {
           /* Scan the template argument list. */
