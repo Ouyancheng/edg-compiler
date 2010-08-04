@@ -4828,6 +4828,9 @@ nonstatic_member_function:
         } else if (member_sym->kind != (a_symbol_kind)sk_field) {
           expr_pos_error(ec_offsetof_nonfield, &member_position);
           conv_to_error_operand(result);
+        } else if (is_reference_type(member_sym->variant.field.ptr->type)) {
+          expr_pos_error(ec_offsetof_ref_field, &member_position);
+          conv_to_error_operand(result);
         } else if (member_sym->variant.field.ptr->is_bit_field) {
           expr_pos_error(ec_offsetof_bit_field, &member_position);
           conv_to_error_operand(result);

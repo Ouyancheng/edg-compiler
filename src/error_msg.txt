@@ -1953,6 +1953,7 @@ ec_bad_type_for_list_init;;"a list initializer is not allowed for type %t"
 ec_final_base_class;;"a \"final\" class type cannot be used as a base class"
 ec_export_removed;;"exported templates are no longer in the standard C++ language"
 ec_template_dependent_designator;;"a template-dependent designator is not allowed"
+ec_offsetof_ref_field;;"second operand of offsetof may not be a field with reference type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

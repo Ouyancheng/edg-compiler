@@ -1,5 +1,18 @@
 Version 4.2
 
+8/4/10   [EDGcpfe/10895]
+Abort on GNU __builtin_offsetof that names a reference-typed field
+
+The front end aborted (in folding.c, add_offset_of_accessed_member)
+while attempting to process a GNU C++ __builtin_offsetof that names
+a field that has a reference type.  Now fixed (an error is issued).
+
+  struct A {
+    int &r;
+  } a;
+  int i = __builtin_offsetof(A, r);
+
+
 8/2/10   [EDGcpfe/10885]
 Handling va_list that is an array type
 
