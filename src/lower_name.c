@@ -4697,13 +4697,13 @@ this expression is part of a template-dependent expression.
     add_str_to_mangled_name("cl", mctl);
 #else /* !IA64_ABI */
     /* Call.  Output has the form
-         Ocl_1_1fI0_1IO <-- encoding for "f(p1)"
-                      ^---- "O" to end the operation encoding.
-                 ^^^^^----- First argument.
-               ^^---------- Call operand.
-            ^^^------------ Count of arguments to call (with underscores).
-          ^^--------------- Call operation.
-         ^----------------- "O" for operation.
+         Ocl_1_1fI1IO <-- encoding for "f(p1)"
+                    ^---- "O" to end the operation encoding.
+                 ^^^----- First argument.
+               ^^-------- Call operand.
+            ^^^---------- Count of arguments to call (with underscores).
+          ^^------------- Call operation.
+         ^--------------- "O" for operation.
     */
     add_to_mangled_name('O', mctl);
     add_str_to_mangled_name("cl", mctl);
@@ -4775,13 +4775,13 @@ static_cast.  Compound literals are not handled at this time.
   }  /* if */
 #else /* !IA64_ABI */
   /* Conversion.  Output has the form
-       Oop1A_1_I0_1IO <-- encoding for "A(p1)"
-                    ^---- "O" to end the operation encoding.
-               ^^^^^----- Arguments to conversion.
-            ^^^---------- Argument count.
-          ^^------------- Type to convert to.
-        ^^--------------- Conversion operation.
-       ^----------------- "O" for operation.
+       Oop1A_1_I1IO <-- encoding for "A(p1)"
+                  ^---- "O" to end the operation encoding.
+               ^^^----- Argument(s) to conversion.
+            ^^^-------- Argument count.
+          ^^----------- Type to convert to.
+        ^^------------- Conversion operation.
+       ^--------------- "O" for operation.
   */
   add_to_mangled_name('O', mctl);
   add_str_to_mangled_name(str, mctl);
@@ -5064,14 +5064,14 @@ is TRUE.
               ^^------------------------------ new operation (nw, nwa).
              ^-------------------------------- "O" for operation.
              
-                v------------- This is optional.
-             Odlg_1_I0_1IO <-- encoding for "::delete p1"
-                         ^---- "O" to end the operation encoding.
-                    ^^^^^----- Argument to delete.
-                 ^^^---------- Argument count (always one for delete).
-                ^------------- "g" indicates global delete.
-              ^^-------------- delete operation (dl, dla).
-             ^---------------- "O" for operation.
+                v----------- This is optional.
+             Odlg_1_I1IO <-- encoding for "::delete p1"
+                       ^---- "O" to end the operation encoding.
+                    ^^^----- Argument to delete.
+                 ^^^-------- Argument count (always one for delete).
+                ^----------- "g" indicates global delete.
+              ^^------------ delete operation (dl, dla).
+             ^-------------- "O" for operation.
         */
         add_to_mangled_name('O', mctl);
 #else /* IA64_ABI */
@@ -5145,13 +5145,13 @@ is TRUE.
       /* Mangle a throw-expression (or a rethrow). */
 #if !IA64_ABI
       /* Throw.  Output has the form
-           Otw1I0_1IO <-- encoding for "throw p1"
-                    ^---- "O" to end the operation encoding.
-               ^^^^^----- Throw expression.
-              ^---------- Count of expressions (zero for a rethrow otherwise
-                          one).
-            ^^----------- Throw operation.
-           ^------------- "O" for operation.
+           Otw1I1IO <-- encoding for "throw p1"
+                  ^---- "O" to end the operation encoding.
+               ^^^----- Throw expression.
+              ^-------- Count of expressions (zero for a rethrow otherwise
+                        one).
+            ^^--------- Throw operation.
+           ^----------- "O" for operation.
       */
       add_to_mangled_name('O', mctl);
       add_str_to_mangled_name("tw", mctl);
