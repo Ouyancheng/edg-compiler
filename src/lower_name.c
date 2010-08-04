@@ -3537,7 +3537,7 @@ do_unknown_function:
       mangled_encoding_for_type(con->type, mctl);
       add_to_mangled_name('E', mctl);
 #else /* !IA64_ABI */
-      /* The array element type has already been emitted by the caller. */
+      /* The string type has already been emitted by the caller. */
       add_str_to_mangled_name("LS", mctl);
 #endif /* IA64_ABI */
       break;
