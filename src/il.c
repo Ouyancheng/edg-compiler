@@ -5601,6 +5601,7 @@ are done.
   } else if (node1->kind == node2->kind &&
              node1->is_lvalue == node2->is_lvalue &&
              node1->is_static_cast == node2->is_static_cast) {
+    a_boolean do_type_comparison = TRUE;
     switch (node1->kind) {
       case enk_operation:
         if (node1->variant.operation.kind ==
@@ -5614,10 +5615,7 @@ are done.
             node1->variant.operation.is_reference_cast ==
                            node2->variant.operation.is_reference_cast &&
             node1->variant.operation.is_rvalue_reference_cast ==
-                           node2->variant.operation.is_rvalue_reference_cast &&
-            /* For casts in particular, the result type is independent of
-               the operand types. */
-            identical_types(node1->type, node2->type)) {
+                           node2->variant.operation.is_rvalue_reference_cast) {
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
 
@@ -5647,6 +5645,11 @@ are done.
         break;
       case enk_variable:
         eq = same_entities(node1->variant.variable, node2->variant.variable);
+        /* Don't do the type comparison because we may be comparing variables
+           from different translation units, one of which may have an
+           incomplete array type.  It's enough to know they are the same
+           variable. */
+        do_type_comparison = FALSE;
         break;
       case enk_routine:
         eq = same_entities(node1->variant.routine, node2->variant.routine);
@@ -5657,8 +5660,7 @@ are done.
       case enk_temp_init:
         eq = compare_dynamic_inits(node1->variant.init.dynamic_init,
                                    node2->variant.init.dynamic_init,
-                                   options) &&
-             identical_types(node1->type, node2->type);
+                                   options);
         break;
       case enk_new_delete:
         { a_new_delete_supplement_ptr ndsp1 = node1->variant.new_delete;
@@ -5779,6 +5781,9 @@ are done.
       default:
         unexpected_condition_str("compare_expressions: bad expr kind");
     }  /* switch */
+    if (eq && do_type_comparison) {
+      if (!identical_types(node1->type, node2->type)) eq = FALSE;
+    }  /* if */
   }  /* if */
   return eq;
 }  /* compare_expressions */
