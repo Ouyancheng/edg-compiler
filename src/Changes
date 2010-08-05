@@ -1,5 +1,28 @@
 Version 4.2
 
+8/5/10   [EDGcpfe/10892]
+Type for std::type_info vtable is now incomplete when vtable is not defined
+
+The vtable variable defined for std::type_info had the incorrect number of
+array elements in some cases.  To avoid a link-time type mismatch, a change has
+been made to use an incomplete type for the std::type_info vtable variable in
+cases where the vtable is not being defined in the translation unit.  This
+change affects both IA-64 and Cfront ABIs.  In this case:
+
+  #ifdef INCLUDE
+  #include <typeinfo>
+  #endif
+  int main() {
+    throw 0;
+  }
+
+The vtable variable is now declared (in the Cfront ABI) as
+"extern const struct __C2 __vtbl__Q2_3std9type_info[]" where previously
+the array size was one when INCLUDE was not defined (indicating that the
+lowering version of std::type_info was being used) and four when INCLUDE was
+defined (a bug).  Neither of these values matched the correct value (two).
+
+
 8/5/10   [EDGcpfe/10896]
 GNU C++ suppression of argument-dependent lookup because of explicit template
 argument list

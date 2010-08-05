@@ -7215,7 +7215,16 @@ for the same virtual function table variable; see note below.
   a_boolean                   main_vtbl = FALSE;
 #endif /* IA64_ABI */
   a_targ_ptrdiff_t            delta;
+#if ABI_CHANGES_FOR_RTTI
+  a_type_info_kind            kind = tik_last;
+#endif /* ABI_CHANGES_FOR_RTTI */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if ((vtbl_var->decl_modifiers & DM_DLLIMPORT) != 0) {
+    /* A virtual table for a dllimport-ed class should not be defined. */
+    definition_needed = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   /* For construction vtables, each virtual function table is placed in
      a separate variable.  For normal (non-construction) vtables, a
@@ -7228,9 +7237,6 @@ for the same virtual function table variable; see note below.
 #endif /* IA64_ABI */
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
-#if ABI_CHANGES_FOR_RTTI
-    a_type_info_kind kind;
-#endif /* ABI_CHANGES_FOR_RTTI */
     /* We're doing the virtual function table for class_type itself. */
     ctsp = class_type->variant.class_struct_union.extra_info;
 #if ABI_CHANGES_FOR_RTTI
@@ -7250,32 +7256,47 @@ for the same virtual function table variable; see note below.
     /* We're doing the virtual function table for bcp in class_type. */
     ctsp = bcp->type->variant.class_struct_union.extra_info;
   }  /* if */
-  /* Change the array size from [] to the proper size.  Note that the type
-     was created for this variable and is known not to be shared. */
-  if (ctsp->highest_virtual_function_number == VIRTUAL_FUNCTION_NUMBER_NONE) {
-    number_of_virtual_functions = 0;
-  } else {
-    /*lint --e(835)*/
-    number_of_virtual_functions = ctsp->highest_virtual_function_number -
+#if ABI_CHANGES_FOR_RTTI
+  if (kind == tik_user && !definition_needed) {
+    /* If we're creating the vtable for the type_info type, but we aren't
+       going to define the vtable here, leave the array size of the vtable
+       as [].  This prevents link-time problems where the vtable size
+       differs between translation units where one uses the type_info created
+       by lowering and another uses the real type_info (which is larger because
+       it has a virtual destructor). */
+  } else
+#endif /* ABI_CHANGES_FOR_RTTI */
+  /* Do not insert code here. */
+  {
+    /* Change the array size from [] to the proper size.  Note that the type
+       was created for this variable and is known not to be shared. */
+    if (ctsp->highest_virtual_function_number == VIRTUAL_FUNCTION_NUMBER_NONE)
+                                                                              {
+      number_of_virtual_functions = 0;
+    } else {
+      /*lint --e(835)*/
+      number_of_virtual_functions = ctsp->highest_virtual_function_number -
                                             FIRST_VIRTUAL_FUNCTION_NUMBER + 1;
-  }  /* if */
-  vtbl_var->type->variant.array.variant.number_of_elements +=
-                                              number_of_virtual_functions 
+    }  /* if */
+    vtbl_var->type->variant.array.variant.number_of_elements +=
+                                number_of_virtual_functions 
 #if !IA64_ABI
-  /* The "+1" is to skip leading entries, which makes the code to access the
-     table a little cleaner.  It's also necessary for cfront compatibility. */
-                                     + 1
+    /* The "+1" is to skip leading entries, which makes the code to access the
+       table a little cleaner.  It's also necessary for cfront
+       compatibility. */
+                                + 1
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-  /* Add an extra zeroed entry at the end of the table for full cfront
-     compatibility (although we don't know why the entry is there). */
-                                     + 1
+    /* Add an extra zeroed entry at the end of the table for full cfront
+       compatibility (although we don't know why the entry is there). */
+                                + 1
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #else /* IA64_ABI */
-      + num_negative_vtable_entries(class_type, bcp)
+                                + num_negative_vtable_entries(class_type, bcp)
 #endif /* IA64_ABI */
-                                                                            ;
-  vtbl_var->type->size = 0;  /* Force recomputation of size. */
-  set_type_size(vtbl_var->type);
+                                                                              ;
+    vtbl_var->type->size = 0;  /* Force recomputation of size. */
+    set_type_size(vtbl_var->type);
+  }  /* if */
   /* Set the linkage on the virtual function table variable. */
 #if IA64_ABI
   if (main_vtbl) {
@@ -7315,11 +7336,6 @@ for the same virtual function table variable; see note below.
          scope. */
       vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if ((vtbl_var->decl_modifiers & DM_DLLIMPORT) != 0) {
-      /* A virtual table for a dllimport-ed class should not be defined. */
-      definition_needed = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (definition_needed) {
       /* For an externally-linked class whose definition is needed, change the
          variable to an external definition. */
@@ -7361,11 +7377,7 @@ for the same virtual function table variable; see note below.
 #endif /* IA64_ABI */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
-  if (definition_needed
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      && ((vtbl_var->decl_modifiers & DM_DLLIMPORT) == 0)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                         ) {
+  if (definition_needed) {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "\nDefining virtual function table for ");
