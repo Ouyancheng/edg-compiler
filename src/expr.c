@@ -2663,9 +2663,9 @@ are expected to be NULL in that case.
     if (operand->is_routine_name_followed_by_left_paren &&
         !operand->is_qualified_name) {
       do_arg_dep_lookup = TRUE;
-      if (gpp_mode && operand->is_template_id) {
+      if (gpp_mode && gnu_version < 40400 && operand->is_template_id) {
         /* g++ does not do argument-dependent lookup when an explicit
-           template argument list is specified. */
+           template argument list is specified.  Fixed in 4.4. */
         do_arg_dep_lookup = FALSE;
       }  /* if */
     } else if (is_undefined_symbol_operand(operand) ||

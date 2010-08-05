@@ -1,5 +1,25 @@
 Version 4.2
 
+8/5/10   [EDGcpfe/10896]
+GNU C++ suppression of argument-dependent lookup because of explicit template
+argument list
+
+The g++ bug that suppressed argument-dependent lookup when an
+explicit template argument list is given has apparently been fixed
+in g++ 4.4, so we now turn off the emulation of that bug when
+gnu_version is 40400 or greater.
+
+  template <class T> void f(T *) {}
+  struct A {} a;
+  template <class T> void g(T p) {
+    f<A>(p);  // No error now in g++ mode with gnu_version >= 40400
+  }
+  template <class T> void f(A) {}
+  int main() {
+    g(a);
+  }
+
+
 8/4/10   [EDGcpfe/10895]
 Abort on GNU __builtin_offsetof that names a reference-typed field
 
