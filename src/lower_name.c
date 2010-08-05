@@ -7680,6 +7680,9 @@ Add to the mangled name the encoding for the type "type".
   /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type->kind == (a_type_kind)tk_typeref;
        type = type->variant.typeref.type) {
+#if IA64_ABI
+top_of_loop:
+#endif /* IA64_ABI */
     /* Remember type qualifiers encountered. */
     qualifiers |= type->variant.typeref.qualifiers;
 #if ABI_COMPATIBILITY_VERSION < 230
@@ -7697,15 +7700,41 @@ Add to the mangled name the encoding for the type "type".
     /* Decltypes without expressions are stripped, as are non-dependent types.
        GNU has a slightly different interpretation of when decltype mangling is
        needed. */
-    if (type->variant.typeref.is_decltype &&
-        (
+    if (type->variant.typeref.is_decltype) {
 #if IA64_ABI
-         emulate_gnu_abi_bugs ?
-                      gnu_requires_decltype_mangling(type) :
+      if (emulate_gnu_abi_bugs) {
+        if (gnu_requires_decltype_mangling(type)) {
+          /* This decltype needs to appear in the mangled name. */
+          break;
+        } else {
+          /* To be GNU compatible, don't use decltype mangling for this
+             type. */
+          if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+            /* Typically, using the type under the decltype typeref is the
+               correct thing to do, but if the decltype is marked as dependent,
+               get the type from the expression under the decltype and
+               mangle that instead. */
+            an_expr_node_ptr decltype_expr = decltype_arg(type);
+            check_assertion(decltype_expr != NULL);
+            type = decltype_expr->type;
+            if (type->kind == (a_type_kind)tk_typeref) {
+              /* The type is a typeref of sorts; jump to the top of this
+                 loop to process it. */
+              goto top_of_loop;
+            } else {
+              /* Not a typeref; break out of the loop. */
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else
 #endif /* IA64_ABI */
-                      type->variant.typeref.is_dependent_decltype_or_typeof)) {
-      /* This decltype needs to appear in the mangled name. */
-      break;
+      {
+        if (type->variant.typeref.is_dependent_decltype_or_typeof) {
+          /* This decltype needs to appear in the mangled name. */
+          break;
+        }  /* if */
+      }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (type->variant.typeref.is_typeof &&
