@@ -3027,6 +3027,9 @@ as specified in the control block.
       break;
     case enk_new_delete:
       { a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+        if (tblock->process_type != NULL) {
+          tblock->process_type(ndsp->type, tblock);
+        }  /* if */
         if (ndsp->arg != NULL) {
           traverse_expr_list(ndsp->arg, tblock);
           if (tblock->terminate) goto end_of_routine;
