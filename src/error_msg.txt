@@ -1954,6 +1954,7 @@ ec_final_base_class;;"a \"final\" class type cannot be used as a base class"
 ec_export_removed;;"exported templates are no longer in the standard C++ language"
 ec_template_dependent_designator;;"a template-dependent designator is not allowed"
 ec_offsetof_ref_field;;"second operand of offsetof may not be a field with reference type"
+ec_cl_long_lifetime_temps_incompat_with_newer_features;;"long lifetime temporaries are incompatible with other requested newer language features"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

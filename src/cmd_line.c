@@ -8238,6 +8238,13 @@ enable_microsoft_mode:
     local_types_as_template_args_enabled = TRUE;
     decls_using_types_without_linkage_allowed = TRUE;
   }  /* if */
+  if (long_lifetime_temps) {
+    /* Don't allow long lifetime temps with some newer language features. */
+    if (lambdas_enabled || cpp0x_sfinae_enabled) {
+      command_line_error(
+                       ec_cl_long_lifetime_temps_incompat_with_newer_features);
+    }  /* if */
+  }  /* if */
   if (auto_type_specifier_enabled && option_kind_used[(int)optk_auto_type] &&
       !option_kind_used[(int)optk_auto_storage]) {
     /* If "auto" is explicitly enabled as a type specifier and not explicitly
