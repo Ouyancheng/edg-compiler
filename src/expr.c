@@ -8199,7 +8199,15 @@ general_case:
         result = type_of_unknown_templ_param_nontype;
       }  /* if */
     } else if (is_an_lvalue(operand)) {
-      result = make_reference_type(result);
+      if (operand_contains_template_param(operand)) {
+        /* Use a completely unknown type when a reference type would be
+           created over an instantiation-dependent type, to avoid problems 
+           with stripping the decltype when doing a type_pointed_to on the 
+           resulting type. */
+        result = type_of_unknown_templ_param_nontype;
+      } else {
+        result = make_reference_type(result);
+      }  /* if */
     }  /* if */
   }  /* if */
   check_assertion(result != NULL);
