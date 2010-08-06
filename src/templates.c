@@ -8238,6 +8238,12 @@ entity is known to be a type.
         } else {
           do_template_class_subst = TRUE;
         }  /* if */
+      } else if (is_nonreal_instance_class_symbol(sym) &&
+                 template_arg_list_for_symbol(sym) != NULL &&
+                 !is_class_template_symbol(new_sym)) {
+        /* The original symbol is an instance of a nonreal template but
+	   the new symbol is not a class template. */
+        *copy_error = TRUE;
       } else if (is_template_param_type(orig_parent_type) &&
                  is_nonreal_instance_class_symbol(sym)) {
         if (is_class_template_symbol(new_sym)) {
