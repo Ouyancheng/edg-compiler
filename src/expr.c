@@ -3581,22 +3581,6 @@ Return NULL if the name is not found.
                                          class_struct_union_type,
                                          (IDL_IS_EXPR_CONTEXT |
                                           IDL_IS_FIELD_SELECTION_OPERAND));
-  if (member_sym != NULL) {
-    if (member_sym->kind == (a_symbol_kind)sk_class_template) {
-      if (!locator->is_template_id) {
-        /* This is a class template, but there's no explicit template
-           argument list.  Pretend we found nothing. */
-        member_sym = NULL;
-      }  /* if */
-    } else if (member_sym->kind == (a_symbol_kind)sk_function_template) {
-      /* Function templates are okay with or without an explicit argument
-         list. */
-    } else if (locator->is_template_id) {
-      /* A non-template with an explicit template argument list.  Pretend
-         we found nothing. */
-      member_sym = NULL;
-    }  /* if */
-  }  /* if */
   return member_sym;
 }  /* look_up_selection_name */
 
@@ -4188,8 +4172,23 @@ the function.  Set *err to TRUE if there is an error.
                   symbol_for(member_con) != NULL) {
                 clear_locator(locator, qualified_member_position);
                 locator->symbol_header = symbol_for(member_con)->header;
-                locator->is_template_id = is_template_ref;
                 sym = look_up_selection_name(locator, class_struct_union_type);
+                if (sym != NULL) {
+                  if (sym->kind == (a_symbol_kind)sk_class_template) {
+                    if (!is_template_ref) {
+                      /* This is a class template, but there's no explicit
+                         template argument list.  Pretend we found nothing. */
+                      sym = NULL;
+                    }  /* if */
+                  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+                    /* Function templates are okay with or without an explicit
+                       template argument list. */
+                  } else if (is_template_ref) {
+                    /* A non-template with an explicit template argument
+                       list.  Pretend we found nothing. */
+                    sym = NULL;
+                  }  /* if */
+                }  /* if */
                 need_member_sym_check = FALSE;
               }  /* if */
               goto have_symbol;
