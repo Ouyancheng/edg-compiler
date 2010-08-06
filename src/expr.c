@@ -3581,6 +3581,22 @@ Return NULL if the name is not found.
                                          class_struct_union_type,
                                          (IDL_IS_EXPR_CONTEXT |
                                           IDL_IS_FIELD_SELECTION_OPERAND));
+  if (member_sym != NULL) {
+    if (member_sym->kind == (a_symbol_kind)sk_class_template) {
+      if (!locator->is_template_id) {
+        /* This is a class template, but there's no explicit template
+           argument list.  Pretend we found nothing. */
+        member_sym = NULL;
+      }  /* if */
+    } else if (member_sym->kind == (a_symbol_kind)sk_function_template) {
+      /* Function templates are okay with or without an explicit argument
+         list. */
+    } else if (locator->is_template_id) {
+      /* A non-template with an explicit template argument list.  Pretend
+         we found nothing. */
+      member_sym = NULL;
+    }  /* if */
+  }  /* if */
   return member_sym;
 }  /* look_up_selection_name */
 
@@ -4109,6 +4125,7 @@ the function.  Set *err to TRUE if there is an error.
         a_constant_ptr con = member_op->variant.constant;
         if (con->kind == (a_constant_repr_kind)ck_template_param) {
           a_constant_ptr member_con = NULL;
+          a_boolean      is_template_ref = FALSE;
           if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
             if (has_name(con) &&
@@ -4145,6 +4162,7 @@ the function.  Set *err to TRUE if there is an error.
             if (!member_con->source_corresp.is_class_member) {
               member_con = NULL;
             }  /* if */
+            is_template_ref = TRUE;
           } else if (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function) {
             if (con->source_corresp.is_class_member) {
@@ -4170,6 +4188,7 @@ the function.  Set *err to TRUE if there is an error.
                   symbol_for(member_con) != NULL) {
                 clear_locator(locator, qualified_member_position);
                 locator->symbol_header = symbol_for(member_con)->header;
+                locator->is_template_id = is_template_ref;
                 sym = look_up_selection_name(locator, class_struct_union_type);
                 need_member_sym_check = FALSE;
               }  /* if */
