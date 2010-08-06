@@ -362,6 +362,9 @@ typedef struct an_operand {
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
+  a_bit_field	is_parenthesized:1;
+			/* TRUE if the operand is enclosed in one or more sets 
+			   of parentheses. */
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
   a_name_reference

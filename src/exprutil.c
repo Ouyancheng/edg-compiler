@@ -1556,6 +1556,7 @@ values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->is_routine_name_followed_by_left_paren = FALSE;
   operand->is_dummy_lvalue = FALSE;
+  operand->is_parenthesized = FALSE;
   operand->name_reference_set = FALSE;
   operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
@@ -3456,6 +3457,7 @@ destroyed its source position, etc.  Restore such things from
   operand->has_required_ptr_to_member_form =
                                  orig_operand->has_required_ptr_to_member_form;
   operand->ruled_out_expr_kinds |= orig_operand->ruled_out_expr_kinds;
+  operand->is_parenthesized = orig_operand->is_parenthesized;
   if (operand->is_operand_of_address_of) {
     operand->ampersand_position = orig_operand->ampersand_position;
   }  /* if */

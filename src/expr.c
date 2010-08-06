@@ -8106,13 +8106,11 @@ if necessary).
 }  /* type_of_call */
 
 
-static a_type_ptr decltype_from_operand(an_operand  *operand,
-                                        a_boolean   leading_paren_seen,
-                                        a_boolean   *no_parens_matters)
+static a_type_ptr decltype_from_operand(an_operand *operand,
+                                        a_boolean  *no_parens_matters)
 /*
 Determine the type resulting from a decltype(<expr>) construct where operand
-represents <expr>.  leading_paren_seen is TRUE if the <expr> started with a
-left parenthesis.
+represents <expr>.
 
 In the general case, the result is the type of the expression if the
 expression is an rvalue, or a reference to that type if it's an lvalue.
@@ -8120,8 +8118,8 @@ However, different rules apply for non-parenthesized id-expressions, for
 non-parenthesized class member access expressions, and for calls.
 
 *no_parens_matters is returned TRUE for cases where there are no surrounding
-parentheses (i.e., leading_paren_seen is FALSE) and the lack of parentheses
-does matter for the kind of expression (i.e., id-expression or member access).
+parentheses and the lack of parentheses does matter for the kind of
+expression (i.e., id-expression or member access).
 */
 {
   a_type_ptr        result = NULL;
@@ -8136,7 +8134,7 @@ does matter for the kind of expression (i.e., id-expression or member access).
   }  /* if */
   /* Note that skip_parens is not called here, because parentheses are
      significant. */
-  if (expr != NULL && is_operation_node(expr) && !leading_paren_seen &&
+  if (expr != NULL && is_operation_node(expr) && !operand->is_parenthesized &&
       (node_operator_is(expr, eok_dot_field) ||
        node_operator_is(expr, eok_points_to_field) ||
        node_operator_is(expr, eok_dot_static) ||
@@ -8168,7 +8166,7 @@ does matter for the kind of expression (i.e., id-expression or member access).
        Note that some id-expressions are represented as class member access
        operations, so this case must appear after the class member access
        case. */
-    check_assertion(!leading_paren_seen);
+    check_assertion(!operand->is_parenthesized);
 id_case:
     if (expr != NULL) {
       /* Expression for simple id, lvalue or rvalue. */
@@ -8309,7 +8307,6 @@ outside of the expression-processing routines.
   an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
   an_operand              operand;
-  a_boolean               leading_paren_seen;
   a_scope_depth           expr_scope_depth;
   a_memory_region_number  region_to_switch_back_to;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -8333,11 +8330,6 @@ outside of the expression-processing routines.
     (void)get_token();
     /* Check for and pass over the left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
-    /* Remember if the first character of the expression is a parenthesis.
-       This is significant if the expression that follows is an id-expression
-       or a class member access.  E.g., decltype(x) may be different from
-       decltype((x)). */
-    leading_paren_seen = (curr_token == tok_lparen);
   }  /* if */
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like a template argument,
@@ -8356,7 +8348,6 @@ outside of the expression-processing routines.
     /* This call is done late because we need the expression stack to be pushed
        already. */
     make_rescan_operand(rcblock->expr, rcblock, &operand);
-    leading_paren_seen = !operand.is_id_expression;
   } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* A decltype construct may include embedded statements and declarations if
@@ -8388,7 +8379,6 @@ outside of the expression-processing routines.
                                 is_template_dependent_type(result);
     a_boolean   no_parens_matters;
     tp->variant.typeref.type = decltype_from_operand(&operand,
-                                                     leading_paren_seen,
                                                      &no_parens_matters);
     tp->variant.typeref.is_decltype = TRUE;
     tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
@@ -15493,6 +15483,7 @@ Also scans GNU statement expressions:
       /* Something like "(i)" is not an id-expression; clear the flag that
          was recorded for the "i" subexpression in such cases. */
       result->is_id_expression = FALSE;
+      result->is_parenthesized = TRUE;
     }  /* if */
   }  /* if */
 
