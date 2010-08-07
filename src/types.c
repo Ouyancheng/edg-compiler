@@ -3775,6 +3775,50 @@ top_of_loop:
 }  /* distinct_dependent_decltypes */
 
 
+a_type_ptr param_type_restoring_orig_templ_array(a_param_type_ptr ptp)
+/*
+If the original declared parameter type for the indicated parameter is an
+array type with a top-level template-dependent bound, return it.  Otherwise
+return the normal parameter type.  In C mode, always return the normal
+parameter type.
+*/
+{
+  a_type_ptr type = ptp->type;
+  a_type_ptr decl_type = ptp->declared_type;
+
+  if (!C_mode() && decl_type != NULL && is_array_type(decl_type)) {
+    a_type_ptr tp = skip_typerefs(decl_type);
+    if (tp->variant.array.is_template_dependent_size_array) {
+      type = decl_type;
+    }  /* if */
+  }  /* if */
+  return type;
+}  /* param_type_restoring_orig_templ_array */
+
+
+static void set_up_array_param_type_comparison(a_param_type_ptr ptp1,
+                                               a_param_type_ptr ptp2,
+                                               a_type_ptr       *type1,
+                                               a_type_ptr       *type2)
+/*
+If both of the parameter types indicated by ptp1 and ptp2 were originally
+specified as array types with template-dependent bounds, set *type1 and
+*type2 to those array types.  Otherwise, leave *type1 and *type2 unchanged.
+*/
+{
+  if (!C_mode()) {
+    a_type_ptr orig1 = param_type_restoring_orig_templ_array(ptp1);
+    a_type_ptr orig2 = param_type_restoring_orig_templ_array(ptp2);
+
+    if (is_array_type(orig1) && is_array_type(orig2)) {
+      /* Both parameters have dependent array types, so compare those. */
+      *type1 = orig1;
+      *type2 = orig2;
+    }  /* if */
+  }  /* if */
+}  /* set_up_array_param_type_comparison */
+
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -4014,8 +4058,17 @@ check_typerefs:
                                               list2 = rtsp2->param_type_list;
                  list1 != NULL && list2 != NULL;
                  list1 = list1->next, list2 = list2->next) {
-              if (!f_identical_types(list1->type, list2->type,
-                                     flags)) {
+              a_type_ptr param_1_type = list1->type;
+              a_type_ptr param_2_type = list2->type;
+              if (flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+                /* If both parameters were originally declared as arrays
+                   with template-dependent bounds, switch to the array
+                   types so we can compare the bounds expressions. */
+                set_up_array_param_type_comparison(list1, list2,
+                                                   &param_1_type,
+                                                   &param_2_type);
+              }  /* if */
+              if (!f_identical_types(param_1_type, param_2_type, flags)) {
                 /* The parameter types are not identical. */
                 identical = FALSE;
                 break;
@@ -4258,6 +4311,13 @@ not compared.  flags is a set of bit flags that modify the comparison.
          type promoted appropriately if it is old-style. */
       param_1_type = list1->type;
       param_2_type = list2->type;
+      if (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+        /* If both parameters were originally declared as arrays with
+           template-dependent bounds, switch to the array types so we
+           can compare the bounds expressions. */
+        set_up_array_param_type_comparison(list1, list2,
+                                           &param_1_type, &param_2_type);
+      }  /* if */
       if (C_mode()) {
          /* In C mode, the type qualifiers (if any) on the parameter types
             are ignored (ANSI C standard, 3.5.4.3).  Also when dealing with

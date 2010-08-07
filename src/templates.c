@@ -8543,10 +8543,11 @@ a pointer over a reference type or creating an array of references.
         for (ptp = type->variant.routine.extra_info->param_type_list;
              ptp != NULL;
              ptp = ptp->next) {
-          tp = copy_type_with_substitution(ptp->type, templ_arg_list,
+          a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
+          tp = copy_type_with_substitution(ptype, templ_arg_list,
                                            templ_param_list, source_pos,
                                            options, copy_error);
-          if (tp != ptp->type) {
+          if (tp != ptype) {
             /* A substitution was made, so a new routine type will be required.
                Remember tp so we can avoid calling copy_type_with_substitution
                again for this param type entry. */
@@ -8580,10 +8581,12 @@ make_new_type:
         for (ptp = type->variant.routine.extra_info->param_type_list;
              ptp != NULL;
              ptp = ptp->next) {
+          a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
+          a_type_ptr declared_type;
           if (reusable_param_types > 0) {
             /* We have already called copy_type_with_substitution for this
                parameter and we know we can reuse the existing type. */
-            tp = ptp->type;
+            tp = ptype;
             --reusable_param_types;
           } else if (first_new_type_for_param_types_list != NULL) {
             /* We have already called copy_type_with_substitution for this
@@ -8593,11 +8596,12 @@ make_new_type:
             first_new_type_for_param_types_list = NULL;
           } else {
             /* copy_type_with_substitution has not been called yet. */
-            tp = copy_type_with_substitution(ptp->type, templ_arg_list,
+            tp = copy_type_with_substitution(ptype, templ_arg_list,
                                              templ_param_list, source_pos,
                                              options, copy_error);
           }  /* if */
-          if (tp != ptp->type) {
+          declared_type = tp;
+          if (tp != ptype) {
             /* The type is not the one originally pointed to.  Adjust
                the parameter type, if needed. */
             adjust_parameter_type(&tp);
@@ -8619,6 +8623,7 @@ make_new_type:
           }  /* if */
           /* Allocate the param type entry and copy default arg info. */
           new_ptp = make_param_type(tp, &null_source_position);
+          new_ptp->declared_type = declared_type;
           if (ptp->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
             new_ptp->default_arg_appeared_in_class_definition =

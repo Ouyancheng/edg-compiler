@@ -554,6 +554,7 @@ extern a_boolean f_identical_types(a_type_ptr      type_1,
                                    an_itf_flag_set flags);
 extern a_boolean cast_identical_types(a_type_ptr type_1,
                                       a_type_ptr type_2);
+extern a_type_ptr param_type_restoring_orig_templ_array(a_param_type_ptr ptp);
 extern a_boolean integral_types_the_same_except_for_signedness(
                                                             a_type_ptr type_1,
                                                             a_type_ptr type_2);
