@@ -5702,6 +5702,7 @@ handle_field_selection:
                      or pointer to member. */
                   con->type = type_of_unknown_templ_param_nontype;
                   is_constant_addr = TRUE;
+                  *template_constant = TRUE;
                 } else if (acon->variant.template_param.kind ==
                                        (a_template_param_constant_kind)
                                                        tpck_unknown_function ||
@@ -5713,6 +5714,7 @@ handle_field_selection:
                      rvalue for the "address" of the function). */
                   copy_constant(acon, con);
                   is_constant_addr = TRUE;
+                  *template_constant = TRUE;
                 }  /* if */
               }  /* if */
             }  /* if */
