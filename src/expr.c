@@ -892,6 +892,8 @@ static void scan_call_arguments(
                              a_boolean              unknown_dependent_function,
                              a_rescan_control_block *rcblock,
                              an_arg_operand_ptr     *p_arg_operand_list,
+                             an_operand             *single_operand,
+                             a_boolean              *single_operand_returned,
                              a_source_position      *closing_paren_position)
 /*
 Scan the arguments of a function call and return a list of argument
@@ -929,6 +931,11 @@ by return_raw_arguments.  already_after_left_paren is ignored.
 *closing_paren_position is not set or altered.  *p_arg_operand_list
 can still be non-NULL on input to indicate a prescanned argument list
 for a rescan case, which preempts rcblock->argument_list.
+
+If single_operand is non-NULL, then if the argument list contains
+exactly one expression, return it in *single_operand instead of any
+other processing specified, and return *single_operand_returned set
+to TRUE.
 */
 {
   an_arg_operand_ptr arg_operand_list, end_arg_operand_list;
@@ -937,6 +944,7 @@ for a rescan case, which preempts rcblock->argument_list.
                                                 *p_arg_operand_list != NULL);
 
   db_enter(4, "scan_call_arguments");
+  if (single_operand_returned != NULL) *single_operand_returned = FALSE;
   if (return_raw_arguments) {
     /* When asked to scan raw arguments, we don't know anything about the
        function being called. */
@@ -991,7 +999,15 @@ for a rescan case, which preempts rcblock->argument_list.
       *closing_paren_position = pos_curr_token;
     }  /* if */
   }  /* if */
-  if (return_raw_arguments) {
+  if (single_operand != NULL &&
+      arg_operand_list != NULL && arg_operand_list->next == NULL) {
+    /* Return a single operand through *single_operand. */
+    copy_operand(&arg_operand_list->operand, single_operand);
+    free_arg_operand_list(arg_operand_list);
+    if (p_arg_operand_list != NULL) *p_arg_operand_list = NULL;
+    check_assertion(single_operand_returned != NULL);
+    *single_operand_returned = TRUE;
+  } else if (return_raw_arguments) {
     check_assertion(p_arg_operand_list != NULL);
     *p_arg_operand_list = arg_operand_list;
     *p_argument_list = NULL;
@@ -1016,9 +1032,11 @@ for a rescan case, which preempts rcblock->argument_list.
 
 
 static void scan_dependent_parenthesized_initializer(
-                                       a_rescan_control_block *rcblock,
-                                       an_arg_operand_ptr     *prescanned_args,
-                                       a_dynamic_init_ptr     *dip)
+                               a_rescan_control_block *rcblock,
+                               an_arg_operand_ptr     *prescanned_args,
+                               an_operand             *single_operand,
+                               a_boolean              *single_operand_returned,
+                               a_dynamic_init_ptr     *dip)
 /*
 Scan and process a parenthesized list of expressions that is the
 initializer of an entity of a template-dependent type.  If
@@ -1035,6 +1053,10 @@ redo semantic analysis on a previously-scanned initializer list (given
 by rcblock->argument_list) and return the result as usual (or an error
 indication in *rcblock).  *prescanned_arg_list can still be non-NULL
 in that case and preempts the rcblock->argument_list expression.
+If single_operand is non-NULL, then if the argument list contains
+exactly one expression, return it in *single_operand instead of any
+other processing specified, and return *single_operand_returned set
+to TRUE.
 */
 {
   an_expr_node_ptr  arg_list;
@@ -1048,16 +1070,21 @@ in that case and preempts the rcblock->argument_list expression.
                       &arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
                       rcblock,
-                      prescanned_args, (a_source_position *)NULL);
+                      prescanned_args,
+                      single_operand, single_operand_returned,
+                      (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Set the dynamic init entry to represent "constructor" initialization,
-     leaving the constructor pointer NULL. */
-  *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
-                                      arg_list,
-                                      /*add_default_args=*/FALSE,
-                                      /*implied_source=*/FALSE);
+  if (single_operand_returned == NULL ||
+      !*single_operand_returned) {
+    /* Set the dynamic init entry to represent "constructor" initialization,
+       leaving the constructor pointer NULL. */
+    *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                        arg_list,
+                                        /*add_default_args=*/FALSE,
+                                        /*implied_source=*/FALSE);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (rcblock == NULL) curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1286,7 +1313,9 @@ prescanned argument list, which preempts the list in rcblock.
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
                       rcblock,
-                      &arg_operand_list, closing_paren_position);
+                      &arg_operand_list,
+                      (an_operand *)NULL, (a_boolean *)NULL,
+                      closing_paren_position);
   error_position = *source_pos;
 
   if (overloaded_function_case) {
@@ -2989,7 +3018,9 @@ are expected to be NULL in that case.
                       (overloaded_function_case || gnu_sync_function_case),
                       unknown_dependent_function,
                       rcblock,
-                      &arg_operand_list, &closing_paren_position);
+                      &arg_operand_list,
+                      (an_operand *)NULL, (a_boolean *)NULL,
+                      &closing_paren_position);
   error_position = call_position;
         
 #if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
@@ -9333,6 +9364,7 @@ This is allowed in both Microsoft C and C++ modes.
                         /*unknown_dependent_function=*/FALSE,
                         (a_rescan_control_block *)NULL,
                         (an_arg_operand_ptr *)NULL,
+                        (an_operand *)NULL, (a_boolean *)NULL,
                         &end_position);
   }  /* if */
   /* The value of __noop is an int 0. */
@@ -11391,7 +11423,9 @@ in *rcblock).
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
                           rcblock,
-                          &arg_operand_list, (a_source_position *)NULL);
+                          &arg_operand_list,
+                          (an_operand *)NULL, (a_boolean *)NULL,
+                          (a_source_position *)NULL);
     }  /* if */
     if (has_new_initializer) {
       /* Set up the argument list for the new initializer. */
@@ -11462,7 +11496,9 @@ in *rcblock).
                               &dummy, /*return_raw_arguments=*/TRUE,
                               /*unknown_dependent_function=*/FALSE,
                               (a_rescan_control_block *)NULL,
-                              &arg_operand_list, (a_source_position *)NULL);
+                              &arg_operand_list,
+                              (an_operand *)NULL, (a_boolean *)NULL,
+                              (a_source_position *)NULL);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12059,6 +12095,8 @@ in *rcblock).
       scan_dependent_parenthesized_initializer(
                                               rcblock,
                                               &dps.prescanned_auto_initializer,
+                                              (an_operand *)NULL,
+                                              (a_boolean *)NULL,
                                               &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
@@ -15663,28 +15701,29 @@ as the cast in place of rcblock->expr.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else if (!curr_expr_kind_is_const() &&
-             is_template_dependent_context() &&
-             is_template_dependent_type(type_cast_to) &&
-             !is_array_type(type_cast_to)) {
-    /* A cast to an unknown type in a prototype instantiation.  This is
-       handled specially because it may have more than one argument.
-       In a constant expression, a cast to a class type is not allowed,
-       so go on to the normal cast code. */
-    a_boolean  is_lvalue;
-    a_type_ptr eff_type_cast_to;
+             could_be_dependent_class_type(type_cast_to)) {
+    /* A cast to an unknown type (which might be a class) in a prototype
+       instantiation.  This is handled specially because it may have more
+       than one argument.  In a constant expression, a cast to a class type
+       is not allowed, so go on to the normal cast code. */
+    a_boolean single_operand_returned;
     scan_dependent_parenthesized_initializer(rcblock,
                                              (an_arg_operand_ptr *)NULL,
+                                             result,
+                                             &single_operand_returned,
                                              &dip);
-    if (is_reference_type(type_cast_to)) {
-      eff_type_cast_to = type_pointed_to(type_cast_to);
-      is_lvalue = TRUE;
+    if (single_operand_returned) {
+      /* The argument list turned out to have a single expression,
+         so treat it like a simple cast. */
+      generic_cast_operand(result, type_cast_to, csf_functional,
+                           /*is_implicit_cast=*/FALSE, &type_position);
     } else {
-      eff_type_cast_to = type_cast_to;
-      is_lvalue = FALSE;
+      /* Zero or more than one argument. */
+      temp_init_node = alloc_temp_init_node(type_cast_to, dip,
+                                            /*is_lvalue=*/FALSE,
+                                            /*is_explicit_cast=*/TRUE);
+      make_expression_operand(temp_init_node, result);
     }  /* if */
-    temp_init_node = alloc_temp_init_node(eff_type_cast_to, dip, is_lvalue,
-                                          /*is_explicit_cast=*/TRUE);
-    make_lvalue_or_rvalue_expression_operand(temp_init_node, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (rcblock == NULL) {
       end_position = curr_construct_end_position;
@@ -15792,12 +15831,16 @@ as the cast in place of rcblock->expr.
                              result, &local_bound_function_selector);
       }  /* if */
       if (is_array_type(type_cast_to)) {
-        /* Catch cast-to-error cases allowed by above. */
+        /* Catch cast-to-array cases allowed by above. */
         if (!check_array_cast(type_cast_to, result, &type_position)) {
           /* coverity[returned_pointer] - type_cast_to not used later. */
           type_cast_to = error_type();
           err = TRUE;
         }  /* if */
+      } else if (is_template_dependent_context() &&
+                 is_template_dependent_type(type_cast_to)) {
+        generic_cast_operand(result, type_cast_to, csf_functional,
+                             /*is_implicit_cast=*/FALSE, &type_position);
       } else {
         /* Check compatibility of the types and do the cast. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -26181,6 +26224,8 @@ current token is the one following the closing parenthesis.
   }  /* if */
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                            &prescanned_args,
+                                           (an_operand *)NULL,
+                                           (a_boolean *)NULL,
                                            dip);
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */
