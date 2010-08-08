@@ -24987,6 +24987,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   a_boolean                     unary, postfix;
   a_boolean                     stack_pop_needed = FALSE;
   an_expr_node_ptr              saved_expr = rcblock->expr;
+  a_ctws_options_set            saved_rcblock_options = rcblock->options;
   an_operand                    local_bound_function_selector;
   a_template_decl_info_ptr      tdip;
   an_expr_stack_entry_ptr       saved_expr_stack;
@@ -25009,6 +25010,16 @@ alternative callable from outside, see rescan_expr_with_substitution.
       !expr_stack->template_deduction_context) {
     push_expr_stack_for_expr_rescan(eriep->expression_kind, &expr_stack_entry);
     stack_pop_needed = TRUE;
+    /* Get the non-constant expr flag in the options set to match the
+       kind of expression we're scanning now (constant or non-constant). */
+    rcblock->options &= ~(a_ctws_options_set)CTWS_NON_CONSTANT_EXPR;
+    if (!curr_expr_kind_is_const() ||
+        /* "Non-constant expression" for copy_type_with_substitution includes
+           init-constant expressions, which allow more than the normal
+           limited operand types. */
+        curr_expr_kind_is(ek_init_constant)) {
+      rcblock->options |= CTWS_NON_CONSTANT_EXPR;
+    }  /* if */
   }  /* if */
   saved_default_rescan_info = expr_stack->default_rescan_info;
   if (explicit_eriep != NULL) {
@@ -25241,6 +25252,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   if (stack_pop_needed) pop_expr_stack();
   pop_expr_rescan_context_if_necessary(tdip, saved_expr_stack);
   rcblock->expr = saved_expr;
+  rcblock->options = saved_rcblock_options;
 }  /* rescan_expr_with_substitution_internal */
 
 
