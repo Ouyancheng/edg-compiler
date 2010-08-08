@@ -14298,7 +14298,8 @@ name lookup options.
           a_template_arg_ptr arg_list = con->variant.template_param.variant.
                                                          template_ref.arg_list;
           /* Do substitution on the template argument list. */
-          arg_list = copy_template_arg_list_with_substitution(
+          arg_list =
+              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                              arg_list,
                                              (a_template_param_ptr)NULL,
                                              template_arg_list,

@@ -150,6 +150,17 @@ extern void record_start_of_lambda_header(a_lambda_ptr lambda);
 
 extern void record_end_of_lambda_header(a_lambda_ptr lambda);
 
+extern a_template_arg_ptr
+copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+			a_template_arg_ptr	arg_list_to_copy,
+			a_template_param_ptr	param_list_for_copy,
+			a_template_arg_ptr	templ_arg_list,
+			a_template_param_ptr	templ_param_list,
+			a_source_position	*source_pos,
+			a_ctws_options_set	options,
+			a_boolean		orig_is_nonreal_template,
+			a_boolean		*copy_error);
+
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,

@@ -3995,6 +3995,8 @@ on the rescan info recorded in the entries on orig_template_arg_list.
 {
   a_template_arg_ptr tap, orig_tap;
 
+  /* This routine must be callable even when there is nothing on the
+     expression stack. */
   for (tap = template_arg_list, orig_tap = orig_template_arg_list;
        tap != NULL;
        tap = tap->next, orig_tap = orig_tap->next) {
@@ -4019,6 +4021,43 @@ on the rescan info recorded in the entries on orig_template_arg_list.
 }  /* add_template_arg_list_arg_operands */
 
 
+a_template_arg_ptr
+copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+			a_template_arg_ptr	arg_list_to_copy,
+			a_template_param_ptr	param_list_for_copy,
+			a_template_arg_ptr	templ_arg_list,
+			a_template_param_ptr	templ_param_list,
+			a_source_position	*source_pos,
+			a_ctws_options_set	options,
+			a_boolean		orig_is_nonreal_template,
+			a_boolean		*copy_error)
+/*
+Wrapper for copy_template_arg_list_with_substitution that additionally
+rebuilds the arg_operand information in the copied template argument list,
+so that it can be used as an argument list for a function template
+reference.  This can be called from outside of the expression processing
+routines.
+*/
+{
+  a_template_arg_ptr new_tap;
+
+  new_tap = copy_template_arg_list_with_substitution(arg_list_to_copy,
+                                                     param_list_for_copy,
+                                                     templ_arg_list,
+                                                     templ_param_list,
+                                                     source_pos,
+                                                     options,
+                                                     orig_is_nonreal_template,
+                                                     copy_error);
+  if (!*copy_error) {
+    /* Add the arg_operand representation to the nontype arguments by
+       using the rescan info. */
+    add_template_arg_list_arg_operands(new_tap, arg_list_to_copy);
+  }  /* if */
+  return new_tap;
+}  /* copy_template_arg_list_with_substitution_rebuilding_arg_operands */
+
+
 static void rescan_locator_template_arg_list(a_symbol_locator       *locator,
                                              a_rescan_control_block *rcblock)
 /*
@@ -4029,7 +4068,8 @@ to the given locator.
   a_template_arg_ptr rescan_orig_templ_arg_list = locator->template_arg_list;
   a_boolean          copy_error = FALSE;
 
-  locator->template_arg_list = copy_template_arg_list_with_substitution(
+  locator->template_arg_list =
+              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                              rescan_orig_templ_arg_list,
                                              (a_template_param_ptr)NULL,
                                              rcblock->template_arg_list,
@@ -4041,11 +4081,6 @@ to the given locator.
   if (copy_error) {
     locator->is_error = TRUE;
     record_non_access_error_detected();
-  } else {
-    /* Add the arg_operand representation to the nontype arguments by
-       using the rescan info. */
-    add_template_arg_list_arg_operands(locator->template_arg_list,
-                                       rescan_orig_templ_arg_list);
   }  /* if */
 }  /* rescan_locator_template_arg_list */
 
@@ -4211,7 +4246,7 @@ the function.  Set *err to TRUE if there is an error.
                          template argument list.  Pretend we found nothing. */
                       sym = NULL;
                     }  /* if */
-                  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+                  } else if (sym->kind ==(a_symbol_kind)sk_function_template) {
                     /* Function templates are okay with or without an explicit
                        template argument list. */
                   } else if (is_template_ref) {

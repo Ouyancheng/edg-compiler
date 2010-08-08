@@ -2370,6 +2370,8 @@ Inverse of save_operand_info_in_expr_rescan_info_entry: restore in *operand
 any extra rescan information saved previously in *eriep.
 */
 {
+  /* This routine must be callable even when there is nothing on the
+     expression stack. */
   /* Don't restore bound_function; it is managed explicitly. */
   a_boolean saved_bound_function = operand->bound_function;
   restore_operand_details(operand, &eriep->saved_operand);
@@ -3419,6 +3421,8 @@ destroyed its source position, etc.  Restore such things from
 *orig_operand, which is a copy of *operand before the modification.
 */
 {
+  /* This routine must be callable even when there is nothing on the
+     expression stack. */
   operand->position = orig_operand->position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = orig_operand->end_position;
@@ -3838,6 +3842,8 @@ Make a constant operand for the given constant.  The position of the
 current token will be used as the operand position.
 */
 {
+  /* This routine must be callable even when there is nothing on the
+     expression stack. */
   if (is_error_type(constant->type)) {
     make_error_operand(operand);
   } else {
