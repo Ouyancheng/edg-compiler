@@ -20994,7 +20994,9 @@ overloaded_function:
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
             rep = NULL;
-          } else if (expr_stack->is_vla_dimension_expression) {
+          } else if (expr_stack->is_vla_dimension_expression &&
+                     scope_stack[depth_scope_stack].kind ==
+                                            (a_scope_kind)sck_func_prototype) {
             /* Use of a parameter in function prototype VLA dimension
                expression, e.g.:
                    void f(a, int b[a]);
