@@ -14360,13 +14360,8 @@ name lookup options.
           if (expr_copy == NULL) {
             /* The expression folds to a constant. */
             /* con_copy and constant are already set correctly. */
-          } else if (expr_copy->is_lvalue) {
+          } else {
             *copy_error = TRUE;
-          } else if (expr != expr_copy) {
-            /* The expression remains an expression, different than the
-               original one.  Make a tpck_expression constant for it. */
-            make_template_param_expr_constant(expr_copy, constant);
-            con_copy = NULL;
           }  /* if */
         }
         break;
