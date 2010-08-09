@@ -5056,7 +5056,7 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
                                       (a_constant_repr_kind)ck_template_param);
       if (!template_param_found) {
         /* Check if the type depends on a template parameter. */
-        template_param_found = is_or_contains_template_param(cp->type);
+        template_param_found = is_instantiation_dependent_type(cp->type);
       }  /* if */
     }  /* if */
   } else {
@@ -5077,7 +5077,7 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
     if (!template_param_found && templ_sym->is_class_member) {
       /* Check whether the parent type depends on a template parameter. */
       template_param_found =
-                   is_or_contains_template_param(sym_parent_class(templ_sym));
+                  is_instantiation_dependent_type(sym_parent_class(templ_sym));
     }  /* if */
   }  /* if */
   return template_param_found;
@@ -15093,7 +15093,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
   } else if (dependent_arg_list) {
     /* If the argument list is dependent, flag this as a nonreal
        instantiation. */
-    ps_options |= PS_NONREAL_INSTANTIATION;
+    ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
   }  /* if */
   if (type_involves_template_param) {
     if (pending_nontype_param_instantiations == max_pending_instantiations) {
@@ -15240,7 +15240,9 @@ template parameters that depend on other template parameters.
                        template_arg_list_is_dependent(arg_list);
   /* If the argument list is dependent, flag this as a nonreal
      instantiation. */
-  if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
+  if (dependent_arg_list) {
+    ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
+  }  /* if */
   if (pending_templ_templ_param_instantiations == max_pending_instantiations) {
     error(ec_recursive_inst_of_templ_default_arg);
     new_template = error_class_template()->
@@ -15344,7 +15346,7 @@ existing type is simply used.
       } else if (dependent_arg_list) {
         /* If the argument list is dependent, flag this as a nonreal
            instantiation. */
-        ps_options |= PS_NONREAL_INSTANTIATION;
+        ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
       }  /* if */
       /* Push the template instantiation scope.  Note that the instance symbol
          passed to push_scope is NULL because we don't yet know which instance
@@ -15416,7 +15418,9 @@ existing type is simply used.
     a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
     /* If the argument list is dependent, flag this as a nonreal
        instantiation. */
-    if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
+    if (dependent_arg_list) {
+      ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
+    }  /* if */
     push_instantiation_scope_for_templ_param_rescan(
 				      tcp->decl_info,
                                       (a_type_ptr)NULL,
