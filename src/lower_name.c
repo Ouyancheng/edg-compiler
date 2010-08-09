@@ -2952,6 +2952,16 @@ add mangling for an eok_address_of operation.
       }  /* if */
       close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
     }  /* if */
+  } else if (rinfo != NULL && rinfo->template_arg_list != NULL) {
+    /* This is an unqualified, template dependent routine, which is mangled
+       with <unresolved-name>.  It can't be a conversion function or
+       operator because those must be member functions. */
+    check_assertion(rinfo->conversion_type == NULL &&
+                    rinfo->opname_kind == (an_opname_kind)onk_none &&
+                    rinfo->special_kind == (a_special_function_kind)sfk_none);
+    mangled_simple_id(scp, rinfo->template_arg_list,
+                      (a_name_reference_ptr)NULL, /*include_length=*/FALSE,
+                      mctl);
   } else {
     /* Use a name as a literal instead of "sr", because the parent class
        is not dependent or the entity is not a class member. */
