@@ -2098,6 +2098,15 @@ cast in some modes.  orig_operand_expr can be NULL.
           goto end_of_loop;
       }  /* switch */
       expr = expr->variant.operation.operands;
+    } else if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_template_param &&
+          con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        expr = con->variant.template_param.variant.expr;
+      } else {
+        goto end_of_loop;
+      }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
       /* An explicit cast is retained.  Also a compound literal. */
@@ -2448,6 +2457,15 @@ that has it.
             goto end_of_loop;
         }  /* switch */
         expr = expr->variant.operation.operands;
+      }  /* if */
+    } else if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_template_param &&
+          con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+        expr = con->variant.template_param.variant.expr;
+      } else {
+        goto end_of_loop;
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
