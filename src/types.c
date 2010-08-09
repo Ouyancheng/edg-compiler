@@ -8909,6 +8909,10 @@ from which a template parameter value can be deduced.
                                      (a_template_param_type_kind)tptk_param) {
       *force_end_of_traversal = found = TRUE;
     }  /* if */
+  } else if (type_ptr->kind == (a_type_kind)tk_typeref &&
+             typeref_is_decltype_or_typeof(type_ptr)) {
+    /* The type under a decltype or typeof is not deduced. */
+    *force_end_of_traversal = TRUE;
   } else {
     /* We are not looking for a specific template param type, so any
        template constant (e.g., appearing as an array bound) will also
@@ -9817,7 +9821,6 @@ parameter can be deduced.
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
 					       TTT_DEDUCED_CONTEXTS_ONLY |
-                                               TTT_SKIP_TYPEREFS |
                                                TTT_TEMPLATE_ARGS);
 
   check_assertion_str(!C_mode(),
