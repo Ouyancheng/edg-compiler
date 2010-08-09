@@ -4113,7 +4113,9 @@ on every expression.
       case enk_temp_init:
 #if DEBUG
         if (octl->debug_output) {
-          octl->output_str("temp-init(", octl);
+          octl->output_str("temp(", octl);
+          form_type(expr->type, octl);
+          octl->output_str("):(", octl);
           form_dynamic_init(expr->variant.init.dynamic_init, octl);
           octl->output_str(")", octl);
         } else
