@@ -2924,7 +2924,7 @@ add mangling for an eok_address_of operation.
                                         rinfo->conversion_type,
                                         rinfo->template_arg_list,
                                         (a_name_reference_ptr)NULL,
-                                        /*suppress_operation_indicator=*/FALSE, 
+                                        /*suppress_operation_indicator=*/FALSE,
                                         mctl);
         } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
