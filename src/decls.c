@@ -8360,7 +8360,7 @@ definition of a member function of a class template.
      prototype information: type, storage class, etc.  These values may be
      reused when the template is instantiated. */
   if (rout_ptr == NULL) {
-    a_symbol_ptr	prototype_sym;
+    a_symbol_ptr  prototype_sym;
     dps->first_decl = TRUE;
     switch_to_file_scope_region(&region_to_switch_back_to);
     tssp->variant.function.routine = rout_ptr = alloc_routine();
