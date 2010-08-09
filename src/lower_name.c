@@ -1887,7 +1887,7 @@ ignored if expr != NULL.
 #if IA64_ABI
       !(emulate_gnu_abi_bugs && gnu_version < 40000) &&
 #endif /* IA64_ABI */
-      (expr == NULL ? !is_template_dependent_type(type) :
+      (expr == NULL ? !is_instantiation_dependent_type(type) :
                       !expr_contains_dependent_type(expr))) {
     /* For a sizeof/alignof whose argument is not dependent, use a literal
        representation of the value rather than the mangled encoding for
