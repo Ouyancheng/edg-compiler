@@ -5043,7 +5043,7 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
   } else if (is_nontype_templ_arg(tap)) {
     if (tap->arg_operand != NULL) {
       /* The constant is still in arg_operand form. */
-      template_param_found = arg_operand_contains_template_param(
+      template_param_found = arg_operand_is_instantiation_dependent(
                                                              tap->arg_operand);
     } else if (tap->is_array_bound_of_unknown_type) {
       /* An array bound specified as a integral constant. */

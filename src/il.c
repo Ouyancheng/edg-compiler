@@ -16704,26 +16704,26 @@ Return whether expr contains a statement expression (a GNU extension).
 }  /* has_statement_expression */
 
 
-static void examine_type_for_dependent_type(
+static void examine_type_for_instantiation_dependence(
                                     a_type_ptr                          type,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Called from traverse_expr to check whether the type is template-dependent.
+Called from traverse_expr to check whether the type is instantiation-dependent.
 */
 {
-  if (is_template_dependent_type(type)) {
+  if (is_instantiation_dependent_type(type)) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
-}  /* examine_type_for_dependent_type */
+}  /* examine_type_for_instantiation_dependence */
 
 
-static void examine_constant_for_dependent_type(
+static void examine_constant_for_instantiation_dependence(
                                     a_constant_ptr                      con,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Called from traverse_expr to check whether the constant is template-dependent
-(either type-dependent or dependent anywhere in the tree).
+Called from traverse_expr to check whether the constant is
+instantiation-dependent.
 */
 {
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
@@ -16733,13 +16733,15 @@ Called from traverse_expr to check whether the constant is template-dependent
     /* Constants other than ck_template_param are known not to be dependent. */
     tblock->suppress_subtree_walk = TRUE;
   }  /* if */
-}  /* examine_constant_for_dependent_type */
+}  /* examine_constant_for_instantiation_dependence */
 
 
-a_boolean expr_contains_dependent_type(an_expr_node_ptr expr)
+a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr)
 /*
-Return TRUE if expr is template-dependent.  This includes both type-dependent
-and value-dependent cases.
+Return TRUE if expr is instantiation-dependent.  This includes type-dependent
+and value-dependent cases, and also cases where a template parameter appears
+in a subexpression but the result is neither type-dependent or
+value-dependent.
 */
 {
   a_boolean result = FALSE;
@@ -16748,20 +16750,22 @@ and value-dependent cases.
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_constant = examine_constant_for_dependent_type;
-    tblock.process_type = examine_type_for_dependent_type;
+    tblock.process_constant = examine_constant_for_instantiation_dependence;
+    tblock.process_type = examine_type_for_instantiation_dependence;
     tblock.process_non_dynamic_constants = TRUE;
     traverse_expr(expr, &tblock);
     result = tblock.result;
   }  /* if */
   return result;
-}  /* expr_contains_dependent_type */
+}  /* expr_is_instantiation_dependent */
 
 
-a_boolean constant_contains_dependent_type(a_constant_ptr con)
+a_boolean constant_is_instantiation_dependent(a_constant_ptr con)
 /*
-Return TRUE if con is template-dependent.  This includes both type-dependent
-and value-dependent cases.
+Return TRUE if con is instantiation-dependent.  This includes type-dependent
+and value-dependent cases, and also cases where a template parameter appears
+in a subexpression but the result is neither type-dependent or
+value-dependent.
 */
 {
   a_boolean result = FALSE;
@@ -16770,14 +16774,14 @@ and value-dependent cases.
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_constant = examine_constant_for_dependent_type;
-    tblock.process_type = examine_type_for_dependent_type;
+    tblock.process_constant = examine_constant_for_instantiation_dependence;
+    tblock.process_type = examine_type_for_instantiation_dependence;
     tblock.process_non_dynamic_constants = TRUE;
     traverse_constant(con, &tblock);
     result = tblock.result;
   }  /* if */
   return result;
-}  /* constant_contains_dependent_type */
+}  /* constant_is_instantiation_dependent */
 
 
 static void examine_type_for_error(a_type_ptr                          type,

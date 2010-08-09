@@ -346,7 +346,7 @@ extern a_variable_ptr based_variable(void);
 
 extern a_boolean in_expression_context(void);
 
-extern a_boolean arg_operand_contains_template_param(
+extern a_boolean arg_operand_is_instantiation_dependent(
                                                an_arg_operand_ptr arg_operand);
 
 extern a_boolean arg_operand_involves_error_entity(

@@ -54,7 +54,7 @@ static a_boolean cast_type_pre_check(
                                  a_boolean          has_explicit_cv_qualifiers,
                                  a_boolean          allow_array);
 static void process_boolean_controlling_expression(an_operand *result);
-static a_boolean operand_contains_template_param(an_operand *operand);
+static a_boolean operand_is_instantiation_dependent(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   a_boolean                list_init,
                                   a_source_position        *type_position,
@@ -7028,7 +7028,7 @@ previously-scanned sizeof expression, and return the result in *result
     force_complete_type_if_a_variable(&operand);
     sizeof_type = operand.type;
     type_position = operand.position;
-    if (operand_contains_template_param(&operand)) {
+    if (operand_is_instantiation_dependent(&operand)) {
       template_case = TRUE;
     }  /* if */
   }  /* if */
@@ -7447,7 +7447,7 @@ result in *result (or an error indication in *rcblock).
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
     type_position = operand.position;
-    if (operand_contains_template_param(&operand)) {
+    if (operand_is_instantiation_dependent(&operand)) {
       template_case = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -8281,7 +8281,7 @@ general_case:
         result = type_of_unknown_templ_param_nontype;
       }  /* if */
     } else if (is_an_lvalue(operand)) {
-      if (operand_contains_template_param(operand)) {
+      if (operand_is_instantiation_dependent(operand)) {
         /* Use a completely unknown type when a reference type would be
            created over an instantiation-dependent type, to avoid problems 
            with stripping the decltype when doing a type_pointed_to on the 
@@ -8454,10 +8454,10 @@ outside of the expression-processing routines.
     }  /* if */
     expr = make_node_from_operand(&operand);
     if (!dependent_arg) {
-      /* Check for cases where the result type is not dependent but there's
-         a subexpression that is. */
+      /* Check for cases where the result type is not dependent but the
+         expression is instantiation-dependent. */
       if (is_template_dependent_context() &&
-          expr_contains_dependent_type(expr)) {
+          expr_is_instantiation_dependent(expr)) {
         tp->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
       }  /* if */
     }  /* if */
@@ -8833,10 +8833,10 @@ the expression-processing routines.
       }  /* if */
       expr = make_node_from_operand(&operand);
       if (!dependent_arg) {
-        /* Check for cases where the result type is not dependent but there's
-           a subexpression that is. */
+        /* Check for cases where the result type is not dependent but the
+           expression is instantiation-dependent. */
         if (is_template_dependent_context() &&
-            expr_contains_dependent_type(expr)) {
+            expr_is_instantiation_dependent(expr)) {
           typeof_type->variant.typeref.is_dependent_decltype_or_typeof = TRUE;
         }  /* if */
       }  /* if */
@@ -26657,20 +26657,22 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
-static a_boolean operand_contains_template_param(an_operand *operand)
+static a_boolean operand_is_instantiation_dependent(an_operand *operand)
 /*
-Return TRUE if the given operand has a template-dependent value,
-including value-dependent cases.
+Return TRUE if the given operand is instantiation-dependent, which
+includes type-dependent cases, value-dependent cases, and cases where
+a template parameter appears somewhere in a subexpression but doesn't
+make the overall result dependent in the other senses.
 */
 {
   a_boolean      contains_template_param = FALSE;
   a_constant_ptr con;
 
   if (is_expression_operand(operand) &&
-      expr_contains_dependent_type(operand->variant.expression)) {
+      expr_is_instantiation_dependent(operand->variant.expression)) {
     contains_template_param = TRUE;
   } else if (is_constant_operand(operand) &&
-             constant_contains_dependent_type(&operand->variant.constant)) {
+             constant_is_instantiation_dependent(&operand->variant.constant)) {
     contains_template_param = TRUE;
   } else if (is_template_dependent_indefinite_function(operand)) {
     contains_template_param = TRUE;
@@ -26683,21 +26685,20 @@ including value-dependent cases.
     }  /* if */
   }  /* if */
   return contains_template_param;
-}  /* operand_contains_template_param */
+}  /* operand_is_instantiation_dependent */
 
 
-a_boolean arg_operand_contains_template_param(an_arg_operand_ptr arg_operand)
+a_boolean arg_operand_is_instantiation_dependent(
+                                                an_arg_operand_ptr arg_operand)
 /*
-Return TRUE if the given arg_operand has a template-dependent value,
-including value-dependent cases.   This is used for testing nontype template
-arguments in determining whether a template argument list is dependent.
+Return TRUE if the given arg_operand is instantiation-dependent.
 */
 {
   a_boolean contains_template_param =
-                        operand_contains_template_param(&arg_operand->operand);
+                     operand_is_instantiation_dependent(&arg_operand->operand);
 
   return contains_template_param;
-}  /* arg_operand_contains_template_param */
+}  /* arg_operand_is_instantiation_dependent */
 
 
 a_boolean arg_operand_involves_error_entity(an_arg_operand_ptr arg_operand)
