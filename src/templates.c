@@ -14293,7 +14293,7 @@ depends on a template parameter type, return TRUE in *template_dependent
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
        dependencies could be eliminated. */
-    *template_dependent = is_or_contains_template_param(state.type);
+    *template_dependent = is_instantiation_dependent_type(state.type);
   }  /* if */
   /* Adjust the type if necessary (for example, "array of x"
      becomes "pointer to x"). */
