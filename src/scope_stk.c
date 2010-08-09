@@ -2456,6 +2456,13 @@ the scope being pushed.
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
   ssep->outside_parameter_list = FALSE;
+  if (kind == (a_scope_kind)sck_file ||
+      kind == (a_scope_kind)sck_template_instantiation ||
+      kind == (a_scope_kind)sck_instantiation_context) {
+    ssep->in_template_arg_list = FALSE;
+  } else {
+    ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
+  }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */

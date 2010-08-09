@@ -12574,7 +12574,10 @@ done using the disambiguation routines.
   a_templ_arg_kind		  arg_kind;
   a_constant_ptr                  constant;
   a_symbol_ptr			  sym;
+  a_boolean                       saved_in_template_arg_list =
+                                       scope_stack_top().in_template_arg_list;
 
+  scope_stack_top().in_template_arg_list = TRUE;
   do {
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list.
@@ -12643,6 +12646,7 @@ done using the disambiguation routines.
     last_arg = arg_ptr;
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+  scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
   return arg_list;
 }  /* scan_unknown_template_arg_list */
 
@@ -12680,7 +12684,10 @@ all arguments were explicit.
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   template_in_prototype_instantiation = FALSE;
   long                             arg_number;
+  a_boolean                        saved_in_template_arg_list =
+                                       scope_stack_top().in_template_arg_list;
 
+  scope_stack_top().in_template_arg_list = TRUE;
   *first_defaulted_arg = -1L;
   tssp = template_sym->variant.template_info;
   decl_info = tssp->cache.decl_info;
@@ -12919,6 +12926,7 @@ all arguments were explicit.
     flush_to_end_of_arg_list();
     *any_errors = TRUE;
   }  /* if */
+  scope_stack_top().in_template_arg_list = saved_in_template_arg_list;
   return arg_list;
 }  /* scan_template_argument_list */
 
