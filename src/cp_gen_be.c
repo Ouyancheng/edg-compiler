@@ -4193,11 +4193,15 @@ srq_seq_sublist_parent_found:
     }  /* if */
     adv_curr_source_sequence_entry();
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
   if (tp->variant.typeref.is_typeof_with_type_operand) {
     /* A __typeof__(<type>) form. */
     skip_embedded_declarations();
     gen_type(tp->variant.typeref.type);
-  } else {
+  } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
     /* __typeof__(<expr>) or decltype(<expr>). */
     an_expr_node_ptr expr = decltype_arg(tp);
     check_assertion(expr != NULL);
