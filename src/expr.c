@@ -1032,11 +1032,10 @@ to TRUE.
 
 
 static void scan_dependent_parenthesized_initializer(
-                               a_rescan_control_block *rcblock,
-                               an_arg_operand_ptr     *prescanned_args,
-                               an_operand             *single_operand,
-                               a_boolean              *single_operand_returned,
-                               a_dynamic_init_ptr     *dip)
+                                        a_rescan_control_block *rcblock,
+                                        an_arg_operand_ptr     *prescanned_args,
+                                        an_operand             *single_operand,
+                                        a_dynamic_init_ptr     *dip)
 /*
 Scan and process a parenthesized list of expressions that is the
 initializer of an entity of a template-dependent type.  If
@@ -1055,14 +1054,14 @@ indication in *rcblock).  *prescanned_arg_list can still be non-NULL
 in that case and preempts the rcblock->argument_list expression.
 If single_operand is non-NULL, then if the argument list contains
 exactly one expression, return it in *single_operand instead of any
-other processing specified, and return *single_operand_returned set
-to TRUE.
+other processing specified, and return *dip set to NULL.
 */
 {
   an_expr_node_ptr  arg_list;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean         single_operand_returned;
 
   /* Scan the argument list. */
   scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
@@ -1071,13 +1070,14 @@ to TRUE.
                       /*unknown_dependent_function=*/TRUE,
                       rcblock,
                       prescanned_args,
-                      single_operand, single_operand_returned,
+                      single_operand, &single_operand_returned,
                       (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (single_operand_returned == NULL ||
-      !*single_operand_returned) {
+  if (single_operand_returned) {
+    *dip = NULL;
+  } else {
     /* Set the dynamic init entry to represent "constructor" initialization,
        leaving the constructor pointer NULL. */
     *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
@@ -12131,7 +12131,6 @@ in *rcblock).
                                               rcblock,
                                               &dps.prescanned_auto_initializer,
                                               (an_operand *)NULL,
-                                              (a_boolean *)NULL,
                                               &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
@@ -15611,6 +15610,37 @@ one argument, return TRUE; otherwise, return FALSE.
 }  /* conversion_has_one_argument */
 
 
+static an_expr_node_ptr alloc_empty_parens_func_cast(
+                                           a_type_ptr          type_cast_to,
+                                           a_dynamic_init_kind init_kind,
+                                           a_source_position   *start_position)
+/*
+Allocate an expression that implements a functional-notation cast that has
+empty parentheses, e.g., T() or int().  init_kind indicates the kind of
+initialization (dik_zero usually, dik_none for some odd legacy cases).
+start_position gives the source start position.
+*/
+{
+  an_expr_node_ptr   temp_init_node;
+  a_dynamic_init_ptr dip;
+
+  if (is_error_type(type_cast_to)) {
+    temp_init_node = error_node();
+  } else {
+    temp_init_node = create_expr_temporary(type_cast_to,
+                                           /*is_lvalue=*/FALSE,
+                                           /*is_explicit_cast=*/TRUE,
+                                           /* Abstract class test done
+                                              previously. */
+                                           /*suppress_abstract_test=*/TRUE,
+                                           init_kind,
+                                           start_position,
+                                           &dip);
+  }  /* if */
+  return temp_init_node;
+}  /* alloc_empty_parens_func_cast */
+
+
 static void scan_functional_notation_type_conversion(
                                       a_rescan_control_block   *rcblock,
                                       a_dynamic_init_ptr       rescan_dip,
@@ -15735,29 +15765,38 @@ as the cast in place of rcblock->expr.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-  } else if (!curr_expr_kind_is_const() &&
-             could_be_dependent_class_type(type_cast_to)) {
-    /* A cast to an unknown type (which might be a class) in a prototype
-       instantiation.  This is handled specially because it may have more
-       than one argument.  In a constant expression, a cast to a class type
-       is not allowed, so go on to the normal cast code. */
-    a_boolean single_operand_returned;
+  } else if (could_be_dependent_class_type(type_cast_to)) {
+    /* A cast to a template parameter type (which might be a class) or a
+       nonreal class in a prototype instantiation.  This is handled specially
+       because it may have more than one argument or zero arguments. */
     scan_dependent_parenthesized_initializer(rcblock,
                                              (an_arg_operand_ptr *)NULL,
                                              result,
-                                             &single_operand_returned,
                                              &dip);
-    if (single_operand_returned) {
+    if (dip == NULL) {
       /* The argument list turned out to have a single expression,
          so treat it like a simple cast. */
       generic_cast_operand(result, type_cast_to, csf_functional,
                            /*is_implicit_cast=*/FALSE, &type_position);
+    } else if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+               dip->variant.constructor.args == NULL &&
+               is_template_param_type(type_cast_to)) {
+      /* T() case -- no arguments.  Could be a non-class type, so could
+         be a constant.  Note that nonreal class cases are excluded. */
+      temp_init_node = alloc_empty_parens_func_cast(
+                                                type_cast_to,
+                                                (a_dynamic_init_kind)dik_zero,
+                                                start_position);
+      make_expression_operand(temp_init_node, result);
+      make_template_param_expr_constant_operand(result);
     } else {
-      /* Zero or more than one argument. */
+      /* More than one argument, or zero arguments for a class type.
+         Therefore, definitely a class (albeit an unknown one). */
       temp_init_node = alloc_temp_init_node(type_cast_to, dip,
                                             /*is_lvalue=*/FALSE,
                                             /*is_explicit_cast=*/TRUE);
       make_expression_operand(temp_init_node, result);
+      rule_out_expr_kinds(ROEK_CONSTANT, result);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (rcblock == NULL) {
@@ -15776,10 +15815,7 @@ as the cast in place of rcblock->expr.
         make_error_operand(result);
       } else if (is_reference_type(type_cast_to)) {
         /* Disallow a cast to a reference type without operands; you
-           can't default-initialize a reference.  The standard as of
-           TC1 makes this not an error, because the initialization is
-           value-initialization, and there's no error for value-
-           initializing a reference, but that has to be wrong. */
+           can't default-initialize a reference. */
         expr_pos_error(ec_bad_cast, start_position);
         make_error_operand(result);
       } else if (is_array_type(type_cast_to)) {
@@ -15800,6 +15836,7 @@ as the cast in place of rcblock->expr.
 
           /* This cast is not valid in this kind of expression. */
           err = TRUE;
+          make_error_operand(result);
         } else if (is_void_type(type_cast_to)) {
           /* void(). */
           cast_operand_to_void(result, type_cast_to);
@@ -15826,23 +15863,36 @@ as the cast in place of rcblock->expr.
                in this case. */
             init_kind = (a_dynamic_init_kind)dik_none;
           }  /* if */
-          temp_init_node =
-                  create_expr_temporary(type_cast_to,
-                                        /*is_lvalue=*/FALSE,
-                                        /*is_explicit_cast=*/TRUE,
-                                        /* Abstract class test done
-                                           previously. */
-                                        /*suppress_abstract_test=*/TRUE,
-                                        init_kind,
-                                        start_position,
-                                        &dip);
+          temp_init_node = alloc_empty_parens_func_cast(type_cast_to,
+                                                        init_kind,
+                                                        start_position);
           make_expression_operand(temp_init_node, result);
           rule_out_expr_kinds(ROEK_CONSTANT, result);
+        } else if (is_template_dependent_type(type_cast_to)) {
+          /* A cast to something like "T *".  It's a constant, but it's
+             dependent. */
+          temp_init_node = alloc_empty_parens_func_cast(
+                                                type_cast_to,
+                                                (a_dynamic_init_kind)dik_zero,
+                                                start_position);
+          make_expression_operand(temp_init_node, result);
+          make_template_param_expr_constant_operand(result);
         } else {
-          /* A scalar type followed by (); generate the value a static
-             object of that type would get by default (WP _expr.type.conv_),
-             which is to say zero converted to the type. */
+          /* A non-dependent scalar type followed by (); generate the value a
+             static object of that type would get by default
+             (WP _expr.type.conv_), which is to say zero converted to the
+             type. */
           cast_operand(type_cast_to, result, /*is_implicit_cast=*/FALSE);
+          if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
+              /* Exclude error cases. */
+              is_constant_operand(result)) {
+            /* Record a backing expression for the cast if necessary. */
+            temp_init_node = alloc_empty_parens_func_cast(
+                                                type_cast_to,
+                                                (a_dynamic_init_kind)dik_zero,
+                                                start_position);
+            result->variant.constant.expr = temp_init_node;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -26274,7 +26324,6 @@ current token is the one following the closing parenthesis.
   scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
                                            &prescanned_args,
                                            (an_operand *)NULL,
-                                           (a_boolean *)NULL,
                                            dip);
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */

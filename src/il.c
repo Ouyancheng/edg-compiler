@@ -13715,6 +13715,28 @@ options is a set of name lookup options.
     case enk_routine:
       expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
       break;
+    case enk_temp_init:
+      /* A functional-notation cast with empty parentheses, e.g., T(), can
+         become a constant here if T is now a scalar type.  Expression
+         rescanning handles fancier cases, but this is all we need here
+         for the old-style SFINAE handling. */
+      { a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+        if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+          a_type_ptr new_type = copy_type_with_substitution(
+                                        expr->type,
+                                        template_arg_list, template_param_list,
+                                        source_pos, options, copy_error);
+          if (!*copy_error &&
+              !is_bad_type_for_template_arg_operand(new_type) &&
+              !is_template_param_type(new_type)) {
+            make_zero_of_proper_type(new_type, constant);
+            expr_copy = NULL;
+            goto end_of_routine;
+          }  /* if */
+        }  /* if */
+      }
+      *copy_error = TRUE;
+      break;
     case enk_reuse_value:
       /* This might come up because of the GNU two-operand "?".  If it does,
          just make sure we don't abort. */
@@ -13739,7 +13761,7 @@ options is a set of name lookup options.
     case enk_param_ref:
       /* A reference to a parameter.  Copy the expression node, but apply
          substitutions to its type. */
-      { a_type_ptr  new_type = copy_type_with_substitution(
+      { a_type_ptr new_type = copy_type_with_substitution(
                                         expr->type,
                                         template_arg_list, template_param_list,
                                         source_pos, options, copy_error);
