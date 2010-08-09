@@ -5039,7 +5039,7 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
   a_boolean  template_param_found;
 
   if (is_type_templ_arg(tap)) {
-    template_param_found = is_template_dependent_type(tap->variant.type);
+    template_param_found = is_instantiation_dependent_type(tap->variant.type);
   } else if (is_nontype_templ_arg(tap)) {
     if (tap->arg_operand != NULL) {
       /* The constant is still in arg_operand form. */
@@ -5807,7 +5807,7 @@ error type is used.
   }  /* if */
 #if DEBUG
   if (db_sym_trace("instantiations", instance_sym)) {
-    fprintf(f_debug, "Instantiation of: ");
+    fprintf(f_debug, "Instantiation of alias: ");
     db_symbol_name_trans_unit(instance_sym);
     fprintf(f_debug, " based on ");
     db_symbol_name_trans_unit(template_sym);
@@ -5932,9 +5932,6 @@ prototype instantiation is considered as a potential match.
                       variant.class_struct_union.extra_info->template_arg_list;
           if (equiv_template_arg_lists(old_list, *new_list,
                                        eta_options | ETA_IS_PROTOTYPE)) {
-#if DEBUG
-            if (debug_level >= 3) db_symbol(sym, "found: ", 2);
-#endif /* DEBUG */
             sym = ps_prototype_sym;
             break;
           }  /* if */
@@ -5950,10 +5947,20 @@ prototype instantiation is considered as a potential match.
     /* hash_table_sym will be NULL if no entry is found, otherwise it will
        point to the symbol in the hash table. */
     sym = hash_table_sym == NULL ? NULL : *hash_table_sym;
-#if DEBUG
-    if (sym != NULL && debug_level >= 3) db_symbol(sym, "found: ", 2);
-#endif /* DEBUG */
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("ftc")) {
+    fprintf(f_debug, "find_template_class: for arg list ");
+    db_template_arg_list(*new_list);
+    if (sym != NULL) {
+      fprintf(f_debug, ", found ");
+      db_symbol_name(sym);
+      fprintf(f_debug, "\n");
+    } else {
+      fprintf(f_debug, ", not found\n");
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   if (sym == NULL ||
       (is_alias_template &&
        sym->variant.type.ptr->variant.typeref.type == NULL)) {
@@ -14582,7 +14589,7 @@ parameter entry for the parameter.
     } else {
       rescan_copy_of_cache(&def_arg_cache);
       default_arg_type = scan_template_type_argument();
-      if (is_or_contains_template_param(default_arg_type)) {
+      if (is_instantiation_dependent_type(default_arg_type)) {
         def_arg_involves_template_param = TRUE;
       }  /* if */
       /* Save the scanned value of the default argument.  This is saved even
@@ -15468,7 +15475,7 @@ and tpp is the parameter whose default is to be scanned.
                                                   template_sym, tpp, arg_list);
       /* Determine whether the default depends on a template parameter. */
       tpp->def_arg_involves_template_param =
-                          is_or_contains_template_param(tpp->default_arg.type);
+                        is_instantiation_dependent_type(tpp->default_arg.type);
       break;
     case sk_constant:
       { a_constant_ptr	cp;
@@ -15478,7 +15485,7 @@ and tpp is the parameter whose default is to be scanned.
                                      /*do_default_arg=*/TRUE, &cp);
         tpp->default_arg.constant = cp;
         tpp->def_arg_involves_template_param =
-                           is_or_contains_template_param(cp->type) ||
+                           is_instantiation_dependent_type(cp->type) ||
                            cp->kind == (a_constant_repr_kind)ck_template_param;
       }
       break;
