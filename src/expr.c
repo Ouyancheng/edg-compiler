@@ -2446,7 +2446,6 @@ that the final call needs to be cast to the indicated type.
   a_type_ptr               dispatch_type;
   a_boolean                err = FALSE, template_case = FALSE;
 
-  *result_type = NULL;
   *arg_list = NULL;
   rout = routine_from_function_operand(target);
   check_assertion(rout != NULL);
