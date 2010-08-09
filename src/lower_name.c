@@ -335,14 +335,6 @@ typedef struct a_mangling_control_block {
 			/* Used to emulate a g++ bug with regard to use
 			   of an expression instead of a constant bound
 			   for a non-dependent array bound. */
-#if CHECKING
-  a_byte_boolean
-		mangling_sizeof_expression;
-			/* TRUE while the entity being mangled is the
-			   expression under a sizeof.  Such an expression may
-			   contain operators that otherwise are not allowed
-			   to appear in template argument expressions. */
-#endif /* CHECKING */
   unsigned long
                 suppress_substitutions;
 			/* Suppress the generation of substitutions when
@@ -545,9 +537,6 @@ Set the fields of the indicated mangling control block to default values.
   mctl->first_substitution = NULL;
   mctl->last_substitution = NULL;
   mctl->force_dependent_array_mangling = FALSE;
-#if CHECKING
-  mctl->mangling_sizeof_expression = FALSE;
-#endif /* CHECKING */
   mctl->suppress_substitutions = 0;
 #else /* !IA64_ABI */
   mctl->suppress_partial_spec_args = FALSE;
@@ -1916,20 +1905,20 @@ ignored if expr != NULL.
   /* Output has the form
        OszZ1Z0O <-- "sizeof(Z1)", Z1 indicating a template parameter.
               ^---- "O" to end the operation encoding.
-             ^----- Count of operands, always 0 for sizeof.
-          ^^^------ Encoding for type.
+             ^----- Count of operands, 0 for type and "e" cases, 1 for "X".
+          ^^^------ Encoding for type or "e" or "X" (for expression cases).
         ^^--------- Operation ("sz" for sizeof, "af" for __ALIGNOF__,
                     "uu" for __uuidof, or "ty" for typeid)
        ^----------- "O" for operation.
      mangled_encoding_for_expression generates a compatible structure, so
      if you change this be sure to change that as well.
-     For an expression case, the type is replaced by "e"; there is still no
-     expression.  (This is potentially a violation of the standard, since
-     two templates that differ only in the expression under a sizeof could
-     be mangled to the same name; however, doing mangling for full
-     non-constant expressions -- think "delete[] x" -- would be quite
-     a lot of additional work for very little gain.  We'll take this
-     up with the standards committee.
+     There are three cases.  When the operation takes a type, then the type
+     is encoded after the operation encoding and there are no operands.
+     Prior to version 4.2, an expression was indicated with an "e" in place
+     of the type (but no expression was contained in the mangled name and
+     the operand count was still zero).  In version 4.2 and later, the
+     mangled expression is included (operand count is 1), and the type is
+     replaced with an "X" to indicate that an expression follows.
   */
   /* Put out the initial "O". */
   add_to_mangled_name('O', mctl);
@@ -2014,27 +2003,34 @@ ignored if expr != NULL.
      expression. */
   if (expr != NULL) {
 #if !IA64_ABI
-    /* The expression form.  Put out "e" instead of the type. */
+    /* The expression form.  Prior to 4.2, no expression was included in the
+       mangling (in that case, put out "e" instead of the type).  In version
+       4.2 and later, put an "X" to indicate that an expression follows
+       the operand count. */
+#if ABI_COMPATIBILITY_VERSION >= 402
+    add_to_mangled_name('X', mctl);
+    /* One argument for the new sizeof(expr) variant. */
+    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
     add_to_mangled_name('e', mctl);
-#else /* IA64_ABI */
-#if CHECKING
-    a_boolean save_mangling_sizeof_expression=mctl->mangling_sizeof_expression;
-    mctl->mangling_sizeof_expression = TRUE;
-#endif /* CHECKING */
-    /* in_dependent_expr is TRUE because this routine is used only for
-       dependent sizeofs. */
-    mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
-#if CHECKING
-    mctl->mangling_sizeof_expression = save_mangling_sizeof_expression;
-#endif /* CHECKING */
+    /* Always zero operands for the old sizeof(expr) variant. */
+    add_to_mangled_name('0', mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* IA64_ABI */
+#if !IA64_ABI || ABI_COMPATIBILITY_VERSION >= 402
+    /* Include the expression in the mangled name.  in_dependent_expr is TRUE
+       because this routine is used only for dependent sizeofs. */
+    mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
+#endif /* !IA64_ABI || ABI_COMPATIBILITY_VERSION >= 402 */
   } else {
     /* No expression, so put out the type. */
     mangled_encoding_for_type(type, mctl);
+#if !IA64_ABI
+    /* Always zero operands for the type variant. */
+    add_to_mangled_name('0', mctl);
+#endif /* !IA64_ABI */
   }  /* if */
 #if !IA64_ABI
-  /* Put out the count of operands. */
-  add_to_mangled_name('0', mctl);
   /* Put out the final "O". */
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
@@ -5212,24 +5208,10 @@ is TRUE.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:  /* Only expected under enk_builtin_operation. */
     default:;
-      /* Unexpected expression kind.  These are allowed in some cases for
-         expressions under sizeof in the IA-64 ABI. */
+      /* Unexpected expression kind. */
 #if CHECKING
-#if IA64_ABI
-      if (!mctl->mangling_sizeof_expression)
-#endif /* IA64_ABI */
-      /* Do not insert code here. */
-      {
-        internal_error("mangled_encoding_for_expression_full: bad kind");
-      }  /* if */
+      internal_error("mangled_encoding_for_expression_full: bad kind");
 #endif /* CHECKING */
-#if IA64_ABI
-      /* Generate a zero constant instead of the unexpected expression.
-         We expect this in cases where the mangling doesn't matter.
-         See note in bad_mangled_expr_operator_name. */
-      add_mangling_for_placeholder_expression(mctl);
-      break;
-#endif /* IA64_ABI */
   }  /* switch */
 }  /* mangled_encoding_for_expression_full */
 
