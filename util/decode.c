@@ -1217,30 +1217,51 @@ position following what was demangled.
     /* For casts, sizeof, __alignof__, __uuidof__, typeid, or new get 
        the type. */
     if (takes_type) {
-      if (strcmp(operator_str, "cast") == 0) {
-        write_id_ch('(', dctl);
-        operator_str = "";
-      } else if (strcmp(operator_str, "conversion") == 0) {
-        /* Let the type be emitted first. */
-      } else {
-        write_id_str(operator_str, dctl);
-      }  /* if */
-      if (get_char(p, dctl) == 'e') {
+      if (strcmp(operator_str, "sizeof(") == 0 ||
+          strcmp(operator_str, "__alignof__(") == 0 ||
+          strcmp(operator_str, "__uuidof(") == 0 ||
+          strcmp(operator_str, "typeid(") == 0) {
+        /* These manglings have three forms, dependent on the next character
+           in the mangled name.  They're sufficiently different that they
+           are handled (mostly separately) here. */
         /* "e" indicates a sizeof (etc.) based on an expression.  Do not
            scan the type.  Note that the expression is not present either. */
-        write_id_str("expr", dctl);
-        p++;
-      } else {
-        p = demangle_type(p, dctl);
-      }  /* if */
-      if (strcmp(operator_str, "conversion") == 0) {
-        /* Output as "type(args)". */
+        write_id_str(operator_str, dctl);
         operator_str = "";
-        write_id_ch('(', dctl);
-        close_str = ")";
-        has_variable_number_of_operands = TRUE;
+        if (get_char(p, dctl) == 'e') {
+          /* An "old style" sizeof(expression) where the expression was not
+             encoded (and the operand count is zero).  Just note that there
+             was an expression and we're done. */
+          write_id_str("expr)", dctl);
+          p++;
+        } else if (get_char(p, dctl) == 'X') {
+          /* A "new style" sizeof(expression) where the expression is
+             included in the mangled name and will be demangled below. */
+          close_str = ")";
+          p++;
+        } else {
+          /* The sizeof(type) case; simply decode the type (the mangled
+             encoding specifies zero operands -- which are ignored below). */
+          p = demangle_type(p, dctl);
+          write_id_ch(')', dctl);
+        }  /* if */
       } else {
-        if (is_new_style_cast) {
+        if (strcmp(operator_str, "cast") == 0) {
+          write_id_ch('(', dctl);
+          operator_str = "";
+        } else if (strcmp(operator_str, "conversion") == 0) {
+          /* Let the type be emitted first. */
+        } else {
+          write_id_str(operator_str, dctl);
+        }  /* if */
+        p = demangle_type(p, dctl);
+        if (strcmp(operator_str, "conversion") == 0) {
+          /* Output as "type(args)". */
+          operator_str = "";
+          write_id_ch('(', dctl);
+          close_str = ")";
+          has_variable_number_of_operands = TRUE;
+        } else if (is_new_style_cast) {
           /* Something like static_cast<type>(expression).  The operator and
              type have been emitted, close the type with a right angle
              bracket and parse the expression below. */
@@ -1320,7 +1341,8 @@ position following what was demangled.
     }  /* if */
     /* Get the count of operands. */
     p = get_number_with_optional_underscore(p, &num_operands, dctl);
-    /* sizeof, __alignof__, __uuidof, and typeid all take zero operands. */
+    /* Some operations (e.g., sizeof(type), __alignof__(type), etc.) take
+       zero operands. */
     if (num_operands != 0) {
       if (has_variable_number_of_operands) {
         /* Operation has a variable number of operations, and
