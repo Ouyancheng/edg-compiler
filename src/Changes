@@ -1,5 +1,25 @@
 Version 4.2
 
+8/10/10  [EDGcpfe/10910]
+C++-generating back end: incorrect function-style casts in generated code
+
+In configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, if a
+value initialization uses a template type parameter and the corresponding
+template argument is an unnamed type that must be expressed using multiple
+tokens, the C++-generating back end generated the expression using an
+incorrect syntax for the function-style cast.  This has now been fixed to
+use a C-style cast of the constant 0 in such cases.  For example:
+
+  template<typename T> void f() {
+    T();  // Previously generated as "char *()" in f<char *>(), now
+          // generated as "(char *)0"
+  }
+  void g() {
+    f<char *>();
+  }
+
+
 8/9/10   [EDGcpfe/10909]
 C++-generating back end: typename keyword in dependent dynamic init expression
 

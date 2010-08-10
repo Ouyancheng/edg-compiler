@@ -11305,6 +11305,7 @@ source and the expression is generated in that form.
   an_expr_node_ptr expr;
   a_boolean        using_old_style_cast = FALSE, is_value_init;
   a_boolean        suppress_outermost_parentheses = FALSE;
+  a_boolean        unnamed_type_case = FALSE;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -11340,11 +11341,22 @@ source and the expression is generated in that form.
       /* Normal case: functional notation cast, e.g., X(y, z). */
       gen_type_reference(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-        /* This zero initialization can't be put out as an old-style cast
-           (it has zero arguments), but it can't be put out as a normal
-           cast because the type does not have a name, so drop cv-qualifiers
-           on the type. */
-      gen_type(skip_typerefs(init_entity_type));
+        /* A zero initialization with an unnamed type can't be put out
+           directly as an old-style cast (it has zero arguments), but it
+           can't be put out as a function-style cast either because the
+           type does not have a name.  (This case arises in template
+           instances that are being put out as explicit specializations:
+           the template definition had something like T(), but the type
+           substituted for T in the instance does not have a name.)  If the
+           cv-unqualified version of the type has a name, we'll use that
+           for a functional-notation cast and add a cast to the
+           cv-qualified type (see below); otherwise, we'll use an old-style
+           cast of a constant 0 to the target type. */
+      a_type_ptr unqual_type = skip_typerefs(init_entity_type);
+      using_old_style_cast = TRUE;
+      if (!has_name_before_mangling(unqual_type)) {
+        unnamed_type_case = TRUE;
+      }  /* if */
     } else {
       /* Unnamed type: put out as old-style cast.  Most cases of this
          would have fallen out above; see note below. */
@@ -11408,7 +11420,7 @@ source and the expression is generated in that form.
         write_tok_ch('(');
         gen_cast(init_entity_type);
       }  /* if */
-      if (!has_one_argument) {
+      if (!has_one_argument && !unnamed_type_case) {
         /* If the initialization doesn't have exactly one argument, use
            an unqualified functional-notation type conversion inside the
            old-style cast, e.g., ((const X)X(1, 2)).  This may modify the
@@ -11438,7 +11450,11 @@ source and the expression is generated in that form.
       /* Zero initialization, as in "A()" when A has no constructor. */
       check_assertion_str(parenthesized_init,
                           "gen_dynamic_init: zero init not parenthesized");
-      write_tok_str("()");
+      if (unnamed_type_case) {
+        write_tok_str("0");
+      } else {
+        write_tok_str("()");
+      }  /* if */
       break;
     case dik_constant:
       /* Constant (simple or aggregate). */
