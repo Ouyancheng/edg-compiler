@@ -1096,6 +1096,10 @@ end_of_routine:
   return p;
 }  /* demangle_constant */
 
+static char *demangle_type_qualifiers(
+                                     char                       *ptr,
+                                     a_boolean                  trailing_space,
+                                     a_decode_control_block_ptr dctl);
 
 static char *demangle_parameter_reference(char                       *ptr,
                                           a_decode_control_block_ptr dctl)
@@ -1103,14 +1107,15 @@ static char *demangle_parameter_reference(char                       *ptr,
 Demangle a function parameter reference (e.g., in a late specified return
 type) as pointed to by ptr:
 
-      vv----- These are optional.
-    I1_2I <-- "param#1 two levels up"
-        ^---- Terminating non-digit character so parameter number won't run
-              into an entity with an initial length.
-      ^^----- Number of "levels up" for this parameter (0-based).  Omitted
-              if zero.
-     ^------- Parameter number (1-based).
-    ^-------- "I" indicates parameter reference.
+      v-vv----- These are optional.
+     IC1_2I <-- "const param#1 two levels up"
+          ^---- Terminating non-digit character so parameter number won't run
+                into an entity with an initial length.
+        ^^----- Number of "levels up" for this parameter (0-based).  Omitted
+                if zero.
+       ^------- Parameter number (1-based).
+      ^-------- Optional cv-qualifiers.
+     ^--------- "I" indicates parameter reference.
 */
 {
   char          *p = ptr;
@@ -1119,6 +1124,10 @@ type) as pointed to by ptr:
 
   /* Advance past the initial "I" (verified by caller). */
   p++;
+  if (is_immediate_type_qualifier(p, dctl)) {
+    /* Get any optional cv-qualifiers. */
+    p = demangle_type_qualifiers(p, /*trailing_space=*/TRUE, dctl);
+  }  /* if */
   p = get_number(p, &num, dctl);
   if (!dctl->err_in_id) {
     if (get_char(p, dctl) != 'I') {
@@ -4153,16 +4162,17 @@ Return a pointer to the character position following what was demangled.
 A <function-param> encodes a reference to a function parameter.
 The syntax is:
 
-  <function-param> ::= fp_       # first function parameter
-                   ::= fp <parameter-2 non-negative number> _
-                   ::= fL <L-1 non-negative number> p_ 
-                   ::= fL <L-1 non-negative number> p 
+  <function-param> ::= fp [<CV-qualifiers>] _       # first function parameter
+                   ::= fp [<CV-qualifiers>] <parameter-2 non-negative number> _
+                   ::= fL <L-1 non-negative number> p [<CV-qualifiers>] _ 
+                   ::= fL <L-1 non-negative number> p [<CV-qualifiers>]
                           <parameter-2 non-negative number> _
 
 */
 {
-  long num = 1, level = -1;
-  char buffer[50];
+  long               num = 1, level = -1;
+  char               buffer[50];
+  a_cv_qualifier_set cv_quals;
 
   /* Advance past the "f". */
   ptr++;
@@ -4178,10 +4188,15 @@ The syntax is:
     }  /* if */
   }  /* if */
   if (*ptr != 'p') {
-      bad_mangled_name(dctl);
-      goto end_of_routine;
+    bad_mangled_name(dctl);
+    goto end_of_routine;
   }  /* if */
   ptr++;
+  if (*ptr != '-' && !isdigit((unsigned char)*ptr)) {
+    /* Optional cv-qualifiers. */
+    ptr = get_cv_qualifiers(ptr, &cv_quals);
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
+  }  /* if */
   if (*ptr != '_') {
     /* Parameter number. */
     ptr = get_number(ptr, &num, dctl);
