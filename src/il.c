@@ -14377,6 +14377,23 @@ name lookup options.
       default:
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
+  } else if (cpp0x_sfinae_enabled &&
+             is_instantiation_dependent_type(con->type)) {
+    /* A constant that is not a ck_template_param but that does have an
+       instantiation-dependent type.  Do substitution on it to see if
+       there's an error. */
+    new_type = copy_type_with_substitution(con->type,
+                                           template_arg_list,
+                                           template_param_list,
+                                           source_pos,
+                                           options,
+                                           copy_error);
+    if (!*copy_error) {
+      copy_constant(con, constant);
+      constant->type = new_type;
+      constant->expr = NULL;
+      con_copy = NULL;
+    }  /* if */
   }  /* if */
   if (*copy_error) {
     /* Return an error constant on a copy error. */
