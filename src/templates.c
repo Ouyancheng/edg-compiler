@@ -10637,25 +10637,32 @@ matches, a new argument list is returned in *new_arg_list.
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = template_supplement_for_symbol(template_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
-  *new_arg_list = create_initial_template_arg_list(
+  /* The pending deduction count is incremented during the substitution
+     process below to detect recursive calls of this routine. */
+  if (tssp->variant.function.pending_deductions <
+                                                  max_pending_instantiations) {
+    ++(tssp->variant.function.pending_deductions);
+    *new_arg_list = create_initial_template_arg_list(
                                            templ_param_list, templ_arg_list,
                                            &template_sym->decl_position);
-  /* Start by making sure all of the template parameters have values.  This
-     will fill in default values, if needed. */
-  if (*new_arg_list != NULL &&
-      all_templ_params_have_values(*new_arg_list, templ_param_list,
-                                   /*is_partial_order_check=*/FALSE,
-                                   template_sym, tssp)) {
-    /* Create a substituted type based on the template arguments. */
-    result_type = substitute_template_arguments(
+    /* Start by making sure all of the template parameters have values.  This
+       will fill in default values, if needed. */
+    if (*new_arg_list != NULL &&
+        all_templ_params_have_values(*new_arg_list, templ_param_list,
+                                     /*is_partial_order_check=*/FALSE,
+                                     template_sym, tssp)) {
+      /* Create a substituted type based on the template arguments. */
+      result_type = substitute_template_arguments(
                            template_sym, *new_arg_list,
                            (a_template_arg_ptr*)NULL,
                            templ_param_list, /*is_partial_order_check=*/FALSE);
-  }  /* if */
-  /* If there was no match, free the new template argument list, if any. */
-  if (result_type == NULL && *new_arg_list != NULL) {
-    free_template_arg_list(*new_arg_list);
-    *new_arg_list = NULL;
+    }  /* if */
+    --(tssp->variant.function.pending_deductions);
+    /* If there was no match, free the new template argument list, if any. */
+    if (result_type == NULL && *new_arg_list != NULL) {
+      free_template_arg_list(*new_arg_list);
+      *new_arg_list = NULL;
+    }  /* if */
   }  /* if */
   return result_type;
 }  /* explicit_arg_list_identifies_specialization */
