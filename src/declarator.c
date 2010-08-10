@@ -4462,11 +4462,13 @@ declared entity is known to not be a function.
     /* The declarator may be a qualified name or a normal name. */
     if (coalesce_and_lookup_qualified_name(options, ilm_declarator, &err)) {
       /* See if the name is a qualified name, like "A::x" or "::j". */
-      if (locator_for_curr_id.is_qualified_name) {
+      if (err) {
+        /* The locator will be set to an error locator below. */
+        check_assertion(total_errors != 0);
+      } else if (locator_for_curr_id.is_qualified_name) {
         *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
         if (*p_member_parent_type != NULL) {
           a_boolean  reactivate_scope = FALSE;
-
           sym = locator_for_curr_id.specific_symbol;
           if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
             /* Microsoft compilers allow static member declarators using a
@@ -4561,7 +4563,16 @@ declared entity is known to not be a function.
     if (err) {
       /* An error occurred while scanning the identifier -- use an error
          locator. */
-      set_to_named_error_locator(locator_for_curr_id);
+      if (!(input_flags & DI_QUALIFIED_NAME_ALLOWED) &&
+          (locator_for_curr_id.is_class_member ||
+           locator_for_curr_id.parent.namespace_ptr != NULL)) {
+        /* If the declarator-id was qualified in a context that doesn't
+           allow qualified names, do not try to preserve the name or its
+           qualifier. */
+        set_to_error_locator(locator_for_curr_id);
+      } else {
+        set_to_named_error_locator(locator_for_curr_id);
+      }  /* if */
     }  /* if */
     /* Save information on the identifier to be declared. */
     *locator = locator_for_curr_id;
