@@ -2816,18 +2816,13 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         a_type_ptr             qualifier;
         a_gen_name_options_set qualifier_options =
                                        options & GN_PARENS_IF_GLOBAL_QUALIFIER;
-        if (entry_kind == iek_type &&
+        if (entry_kind == iek_type && !(options & GN_DECLARATION) &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
-          /* Emit a "class", "struct", "union" or "typename" preceding a
-             dependent qualified name (but not preceding every qualifier).
-             (Prefer the former variants to select the right namespace.) */
-          a_type_ptr  type = (a_type_ptr)scp;
-          if (is_tag_type(type)) {
-            write_tok_str(tag_keyword(type));
-            write_space();
-          } else {
-            write_tok_str("typename ");
-          }  /* if */
+          /* Emit a "typename" keyword for a dependent type, but only at
+             the beginning of a qualified name and not in a declaration
+             context (since a class/struct/union keyword will already have
+             been emitted). */
+          write_tok_str("typename ");
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (scp->member_of_unknown_super) {
@@ -4092,7 +4087,14 @@ al_tag_name attributes (if any).
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (!type->has_been_declared) {
+    if (is_template_param_or_nonreal_class_type(type) ||
+        (type->source_corresp.is_class_member &&
+         is_template_param_or_nonreal_class_type(parent_class_of(type)))) {
+      /* This type depends on a template parameter and thus must be preceded
+         by the "typename" keyword. */
+      options |= GN_DEPENDENT;
+    }  /* if */
+    if (!type->has_been_declared && (options & GN_DEPENDENT) == 0) {
       /* The initial declaration of a tag cannot use a qualified name. */
       if (type_is_prototype_instantiation(type)) {
         /* No template arguments on a prototype instantiation. */
@@ -11336,7 +11338,7 @@ source and the expression is generated in that form.
       using_old_style_cast = TRUE;
     } else if (has_name_before_mangling(init_entity_type)) {
       /* Normal case: functional notation cast, e.g., X(y, z). */
-      gen_type_name(init_entity_type);
+      gen_type_reference(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
         /* This zero initialization can't be put out as an old-style cast
            (it has zero arguments), but it can't be put out as a normal
