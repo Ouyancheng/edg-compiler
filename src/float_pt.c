@@ -1883,7 +1883,9 @@ for the representation of floating-point values in mangled names.
 */
 {
   static char str[60];
-  int         i, data_size;
+  int         i = 0;
+  int         j;
+  int         data_size;
 
   /* Determine the size of the data in the floating-point value. */
   if (kind == (a_float_kind)fk_float) {
@@ -1893,17 +1895,6 @@ for the representation of floating-point values in mangled names.
   } else {
     data_size = data_size_of_host_fp_value;
   }  /* if */
-  /* The IA-64 ABI requires that the output be high-order bytes first,
-     and it must use lower-case characters. */
-  for (i = 0; i < data_size; i++) {
-    unsigned char byte;
-    if (host_little_endian) {
-      byte = float_value->bytes[data_size-1-i];
-    } else {
-      byte = float_value->bytes[i];
-    }  /* if */
-    (void)sprintf(&str[i*2], "%02x", byte);
-  }  /* for */
 #if ABI_COMPATIBILITY_VERSION >= 402
   /* The long double format sometimes contains some unused bytes.
      Put out zeros for the padding space. */
@@ -1915,6 +1906,17 @@ for the representation of floating-point values in mangled names.
     }  /* for */
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+  /* The IA-64 ABI requires that the output be high-order bytes first,
+     and it must use lower-case characters. */
+  for (j = 0; j < data_size; j++, i++) {
+    unsigned char byte;
+    if (host_little_endian) {
+      byte = float_value->bytes[data_size-1-j];
+    } else {
+      byte = float_value->bytes[j];
+    }  /* if */
+    (void)sprintf(&str[i*2], "%02x", byte);
+  }  /* for */
   /* Add the terminating null character. */
   str[i*2] = '\0';
   return str;
