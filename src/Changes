@@ -1,5 +1,25 @@
 Version 4.2
 
+8/10/10  [EDGcpfe/10911]
+C++-generating back end: incorrect sizeof syntax with value init operand
+
+The C++-generating back end formerly enclosed all operands of the sizeof
+operator in parentheses.  This resulted in incorrect generated code when
+the operand is a value initialization, because in "sizeof(T())" the
+parentheses allow "T()" to be interpreted either as an expression or as
+the declaration of a type (a function with no parameters returning "T").
+The C++ Standard says that such cases are to be treated as declarations,
+resulting in an erroneous attempt to take the size of a function type.
+This has now been fixed by suppressing the redundant parentheses when the
+operand is a dynamic initialization.  For example:
+
+  typedef int I;
+  int main () {
+    int i;
+    i = sizeof I();   // Previously generated as "sizeof(I())"
+  }
+
+
 8/10/10  [EDGcpfe/10910]
 C++-generating back end: incorrect function-style casts in generated code
 

@@ -9242,21 +9242,24 @@ done_with_operation_after_parens:
       write_tok_ch(')');
       break;
     case enk_sizeof:
-      write_tok_str("sizeof(");
       if (expr->variant.sizeof_info.is_type) {
         /* sizeof(type). */
+        write_tok_str("sizeof(");
         gen_type(expr->variant.sizeof_info.variant.type);
+        write_tok_ch(')');
       } else {
         /* sizeof(expr). */
-        if (expr->variant.sizeof_info.variant.expr->is_lvalue) {
-          gen_expression(expr->variant.sizeof_info.variant.expr);
+        an_expr_node_ptr operand = expr->variant.sizeof_info.variant.expr;
+        write_tok_str("sizeof ");
+        if (operand->kind == (an_expr_node_kind)enk_temp_init) {
+          /* Do not use extra parentheses to avoid generating something
+             like "sizeof(T())", which is an error (a request for the size
+             of a function returning T). */
+          gen_expression(operand);
         } else {
-          an_expr_node_ptr sizeof_expr =
-                                        expr->variant.sizeof_info.variant.expr;
-          gen_expression(sizeof_expr);
+          gen_expr_with_parens(expr->variant.sizeof_info.variant.expr);
         }  /* if */
       }  /* if */
-      write_tok_ch(')');
       break;
     case enk_address_of_ellipsis:
       write_tok_str("&...");
