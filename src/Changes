@@ -1,6 +1,6 @@
 Version 4.2
 
-8/9/10  [EDGcpfe/10909]
+8/9/10   [EDGcpfe/10909]
 C++-generating back end: typename keyword in dependent dynamic init expression
 
 In configurations in which template definitions are generated from the
