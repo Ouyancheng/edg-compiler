@@ -5693,10 +5693,13 @@ function_lparen:
                                  &state->restrict_pos : &state->qualifiers_pos;
       if (specifiers_type == NULL || !is_reference_type(specifiers_type)) {
         error(ec_reference_to_reference);
-      }  /* if */
-      derived_type = make_reference_to_reference(complete_type, is_rvalue_ref,
+        derived_type = error_type();
+      } else {
+        derived_type =
+                     make_reference_to_reference(complete_type, is_rvalue_ref,
                                                  state->qualifiers, qual_pos,
                                                  (a_boolean*)NULL);
+      }  /* if */
       state->unused_qualifiers = FALSE;
       /* The second reference component is essentially ignored.  We do not
          need to call add_to_derived_type_list in this case. */
