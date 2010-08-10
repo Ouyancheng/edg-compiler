@@ -320,6 +320,13 @@ type, but it may be an integer cast to a pointer type.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
+  if (is_incomplete_type(new_constant->type)) {
+    /* In some severe error cases, the destination type may be an incomplete
+       enum type. */
+    *err_code = ec_incomplete_type_not_allowed;
+    *err_severity = es_error;
+    goto done;
+  }  /* if */
   /* Copy the old value to the new value. */
   switch (old_constant->kind) {
     case ck_integer:
@@ -424,9 +431,7 @@ type, but it may be an integer cast to a pointer type.
       }  /* if */
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
 done:;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* conv_integer_to_integer */
 
 
