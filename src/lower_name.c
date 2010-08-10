@@ -3650,7 +3650,7 @@ appear in late-specified return types.
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref);
 #if IA64_ABI
-  if (expr->variant.param_ref.levels_up == 0) {
+  if (expr->variant.param_ref.levels_up == 0 || emulate_gnu_abi_bugs) {
     add_str_to_mangled_name("fp", mctl);
   } else {
     add_str_to_mangled_name("fL", mctl);
