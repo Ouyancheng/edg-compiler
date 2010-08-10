@@ -1,5 +1,18 @@
 Version 4.2
 
+8/9/10  [EDGcpfe/10909]
+C++-generating back end: typename keyword in dependent dynamic init expression
+
+In configurations in which template definitions are generated from the
+prototype instantiations, the C++-generating back end failed to add
+"typename" keywords in references to dependent types appearing in dynamic
+initialization expressions.  This is now fixed.  For example:
+
+  template <template <class _T> class T, class U> void f() {
+    typename T<U>::B();   // "typename" previously omitted in generated code
+  }
+
+
 8/5/10   [EDGcpfe/10892]
 Type for std::type_info vtable is now incomplete when vtable is not defined
 
