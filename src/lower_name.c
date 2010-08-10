@@ -2360,7 +2360,7 @@ lengths of literals.  old_form is significant only in the Cfront ABI.
 #if !IA64_ABI
   /* Complex float: the Cfront-like ABI encoding mangles both real and
      imaginary portions of the value as floating point numbers:
-       L_3_0d0_3_1d1 <-- encoding for "0.0+1.0i"
+       L_3_0d0_3_1d0 <-- encoding for "0.0+1.0i"
                  ^^^---- Imaginary portion of complex number.
               ^^^------- Length of the imaginary portion of the number.
            ^^^---------- Real portion of complex number.
@@ -3646,6 +3646,8 @@ Add an encoding for the function parameter as specified in expr.  These can
 appear in late-specified return types.
 */
 {
+  a_type_qualifier_set  cv_quals = get_type_qualifiers(expr->type);
+
   check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref);
 #if IA64_ABI
   if (expr->variant.param_ref.levels_up == 0) {
@@ -3655,21 +3657,27 @@ appear in late-specified return types.
     add_number_to_mangled_name(expr->variant.param_ref.levels_up-1, mctl);
     add_to_mangled_name('p', mctl);
   }  /* if */
+  if (cv_quals != 0 && !emulate_gnu_abi_bugs) {
+    /* Add cv-qualifiers. */
+    mangled_encoding_for_type_qualifiers(cv_quals, mctl);
+  }  /* if */
   if (expr->variant.param_ref.param_num > 1) {
     add_number_to_mangled_name(expr->variant.param_ref.param_num-2, mctl);
   }  /* if */
   add_to_mangled_name('_', mctl);
 #else /* !IA64_ABI */
   /* Parameter reference.  Output has the form
-       vv----- These are optional.
-     I1_2I <-- "param#1 two levels up"
-         ^---- Terminating non-digit character so parameter number won't run
-               into an entity with an initial length.
-       ^^----- Number of "levels up" for this parameter (0-based).  Omitted
-               if zero.
-      ^------- Parameter number (1-based).
-     ^-------- "I" indicates parameter reference.  */
+      v-vv----- These are optional.
+     IC1_2I <-- "const param#1 two levels up"
+          ^---- Terminating non-digit character so parameter number won't run
+                into an entity with an initial length.
+        ^^----- Number of "levels up" for this parameter (0-based).  Omitted
+                if zero.
+       ^------- Parameter number (1-based).
+      ^-------- Optional cv-qualifiers.
+     ^--------- "I" indicates parameter reference.  */
   add_to_mangled_name('I', mctl);
+  if (cv_quals != 0) mangled_encoding_for_type_qualifiers(cv_quals, mctl);
   add_number_to_mangled_name(expr->variant.param_ref.param_num, mctl);
   if (expr->variant.param_ref.levels_up != 0) {
     add_to_mangled_name('_', mctl);
