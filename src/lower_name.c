@@ -256,8 +256,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_NEGATE "ng"
 #define MANGLING_STRING_FOR_OPERATOR_DEREFERENCE "de"
 #define MANGLING_STRING_FOR_OPERATOR_ADDRESS "ao"
-#define MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX "ppt"
-#define MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX "mmt"
+#define MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_PREFIX "ppe"
+#define MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX "mme"
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 
 #endif /* IA64_ABI */
@@ -4658,6 +4658,16 @@ this expression is part of a template-dependent expression.
            ABI uses a special flag. */
 #if IA64_ABI
         is_prefix = TRUE;
+#else /* !IA64_ABI */
+        /* There is a separate mangled name for Cfront prefix increment/
+           decrements. */
+        if (rp->variant.opname_kind == (an_opname_kind)onk_plus_plus) {
+          name = MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_PREFIX;
+        } else {
+          check_assertion(rp->variant.opname_kind ==
+                                              (an_opname_kind)onk_minus_minus);
+          name = MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX;
+        }  /* if */
 #endif /* IA64_ABI */
       } else {
         /* This is a postfix increment/decrement.  The front end has added
@@ -4666,17 +4676,6 @@ this expression is part of a template-dependent expression.
         check_assertion(num_arguments == 2);
         num_arguments--;
         remove_last_arg = TRUE;
-#if !IA64_ABI
-        /* There is a separate mangled name for Cfront postfix increment/
-           decrements. */
-        if (rp->variant.opname_kind == (an_opname_kind)onk_plus_plus) {
-          name = MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX;
-        } else {
-          check_assertion(rp->variant.opname_kind ==
-                                              (an_opname_kind)onk_minus_minus);
-          name = MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX;
-        }  /* if */
-#endif /* !IA64_ABI */
       }  /* if */
     }  /* if */
     if (name == NULL) {
@@ -8535,24 +8534,24 @@ well as an expression), return *is_cast TRUE.
     case eok_shiftl_assign:
       opkind = (an_opname_kind)onk_shift_left_assign;
       break;
-    case eok_post_incr:
-#ifdef MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX
-      /* Use a special mangling for the postfix version if one is defined,
-         otherwise fall through and use the generic operator version. */
-      name = MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX;
-      break;
-#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_POSTFIX */
     case eok_pre_incr:
+#ifdef MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_PREFIX
+      /* Use a special mangling for the prefix version if one is defined,
+         otherwise fall through and use the generic operator version. */
+      name = MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_PREFIX;
+      break;
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_PREFIX */
+    case eok_post_incr:
       opkind = (an_opname_kind)onk_plus_plus;
       break;
-    case eok_post_decr:
-#ifdef MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX
-      /* Use a special mangling for the postfix version if one is defined,
-         otherwise fall through and use the generic operator version. */
-      name = MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX;
-      break;
-#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_POSTFIX */
     case eok_pre_decr:
+#ifdef MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX
+      /* Use a special mangling for the prefix version if one is defined,
+         otherwise fall through and use the generic operator version. */
+      name = MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX;
+      break;
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX */
+    case eok_post_decr:
       opkind = (an_opname_kind)onk_minus_minus;
       break;
     case eok_subscript:

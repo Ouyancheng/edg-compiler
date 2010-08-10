@@ -1602,14 +1602,12 @@ not an operator encoding, return NULL.
   } else if (start_of_id_is("als", ptr, dctl)) {
     s = "<<=";
     len = 3;
-  } else if (start_of_id_is("ppt", ptr, dctl)) {
+  } else if (start_of_id_is("ppe", ptr, dctl)) {
     s = "++";
     len = 3;
-    *is_postfix = TRUE;
-  } else if (start_of_id_is("mmt", ptr, dctl)) {
+  } else if (start_of_id_is("mme", ptr, dctl)) {
     s = "--";
     len = 3;
-    *is_postfix = TRUE;
   } else if (start_of_id_is("nwa", ptr, dctl)) {
     s = "new[]";
     len = 3;
@@ -1664,8 +1662,10 @@ not an operator encoding, return NULL.
     s = "||";
   } else if (start_of_id_is("pp", ptr, dctl)) {
     s = "++";
+    *is_postfix = TRUE;
   } else if (start_of_id_is("mm", ptr, dctl)) {
     s = "--";
+    *is_postfix = TRUE;
   } else if (start_of_id_is("cm", ptr, dctl)) {
     s = ",";
   } else if (start_of_id_is("rm", ptr, dctl)) {
