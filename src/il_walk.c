@@ -2710,7 +2710,10 @@ routines as specified in the control block.
     case dik_zero:
       break;
     case dik_constant:
-      if (tblock->process_non_dynamic_constants) {
+      if (tblock->process_non_dynamic_constants ||
+          (tblock->process_template_parameter_constants_and_expressions &&
+           dip->variant.constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param)) {
         traverse_constant(dip->variant.constant, tblock);
       }  /* if */
       break;
@@ -3015,7 +3018,10 @@ as specified in the control block.
       traverse_expr_list(expr->variant.operation.operands, tblock);
       break;
     case enk_constant:
-      if (tblock->process_non_dynamic_constants) {
+      if (tblock->process_non_dynamic_constants ||
+          (tblock->process_template_parameter_constants_and_expressions &&
+           expr->variant.constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param)) {
         traverse_constant(expr->variant.constant, tblock);
       }  /* if */
       break;

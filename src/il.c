@@ -16539,6 +16539,7 @@ Set up the control block used for the side effect discovery traversal.
   tblock->process_expr = examine_expr_for_side_effect;
   tblock->process_dynamic_init = examine_dynamic_init_for_side_effect;
   tblock->process_constant = examine_constant_for_side_effect;
+  tblock->process_template_parameter_constants_and_expressions = TRUE;
 }  /* set_up_side_effect_traversal_block */
 
 
