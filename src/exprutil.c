@@ -5116,7 +5116,10 @@ user-defined conversions.
              is.  Don't clear the flag once it gets set (an implicit cast
              after a reinterpret_cast still counts as a reinterpret_cast). */
           local_constant.is_reinterpret_cast |= is_reinterpret_cast;
-          if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
+              /* Don't record backing expressions on ck_template_param
+                 constants, since they already record the expression. */
+              local_constant.kind != (a_constant_repr_kind)ck_template_param) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
             if (!is_implicit_cast ||
