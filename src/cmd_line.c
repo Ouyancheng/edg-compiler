@@ -3082,6 +3082,10 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!option_kind_used[(int)optk_exception_handling]) {
       exceptions_enabled = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+        !cpp0x_mode) {
+      cpp0x_sfinae_enabled = FALSE;
+    }  /* if */
     if (ignore_std_namespace) {
       /*  An option to treat namespace std as an alias for the global
           namespace is contradictory to strict ANSI adherence.  Issue an
@@ -8237,6 +8241,13 @@ enable_microsoft_mode:
     /* If lambdas are allowed, enable local types as template arguments too. */
     local_types_as_template_args_enabled = TRUE;
     decls_using_types_without_linkage_allowed = TRUE;
+  }  /* if */
+  if (trailing_return_types_enabled || decltype_enabled) {
+    /* Turn on c++0x SFINAE if trailing return types or decltype are enabled,
+       since we're likely to need it. */
+    if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+      cpp0x_sfinae_enabled = TRUE;
+    }  /* if */
   }  /* if */
   if (long_lifetime_temps) {
     /* Don't allow long lifetime temps with some newer language features. */
