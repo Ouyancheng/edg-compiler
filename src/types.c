@@ -3780,17 +3780,19 @@ a_type_ptr param_type_restoring_orig_templ_array(a_param_type_ptr ptp)
 /*
 If the original declared parameter type for the indicated parameter is an
 array type with a top-level template-dependent bound, return it.  Otherwise
-return the normal parameter type.  In C mode, always return the normal
-parameter type.
+return the normal parameter type.  In C mode, or when C++0X SFINAE is
+not enabled, always return the normal parameter type.
 */
 {
   a_type_ptr type = ptp->type;
-  a_type_ptr decl_type = ptp->declared_type;
 
-  if (!C_mode() && decl_type != NULL && is_array_type(decl_type)) {
-    a_type_ptr tp = skip_typerefs(decl_type);
-    if (tp->variant.array.is_template_dependent_size_array) {
-      type = decl_type;
+  if (!C_mode() && cpp0x_sfinae_enabled) {
+    a_type_ptr decl_type = ptp->declared_type;
+    if (decl_type != NULL && is_array_type(decl_type)) {
+      a_type_ptr tp = skip_typerefs(decl_type);
+      if (tp->variant.array.is_template_dependent_size_array) {
+        type = decl_type;
+      }  /* if */
     }  /* if */
   }  /* if */
   return type;
