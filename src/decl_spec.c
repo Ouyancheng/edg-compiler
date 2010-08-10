@@ -2835,6 +2835,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     if ((gpp_mode || (microsoft_mode && !C_mode())) &&
         innermost_function_scope == NULL && !is_explicit_instantiation &&
+        curr_deferred_access_scope != NO_SCOPE_DEPTH &&
         !scope_stack[curr_deferred_access_scope].defer_access_checks) {
       /* In GNU and Microsoft modes, the possibility of delayed nested class
          definitions in class scopes requires us to delay access checking
