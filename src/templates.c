@@ -9302,6 +9302,7 @@ created.
         break;
       case tak_nontype:
         tap->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
+        tap->variant.constant->type = error_type();
         break;
       case tak_template:
         tap->variant.templ.ptr = error_class_template()->
