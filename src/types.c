@@ -3752,13 +3752,14 @@ top_of_loop:
           result = TRUE;
         } else {
           /* Compare the expression trees. */
-          a_compare_constants_options_set cc_options;
+          a_compare_constants_options_set cc_options =
+                                         CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
           /* When this routine is called with the "exact template param" flag
              set, pass the corresponding flag to the constant comparison
              routine. */
-          cc_options = (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED)
-                                        ? CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
-                                        : CC_NO_OPTIONS;
+          if (itf_flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) {
+            cc_options |= CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+          }  /* if */
           result = !compare_expressions(expr1, expr2, cc_options);
         }  /* if */
       }  /* if */

@@ -4921,7 +4921,8 @@ the same constant.
   itf_options = exact_match_required ? (ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED|
                                         ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
                                      : ITF_NO_FLAGS;
-  cc_options = exact_match_required ? CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+  cc_options = exact_match_required ? (CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED |
+                                       CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
                                     : CC_NO_OPTIONS;
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */

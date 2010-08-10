@@ -5782,7 +5782,16 @@ are done.
         unexpected_condition_str("compare_expressions: bad expr kind");
     }  /* switch */
     if (eq && do_type_comparison) {
-      if (!identical_types(node1->type, node2->type)) eq = FALSE;
+      an_itf_flag_set itf_options = ITF_NO_FLAGS;
+      if (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) {
+        itf_options |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+      }  /* if */
+      if (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+        itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+      }  /* if */
+      if (!f_identical_types(node1->type, node2->type, itf_options)) {
+        eq = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return eq;

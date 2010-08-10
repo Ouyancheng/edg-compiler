@@ -1145,6 +1145,10 @@ typedef int a_compare_constants_options_set;
 			/* TRUE if, when comparing template parameters of
 			   tpck_param kind, the constant pointers must
 			   match, not just the coordinates. */
+#define CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED 0x4
+			/* TRUE if, when checking that the types of expressions
+			   match, one should check for an exact match of the
+			   expressions under any dependent decltypes. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,
