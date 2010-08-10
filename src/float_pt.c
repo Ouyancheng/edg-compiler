@@ -1904,6 +1904,17 @@ for the representation of floating-point values in mangled names.
     }  /* if */
     (void)sprintf(&str[i*2], "%02x", byte);
   }  /* for */
+#if ABI_COMPATIBILITY_VERSION >= 402
+  /* The long double format sometimes contains some unused bytes.
+     Put out zeros for the padding space. */
+  if (kind == (a_float_kind)fk_long_double) {
+    int	pad_size = sizeof(long double) - data_size;
+    int	j;
+    for (j = 0; j < pad_size; j++, i++)  {
+      (void)sprintf(&str[i*2], "00");
+    }  /* for */
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   /* Add the terminating null character. */
   str[i*2] = '\0';
   return str;
