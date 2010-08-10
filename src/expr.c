@@ -7105,7 +7105,7 @@ previously-scanned sizeof expression, and return the result in *result
      involve a dependent expression even though the result type is not
      dependent.  This is done after the type validity tests above so
      we can detect any possible errors anyway. */
-  if (is_dependent_decltype_type(sizeof_type)) {
+  if (is_instantiation_dependent_type(sizeof_type)) {
     template_case = TRUE;
   }  /* if */
 
@@ -7484,7 +7484,7 @@ result in *result (or an error indication in *rcblock).
      involve a dependent expression even though the result type is not
      dependent.  This is done after the type validity tests above so
      we can detect any possible errors anyway. */
-  if (is_dependent_decltype_type(alignof_type)) {
+  if (is_instantiation_dependent_type(alignof_type)) {
     template_case = TRUE;
   }  /* if */
   /* The result of __ALIGNOF__ is an integer indicating the alignment of
@@ -9430,7 +9430,7 @@ enk_typeid entry should be created.
 {
   an_expr_node_ptr typeid_node;
   a_boolean        template_case = is_template_dependent_type(typeid_type) ||
-                                   is_dependent_decltype_type(typeid_type);
+                                  is_instantiation_dependent_type(typeid_type);
   a_type_ptr       const_type_info = make_qualified_type(
                                               type_of_type_info,
                                               (a_type_qualifier_set)TQ_CONST);
@@ -9676,7 +9676,7 @@ indication in *rcblock).
     if (runtime_case ||
         (is_template_dependent_context() &&
          (is_template_dependent_type(typeid_type) ||
-          is_dependent_decltype_type(typeid_type)))) {
+          is_instantiation_dependent_type(typeid_type)))) {
       /* Keep the expression in the typeid, either because the type must be
          determined at runtime or because we need the expression to be
          able to rescan a template-dependent case. */
@@ -9690,7 +9690,7 @@ indication in *rcblock).
   /* Skip typerefs, but keep dependent decltypes because they will have
      to be rescanned to get the proper type (or detect any errors on the
      rescan). */
-  if (is_dependent_decltype_type(typeid_type)) {
+  if (is_instantiation_dependent_type(typeid_type)) {
     typeid_type = skip_typerefs_not_dependent_decltypes(typeid_type);
   } else {
     if (is_array_type(typeid_type)) {
