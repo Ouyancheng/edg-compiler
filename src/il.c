@@ -15897,6 +15897,23 @@ initialization doing nothing should be suppressed.
        with side effects. */
     tblock->result = TRUE;
     tblock->terminate = TRUE;
+  } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
+    switch (con->variant.template_param.kind) {
+      case tpck_sizeof:
+      case tpck_alignof:
+        /* A sizeof doesn't have size effects, but more than that its
+           expression is unevaluated and can't have side effects. */
+        if (vla_enabled &&
+            is_vla_type(con->variant.template_param.variant.
+                                                          templ_sizeof.type)) {
+          /* However, sizeof a VLA type evaluates the expression. */
+        } else {
+          tblock->suppress_subtree_walk = TRUE;
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
   }  /* if */
 }  /* examine_constant_for_side_effect */
 
