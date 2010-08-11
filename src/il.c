@@ -15905,8 +15905,18 @@ initialization doing nothing should be suppressed.
            expression is unevaluated and can't have side effects. */
         if (vla_enabled &&
             is_vla_type(con->variant.template_param.variant.
-                                                          templ_sizeof.type)) {
-          /* However, sizeof a VLA type evaluates the expression. */
+                                                          templ_sizeof.type) &&
+            (con->variant.template_param.variant.templ_sizeof.expr == NULL
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+             &&!con->variant.template_param.variant.templ_sizeof.local_expr_ref
+#endif /*PROTOTYPE_INSTANTIATIONS_IN_IL */
+                                                                           )) {
+          /* However, sizeof a VLA type evaluates the bound expression.  Only
+             sizeof(type) can have side effects; for sizeof(expr), the
+             VLA type was generated elsewhere. */
+          /* Assume side effects from the type. */
+          tblock->result = TRUE;
+          tblock->terminate = TRUE;
         } else {
           tblock->suppress_subtree_walk = TRUE;
         }  /* if */
@@ -16477,6 +16487,21 @@ doing nothing should be suppressed.
       /* A throw always has a side effect. */
       has_side_effects = TRUE;
       break;
+    case enk_sizeof:
+      /* A sizeof doesn't have size effects, but more than that its
+         expression is unevaluated and can't have side effects. */
+      if (vla_enabled && node->variant.sizeof_info.is_type &&
+          is_vla_type(node->variant.sizeof_info.variant.type)) {
+          /* However, sizeof a VLA type evaluates the bound expression.  Only
+             sizeof(type) can have side effects; for sizeof(expr), the
+             VLA type was generated elsewhere. */
+          /* Assume side effects from the type. */
+          tblock->result = TRUE;
+          tblock->terminate = TRUE;
+        } else {
+          tblock->suppress_subtree_walk = TRUE;
+        }  /* if */
+        break;
     case enk_typeid:
       if (node->variant.typeid_info.expr != NULL) {
         /* A typeid applied to an expression that is a pointer to a
