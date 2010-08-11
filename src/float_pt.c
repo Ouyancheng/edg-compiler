@@ -1900,7 +1900,6 @@ for the representation of floating-point values in mangled names.
      Put out zeros for the padding space. */
   if (kind == (a_float_kind)fk_long_double) {
     int	pad_size = sizeof(long double) - data_size;
-    int	j;
     for (j = 0; j < pad_size; j++, i++)  {
       (void)sprintf(&str[i*2], "00");
     }  /* for */
