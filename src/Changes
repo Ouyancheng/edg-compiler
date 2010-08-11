@@ -1,5 +1,25 @@
 Version 4.2
 
+8/11/10  [EDGcpfe/10919]
+C-generating back end: missing wide character string literal variables
+
+The C-generating back end generates initialized variables for wide
+character string literals.  When annotations are enabled in the
+generated C code (using, for example, the -d0 command line option),
+the back end sometimes placed such variables into the #if 0/#endif
+blocks used to display unneeded generated code even when the variables
+were, in fact, needed, resulting in compilation errors on the
+generated code.  This is now fixed.  For example, when code was
+generated for the following test case with the "-d0 --g++ --c++0x"
+command line options, the variable containing the L"zzz" constant
+appeared only inside a #if 0/#endif block.
+
+  template <class T> auto f(T x) -> decltype(x == L"zzz") {return true;}
+  void g() {
+    f(L"zzz");
+  }
+
+
 8/10/10  [EDGcpfe/10911]
 C++-generating back end: decl/expr ambiguity with value init operand
 
