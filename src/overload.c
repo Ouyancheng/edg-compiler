@@ -14246,6 +14246,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
   a_conv_descr local_conversion;
   an_operand   orig_operand;
   a_boolean    have_temp;
+  a_boolean    is_explicit_cast = FALSE;
 
   *err = FALSE;
   orig_operand = *source_operand;
@@ -14254,6 +14255,15 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     internal_error("convert_operand_into_temp: dest_type is reference");
   }  /* if */
 #endif /* CHECKING */
+  if (conversion != NULL &&
+      conversion->is_explicit_cast) {
+    /* Move the explicit cast from the conversion of the operand to the
+       temp-init itself.  This is particularly important as the
+       convert_operand call may not in fact add anything to the IL if
+       there's no type change. */
+    is_explicit_cast = TRUE;
+    conversion->is_explicit_cast = FALSE;
+  }  /* if */
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, 
                                     (a_boolean *)NULL, orig_dest_type,
@@ -14299,6 +14309,17 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     } else {
       /* Initialize a temporary with the converted value. */
       temp_init_from_operand(source_operand, /*result_is_lvalue=*/TRUE);
+    }  /* if */
+    if (is_explicit_cast) {
+      if (operand_is_temp_init(source_operand)) {
+        a_dynamic_init_ptr dip =
+                 source_operand->variant.expression->variant.init.dynamic_init;
+        dip->is_explicit_cast = TRUE;
+      } else if (is_error_operand(source_operand)) {
+        normalize_error_operand(source_operand);
+      } else {
+        unexpected_condition();
+      }  /* if */
     }  /* if */
     /* Handle base class casts and cv-qualifier adjustments, if any. */
     adjust_lvalue_type(source_operand, dest_type);
