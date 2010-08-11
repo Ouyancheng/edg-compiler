@@ -2900,7 +2900,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
          class template is being referenced in an elaborated type specifier
          or in some GNU C++ and Cfront cases. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
-        if (tag_sym->variant.type.ptr->kind ==
+        if (tag_sym->is_template_param ||
+            tag_sym->variant.type.ptr->kind ==
                                              (a_type_kind)tk_template_param) {
           /* Template param used in with a class-key -- for instance:
                template <class T> class A {
@@ -2920,7 +2921,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 	    a_type_ptr  proxy_type = proxy_class_for_template_param(
                                                    tag_sym->variant.type.ptr);
             proxy_type->kind = type_kind;
-            tag_sym = (a_symbol_ptr)proxy_type->source_corresp.assoc_info;
+            tag_sym = symbol_for(proxy_type);
             tag_sym->kind = tag_kind;
           }  /* if */
 #if CHECKING
