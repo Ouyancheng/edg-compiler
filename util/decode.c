@@ -2277,8 +2277,8 @@ static char *demangle_simple_type_name(
                                    a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
 /*
-Demangle a type name (or namespace name) consisting of a length followed
-by the name.  Return a pointer to the character position following what
+Demangle a type name (or namespace name) that can appear as part of a
+nested name.  Return a pointer to the character position following what
 was demangled.  The name is not a nested name, but it can have template
 arguments.  When temp_par_info != NULL, it points to a block that
 controls output of extra information on template parameters.
@@ -2295,13 +2295,16 @@ When base_name_only is TRUE, suppress any function-local information.
        context of a qualified name, so the caller will emit the requisite
        "::" string (this is basically treated as a null qualifier). */
     p++;
-  } else {
+  } else if (isdigit((unsigned char)get_char(p, dctl))) {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
     p = demangle_type_name_with_preceding_length(p, base_name_only,
                                                  (unsigned long)0,
                                                  (unsigned long *)NULL,
                                                  temp_par_info, dctl);
+  } else {
+    /* Presumably a decltype or typeof. */
+    p = demangle_type(p, dctl);
   }  /* if */
   return p;
 }  /* demangle_simple_type_name */
