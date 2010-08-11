@@ -7452,6 +7452,8 @@ a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
 /*
 Return TRUE unless there is any reason why type_ptr should not be added to
 the types-list for the scope associated with the indicated scope depth.
+The given type should have an associated symbol (e.g., it cannot be an "int"
+type or a template parameter type).
 Note: the type may already be on the list; this routine is also called when
 it's to be moved to another position in the list.
 */
@@ -7459,8 +7461,7 @@ it's to be moved to another position in the list.
   a_boolean                may_be_added = TRUE;
   a_scope_stack_entry_ptr  ssep = NULL;
 
-  if (is_or_contains_error_type(type_ptr) ||
-      ((a_symbol_ptr)type_ptr->source_corresp.assoc_info)->is_error) {
+  if (is_or_contains_error_type(type_ptr) || symbol_for(type_ptr)->is_error) {
     may_be_added = FALSE;
   } else if (is_immediate_class_type(type_ptr) ||
              is_immediate_enum_type(type_ptr)) {

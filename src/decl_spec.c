@@ -1608,8 +1608,8 @@ caution when modifying this routine.
           if (is_template_param_type_symbol(tag_sym)) {
             /* The tag is a template parameter type.  A diagnostic will have
                been issued in curr_tag_symbol.  This usage is still supported
-               in the front end although the feature is no longer permitted.
-               An error will have been issued in strict mode. */
+               in the front end although the feature is no longer permitted by
+               the standard.  An error will have been issued in strict mode. */
             goto done;
           } else {
             /* We should only get here in C++ mode. */
@@ -5011,7 +5011,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
      order.  Incomplete enums are added to the types list even though the
      actual definition has not yet appeared; however, it will be reentered
      on the list if and when the definition appears. */
-  if (may_be_added_to_types_list(enum_type, effective_decl_level)) {
+  if (!(tag_sym != NULL && tag_sym->is_template_param) &&
+      may_be_added_to_types_list(enum_type, effective_decl_level)) {
     if (!is_redeclaration) {
       /* This is the initial declaration of this enum type. */
       add_to_types_list(enum_type, effective_decl_level);
