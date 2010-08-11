@@ -15900,7 +15900,6 @@ initialization doing nothing should be suppressed.
   } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
     switch (con->variant.template_param.kind) {
       case tpck_sizeof:
-      case tpck_alignof:
         /* A sizeof doesn't have size effects, but more than that its
            expression is unevaluated and can't have side effects. */
         if (vla_enabled &&
@@ -15920,6 +15919,10 @@ initialization doing nothing should be suppressed.
         } else {
           tblock->suppress_subtree_walk = TRUE;
         }  /* if */
+        break;
+      case tpck_alignof:
+        /* Alignof doesn't ever evaluate its operands. */
+        tblock->suppress_subtree_walk = TRUE;
         break;
       default:
         break;
