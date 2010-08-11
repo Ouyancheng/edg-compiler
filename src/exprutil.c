@@ -2100,10 +2100,27 @@ cast in some modes.  orig_operand_expr can be NULL.
       expr = expr->variant.operation.operands;
     } else if (is_constant_node(expr)) {
       a_constant_ptr con = expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_template_param &&
-          con->variant.template_param.kind ==
+      an_expr_node_ptr next_expr = NULL;
+      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-        expr = con->variant.template_param.variant.expr;
+          next_expr = con->variant.template_param.variant.expr;
+        } else if (con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_cast &&
+                   !con->explicit_cast_applied) {
+          /* Look for an implicit tpck_cast over a tpck_expression.  In that
+             case we can skip the cast and continue with the expression. */
+          a_constant_ptr cast_op_con =
+                                  con->variant.template_param.variant.constant;
+          if (cast_op_con->kind == (a_constant_repr_kind)ck_template_param &&
+              cast_op_con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+            next_expr = cast_op_con->variant.template_param.variant.expr;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (next_expr != NULL) {
+        expr = next_expr;
       } else {
         goto end_of_loop;
       }  /* if */
@@ -2459,11 +2476,28 @@ that has it.
         expr = expr->variant.operation.operands;
       }  /* if */
     } else if (is_constant_node(expr)) {
-      a_constant_ptr con = expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_template_param &&
-          con->variant.template_param.kind ==
+      a_constant_ptr   con = expr->variant.constant;
+      an_expr_node_ptr next_expr = NULL;
+      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+        if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-        expr = con->variant.template_param.variant.expr;
+          next_expr = con->variant.template_param.variant.expr;
+        } else if (con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_cast &&
+                   !con->explicit_cast_applied) {
+          /* Look for an implicit tpck_cast over a tpck_expression.  In that
+             case we can skip the cast and continue with the expression. */
+          a_constant_ptr cast_op_con =
+                                  con->variant.template_param.variant.constant;
+          if (cast_op_con->kind == (a_constant_repr_kind)ck_template_param &&
+              cast_op_con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+            next_expr = cast_op_con->variant.template_param.variant.expr;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (next_expr != NULL) {
+        expr = next_expr;
       } else {
         goto end_of_loop;
       }  /* if */
