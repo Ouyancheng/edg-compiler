@@ -10639,8 +10639,10 @@ matches, a new argument list is returned in *new_arg_list.
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   /* The pending deduction count is incremented during the substitution
      process below to detect recursive calls of this routine. */
-  if (tssp->variant.function.pending_deductions <
+  if (tssp->variant.function.pending_deductions >=
                                                   max_pending_instantiations) {
+    *new_arg_list = NULL;
+  } else {
     ++(tssp->variant.function.pending_deductions);
     *new_arg_list = create_initial_template_arg_list(
                                            templ_param_list, templ_arg_list,
