@@ -120,6 +120,7 @@ typedef struct an_attr_descr {
 			           (similar to a "sizeof(...)" argument)
 			     "n": an identifier is expected
 			     "sn": a narrow string literal is expected
+			     "sx": a string literal is expected (wide/narrow)
 			     "*": an arbitrary set of tokens is expected
 			          (this can only be for the last argument)
 			   A code can be followed by a "+" to indicate that
@@ -278,7 +279,7 @@ static an_attr_descr known_attr_table[] = {
   /* Microsoft __declspec attributes. */
   { "align", "(ci)", "mx", ak_align },
   { "allocate", "(sn)", "mx", ak_section },
-  { "deprecated", "?(sn)", "mx", ak_deprecated },
+  { "deprecated", "?(sx)", "mx", ak_deprecated },
   { "dllexport", "", "mx", ak_dllexport },
   { "dllimport", "", "mx", ak_dllimport },
   { "implementation_key", "(ci)", "mx", ak_implementation_key },
@@ -1217,11 +1218,13 @@ Otherwise, return a pointer to the argument's representation.
 }  /* scan_attr_integer_constant_arg */
 
 
-static an_attribute_arg_ptr scan_attr_string_arg(an_attribute_ptr  ap)
+static an_attribute_arg_ptr scan_attr_string_arg(an_attribute_ptr  ap,
+                                                 a_boolean         narrow_only)
 /*
-A narrow string literal is expected next as an attribute argument.  If that's
-the case, return an aak_constant entry; otherwise, issue an error, set
-ap->kind to ak_unrecognized, and return NULL.
+A string literal is expected next as an attribute argument (if narrow_only is
+TRUE it must be a narrow string).  If that's the case, return an aak_constant
+entry; otherwise, issue an error, set ap->kind to ak_unrecognized, and return
+NULL.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
@@ -1230,7 +1233,8 @@ ap->kind to ak_unrecognized, and return NULL.
     if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
       /* A malformed string literal: An error has already been issued. */
       expect_error();
-    } else if (is_ordinary_string_constant(&const_for_curr_token)) {
+    } else if (!narrow_only ||
+               is_ordinary_string_constant(&const_for_curr_token)) {
       aap = alloc_attribute_arg();
       aap->kind = (an_attribute_arg_kind)aak_constant;
       aap->position = pos_curr_token;
@@ -1239,7 +1243,8 @@ ap->kind to ak_unrecognized, and return NULL.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       aap->variant.constant = alloc_shareable_constant(&const_for_curr_token);
     } else {
-      /* A wide string literal: Issue an error. */
+      /* A wide string literal where only a narrow one is expected:
+         Issue an error. */
       pos_error(ec_wide_string_not_allowed, &pos_curr_token);
     }  /* if */
     (void)get_token();
@@ -1457,10 +1462,13 @@ ak_unrecognized.
           /* Scan a string literal as an attribute argument. */
           if (*sig == 'n') {
             /* Scan a narrow string literal. */
-            *p_aap = scan_attr_string_arg(ap);
+            *p_aap = scan_attr_string_arg(ap, /*narrow_only=*/TRUE);
+            ++sig;
+          } else if (*sig == 'x') {
+            /* Scan any string literal. */
+            *p_aap = scan_attr_string_arg(ap, /*narrow_only=*/FALSE);
             ++sig;
           } else {
-            /* Wide string literals are currently not supported. */
             check_attr_config(FALSE, ap,
                               "invalid attribute signature configuration");
           }  /* if */
@@ -3839,14 +3847,17 @@ The given entity must be a variable, routine, type, or field.  Apply the
            argument. */
         report_bad_attribute_arg(aap, ap);
       } else {
-        char  *prev_str =
-                     deprecation_string_for((a_source_correspondence*)entity);
-        if (prev_str != NULL &&
-            strcmp(prev_str, cp->variant.string.value) != 0) {
-          /* Note that if multiple deprecated attributes were recorded,
-             deprecation_string_for will return the first. */
-          pos_remark(ec_decl_modifiers_incompatible_with_previous_decl,
-                     &aap->position);
+        an_attribute_ptr  prev_ap = deprecation_arg_attr_for(
+                                            (a_source_correspondence*)entity);
+        if (prev_ap != NULL) {
+          if (!eq_constants(prev_ap->arguments->variant.constant, cp)) {
+            /* Note that if multiple deprecated attributes were recorded,
+               deprecation_arg_attr_for will return the first. */
+            pos_remark(ec_decl_modifiers_incompatible_with_previous_decl,
+                       &aap->position);
+          }  /* if */
+        } else if (!is_ordinary_string_constant(cp)) {
+          pos_remark(ec_wide_deprecation_string, &aap->position);
         }  /* if */
       }  /* if */
     }  /* if */

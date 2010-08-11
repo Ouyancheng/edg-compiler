@@ -4109,6 +4109,9 @@ Return whether a given symbol is of a given kind.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern an_attribute_ptr deprecation_arg_attr_for(
+                                            a_source_correspondence_ptr  scp);
+
 extern char *deprecation_string_for(a_source_correspondence_ptr  scp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

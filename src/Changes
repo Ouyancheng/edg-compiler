@@ -1,5 +1,25 @@
 Version 4.2
 
+8/11/10  [EDGcpfe/10901]
+Microsoft compatibility: __declspec(deprecated(...)) with wide strings
+
+In Microsoft mode with microsoft_version >= 1400, the front end accepts
+__declspec(deprecated(...)) with a string literal argument (see the entry of
+11/9/05).  Before the introduction of the new general attributes framework
+(see entries of 1/25/10 and 12/3/09), wide string literal arguments were
+accidentally accepted, but they were treated as narrow strings containing the
+bytes of the wide-string encoding: Corresponding deprecation diagnostics were
+not correctly rendered.  For example:
+
+  __declspec(deprecated(L"Old")) int x;
+  int y = x;  // Previously triggered a strange diagnostic.
+
+This is now fixed.  Wide-string literal arguments are accepted with a remark
+in __declspec(deprecated(...)), and a corresponding diagnostic no longer
+attempts to render the wide string.  The general attributes framework
+correctly records the wide string in the IL (using an a_constant entry).
+
+
 8/11/10  [EDGcpfe/10919]
 C-generating back end: missing wide character string literal variables
 

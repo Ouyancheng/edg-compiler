@@ -11045,28 +11045,45 @@ declaration modifiers.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-char *deprecation_string_for(a_source_correspondence_ptr  scp)
+an_attribute_ptr deprecation_arg_attr_for(a_source_correspondence_ptr  scp)
 /*
-Return the string recorded for the "deprecated" attribute (if any) applied to
-the entity associated with scp.
+Return an attribute entry of kind ak_deprecated with an string argument (if
+any) applied to the entity associated with scp.
 */
 {
-  char  *result = NULL;
+  an_attribute_ptr  result = NULL;
 
   if (scp->is_deprecated) {
     an_attribute_ptr  ap = scp->attributes;
     for (; ap != NULL; ap = ap->next) {
       if (ap->kind == (a_byte_attribute_kind)ak_deprecated &&
           ap->arguments != NULL) {
-        a_constant_ptr  cp;
+        check_assertion(ap->arguments->next == NULL);
         check_assertion(ap->arguments->kind ==
                                          (an_attribute_arg_kind)aak_constant);
-        cp  = ap->arguments->variant.constant;
-        check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
-        result = cp->variant.string.value;
+        check_assertion(ap->arguments->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string);
+        result = ap;
         break;
       }  /* if */
     }  /* for */
+  }  /* if */
+  return result;
+}  /* deprecation_arg_attr_for */
+
+
+char *deprecation_string_for(a_source_correspondence_ptr  scp)
+/*
+Return the value of the narrow string literal recorded for the "deprecated"
+attribute (if any) applied to the entity associated with scp.
+*/
+{
+  an_attribute_ptr  ap = deprecation_arg_attr_for(scp);
+  char              *result = NULL;
+
+  if (ap != NULL &&
+      is_ordinary_string_constant(ap->arguments->variant.constant)) {
+    result = ap->arguments->variant.constant->variant.string.value;
   }  /* if */
   return result;
 }  /* deprecation_string_for */
