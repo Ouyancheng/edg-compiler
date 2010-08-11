@@ -1220,8 +1220,8 @@ Otherwise, return a pointer to the argument's representation.
 static an_attribute_arg_ptr scan_attr_string_arg(an_attribute_ptr  ap)
 /*
 A narrow string literal is expected next as an attribute argument.  If that's
-the case, return an aak_token entry; otherwise, issue an error, set ap->kind
-to ak_unrecognized, and return NULL.
+the case, return an aak_constant entry; otherwise, issue an error, set
+ap->kind to ak_unrecognized, and return NULL.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
