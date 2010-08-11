@@ -80,7 +80,7 @@ will only be set for 95/98/NT.
 #define EDG_MSDOS 1
 #else /* !(defined(MSDOS) || defined(__MSDOS__)) */
 #define EDG_MSDOS 0
-#endif /* (defined(MSDOS) || defined(__MSDOS__)) */
+#endif /* defined(MSDOS) || defined(__MSDOS__) */
 #endif /* ifdef EDG_MSDOS */
 
 /*
@@ -93,7 +93,7 @@ file name manipulation routines), and so can just test this flag.
 #define __MICROSOFT_OS__ 1
 #else /* !(EDG_WIN32 || EDG_MSDOS) */
 #define __MICROSOFT_OS__ 0
-#endif /* !(EDG_WIN32 || EDG_MSDOS) */
+#endif /* EDG_WIN32 || EDG_MSDOS */
 #endif /* ifndef __MICROSOFT_OS__ */
 
 /*
