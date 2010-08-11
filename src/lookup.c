@@ -3944,10 +3944,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 
   db_enter(4, "class_qualified_id_lookup");
   /* Remove any typedef on the class type. */
-  class_type = skip_typerefs(class_type);
-  if (class_type->kind == (a_type_kind)tk_template_param) {
+  class_type = skip_typerefs_not_dependent_decltypes(class_type);
+  if (class_type->kind == (a_type_kind)tk_template_param ||
+      class_type->kind == (a_type_kind)tk_typeref) {
     /* We are looking up a name in a template parameter that is being used
-       as a class (e.g., T::X, where T is a template parameter).  Each
+       as a class (e.g., T::X, where T is a template parameter) or a
+       dependent decltype that is being used as a class.  Each
        template parameter that is used as a class has a "proxy class"
        created for it that contains a list of member names that have
        been looked up in the class.  Any name that is looked up in the
