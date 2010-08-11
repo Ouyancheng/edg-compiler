@@ -8390,6 +8390,10 @@ problems.
           !is_const_string_literal_cast(operand)))) {
       operand = operand->variant.operation.operands;
       operand_changed = TRUE;
+    } else if (is_constant_node(operand) &&
+               constant_should_be_put_out_as_expr(operand->variant.constant)) {
+      operand = operand->variant.constant->expr;
+      operand_changed = TRUE;
     } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
       if (operand->variant.init.dynamic_init->kind ==
                                          (a_dynamic_init_kind)dik_expression ||

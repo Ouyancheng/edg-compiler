@@ -1,7 +1,7 @@
 Version 4.2
 
 8/10/10  [EDGcpfe/10911]
-C++-generating back end: incorrect sizeof syntax with value init operand
+C++-generating back end: decl/expr ambiguity with value init operand
 
 The C++-generating back end formerly enclosed all operands of the sizeof
 operator in parentheses.  This resulted in incorrect generated code when
@@ -18,6 +18,13 @@ operand is a dynamic initialization.  For example:
     int i;
     i = sizeof I();   // Previously generated as "sizeof(I())"
   }
+
+A similar issue sometimes occurred in other contexts, where extra
+parentheses required the expression to be interpreted as a cast.  This is
+also now fixed by omitting the extra parentheses.  For example:
+
+  typedef short T;
+  int i = T() + 1;   // Previously generated as "((T()) + 1)"
 
 
 8/10/10  [EDGcpfe/10910]
