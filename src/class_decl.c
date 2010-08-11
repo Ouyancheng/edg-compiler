@@ -14635,7 +14635,8 @@ function definition and cache its tokens if appropriate.
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rout_sym->variant.routine.ptr->never_inline) {
     /* An in-class definition may have been declared with the "noinline"
-       attribute. */
+       attribute.  (Note: The Microsoft __declspec(noinline) attribute does
+       not make a function non-inline.) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (rout_sym->variant.routine.ptr->is_inline) {
     /* The usual case: In-class member function definitions are

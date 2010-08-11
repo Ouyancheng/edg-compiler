@@ -2737,6 +2737,16 @@ Display the indicated routine.
   if (ptr->is_in_class_specialization) {
     disp_boolean("is_in_class_specialization", TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->never_inline) {
+    disp_boolean("never_inline", TRUE);
+  }  /* if */
+#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_naked) {
+    disp_boolean("is_naked", TRUE);
+  }  /* if */
+#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->declared_only_as_friend) {
     disp_boolean("declared_only_as_friend", TRUE);
@@ -2778,19 +2788,11 @@ Display the indicated routine.
   if (ptr->allocates_memory) {
     disp_boolean("allocates_memory", TRUE);
   }  /* if */
-#if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->is_naked) {
-    disp_boolean("is_naked", TRUE);
-  }  /* if */
-#endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->no_instrument_function) {
     disp_boolean("no_instrument_function", TRUE);
   }  /* if */
   if (ptr->no_check_memory_usage) {
     disp_boolean("no_check_memory_usage", TRUE);
-  }  /* if */
-  if (ptr->never_inline) {
-    disp_boolean("never_inline", TRUE);
   }  /* if */
   if (ptr->always_inline) {
     disp_boolean("always_inline", TRUE);
