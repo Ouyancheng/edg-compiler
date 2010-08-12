@@ -12374,7 +12374,7 @@ C++ mode.
   if (is_template_dependent_context() &&
       (f_skip_typerefs(source_operand->type)->
                                  variant.class_struct_union.is_nonreal_class ||
-       (dest_type != NULL && is_template_dependent_type(dest_type)))) {
+       (dest_type != NULL && is_instantiation_dependent_type(dest_type)))) {
     /* Assume a conversion to or from an unknown type in a prototype
        instantiation is allowed. */
     okay = TRUE;
