@@ -16,6 +16,7 @@ by edg_prelink.
 
 #include <basics.h>
 #include <stdio.h>
+#include <assert.h>
 
 #ifdef DEBUG
 #undef DEBUG
@@ -176,6 +177,7 @@ void process_file(char *file_to_process)
 
     in_text_section = FALSE;
     while (read_input_line()) {
+      int	line_offset = 0;
       /* Each object file is terminated by a "STRING TABLE" entry. */
       if (strncmp(input_line_buffer, "STRING TABLE", 12) == 0) break;
       /* Ignore lines that begin with a blank.  These are continution lines. */
@@ -193,6 +195,7 @@ void process_file(char *file_to_process)
 00D 00000000 UNDEF  notype ()    External     | __main
 00B 00000000 ___curr_eh_stack_entry           UNDEF notype       External
 00C 0000006E ___vec_new_eh                    SECT3 notype ()    External
+1000 0000006E ___vec_new_eh                    SECT3 notype ()    External
 
       */
       /* Get the identifier name from the line. */
@@ -209,6 +212,16 @@ void process_file(char *file_to_process)
       }  /* if */
       /* Find the first nonblank after the end of the name. */
       ptr = &input_line_buffer[0];
+      /* Find the first blank after the sequence number.  Use that to adjust
+         the line pointer to the position expected for the other fields. */
+      { char	*blank_pos;
+        blank_pos = strchr(ptr, ' ');
+        if (blank_pos != NULL) {
+          line_offset = blank_pos - ptr - 3;
+          assert(line_offset >= 0);
+          ptr += line_offset;
+        }  /* if */
+      }
       status = &ptr[13];   /* UNDEF or SECT3 in the example. */
       type = &ptr[20];     /* notype in the example. */
       func = &ptr[27];    /* () or "  " in the example. */
