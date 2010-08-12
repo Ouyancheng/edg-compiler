@@ -2456,9 +2456,13 @@ the scope being pushed.
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;
   ssep->outside_parameter_list = FALSE;
+  /* The in_template_arg_list flag indicates whether we're currently scanning
+     tokens inside angle brackets.  If we push a scope that implies a new
+     source of tokens (e.g., a template instantiation), clear the flag. */
   if (kind == (a_scope_kind)sck_file ||
       kind == (a_scope_kind)sck_template_instantiation ||
-      kind == (a_scope_kind)sck_instantiation_context) {
+      kind == (a_scope_kind)sck_instantiation_context ||
+      kind == (a_scope_kind)sck_pragma) {
     ssep->in_template_arg_list = FALSE;
   } else {
     ssep->in_template_arg_list = (ssep-1)->in_template_arg_list;
