@@ -1405,7 +1405,8 @@ TRUE.
           /* A zero-length array (a GNU extension).  This is different from a
              flexible array, in that no initializers are allowed for it.
              (Note, this could include a type like "int[3][0]".) */
-          check_assertion(num_array_elements(type) == 0);
+          check_assertion(scope_stack_top().in_prototype_instantiation ||
+                          num_array_elements(type) == 0);
           *any_more_members = FALSE;
         }  /* if */
       }  /* if */
