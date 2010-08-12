@@ -1226,10 +1226,37 @@ position following what was demangled.
     /* For casts, sizeof, __alignof__, __uuidof__, typeid, or new get 
        the type. */
     if (takes_type) {
-      if (strcmp(operator_str, "sizeof(") == 0 ||
-          strcmp(operator_str, "__alignof__(") == 0 ||
-          strcmp(operator_str, "__uuidof(") == 0 ||
-          strcmp(operator_str, "typeid(") == 0) {
+      if (strcmp(operator_str, "cast") == 0) {
+        char *num_args_ptr;
+        /* A "cast" can have zero or more operands (aside from the type).
+           For casts with exactly one operand, emit "(type)arg", but for
+           other cases, emit the functional-notation type conversion syntax:
+           "type(args)".  Look ahead at the number of arguments to determine
+           which case we have. */
+        dctl->suppress_id_output++;
+        num_args_ptr = demangle_type(p, dctl);
+        dctl->suppress_id_output--;
+        (void)get_number_with_optional_underscore(num_args_ptr,
+                                                  &num_operands, dctl);
+        if (!dctl->err_in_id) {
+          operator_str = "";
+          if (num_operands == 1) {
+            /* Output as "(type)arg". */
+            write_id_ch('(', dctl);
+            p = demangle_type(p, dctl);
+            write_id_ch(')', dctl);
+          } else {
+            /* Output as "type(args)". */
+            p = demangle_type(p, dctl);
+            write_id_ch('(', dctl);
+            has_variable_number_of_operands = TRUE;
+            close_str = ")";
+          }  /* if */
+        }  /* if */
+      } else if (strcmp(operator_str, "sizeof(") == 0 ||
+                 strcmp(operator_str, "__alignof__(") == 0 ||
+                 strcmp(operator_str, "__uuidof(") == 0 ||
+                 strcmp(operator_str, "typeid(") == 0) {
         /* These manglings have three forms, dependent on the next character
            in the mangled name.  They're sufficiently different that they
            are handled (mostly separately) here. */
@@ -1255,22 +1282,10 @@ position following what was demangled.
           write_id_ch(')', dctl);
         }  /* if */
       } else {
-        if (strcmp(operator_str, "cast") == 0) {
-          write_id_ch('(', dctl);
-          operator_str = "";
-        } else if (strcmp(operator_str, "conversion") == 0) {
-          /* Let the type be emitted first. */
-        } else {
-          write_id_str(operator_str, dctl);
-        }  /* if */
+        /* Generic processing of items that take a type (e.g., static_cast). */
+        write_id_str(operator_str, dctl);
         p = demangle_type(p, dctl);
-        if (strcmp(operator_str, "conversion") == 0) {
-          /* Output as "type(args)". */
-          operator_str = "";
-          write_id_ch('(', dctl);
-          close_str = ")";
-          has_variable_number_of_operands = TRUE;
-        } else if (is_new_style_cast) {
+        if (is_new_style_cast) {
           /* Something like static_cast<type>(expression).  The operator and
              type have been emitted, close the type with a right angle
              bracket and parse the expression below. */
@@ -1721,9 +1736,6 @@ not an operator encoding, return NULL.
     *takes_type = TRUE;
   } else if (start_of_id_is("cs", ptr, dctl)) {
     s = "cast";
-    *takes_type = TRUE;
-  } else if (start_of_id_is("op", ptr, dctl)) {
-    s = "conversion";
     *takes_type = TRUE;
   } else if (start_of_id_is("af", ptr, dctl)) {
     s = "__alignof__(";

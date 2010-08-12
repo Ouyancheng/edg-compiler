@@ -1834,7 +1834,11 @@ to the type "type".  This is used for template-dependent casts.
        type cast to. */
     mangled_encoding_for_type(type, mctl);
     /* Put out the count of operands. */
-    add_to_mangled_name('1', mctl);
+#if ABI_COMPATIBILITY_VERSION >= 402
+    store_digits_and_underscore((unsigned long)1, /*old_form=*/FALSE, mctl);
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
+    store_digits_and_underscore((unsigned long)1, /*old_form=*/TRUE, mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   }  /* if */
 #else /* IA64_ABI */
   /* IA-64 encoding.  "cv" is the operator for a cast.  Implicit casts
@@ -4773,7 +4777,7 @@ static_cast.  Compound literals are not handled at this time.
     check_assertion(num_operands == 1);
     str = MANGLING_STRING_FOR_STATIC_CAST;
   } else {
-    str = MANGLING_STRING_FOR_CONVERSION_FUNC;
+    str = MANGLING_STRING_FOR_CAST;
   }  /* if */
 #if IA64_ABI
   add_str_to_mangled_name(str, mctl);
@@ -4790,12 +4794,12 @@ static_cast.  Compound literals are not handled at this time.
   }  /* if */
 #else /* !IA64_ABI */
   /* Conversion.  Output has the form
-       Oop1A_1_I1IO <-- encoding for "A(p1)"
+       Ocs1A_1_I1IO <-- encoding for "A(p1)"
                   ^---- "O" to end the operation encoding.
                ^^^----- Argument(s) to conversion.
             ^^^-------- Argument count.
           ^^----------- Type to convert to.
-        ^^------------- Conversion operation.
+        ^^------------- Conversion operation ("cs" or "sc").
        ^--------------- "O" for operation.
   */
   add_to_mangled_name('O', mctl);
