@@ -413,68 +413,6 @@ copy address pointer to point to the copy.
 }  /* copy_string_entry */
 
 
-/*
-Fix the indicated "last" pointer in a pointers block for a namespace
-by remapping it to the corresponding primary IL address.  In the
-case where the last entry was not copied, recompute the last pointer
-by running through the list from the start.
-*/
-#define fix_last_pointer(last_ptr, first_ptr, ptr_type, kind) \
-{ if ((last_ptr) != NULL) { \
-    if (!entry_to_be_merged(last_ptr)) { \
-      (last_ptr) = (ptr_type)primary_il_entry_of((char *)(last_ptr), (kind)); \
-    } else { \
-      ptr_type ptr = (first_ptr); \
-      if (ptr != NULL) { \
-        while (ptr->next != NULL) ptr = ptr->next; \
-      }  /* if */ \
-      (last_ptr) = ptr; \
-    }  /* if */ \
-  }  /* if */ \
-}  /* fix_last_pointer */
-
-
-static void update_namespace_pointers_block(
-                                       a_scope_ptr            scope,
-                                       a_scope_pointers_block *pointers_block)
-/*
-scope is the primary translation unit scope for a namespace that has been
-copied to the primary IL rather than merged.  Update its pointers block so
-that its last-pointers point to the copied entries in the primary IL.
-Note that the pointers block cannot just be gotten by calling
-get_pointers_block_for_scope on the given scope, because some entities
-pointed to by scope (and used by get_pointers_block) may not have been
-fully copied over yet.
-*/
-{
-  check_assertion(pointers_block != NULL);
-  fix_last_pointer(pointers_block->last_constant, scope->constants,
-                   a_constant_ptr, iek_constant);
-  fix_last_pointer(pointers_block->last_type, scope->types,
-                   a_type_ptr, iek_type);
-  fix_last_pointer(pointers_block->last_variable, scope->variables,
-                   a_variable_ptr, iek_variable);
-  fix_last_pointer(pointers_block->last_routine, scope->routines,
-                   a_routine_ptr, iek_routine);
-  fix_last_pointer(pointers_block->last_asm_entry, scope->asm_entries,
-                   an_asm_entry_ptr, iek_asm_entry);
-  fix_last_pointer(pointers_block->last_dynamic_init, scope->dynamic_inits,
-                   a_dynamic_init_ptr, iek_dynamic_init);
-  fix_last_pointer(pointers_block->last_namespace, scope->namespaces,
-                   a_namespace_ptr, iek_namespace);
-  fix_last_pointer(pointers_block->last_using_decl, scope->using_decls,
-                   a_using_decl_ptr, iek_using_decl);
-  fix_last_pointer(pointers_block->last_pragma, scope->pragmas,
-                   a_pragma_ptr, iek_pragma);
-  fix_last_pointer(pointers_block->last_template, scope->templates,
-                   a_template_ptr, iek_template);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  fix_last_pointer(pointers_block->last_ms_attribute, scope->ms_attributes,
-                   an_ms_attribute_ptr, iek_ms_attribute);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* update_namespace_pointers_block */
-
-
 static void copy_entry(char             *ptr,
                        an_il_entry_kind kind)
 /*
@@ -563,13 +501,6 @@ and remap the pointers in the copy.
   } else if (kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)copy;
     scope->scope_orphaned_list_header_generated = FALSE;
-    if (scope->kind == (a_scope_kind)sck_namespace) {
-      /* Update the pointers block for a namespace scope that has been
-         copied (not merged). */
-      a_scope_pointers_block  *block = get_pointers_block_for_scope(
-                                                            (a_scope_ptr)ptr);
-      update_namespace_pointers_block(scope, block);
-    }  /* if */
 #if DO_IL_LOWERING
   } else if (kind == iek_class_type_supplement) {
     a_class_type_supplement_ptr ctsp = (a_class_type_supplement_ptr)copy;
@@ -596,6 +527,91 @@ primary translation unit IL.
                      /*clear_fe_pointers=*/FALSE);
   db_exit();
 }  /* copy_from_secondary_to_primary_IL */
+
+
+/*
+Fix the indicated "last" pointer in a pointers block for a namespace
+by remapping it to the corresponding primary IL address.  In the
+case where the last entry was not copied, recompute the last pointer
+by running through the list from the start.
+*/
+#define fix_last_pointer(last_ptr, first_ptr, ptr_type, kind) \
+{ if ((last_ptr) != NULL) { \
+    if (!entry_to_be_merged(last_ptr)) { \
+      (last_ptr) = (ptr_type)primary_il_entry_of((char *)(last_ptr), (kind)); \
+    } else { \
+      ptr_type ptr = (first_ptr); \
+      if (ptr != NULL) { \
+        while (ptr->next != NULL) ptr = ptr->next; \
+      }  /* if */ \
+      (last_ptr) = ptr; \
+    }  /* if */ \
+  }  /* if */ \
+}  /* fix_last_pointer */
+
+
+static void update_namespace_pointers_block(a_scope_ptr scope)
+/*
+scope is the secondary translation unit scope for a namespace that has been
+copied to the primary IL rather than merged.  Update its pointers block (which
+should be shared with the primary IL copy) so that its last-pointers point
+to the copied entries in the primary IL.  The pointers block is a
+front-end-only data structure, not one in the IL.
+*/
+{
+  a_scope_pointers_block *pointers_block = get_pointers_block_for_scope(scope);
+
+  check_assertion(pointers_block != NULL);
+  scope = (a_scope_ptr)primary_il_entry_of((char *)scope, iek_scope);
+  check_assertion(pointers_block == get_pointers_block_for_scope(scope));
+  fix_last_pointer(pointers_block->last_constant, scope->constants,
+                   a_constant_ptr, iek_constant);
+  fix_last_pointer(pointers_block->last_type, scope->types,
+                   a_type_ptr, iek_type);
+  fix_last_pointer(pointers_block->last_variable, scope->variables,
+                   a_variable_ptr, iek_variable);
+  fix_last_pointer(pointers_block->last_routine, scope->routines,
+                   a_routine_ptr, iek_routine);
+  fix_last_pointer(pointers_block->last_asm_entry, scope->asm_entries,
+                   an_asm_entry_ptr, iek_asm_entry);
+  fix_last_pointer(pointers_block->last_dynamic_init, scope->dynamic_inits,
+                   a_dynamic_init_ptr, iek_dynamic_init);
+  fix_last_pointer(pointers_block->last_namespace, scope->namespaces,
+                   a_namespace_ptr, iek_namespace);
+  fix_last_pointer(pointers_block->last_using_decl, scope->using_decls,
+                   a_using_decl_ptr, iek_using_decl);
+  fix_last_pointer(pointers_block->last_pragma, scope->pragmas,
+                   a_pragma_ptr, iek_pragma);
+  fix_last_pointer(pointers_block->last_template, scope->templates,
+                   a_template_ptr, iek_template);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  fix_last_pointer(pointers_block->last_ms_attribute, scope->ms_attributes,
+                   an_ms_attribute_ptr, iek_ms_attribute);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* update_namespace_pointers_block */
+
+
+static void update_namespace_last_pointers(a_scope_ptr scope)
+/*
+scope is a file scope or namespace scope for a secondary translation unit
+that has just been processed in a copy to the primary IL.  For each namespace
+at or under the indicated scope, update the "last" pointers in its pointers
+block now that all the copies have been done.  
+*/
+{
+  if (scope->kind == (a_scope_kind)sck_namespace) {
+    if (!entry_to_be_merged(scope)) {
+      update_namespace_pointers_block(scope);
+    }  /* if */
+  }  /* if */
+  { a_namespace_ptr nsp;
+    for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+      if (!nsp->is_namespace_alias) {
+        update_namespace_last_pointers(nsp->variant.assoc_scope);
+      }  /* if */
+    }  /* for */
+  }
+}  /* update_namespace_last_pointers */
 
 
 static void move_routine_body_to_primary(a_routine_ptr routine)
@@ -1007,6 +1023,31 @@ must be merged in.
 }  /* merge_attributes */
 
 
+static void merge_name_reference_lists(a_source_correspondence *expiring_scp,
+                                       a_source_correspondence *surviving_scp)
+/*
+Merge the name reference list from the expiring_scp into the surviving_scp.
+*/
+{
+  a_name_reference_ptr nrpe = expiring_scp->name_references;
+  a_name_reference_ptr nrps = surviving_scp->name_references;
+
+  if (nrpe != NULL) {
+    if (nrps == NULL) {
+      /* The surviving scp has no list presently, so just transfer the list
+         from the expiring scp. */
+      surviving_scp->name_references = nrpe;
+    } else {
+      /* Both have lists, so find the end of the surviving list and concatenate
+         the two. */
+      while (nrps->next != NULL) nrps = nrps->next;
+      nrps->next = nrpe;
+    }  /* if */
+    expiring_scp->name_references = NULL;
+  }  /* if */
+}  /* merge_name_reference_lists */
+
+
 static void merge_entity_details(a_source_correspondence *expiring_scp,
                                  a_source_correspondence *surviving_scp)
 /*
@@ -1015,6 +1056,7 @@ must be merged in.  For example, merge the lists of attributes, if any.
 */
 {
   merge_attributes(expiring_scp, surviving_scp);
+  merge_name_reference_lists(expiring_scp, surviving_scp);
 }  /* merge_entity_details */
 
 
@@ -2891,6 +2933,8 @@ therefore will not be copied.
 #endif /* DEBUG */
     top_scope = il_header.primary_scope;
     copy_from_secondary_to_primary_IL();
+    /* Update "last" pointers in any namespaces copied. */
+    update_namespace_last_pointers(top_scope);
     /* Also remap pointers in bodies of functions. */
     copy_function_bodies_from_secondary_to_primary_IL(top_scope);
 #if DEBUG
@@ -3169,11 +3213,16 @@ primary IL.
               break;
             case iek_template_arg:
             case iek_attribute:
+            case iek_name_reference:
+            case iek_name_qualifier:
               break;
             default:
               err = TRUE;
           }  /* switch */
           if (err) {
+#if CHECKING && DEBUG
+            fprintf(f_debug, "entry kind = %s\n", il_entry_kind_names[kind]);
+#endif /* CHECKING && DEBUG */
             unexpected_condition_str(
      "remap_secondary_pointer_for_rewrite: missing primary IL correspondence");
           }  /* if */

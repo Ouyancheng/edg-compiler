@@ -507,10 +507,12 @@ Process the source correspondence field pointed to by ptr.
 */
 #undef walk_source_corresp
 #if NEEDED_FLAG_WALK
+/* Note intentional use of walk_ptr not walk_list for name references, because
+  of issues with export creating lists that run between translation units. */
 #define walk_source_corresp(ptr) \
 { \
   remap_parent(ptr); \
-  walk_list((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
+  walk_ptr((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
 }  /* walk_source_corresp */
 #else /* !NEEDED_FLAG_WALK */
 #undef walk_unmangled_name
@@ -548,7 +550,8 @@ Process the source correspondence field pointed to by ptr.
   conditionally_clear_fe_pointer((ptr).assoc_info); \
   walk_per_instantiation_needed_flags(ptr); \
   walk_decl_position_supplement(ptr); \
-  walk_list((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
+  /* See note above. */ \
+  walk_ptr((ptr).name_references, a_name_reference_ptr, iek_name_reference) \
   walk_list((ptr).attributes, an_attribute_ptr, iek_attribute); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
@@ -2030,7 +2033,10 @@ do_set_proper_definition_needed_flag:
     case iek_name_reference:
       {
         a_name_reference_ptr ptr = (a_name_reference_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_name_reference_ptr, iek_name_reference);
+        /* Note intentional use of walk_ptr instead of remap_next_ptr, because
+           of issues with export creating lists that run between translation
+           units. */
+        walk_ptr(ptr->next, a_name_reference_ptr, iek_name_reference);
         if (ptr->qualifier != NULL) {
           clear_or_walk_name_reference_field(ptr, ptr->qualifier,
                                              a_name_qualifier_ptr,
@@ -2944,9 +2950,8 @@ after_entry_from_class:
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
-        remap_ptr(ptr->name_reference, a_name_reference_ptr,
-                  iek_name_reference);
-
+        walk_ptr(ptr->name_reference, a_name_reference_ptr,
+                 iek_name_reference);
         walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
