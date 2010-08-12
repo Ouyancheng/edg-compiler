@@ -2766,7 +2766,9 @@ qualifiers seen so far (and is typically set to one by the initial caller).
         add_to_mangled_name('N', mctl);
         *need_close = TRUE;
       }  /* if */
-      mangled_encoding_for_type(skip_typerefs((a_type_ptr)scp), mctl);
+      /* Make sure we skip any aliases, but not any dependent decltypes. */
+      mangled_encoding_for_type(skip_typerefs_not_dependent_decltypes(
+                                                       (a_type_ptr)scp), mctl);
       scp = NULL;
     } else {
       /* We're not using an <unresolved-type>, so we need a closing 'E'. */
