@@ -11348,17 +11348,17 @@ source and the expression is generated in that form.
       /* Normal case: functional notation cast, e.g., X(y, z). */
       gen_type_reference(init_entity_type);
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
-        /* A zero initialization with an unnamed type can't be put out
-           directly as an old-style cast (it has zero arguments), but it
-           can't be put out as a function-style cast either because the
-           type does not have a name.  (This case arises in template
-           instances that are being put out as explicit specializations:
-           the template definition had something like T(), but the type
-           substituted for T in the instance does not have a name.)  If the
-           cv-unqualified version of the type has a name, we'll use that
-           for a functional-notation cast and add a cast to the
-           cv-qualified type (see below); otherwise, we'll use an old-style
-           cast of a constant 0 to the target type. */
+      /* A zero initialization with an unnamed type can't be put out
+         directly as an old-style cast (it has zero arguments), but it
+         can't be put out as a function-style cast either because the
+         type does not have a name.  (This case arises in template
+         instances that are being put out as explicit specializations:
+         the template definition had something like T(), but the type
+         substituted for T in the instance does not have a name.)  If the
+         cv-unqualified version of the type has a name, we'll use that
+         for a functional-notation cast and add a cast to the
+         cv-qualified type (see below); otherwise, we'll use an old-style
+         cast of a constant 0 to the target type. */
       a_type_ptr unqual_type = skip_typerefs(init_entity_type);
       using_old_style_cast = TRUE;
       if (!has_name_before_mangling(unqual_type)) {
