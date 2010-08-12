@@ -1594,14 +1594,17 @@ type "type".
 #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
                                                              ;
            existing_param = existing_param->next, existing_param_num++) {
-        if (types_are_compatible(existing_param->type, param->type)) {
+        if (f_types_are_compatible(existing_param->type, param->type,
+                                   TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
           /* Found a type that is being reused.  See if there are more
              instances following this one, in which case we can use the "Nmn"
              encoding.  Stop when 9 matches are found, since that's the most
              that can be encoded in a single "Nmn" sequence. */
           for (num_matching_types = 1;
                num_matching_types < 9 && param->next != NULL &&
-                 types_are_compatible(existing_param->type, param->next->type);
+                 f_types_are_compatible(existing_param->type,
+                                        param->next->type,
+                                       TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED);
                num_matching_types++, param = param->next) {}
           if (num_matching_types == 1) {
             /* Only one match, so use the "Tn" form. */
