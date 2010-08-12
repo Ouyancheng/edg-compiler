@@ -1,5 +1,20 @@
 Version 4.2
 
+8/12/10  [EDGcpfe/10927]
+No use of Microsoft property fields as objectless nonstatic member references
+
+The language feature that allows use of nonstatic data members without an
+associated object within unevaluated expressions (see EDGcpfe/8402 below)
+should not have allowed Microsoft property fields, since they don't have
+associated storage.  An attempt at such a thing formerly caused an abort.
+Now, such references produce an error.
+
+  struct A {
+    __declspec(property(get=f)) int i;
+  };
+  int i = sizeof(A::i);  // Error now in Microsoft mode
+
+
 8/11/10  [EDGcpfe/10901]
 Microsoft compatibility: __declspec(deprecated(...)) with wide strings
 

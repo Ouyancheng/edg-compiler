@@ -20824,7 +20824,9 @@ normal_function:
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
               if (curr_expr_is_potentially_unevaluated() &&
-                  !variable_this_exists(&var_ptr)) {
+                  !variable_this_exists(&var_ptr) &&
+                  sym_ptr->variant.field.ptr->get_property_name == NULL &&
+                  sym_ptr->variant.field.ptr->put_property_name == NULL) {
                 /* Some modes allow a use of a nonstatic data member
                    without an available "this" inside a sizeof and other
                    unevaluated contexts.  Use a zero pointer instead of
