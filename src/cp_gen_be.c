@@ -11427,7 +11427,7 @@ source and the expression is generated in that form.
         write_tok_ch('(');
         gen_cast(init_entity_type);
       }  /* if */
-      if (!has_one_argument && !unnamed_type_case) {
+      if (!has_one_argument && !unnamed_type_case && !is_static_cast) {
         /* If the initialization doesn't have exactly one argument, use
            an unqualified functional-notation type conversion inside the
            old-style cast, e.g., ((const X)X(1, 2)).  This may modify the
