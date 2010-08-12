@@ -27,7 +27,44 @@ This version is for the Apple MacOS X operating system.
 #endif /* ifdef DEMO_VERSION */
 
 /* Configuration definitions determined by dettarg.c: */
+#ifdef __x86_64__
+#define TARG_SIZEOF_LONG 8
+#define TARG_ALIGNOF_LONG 8
+#define TARG_SIZEOF_POINTER 8
+#define TARG_ALIGNOF_POINTER 8
+#define TARG_ALIGNOF_DOUBLE 8
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
+#define HOST_ALIGNMENT_REQUIRED 8
+#define TARG_ALIGNOF_LONG_LONG 8
+#else /* ifndef __x86_64__ */
+#define TARG_SIZEOF_LONG 4
+#define TARG_ALIGNOF_LONG 4
+#define TARG_SIZEOF_POINTER 4
+#define TARG_ALIGNOF_POINTER 4
+#define TARG_ALIGNOF_DOUBLE 4
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
+#define HOST_ALIGNMENT_REQUIRED 4
+#define TARG_ALIGNOF_LONG_LONG 4
+#endif /* ifdef __x86_64__ */
+#ifdef __ppc__
 #define TARG_LITTLE_ENDIAN FALSE
+#define TARG_JMP_BUF_NUM_ELEMENTS 192
+#define TARG_SIZEOF_LONG_DOUBLE 8
+#define TARG_ALIGNOF_LONG_DOUBLE 4
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#else /* ifndef __ppc__ */
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_ALIGNOF_LONG_DOUBLE 16
+#define TARG_LITTLE_ENDIAN TRUE
+#ifdef __x86_64__
+#define TARG_JMP_BUF_NUM_ELEMENTS 37
+#else /* ifndef __x86_64__ */
+#define TARG_JMP_BUF_NUM_ELEMENTS 18
+#endif /* ifdef __x86_64__ */
+#endif /* ifndef __ppc__ */
+
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_CHAR_BIT 8
 #define TARG_HAS_SIGNED_CHARS TRUE
 #define TARG_CHAR_CONSTANT_FIRST_CHAR_MOST_SIGNIFICANT TRUE
@@ -35,27 +72,15 @@ This version is for the Apple MacOS X operating system.
 #define TARG_ALIGNOF_SHORT 2
 #define TARG_SIZEOF_INT 4
 #define TARG_ALIGNOF_INT 4
-#define TARG_SIZEOF_LONG 4
-#define TARG_ALIGNOF_LONG 4
-#define TARG_SIZEOF_POINTER 4
-#define TARG_ALIGNOF_POINTER 4
 #define TARG_SIZEOF_FLOAT 4
 #define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
-#define TARG_ALIGNOF_DOUBLE 4
-#define TARG_SIZEOF_LONG_DOUBLE 8
-#define TARG_ALIGNOF_LONG_DOUBLE 4
-#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #endif
-#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
-#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
-#define HOST_ALIGNMENT_REQUIRED 4
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
-#define TARG_JMP_BUF_NUM_ELEMENTS 192
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 #define ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS 1
 
@@ -80,9 +105,10 @@ This version is for the Apple MacOS X operating system.
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 1
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
-#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE 1
 #if defined(__i386__)
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
+#elif defined(__x86_64__)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
 #elif defined(__ppc__)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
