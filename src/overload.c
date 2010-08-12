@@ -14256,11 +14256,13 @@ be a reference type.  Only used in C++.  This is copy-initialization.
   }  /* if */
 #endif /* CHECKING */
   if (conversion != NULL &&
-      conversion->is_explicit_cast) {
+      conversion->is_explicit_cast &&
+      is_null_user_conv_descr(conversion)) {
     /* Move the explicit cast from the conversion of the operand to the
        temp-init itself.  This is particularly important as the
        convert_operand call may not in fact add anything to the IL if
-       there's no type change. */
+       there's no type change.  If there's a user-defined conversion
+       involved, let the call for that be marked as the explicit cast. */
     is_explicit_cast = TRUE;
     conversion->is_explicit_cast = FALSE;
   }  /* if */
