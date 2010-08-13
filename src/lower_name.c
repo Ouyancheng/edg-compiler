@@ -6512,14 +6512,27 @@ is replaced by a reference to a default argument in a local function).
         && !((kind) == (an_il_entry_kind)iek_type &&
              mangle_as_lambda_in_default_argument((a_type_ptr)(scp)))
 #endif /* IA64_ABI */
-                                                                   ) ||
+                                                                     ) ||
     scp_is_enum_member(scp))
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
     && !(((kind) == (an_il_entry_kind)iek_type) &&
          ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling)
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
                                                                             ) {
-    result = TRUE;
+#if ABI_COMPATIBILITY_VERSION >= 402
+    if (kind == iek_field &&
+        scp->is_class_member &&
+        class_type_supp(scp_parent_class(scp))->anonymous_union_kind !=
+                                           (an_anonymous_union_kind)auk_none) {
+      /* If this is a field of an anonymous union, suppress the qualification
+         for cases like "union { int i; };". */
+      result = FALSE;
+    } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+    /* Do not insert code here. */
+    {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* entity_needs_parent_qualifier */
@@ -6594,10 +6607,17 @@ be individuated in late-specified return types as well.
       result = TRUE;
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     }  /* if */
-    if (!result && scp->is_class_member) {
+    if (!result && scp->is_class_member
+#if ABI_COMPATIBILITY_VERSION >= 402
+        && (kind != iek_field ||
+            class_type_supp(scp_parent_class(scp))->anonymous_union_kind ==
+                                          (an_anonymous_union_kind)auk_none)
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+                                                                            ) {
       /* If we haven't determined yet if the entity needs to be individuated
          and the entity is a class member, recurse to see if the parent needs
-         to be individuated. */
+         to be individuated.  Fields of anonymous unions do not need to be
+         individuated. */
       result = entity_needs_to_be_individuated(
                                         &scp_parent_class(scp)->source_corresp,
                                         iek_type);
