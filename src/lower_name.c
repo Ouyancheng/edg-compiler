@@ -2043,7 +2043,9 @@ ignored if expr != NULL.
   /* Put out the final "O". */
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION >= 402
 end_of_routine:;
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 }  /* mangled_encoding_for_sizeof */
 
 
@@ -4501,6 +4503,7 @@ expression.
   }  /* for */
 }  /* mangled_expression_list */
 
+#if ABI_COMPATIBILITY_VERSION >= 402
 
 static void mangled_selection_operation(
                                     an_expr_node_ptr         expr,
@@ -4765,6 +4768,7 @@ this expression is part of a template-dependent expression.
   }  /* if */
 }  /* mangled_call_operation */
 
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 
 static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
                                  a_type_ptr               type,
