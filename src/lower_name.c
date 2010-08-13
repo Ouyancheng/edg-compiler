@@ -4552,13 +4552,17 @@ expression.
       break;
 #endif /* CHECKING */
   }  /* switch */
-#if IA64_ABI
   if (expr->variant.operation.compiler_generated &&
-      expr->is_objectless_nonstatic_data_mem_ref) {
-    /* An implied "this" has been added. */
+      expr->is_objectless_nonstatic_data_mem_ref
+#if !IA64_ABI
+      && (selection->name_reference != NULL &&
+          selection->name_reference->qualifier != NULL)
+#endif /* !IA64_ABI */
+                                                       ) {
+    /* An implied "this" has been added.  Remove it in the IA-64 ABI and when
+       the selection is otherwise qualified in the Cfront ABI. */
     selector = NULL;
   }  /* if */
-#endif /* !IA64_ABI */
   if (selector != NULL) {
 #if !IA64_ABI
     add_to_mangled_name('O', mctl);
