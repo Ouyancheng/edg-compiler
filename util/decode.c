@@ -3923,6 +3923,11 @@ type the substitution represents).
       } else {
         switch (subp->kind) {
           case subk_unscoped_template_name:
+            if (type_pass_num == 1 || type_pass_num == 0) {
+              /* Emit any cv-qualifiers that are applicable to this
+                 substitution. */
+              output_cv_qualifiers(cv_quals, TRUE, dctl);
+            }  /* if */
             (void)demangle_unscoped_name(p, &func_block, dctl);
             break;
           case subk_prefix:

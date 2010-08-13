@@ -1,5 +1,21 @@
 Version 4.2
 
+8/13/10  [EDGcpfe/10929]
+Missing cv-qualification on certain demangled names (IA-64 ABI)
+
+In cases where a substitution is used for a <template-prefix> and the
+substitution has cv-qualifiers, those cv-qualifiers were not reflected in
+the demangled name.  In this example, the two template functions have
+distinct mangled names, but their demangled names had been the same:
+
+  template <class T> struct A {};
+  template <class T, class U> void f();
+  void g() {
+    f<A<char>, A<int>>();
+    f<A<char>, const A<int>>();
+  }
+
+
 7/21/10  [EDGcpfe/10463]
 Mangling changes to support new SFINAE rules
 
