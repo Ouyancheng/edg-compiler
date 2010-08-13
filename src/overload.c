@@ -14366,7 +14366,7 @@ like
     /* Drop any field selections on top of the expression.  (The C++ standard
        says that if the object bound to is a subobject of a complete object
        that is a temporary, the complete object temporary has its lifetime
-       extended.)   The lifetime of a temporary is also extended when it is
+       extended.)  The lifetime of a temporary is also extended when it is
        the second operand of a comma operation (core issue 462). */
     node = skip_parens(node);
     while (is_operation_node(node)) {
