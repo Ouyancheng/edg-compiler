@@ -915,8 +915,8 @@ EXTERN a_boolean
 			   but still within it -- the stack has not yet been
 			   popped.  curr_source_line still contains the line
 			   most recently read. */
-EXTERN char	*end_of_line_escape_line_loc;
-			/* The location of the LE_END_OF_LINE escape that
+EXTERN sizeof_t	end_of_line_escape_offset;
+			/* The offset of the LE_END_OF_LINE escape that
 			   ends curr_source_line.  This is set by
 			   skip_white_space and is used only in the rare
 			   case when a line that logically begins with a
@@ -2307,7 +2307,8 @@ processing the now-defunct line a second time.
 */
 #define loc_of_insert(slmp)                                                \
   ((slmp)->line_loc != NULL ? (slmp)->line_loc :                           \
-   at_end_of_source_file ? end_of_line_escape_line_loc : curr_source_line)
+   at_end_of_source_file ? curr_source_line + end_of_line_escape_offset    \
+                         : curr_source_line)
 
 /*
 Set loc_in_line to point to the first character of the current source

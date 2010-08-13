@@ -6955,7 +6955,7 @@ white_space_loop:
         }  /* if */
         if (ch == LE_END_OF_LINE) {
           /* End of the source line. */
-          end_of_line_escape_line_loc = curr_char_loc;
+          end_of_line_escape_offset = curr_char_loc - curr_source_line;
           /* We have to read a new logical source line now. 
              read_logical_source_line will pop the input stack if end of
              file is encountered.  On the final end of file, TRUE is returned,

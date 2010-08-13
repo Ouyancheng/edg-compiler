@@ -1256,7 +1256,6 @@ the pointers in all source line modifications will be adjusted as needed.
     fix_ptr(start_of_curr_token);
     fix_ptr(end_of_curr_token);
     fix_ptr(arg_get_token_start_of_curr_token);
-    fix_ptr(end_of_line_escape_line_loc);
 #if ASM_SUPPORT_NEEDED
     fix_ptr(prev_asm_stop_char);
 #endif /* ASM_SUPPORT_NEEDED */
