@@ -511,6 +511,8 @@ static void mangled_operator_or_conversion_function(
                          a_name_reference_ptr     name_reference,
                          a_boolean                suppress_operation_indicator,
                          a_mangling_control_block *mctl);
+static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
+                                                 an_il_entry_kind        kind);
 
 #if !IA64_ABI
 /*
@@ -3081,6 +3083,17 @@ Add to the mangled name the name of the variable.  Used in cfront ABI only.
     mangled_member_variable_name(variable, mctl);
   } else {
     add_str_to_mangled_name(str, mctl);
+#if ABI_COMPATIBILITY_VERSION >= 402
+    if (entity_needs_to_be_individuated(&variable->source_corresp,
+                                        iek_variable)) {
+      /* Add two underscores after the name. */
+      add_str_to_mangled_name("__", mctl);
+      r_mangled_parent_qualifier(&variable->source_corresp, iek_variable,
+                                 /*nesting_level=*/1,
+                                 /*needs_to_be_individuated=*/TRUE,
+                                 (a_source_correspondence **)NULL, mctl);
+    }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   }  /* if */
   fill_in_length(&length_reservation, mctl);
 }  /* mangled_variable_name */
@@ -6562,6 +6575,16 @@ be individuated in late-specified return types as well.
          the function name, so the function name must be individuated to
          prevent possible name collisions. */
       result = TRUE;
+#if ABI_COMPATIBILITY_VERSION >= 402
+    } else if (kind == iek_variable &&
+               !(scp->is_local_to_function || scp->is_class_member) &&
+               ((a_variable_ptr)scp)->storage_class ==
+                                                  (a_storage_class)sc_static) {
+      /* Static variable names can appear in decltype expressions and need
+         to be individuated (unless they are already unique because they are
+         local to a function or appear in a class). */
+      result = TRUE;
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     }  /* if */
     if (!result && scp->is_class_member) {
       /* If we haven't determined yet if the entity needs to be individuated
