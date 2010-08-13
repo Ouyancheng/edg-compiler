@@ -11,8 +11,8 @@ distinct mangled names, but their demangled names had been the same:
   template <class T> struct A {};
   template <class T, class U> void f();
   void g() {
-    f<A<char>, A<int>>();
-    f<A<char>, const A<int>>();
+    f<A<char>, A<int> >();
+    f<A<char>, const A<int> >();
   }
 
 
