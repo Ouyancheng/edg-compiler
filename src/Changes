@@ -1,5 +1,24 @@
 Version 4.2
 
+8/12/10  [EDGcpfe/10925,EDGcpfe/2484]
+Extend the lifetime of a temporary used as the second operand of a comma
+operation when bound to a reference
+
+A temporary that is the second operand of a comma operation now has its
+lifetime extended when it is bound to a reference (see core issue 462).
+This example had printed "second" before "first" and now prints "first"
+before "second":
+
+  extern "C" int printf(const char*,...);
+  struct A {
+    ~A() { printf ("second\n"); }
+  };
+  int main () {
+    const A &ra ((0,A()));
+    printf ("first\n");
+  }
+
+
 8/12/10  [EDGcpfe/10927]
 No use of Microsoft property fields as objectless nonstatic member references
 

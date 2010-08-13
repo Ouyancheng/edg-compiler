@@ -14366,11 +14366,18 @@ like
     /* Drop any field selections on top of the expression.  (The C++ standard
        says that if the object bound to is a subobject of a complete object
        that is a temporary, the complete object temporary has its lifetime
-       extended.) */
+       extended.)   The lifetime of a temporary is also extended when it is
+       the second operand of a comma operation (core issue 462). */
     node = skip_parens(node);
-    while (is_operation_node(node) &&
-           node_operator_is(node, eok_dot_field)) {
-      node = skip_parens(node->variant.operation.operands);
+    while (is_operation_node(node)) {
+      if (node_operator_is(node, eok_dot_field)) {
+        node = node->variant.operation.operands;
+      } else if (node_operator_is(node, eok_comma)) {
+        node = node->variant.operation.operands->next;
+      } else {
+        break;
+      }  /* if */
+      node = skip_parens(node);
     }  /* while */
     if (!node->is_lvalue &&
         is_call_node(node) &&
