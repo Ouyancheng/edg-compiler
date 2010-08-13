@@ -4234,7 +4234,7 @@ precedence confusion.  Do the output in the way described by octl.
              octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression
        rather than the folded constant. */
-    octl->output_expression(constant->expr, /*suppress_parens=*/FALSE);
+    octl->output_expression(constant->expr, !need_parens);
     goto done;
   } else {
     con_type = skip_typerefs(orig_type);
