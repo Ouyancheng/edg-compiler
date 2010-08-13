@@ -6519,20 +6519,7 @@ is replaced by a reference to a default argument in a local function).
          ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling)
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
                                                                             ) {
-#if ABI_COMPATIBILITY_VERSION >= 402
-    if (kind == iek_field &&
-        scp->is_class_member &&
-        class_type_supp(scp_parent_class(scp))->anonymous_union_kind !=
-                                           (an_anonymous_union_kind)auk_none) {
-      /* If this is a field of an anonymous union, suppress the qualification
-         for cases like "union { int i; };". */
-      result = FALSE;
-    } else
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-    /* Do not insert code here. */
-    {
-      result = TRUE;
-    }  /* if */
+    result = TRUE;
   }  /* if */
   return result;
 }  /* entity_needs_parent_qualifier */
