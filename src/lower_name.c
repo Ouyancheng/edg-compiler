@@ -2618,11 +2618,11 @@ its typerefs skipped by the caller.
 {
   a_boolean       result = FALSE;
 
+  type = skip_typerefs_not_dependent_decltypes(type);
   if (type->kind == (a_type_kind)tk_typeref &&
       type->variant.typeref.is_decltype) {
     result = TRUE;
   } else {
-    type = skip_typerefs(type);
     if (is_immediate_class_type(type) &&
         symbol_supplement_for_class(type)->template_param_for_proxy_class
                                                                      != NULL) {
@@ -2804,7 +2804,8 @@ qualifiers seen so far (and is typically set to one by the initial caller).
     if (is_top_level_unresolved_type) {
       /* Emit template parameter encoding rather than the parameter's name if
          this is a top-level unresolved type. */
-      mangled_encoding_for_type(skip_typerefs((a_type_ptr)scp), mctl);
+      mangled_encoding_for_type(skip_typerefs_not_dependent_decltypes(
+                                                       (a_type_ptr)scp), mctl);
     } else {
       /* Emit the source name for this qualifier (with any template args). */
       if (kind == iek_type) {
