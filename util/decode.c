@@ -4182,11 +4182,18 @@ Return a pointer to the character position following what was demangled.
 A <function-param> encodes a reference to a function parameter.
 The syntax is:
 
-  <function-param> ::= fp [<CV-qualifiers>] _       # first function parameter
-                   ::= fp [<CV-qualifiers>] <parameter-2 non-negative number> _
-                   ::= fL <L-1 non-negative number> p [<CV-qualifiers>] _ 
-                   ::= fL <L-1 non-negative number> p [<CV-qualifiers>]
+  <function-param> ::= fp <top-level CV-qualifiers> _
+                                          # L == 0, first parameter
+		   ::= fp <top-level CV-qualifiers>
                           <parameter-2 non-negative number> _
+                                          # L == 0, second and later parameters
+		   ::= fL <L-1 non-negative number> p
+                          <top-level CV-qualifiers> _         
+                                          # L > 0, first parameter
+		   ::= fL <L-1 non-negative number> p 
+                          <top-level CV-qualifiers>
+                          <parameter-2 non-negative number> _   
+                                          # L > 0, second and later parameters
 
 */
 {
@@ -5508,13 +5515,13 @@ Demangle an IA-64 literal or external name and output the demangled form.
 Return a pointer to the character position following what was demangled.
 The syntax is:
 
-  <expr-primary> ::= L <type> <value number> E    # integer literal
-                 ::= L <type> <value float> E     # floating literal
-                 ::= L <string type> E            # string literal
-                 ::- L <std::nullptr_t type> E    # nullptr literal
-                 ::= L <type> <real-part float> _ <imag-part float> E
+  <expr-primary> ::= L <type> <value number> E # integer literal
+                 ::= L <type> <value float> E  # floating literal
+                 ::= L <string type> E         # string literal
+                 ::= L <nullptr type> E        # nullptr literal (i.e., "LDnE")
+                 ::= L <type> <real-part float> _ <imag-part float> E   
                                       # complex floating point literal (C 2000)
-                 ::= L_Z <encoding> E             # external name
+                 ::= L <mangled-name> E        # external name
 
 */
 {
@@ -5690,24 +5697,6 @@ The syntax is:
                               # freestanding dependent name (e.g., T::x),
                               # objectless nonstatic member reference
                ::= <expr-primary>
-
-  <expr-primary> ::= L <type> <value number> E                          
-                                      # integer literal
-                 ::= L <type> <value float> E                           
-                                      # floating literal
-                 ::= L <string type> E                       
-                                      # string literal
-                 ::= L <type> <real-part float> _ <imag-part float> E   
-                                      # complex floating point literal (C 2000)
-                 ::= L <mangled-name> E                                 
-                                      # external name
-
-  <function-param> ::= fp_            # first function parameter
-                   ::= fp <parameter-2 non-negative number> _
-                   ::= fL <L-1 non-negative number> p_ 
-                                      # first function parameter
-                   ::= fL <L-1 non-negative number> p 
-                                            <parameter-2 non-negative number> _
 
 */
 {
@@ -6358,21 +6347,41 @@ as a prefix to specify a module id for an externalized name.
 }  /* demangle_name */
 
 
+static char *demangle_simple_id(char                       *ptr,
+                                a_decode_control_block_ptr dctl)
+/*
+Demangle a <simple-id>:
+
+  <simple-id> ::= <source-name> [ <template-args> ]
+
+*/
+{
+  ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+  if (!dctl->err_in_id && *ptr == 'I') {
+    /* A <template-args> list is present. */
+    ptr = demangle_template_args(ptr, dctl);
+  }  /* if */
+  return ptr;
+}  /* demangle_simple_id */
+
+
 static char *demangle_base_unresolved_name(char                       *ptr,
                                            a_decode_control_block_ptr dctl)
 /*
 Demangle a <base-unresolved-name>:
 
-  <base-unresolved-name> ::= <source-name>                              
+  <base-unresolved-name> ::= <simple-id>
                                         # unresolved name
-                         ::= <source-name> <template-args>              
-                                        # unresolved template-id
                          ::= on <operator-name>                         
                                         # unresolved operator-function-id
                          ::= on <operator-name> <template-args>         
                                         # unresolved operator template-id
-                         ::= dn <type>                       
-                                        # destructor name; e.g. ~X or ~T::X
+                         ::= dn <destructor-name>                       
+                                        # destructor or pseudo-destructor;
+                                        # e.g. ~X or ~X<N-1>
+
+  <destructor-name> ::= <unresolved-type>   # e.g., ~T or ~decltype(f())
+                    ::= <simple-id>         # e.g., ~A<2*N>
 
 */
 {
@@ -6401,16 +6410,17 @@ Demangle a <base-unresolved-name>:
       }  /* if */
     }  /* if */
   } else if (*ptr == 'd' && ptr[1] == 'n') {
-    /* ~T() */
+    /* <destructor-name> */
+    ptr += 2;
     write_id_ch('~', dctl);
-    ptr = demangle_type(ptr+2, dctl);
-  } else {
-    /* <source-name> */
-    ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
-    if (!dctl->err_in_id && *ptr == 'I') {
-      /* A <template-args> list is present. */
-      ptr = demangle_template_args(ptr, dctl);
+    if (isdigit((unsigned char)*ptr)) {
+      ptr = demangle_simple_id(ptr, dctl);
+    } else {
+      ptr = demangle_type(ptr, dctl);
     }  /* if */
+  } else {
+    /* <simple-id> */
+    ptr = demangle_simple_id(ptr, dctl);
   }  /* if */
   return ptr;
 }  /* demangle_base_unresolved_name */
@@ -6434,8 +6444,9 @@ Demangle an <unresolved-name>:
 
   <unresolved-type> ::= <template-param>
                     ::= <decltype>
+                    ::= <substitution>
 
-  <unresolved-qualifier-level> ::= <source-name> [ <template-args> ]
+  <unresolved-qualifier-level> ::= <simple-id>
 
 Note that the "gs" may already have been stripped by the caller (since it
 can also appear at the <expression> level).
@@ -6465,23 +6476,16 @@ can also appear at the <expression> level).
       /* We've got this case:
          ::= [gs] sr <unresolved-qualifier-level>+ E <base-unresolved-name>  
          */
-      while (!dctl->err_in_id && *ptr != 'E' && *ptr != '\0') {
-        ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
-        if (*ptr == 'I') {
-          /* Scan the template argument list. */
-          ptr = demangle_template_args(ptr, dctl);
+      while (!dctl->err_in_id && *ptr != 'E') {
+        if (*ptr == '\0') {
+          bad_mangled_name(dctl);
+        } else {
+          ptr = demangle_simple_id(ptr, dctl);
+          write_id_str("::", dctl);
         }  /* if */
-        write_id_str("::", dctl);
       }  /* while */
-      if (*ptr == 'E') ptr++;
+      ptr = advance_past('E', ptr, dctl);
     } else {
-      /* We've got one of these two cases:
-        ::= sr <unresolved-type> <base-unresolved-name>     
-        ::= srN <unresolved-type> <unresolved-qualifier-level>+ E
-            <base-unresolved-name>
-        Use demangle_type to handle both cases (the N ... E portion will be
-        treated as a nested type in the second case).
-        */
       if (emulate_gnu_abi_bugs) {
         /* g++ 3.2 sometimes puts out a qualified name as the second
            operand.  Look ahead to see whether that form is used.
@@ -6502,8 +6506,28 @@ can also appear at the <expression> level).
         }  /* if */
       }  /* if */
       if (!gpp_qualified_name) {
-        ptr = demangle_type(ptr, dctl);
-        write_id_str("::", dctl);
+        /* We've got one of these two cases:
+
+          ::= sr <unresolved-type> <base-unresolved-name>     
+          ::= srN <unresolved-type> <unresolved-qualifier-level>+ E
+              <base-unresolved-name>
+          */
+        if (*ptr == 'N') {
+          ptr = demangle_type(ptr+1, dctl);
+          write_id_str("::", dctl);
+          while (!dctl->err_in_id && *ptr != 'E') {
+            if (*ptr == '\0') {
+              bad_mangled_name(dctl);
+            } else {
+              ptr = demangle_simple_id(ptr, dctl);
+              write_id_str("::", dctl);
+            }  /* if */
+          }  /* while */
+          ptr = advance_past('E', ptr, dctl);
+        } else {
+          ptr = demangle_type(ptr, dctl);
+          write_id_str("::", dctl);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!dctl->err_in_id) {
