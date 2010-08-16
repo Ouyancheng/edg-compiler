@@ -1057,19 +1057,21 @@ demangled.
                        d --> .
             ^------- Length of constant.
          Output is
-           (type)constant
+           ((type)constant)
          That is, the literal constant preceded by a cast to the right type.
       */
       /* See if the type is bool. */
       a_boolean is_bool = (type+2 == p && *(type+1) == 'b');
       a_boolean is_nullptr = (type+2 == p && *(type+1) == 'n');
       a_boolean is_complex = (type+3 == p && *(type+1) == 'x');
+      char      *close_str = NULL;
       /* If the type is bool or nullptr, don't put out the cast. */
       if (!(is_bool || is_nullptr)) {
-        write_id_ch('(', dctl);
+        write_id_str("((", dctl);
         /* Start at type+1 to avoid the "C" for const. */
         (void)demangle_type(type+1, dctl);
         write_id_ch(')', dctl);
+        close_str = ")";
       }  /* if */
       if (is_complex) write_id_ch('(', dctl);
       p++;  /* Advance past the "L". */
@@ -1081,6 +1083,7 @@ demangled.
                                     dctl);
         write_id_str("i)", dctl);
       }  /* if */
+      if (close_str != NULL) write_id_str(close_str, dctl);
     }  /* if */
   } else if (ch == 'Z') {
     /* A template parameter. */
