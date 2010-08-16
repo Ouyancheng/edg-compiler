@@ -1956,6 +1956,7 @@ ec_template_dependent_designator;;"a template-dependent designator is not allowe
 ec_offsetof_ref_field;;"second operand of offsetof may not be a field with reference type"
 ec_cl_long_lifetime_temps_incompat_with_newer_features;;"long lifetime temporaries are incompatible with other requested newer language features"
 ec_wide_deprecation_string;;"wide character string literal will not be quoted in diagnostics"
+ec_missing_attribute_arguments;;"missing arguments for attribute %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

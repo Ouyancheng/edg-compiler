@@ -1422,13 +1422,17 @@ ak_unrecognized.
 {
   an_attribute_arg_ptr  *p_aap = &ap->arguments;
   char                  *saved_sig;
+  a_boolean             may_terminate;
 
   do {
     /* Skip a "?" indicating that the argument list may terminate at this
        point. */
     if (*sig == '?') {
+      may_terminate = TRUE;
       ++sig;
       if (curr_token == tok_rparen) break;
+    } else {
+      may_terminate = FALSE;
     }  /* if */
     saved_sig = sig;
     /* Traverse the next sig segment while scanning a corresponding attribute
@@ -1501,6 +1505,7 @@ ak_unrecognized.
       /* Skip a "?" indicating that the argument list may terminate at this
          point. */
       if (*sig == '?') {
+        may_terminate = TRUE;
         ++sig;
         if (curr_token == tok_rparen) break;
       }  /* if */
@@ -1508,9 +1513,15 @@ ak_unrecognized.
                         "invalid attribute signature configuration");
       ++sig;
     } else {
+      may_terminate = TRUE;
       break;
     }  /* if */
   } while (loop_token(tok_comma));
+  if (!may_terminate) {
+    /* More arguments were expected. */
+    pos_st_error(ec_missing_attribute_arguments, &pos_curr_token, ap->name);
+    make_attr_unrecognized(ap);
+  }  /* if */
 }  /* scan_attr_arg_list */
 
 
