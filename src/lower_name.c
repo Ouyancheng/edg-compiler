@@ -3784,13 +3784,18 @@ explicitly dealt with later in expression mangling.
             op == (an_expr_operator_kind)eok_array_to_pointer ||
             op == (an_expr_operator_kind)eok_reference_to ||
             op == (an_expr_operator_kind)eok_ref_indirect ||
-            expr->variant.operation.implicit_step_of_explicit_cast
-#if IA64_ABI
+            expr->variant.operation.implicit_step_of_explicit_cast ||
             /* Also drop implicit casts in the IA-64 ABI. */
-            || (is_cast_operation_node(expr) &&
-                expr->variant.operation.compiler_generated)
-#endif /* IA64_ABI */
-                                                           ) {
+            (is_cast_operation_node(expr) &&
+#if !IA64_ABI
+             /* In the Cfront ABI, compiler generated casts are not typically
+                removed, except for ones that are going to cause mangling
+                problems (i.e., casts to a tptk_unknown type). */
+             (expr->type->kind == (a_type_kind)tk_template_param &&
+              expr->type->variant.template_param.kind == 
+                               (a_template_param_constant_kind)tptk_unknown) &&
+#endif /* !IA64_ABI */
+             expr->variant.operation.compiler_generated)) {
           /* These are all inserted by the compiler and don't represent
              explicit constructs in the source code. */
           expr = child;
