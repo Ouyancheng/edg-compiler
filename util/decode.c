@@ -204,6 +204,7 @@ static char *demangle_identifier_with_preceding_length(
                      a_boolean                  suppress_parent_and_local_info,
                      a_decode_control_block_ptr dctl);
 static char *demangle_operation(char                       *ptr,
+                                a_boolean                  need_parens,
                                 a_decode_control_block_ptr dctl);
 static char *demangle_operator(char                       *ptr,
                                int                        *mangled_length,
@@ -898,14 +899,16 @@ end_of_routine:
 
 static char *demangle_constant(char                       *ptr,
                                a_boolean                  suppress_address_of,
+                               a_boolean                  need_parens,
                                a_decode_control_block_ptr dctl)
 /*
 Demangle a constant (e.g., a nontype template class argument) beginning at
 ptr, and output the demangled form.  When suppress_address_of is TRUE, the
 ampersand that is normally emitted before an address constant is suppressed
 (this is used when demangling expressions where any "address of" operation is
-explicit).  Return a pointer to the character position following what was
-demangled.
+explicit).  When need_parens is TRUE, parentheses are emitted around literals
+and expressions (but not other types of constants).  Return a pointer to the
+character position following what was demangled.
 */
 {
   char          *p = ptr, *type = NULL, *index, *prev_end;
@@ -949,6 +952,8 @@ demangled.
                                       /*suppress_parent_and_local_info=*/FALSE,
                                       dctl);
   } else if (ch == 'L') {
+    /* Emit parentheses around the literal if requested. */
+    if (need_parens) write_id_ch('(', dctl);
     if (type == NULL) {
       bad_mangled_name(dctl);
     } else if (get_char(p+1, dctl) == 'M') {
@@ -1057,21 +1062,19 @@ demangled.
                        d --> .
             ^------- Length of constant.
          Output is
-           ((type)constant)
+           (type)constant
          That is, the literal constant preceded by a cast to the right type.
       */
       /* See if the type is bool. */
       a_boolean is_bool = (type+2 == p && *(type+1) == 'b');
       a_boolean is_nullptr = (type+2 == p && *(type+1) == 'n');
       a_boolean is_complex = (type+3 == p && *(type+1) == 'x');
-      char      *close_str = NULL;
       /* If the type is bool or nullptr, don't put out the cast. */
       if (!(is_bool || is_nullptr)) {
-        write_id_str("((", dctl);
+        write_id_ch('(', dctl);
         /* Start at type+1 to avoid the "C" for const. */
         (void)demangle_type(type+1, dctl);
         write_id_ch(')', dctl);
-        close_str = ")";
       }  /* if */
       if (is_complex) write_id_ch('(', dctl);
       p++;  /* Advance past the "L". */
@@ -1083,14 +1086,14 @@ demangled.
                                     dctl);
         write_id_str("i)", dctl);
       }  /* if */
-      if (close_str != NULL) write_id_str(close_str, dctl);
     }  /* if */
+    if (need_parens) write_id_ch(')', dctl);
   } else if (ch == 'Z') {
     /* A template parameter. */
     p = demangle_template_parameter_name(p, /*nontype=*/TRUE, dctl);
   } else if (ch == 'O') {
     /* An operation. */
-    p = demangle_operation(p, dctl);
+    p = demangle_operation(p, need_parens, dctl);
   } else {
     /* The constant starts with something unexpected. */
     bad_mangled_name(dctl);
@@ -1155,9 +1158,12 @@ type) as pointed to by ptr:
 
 
 static char *demangle_expression(char                       *ptr,
+                                 a_boolean                  need_parens,
                                  a_decode_control_block_ptr dctl)
 /*
-Demangle an expression.
+Demangle an expression; ensure that the expression is enclosed in
+parentheses when necessary if need_parens is TRUE (names aren't parenthesized
+even when need_parens is TRUE).
 */
 {
   char          *p = ptr;
@@ -1183,18 +1189,20 @@ Demangle an expression.
   } else {
     /* Used to demangle literals as well as template parameters, operations.
        Within an expression, suppress implicit "&"s during the demangling. */
-    p = demangle_constant(p, /*suppress_address_of=*/TRUE, dctl);
+    p = demangle_constant(p, /*suppress_address_of=*/TRUE, need_parens, dctl);
   }  /* if */
   return p;
 }  /* demangle_expression */
 
 
 static char *demangle_operation(char                       *ptr,
+                                a_boolean                  need_parens,
                                 a_decode_control_block_ptr dctl)
 /*
 Demangle an operation in a constant expression (these come up in template
 arguments and array sizes, in template function parameter lists) beginning
-at ptr, and output the demangled form.  Return a pointer to the character
+at ptr, and output the demangled form.  When need_parens is TRUE, parentheses
+are emitted around the operation.  Return a pointer to the character
 position following what was demangled.
 */
 {
@@ -1224,8 +1232,8 @@ position following what was demangled.
     bad_mangled_name(dctl);
   } else {
     p += op_length;
-    /* Put parentheses around the operation. */
-    write_id_ch('(', dctl);
+    /* Put parentheses around the operation if necessary. */
+    if (need_parens) write_id_ch('(', dctl);
     /* For casts, sizeof, __alignof__, __uuidof__, typeid, or new get 
        the type. */
     if (takes_type) {
@@ -1346,7 +1354,7 @@ position following what was demangled.
       if (num_operands != 0) {
         write_id_ch('(', dctl);
         for (i = 1; i <= num_operands; i++) {
-          p = demangle_expression(p, dctl);
+          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
           if (i != num_operands) write_id_str(", ", dctl);
         }  /* for */
         write_id_str(") ", dctl);
@@ -1379,7 +1387,7 @@ position following what was demangled.
             /* Type operand. */
             p = demangle_type(p+1, dctl);
           } else {
-            p = demangle_expression(p, dctl);
+            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
           }  /* if */
           if (is_call) {
             /* This is a call to the target just emitted; the rest are
@@ -1403,7 +1411,7 @@ position following what was demangled.
           }  /* if */
         }  /* if */
         /* Process the first operand. */
-        p = demangle_expression(p, dctl);
+        p = demangle_expression(p, /*need_parens=*/TRUE, dctl);
         if (num_operands == 1 && is_postfix) {
           /* Postfix unary operator -- operator comes last. */
           write_id_str(operator_str, dctl);
@@ -1419,12 +1427,12 @@ position following what was demangled.
           }  /* if */
           write_id_str(operator_str, dctl);
           /* Process the second operand. */
-          p = demangle_expression(p, dctl);
+          p = demangle_expression(p, /*need_parens=*/TRUE, dctl);
           if (num_operands > 2) {
             /* Ternary operand -- "?". */
             write_id_ch(':', dctl);
             /* Process the third operand. */
-            p = demangle_expression(p, dctl);
+            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1434,7 +1442,7 @@ position following what was demangled.
     }  /* if */
     write_id_str(close_str, dctl);
 skip_operand_loop:
-    write_id_ch(')', dctl);
+    if (need_parens) write_id_ch(')', dctl);
     /* Check for the final "O". */
     if (get_char(p, dctl) != 'O') {
       bad_mangled_name(dctl);
@@ -1547,7 +1555,8 @@ block that controls output of extra information on template parameters.
     if (nontype) {
       /* Nontype argument. */
       p++;  /* Advance past the "X". */
-      p = demangle_constant(p, /*suppress_address_of=*/FALSE, dctl);
+      p = demangle_constant(p, /*suppress_address_of=*/FALSE,
+                            /*need_parens=*/FALSE, dctl);
     } else {
       /* Type argument. */
       p = demangle_type(p, dctl);
@@ -2607,19 +2616,19 @@ to the character position following what was demangled.
       case 'p':
         /* typeof(expression) */
         write_id_str("typeof(", dctl);
-        p = demangle_expression(p, dctl);
+        p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
         s = ")";
         break;
       case 'y':
         /* decltype of an id-expression or class member access. */
         write_id_str("decltype(", dctl);
-        p = demangle_expression(p, dctl);
+        p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
         s = ")";
         break;
       case 'Y':
         /* decltype of an expression. */
         write_id_str("decltype((", dctl);
-        p = demangle_expression(p, dctl);
+        p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
         s = "))";
         break;
       default:
@@ -2802,7 +2811,8 @@ not empty, because it contains a name or a derived type).
          parameters.  Ignore the expression. */
       p++;
       dctl->suppress_id_output++;
-      p = demangle_constant(p, /*suppress_address_of=*/FALSE, dctl);
+      p = demangle_constant(p, /*suppress_address_of=*/FALSE,
+                            /*need_parens=*/FALSE, dctl);
       dctl->suppress_id_output--;
     } else {
       /* Normal constant number of elements. */
@@ -2893,7 +2903,8 @@ use of parentheses around parts of the declarator.)
       /* Length is specified by a constant expression based on template
          parameters. */
       p++;
-      p = demangle_constant(p, /*suppress_address_of=*/FALSE, dctl);
+      p = demangle_constant(p, /*suppress_address_of=*/FALSE,
+                            /*need_parens=*/FALSE, dctl);
     } else {
       /* Normal constant number of elements. */
       if (get_char(p, dctl) == '0' && get_char(p+1, dctl) == '_') {
