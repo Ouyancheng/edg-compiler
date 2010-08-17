@@ -4121,8 +4121,15 @@ on every expression.
         } else
 #endif /* DEBUG */
         /* Do not insert code here */
-        {
-          octl->output_str("<expression>", octl);
+        { a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+          if (has_name(expr->type) &&
+              (dip->kind == (a_dynamic_init_kind)dik_none ||
+               dip->kind == (a_dynamic_init_kind)dik_zero)) {
+            form_type(expr->type, octl);
+            octl->output_str("()", octl);
+          } else {
+            octl->output_str("<expression>", octl);
+          }  /* if */
         }  /* if */
         break;
       case enk_builtin_operation:
