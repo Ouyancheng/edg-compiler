@@ -513,6 +513,7 @@ static void mangled_operator_or_conversion_function(
                          a_mangling_control_block *mctl);
 static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
                                                  an_il_entry_kind        kind);
+static a_boolean gnu_requires_decltype_mangling(a_type_ptr type);
 
 #if !IA64_ABI
 /*
@@ -564,6 +565,15 @@ entity unchanged.
          use the template parameter as the entity. */
       type = symbol_supplement_for_class(type)->template_param_for_proxy_class;
       if (type != NULL) entity = (char *)type;
+    } else if (emulate_gnu_abi_bugs &&
+               type->kind == (a_type_kind)tk_typeref &&
+               type->variant.typeref.is_decltype &&
+               type->variant.typeref.is_dependent_decltype_or_typeof &&
+               !gnu_requires_decltype_mangling(type)) {
+      /* This is a dependent decltype and typically gets its own substitution,
+         but if we're emulating GNU and GNU doesn't believe the decltype
+         is dependent, then strip the decltype for substitution purposes. */
+      entity = (char *)type->variant.typeref.type;
     }  /* if */
   }  /* if */
   return entity;
