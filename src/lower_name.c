@@ -479,6 +479,7 @@ static void close_ia64_nested_name(
                               a_boolean                 need_nested_name_close,
                               a_source_correspondence  *discriminator_scp,
                               a_mangling_control_block *mctl);
+static a_boolean gnu_requires_decltype_mangling(a_type_ptr type);
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
