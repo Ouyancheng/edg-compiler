@@ -2993,7 +2993,10 @@ add mangling for an eok_address_of operation.
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     if (kind == iek_routine) {
       a_routine_ptr rout = (a_routine_ptr)scp;
-      a_boolean     suppress_param_encoding = FALSE;
+      a_boolean     suppress_param_encoding;
+      /* Don't include parameters if the routine has extern "C" linkage. */
+      suppress_param_encoding = !is_name_linkage_kind_subject_to_name_mangling(
+                                            rout->source_corresp.name_linkage);
 #if ABI_COMPATIBILITY_VERSION >= 402 && GNU_EXTENSIONS_ALLOWED
       if (emulate_gnu_abi_bugs &&
           rout->special_kind == (a_special_function_kind)sfk_none &&
