@@ -1,5 +1,17 @@
 Version 4.2
 
+8/18/10  [EDGcpfe/10893]
+GNU compatibility: Attribute always_inline
+
+The front end now ignores the GNU attribute "always_inline" when it appears on
+the declaration of a typedef, variable, parameter, or field.  (Previously, an
+error was issued.)  For example:
+
+  struct S {
+    int i __attribute((always_inline));  // Now accepted with a warning.
+  };
+
+
 8/12/10  [EDGcpfe/10925,EDGcpfe/2484]
 Extend the lifetime of a temporary used as the second operand of a comma
 operation when bound to a reference

@@ -555,7 +555,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   /* GNU-only attributes. */
   { ak_alias, "r|v:-l!", apply_alias_attr },
   { ak_alloc_size, "", apply_alloc_size_attr },
-  { ak_always_inline, "r", apply_always_inline_attr },
+  { ak_always_inline, "r|Wt|Wp|Wv|Wd", apply_always_inline_attr },
   { ak_artificial, "r:+i", NO_APPL_FN },
 #if GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64
   { ak_cdecl, "t|r|v|d|p", apply_cdecl_attr },
@@ -594,7 +594,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_tls_model, "v|Wr|Wd|Wp", apply_tls_model_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { ak_transparent_union, "c|p|t", apply_transparent_union_attr },
-  { ak_unused, "c|e|t|r|v|p|l|Wn|Wu", apply_unused_attr },
+  { ak_unused, "c|e|t|r|v|p|l|Wd|Wn|Wu", apply_unused_attr },
   { ak_used, "r|v:-a|Wc|We|Wt|Wp|Wd|Wl|Wn", apply_used_attr },
 #if GNU_VECTOR_TYPES_ALLOWED
   { ak_vector_size, "T", apply_vector_size_attr },
@@ -3913,7 +3913,11 @@ and return the entity.
     }  /* if */
   } else {
     an_error_severity  sev;
-    sev = (microsoft_mode && microsoft_version < 1400) ? es_warning : es_error;
+    if (gnu_mode || (microsoft_mode && microsoft_version < 1400)) {
+      sev = es_warning;
+    } else {
+      sev = es_error;
+    }  /* if */
     report_bad_attribute_target(sev, ap);
   }  /* if */
   return entity;
@@ -5729,7 +5733,7 @@ entity.
     }  /* switch */
     if (evk == (an_ELF_visibility_kind)evk_unspecified) {
       /* An invalid visibility kind was specified. */
-      pos_warning(ec_unrecognized_visibility, &ap->arguments->position);
+      pos_error(ec_unrecognized_visibility, &ap->arguments->position);
     }  /* if */
   }  /* if */
   return entity;
