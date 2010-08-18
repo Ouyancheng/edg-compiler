@@ -3867,23 +3867,26 @@ subexpressions when considering whether or not the top level expression is
 dependent.
 */
 {
-  if (expr->kind == (an_expr_node_kind)enk_sizeof ||
-      expr->kind == (an_expr_node_kind)enk_typeid ||
-      (expr->kind == (an_expr_node_kind)enk_new_delete &&
-       !expr->variant.new_delete->is_new) ||
-      expr->kind == (an_expr_node_kind)enk_throw ||
-      expr->kind == (an_expr_node_kind)enk_temp_init) {
-    /* Ignore any subexpressions under a sizeof, typeid, delete, or throw. */
-    tblock->suppress_subtree_walk = TRUE;
-  } else if (is_operation_node(expr) &&
-             (node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
-              node_operator_is(expr, eok_points_to_vacuous_destructor_call))) {
-    /* Ignore any subexpressions under a pseudo destructor. */
-    tblock->suppress_subtree_walk = TRUE;
-  } else if (is_template_dependent_type(expr->type)) {
+  if (is_template_dependent_type(expr->type)) {
     /* Found a dependent type, terminate the search and return TRUE. */
     tblock->result = TRUE;
     tblock->terminate = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_sizeof ||
+             expr->kind == (an_expr_node_kind)enk_typeid ||
+             (expr->kind == (an_expr_node_kind)enk_new_delete &&
+              !expr->variant.new_delete->is_new) ||
+             expr->kind == (an_expr_node_kind)enk_throw ||
+             expr->kind == (an_expr_node_kind)enk_temp_init ||
+             (is_cast_operation_node(expr) &&
+              !expr->variant.operation.compiler_generated) ||
+             (is_operation_node(expr) &&
+              (node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
+               node_operator_is(expr, eok_points_to_vacuous_destructor_call))))
+                                                                              {
+    /* Ignore any subexpressions under a sizeof, typeid, delete, or throw. 
+       Also, any (non-compiler-generated) cast subexpressions or subexpressions
+       under a pseudo destructor. */
+    tblock->suppress_subtree_walk = TRUE;
   }  /* if */
 }  /* is_gnu_dependent_expr_node */
 
@@ -7208,8 +7211,16 @@ determination is made by the callee.
     if (local_type != NULL) {
       check_assertion(!needs_to_be_individuated);
       add_prefix_for_local_type(local_type, mctl);
-      if (!is_self_discriminated_type(local_type)) {
-        /* We don't discriminate here if it's an unnamed local type. */
+      if (!is_self_discriminated_type(local_type) &&
+          kind != iek_routine) {
+        /* For local entities, use a discriminator to differentiate entities
+           that might otherwise have the same name (i.e., because they are
+           declared in separate blocks).  Use scp as the entity whose
+           discriminator will be used, but note that this may be overwritten
+           below if the entity needs qualification.  Unnamed types are
+           already discriminated so they aren't further discriminated here.
+           Routines (only member functions here) don't have discriminators
+           (they rely on their parent class to be discriminated). */
         *discriminator_scp = scp;
       }  /* if */
     }  /* if */
