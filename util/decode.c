@@ -1432,7 +1432,7 @@ position following what was demangled.
             /* Ternary operand -- "?". */
             write_id_ch(':', dctl);
             /* Process the third operand. */
-            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+            p = demangle_expression(p, /*need_parens=*/TRUE, dctl);
           }  /* if */
         }  /* if */
       }  /* if */
