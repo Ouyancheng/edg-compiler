@@ -11135,9 +11135,6 @@ a normal try.
       for (;;) {
         if (!exceptions_enabled) {
           /* Don't bother with semantic checks. */
-        } else if (masked) {
-          /* One "masking" diagnostic has already been issued -- there's no
-             point in putting out another. */
         } else if (type_ptr != NULL && is_immediate_error_type(type_ptr)) {
           /* No need to check for masking in this case. */
         } else if (prev_handler->parameter == NULL) {
@@ -11149,6 +11146,9 @@ a normal try.
                only issue an error on the first handler that follows. */
             pos_error(ec_masked_by_default_handler, &decl_pos);
           }  /* if */
+        } else if (masked) {
+          /* One "masking" warning has already been issued -- there's no
+             point in putting out another. */
         } else if (handler->parameter == NULL) {
           /* Current handler is a default handler -- it can only be masked by
              another default handler. */
