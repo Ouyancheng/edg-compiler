@@ -514,7 +514,6 @@ static void mangled_operator_or_conversion_function(
                          a_mangling_control_block *mctl);
 static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
                                                  an_il_entry_kind        kind);
-static a_boolean gnu_requires_decltype_mangling(a_type_ptr type);
 
 #if !IA64_ABI
 /*
@@ -2788,9 +2787,7 @@ qualifiers seen so far (and is typically set to one by the initial caller).
         add_to_mangled_name('N', mctl);
         *need_close = TRUE;
       }  /* if */
-      /* Make sure we skip any aliases, but not any dependent decltypes. */
-      mangled_encoding_for_type(skip_typerefs_not_dependent_decltypes(
-                                                       (a_type_ptr)scp), mctl);
+      mangled_encoding_for_type((a_type_ptr)scp, mctl);
       scp = NULL;
     } else {
       /* We're not using an <unresolved-type>, so we need a closing 'E'. */
@@ -2815,8 +2812,7 @@ qualifiers seen so far (and is typically set to one by the initial caller).
     if (is_top_level_unresolved_type) {
       /* Emit template parameter encoding rather than the parameter's name if
          this is a top-level unresolved type. */
-      mangled_encoding_for_type(skip_typerefs_not_dependent_decltypes(
-                                                       (a_type_ptr)scp), mctl);
+      mangled_encoding_for_type((a_type_ptr)scp, mctl);
     } else {
       /* Emit the source name for this qualifier (with any template args). */
       if (kind == iek_type) {
@@ -4350,8 +4346,9 @@ expression that was used to select expr (NULL if no selector was used).
         if (con->source_corresp.name != NULL &&
             con->source_corresp.name[0] == '~') {
           /* A destructor. */
-          destructor_type = scp_parent_class(
-                                      &expr->variant.constant->source_corresp);
+          check_assertion(name_reference != NULL &&
+                          name_reference->destructor_type != NULL);
+          destructor_type = name_reference->destructor_type;
         } else {
           scp = &con->source_corresp;
         }  /* if */
