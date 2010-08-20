@@ -6123,8 +6123,8 @@ static a_boolean is_template_dependent_offsetof_member(
                                             an_expr_node_ptr  expr,
                                             a_boolean         *not_a_constant)
 /*
-The given expression is the second operand of a bok_offsetof operation.  Return
-TRUE if that expression contains a template-dependent subscript operation.
+The given expression is the second operand of a bok_offsetof operation.
+Return TRUE if that expression contains a template-dependent operation.
 If it contains a non-constant subscript operation, set *not_a_constant to TRUE.
 */
 {
@@ -6141,6 +6141,15 @@ If it contains a non-constant subscript operation, set *not_a_constant to TRUE.
                                     (a_constant_repr_kind)ck_template_param) {
         template_dependent = TRUE;
       }  /* if */
+    } else if (node_operator_is(expr, eok_dot_static)) {
+      /* A dot-static operation comes up for something like
+           __builtin_offsetof(A, T::m)
+         in the prototype instantiation where we can't tell what kind of thing
+         the lookup will find. */
+      check_assertion(is_constant_node(args->next) &&
+                      args->next->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param);
+      template_dependent = TRUE;
     }  /* if */
     expr = args;
   }  /* while */
