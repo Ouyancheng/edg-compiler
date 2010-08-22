@@ -1981,8 +1981,7 @@ template parameters.
          final qualifier.  For example, Q4_1A1B1C1D would demangle as
          A::B::C::~D and 1A would demangle as ~A (as in a.~A()). */
       is_special_name = TRUE;
-      if (get_char(p+4, dctl) == 'Q' ||
-          isdigit((unsigned char)get_char(p+4, dctl))) {
+      if (get_char(p+4, dctl) == 'Q') {
         /* Destructor is qualified. */
         end_ptr = full_demangle_type_name(p+4, /*base_name_only=*/FALSE,
                                           /*temp_par_info=*/
@@ -2348,8 +2347,8 @@ parameters.  Note that this routine is called for namespaces too
 (the mangling is the same as for class names; you can't actually tell
 the difference in a mangled name).  If is_destructor_name is TRUE, this type is
 actually the name of a destructor and an implied "~" should be emitted before
-the last component of the name (e.g., T::~X).  See demangle_type_name for an
-interface to this routine for the simple case.
+the last component of a qualified name (e.g., T::~X).  See demangle_type_name
+for an interface to this routine for the simple case.
 */
 {
   char          *p = ptr;
@@ -2377,7 +2376,6 @@ interface to this routine for the simple case.
     }  /* for */
   } else {
     /* A simple (non-nested) type name. */
-    if (is_destructor_name) write_id_ch('~', dctl);
     p = demangle_simple_type_name(p, base_name_only, temp_par_info, dctl);
   }  /* if */
   return p;
