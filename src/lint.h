@@ -525,6 +525,9 @@ extern int fileno(FILE *);
 #if ABI_COMPATIBILITY_VERSION >= 306
 /*lint -esym(769,ec_cl_vla_option_only_in_C)*/
 #endif /* ABI_COMPATIBILITY_VERSION >= 306 */
+#if ABI_COMPATIBILITY_VERSION >= 402
+/*lint -esym(769,ec_sfinae_requires_newer_abi_version)*/
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if !FULLY_RESOLVED_MACRO_POSITIONS
 /*lint -esym(769,ec_in_macro_expansion_at)*/
 #endif /* !FULLY_RESOLVED_MACRO_POSITIONS */
