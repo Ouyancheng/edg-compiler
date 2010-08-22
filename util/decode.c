@@ -2376,6 +2376,7 @@ for an interface to this routine for the simple case.
     }  /* for */
   } else {
     /* A simple (non-nested) type name. */
+    if (is_destructor_name) write_id_ch('~', dctl);
     p = demangle_simple_type_name(p, base_name_only, temp_par_info, dctl);
   }  /* if */
   return p;
