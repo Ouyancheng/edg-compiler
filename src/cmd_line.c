@@ -8366,6 +8366,18 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION < 306 */
 #endif /* VLA_ALLOWED */
+#if ABI_COMPATIBILITY_VERSION < 402
+  if (cpp0x_sfinae_enabled) {
+    /* The ABI previous to 4.2 could not support SFINAE mangling; silently
+       disable this option unless it was explicitly specified, in which case
+       we give an error. */
+    if (option_kind_used[(int)optk_cpp0x_sfinae] ||
+        option_kind_used[(int)optk_cpp0x_mode]) {
+      command_line_error(ec_sfinae_requires_newer_abi_version);
+    }  /* if */
+    cpp0x_sfinae_enabled = FALSE;
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION < 402 */
   /* warning_on_for_init_difference may be TRUE only if the new for-init
      scoping rules are in effect. */
   if (use_nonstandard_for_init_scope) warning_on_for_init_difference = FALSE;
