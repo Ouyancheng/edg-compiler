@@ -907,8 +907,8 @@ ptr, and output the demangled form.  When suppress_address_of is TRUE, the
 ampersand that is normally emitted before an address constant is suppressed
 (this is used when demangling expressions where any "address of" operation is
 explicit).  When need_parens is TRUE, parentheses are emitted around literals
-and expressions (but not other types of constants).  Return a pointer to the
-character position following what was demangled.
+and expressions (but not addresses or template parameters).  Return a pointer
+to the character position following what was demangled.
 */
 {
   char          *p = ptr, *type = NULL, *index, *prev_end;
@@ -1172,11 +1172,8 @@ even when need_parens is TRUE).
     /* A function parameter reference. */
     p = demangle_parameter_reference(p, dctl);
   } else if (get_char(p, dctl) == '_' && get_char(p+1, dctl) == '_') {
-    /* Certain special names can occur here, for example operator names.
-       In the case of operator names, any arguments to the operator are
-       handled as part of processing of the call (i.e., this only outputs
-       the name of the call operand, arguments to the call are processed
-       at a higher level). */
+    /* Certain special names can occur here, for example, an operator name
+       that appears as the first operand of a call. */
     p = demangle_name(p, (unsigned long)0, /*stop_on_underscores=*/TRUE,
                       (unsigned long *)NULL, (char *)NULL,
                       (a_template_param_block_ptr)NULL, (a_boolean *)NULL,
@@ -1271,23 +1268,21 @@ position following what was demangled.
         /* These manglings have three forms, dependent on the next character
            in the mangled name.  They're sufficiently different that they
            are handled (mostly separately) here. */
-        /* "e" indicates a sizeof (etc.) based on an expression.  Do not
-           scan the type.  Note that the expression is not present either. */
         write_id_str(operator_str, dctl);
         operator_str = "";
         if (get_char(p, dctl) == 'e') {
-          /* An "old style" sizeof(expression) where the expression was not
+          /* An "old style expression" where the expression was not
              encoded (and the operand count is zero).  Just note that there
              was an expression and we're done. */
           write_id_str("expr)", dctl);
           p++;
         } else if (get_char(p, dctl) == 'X') {
-          /* A "new style" sizeof(expression) where the expression is
+          /* A "new style expression" where the expression is
              included in the mangled name and will be demangled below. */
           close_str = ")";
           p++;
         } else {
-          /* The sizeof(type) case; simply decode the type (the mangled
+          /* The "type" case; simply decode the type (the mangled
              encoding specifies zero operands -- which are ignored below). */
           p = demangle_type(p, dctl);
           write_id_ch(')', dctl);
@@ -1400,7 +1395,9 @@ position following what was demangled.
           }  /* if */
         }  /* for */
       } else {
-        /* Normal case, not a builtin operation. */
+        /* Normal case, i.e., the operation has one, two, or three operands
+           (and isn't an operation that has a variable number of operands --
+           some of which may be types -- like a builtin-operation). */
         if (num_operands == 1 && !is_postfix) {
           /* Prefix unary operator -- operator comes first. */
           write_id_str(operator_str, dctl);
@@ -1982,7 +1979,7 @@ template parameters.
          (e.g., it can handle T::~X()).  What follows (a "destructor name")
          can be parsed as a nested type, but has an implied ~ before the
          final qualifier.  For example, Q4_1A1B1C1D would demangle as
-         A::B::C::~D. */
+         A::B::C::~D and 1A would demangle as ~A (as in a.~A()). */
       is_special_name = TRUE;
       if (get_char(p+4, dctl) == 'Q' ||
           isdigit((unsigned char)get_char(p+4, dctl))) {
@@ -3851,7 +3848,7 @@ component of the nested name is returned in *last_component_name.  It
 will not be a substitution.  This is needed for generating the names
 of constructors and destructors.  If substitution is non-NULL, *substitution
 is set to the point in the mangled name where the substitution source
-occurrs (in case the caller needs to examine it -- for example to see what
+occurs (in case the caller needs to examine it -- for example to see what
 type the substitution represents).
 */
 {
@@ -4198,13 +4195,13 @@ The syntax is:
 
   <function-param> ::= fp <top-level CV-qualifiers> _
                                           # L == 0, first parameter
-		   ::= fp <top-level CV-qualifiers>
+                   ::= fp <top-level CV-qualifiers>
                           <parameter-2 non-negative number> _
                                           # L == 0, second and later parameters
-		   ::= fL <L-1 non-negative number> p
+                   ::= fL <L-1 non-negative number> p
                           <top-level CV-qualifiers> _         
                                           # L > 0, first parameter
-		   ::= fL <L-1 non-negative number> p 
+                   ::= fL <L-1 non-negative number> p 
                           <top-level CV-qualifiers>
                           <parameter-2 non-negative number> _   
                                           # L > 0, second and later parameters
@@ -4233,7 +4230,7 @@ The syntax is:
     goto end_of_routine;
   }  /* if */
   ptr++;
-  if (*ptr != '-' && !isdigit((unsigned char)*ptr)) {
+  if (*ptr != '_' && !isdigit((unsigned char)*ptr)) {
     /* Optional cv-qualifiers. */
     ptr = get_cv_qualifiers(ptr, &cv_quals);
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
