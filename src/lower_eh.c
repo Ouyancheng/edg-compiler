@@ -5198,10 +5198,6 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   try_frame_setjmp_buffer = make_array_to_pointer_node(
                                                       try_frame_setjmp_buffer);
   /* Make the setjmp call. */
-#if 0
-  /* We shouldn't assume setjmp is a routine. */
-  /* What if the user has something called setjmp? */
-#endif /* 0 */
   setjmp_call = make_runtime_rout_call("setjmp", &setjmp_routine,
                                        integer_type((an_integer_kind)ik_int),
                                        try_frame_setjmp_buffer);
