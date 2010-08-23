@@ -1,5 +1,19 @@
 Version 4.2
 
+8/22/10  [EDGcpfe/10940]
+Abort on indirect call through a pointer with the GNU "sentinel" attribute
+
+In GNU modes, a call through a pointer-to-function declared with the "sentinel"
+attribute was likely to cause the front end to abort (due to a null-pointer
+indirection) in warn_if_missing_sentinel (overload.c).  For example:
+
+  void (*pf)(char *, ...) __attribute((sentinel));
+  void g() { pf("Check", (void*)0); }  // Previously triggered an abort.
+
+This is now fixed.  (The front end does not currently fully check the sentinel
+on indirect calls.)
+
+
 8/18/10  [EDGcpfe/10931]
 Missing error on invalid default exception handler
 

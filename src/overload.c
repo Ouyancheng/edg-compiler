@@ -8691,7 +8691,7 @@ is a constant null pointer.
   if (arg_block->arg_ctr < arg_block->sentinel_pos) {
     expr_pos_warning(ec_no_gnu_sentinel_argument,
                      &arg_block->closing_paren_position);
-  } else {
+  } else if (arg_block->routine != NULL) {
     an_operand        *sentinel;
     int               k = arg_block->arg_ctr - arg_block->sentinel_pos;
     a_param_type_ptr  param = skip_typerefs(arg_block->routine->type)
