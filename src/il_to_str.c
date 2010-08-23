@@ -4122,7 +4122,7 @@ on every expression.
 #endif /* DEBUG */
         /* Do not insert code here */
         { a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
-          if (has_name(expr->type) &&
+          if (has_name_before_mangling(expr->type) &&
               (dip->kind == (a_dynamic_init_kind)dik_none ||
                dip->kind == (a_dynamic_init_kind)dik_zero)) {
             form_type(expr->type, octl);
