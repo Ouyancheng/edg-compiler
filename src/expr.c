@@ -1032,10 +1032,10 @@ to TRUE.
 
 
 static void scan_dependent_parenthesized_initializer(
-                                        a_rescan_control_block *rcblock,
-                                        an_arg_operand_ptr     *prescanned_args,
-                                        an_operand             *single_operand,
-                                        a_dynamic_init_ptr     *dip)
+                                       a_rescan_control_block *rcblock,
+                                       an_arg_operand_ptr     *prescanned_args,
+                                       an_operand             *single_operand,
+                                       a_dynamic_init_ptr     *dip)
 /*
 Scan and process a parenthesized list of expressions that is the
 initializer of an entity of a template-dependent type.  If
