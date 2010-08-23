@@ -1173,10 +1173,6 @@ restore the memory regions.
         break;
       }  /* if */
     }  /* for */
-#if 0
-    /* How should this memory be freed if a failure occurred during
-       allocation? */
-#endif /* 0 */
   }  /* if */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (!successful) {
