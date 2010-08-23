@@ -7544,7 +7544,7 @@ wondering if it's available.
                           /*check_ambiguity=*/FALSE,
                           /*is_implicit_cast=*/TRUE,
                           /*is_reinterpret_cast=*/FALSE,
-                          /*reinterpret_sementics=*/FALSE);
+                          /*reinterpret_semantics=*/FALSE);
       } else {
         /* Cast the "this" value to the class of the member. */
         /* Note that no ARM 11.5 protected member access check is needed,
