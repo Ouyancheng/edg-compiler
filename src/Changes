@@ -1,5 +1,26 @@
 Version 4.2
 
+8/23/10  [EDGcpfe/10948]
+GNU compatibility: Discriminators for anonymous union types
+
+The IA-64 ABI uses small integers called "discriminators" to distinguish
+the mangled names of unnamed types, but the ABI excludes anonymous union
+types from this numbering.    GCC, however, includes anonymous types in this
+numbering: When IA64_ABI and emulate_gnu_abi_bugs are TRUE, the front end
+now does the same.  For example (with --c++0x and assuming the IA-64 ABI):
+
+  template<class T> T f(T);
+  struct A {
+    union { int i; };  // Anonymous union.
+    struct {} s;       // The discriminator value of the unnamed struct is
+  } a;                 // now increased by one when emulate_gnu_abi_bugs is
+                       // TRUE.
+  int main() {
+    f(a.s);   // Previously always mangled as _Z1fIN1AUt_EET_S2_;
+              // now _Z1fIN1AUt0_EET_S2_ (when emulate_gnu_abi_bugs is TRUE).
+  }
+
+
 8/22/10  [EDGcpfe/10940]
 Abort on indirect call through a pointer with the GNU "sentinel" attribute
 

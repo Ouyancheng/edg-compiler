@@ -10622,10 +10622,23 @@ nonstandard anonymous unions is_nonstd is TRUE.
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_variable;
     }  /* if */
 #if NEED_NAME_MANGLING
-    /* A discriminator was assigned to the unnamed type, but now it turns out
-       not to be unnamed for mangling purposes after all. */
-    cancel_name_collision_discriminator(symbol_for(assoc_object_type),
-                                        decl_scope_level);
+    /* A discriminator was assigned to the unnamed type, but the IA-64 ABI
+       does not consider anonymous union types to be unnamed for mangling
+       purposes (and we follow the IA-64 ABI conventions in the Cfront ABI
+       here). */
+#if IA64_ABI
+    if (emulate_gnu_abi_bugs) {
+      /* GNU counts anonymous unions as unnamed types (which affects any
+         subsequent discriminators in this scope), so don't cancel the
+         discriminator for this anonymous union type. */
+    } else
+#endif /* IA64_ABI */
+    /* Do not insert code here. */
+    {
+      /* Reclaim the discriminator value. */
+      cancel_name_collision_discriminator(symbol_for(assoc_object_type),
+                                          decl_scope_level);
+    }  /* if */
 #endif /* NEED_NAME_MANGLING */
   }  /* if */
   /* Get the list of symbols that are to be either promoted (i.e., reused
