@@ -6776,7 +6776,6 @@ attributes.
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #endif /* DEBUG */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-      pch_saved_var_array_elem(attr_name_map),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
