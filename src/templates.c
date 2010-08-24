@@ -5034,7 +5034,8 @@ the same constant.
 
 static a_boolean template_arg_is_dependent(a_template_arg_ptr tap)
 /*
-Return TRUE if the template argument entry pointed to by tap is dependent.
+Return TRUE if the template argument entry pointed to by tap is
+instantiation-dependent.
 */
 {
   a_boolean  template_param_found;
@@ -5087,7 +5088,8 @@ Return TRUE if the template argument entry pointed to by tap is dependent.
 
 a_boolean template_arg_list_is_dependent(a_template_arg_ptr	tap)
 /*
-Return TRUE if the template argument list pointed to by tap is dependent.
+Return TRUE if the template argument list pointed to by tap is
+instantiation-dependent.
 */
 {
   a_boolean	result = FALSE;
