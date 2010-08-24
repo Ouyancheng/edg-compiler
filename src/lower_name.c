@@ -2602,7 +2602,7 @@ static a_boolean is_unresolved_type(a_type_ptr type)
 /*
 Returns TRUE if type is an <unresolved-type>, i.e., a <decltype> or a
 <template-param>.  This is called on the top-level qualifier during mangling of
-an <unresolved-name> to determine which of the three scope resolution cases are
+an <unresolved-name> to determine which of the three scope resolution cases is
 appropriate. The type must not have had its typerefs skipped by the caller.
 */
 {
@@ -2763,9 +2763,8 @@ qualifiers seen so far (and is typically set to one by the initial caller).
     if (scp != NULL) add_str_to_mangled_name("sr", mctl);
     if (kind == iek_type &&
         (emulate_gnu_abi_bugs || is_top_level_unresolved_type)) {
-      /* See if the qualifier type is a top-level <unresolved-type>.  If so,
-         use an <unresolved-type> encoding rather than a <simple-id>
-         encoding.  */
+      /* The qualifier type is a top-level <unresolved-type>; use an 
+         <unresolved-type> encoding rather than a <simple-id> encoding.  */
       if (nesting_level > 1) {
         add_to_mangled_name('N', mctl);
         *need_close = TRUE;
