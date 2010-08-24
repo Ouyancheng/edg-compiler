@@ -12295,7 +12295,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         if (orig_type_sym == NULL) orig_type_sym = type_sym;
         tp = type_symbol_type(type_sym);
         dtor_type = tp;
-        tp = skip_typerefs(tp);
+        tp = skip_typerefs_not_dependent_decltypes(tp);
         if (symbol_for(tp) != NULL) {
           /* In some error cases involving aliases the underlying type may
              not have a symbol.  In such cases, use the symbol from the
