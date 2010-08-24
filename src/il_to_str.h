@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -472,6 +472,6 @@ extern void il_to_str_one_time_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

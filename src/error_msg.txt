@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2009 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2010 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 #
@@ -1964,6 +1964,6 @@ ec_sfinae_requires_newer_abi_version;;"options \"c++0x\" and \"c++0x_sfinae\" re
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2009 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2010 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################

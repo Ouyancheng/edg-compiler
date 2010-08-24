@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1134,6 +1134,6 @@ extern int32_t *min_template_arguments_for_type(a_type_ptr	tp);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2009 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2010 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
