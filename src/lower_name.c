@@ -488,7 +488,9 @@ static void close_ia64_nested_name(
                               a_boolean                 need_nested_name_close,
                               a_source_correspondence  *discriminator_scp,
                               a_mangling_control_block *mctl);
+#if ABI_COMPATIBILITY_VERSION >= 402
 static a_boolean gnu_requires_decltype_mangling(a_type_ptr type);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* IA64_ABI */
 static void mangled_template_arguments(
                                     a_template_arg_ptr       template_arg_list,
@@ -508,6 +510,7 @@ static void mangled_simple_id(a_source_correspondence_ptr scp,
                               a_boolean                   include_length,
                               a_mangling_control_block    *mctl);
 static char *unmangled_or_fabricated_name_of_variable(a_variable_ptr var);
+#if ABI_COMPATIBILITY_VERSION >= 402
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     an_expr_node_ptr         arguments,
                                     an_expr_node_ptr         selector,
@@ -521,6 +524,7 @@ static void mangled_operator_or_conversion_function(
                          a_name_reference_ptr     name_reference,
                          a_boolean                suppress_operation_indicator,
                          a_mangling_control_block *mctl);
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
                                                  an_il_entry_kind        kind);
 
@@ -577,6 +581,7 @@ entity unchanged.
          use the template parameter as the entity. */
       type = symbol_supplement_for_class(type)->template_param_for_proxy_class;
       if (type != NULL) entity = (char *)type;
+#if ABI_COMPATIBILITY_VERSION >= 402
     } else if (emulate_gnu_abi_bugs &&
                type->kind == (a_type_kind)tk_typeref &&
                type->variant.typeref.is_decltype &&
@@ -586,6 +591,7 @@ entity unchanged.
          but if we're emulating GNU and GNU doesn't believe the decltype
          is dependent, then strip the decltype for substitution purposes. */
       entity = (char *)type->variant.typeref.type;
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     }  /* if */
   }  /* if */
   return entity;
@@ -3900,6 +3906,68 @@ explicitly dealt with later in expression mangling.
   return skip_parens(expr);
 }  /* skip_compiler_generated_expressions */
 
+
+static void mangled_expression_list(an_expr_node_ptr         expr,
+                                    a_boolean                in_dependent_expr,
+                                    a_mangling_control_block *mctl)
+/*
+Utility to emit mangled encodings for the given expr and all that follow
+it (often arguments to some type of call operand).  In the IA-64 ABI,
+in_dependent_expr is TRUE if this expression is part of a template-dependent
+expression. 
+*/
+{
+  for (; expr != NULL && !expr->generated_default_arg; expr = expr->next) {
+    mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
+  }  /* for */
+}  /* mangled_expression_list */
+
+
+#if IA64_ABI
+/*ARGSUSED*/ /* <-- include_length is unused in that case. */
+#endif /* IA64_ABI */
+static void mangled_simple_id(a_source_correspondence_ptr scp,
+                              a_template_arg_ptr          template_arg_list,
+                              a_name_reference_ptr        name_reference,
+                              a_boolean                   include_length,
+                              a_mangling_control_block    *mctl)
+/*
+Add to the mangled name the source name of the entity specified by scp.  
+This is used to implement the <simple-id> production that is part of the
+<unresolved-name> IA-64 rule and is not meant to be a general purpose
+mechanism for mangling an entity.  The same mangling method is used for
+both IA-64 and Cfront ABIs (i.e., length followed by name and template
+arguments).  If template_arg_list is non-NULL, template arguments are also
+mangled.  name_reference (when non-NULL) is used to ensure that the mangled
+list of template arguments accurately represents those that appeared in the
+source form.  In the Cfront ABI, if include_length is TRUE, the length of the
+mangled name (including any template arguments) is prefixed to the name.
+*/
+{
+  char                 *str;
+#if !IA64_ABI
+  a_length_reservation length_reservation;
+
+  if (include_length) reserve_space_for_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
+  str = unmangled_or_fabricated_name_of(scp);
+  check_assertion(str != NULL);
+#if IA64_ABI
+  add_number_to_mangled_name((unsigned long)strlen(str), mctl);
+#endif /* IA64_ABI */
+  add_str_to_mangled_name(str, mctl);
+  if (name_reference == NULL ? template_arg_list != NULL :
+                               name_reference->is_template_id) {
+    /* Put out the template argument list (or a null list), if any. */
+    mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
+                               /*old_form=*/FALSE, name_reference, mctl);
+  }  /* if */
+#if !IA64_ABI
+  if (include_length) fill_in_length(&length_reservation, mctl);
+#endif /* !IA64_ABI */
+}  /* mangled_simple_id */
+
+#if ABI_COMPATIBILITY_VERSION >= 402
 #if IA64_ABI
 
 static void is_gnu_dependent_expr_node(
@@ -4119,51 +4187,6 @@ ABI, the "on" prefix is suppressed when suppress_operation_indicator is TRUE.
                                mctl);
   }  /* if */
 }  /* mangled_operator_or_conversion_function */
-
-
-#if IA64_ABI
-/*ARGSUSED*/ /* <-- include_length is unused in that case. */
-#endif /* IA64_ABI */
-static void mangled_simple_id(a_source_correspondence_ptr scp,
-                              a_template_arg_ptr          template_arg_list,
-                              a_name_reference_ptr        name_reference,
-                              a_boolean                   include_length,
-                              a_mangling_control_block    *mctl)
-/*
-Add to the mangled name the source name of the entity specified by scp.  
-This is used to implement the <simple-id> production that is part of the
-<unresolved-name> IA-64 rule and is not meant to be a general purpose
-mechanism for mangling an entity.  The same mangling method is used for
-both IA-64 and Cfront ABIs (i.e., length followed by name and template
-arguments).  If template_arg_list is non-NULL, template arguments are also
-mangled.  name_reference (when non-NULL) is used to ensure that the mangled
-list of template arguments accurately represents those that appeared in the
-source form.  In the Cfront ABI, if include_length is TRUE, the length of the
-mangled name (including any template arguments) is prefixed to the name.
-*/
-{
-  char                 *str;
-#if !IA64_ABI
-  a_length_reservation length_reservation;
-
-  if (include_length) reserve_space_for_length(&length_reservation, mctl);
-#endif /* !IA64_ABI */
-  str = unmangled_or_fabricated_name_of(scp);
-  check_assertion(str != NULL);
-#if IA64_ABI
-  add_number_to_mangled_name((unsigned long)strlen(str), mctl);
-#endif /* IA64_ABI */
-  add_str_to_mangled_name(str, mctl);
-  if (name_reference == NULL ? template_arg_list != NULL :
-                               name_reference->is_template_id) {
-    /* Put out the template argument list (or a null list), if any. */
-    mangled_template_arguments(template_arg_list, /*partial_spec=*/FALSE,
-                               /*old_form=*/FALSE, name_reference, mctl);
-  }  /* if */
-#if !IA64_ABI
-  if (include_length) fill_in_length(&length_reservation, mctl);
-#endif /* !IA64_ABI */
-}  /* mangled_simple_id */
 
 
 #if IA64_ABI
@@ -4543,23 +4566,6 @@ expression that was used to select expr (NULL if no selector was used).
 #endif /* !IA64_ABI */
 }  /* mangled_unresolved_name */
 
-
-static void mangled_expression_list(an_expr_node_ptr         expr,
-                                    a_boolean                in_dependent_expr,
-                                    a_mangling_control_block *mctl)
-/*
-Utility to emit mangled encodings for the given expr and all that follow
-it (often arguments to some type of call operand).  In the IA-64 ABI,
-in_dependent_expr is TRUE if this expression is part of a template-dependent
-expression. 
-*/
-{
-  for (; expr != NULL && !expr->generated_default_arg; expr = expr->next) {
-    mangled_encoding_for_expression(expr, in_dependent_expr, mctl);
-  }  /* for */
-}  /* mangled_expression_list */
-
-#if ABI_COMPATIBILITY_VERSION >= 402
 
 static void mangled_selection_operation(
                                     an_expr_node_ptr         expr,
@@ -7812,9 +7818,9 @@ Add to the mangled name the encoding for the type "type".
   /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type->kind == (a_type_kind)tk_typeref;
        type = type->variant.typeref.type) {
-#if IA64_ABI
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402
 top_of_loop:
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402 */
     /* Remember type qualifiers encountered. */
     qualifiers |= type->variant.typeref.qualifiers;
 #if ABI_COMPATIBILITY_VERSION < 230
@@ -7833,7 +7839,7 @@ top_of_loop:
        has determined are instantiation-dependent).  GNU has a slightly
        different interpretation of when decltype mangling is needed. */
     if (type->variant.typeref.is_decltype) {
-#if IA64_ABI
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402
       if (emulate_gnu_abi_bugs) {
         if (gnu_requires_decltype_mangling(type)) {
           /* This decltype needs to appear in the mangled name. */
@@ -7860,7 +7866,7 @@ top_of_loop:
           }  /* if */
         }  /* if */
       } else
-#endif /* IA64_ABI */
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402 */
       {
         if (type->variant.typeref.is_dependent_decltype_or_typeof) {
           /* This decltype needs to appear in the mangled name. */
