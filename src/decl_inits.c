@@ -4074,7 +4074,8 @@ FALSE is returned) for non-class objects.
              the call (since it's a no-op), but the definition still needs to
              be generated, since it may have side-effects. */
           if (reference_to_trivial_default_constructor(tp, err_pos,
-                                                      /*check_access=*/TRUE)) {
+                                                       /*check_access=*/TRUE,
+                                                       (a_boolean *)NULL)) {
             def_init_performed = TRUE;
           }  /* if */
         }  /* if */
@@ -5073,7 +5074,8 @@ scan_paren:
           } else if (curr_token == tok_rparen && cssp != NULL &&
                      reference_to_trivial_default_constructor(
                                          init_type, &error_position,
-                                         /*check_access=*/TRUE)) {
+                                         /*check_access=*/TRUE,
+                                         (a_boolean *)NULL)) {
             /* We fake a call to the trivial default constructor for the
                class.  No call is actually made, but the constructor
                definition is triggered (in case there are side-effects).
@@ -5422,7 +5424,8 @@ scan_paren:
             /* If there is a trivial default constructor for this class,
                treat this as a reference to it. */
             (void)reference_to_trivial_default_constructor(tp, &err_pos,
-                                                        /*check_access=*/TRUE);
+                                                         /*check_access=*/TRUE,
+                                                         (a_boolean *)NULL);
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */

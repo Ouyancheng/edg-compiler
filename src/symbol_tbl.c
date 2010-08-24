@@ -7129,9 +7129,9 @@ class of object_class_type.  This is needed for protected member
 access checking.  If evaluated is FALSE, the reference is within an
 unevaluated expression.  If error_detected is non-NULL, return
 *error_detected set to TRUE if there was an error, and do not issue
-any diagnostics (including warnings).  (That return value duplicates the
-one in *err, but it keeps the interface consistent with the other
-similar select_xxx_full routines below.)
+any diagnostics (including warnings).  (That return value does not
+quite duplicate the one in *err, because it includes access errors
+and *err does not.)
 */
 {
   a_routine_ptr ctor_routine = NULL;
@@ -7139,10 +7139,7 @@ similar select_xxx_full routines below.)
   a_boolean     local_err = FALSE, ambiguous, trivial;
 
   /* This routine is similar to select_overloaded_function. */
-  if (error_detected != NULL) {
-    *error_detected = FALSE;
-    check_assertion(!check_access);
-  }  /* if */
+  if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, &ambiguous, &trivial);
   if (ctor_sym == NULL) {
@@ -7183,7 +7180,8 @@ similar select_xxx_full routines below.)
                                              /*honor_virtual=*/FALSE,
                                              evaluated,
                                              /*instantiate=*/TRUE,
-                                             check_access);
+                                             check_access,
+                                             error_detected);
   }  /* if */
   if (err != NULL) *err = local_err;
   return ctor_routine;
@@ -7241,17 +7239,14 @@ and do not issue any diagnostics (including warnings).
   a_class_symbol_supplement_ptr
                 cssp = symbol_supplement_for_class(class_type);
 
-  if (error_detected != NULL) {
-    *error_detected = FALSE;
-    check_assertion(!check_access);
-  }  /* if */
+  if (error_detected != NULL) *error_detected = FALSE;
   if (cssp != NULL) {
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
-      if (!have_access_to_symbol(dtor_sym) &&
-          microsoft_mode && microsoft_version < 1400 &&
+      if (microsoft_mode && microsoft_version < 1400 &&
           object_class_type != NULL &&
-          object_class_type->variant.class_struct_union.dtor_decl_suppressed) {
+          object_class_type->variant.class_struct_union.dtor_decl_suppressed &&
+          !have_access_to_symbol(dtor_sym)) {
         /* MSVC++ versions before 8.0 simply do not invoke an inaccessible
            subobject destructor if the declaration of the complete object's
            destructor was suppressed. */
@@ -7274,7 +7269,8 @@ and do not issue any diagnostics (including warnings).
                                                  object_class_type,
                                                  honor_virtual, evaluated,
                                                  instantiate,
-                                                 check_access);
+                                                 check_access,
+                                                 error_detected);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
       if (cssp->has_trivial_destructor) {
@@ -7364,17 +7360,14 @@ and do not issue any diagnostics (including warnings).
   a_routine_ptr cctor_routine = NULL;
   a_boolean     ambiguous;
 
-  if (error_detected != NULL) {
-    *error_detected = FALSE;
-    check_assertion(!check_access);
-  }  /* if */
+  if (error_detected != NULL) *error_detected = FALSE;
   cctor_sym = find_copy_constructor(class_type, required_qualifiers,
                                     source_is_rvalue,
                                     err_pos, &ambiguous, class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
     reference_to_trivial_copy_constructor(class_type, err_pos,
-                                          check_access);
+                                          check_access, error_detected);
   } else if (ambiguous) {
     /* More than one applicable copy constructor. */
     if (error_detected != NULL) {
@@ -7412,7 +7405,8 @@ and do not issue any diagnostics (including warnings).
                                                /*honor_virtual=*/FALSE,
                                                evaluated,
                                                /*instantiate=*/TRUE,
-                                               check_access);
+                                               check_access,
+                                               error_detected);
     }  /* if */
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
@@ -8716,8 +8710,9 @@ in the source program.
 static void issue_access_error(a_symbol_ptr       sym,
                                a_type_ptr         protected_access_class,
                                a_source_position  *err_pos,
-			       an_error_severity  severity,
-			       an_error_code      error_code)
+                               an_error_severity  severity,
+                               an_error_code      error_code,
+                               a_boolean          *error_detected)
 /*
 Issue the appropriate error on the inaccessibility of sym at *err_pos.
 If protected_access_class is non-NULL, the checking is the special
@@ -8730,15 +8725,27 @@ used, but they can also be specified by the caller using severity and
 error_code.  If the default values are to be used, severity should be
 es_none, and error_code should be ec_no_error.  The severity is only
 used if error_code is not ec_no_error.
+
+If error_detected is non-NULL, do not issue any diagnostics.  Just figure
+out the error and severity, and return *error_detected TRUE if the selected
+diagnostic would actually be an error.
 */
 {
+  a_boolean issue_diagnostics = (error_detected == NULL);
+
   sym = fundamental_symbol_of(sym);
   if (error_code != ec_no_error) {
     /* The error code and severity were provided by the caller. */
-    pos_sy_diagnostic(severity, error_code, err_pos, sym);
+    if (issue_diagnostics) {
+      pos_sy_diagnostic(severity, error_code, err_pos, sym);
+    }  /* if */
   } else if (protected_access_class != NULL) {
-    pos_syty_diagnostic(es_discretionary_error, ec_protected_access_problem,
-                        err_pos, sym, protected_access_class);
+    error_code = ec_protected_access_problem;
+    severity = es_discretionary_error;
+    if (issue_diagnostics) {
+      pos_syty_diagnostic(severity, error_code,
+                          err_pos, sym, protected_access_class);
+    }  /* if */
   } else {
     a_routine_ptr     rp;
     error_code = ec_no_access_to_name;
@@ -8764,7 +8771,12 @@ used if error_code is not ec_no_error.
         error_code = ec_no_access_to_type_cfront_mode;
       }  /* if */
     }  /* if */
-    pos_sy_diagnostic(severity, error_code, err_pos, sym);
+    if (issue_diagnostics) {
+      pos_sy_diagnostic(severity, error_code, err_pos, sym);
+    }  /* if */
+  }  /* if */
+  if (!issue_diagnostics) {
+    *error_detected = is_effective_error(error_code, severity);
   }  /* if */
 }  /* issue_access_error */
 
@@ -8814,8 +8826,9 @@ void record_access_error(a_symbol_ptr            sym,
                          a_type_ptr              protected_access_class,
                          a_source_position       *source_position,
                          a_symbol_locator        *locator,
-                         an_error_severity	 severity,
-                         an_error_code		 error_code)
+                         an_error_severity       severity,
+                         an_error_code           error_code,
+                         a_boolean               *error_detected)
 /*
 An access error on "sym" has been detected.  If "sym" is a member of
 an overload set, "overload_sym" is the symbol for the set.
@@ -8835,6 +8848,11 @@ used, but they can also be specified by the caller using severity and
 error_code.  If the default values are to be used, severity should be
 es_none, and error_code should be ec_no_error.  The severity is only
 used if error_code is not ec_no_error.
+
+If error_detected is non-NULL, do not issue any diagnostics.  Just figure
+out the error and severity, and return *error_detected TRUE if the selected
+diagnostic would actually be an error.  That feature cannot be used in
+a context where deferral of errors applies.
 */
 {
   a_boolean			defer_access_checks = FALSE;
@@ -8848,13 +8866,15 @@ used if error_code is not ec_no_error.
     if (locator == NULL || !locator->access_control_error_reported) {
       issue_access_error(sym,
                          protected_access_class,
-                         source_position, severity, error_code);
+                         source_position, severity, error_code,
+                         error_detected);
       if (locator != NULL) locator->access_control_error_reported = TRUE;
     }  /* if */
   } else {
     /* Access checks are deferred, so put an entry on a list for later
        checking. */
     an_access_error_descr_ptr	aedp;
+    check_assertion(error_detected == NULL);
     aedp = alloc_access_error_descr();
     aedp->sym = sym;
     aedp->overload_sym = overload_sym;
@@ -8931,8 +8951,9 @@ locator, and return TRUE.  If the symbol is not ambiguous, return FALSE.
 
 
 void f_check_ambiguity_and_verify_access(a_symbol_locator *locator,
-					 a_boolean	  is_templ_context,
-					 a_boolean	  is_qualifier)
+                                         a_boolean        is_templ_context,
+                                         a_boolean        is_qualifier,
+                                         a_boolean        *error_detected)
 /*
 Verify that the indicated symbol is not ambiguous and that we have
 access to it.  In case of an ambiguity, the locator is set to an error
@@ -8962,18 +8983,24 @@ is_templ_context is TRUE if the token following the identifier is a
 "<" token and an unambiguous injected class template symbol should be
 accepted even though the injected class symbol is ambiguous.  is_qualifier
 is TRUE if the name is followed by the "::" in a qualified name.
+
+If error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including warnings).
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
   a_symbol_ptr   fund_sym = fundamental_symbol_of(sym);
+  a_boolean      issue_diagnostics = (error_detected == NULL);
 
   /* This routine looks like overload_check_ambiguity_and_verify_access. */
+  if (!issue_diagnostics) *error_detected = FALSE;
   /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
      either as a result of using directives or as a result of inheritance.
      Ambiguity checking must precede access control (ARM, 10.1.1). */
   if (f_check_for_ambiguity(locator, is_templ_context, is_qualifier,
-                            /*diagnostic_should_be_issued=*/TRUE)) {
-    /* The symbol is ambiguous.  An error has been issued. */
+                            issue_diagnostics)) {
+    /* The symbol is ambiguous. */
+    if (!issue_diagnostics) *error_detected = TRUE;
   } else if (locator->is_template_id) {
     /* The access of the template is checked when the template name
        is looked up.  For functions, access is checked after overload
@@ -8990,10 +9017,11 @@ is TRUE if the name is followed by the "::" in a qualified name.
        typedef to be used as a qualifier in a qualified name. */
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible.  Issue the error or record it
-       for later checking if access checking is deferred. */
+       for later checking if access checking is deferred.  Suppress it
+       if error_detected is non-NULL. */
     record_access_error(sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
                         &locator->source_position, locator,
-                        es_none, ec_no_error);
+                        es_none, ec_no_error, error_detected);
   }  /* if */
 }  /* f_check_ambiguity_and_verify_access */
 
@@ -9041,7 +9069,8 @@ access.
                                                  aedp->sym,
                                                  aedp->overload_sym,
                                                  (a_source_position *)NULL,
-                                                 aedp->protected_access_class);
+                                                 aedp->protected_access_class,
+                                                 (a_boolean *)NULL);
           }  /* if */
         } else {
           /* Errors originally checked by overload_check_ambiguity... must
@@ -9062,7 +9091,8 @@ access.
             issue_access_error(aedp->sym,
                                aedp->protected_access_class,
                                &aedp->position,
-                               aedp->severity, aedp->error_code);
+                               aedp->severity, aedp->error_code,
+                               (a_boolean *)NULL);
             /* Record the symbol and position of the previous access error. */
             prev_error_symbol = aedp->sym;
             prev_error_position = aedp->position;
@@ -9181,7 +9211,8 @@ be part of the declarator name.
 
 void overload_check_ambiguity_and_verify_access(
                                             a_symbol_locator *locator,
-                                            a_symbol_ptr     overloaded_symbol)
+                                            a_symbol_ptr     overloaded_symbol,
+                                            a_boolean        *error_detected)
 /*
 Verify that the function symbol indicated in the locator (a specific
 function from an overload set) is not ambiguous and that we have
@@ -9191,16 +9222,25 @@ the locator is set to an error locator.  overloaded_symbol is either
 the sk_overloaded_function symbol containing the locator symbol, or
 an sk_function_template symbol from which the locator symbol was
 instantiated, or a projection symbol pointing to one of those two
-kinds of symbols.
+kinds of symbols.  If error_detected is non-NULL, return *error_detected
+set to TRUE if there was an error, and do not issue any diagnostics
+(including warnings).
 */
 {
+  a_boolean issue_diagnostics = (error_detected == NULL);
+
   /* This routine looks like f_check_ambiguity_and_verify_access. */
+  if (!issue_diagnostics) *error_detected = FALSE;
   /* Issue an error if the symbol is ambiguous.  Symbols can be ambiguous
      either as a result of using directives or as a result of inheritance.
      Ambiguity checking must precede access control (ARM, 10.1.1). */
   if (overloaded_symbol->ambiguous) {
-    pos_sy_error(ec_ambiguous_name, &locator->source_position,
-                 overloaded_symbol);
+    if (!issue_diagnostics) {
+      *error_detected = TRUE;
+    } else {
+      pos_sy_error(ec_ambiguous_name, &locator->source_position,
+                   overloaded_symbol);
+    }  /* if */
     set_to_error_locator(*locator);
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Suppress access checking during prototype instantiations.  Access
@@ -9213,10 +9253,11 @@ kinds of symbols.
        projection symbols from the specific symbol. */
     if (!have_access_across_derivations(symbol, overloaded_symbol)) {
       /* The symbol is not accessible.  Issue the error or record it
-         for later checking if access checking is deferred. */
+         for later checking if access checking is deferred.  Suppress it
+         if error_detected is non-NULL. */
       record_access_error(symbol, overloaded_symbol, (a_type_ptr)NULL,
                           &locator->source_position, locator,
-                          es_none, ec_no_error);
+                          es_none, ec_no_error, error_detected);
     }  /* if */
   }  /* if */
 }  /* overload_check_ambiguity_and_verify_access */
@@ -9287,7 +9328,8 @@ have_accessibility:
 a_boolean check_protected_member_access(a_symbol_ptr      sym,
                                         a_symbol_ptr      proj_sym,
                                         a_source_position *err_pos,
-                                        a_type_ptr        access_class)
+                                        a_type_ptr        access_class,
+                                        a_boolean         *error_detected)
 /*
 This routine implements the access control check mandated by 11.5 of
 the C++ standard, which requires that a protected nonstatic member
@@ -9306,6 +9348,8 @@ it is NULL, no error is put out.  In all cases, the result value is
 TRUE if the access is okay, and FALSE if there is an error.  This
 routine is called only for nonstatic members, but it has not yet been
 established that the member is protected in the naming class.
+If error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including warnings).
 */
 {
   a_boolean        have_access;
@@ -9377,7 +9421,7 @@ established that the member is protected in the naming class.
   if (!have_access && err_pos != NULL) {
     record_access_error(sym, proj_sym, access_class,
                         err_pos, (a_symbol_locator *)NULL,
-                        es_none, ec_no_error);
+                        es_none, ec_no_error, error_detected);
   }  /* if */
   return have_access;
 }  /* check_protected_member_access */

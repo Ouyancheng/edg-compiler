@@ -175,17 +175,20 @@ extern void reference_to_implicitly_invoked_function
                                      a_boolean          honor_virtual,
                                      a_boolean          evaluated,
                                      a_boolean          instantiate,
-                                     a_boolean          check_access);
+                                     a_boolean          check_access,
+                                     a_boolean          *error_detected);
 
 extern a_boolean reference_to_trivial_default_constructor(
-                                              a_type_ptr         class_type,
-                                              a_source_position  *pos,
-                                              a_boolean          check_access);
+                                           a_type_ptr         class_type,
+                                           a_source_position  *pos,
+                                           a_boolean          check_access,
+                                           a_boolean          *error_detected);
 
-extern void reference_to_trivial_copy_constructor(
-                                              a_type_ptr        class_type,
-                                              a_source_position *pos,
-                                              a_boolean          check_access);
+extern
+void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
+                                           a_source_position *pos,
+                                           a_boolean         check_access,
+                                           a_boolean         *error_detected);
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,

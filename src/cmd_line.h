@@ -278,6 +278,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* GNU_EXTENSIONS_ALLOWED */
   optk_token_separators_in_pp_output,
   optk_cpp0x_sfinae,
+  optk_cpp0x_sfinae_ignore_access,
   optk_last		/* Must be last. */
 } an_option_kind;
 

@@ -3757,9 +3757,10 @@ extern a_boolean have_protected_member_access_privilege(a_type_ptr class_type);
 extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
 extern void f_check_ambiguity_and_verify_access
-				(a_symbol_locator *loc,
-				 a_boolean	  is_templ_context,
-				 a_boolean	  is_qualifier);
+                                (a_symbol_locator *loc,
+                                 a_boolean        is_templ_context,
+                                 a_boolean        is_qualifier,
+                                 a_boolean        *error_detected);
 
 extern void perform_deferred_access_checks(void);
 
@@ -3771,7 +3772,8 @@ extern void discard_declarator_access_errors(void);
 
 extern void overload_check_ambiguity_and_verify_access(
                                            a_symbol_locator *locator,
-                                           a_symbol_ptr     overloaded_symbol);
+                                           a_symbol_ptr     overloaded_symbol,
+                                           a_boolean        *error_detected);
 
 /*
 Check to see if a symbol found is ambiguous or inaccessible.  There
@@ -3789,24 +3791,25 @@ does nothing when called in C mode.
        (locator)->specific_symbol->ambiguous)) {                      \
     f_check_ambiguity_and_verify_access(locator,		      \
                                         /*is_template_context=*/FALSE, \
-                                        /*is_qualifier=*/FALSE);      \
+                                        /*is_qualifier=*/FALSE,       \
+                                        (a_boolean *)NULL);           \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
 
 
 /*
-Similar to check_ambiguity_and_verify_access, except that the templ_context
-and is_qualifier flags are passed to the routine called.
+Similar to check_ambiguity_and_verify_access, except with full parameters.
 */
-#define check_ambiguity_and_access_full(locator, templ_context, is_qualifier) \
+#define check_ambiguity_and_access_full(locator, templ_context, is_qualifier,\
+                                        error_detected) \
 { if (C_dialect == C_dialect_cplusplus &&                             \
       (locator)->specific_symbol != NULL &&                           \
       ((locator)->specific_symbol->is_class_member ||                 \
        (locator)->specific_symbol->ambiguous)) {                      \
     f_check_ambiguity_and_verify_access(locator, templ_context,	      \
-                                        is_qualifier);		      \
+                                        is_qualifier, error_detected); \
   }  /* if */                                                         \
-}  /* check_ambiguity_and_access_with_template_flag */
+}  /* check_ambiguity_and_access_full */
 
 a_boolean f_check_for_ambiguity(a_symbol_locator *locator,
                                 a_boolean        is_templ_context,
@@ -3882,12 +3885,16 @@ extern void record_access_error(a_symbol_ptr            sym,
                                 a_source_position       *source_position,
                                 a_symbol_locator        *locator,
 				an_error_severity	severity,
-				an_error_code		error_code);
+				an_error_code		error_code,
+                                a_boolean               *error_detected);
 
-extern a_boolean check_protected_member_access(a_symbol_ptr      sym,
-                                               a_symbol_ptr      proj_sym,
-                                               a_source_position *err_pos,
-                                               a_type_ptr        access_class);
+
+extern a_boolean check_protected_member_access(
+                                            a_symbol_ptr      sym,
+                                            a_symbol_ptr      proj_sym,
+                                            a_source_position *err_pos,
+                                            a_type_ptr        access_class,
+                                            a_boolean         *error_detected);
 
 /*
 If a symbol has a corresponding nonreal type, return the symbol for that type,

@@ -693,6 +693,34 @@ mark_routine_referenced.
 }  /* if_evaluating_mark_routine_referenced */
 
 
+void expr_reference_to_implicitly_invoked_function_full(
+                                             a_symbol_ptr      sym,
+                                             a_source_position *pos,
+                                             a_type_ptr        class_of_object,
+                                             a_boolean         honor_virtual,
+                                             a_boolean         evaluated,
+                                             a_boolean         instantiate)
+/*
+Interface to reference_to_implicit_invoked_function to be used when
+calling it from within the expression-processing routines.  Supplies some
+parameters from values on the expression stack.
+*/
+{
+  a_boolean error_detected = FALSE;
+  a_boolean *p_error_detected = NULL;
+
+  /* If errors are suppressed, get a returned variable instead of issuing
+     any error. */
+  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
+  reference_to_implicitly_invoked_function(
+                                     sym, pos, class_of_object, honor_virtual,
+                                     evaluated, instantiate,
+                                     expr_access_checking_should_be_done(),
+                                     p_error_detected);
+  if (error_detected) record_suppressed_error();
+}  /* expr_reference_to_implicitly_invoked_function_full */
+
+
 void expr_reference_to_implicitly_invoked_function(
                                              a_symbol_ptr      sym,
                                              a_source_position *pos,
@@ -700,17 +728,16 @@ void expr_reference_to_implicitly_invoked_function(
                                              a_boolean         honor_virtual)
 /*
 Interface to reference_to_implicit_invoked_function to be used when
-calling it from within the expression-processing routines.  Supplies the
-last two parameters from values on the expression stack.
+calling it from within the expression-processing routines.  Supplies more
+parameters from values on the expression stack.
 */
 {
   /* Routines referenced in default argument expressions are not
      instantiated until there is a use of the default argument expression. */
-  reference_to_implicitly_invoked_function(
+  expr_reference_to_implicitly_invoked_function_full(
                        sym, pos, class_of_object, honor_virtual,
                        curr_expr_is_potentially_evaluated(),
-                       /*instantiate=*/!expr_stack->is_default_arg_expression,
-                       expr_access_checking_should_be_done());
+                       /*instantiate=*/!expr_stack->is_default_arg_expression);
 }  /* expr_reference_to_implicitly_invoked_function */
 
 
@@ -724,10 +751,17 @@ from values on the expression stack.
 */
 {
   a_boolean result;
+  a_boolean error_detected = FALSE;
+  a_boolean *p_error_detected = NULL;
 
+  /* If errors are suppressed, get a returned variable instead of issuing
+     any error. */
+  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
   result = reference_to_trivial_default_constructor(
                                         class_type, pos,
-                                        expr_access_checking_should_be_done());
+                                        expr_access_checking_should_be_done(),
+                                        p_error_detected);
+  if (error_detected) record_suppressed_error();
   return result;
 }  /* expr_reference_to_trivial_default_constructor */
 
@@ -740,8 +774,16 @@ it from within the expression-processing routines.  Supplies some arguments
 from values on the expression stack.
 */
 {
+  a_boolean error_detected = FALSE;
+  a_boolean *p_error_detected = NULL;
+
+  /* If errors are suppressed, get a returned variable instead of issuing
+     any error. */
+  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
   reference_to_trivial_copy_constructor(class_type, pos,
-                                        expr_access_checking_should_be_done());
+                                        expr_access_checking_should_be_done(),
+                                        p_error_detected);
+  if (error_detected) record_suppressed_error();
 }  /* expr_reference_to_trivial_copy_constructor */
 
 
@@ -843,7 +885,7 @@ is pushed regardless of any of the other factors.
   new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
   new_entry->template_deduction_context = FALSE;
   new_entry->suppress_diagnostics = FALSE;
-  new_entry->any_non_access_error_detected = FALSE;
+  new_entry->any_suppressed_error = FALSE;
   new_entry->possible_rescan_context =
                               cpp0x_sfinae_enabled &&
                               (expression_kind != (an_expression_kind)ek_pp) &&
@@ -985,9 +1027,9 @@ major expression.
                           expr_stack->p_end_of_entities_defined_in_expression;
     /* If we detected an error during template deduction, propagate that
        up if the parent stack entry is tracking such things. */
-    if (expr_stack->any_non_access_error_detected &&
+    if (expr_stack->any_suppressed_error &&
         new_top->template_deduction_context) {
-      new_top->any_non_access_error_detected = TRUE;
+      new_top->any_suppressed_error = TRUE;
     }  /* if */
   }  /* if */
   /* Pop the stack. */
@@ -3566,16 +3608,16 @@ modification.
 }  /* restore_operand_form_of_name_reference */
 
 
-void record_non_access_error_detected(void)
+void record_suppressed_error(void)
 /*
-Record that a non-access-checking error has been detected in a context
-in which we're suppressing errors.
+Record that an error has been detected in a context in which we're suppressing
+errors.
 */
 {
   check_assertion(expr_stack != NULL &&
                   expr_stack->suppress_diagnostics);
-  expr_stack->any_non_access_error_detected = TRUE;
-}  /* record_non_access_error_detected */
+  expr_stack->any_suppressed_error = TRUE;
+}  /* record_suppressed_error */
 
 
 a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
@@ -3586,8 +3628,7 @@ should be issued.  More precisely, return FALSE if the diagnostic should
 not be issued because we are in a template deduction context.  In that
 case, if the effective level of the diagnostic (after adjustment because
 of command-line options or pragmas) is an error of some kind, set the
-any_non_access_error_detected flag in the expression stack.  (It follows
-that this routine cannot be called for access errors.)
+any_suppressed_error flag in the expression stack.
 */
 {
   a_boolean should_issue = TRUE;
@@ -3596,7 +3637,7 @@ that this routine cannot be called for access errors.)
     if (expr_stack->suppress_diagnostics) {
       should_issue = FALSE;
       if (is_effective_error(err_code, sev)) {
-        record_non_access_error_detected();
+        record_suppressed_error();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3617,7 +3658,7 @@ Should not be called for access errors.
       should_issue = FALSE;
       /* Because an error cannot be downgraded, there's no issue of checking
          whether this is indeed an error. */
-      record_non_access_error_detected();
+      record_suppressed_error();
     }  /* if */
   }  /* if */
   return should_issue;
@@ -3685,8 +3726,8 @@ errors in the expression routines.
 a_boolean expr_access_checking_should_be_done(void)
 /*
 Return TRUE if access checking should be done in the current expression
-context.  This used to suppress access-checking code when in a template
-deduction context.  In such contexts, the behavior should be as if the
+context.  This used to suppress access-checking code in certain template-
+dependent contexts.  In such contexts, the behavior should be as if the
 access checking is not done; it's not quite enough to simply suppress
 diagnostics, if that changes the control flow.
 */
@@ -3699,9 +3740,9 @@ diagnostics, if that changes the control flow.
     check_access = FALSE;
   } else if (expr_stack != NULL) {
     if (expr_stack->template_deduction_context) {
-      /* No access checking in template deduction contexts (access errors
-         don't cause deduction to fail). */
-      check_access = FALSE;
+      /* Depending on configuration and command-line options, access errors
+         may or may not cause deduction failure. */
+      if (cpp0x_sfinae_ignore_access) check_access = FALSE;
     }  /* if */
   }  /* if */
   return check_access;
@@ -3727,9 +3768,18 @@ expression routines.
 {
   if (!C_mode()) {
     /* See if we're suppressing access checking, e.g., because we're in
-       a template deduction context. */
+       a prototype instantiation. */
     if (expr_access_checking_should_be_done()) {
-      check_ambiguity_and_verify_access(locator);
+      a_boolean error_detected = FALSE;
+      a_boolean *p_error_detected = NULL;
+      /* If errors are suppressed, get a returned variable instead of issuing
+         any error. */
+      if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
+      check_ambiguity_and_access_full(locator,
+                                      /*is_template_context=*/FALSE,
+                                      /*is_qualifier=*/FALSE,
+                                      p_error_detected);
+      if (error_detected) record_suppressed_error();
     } else {
       /* Access checking is suppressed, so do only the ambiguity check to
          change the locator to an error locator if an error would have
@@ -3754,9 +3804,16 @@ expression routines.
 */
 {
   /* See if we're suppressing access checking, e.g., because we're in a
-     template deduction context. */
+     prototype instantiation. */
   if (expr_access_checking_should_be_done()) {
-    overload_check_ambiguity_and_verify_access(locator, overloaded_symbol);
+    a_boolean error_detected = FALSE;
+    a_boolean *p_error_detected = NULL;
+    /* If errors are suppressed, get a returned variable instead of issuing
+       any error. */
+    if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
+    overload_check_ambiguity_and_verify_access(locator, overloaded_symbol,
+                                               p_error_detected);
+    if (error_detected) record_suppressed_error();
   } else  {
     /* Access checking is suppressed, so do only the ambiguity check to
        change the locator to an error locator if an error would have
@@ -4157,7 +4214,7 @@ Provides some of the parameters from information in the expression stack.
   if (error_detected != ec_no_error) {
     /* Record that an error occurred while diagnostics are suppressed.
        This can, for example, cause template deduction to fail later. */
-    record_non_access_error_detected();
+    record_suppressed_error();
   }  /* if */
 }  /* expr_binary_operation */
 
@@ -4187,7 +4244,7 @@ Provides some of the parameters from information in the expression stack.
   if (error_detected != ec_no_error) {
     /* Record that an error occurred while diagnostics are suppressed.
        This can, for example, cause template deduction to fail later. */
-    record_non_access_error_detected();
+    record_suppressed_error();
   }  /* if */
 }  /* expr_unary_operation */
 
@@ -4227,7 +4284,7 @@ the parameters from information in the expression stack.
   if (error_detected != ec_no_error) {
     /* Record that an error occurred while diagnostics are suppressed.
        This can, for example, cause template deduction to fail later. */
-    record_non_access_error_detected();
+    record_suppressed_error();
   }  /* if */
 }  /* expr_type_change_constant */
 
@@ -4239,7 +4296,8 @@ void add_base_class_casts(a_base_class_ptr  bcp,
                           a_boolean         is_implicit_cast,
                           a_boolean         implicit_in_naming,
                           an_expr_node_ptr  *p_node,
-                          a_source_position *err_pos)
+                          a_source_position *err_pos,
+                          a_boolean         *error_detected)
 /*
 Add casts to *p_node to change its type from (a pointer to) a class type to
 (a pointer to) a base class of that class; bcp indicates the base class
@@ -4252,8 +4310,13 @@ is_implicit_cast is TRUE if the cast is implicit.  implicit_in_naming
 is TRUE for casts that are generated implicitly in referencing a member
 of a class (roughly, in getting from the name used in the source --
 the projection symbol -- to the member actually used in the IL).
-*err_pos indicates a source position to be used for errors.  This
-routine is only used in C++ mode.
+*err_pos indicates a source position to be used for errors.
+If error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including warnings).
+Note that calls from outside the expression-processing routines must
+specify error_detected != NULL.  For calls from inside, this routine
+does handle suppression of errors in deduction contexts appropriately
+and error_detected can be NULL.
 */
 {
   a_type_ptr            curr_type, qual_curr_type;
@@ -4262,11 +4325,14 @@ routine is only used in C++ mode.
   a_boolean             pointer_case;
 
   /* The code here looks like fold_base_class_cast. */
+  if (error_detected != NULL) *error_detected = FALSE;
   check_assertion(is_class_struct_union_type(qualifiers_model));
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    if (expr_error_should_be_issued()) {
+    if (error_detected != NULL) {
+      *error_detected = TRUE;
+    } else if (expr_error_should_be_issued()) {
       pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     }  /* if */
     *p_node = error_node();
@@ -4286,9 +4352,15 @@ routine is only used in C++ mode.
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
           /* The base class is inaccessible.  Keep going, but issue the
              error only once. */
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_inaccessible_base_class, err_pos,
-                            base_class->type);
+          if (error_detected != NULL) {
+            *error_detected = TRUE;
+          } else if (expr_diagnostic_should_be_issued(
+                                                 es_discretionary_error,
+                                                 ec_inaccessible_base_class)) {
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_inaccessible_base_class, err_pos,
+                              base_class->type);
+          }  /* if */
           check_cast_access = FALSE;
         }  /* if */
       }  /* if */
@@ -4366,7 +4438,8 @@ void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
                              a_base_class_ptr  bcp,
                              a_boolean         check_ambiguity,
                              an_expr_node_ptr  *p_node,
-                             a_source_position *err_pos)
+                             a_source_position *err_pos,
+                             a_boolean         *error_detected)
 /*
 Add casts to *p_node to change its type from pointer to a class type to
 pointer to new_type_pointed_to, a derived class of that class; bcp indicates
@@ -4374,13 +4447,22 @@ the base class of the derived class that corresponds to the current type
 (i.e., its derivation list is backwards from what's needed).  Also handles
 casting of class lvalues and rvalues.  check_ambiguity is TRUE if checking
 for an ambiguous class should be done.  *err_pos indicates a source position
-to be used for errors.  This routine is only used in C++ mode.
+to be used for errors.
+If error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including warnings).
+Note that calls from outside the expression-processing routines must
+specify error_detected != NULL.  For calls from inside, this routine
+does handle suppression of errors in deduction contexts appropriately
+and error_detected can be NULL.
 */
 {
   /* The code here looks like fold_derived_class_cast. */
+  if (error_detected != NULL) *error_detected = FALSE;
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
-    if (expr_error_should_be_issued()) {
+    if (error_detected != NULL) {
+      *error_detected = TRUE;
+    } else if (expr_error_should_be_issued()) {
       pos_ty2_error(ec_ambiguous_derived_class, err_pos,
                     new_type_pointed_to, bcp->type);
     }  /* if */
@@ -4388,7 +4470,9 @@ to be used for errors.  This routine is only used in C++ mode.
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    if (expr_error_should_be_issued()) {
+    if (error_detected != NULL) {
+      *error_detected = TRUE;
+    } else if (expr_error_should_be_issued()) {
       pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
                     new_type_pointed_to, bcp->type);
     }  /* if */
@@ -4540,9 +4624,13 @@ source position to be used for errors.  This routine is only used in C++ mode.
         base_class = dsp->base_class;
         /* Check that the base class is accessible from the current class. */
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_conv_from_inaccessible_base_class,
-                            err_pos, base_class->type);
+          if (expr_diagnostic_should_be_issued(
+                                       es_discretionary_error,
+                                       ec_conv_from_inaccessible_base_class)) {
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_conv_from_inaccessible_base_class,
+                              err_pos, base_class->type);
+          }  /* if */
           break;
         }  /* if */
         curr_type = base_class->type;
@@ -4600,12 +4688,12 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                            check_cast_access, check_ambiguity,
                            is_implicit_cast,
                            /*implicit_in_naming=*/FALSE,
-                           p_node, err_pos);
+                           p_node, err_pos, (a_boolean *)NULL);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
       add_derived_class_casts(new_type_pointed_to, bcp, check_ambiguity,
-                              p_node, err_pos);
+                              p_node, err_pos, (a_boolean *)NULL);
     }  /* if */
   } else if (!C_mode() && !reinterpret_semantics &&
              related_member_pointers(old_type, new_type, &baseward_cast,
@@ -5159,8 +5247,7 @@ user-defined conversions.
                  diagnostics during that process, since they were already
                  issued). */
               a_boolean saved_suppress = expr_stack->suppress_diagnostics;
-              a_boolean saved_any_error =
-                                     expr_stack->any_non_access_error_detected;
+              a_boolean saved_any_error = expr_stack->any_suppressed_error;
               expr_stack->suppress_diagnostics = TRUE;
               if (local_constant.expr == NULL ||
                   /* Ignore the expression attached to an enum constant. */
@@ -5177,7 +5264,7 @@ user-defined conversions.
                                is_reinterpret_cast, reinterpret_semantics,
                                err_pos);
               expr_stack->suppress_diagnostics = saved_suppress;
-              expr_stack->any_non_access_error_detected = saved_any_error;
+              expr_stack->any_suppressed_error = saved_any_error;
             }  /* if */
           }  /* if */
           make_constant_operand(&local_constant, operand);
@@ -5333,12 +5420,17 @@ used only in C++ mode.
          nonconstant expressions it's not done because it's clearer to
          have the cast in the IL (the constant form has only an offset,
          and loses the sequence of casts). */
+      an_error_code error_detected = ec_no_error;
+      an_error_code *p_error_detected = NULL;
+      if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
       fold_base_class_cast(&operand->variant.constant, bcp, qualifiers_model,
                            &temp_con, check_cast_access,
                            /*check_ambiguity=*/TRUE,
                            is_implicit_cast,
                            is_object_pointer, &did_not_fold,
-                           &orig_operand.position);
+                           &orig_operand.position,
+                           p_error_detected);
+      if (error_detected != ec_no_error) record_suppressed_error();
     }  /* if */
     if (did_not_fold) {
       /* The cast could not be folded to a constant. */
@@ -5358,7 +5450,8 @@ used only in C++ mode.
                              check_cast_access, /*check_ambiguity=*/TRUE,
                              is_implicit_cast,
                              implicit_in_naming,
-                             &node, &orig_operand.position);
+                             &node, &orig_operand.position,
+                             (a_boolean *)NULL);
         make_lvalue_or_rvalue_expression_operand(node, operand);
       }  /* if */
     } else {
@@ -5593,7 +5686,8 @@ is an lvalue reference to const.
         an_expr_node_ptr expr = make_node_from_operand(operand);
         check_assertion(!is_implicit_cast);
         add_derived_class_casts(underlying_type, bcp, /*check_ambiguity=*/TRUE,
-                                &expr, &orig_operand.position);
+                                &expr, &orig_operand.position,
+                                (a_boolean *)NULL);
         make_lvalue_expression_operand(expr, operand);
       }  /* if */
       if (is_rvalue_ref) {
@@ -10356,8 +10450,15 @@ an error.
       && !microsoft_mode
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       && expr_access_checking_should_be_done()) {
+    a_boolean error_detected = FALSE;
+    a_boolean *p_error_detected = NULL;
+    /* If errors are suppressed, get a returned variable instead of issuing
+       any error. */
+    if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
     (void)check_protected_member_access(member_sym, member_proj_sym, position,
-                                        sym_parent_class(member_proj_sym));
+                                        sym_parent_class(member_proj_sym),
+                                        p_error_detected);
+    if (error_detected) record_suppressed_error();
   }  /* if */
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */
@@ -10623,20 +10724,22 @@ Interface to select_default_constructor_full for use within expression
 processing.  Supplies some arguments from expression stack values.
 */
 {
-  a_boolean     local_err;
-  a_boolean     *error_detected = (expr_stack->suppress_diagnostics ?
-                                     &local_err : (a_boolean *)NULL);
-  a_routine_ptr ctor_routine =
+  a_routine_ptr ctor_routine;
+  a_boolean     error_detected = FALSE;
+  a_boolean     *p_error_detected = NULL;
+
+  /* If errors are suppressed, get a returned variable instead of issuing
+     any error. */
+  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
+  ctor_routine =
          select_default_constructor_full(class_type,
                                          err_pos,
                                          class_type,
                                          curr_expr_is_potentially_evaluated(),
                                          expr_access_checking_should_be_done(),
-                                         error_detected,
+                                         p_error_detected,
                                          err);
-  if (error_detected != NULL && local_err) {
-    record_non_access_error_detected();
-  }  /* if */
+  if (error_detected) record_suppressed_error();
   return ctor_routine;
 }  /* expr_select_default_constructor */
 
@@ -10653,11 +10756,13 @@ Interface to select_copy_constructor_full for use within expression processing.
 Supplies some arguments from expression stack values.
 */
 {
-  a_boolean     local_err;
-  a_boolean     *error_detected = (expr_stack->suppress_diagnostics ?
-                                     &local_err : (a_boolean *)NULL);
   a_routine_ptr cctor_routine;
+  a_boolean     error_detected = FALSE;
+  a_boolean     *p_error_detected = NULL;
 
+  /* If errors are suppressed, get a returned variable instead of issuing
+     any error. */
+  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
   cctor_routine = select_copy_constructor_full(
                                         class_type,
                                         required_qualifiers,
@@ -10669,10 +10774,8 @@ Supplies some arguments from expression stack values.
                                         curr_expr_is_potentially_evaluated(),
                                         /*allow_suppressed_ctor=*/FALSE,
                                         expr_access_checking_should_be_done(),
-                                        error_detected);
-  if (error_detected != NULL && local_err) {
-    record_non_access_error_detected();
-  }  /* if */
+                                        p_error_detected);
+  if (error_detected) record_suppressed_error();
   return cctor_routine;
 }  /* expr_select_copy_constructor */
 
@@ -10686,11 +10789,13 @@ Interface to select_destructor_full for use within expression processing.
 Supplies some arguments from expression stack values.
 */
 {
-  a_boolean     local_err;
-  a_boolean     *error_detected = (expr_stack->suppress_diagnostics ?
-                                     &local_err : (a_boolean *)NULL);
   a_routine_ptr dtor_routine;
+  a_boolean     error_detected = FALSE;
+  a_boolean     *p_error_detected = NULL;
 
+  /* If errors are suppressed, get a returned variable instead of issuing
+     any error. */
+  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
   dtor_routine = select_destructor_full(
                                      class_type,
                                      object_class_type,
@@ -10700,10 +10805,8 @@ Supplies some arguments from expression stack values.
                                      /*instantiate=*/
                                         !expr_stack->is_default_arg_expression,
                                      expr_access_checking_should_be_done(),
-                                     error_detected);
-  if (error_detected != NULL && local_err) {
-    record_non_access_error_detected();
-  }  /* if */
+                                     p_error_detected);
+  if (error_detected) record_suppressed_error();
   return dtor_routine;
 }  /* expr_select_destructor */
 
@@ -11335,7 +11438,7 @@ on the return value).
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
     goto done;
-  } /* if */
+  }  /* if */
   if (rp != NULL) {
     /* We know which routine is being called. */
     if (curr_expr_is_potentially_evaluated()) {
@@ -13155,7 +13258,7 @@ it might produce an error).
     rvalue_node_type = node->type;
   } else {
     rvalue_node_type = rvalue_type(node->type);
-  } /* if */
+  }  /* if */
   /* No skip_parens here.  Parentheses are handled under the enk_operation
      case. */
   if (is_variable_node(node)) {
@@ -14295,7 +14398,7 @@ is a "get" if put_operand is NULL.
               end_arg_operand_list = end_arg_operand_list->next;
             }  /* if */
             end_arg_operand_list->next = new_arg_operand;
-          } /* if */
+          }  /* if */
         }  /* if */
         /* Do overload resolution to determine the function to call. */
         if (select_and_prepare_to_call_overloaded_function(

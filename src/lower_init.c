@@ -13878,13 +13878,16 @@ need to be modified if changes are made here.
     if (bcp != NULL) {
       /* The return types point to a derived/base pair and not just types
          that differ by cv-qualification. */
+      a_boolean error_detected;
       add_base_class_casts(bcp, type_pointed_to(overridden_return_type),
                            /*check_cast_access=*/FALSE,
                            /*check_ambiguity=*/FALSE,
                            /*is_implicit_cast=*/TRUE,
                            /*implicit_in_naming=*/FALSE,
                            &expr,
-                           &overriding_function->source_corresp.decl_position);
+                           &overriding_function->source_corresp.decl_position,
+                           &error_detected);
+      check_assertion(!error_detected);
     } else {
       /* The return types point to the same class, so a regular cast is
          needed to handle the difference in cv-qualification. */

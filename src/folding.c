@@ -879,7 +879,8 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_boolean         is_implicit_cast,
                           a_boolean         is_object_pointer,
                           a_boolean         *did_not_fold,
-                          a_source_position *err_pos)
+                          a_source_position *err_pos,
+                          an_error_code     *error_detected)
 /*
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
 an address of a class object.  It is converted to a pointer to the base
@@ -887,12 +888,15 @@ class indicated by bcp and the new constant is returned in *result.
 qualifiers_model is a class type whose cv-qualification indicates
 the cv-qualification desired on the result (i.e., the result type is
 the base class type of bcp and the cv-qualifiers of qualifiers_model).
-Do access control on the cast if check_cast_access is TRUE.  Check for
-ambiguity on the cast if check_ambiguity is TRUE.  The cast is implicit
-if is_implicit_cast is TRUE.  The pointer is known to point to an
-object if is_object_pointer is TRUE.  If the operation cannot be
-folded, *did_not_fold is returned TRUE.  If there is an error, issue it
-at *err_pos.  result->type need not be set on entry.
+result->type need not be set on entry.  Do access control on the cast
+if check_cast_access is TRUE.  Check for ambiguity on the cast if
+check_ambiguity is TRUE.  The cast is implicit if is_implicit_cast is
+TRUE.  The pointer is known to point to an object if is_object_pointer
+is TRUE.  If the operation cannot be folded, *did_not_fold is returned
+TRUE.  If there is an error, issue it at *err_pos.  If error_detected
+is non-NULL, set *error_detected to the code for any error detected,
+and do not issue the diagnostic, or set it to ec_no_error if there was
+no error.
 */
 {
   a_boolean             err;
@@ -903,10 +907,15 @@ at *err_pos.  result->type need not be set on entry.
   a_base_class_ptr      base_class;
 
   *did_not_fold = FALSE;
+  if (error_detected != NULL) *error_detected = ec_no_error;
   /* The code here looks like add_base_class_casts. */
   if (bcp->ambiguous && check_ambiguity) {
     /* The base class is ambiguous. */
-    pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_ambiguous_base_class;
+    } else {
+      pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else {
     an_expr_node_ptr expr = constant_1->expr;
@@ -929,11 +938,18 @@ at *err_pos.  result->type need not be set on entry.
       if (check_cast_access) {
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
           /* The base class is inaccessible. */
+          if (error_detected != NULL) {
+            if (is_effective_error(ec_inaccessible_base_class,
+                                   es_discretionary_error)) {
+              *error_detected = ec_inaccessible_base_class;
+            }  /* if */
+          } else {
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_inaccessible_base_class, err_pos,
+                              base_class->type);
+          }  /* if */
           /* Keep going, but don't check access any further to avoid putting
              out more than one error. */
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_inaccessible_base_class, err_pos,
-                            base_class->type);
           check_cast_access = FALSE;
         }  /* if */
       }  /* if */
@@ -984,10 +1000,12 @@ at *err_pos.  result->type need not be set on entry.
     if (*did_not_fold) {
       expr = NULL;
     } else if (expr != NULL) {
+      a_boolean local_error_detected;
       add_base_class_casts(bcp, qualifiers_model, /*check_cast_access=*/FALSE,
                            /*check_ambiguity=*/FALSE,
                            is_implicit_cast, /*implicit_in_naming=*/FALSE,
-                           &expr, err_pos);
+                           &expr, err_pos, &local_error_detected);
+      check_assertion(!local_error_detected);
     }  /* if */
     result->expr = expr;
   }  /* if */
@@ -997,13 +1015,17 @@ at *err_pos.  result->type need not be set on entry.
 static void fold_derived_class_cast(a_constant        *constant_1,
                                     a_base_class      *bcp,
                                     a_constant        *result,
-                                    a_source_position *err_pos)
+                                    a_source_position *err_pos,
+                                    an_error_code     *error_detected)
 /*
 Fold a C++ cast of a class pointer to a derived class pointer.  constant_1 is
 an address of a class object.  It is converted to point to the pointer type
 indicated by result->type, and the new constant is returned in *result.
 bcp points to the base class entry for the current type relative to the
 desired derived type.  If there is an error, it is issued at *err_pos.
+If error_detected is non-NULL, set *error_detected to the code for any
+error detected, and do not issue the diagnostic, or set it to
+ec_no_error if there was no error.
 */
 {
   a_type_ptr       new_type = result->type, derived_class_type;
@@ -1012,17 +1034,26 @@ desired derived type.  If there is an error, it is issued at *err_pos.
   a_boolean        err;
 
   /* The code here looks like add_derived_class_casts. */
+  if (error_detected != NULL) *error_detected = ec_no_error;
   derived_class_type = f_skip_typerefs(type_pointed_to(new_type));
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
-    pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
-                  bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_ambiguous_derived_class;
+    } else {
+      pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
+                    bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
-                  derived_class_type, bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_derived_class_from_virtual_base;
+    } else {
+      pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+                    derived_class_type, bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else {
     an_expr_node_ptr expr = constant_1->expr;
@@ -1053,8 +1084,11 @@ desired derived type.  If there is an error, it is issued at *err_pos.
     implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
     /* Update the backing expression if one was present. */
     if (expr != NULL) {
+      a_boolean local_error_detected;
       add_derived_class_casts(type_pointed_to(new_type), bcp,
-                              /*check_ambiguity=*/FALSE, &expr, err_pos);
+                              /*check_ambiguity=*/FALSE, &expr, err_pos,
+                              &local_error_detected);
+      check_assertion(!local_error_detected);
     }  /* if */
     result->expr = expr;
   }  /* if */
@@ -1072,7 +1106,8 @@ static void conv_pointer_to_whatever(
                                     a_boolean         *did_not_fold,
                                     a_source_position *err_pos,
                                     an_error_code     *err_code,
-                                    an_error_severity *err_severity)
+                                    an_error_severity *err_severity,
+                                    a_boolean         suppress_complex_diags)
 /*
 Convert a pointer constant to a constant of type as specified by
 "new_constant".  If check_cast_access is TRUE, do access checking.
@@ -1084,7 +1119,10 @@ TRUE.  If is_reinterpret_cast is TRUE, this is a reinterpret_cast;
 related class casts are treated like casts between unrelated classes.
 If there is an error, either issue it immediately at *err_pos (if it
 cannot be reduced to a warning in a nonconstant context), or return
-*err_code and *err_severity set appropriately.  Note that this routine
+*err_code and *err_severity set appropriately.  If suppress_complex_diags
+is TRUE, suppress (and return in err_code/err_severity) also those
+complex diagnostics (e.g., those for access errors) that can't be
+issued simply from the error code.  Note that this routine
 is also called when the old constant is an address constant that has
 previously been cast to an integral type, and so does not have pointer
 type.
@@ -1094,10 +1132,12 @@ type.
   a_type_ptr       old_type = old_constant->type;
   a_boolean        conversion_handled = FALSE, baseward_cast;
   a_base_class_ptr bcp;
+  an_error_code    *p_err_code = NULL;
 
   *did_not_fold = FALSE;
   *err_code = ec_no_error;
   *err_severity = es_warning;
+  if (suppress_complex_diags) p_err_code = err_code;
 #if CHECKING
   if (old_constant->kind != (a_constant_repr_kind)ck_address &&
       old_constant->kind != (a_constant_repr_kind)ck_integer) {
@@ -1150,11 +1190,19 @@ type.
                            new_constant,
                            check_cast_access, check_ambiguity,
                            is_implicit_cast,
-                           /*is_object_pointer=*/FALSE, did_not_fold, err_pos);
+                           /*is_object_pointer=*/FALSE, did_not_fold, err_pos,
+                           p_err_code);
+      if (p_err_code != NULL && *err_code != ec_no_error) {
+        *err_severity = es_error;
+      }  /* if */
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
-      fold_derived_class_cast(old_constant, bcp, new_constant, err_pos);
+      fold_derived_class_cast(old_constant, bcp, new_constant, err_pos,
+                              p_err_code);
+      if (p_err_code != NULL && *err_code != ec_no_error) {
+        *err_severity = es_error;
+      }  /* if */
     }  /* if */
     /* If the qualifiers aren't right, adjust them. */
     if (!*did_not_fold && 
@@ -1307,7 +1355,8 @@ static void fold_pm_base_class_cast(a_constant        *constant_1,
                                     a_base_class      *bcp,
                                     a_constant        *result,
                                     a_boolean         *did_not_fold,
-                                    a_source_position *err_pos)
+                                    a_source_position *err_pos,
+                                    an_error_code     *error_detected)
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to a member
 of a base class.  constant_1 is a pointer-to-member constant.  It is converted
@@ -1315,23 +1364,35 @@ to a pointer-to-member for the base class indicated by bcp and the new
 constant is returned in *result.  result->type on entry indicates the
 desired pointer-to-member type, possibly with qualifiers.  If there is an
 error, issue it at *err_pos.  If the cast cannot be folded, *did_not_fold
-is returned TRUE.  Note that casts of this type always come from
-explicit casts, so checking for accessibility of base classes is not necessary.
+is returned TRUE.  If error_detected is non-NULL, set *error_detected
+to the code for any error detected, and do not issue the diagnostic,
+or set it to ec_no_error if there was no error.  Note that casts of
+this type always come from explicit casts, so checking for
+accessibility of base classes is not necessary.
 */
 {
   a_type_ptr new_type = result->type;
 
   /* The code here looks like add_pm_base_class_casts. */
   *did_not_fold = FALSE;
+  if (error_detected != NULL) *error_detected = ec_no_error;
   if (bcp->ambiguous) {
     /* The base class is ambiguous. */
-    pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_ambiguous_base_class;
+    } else {
+      pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else if (any_virtual_steps_in_derivation(bcp) && !any_cfront_mode()) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
-    pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
-                  pm_class_type(constant_1->type), bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_pm_virtual_base_from_derived_class;
+    } else {
+      pos_ty2_error(ec_pm_virtual_base_from_derived_class, err_pos,
+                    pm_class_type(constant_1->type), bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
@@ -1348,7 +1409,8 @@ static void fold_pm_derived_class_cast(a_constant        *constant_1,
                                        a_boolean         is_implicit_cast,
                                        a_boolean         check_cast_access,
                                        a_boolean         *did_not_fold,
-                                       a_source_position *err_pos)
+                                       a_source_position *err_pos,
+                                       an_error_code     *error_detected)
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to member
 of a derived class.  constant_1 is a pointer-to-member constant.  It is
@@ -1358,7 +1420,9 @@ to the base class entry for the current type relative to the desired
 derived type.  The cast is implicit if is_implicit_cast is TRUE.
 Access should be checked if check_cast_access is TRUE.  If there is an
 error, it is issued at *err_pos.  If the cast cannot be folded,
-*did_not_fold is returned TRUE.
+*did_not_fold is returned TRUE.  If error_detected is non-NULL, set
+*error_detected to the code for any error detected, and do not issue
+the diagnostic, or set it to ec_no_error if there was no error.
 */
 {
   a_type_ptr            new_type = result->type, curr_type;
@@ -1368,16 +1432,25 @@ error, it is issued at *err_pos.  If the cast cannot be folded,
 
   /* The code here looks like add_pm_derived_class_casts. */
   *did_not_fold = FALSE;
+  if (error_detected != NULL) *error_detected = ec_no_error;
   derived_class_type = pm_class_type(new_type);
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
-    pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
-                  bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_ambiguous_derived_class;
+    } else {
+      pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
+                    bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else if (any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class. */
-    pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
-                  derived_class_type, bcp->type);
+    if (error_detected != NULL) {
+      *error_detected = ec_pm_derived_class_from_virtual_base;
+    } else {
+      pos_ty2_error(ec_pm_derived_class_from_virtual_base, err_pos,
+                    derived_class_type, bcp->type);
+    }  /* if */
     set_error_constant(result);
   } else {
     /* No access checking in prototype instantiations. */
@@ -1393,9 +1466,17 @@ error, it is issued at *err_pos.  If the cast cannot be folded,
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
         if (!is_accessible_imm_base_class(base_class, curr_type)) {
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_conv_from_inaccessible_base_class,
-                            err_pos, base_class->type);
+          /* The base class is inaccessible. */
+          if (error_detected != NULL) {
+            if (is_effective_error(ec_conv_from_inaccessible_base_class,
+                                   es_discretionary_error)) {
+              *error_detected = ec_conv_from_inaccessible_base_class;
+            }  /* if */
+          } else {
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_conv_from_inaccessible_base_class,
+                              err_pos, base_class->type);
+          }  /* if */
           break;
         }  /* if */
         curr_type = base_class->type;
@@ -1433,15 +1514,16 @@ single inheritance.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void conv_ptr_to_member_to_ptr_to_member(
-                                         a_constant        *old_constant,
-                                         a_constant        *new_constant,
-                                         a_boolean         is_implicit_cast,
-                                         a_boolean         check_cast_access,
-                                         a_boolean         is_reinterpret_cast,
-                                         a_boolean         *did_not_fold,
-                                         a_source_position *err_pos,
-                                         an_error_code     *err_code,
-                                         an_error_severity *err_severity)
+                                      a_constant        *old_constant,
+                                      a_constant        *new_constant,
+                                      a_boolean         is_implicit_cast,
+                                      a_boolean         check_cast_access,
+                                      a_boolean         is_reinterpret_cast,
+                                      a_boolean         *did_not_fold,
+                                      a_source_position *err_pos,
+                                      an_error_code     *err_code,
+                                      an_error_severity *err_severity,
+                                      a_boolean         suppress_complex_diags)
 /*
 Convert a pointer-to-member constant to a pointer-to-member constant of
 a different type.  old_constant is the original constant.  new_constant->type
@@ -1449,16 +1531,23 @@ indicates the desired new type.  The converted constant is put into
 *new_constant.  This is an implicit cast if is_implicit_cast is TRUE.
 Check access if check_cast_access is TRUE.  This is a reinterpret_cast
 if is_reinterpret_cast is TRUE.  If the cast cannot be folded,
-*did_not_fold is returned TRUE.
+*did_not_fold is returned TRUE.  Return err_code and *err_severity set
+*to indicate any error/warning detected, or *err_code == ec_no_error
+*if everything went fine.  If suppress_complex_diags is TRUE, suppress
+(and return in err_code/err_severity) also those complex diagnostics
+(e.g., those for access errors) that can't be issued simply from the
+error code.
 */
 {
   a_type_ptr       new_type = new_constant->type, new_class;
   a_type_ptr       old_type = old_constant->type, old_class;
   a_base_class_ptr bcp;
+  an_error_code    *p_err_code = NULL;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
   *did_not_fold = FALSE;
+  if (suppress_complex_diags) p_err_code = err_code;
   old_class = pm_class_type(old_type);
   new_class = pm_class_type(new_type);
   if (is_reinterpret_cast) {
@@ -1501,7 +1590,10 @@ if is_reinterpret_cast is TRUE.  If the cast cannot be folded,
     /* Derived --> base (allowed only as an explicit cast).  Valid unless
        the cast is ambiguous. */
     fold_pm_base_class_cast(old_constant, bcp, new_constant, did_not_fold,
-                            err_pos);
+                            err_pos, p_err_code);
+    if (p_err_code != NULL && *err_code != ec_no_error) {
+      *err_severity = es_error;
+    }  /* if */
   } else if ((bcp = find_base_class_of(new_class, old_class)) != NULL) {
     /* Base --> derived (allowed as an implicit or explicit cast).  Valid
        unless the cast is ambiguous, the base class is inaccessible (if
@@ -1509,7 +1601,10 @@ if is_reinterpret_cast is TRUE.  If the cast cannot be folded,
        derived class. */
     fold_pm_derived_class_cast(old_constant, bcp, new_constant,
                                is_implicit_cast, check_cast_access,
-                               did_not_fold, err_pos);
+                               did_not_fold, err_pos, p_err_code);
+    if (p_err_code != NULL && *err_code != ec_no_error) {
+      *err_severity = es_error;
+    }  /* if */
   } else {
     unexpected_condition_str(
                     "conv_ptr_to_member_to_ptr_to_member: unrelated classes");
@@ -1702,6 +1797,7 @@ for any diagnostics issued.
   an_error_severity err_severity;
   a_boolean         depends_on_fp_mode = FALSE;
   a_boolean         template_case;
+  a_boolean         suppress_diags = (error_detected != NULL);
 
   db_enter(5, "type_change_constant_full");
   *did_not_fold = FALSE;
@@ -1803,7 +1899,8 @@ for any diagnostics issued.
     conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
                              check_ambiguity, is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
-                             did_not_fold, err_pos, &err_code, &err_severity);
+                             did_not_fold, err_pos, &err_code, &err_severity,
+                             suppress_diags);
     goto exit;
   }  /* if */
 
@@ -1985,7 +2082,8 @@ for any diagnostics issued.
                                check_ambiguity, is_implicit_cast,
                                fold_constant_addr_exprs, is_reinterpret_cast,
                                did_not_fold, err_pos,
-                               &err_code, &err_severity);
+                               &err_code, &err_severity,
+                               suppress_diags);
       break;
 
     case tk_ptr_to_member:
@@ -1995,8 +2093,8 @@ for any diagnostics issued.
                                           check_cast_access,
                                           is_reinterpret_cast,
                                           did_not_fold,
-                                          err_pos,
-                                          &err_code, &err_severity);
+                                          err_pos, &err_code, &err_severity,
+                                          suppress_diags);
       break;
 
     case tk_error:
@@ -5639,6 +5737,7 @@ handle_field_selection:
                 is_constant_addr = TRUE;
               } else {
                 a_boolean        did_not_fold;
+                an_error_code    error_detected;
                 a_base_class_ptr bcp;
                 check_assertion(is_class_struct_union_type(op1->type) &&
                                 is_class_struct_union_type(expr->type));
@@ -5651,10 +5750,11 @@ handle_field_selection:
                                                             compiler_generated,
                                      /*is_object_pointer=*/FALSE,
                                      &did_not_fold,
-                                     &error_position);
+                                     &error_position,
+                                     &error_detected);
                 /* A cast to a virtual base class might not fold to a
                    constant even if the original pointer is a constant. */
-                if (!did_not_fold) {
+                if (error_detected == ec_no_error && !did_not_fold) {
                   is_constant_addr = TRUE;
                 }  /* if */
               }  /* if */
@@ -5886,7 +5986,8 @@ cast_case:
                                                            is_reinterpret_cast,
                                        &did_not_fold,
                                        &error_position,
-                                       &err_code, &err_severity);
+                                       &err_code, &err_severity,
+                                       /*suppress_complex_diags=*/TRUE);
               /* A cast to a virtual base class might not fold to a
                  constant even if the original pointer is a constant. */
               if (err_code == ec_no_error && !did_not_fold) {

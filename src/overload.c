@@ -7174,9 +7174,18 @@ source position of the member name reference.
          or pointer of a type to which we have member access (ARM 11.5). */
       if (do_protected_member_check && !access_control_error_reported &&
           expr_access_checking_should_be_done()) {
+        a_boolean error_detected = FALSE;
+        a_boolean *p_error_detected = NULL;
+        /* If errors are suppressed, get a returned variable instead of issuing
+           any error. */
+        if (expr_stack->suppress_diagnostics) {
+          p_error_detected = &error_detected;
+        }  /* if */
         (void)check_protected_member_access(member_sym, projection_member_sym,
                                             member_pos,
-                                            class_struct_union_type);
+                                            class_struct_union_type,
+                                            p_error_detected);
+        if (error_detected) record_suppressed_error();
       }  /* if */
       /* Do nothing if the type is already okay (which it almost always
          will be; only in cases involving qualified names can it be
@@ -13554,10 +13563,16 @@ elided_cctor is passed as NULL.
     } else if (expr_access_checking_should_be_done() &&
                !have_access_to_symbol(cctor_sym)) {
       /* The copy constructor is inaccessible. */
+      a_boolean error_detected = FALSE;
+      a_boolean *p_error_detected = NULL;
+      /* If errors are suppressed, get a returned variable instead of issuing
+         any error. */
+      if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
       record_access_error(cctor_sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
                           err_pos, (a_symbol_locator*)NULL,
                           strict_ansi_discretionary_severity,
-                          ec_inaccessible_elided_cctor);
+                          ec_inaccessible_elided_cctor, p_error_detected);
+      if (error_detected) record_suppressed_error();
     } else {
       /* No error.  The C++98 standard requires that the definition of the
          copy constructor be generated even though it is not called, so

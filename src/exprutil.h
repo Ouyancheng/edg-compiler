@@ -720,11 +720,11 @@ typedef struct an_expr_stack_entry {
 			   is rescanned in a template deduction (SFINAE)
 			   context. */
   a_byte_boolean
-		any_non_access_error_detected;
+		any_suppressed_error;
 			/* TRUE if any error was detected and suppressed
 			   because suppress_diagnostics is TRUE.  Access
-			   errors do not set this flag because that's
-			   the way SFINAE errors are defined (see N2634). */
+			   errors may or may not set this flag depending on
+			   cpp0x_sfinae_ignore_access. */
   a_byte_boolean
 		possible_rescan_context;
 			/* TRUE if the expression being scanned is in a context
@@ -1042,6 +1042,14 @@ extern void free_arg_operand_list(an_arg_operand_ptr aop);
 extern void free_dynamic_init_dtor_fixup(a_dynamic_init_dtor_fixup_ptr didfp);
 
 extern void if_evaluating_mark_routine_referenced(a_routine_ptr  routine);
+
+extern void expr_reference_to_implicitly_invoked_function_full(
+                                             a_symbol_ptr      sym,
+                                             a_source_position *pos,
+                                             a_type_ptr        class_of_object,
+                                             a_boolean         honor_virtual,
+                                             a_boolean         evaluated,
+                                             a_boolean         instantiate);
 
 extern void expr_reference_to_implicitly_invoked_function
                                             (a_symbol_ptr      sym,
@@ -1756,7 +1764,7 @@ extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
 extern a_type_ptr type_after_bit_field_integral_promotion(
                                                        an_expr_node_ptr node);
-extern void record_non_access_error_detected(void);
+extern void record_suppressed_error(void);
 
 extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
                                                   an_error_code     err_code);
@@ -1980,13 +1988,15 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_boolean         is_implicit_cast,
                                  a_boolean         implicit_in_naming,
                                  an_expr_node_ptr  *p_node,
-                                 a_source_position *err_pos);
+                                 a_source_position *err_pos,
+                                 a_boolean         *error_detected);
 
 extern void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
                                     a_base_class_ptr  bcp,
                                     a_boolean         check_ambiguity,
                                     an_expr_node_ptr  *p_node,
-                                    a_source_position *err_pos);
+                                    a_source_position *err_pos,
+                                    a_boolean         *error_detected);
 
 extern a_boolean is_bit_field_extract_node(an_expr_node_ptr node);
 

@@ -1154,6 +1154,16 @@ used to initialize the global variable cpp0x_sfinae_enabled.
 #endif /* DEFAULT_CPP0X_SFINAE_ENABLED */
 
 /*
+Flag that is TRUE if, when C++0x SFINAE is enabled (see above), access
+errors are not counted as errors that make deduction fail.  In N2634
+access errors are ignored, but the committee changed its mind about that
+later.
+*/
+#ifndef DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS
+#define DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS FALSE
+#endif /* DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS */
+
+/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.
@@ -1985,6 +1995,12 @@ EXTERN a_boolean
 		cpp0x_sfinae_enabled;
 			/* When TRUE, the C++0x SFINAE rules of N2634 are
 			   enabled. */
+
+EXTERN a_boolean
+		cpp0x_sfinae_ignore_access;
+			/* When cpp0x_sfinae_enabled is TRUE and this is TRUE,
+			   access checking errors are ignored and do not cause
+			   deduction failure. */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously

@@ -2402,7 +2402,8 @@ void reference_to_implicitly_invoked_function
                                  a_boolean          honor_virtual,
                                  a_boolean          evaluated,
                                  a_boolean          instantiate,
-                                 a_boolean          check_access)
+                                 a_boolean          check_access,
+                                 a_boolean          *error_detected)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class
@@ -2427,6 +2428,8 @@ referenced.  If evaluated is FALSE, the reference is within an
 unevaluated expression; again, access control checking is done, but
 the IL entry is not marked as referenced.  If instantiate is TRUE and
 the function is a template function, it should be instantiated.
+If error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including warnings).
 */
 {
   a_symbol_ptr  base_sym = fundamental_symbol_of(sym);
@@ -2461,19 +2464,28 @@ the function is a template function, it should be instantiated.
                                                      class_of_object)) {
         severity = es_warning;
       }  /* if */
+      /* Record an access error.  If error_detected is non-NULL, the diagnostic
+         will be suppressed. */
       record_access_error(sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL, pos,
                           (a_symbol_locator*)NULL, severity,
-                          ec_inaccessible_special_function);
+                          ec_inaccessible_special_function,
+                          error_detected);
     } else if (class_of_object != NULL) {
       /* Protected members of a base class can only be accessed through an
-         object of a derived class. */
-      (void)check_protected_member_access(sym, sym, pos, class_of_object);
+         object of a derived class.  Again, if error_detected is non-NULL,
+         any diagnostic will be suppressed. */
+      (void)check_protected_member_access(sym, sym, pos, class_of_object,
+                                          error_detected);
     }  /* if */
   }  /* if */
-  /* Update the symbol and the cross-reference listing. */
-  record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), base_sym, pos,
-                          /*update_il_entry=*/FALSE);
-  if (!evaluated) {
+  /* Update the symbol and the cross-reference listing.  If error_detected
+     is non-NULL, we assume that we're just trying to find out if the
+     reference is valid, so do not record it. */
+  if (error_detected == NULL) {
+    record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), base_sym, pos,
+                            /*update_il_entry=*/FALSE);
+  }  /* if */
+  if (!evaluated || error_detected != NULL) {
     /* Unevaluated expression.  Do not set the IL referenced flag. */
   } else if (rp->is_virtual && honor_virtual) {
     /* Virtual function call.  Do not set the IL referenced flag because the
@@ -2486,9 +2498,10 @@ the function is a template function, it should be instantiated.
 
 
 a_boolean reference_to_trivial_default_constructor(
-                                              a_type_ptr         class_type,
-                                              a_source_position  *pos,
-                                              a_boolean          check_access)
+                                            a_type_ptr         class_type,
+                                            a_source_position  *pos,
+                                            a_boolean          check_access,
+                                            a_boolean          *error_detected)
 /*
 If class_type has an associated trivial default constructor, record a
 reference to it -- checking its accessibility (if check_access is TRUE),
@@ -2496,6 +2509,8 @@ updating the cross-reference listing if appropriate, and assuring that
 it is defined, which is done (even though the function is not actually
 called) in case the definition has side effects.  If class_type does
 have a trivial default constructor representation return TRUE.
+If error_detected is non-NULL, return *error_detected set to TRUE if
+there was an error, and do not issue any diagnostics (including warnings).
 */
 {
   a_symbol_ptr   ctor_sym;
@@ -2508,7 +2523,8 @@ have a trivial default constructor representation return TRUE.
                                              /*honor_virtual=*/FALSE,
                                              /*evaluated=*/TRUE,
                                              /*instantiate=*/TRUE,
-                                             check_access);
+                                             check_access,
+                                             error_detected);
   }  /* if */
   return (ctor_sym != NULL);
 }  /* reference_to_trivial_default_constructor */
@@ -2516,7 +2532,8 @@ have a trivial default constructor representation return TRUE.
 
 void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
                                            a_source_position *pos,
-                                           a_boolean         check_access)
+                                           a_boolean         check_access,
+                                           a_boolean         *error_detected)
 /*
 Record a reference to the trivial copy constructor of class_type
 at position pos.  Check accessibility (if check_access is TRUE), and
@@ -2524,7 +2541,9 @@ record a cross-reference entry if appropriate.  A trivial copy
 constructor is usually compiler generated and public, so no access
 check is needed.  However, with defaulted and deleted functions, it is
 possible to have a user-declared defaulted trivial copy constructor
-that is nonpublic.
+that is nonpublic.  If error_detected is non-NULL, return
+*error_detected set to TRUE if there was an error, and do not issue
+any diagnostics (including warnings).
 */
 {
   a_class_symbol_supplement_ptr cssp;
@@ -2546,7 +2565,8 @@ that is nonpublic.
                                                  /*honor_virtual=*/FALSE,
                                                  /*evaluated=*/FALSE,
                                                  /*instantiate=*/FALSE,
-                                                 check_access);
+                                                 check_access,
+                                                 error_detected);
         break;
       }  /* if */
     }  /* for */

@@ -1350,12 +1350,11 @@ prescanned argument list, which preempts the list in rcblock.
       /* The constructor selected is a trivial default constructor, which
          does nothing.  The routine is not marked as called. */
       is_trivial_construction = TRUE;
-      reference_to_implicitly_invoked_function(
+      expr_reference_to_implicitly_invoked_function_full(
                                     constructor_sym, source_pos,
                                     object_class_type, /*honor_virtual=*/FALSE,
                                     /*evaluated=*/FALSE,
-                                    /*instantiate=*/FALSE,
-                                    expr_access_checking_should_be_done());
+                                    /*instantiate=*/FALSE);
       optimized = TRUE;
     } else if (elision_allowed &&
                is_copy_constructor(routine, (a_type_ptr)NULL,
@@ -1421,12 +1420,11 @@ prescanned argument list, which preempts the list in rcblock.
            can be used instead of a call.  The routine is not marked as
            called. */
         is_bitwise_copy = TRUE;
-        reference_to_implicitly_invoked_function(
+        expr_reference_to_implicitly_invoked_function_full(
                                     constructor_sym, source_pos,
                                     object_class_type, /*honor_virtual=*/FALSE,
                                     /*evaluated=*/FALSE,
-                                    /*instantiate=*/FALSE,
-                                    expr_access_checking_should_be_done());
+                                    /*instantiate=*/FALSE);
         optimized = TRUE;
       }  /* if */
     }  /* if */
@@ -4079,7 +4077,7 @@ to the given locator.
                                              &copy_error);
   if (copy_error) {
     locator->is_error = TRUE;
-    record_non_access_error_detected();
+    record_suppressed_error();
   }  /* if */
 }  /* rescan_locator_template_arg_list */
 
@@ -14576,10 +14574,13 @@ indication in *rcblock).
               /* A conversion from pointer-to-member of derived to
                  pointer-to-member of a private base should not be
                  allowed.  See core issue 54. */
-              pos_ty_diagnostic(es_discretionary_error,
-                                ec_inaccessible_base_class,
-                                &start_position,
-                                bcp->type);
+              if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                                ec_inaccessible_base_class)) {
+                pos_ty_diagnostic(es_discretionary_error,
+                                  ec_inaccessible_base_class,
+                                  &start_position,
+                                  bcp->type);
+              }  /* if */
             } else if (expr_access_checking_should_be_done() &&
                        related_class_pointers(adj_source_type,
                                               adj_type_cast_to,
@@ -14595,10 +14596,14 @@ indication in *rcblock).
                   (gpp_mode && gnu_version < 30400)) {
                 /* Okay. */
               } else {
-                pos_ty_diagnostic(es_discretionary_error,
-                                  ec_conv_from_inaccessible_base_class,
-                                  &start_position,
-                                  bcp->type);
+                if (expr_diagnostic_should_be_issued(
+                                      es_discretionary_error,
+                                      ec_conv_from_inaccessible_base_class)) {
+                  pos_ty_diagnostic(es_discretionary_error,
+                                    ec_conv_from_inaccessible_base_class,
+                                    &start_position,
+                                    bcp->type);
+                }  /* if */
               }  /* if */
             }  /* if */
             /* Do the actual cast. */
@@ -25316,7 +25321,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
     result->bound_function = FALSE;
     operand_will_not_be_used_because_of_error(bound_function_selector);
     rcblock->error_detected = TRUE;
-  } else if (expr_stack->any_non_access_error_detected) {
+  } else if (expr_stack->any_suppressed_error) {
     rcblock->error_detected = TRUE;
   }  /* if */
   expr_stack->default_rescan_info = saved_default_rescan_info;

@@ -2097,8 +2097,8 @@ underspecified, and was widely interpreted as a restriction to only
 certain kinds of simple expressions, the C++0X rules now allow
 arbitrarily complex expressions inside unevaluated contexts (e.g.,
 sizeof and decltype), and "valid" is defined by the normal semantic
-rules of the language, except that access checking is not done.  So,
-for example:
+rules of the language, except that access checking is not done (but
+see below).  So, for example:
 
   template <class T> auto f(T p1, T p2) -> decltype(p1 + p2) {
     return p1 + p2;
@@ -2136,6 +2136,16 @@ because errors must be trapped in deduction contexts).  Customer
 additions in those files may have to be reworked to follow the
 new conventions.  See the section titled "Rescanning Expressions"
 in the internal documentation for details.
+
+N2634 says that access checking is not done during SFINAE processing,
+but the standards committee, at its Rapperswil meeting (August 2010),
+seems to be leaning in the direction of eliminating that special
+case, so access errors would be treated like any other errors
+during template deduction.  Accordingly, we have implemented that.
+However, both behaviors will remain available; see the
+DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS macro, and the
+--c++0x_sfinae_ignore_access and --no_c++0x_sfinae_ignore_access
+command-line options.
 
 
 4/23/10 [EDGcpfe/7875]

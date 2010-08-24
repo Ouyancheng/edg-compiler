@@ -1269,6 +1269,14 @@ Initialize the option information table.
                          "no_c++0x_sfinae", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae_ignore_access,
+                         "c++0x_sfinae_ignore_access", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae_ignore_access,
+                         "no_c++0x_sfinae_ignore_access", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1955,8 +1963,13 @@ by a command line option.
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
     if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+        (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
+         !cpp0x_sfinae_ignore_access) &&
         !option_kind_used[(int)optk_cpp0x_mode]) {
       cpp0x_sfinae_enabled = (microsoft_version >= 1600);
+    } /* if */
+    if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
+      if (cpp0x_sfinae_enabled) cpp0x_sfinae_ignore_access = FALSE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2271,6 +2284,7 @@ process.
   trailing_return_types_enabled = FALSE;
   nullptr_enabled = FALSE;
   cpp0x_sfinae_enabled = FALSE;
+  cpp0x_sfinae_ignore_access = FALSE;
 #if DO_IL_LOWERING
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
@@ -2490,8 +2504,15 @@ not always enabled in default mode (e.g., exception handling).
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+  if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+      (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
+       !cpp0x_sfinae_ignore_access)) {
     cpp0x_sfinae_enabled = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
+    if (cpp0x_sfinae_enabled) {
+      cpp0x_sfinae_ignore_access = DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
@@ -3083,8 +3104,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       exceptions_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+        (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
+         !cpp0x_sfinae_ignore_access) &&
         !cpp0x_mode) {
       cpp0x_sfinae_enabled = FALSE;
+      cpp0x_sfinae_ignore_access = FALSE;
     }  /* if */
     if (ignore_std_namespace) {
       /*  An option to treat namespace std as an alias for the global
@@ -3460,8 +3484,14 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
   if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+      (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
+       !cpp0x_sfinae_ignore_access) &&
       !option_kind_used[(int)optk_cpp0x_mode]) {
     cpp0x_sfinae_enabled = (gnu_version >= 30400);
+  } /* if */
+  if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
+    /* g++ 4.4 at least seems to ignore access checking. */
+    if (cpp0x_sfinae_enabled) cpp0x_sfinae_ignore_access = TRUE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
@@ -4291,6 +4321,16 @@ file.
 #else /* !defined(DEFAULT_CPP0X_MODE) */
   comment_undefined_macro_name(DEFAULT_CPP0X_MODE);
 #endif /* defined(DEFAULT_CPP0X_MODE) */
+#if defined(DEFAULT_CPP0X_SFINAE_ENABLED)
+  define_numeric_valued_macro(DEFAULT_CPP0X_SFINAE_ENABLED);
+#else /* !defined(DEFAULT_CPP0X_SFINAE_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_CPP0X_SFINAE_ENABLED);
+#endif /* defined(DEFAULT_CPP0X_SFINAE_ENABLED) */
+#if defined(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS)
+  define_numeric_valued_macro(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS);
+#else /* !defined(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS) */
+  comment_undefined_macro_name(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS);
+#endif /* defined(DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS) */
 #if defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT)
   define_numeric_valued_macro(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
 #else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
@@ -8101,6 +8141,10 @@ enable_microsoft_mode:
       case optk_cpp0x_sfinae:
         cpp0x_sfinae_enabled = opt_value;
         break;
+      case optk_cpp0x_sfinae_ignore_access:
+        cpp0x_sfinae_ignore_access = opt_value;
+        if (opt_value) cpp0x_sfinae_enabled = TRUE;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8245,8 +8289,10 @@ enable_microsoft_mode:
   if (trailing_return_types_enabled || decltype_enabled) {
     /* Turn on c++0x SFINAE if trailing return types or decltype are enabled,
        since we're likely to need it. */
-    if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
+    if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
+        !option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
       cpp0x_sfinae_enabled = TRUE;
+      cpp0x_sfinae_ignore_access = DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS;
     }  /* if */
   }  /* if */
   if (long_lifetime_temps) {
@@ -9134,6 +9180,8 @@ variables declared in cmd_line.h.
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
   cpp0x_sfinae_enabled = DEFAULT_CPP0X_SFINAE_ENABLED;
+  cpp0x_sfinae_ignore_access = cpp0x_sfinae_enabled &&
+                            DEFAULT_CPP0X_SFINAE_IGNORE_ACCESS; /*lint !e506*/
   std_c99_inlining = FALSE;
   gnu_c89_inlining = FALSE;
   packing_applies_to_base_classes =

@@ -14974,7 +14974,8 @@ selection operator, in which case it points to the type of the left operand.
 	   not the (ambiguous) class type. */
         check_ambiguity_and_access_full(
                         &locator_for_curr_id, (a_boolean)(next_tok == tok_lt),
-                        /*is_qualifier=*/(next_tok == tok_colon_colon));
+                        /*is_qualifier=*/(next_tok == tok_colon_colon),
+                        (a_boolean *)NULL);
         /* The call above will create an error locator if an ambiguity is
            is detected. */
         if (is_error_locator(locator_for_curr_id)) {
@@ -15426,7 +15427,8 @@ selection operator, in which case it points to the type of the left operand.
                  when an ambiguity error exists. */
               check_ambiguity_and_access_full(
                         &locator_for_curr_id, (a_boolean)(next_tok == tok_lt),
-                        /*is_qualifier=*/TRUE);
+                        /*is_qualifier=*/TRUE,
+                        (a_boolean *)NULL);
               /* The call above will create an error locator if an ambiguity is
                  is detected. */
               if (is_error_locator(locator_for_curr_id)) {
