@@ -1963,8 +1963,6 @@ by a command line option.
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
     if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-        (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
-         !cpp0x_sfinae_ignore_access) &&
         !option_kind_used[(int)optk_cpp0x_mode]) {
       cpp0x_sfinae_enabled = (microsoft_version >= 1600);
     } /* if */
@@ -2504,9 +2502,7 @@ not always enabled in default mode (e.g., exception handling).
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
-  if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-      (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
-       !cpp0x_sfinae_ignore_access)) {
+  if (!option_kind_used[(int)optk_cpp0x_sfinae]) {
     cpp0x_sfinae_enabled = TRUE;
   }  /* if */
   if (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access]) {
@@ -3104,8 +3100,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       exceptions_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-        (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
-         !cpp0x_sfinae_ignore_access) &&
         !cpp0x_mode) {
       cpp0x_sfinae_enabled = FALSE;
       cpp0x_sfinae_ignore_access = FALSE;
@@ -3484,8 +3478,6 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
   if (!option_kind_used[(int)optk_cpp0x_sfinae] &&
-      (!option_kind_used[(int)optk_cpp0x_sfinae_ignore_access] ||
-       !cpp0x_sfinae_ignore_access) &&
       !option_kind_used[(int)optk_cpp0x_mode]) {
     cpp0x_sfinae_enabled = (gnu_version >= 30400);
   } /* if */
