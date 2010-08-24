@@ -8272,7 +8272,7 @@ Render the list of lambda captures, including the delimiting brackets.
 
   write_tok_str("[");
   if (lambda->has_capture_default) {
-    write_tok_str(lambda->default_is_by_reference ? "&" : "=");
+    write_tok_str(lambda->default_is_by_reference ? (char*)"&" : (char*)"=");
     comma_needed = TRUE;
   }  /* if */
   for (; lcp != NULL; lcp = lcp->next) {
