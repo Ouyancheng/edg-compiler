@@ -2160,32 +2160,8 @@ extensions, e.g., Microsoft __is_base_of).
 #endif /* IA64_ABI */
       mangled_encoding_for_type(operand->variant.type_operand.type, mctl);
     } else {
-      an_expr_node_ptr expr_to_mangle = operand;
-      if (kind == (a_builtin_operation_kind)bok_offsetof) {
-        /* The second argument to __builtin_offsetof has a compiler-generated
-           eok_dot_field (i.e., "((*(int)0).") or eok_dot_static operation
-           (e.g., for source T::x) added to the expression for the field.
-           Remove those for mangling purposes. */
-        check_assertion(operand ==
-                               expr->variant.builtin_operation.operands->next);
-        if (is_operation_node(operand) &&
-            (node_operator_is(operand, eok_dot_static) ||
-             (node_operator_is(operand, eok_dot_field) &&
-              is_operation_node(operand->variant.operation.operands) &&
-              node_operator_is(operand->variant.operation.operands,
-                                                             eok_indirect)))) {
-          expr_to_mangle = operand->variant.operation.operands->next;
-          /* Mangle as an <unresolved-name> to get the proper qualification. */
-          mangled_unresolved_name(expr_to_mangle, (an_expr_node_ptr)NULL,
-                                  operand, /*in_dependent_expr=*/FALSE, mctl);
-          expr_to_mangle = NULL;
-        }  /* if */
-      }  /* if */
-      if (expr_to_mangle != NULL) {
-        mangled_encoding_for_expression(expr_to_mangle,
-                                        /*in_dependent_expr=*/TRUE,
-                                        mctl);
-      }  /* if */
+      mangled_encoding_for_expression(operand, /*in_dependent_expr=*/TRUE,
+                                      mctl);
     }  /* if */
   }  /* for */
 #if !IA64_ABI
@@ -2624,8 +2600,10 @@ appear in mangled names).
 
 static a_boolean is_unresolved_type(a_type_ptr type)
 /*
-Returns TRUE if type is an <unresolved-type>.  The type must not have had
-its typerefs skipped by the caller.
+Returns TRUE if type is an <unresolved-type>, i.e., a <decltype> or a
+<template-param>.  This is called on the top-level qualifier during mangling of
+an <unresolved-name> to determine which of the three scope resolution cases are
+appropriate. The type must not have had its typerefs skipped by the caller.
 */
 {
   a_boolean       result = FALSE;
@@ -2785,8 +2763,9 @@ qualifiers seen so far (and is typically set to one by the initial caller).
     if (scp != NULL) add_str_to_mangled_name("sr", mctl);
     if (kind == iek_type &&
         (emulate_gnu_abi_bugs || is_top_level_unresolved_type)) {
-      /* See if this type is an <unresolved-type>.  If so, use an
-         <unresolved-type> encoding rather than a <simple-id> encoding. */
+      /* See if the qualifier type is a top-level <unresolved-type>.  If so,
+         use an <unresolved-type> encoding rather than a <simple-id>
+         encoding.  */
       if (nesting_level > 1) {
         add_to_mangled_name('N', mctl);
         *need_close = TRUE;
@@ -3899,8 +3878,10 @@ dependent.
                node_operator_is(expr, eok_points_to_vacuous_destructor_call))))
                                                                               {
     /* Ignore any subexpressions under a sizeof, typeid, delete, or throw. 
-       Also, any (non-compiler-generated) cast subexpressions or subexpressions
-       under a pseudo destructor. */
+       Also, ignore any cast subexpressions to non-dependent types
+       (compiler-generated casts are ignored for mangling purposes, so these
+       are handled elsewhere) as well as subexpressions under a pseudo
+       destructor. */
     tblock->suppress_subtree_walk = TRUE;
   }  /* if */
 }  /* is_gnu_dependent_expr_node */
@@ -4583,8 +4564,10 @@ expression.
           selection->name_reference->qualifier != NULL)
 #endif /* !IA64_ABI */
                                                        ) {
-    /* An implied "this" has been added.  Remove it in the IA-64 ABI and when
-       the selection is otherwise qualified in the Cfront ABI. */
+    /* An implied "this" expression has been added (e.g., "(((A *)0)->m)").
+       Remove it, leaving only the member, in the IA-64 ABI and when
+       the selection already has a qualifier (e.g., "A::m") in the
+       Cfront ABI. */
     selector = NULL;
   }  /* if */
   if (selector != NULL) {
