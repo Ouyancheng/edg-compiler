@@ -8923,7 +8923,10 @@ during wrapup processing by compare_function_templates.
      process below to detect recursive calls of this routine. */
   if (tssp->variant.function.pending_deductions >=
                                                   max_pending_instantiations) {
-    new_arg_list = NULL;
+    if (new_arg_list != NULL) {
+      *new_arg_list = NULL;
+      new_arg_list = NULL;
+    }  /* if */
     templ_arg_list = NULL;
   }  /* if */
   if (new_arg_list != NULL) {
