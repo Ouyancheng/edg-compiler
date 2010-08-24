@@ -2178,11 +2178,13 @@ cast in some modes.  orig_operand_expr can be NULL.
   }  /* while */
 end_of_loop:
   if (expr != NULL && expr != orig_operand_expr) {
-    /* Return only a cast node, a temp-init node, or, for static_cast, a
-       conversion function call. */
+    /* Return only a cast node, a temp-init node, or, for casts that allow
+       user-defined-conversions, a conversion function call. */
     if (expr->kind == (an_expr_node_kind)enk_temp_init ||
         is_cast_operation_node(expr) ||
-        (source_form == csf_static_cast &&
+        ((source_form == csf_static_cast ||
+          source_form == csf_functional ||
+          source_form == csf_old_style) &&
          is_operation_node(expr) &&
          expr->variant.operation.is_conversion_call)) {
       check_assertion(!(is_operation_node(expr) &&
