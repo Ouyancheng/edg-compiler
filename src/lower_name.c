@@ -335,6 +335,14 @@ typedef struct a_mangling_control_block {
 			/* Used to emulate a g++ bug with regard to use
 			   of an expression instead of a constant bound
 			   for a non-dependent array bound. */
+#if CHECKING && ABI_COMPATIBILITY_VERSION < 402
+  a_byte_boolean
+		mangling_sizeof_expression;
+			/* TRUE while the entity being mangled is the
+			   expression under a sizeof.  Such an expression may
+			   contain operators that otherwise are not allowed
+			   to appear in template argument expressions. */
+#endif /* CHECKING && ABI_COMPATIBILITY_VERSION < 402 */
   unsigned long
                 suppress_substitutions;
 			/* Suppress the generation of substitutions when
@@ -426,6 +434,7 @@ static void mangled_function_name_externalized_if_necessary(
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
 static char *mangled_expr_operator_name(an_expr_node_ptr expr,
+                                        a_boolean        *bad_operator,
                                         a_boolean        *is_cast);
 
 /*
@@ -540,6 +549,9 @@ Set the fields of the indicated mangling control block to default values.
   mctl->first_substitution = NULL;
   mctl->last_substitution = NULL;
   mctl->force_dependent_array_mangling = FALSE;
+#if CHECKING && ABI_COMPATIBILITY_VERSION < 402
+  mctl->mangling_sizeof_expression = FALSE;
+#endif /* CHECKING && ABI_COMPATIBILITY_VERSION < 402 */
   mctl->suppress_substitutions = 0;
 #else /* !IA64_ABI */
   mctl->suppress_partial_spec_args = FALSE;
@@ -2036,10 +2048,19 @@ ignored if expr != NULL.
     add_to_mangled_name('0', mctl);
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* !IA64_ABI */
-#if !IA64_ABI || ABI_COMPATIBILITY_VERSION >= 402
-    /* Include the expression in the mangled name.  in_dependent_expr is TRUE
-       because this routine is used only for dependent sizeofs. */
-    mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
+#if IA64_ABI || ABI_COMPATIBILITY_VERSION >= 402
+#if CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
+    { a_boolean save_mangling_sizeof_expression =
+                                              mctl->mangling_sizeof_expression;
+      mctl->mangling_sizeof_expression = TRUE;
+#endif /* CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
+      /* Include the expression in the mangled name.  in_dependent_expr is TRUE
+         because this routine is used only for dependent sizeofs. */
+      mangled_encoding_for_expression(expr, /*in_dependent_expr=*/TRUE, mctl);
+#if CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
+      mctl->mangling_sizeof_expression = save_mangling_sizeof_expression;
+    }
+#endif /* CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
 #endif /* !IA64_ABI || ABI_COMPATIBILITY_VERSION >= 402 */
   } else {
     /* No expression, so put out the type. */
@@ -3635,6 +3656,37 @@ operation that is part of certain template constants is suppressed
                          mctl);
 }  /* mangled_encoding_for_constant */
 
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
+
+static char *bad_mangled_expr_operator_name(an_expr_node_ptr expr)
+/*
+expr has an expression operator that is not ordinarily valid in an IA-64
+mangled name but is allowed under a sizeof expression.  Return the
+operator name mangling.  This is only used in versions prior to 4.2
+(in 4.2 and later, all operators should have mangled encodings).
+*/
+{
+  unsigned long    num_operands;
+  static char      buffer[50];
+
+  /* We expect these names only in nonreal class types and prototype
+     instantiations when MANGLE_ALL_NAMES and PROTOTYPE_INSTANTIATIONS_IN_IL
+     are TRUE, but depending on the resolution of core issue 339 there
+     may be some operators that might be legitimate here.  For the most
+     part, however, we just want to get out of here with a valid mangled
+     name; it doesn't matter a great deal what it is. */
+  /* Count the number of operands. */
+  check_assertion(is_operation_node(expr));
+  num_operands = number_of_operands_in_list(expr->variant.operation.operands);
+  /* Limit the number of operands to a single digit.  Cases with more
+     operands will not demangle correctly. */
+  if (num_operands > 9) num_operands = 9;
+  /* Use the IA-64 ABI form for a vendor extended operator of "unknown". */
+  (void)sprintf(buffer, "v%lu7unknown", num_operands);
+  return buffer;
+}  /* bad_mangled_expr_operator_name */
+
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
 
 static void add_mangling_for_placeholder_expression(
                                                 a_mangling_control_block *mctl)
@@ -4916,7 +4968,7 @@ is TRUE.
       /* Do not insert code here. */
       {
         /* Generic operation. */
-        a_boolean is_cast;
+        a_boolean bad_operator, is_cast;
 #if !IA64_ABI
         /* Operation.  Output has the form
              Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template
@@ -4935,7 +4987,25 @@ is TRUE.
         add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
         /* Get the operator name and put it out. */
-        operation_name = mangled_expr_operator_name(expr, &is_cast);
+        operation_name = mangled_expr_operator_name(expr, &bad_operator,
+                                                    &is_cast);
+        if (bad_operator) {
+          /* Unexpected operator.  These are allowed in some cases for
+             expressions under sizeof in the IA-64 ABI prior to version 4.2. */
+#if CHECKING
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
+          if (!mctl->mangling_sizeof_expression)
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
+          /* Do not insert code here. */
+          {
+            internal_error(
+                         "mangled_encoding_for_expression_full: bad operator");
+          }  /* if */
+#endif /* CHECKING */
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
+          operation_name = bad_mangled_expr_operator_name(expr);
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
+        }  /* if */
         add_str_to_mangled_name(operation_name, mctl);
 #if !IA64_ABI
         /* The Cfront mangling has different mangled names to distinguish
@@ -7012,11 +7082,7 @@ static data member is used as the parent entity for mangling purposes.
       }  /* if */
       if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
     }  /* if */
-    if (emulate_gnu_abi_bugs
-#if ABI_COMPATIBILITY_VERSION >= 402
-        && gnu_abi_version < 30400
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-                                  ) {
+    if (emulate_gnu_abi_bugs && gnu_abi_version < 30400) {
       /* g++ versions prior to 3.4.0 had a bug with template parameters as
          parents: they used the parameter name instead of a template parameter
          encoding. */
@@ -8478,18 +8544,23 @@ binary versions of operators are mangled differently.
 
 
 static char *mangled_expr_operator_name(an_expr_node_ptr expr,
+                                        a_boolean        *bad_operator,
                                         a_boolean        *is_cast)
 /*
 Return the string used to mangle the operator in the indicated expression.
 Operators that don't appear in mangled names should already have been stripped.
-If the operator is some type of cast (which requires mangling of a type as
-well as an expression), return *is_cast TRUE.
+If the operator is unrecognized, return *bad_operator TRUE (this can only
+happen when ABI_COMPATIBILITY_VERSION < 402 -- in later versions an assertion
+is triggered if the operator can't be mangled).  If the operator is some type
+of cast (which requires mangling of a type as well as an expression), return
+*is_cast TRUE.
 */
 {
   char           *name = NULL;
   an_opname_kind opkind;
   unsigned int   num_operands = 2;
 
+  *bad_operator = FALSE;
   *is_cast = FALSE;
   check_assertion(is_operation_node(expr));
   switch (expr->variant.operation.kind) {
@@ -8568,6 +8639,7 @@ well as an expression), return *is_cast TRUE.
       opkind = (an_opname_kind)onk_compl;
       num_operands = 1;
       break;
+#if ABI_COMPATIBILITY_VERSION >= 402
     case eok_assign:
       opkind = (an_opname_kind)onk_assign;
       break;
@@ -8624,13 +8696,18 @@ well as an expression), return *is_cast TRUE.
     case eok_subscript:
       opkind = (an_opname_kind)onk_subscript;
       break;
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     case eok_add:
+#if ABI_COMPATIBILITY_VERSION >= 402
     case eok_padd:
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       opkind = (an_opname_kind)onk_plus;
       break;
     case eok_subtract:
+#if ABI_COMPATIBILITY_VERSION >= 402
     case eok_psubtract:
     case eok_pdiff:
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
       opkind = (an_opname_kind)onk_minus;
       break;
     case eok_multiply:
@@ -8696,6 +8773,7 @@ well as an expression), return *is_cast TRUE.
       opkind = (an_opname_kind)onk_question;
       num_operands = 3;
       break;
+#if ABI_COMPATIBILITY_VERSION >= 402
     case eok_pm_points_to_field:
       opkind = (an_opname_kind)onk_arrow_star;
       break;
@@ -8710,6 +8788,7 @@ well as an expression), return *is_cast TRUE.
       name = MANGLING_STRING_FOR_OPERATOR_IMAG_PART;
       break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     case eok_lvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */
@@ -8723,11 +8802,15 @@ well as an expression), return *is_cast TRUE.
     case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
+#if ABI_COMPATIBILITY_VERSION >= 402
       /* Operators that don't occur in mangled names should have been stripped
          previously, so if we get here, we need a mangling for the operator. */
       unexpected_condition_str("mangled_expr_operator_name: bad operator");
+#else /* ABI_COMPATIBILITY_VERSION < 402 */
+      *bad_operator = TRUE;
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
   }  /* switch */
-  if (name == NULL) {
+  if (name == NULL && !*bad_operator) {
     /* Convert opkind to a name. */
     name = mangled_operator_name(opkind, num_operands);
   }  /* if */
