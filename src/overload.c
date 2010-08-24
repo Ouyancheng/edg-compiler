@@ -6096,12 +6096,27 @@ and return NULL.  This routine is called only in C++ mode.
          list includes dependent arguments. */
       dependent_call = TRUE;
     }  /* if */
-    if (overloaded_function_symbol != NULL &&
-        is_symbol_for_which_overload_resolution_should_be_deferred(
+    if (dependent_call) {
+      /* No need to take time to check for deferring overload resolution
+         if we've already decided the call is dependent. */
+    } else if (overloaded_function_symbol != NULL &&
+               is_symbol_for_which_overload_resolution_should_be_deferred(
                                                  overloaded_function_symbol)) {
       /* A function for which we can't do overload resolution at this
          time. */
       defer_overload_resolution = TRUE;
+    } else if (cpp0x_sfinae_enabled) {
+      /* If any of the arguments are instantiation-dependent, we can't
+         do overload resolution at this time. */
+      for (arg_operand = arg_operand_list;
+           arg_operand != NULL;
+           arg_operand = arg_operand->next) {
+        an_operand *arg = &arg_operand->operand;
+        if (operand_is_instantiation_dependent(arg)) {
+          defer_overload_resolution = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
     if (dependent_call || defer_overload_resolution) {
       /* We can't do overload resolution (e.g., because some of the
