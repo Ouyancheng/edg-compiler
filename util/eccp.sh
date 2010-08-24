@@ -561,6 +561,7 @@ check_abbreviation()
 --c++
 --c++0x
 --c++0x_sfinae
+--c++0x_sfinae_ignore_access
 --c_to_obj_lib
 --cfront_2.1
 --cfront_3.0
@@ -669,6 +670,7 @@ check_abbreviation()
 --no_c99
 --no_c++0x
 --no_c++0x_sfinae
+--no_c++0x_sfinae_ignore_access
 --no_check_concatenations
 --no_class_name_injection
 --no_code_gen
@@ -1364,6 +1366,8 @@ process_option()
          --no_nullptr | \
          --c++0x_sfinae | \
          --no_c++0x_sfinae | \
+         --c++0x_sfinae_ignore_access | \
+         --no_c++0x_sfinae_ignore_access | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
