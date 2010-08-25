@@ -3255,10 +3255,6 @@ their syntactic location recorded as al_implicit.
 
   for (ap = ptp->attributes; ap != NULL; ap = ap->next) {
     a_boolean  do_copy;
-#if !GNU_EXTENSIONS_ALLOWED
-    /*lint !e764*/  /* Lint complains about there not being an actual
-                       switch case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
     switch (ap->kind) {
 #if GNU_EXTENSIONS_ALLOWED
       case ak_unused:
@@ -3267,7 +3263,8 @@ their syntactic location recorded as al_implicit.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         do_copy = FALSE;
-    }  /* switch */
+    }  /* switch */ /*lint !e764*/  /* Lint complains about there not being
+                                       an actual switch case. */
     if (do_copy) {
       *p_attr = alloc_attribute();
       **p_attr = *ap;
