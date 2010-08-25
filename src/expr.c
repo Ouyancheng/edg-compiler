@@ -54,6 +54,7 @@ static a_boolean cast_type_pre_check(
                                  a_boolean          has_explicit_cv_qualifiers,
                                  a_boolean          allow_array);
 static void process_boolean_controlling_expression(an_operand *result);
+static a_boolean operand_is_instantiation_dependent(an_operand *operand);
 static void scan_compound_literal(a_type_ptr               *p_literal_type,
                                   a_boolean                list_init,
                                   a_source_position        *type_position,
@@ -26668,7 +26669,7 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
-a_boolean operand_is_instantiation_dependent(an_operand *operand)
+static a_boolean operand_is_instantiation_dependent(an_operand *operand)
 /*
 Return TRUE if the given operand is instantiation-dependent, which
 includes type-dependent cases, value-dependent cases, and cases where
