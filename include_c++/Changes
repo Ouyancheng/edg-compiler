@@ -1,4 +1,6 @@
-Version 4.2
+Version 4.2, August 25, 2010
+
+No changes.
 
 -------------------------------------------------------------------------------
 Version 4.1, August 6, 2009
@@ -9,7 +11,7 @@ __cxa_deleted_virtual declaration added to cxxabi.h
 As required by the IA-64 ABI, a declaration for the __cxa_deleted_virtual
 runtime routine has been added to the cxxabi.h header file.
 
-
+-------------------------------------------------------------------------------
 Version 4.0, December 5, 2008
 
 No Changes.
