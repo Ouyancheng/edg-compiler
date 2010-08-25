@@ -673,7 +673,7 @@ changed to follow suit.  For example:
   extern "C" int printf(const char*, ...);
   #define M() printf("%d\n", __LINE__)
   int main() {
-    M(        // Prevously printed "4", now "5"
+    M(        // Previously printed "4", now "5"
      );
   }
 
