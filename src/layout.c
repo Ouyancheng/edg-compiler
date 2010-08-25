@@ -3097,9 +3097,11 @@ Lay out the nonvirtual direct base class bcp.
       a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
       size = base_ctsp->size_without_virtual_base_classes;
       alignment = base_ctsp->alignment_without_virtual_base_classes;
+#if USER_CONTROL_OF_STRUCT_PACKING
       if (packing_applies_to_base_classes) {
         adjust_alignment_for_packing(&alignment, bcp->derived_class);
       }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     }  /* if */
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
 #if DEBUG
@@ -4271,9 +4273,11 @@ Set bcp->offset.  The base class bcp must be a virtual base.
     a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
     size = base_ctsp->size_without_virtual_base_classes;
     alignment = base_ctsp->alignment_without_virtual_base_classes;
+#if USER_CONTROL_OF_STRUCT_PACKING
     if (packing_applies_to_base_classes) {
       adjust_alignment_for_packing(&alignment, bcp->derived_class);
     }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
   }  /* if */
 #if IA64_ABI
