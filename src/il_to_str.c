@@ -198,6 +198,9 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
 
 #endif /* DEBUG */
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* type, octl used only for GNU attributes. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void form_attributes_for_type(
                                    a_type_ptr                            type,
                                    an_il_to_str_output_control_block_ptr octl)
