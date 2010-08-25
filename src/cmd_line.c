@@ -8135,7 +8135,6 @@ enable_microsoft_mode:
         break;
       case optk_cpp0x_sfinae_ignore_access:
         cpp0x_sfinae_ignore_access = opt_value;
-        if (opt_value) cpp0x_sfinae_enabled = TRUE;
         break;
       default:
         /* It should not be possible to get here. */
