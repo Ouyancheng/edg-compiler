@@ -1194,6 +1194,22 @@ Initialize the option information table.
                          "rvalue_ctor_is_not_copy_ctor",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae,
+                         "c++0x_sfinae", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae,
+                         "no_c++0x_sfinae", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae_ignore_access,
+                         "c++0x_sfinae_ignore_access", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cpp0x_sfinae_ignore_access,
+                         "no_c++0x_sfinae_ignore_access", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* CPP0X_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -1261,22 +1277,6 @@ Initialize the option information table.
                          "no_token_separators_in_pp_output", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-  add_option_description(optk_cpp0x_sfinae,
-                         "c++0x_sfinae", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae,
-                         "no_c++0x_sfinae", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae_ignore_access,
-                         "c++0x_sfinae_ignore_access", '\0',
-                         /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_cpp0x_sfinae_ignore_access,
-                         "no_c++0x_sfinae_ignore_access", '\0',
-                         /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
