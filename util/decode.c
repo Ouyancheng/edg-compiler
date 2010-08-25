@@ -1975,7 +1975,7 @@ template parameters.
       /* Destructor name. */
       /* This differs from the dt__ case above in two ways: its demangling
          doesn't always have a scope operator (i.e., ::), and it doesn't
-         require that the destructor name be the same as the qualifing type
+         require that the destructor name be the same as the qualifying type
          (e.g., it can handle T::~X()).  What follows (a "destructor name")
          can be parsed as a nested type, but has an implied ~ before the
          final qualifier.  For example, Q4_1A1B1C1D would demangle as
