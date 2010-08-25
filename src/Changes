@@ -6173,7 +6173,8 @@ In cases where ::delete is called on a base class object with a virtual
 destructor and a user declared operator delete, the pointer to the base
 class object was being passed to ::delete instead of a pointer to the most
 derived object.  This had resulted in a runtime abort in most configurations
-and is now fixed.  For example:
+and is now fixed (except in configurations where ABI_CHANGES_FOR_RTTI is
+FALSE where the behavior is unchanged).  For example:
 
   struct B {
     B() {}

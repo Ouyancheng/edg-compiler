@@ -8866,6 +8866,7 @@ tricks.
     ptr_node_delete = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
   }  /* if */
 #endif /* !DTORS_RETURN_THIS */
+#if ABI_CHANGES_FOR_RTTI
   if (delete_routine != NULL &&
       !delete_routine->source_corresp.is_class_member &&
       dtor_routine->is_virtual) {
@@ -8893,6 +8894,7 @@ tricks.
     temp_assign_node = make_var_assignment_expr(temp, ptr_node_delete);
     ptr_node_delete = var_rvalue_expr(temp);
   }  /* if */
+#endif /* ABI_CHANGES_FOR_RTTI */
 #if !IA64_ABI
   /* Add an implicit parameter to the destructor call with bits
      0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
