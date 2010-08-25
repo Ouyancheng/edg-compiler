@@ -146,6 +146,7 @@ C code.  They use the "needed" flag if that is being maintained and the
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #define entity_needed_in_generated_code(entityp)               \
   scp_is_needed_in_generated_code(&(entityp)->source_corresp)
+/*lint -esym(750,entity_needed_in_generated_code)*/
 
 
 #if !C_GEN_BE_GENERATES_ANSI_C
