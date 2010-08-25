@@ -12402,7 +12402,7 @@ initially used when processing the declaration of a partial specialization.
       } else if (sym->is_class_member &&
                  sym_parent_class(sym)->variant.class_struct_union.
                                              extra_info->assoc_scope == NULL) {
-        /* An error occurred earlier resuling in an invalid parent class
+        /* An error occurred earlier resulting in an invalid parent class
            (one that is incomplete and not in the process of being defined). */
         decl_state->decl_scope_err = TRUE;
         check_assertion(total_errors != 0);
