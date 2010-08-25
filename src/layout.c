@@ -2877,9 +2877,11 @@ done:
   /* Ensure the alignment of the class as a whole is at least as strict as
      that of the empty base.  (Early versions of g++ do not do this.) */
   alignment = alignment_of_type(bcp->type);
+#if USER_CONTROL_OF_STRUCT_PACKING
   if (packing_applies_to_base_classes) {
     adjust_alignment_for_packing(&alignment, bcp->derived_class);
   }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
   if (alignment > lob->alignment &&
       !(emulate_gnu_abi_bugs && gnu_abi_version < 40300)) {
     lob->alignment = alignment;
