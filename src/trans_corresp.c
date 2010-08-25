@@ -7163,7 +7163,9 @@ for each compilation.
   verification_list = NULL;
   avail_verification_entries = NULL;
   instantiations_to_process = NULL;
+#if CHECKING
   total_corresp_errors = 0;
+#endif /* CHECKING */
 }  /* corresp_init */
 
 
