@@ -12309,7 +12309,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
              We want ~X for the tildized locator below, but we want to return
              T as the destructor type. */
           dtor_type = type_symbol_type(orig_type_sym);
-          dtor_type = skip_typerefs(dtor_type);
+          dtor_type = skip_typerefs_not_dependent_decltypes(dtor_type);
         }  /* if */
       }  /* if */
     }  /* if */
