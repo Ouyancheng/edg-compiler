@@ -2079,7 +2079,7 @@ Abort in some decltype/typeof cases involving multiple translation units
 
 When simultaneously compiling multiple translation units, the front end
 sometimes aborted with an assertion failure "correspondence busy" in
-f_set_no_trans_unit_corresp (trans_corresp.c).  This occured in relatively
+f_set_no_trans_unit_corresp (trans_corresp.c).  This occurred in relatively
 complex situations involving typedefs whose underlying type was expressed
 using a decltype (or typeof) construct, and only after a correspondence error
 was already issued.  This is now fixed.
@@ -2926,7 +2926,7 @@ return type or element type of that function or array.  For example:
 
 
 2/23/10  [EDGcpfe/9913]
-Attributes on instantations of member functions of class templates
+Attributes on instantiations of member functions of class templates
 
 Previously, an attribute appearing on an out-of-class definition of a member
 function of a class template was silently ignored.  Now the attribute is
@@ -54811,8 +54811,9 @@ aborted.
 
 11/17/99 Aborts while recovering from syntax errors in templates
 
-Various syntax errors in class definitions occuring in the scope of a template
-declaration could lead the front end to abort compilation.  For example:
+Various syntax errors in class definitions occurring in the scope of a
+template declaration could lead the front end to abort compilation.
+For example:
 
   template<class T> volatile struct A {
     static int f() { return sizeof(T); }
