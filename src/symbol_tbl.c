@@ -12208,7 +12208,8 @@ holds.  Allocate a larger table and rehash the existing entries.
 #if DEBUG
   if (db_flag_is_set("hash")) {
     fprintf(f_debug, "Resizing hash table at %p, old_size=%lu, new_size=%lu\n",
-            htp, (unsigned long)htp->num_buckets, (unsigned long)new_buckets);
+            (void*)htp, (unsigned long)htp->num_buckets,
+            (unsigned long)new_buckets);
   }  /* if */
 #endif /* DEBUG */
   memzero((a_void_ptr)new_table, size_t_arg(table_size_in_bytes));
