@@ -1,4 +1,4 @@
-Version 4.2
+Version 4.2, August 25, 2010
 
 8/13/10  [EDGcpfe/10929]
 Missing cv-qualification on certain demangled names (IA-64 ABI)
