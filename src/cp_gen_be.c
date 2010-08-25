@@ -3178,7 +3178,6 @@ Generate the list of arguments for the attribute, surrounded by parentheses.
       check_assertion(aap->next == NULL);
       break;
     }  /* if */
-    set_output_position(&aap->position);
     switch (aap->kind) {
       case aak_raw_token:
         write_tok_str(aap->variant.token);
@@ -3338,6 +3337,62 @@ marked as being associated with the primary declaration.
   }  /* if */
 }  /* gen_attributes */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void gen_declspec_for_nonautonomous_tag_decl(a_type_ptr  type)
+/*
+Attributes have usually no effect on non-autonomous tag declarations that
+aren't definitions.  However, the Microsoft __declspec attributes "uuid" and
+"deprecated" are exceptions.  Render those if necessary.
+*/
+{
+  /* Currently, we skip over the secondary source sequence entries for such 
+     non-autonomous tag declarations that aren't definition and hence we
+     cannot produce the attributes recorded in those entries.  Instead, we
+     traverse the list of attributes attached to the type entry to see if
+     those of interest (ak_deprecated and ak_uuid) appeared on a declaration
+     that isn't a definition and render them at most once. */
+  an_attribute_ptr  ap = type->source_corresp.attributes;
+
+  if (ap != NULL) {
+    a_boolean         declspec_started = FALSE, uuid_issued = FALSE,
+                      deprecated_issued = FALSE;
+    for (; ap != NULL; ap = ap->next) {
+      if (ap->syntactic_location == (a_byte_attribute_location)al_tag_name &&
+          ap->family == (a_byte_attribute_family)af_ms_declspec &&
+          !ap->on_primary_declaration) {
+        switch (ap->kind) {
+          case ak_deprecated:
+            if (deprecated_issued) {
+              continue;
+            } else {
+              deprecated_issued = TRUE;
+            }  /* if */
+            break;
+          case ak_uuid:
+            if (uuid_issued) {
+              continue;
+            } else {
+              uuid_issued = TRUE;
+            }  /* if */
+            break;
+          default:
+            continue;
+        }  /* switch */
+        if (!declspec_started) {
+          write_tok_str(" __declspec(");
+          declspec_started = TRUE;
+        } else {
+          write_tok_str(", ");
+        }  /* if */
+        gen_attribute(ap);
+      }  /* if */
+    }  /* for */
+    if (declspec_started) write_tok_str(")");
+  }  /* if */
+}  /* gen_declspec_for_nonautonomous_tag_decl */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void check_for_unprotected_comma_operation(
                                    an_expr_node_ptr                    expr,
@@ -4072,7 +4127,16 @@ al_tag_name attributes (if any).
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     write_tok_str(tag_kind_str);
-    gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
+    if ((options & GN_DECLARATION) != 0) {
+      gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else {
+      /* Attributes have usually no effect on non-autonomous tag declarations
+         that aren't definitions.  However, a few Microsoft __declspec
+         attributes do have to be rendered for such uses. */
+      gen_declspec_for_nonautonomous_tag_decl(type);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target &&
