@@ -5441,7 +5441,7 @@ scan_paren:
                it weren't in a template, we wouldn't be here since a nontrivial
                dynamic initialization entry would have been generated).  This
                can currently only happen in GNU C++ mode.  Don't drop the
-               contructor initializer entry: It might be needed in the C++-
+               constructor initializer entry: It might be needed in the C++-
                generating back end, for example. */
             check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
