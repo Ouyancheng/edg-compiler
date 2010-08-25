@@ -9867,7 +9867,7 @@ recorded with this particular header.
      should be put out for it. */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   set_output_position(&tdp->template_pos);
-  /* Put a space after the "<" to avoid forming the diagraph "<:" if the
+  /* Put a space after the "<" to avoid forming the digraph "<:" if the
      first parameter is a nontype parameter whose type name begins with
      the global scope operator. */
   write_tok_str("template< ");
