@@ -7588,6 +7588,9 @@ Make a placeholder lvalue operand whose type is "type".
 }  /* make_dummy_lvalue_operand */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* <-- end_position is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void record_position_in_expr_for_rescan(
                                           an_expr_node_ptr  node,
                                           a_source_position *start_position,
