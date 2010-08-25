@@ -6105,18 +6105,6 @@ and return NULL.  This routine is called only in C++ mode.
       /* A function for which we can't do overload resolution at this
          time. */
       defer_overload_resolution = TRUE;
-    } else if (cpp0x_sfinae_enabled) {
-      /* If any of the arguments are instantiation-dependent, we can't
-         do overload resolution at this time. */
-      for (arg_operand = arg_operand_list;
-           arg_operand != NULL;
-           arg_operand = arg_operand->next) {
-        an_operand *arg = &arg_operand->operand;
-        if (operand_is_instantiation_dependent(arg)) {
-          defer_overload_resolution = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
     }  /* if */
     if (dependent_call || defer_overload_resolution) {
       /* We can't do overload resolution (e.g., because some of the
