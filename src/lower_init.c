@@ -12526,7 +12526,7 @@ insert_dtor_member_and_base_destructions.
 {
   a_variable_ptr         this_param_var;
   a_constructor_init_ptr ctor_init, ctor_init_list;
-  a_dynamic_init_ptr     first_epilogue_destruction;
+  a_dynamic_init_ptr     first_epilogue_destruction = NULL;
   an_insert_location     insert_location;
   a_source_position      opening_brace_pos, closing_brace_pos;
 
