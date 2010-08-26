@@ -3341,17 +3341,17 @@ marked as being associated with the primary declaration.
 
 static void gen_declspec_for_nonautonomous_tag_decl(a_type_ptr  type)
 /*
-Attributes have usually no effect on non-autonomous tag declarations that
+Attributes usually have no effect on non-autonomous tag declarations that
 aren't definitions.  However, the Microsoft __declspec attributes "uuid" and
 "deprecated" are exceptions.  Render those if necessary.
 */
 {
   /* Currently, we skip over the secondary source sequence entries for such 
-     non-autonomous tag declarations that aren't definition and hence we
+     non-autonomous tag declarations that aren't definitions and hence we
      cannot produce the attributes recorded in those entries.  Instead, we
      traverse the list of attributes attached to the type entry to see if
      those of interest (ak_deprecated and ak_uuid) appeared on a declaration
-     that isn't a definition and render them at most once. */
+     that isn't a definition, and render them at most once. */
   an_attribute_ptr  ap = type->source_corresp.attributes;
 
   if (ap != NULL) {
@@ -4131,7 +4131,7 @@ al_tag_name attributes (if any).
       gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else {
-      /* Attributes have usually no effect on non-autonomous tag declarations
+      /* Attributes usually have no effect on non-autonomous tag declarations
          that aren't definitions.  However, a few Microsoft __declspec
          attributes do have to be rendered for such uses. */
       gen_declspec_for_nonautonomous_tag_decl(type);
