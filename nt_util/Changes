@@ -1,3 +1,13 @@
+Version 4.2
+
+8/25/10  Handle object files with large numbers of symbols in pl_nm
+
+The pl_nm command is invoked by edg_prelink to display symbols from
+object files in a format acceptable to the prelinker.  pl_nm did not
+work properly for certain object files with a very large number of
+symbols.  Now fixed.
+
+------------------------------------------------------------------------------
 Version 4.0
 
 12/8/08  Avoid linker warnings on default libraries
