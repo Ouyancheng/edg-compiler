@@ -1,3 +1,26 @@
+Version 4.3
+
+8/26/10  [EDGcpfe/10965]
+GNU C++ mode: g++ dependency check in PARENS_IN_IL configuration
+
+The checking added for EDGcpfe/10527 failed to allow for the presence of
+eok_parens nodes in the expression tree.  As a result, the check was
+ineffective for code containing parentheses in configurations in which
+PARENS_IN_IL is TRUE.  This is now fixed.  For example:
+
+  template <class T> class C;
+  template <> struct C<int> {
+    void foo(int);
+  };
+  template <class T> struct X : C<T> {
+    int *m;
+    virtual void f() {
+      foo(*(this->m));   // Previously reported as error with PARENS_IN_IL
+    }
+  };
+  X<int> x;
+
+
 Version 4.2, August 25, 2010
 
 8/23/10

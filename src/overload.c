@@ -5913,21 +5913,21 @@ an argument of a call in gpp mode even though the standard says it's not.
      of a member function of the current class even if the return type
      is known. */
   if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
         (node_operator_is(expr, eok_indirect) ||
          node_operator_is(expr, eok_ref_indirect))) {
       /* Drop "*" or the reference equivalent. */
-      expr = expr->variant.operation.operands;
+      expr = skip_parens(expr->variant.operation.operands);
     }  /* if */
     if (is_operation_node(expr) &&
         !expr->variant.operation.compiler_generated) {
       an_expr_node_ptr potential_this = NULL;
-      an_expr_node_ptr op1 = expr->variant.operation.operands;
+      an_expr_node_ptr op1 = skip_parens(expr->variant.operation.operands);
       if (node_operator_is(expr, eok_points_to_field)) {
         potential_this = op1;
       } else if (node_operator_is(expr, eok_points_to_member_call)) {
-        potential_this = op1->next;
+        potential_this = skip_parens(op1->next);
       } else if (node_operator_is(expr, eok_call)) {
         /* Look for a call of a static member function of the current class.
            Note that conv_expr_function_designator_to_ptr_to_function forces
