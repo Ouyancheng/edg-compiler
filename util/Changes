@@ -1,3 +1,14 @@
+Version 4.3
+
+8/26/10  [EDGcpfe/10967]
+Compilation error in decode.c when compiling lib_src on Mac OS X
+
+A compilation error when scanning "using namespace std;" had occurred on
+some platforms (e.g., Mac OS X) when compiling decode.c as part of lib_src.
+This has now been fixed.
+
+
+-------------------------------------------------------------------------------
 Version 4.2, August 25, 2010
 
 8/13/10  [EDGcpfe/10929]

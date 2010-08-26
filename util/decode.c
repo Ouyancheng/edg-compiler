@@ -6913,7 +6913,6 @@ Result status codes used by __cxa_demangle.
 
 #if COMPILE_DECODE_FOR_LIB_SRC && defined(__EDG_RUNTIME_USES_NAMESPACES)
 namespace __cxxabiv1 {
-  using namespace std;
 #endif /* COMPILE_DECODE_FOR_LIB_SRC&&defined(__EDG_RUNTIME_USES_NAMESPACES) */
 
 EXTERN_C char *__cxa_demangle(char		*mangled_name,
