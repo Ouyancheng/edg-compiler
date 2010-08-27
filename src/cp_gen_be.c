@@ -7156,9 +7156,9 @@ case, is passed along to gen_expr.
        implicit in the constant value, we need to short-circuit the
        normal processing and call form_lvalue_address_constant directly. */
     form_lvalue_address_constant(expr->variant.constant,
-                                 /*need_parens=*/TRUE, &octl);
+                                 !obj_expr_of_mfunc_operator, &octl);
   } else {
-    gen_expr(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
+    gen_expr(expr, !obj_expr_of_mfunc_operator, obj_expr_of_mfunc_operator);
   }  /* if */
 }  /* gen_object_expr_for_implicit_call */
 
@@ -7369,13 +7369,20 @@ function call, notation.
                      /*obj_expr_of_mfunc_operator=*/FALSE,
                      /*is_static_cast=*/FALSE);
   } else {
-    /* If this is an argument to an overloaded operator being generated in
-       operator notation, we may need extra parentheses to avoid precedence
-       problems; otherwise, parentheses are only necessary to prevent a
-       top-level comma operator in the argument expression from being
-       interpreted as an argument separator. */
-    a_boolean need_parens = operator_notation ||
-                            expr_has_comma_operation(arg);
+    a_boolean need_parens;
+    if (operator_notation) {
+      /* This is an argument to an overloaded operator being generated in
+         operator notation.  The caller is responsible for adding
+         parentheses, based on the precedence of the operator and the
+         operand expression. */
+      need_parens = FALSE;
+    } else {
+      /* This is an argument being passed using function-call notation.  We
+         only need parentheses if the operand has a top-level comma
+         operation, to prevent it from being interpreted as an argument
+         separator. */
+      need_parens = expr_has_comma_operation(arg);
+    }  /* if */
     if (param != NULL) {
       /* Parameter type known. */
       gen_initializer_expr(arg, param->type, need_parens,

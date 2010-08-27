@@ -1,5 +1,27 @@
 Version 4.3
 
+8/27/10  [EDGcpfe/10937]
+C++-generating back end, GNU compatibility: Unneeded parentheses in expressions
+
+The C++-generating back end sometimes parenthesized the operands to
+overloaded operator functions called using operator notation, even when the
+parentheses are not needed because of the precedence of the operator with
+respect to its operands.  With certain expressions, older versions of g++
+(prior to 3.4) were confused by the extra parentheses and reported spurious
+errors for the generated code.  The C++-generating back end has now been
+changed to suppress most unneeded parentheses when the operator precedence
+makes them unnecessary.  For example:
+
+  struct S {
+    S();
+    S& operator=(const S&);
+  };
+  void f() {
+    S s;
+    s = S();  // Previously generated as "s = (S())", confusing g++
+  }
+
+
 8/27/10  [EDGcpfe/10936]
 Microsoft C++ mode: no access checking on type name in "new"
 
