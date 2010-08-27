@@ -1,5 +1,24 @@
 Version 4.3
 
+8/27/10  [EDGcpfe/10936]
+Microsoft C++ mode: no access checking on type name in "new"
+
+Some versions of MSVC appear not to do access checking on the type
+specified in a "new".  (Access checking on the constructor, if any,
+is still done.)  We now emulate that in Microsoft mode for the
+appropriate values of microsoft_version.
+
+  class A {
+    class N { };
+  };
+  class B : public A {
+    void f() {
+      new N();  // No error with --microsoft_version=1400, for example,
+                // even though A::N is inaccessible
+    }
+  };
+
+
 8/26/10  [EDGcpfe/10965]
 GNU C++ mode: g++ dependency check in PARENS_IN_IL configuration
 

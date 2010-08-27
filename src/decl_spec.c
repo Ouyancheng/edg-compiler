@@ -8377,7 +8377,18 @@ process_class_specifier:
             }  /* if */
           }  /* if */
           /* Do ambiguity and access control checking. */
-          check_ambiguity_and_verify_access(&locator_for_curr_id);
+          if ((input_flags & DSI_IS_NEW_TYPE_NAME) && microsoft_bugs &&
+              (microsoft_version < 1310 || microsoft_version == 1400)) {
+            /* Various versions of MSVC seem not to check access to the type
+               specified in a "new".  Access to the constructor, if any,
+               will be checked later.  Do ambiguity checking anyway. */
+            (void)f_check_for_ambiguity(&locator_for_curr_id,
+                                        /*is_templ_context=*/FALSE,
+                                        /*is_qualifier=*/FALSE,
+                                        /*issue_diagnostics=*/TRUE);
+          } else {
+            check_ambiguity_and_verify_access(&locator_for_curr_id);
+          }  /* if */
           /* The identifier is a type name and should be treated as a
              type specifier. */
           if (is_error_locator(locator_for_curr_id)) {
