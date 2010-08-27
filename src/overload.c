@@ -5923,11 +5923,13 @@ an argument of a call in gpp mode even though the standard says it's not.
     if (is_operation_node(expr) &&
         !expr->variant.operation.compiler_generated) {
       an_expr_node_ptr potential_this = NULL;
-      an_expr_node_ptr op1 = skip_parens(expr->variant.operation.operands);
+      an_expr_node_ptr op1 = expr->variant.operation.operands;
+      an_expr_node_ptr op2 = op1->next;
+      op1 = skip_parens(op1);
       if (node_operator_is(expr, eok_points_to_field)) {
         potential_this = op1;
       } else if (node_operator_is(expr, eok_points_to_member_call)) {
-        potential_this = skip_parens(op1->next);
+        potential_this = skip_parens(op2);
       } else if (node_operator_is(expr, eok_call)) {
         /* Look for a call of a static member function of the current class.
            Note that conv_expr_function_designator_to_ptr_to_function forces
