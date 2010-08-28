@@ -8092,7 +8092,10 @@ return FALSE and let the caller generate the code normally.
           if (operand_parens_needed) {
             write_tok_ch('(');
           }  /* if */
-          gen_argument(arg, param, /*operator_notation=*/TRUE);
+          /* Pass FALSE for operator_notation if this is a function-call
+             operator (i.e., treat the argument as an ordinary function
+             argument). */
+          gen_argument(arg, param, op != (an_opname_kind)onk_function_call);
           if (operand_parens_needed) {
             write_tok_ch(')');
           }  /* if */
