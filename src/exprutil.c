@@ -9777,6 +9777,14 @@ question_position and colon_position give the position of the "?" and ":".
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
+    } else if (gnu_mode &&
+               ((is_expression_operand(operand_2) &&
+                 has_statement_expression(operand_2->variant.expression)) ||
+                (is_expression_operand(operand_3) &&
+                 has_statement_expression(operand_3->variant.expression)))) {
+      /* GNU statement expressions may give rise to scopes, which are too
+         expensive to eliminate. */
+      /* do_folding = FALSE; -- already set. */
     } else if (!(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT) &&
                !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.

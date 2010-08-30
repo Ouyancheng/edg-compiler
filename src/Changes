@@ -1,5 +1,20 @@
 Version 4.3
 
+8/30/10  [EDGcpfe/10961]
+Invalid IL for "?" operation containing unevaluated GNU statement expression
+
+The front end produced invalid IL for a "?" operator that can be folded
+to a constant, when the discarded operand contains a GNU statement
+expression that defines a scope.  The incorrect IL could cause aborts
+later, e.g., an IL write/read error in versions that write an IL
+file in the alternate file format.  This bug was introduced in version 4.0
+and is now fixed (the "?" operation is not folded to a constant).
+
+  int main() {
+    int i = 1 ? 1 :({ int j = 1; j; });
+  }
+
+
 8/27/10  [EDGcpfe/10937]
 C++-generating back end, GNU compatibility: Unneeded parentheses in expressions
 
