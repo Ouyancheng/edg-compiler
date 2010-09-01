@@ -2014,6 +2014,46 @@ typedef a_signal_handler_return_value a_signal_handler(int p);
 
 END_EXTERN_C_BLOCK
 
+#if USE_SIGACTION_FOR_SEGV_FAULT_INFO
+
+BEGIN_EXTERN_C_BLOCK
+
+static void segv_handler(int        num,
+                         siginfo_t* info,
+                         void*      context)
+/*
+Handler invoked for segmentation violations.  See the sigaction system
+call for information about the parameters.  This version of the routine
+only works on 32-bit x86 Linux systems.
+*/
+{
+  ucontext_t* cp = (ucontext_t*)context;
+  unsigned long ip = cp->uc_mcontext.gregs[REG_EIP];
+  fprintf(stderr, "Internal error: segmentation fault at %lx\n", ip);
+  term_compilation(es_internal_error);
+}  /* segv_handler */
+
+END_EXTERN_C_BLOCK
+
+static void set_segv_handler(void)
+/*
+Initialize a special signal handler for segmentation violations using
+the sigaction facility.  Note that the segaction system call is only available
+on certain systems.  This facility is intended to be used to provide
+additional information for debugging purposes.
+*/
+{
+  struct sigaction action;
+
+  memset(&action, 0, sizeof(action));
+  action.sa_sigaction = segv_handler;
+  sigfillset(&action.sa_mask);
+  action.sa_flags = SA_SIGINFO;
+  sigaction(SIGSEGV, &action, 0); 
+}  /* set_segv_handler */
+
+#endif /* USE_SIGACTION_FOR_SEGV_FAULT_INFO */
+
 static void set_signal_handlers(void)
 /*
 Enable any signal handlers necessary to catch signals that may come up during
@@ -2038,6 +2078,9 @@ execution of the front end (for example, SIGINT).
   /* Catch the signal that the CPU limit has been exceeded. */
   (void)signal(SIGXCPU, (a_signal_handler *)abort_on_cpu_limit);
 #endif /* DEBUG && !EDG_WIN32 */
+#if USE_SIGACTION_FOR_SEGV_FAULT_INFO
+  set_segv_handler();
+#endif /* USE_SIGACTION_FOR_SEGV_FAULT_INFO */
 #if __MICROSOFT_OS__
   /* Under MS-DOS, establish an atexit routine to close and delete all
      temporary files. */
