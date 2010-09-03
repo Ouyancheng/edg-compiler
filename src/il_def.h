@@ -14230,7 +14230,7 @@ typedef struct a_lambda {
 			/* If the is_mutable flag is TRUE, this is the
 			   position of the mutable keyword; otherwise,
 			   null_source_position.  Additional source position
-			   information can be accessed via the lamba_routine
+			   information can be accessed via the lambda_routine
 			   pointer. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_lambda;
