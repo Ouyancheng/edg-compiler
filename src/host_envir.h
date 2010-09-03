@@ -109,12 +109,14 @@ catastrophic errors.
 /*
 If this flag is TRUE, the sigaction system call should be used to provide
 additional information about the location at which a segmentation violation
-occurred.  The segaction system call is only available on certain systems.
+occurred.  The sigaction system call is only available on certain systems.
 Furthermore, the handler invoked currently only works on 32-bit x86 Linux
 system.  This facility is intended to be used to provide additional
 information for debugging purposes.  To use this facility, this macro
-should be defined in defines.h.  In addition, defines.h will need to
-define _GNU_SOURCE and _XOPEN_SOURCE.
+should be defined in defines.h.  In addition, defines.h may need to
+define other macros in order for the signal.h header to provide the necessary
+declarations.  For example, in some modes _GNU_SOURCE and _XOPEN_SOURCE must
+be defined.
 */
 #ifndef USE_SIGACTION_FOR_SEGV_FAULT_INFO
 #define USE_SIGACTION_FOR_SEGV_FAULT_INFO FALSE

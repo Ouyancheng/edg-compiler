@@ -2038,7 +2038,7 @@ END_EXTERN_C_BLOCK
 static void set_segv_handler(void)
 /*
 Initialize a special signal handler for segmentation violations using
-the sigaction facility.  Note that the segaction system call is only available
+the sigaction facility.  Note that the sigaction system call is only available
 on certain systems.  This facility is intended to be used to provide
 additional information for debugging purposes.
 */
