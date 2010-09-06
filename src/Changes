@@ -1,5 +1,28 @@
 Version 4.3
 
+9/6/10   [EDGcpfe/10990]
+Abort on invalid selection of member template in SFINAE context
+
+In certain obscure cases involving a call of a member function in a
+C++0X SFINAE context, where the member name is given as a member of a
+template parameter and using the "template" form (e.g., p1.T::template f<>),
+and the selection object and member classes are unrelated, and the
+entity found as the member is a virtual function, the front end aborted
+in final_overrider (overload.c).  Now the deduction fails as it should.
+
+  struct A {
+    virtual void f(A *p);
+  };
+  struct B { };
+  template <class T, class U> auto g(T p1, U p2) ->
+                                   decltype(p1 . U::template f<>(0)) { }
+  int main() {
+    A a;
+    B b;
+    g(b, a);
+  }
+
+
 8/30/10  [EDGcpfe/10961]
 Invalid IL for "?" operation containing unevaluated GNU statement expression
 

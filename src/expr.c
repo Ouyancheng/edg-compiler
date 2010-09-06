@@ -4221,6 +4221,14 @@ the function.  Set *err to TRUE if there is an error.
             a_type_ptr parent_type = parent_class_of(member_con);
             a_class_symbol_supplement_ptr
                        parent_cssp = symbol_supplement_for_class(parent_type);
+            check_assertion(member_con->kind ==
+                                      (a_constant_repr_kind)ck_template_param);
+            if (member_con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+              if (member_con->variant.template_param.is_qualified_name) {
+                is_qualified = TRUE;
+              }  /* if */
+            }  /* if */
             if (parent_cssp->template_param_for_proxy_class != NULL) {
               /* The parent type is a proxy class for a template parameter.
                  Substitute the original template parameter for the proxy
