@@ -14117,6 +14117,9 @@ by an "&" operator and *ampersand_position gives its position.
     make_constant_operand(&constant, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
+  } else if (curr_expr_kind_is_const() && !will_call) {
+    /* A constant result is required in a constant expression. */
+    error_in_operand(ec_expr_not_constant, operand);
   } else {
     /* Keep the result in expression form. */
     need_expr = TRUE;
