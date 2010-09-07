@@ -15790,10 +15790,16 @@ as the cast in place of rcblock->expr.
     } else {
       /* More than one argument, or zero arguments for a class type.
          Therefore, definitely a class (albeit an unknown one). */
-      temp_init_node = alloc_temp_init_node(type_cast_to, dip,
-                                            /*is_lvalue=*/FALSE,
-                                            /*is_explicit_cast=*/TRUE);
-      make_expression_operand(temp_init_node, result);
+      if (curr_expr_kind_is_const()) {
+        expr_pos_error(ec_expr_not_constant, start_position);
+        make_error_operand(result);
+        err = TRUE;
+      } else {
+        temp_init_node = alloc_temp_init_node(type_cast_to, dip,
+                                              /*is_lvalue=*/FALSE,
+                                              /*is_explicit_cast=*/TRUE);
+        make_expression_operand(temp_init_node, result);
+      }  /* if */
       rule_out_expr_kinds(ROEK_CONSTANT, result);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

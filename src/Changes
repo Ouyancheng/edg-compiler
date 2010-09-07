@@ -1,5 +1,22 @@
 Version 4.3
 
+9/7/10   [EDGcpfe/10989]
+Abort on multi-argument functional-notation cast as argument of overloadable
+operator in constant expression
+
+The front end aborted in do_constant_generic_operand_transformations in
+exprutil.c while processing an invalid functional-notation cast having
+multiple arguments in a constant expression, when the cast is an operand
+of an overloadable operator.  Now fixed (an error is detected).
+
+  template <int I> struct A { };
+  int i;
+  template <class T> auto f(T p) -> decltype(A<i + T(1, 2)>()) {}
+  int main() {
+    f(1);
+  }
+
+
 9/6/10   [EDGcpfe/10990]
 Abort on invalid selection of member template in SFINAE context
 
