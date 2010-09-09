@@ -1,5 +1,21 @@
 Version 4.3
 
+9/9/10   [EDGcpfe/10999]
+Abort in wrapup_scopes with RECORD_HIDDEN_NAMES_IN_IL
+
+In versions with RECORD_HIDDEN_NAMES_IN_IL enabled, an abort could occur
+in wrapup_scopes if hidden name processing resulted in the reallocation
+of the scope stack.  Now fixed.  The example below aborts in certain
+configurations with RECORD_HIDDEN_NAMES_IN_IL.
+
+  int main() {
+    struct X0 { struct X1 { struct X2 { struct X3 { struct X4 {
+      struct X5 { struct X6 { struct X7 { struct X8 { }; }; }; };
+    }; }; }; }; };
+    X0::X1::X2::X3::X4::X5::X6::X7::X8 x;
+  }
+
+
 9/7/10   [EDGcpfe/10989]
 Abort on multi-argument functional-notation cast as argument of overloadable
 operator in constant expression

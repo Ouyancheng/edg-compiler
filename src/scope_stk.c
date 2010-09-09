@@ -5736,20 +5736,6 @@ unit.
       set_correspondence_of_unvisited_entries(scope_ptr);
     }  /* if */
   }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block ||
-        (kind == (a_scope_kind)sck_file && is_namespace_wrapup)) {
-      /* Now that all declarations in the scope have been seen, check for
-         name hiding.  The hidden name table assists the C++-generating back
-         end to determine when to put out qualified names and elaborated
-         type specifiers.  Note that namespace and class scopes are handled
-         when the scopes in which they are directly nested are processed. */
-      check_name_hiding_for_scope(scope_ptr);
-    }  /* if */
-  }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   if (kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_namespace_reactivation) {
     /* Symbol processing is not done for namespace extension and
@@ -5920,6 +5906,22 @@ unit.
       }  /* if */
     }  /* if */
   }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
+        (kind == (a_scope_kind)sck_file && is_namespace_wrapup)) {
+      /* Now that all declarations in the scope have been seen, check for
+         name hiding.  The hidden name table assists the C++-generating back
+         end to determine when to put out qualified names and elaborated
+         type specifiers.  Note that namespace and class scopes are handled
+         when the scopes in which they are directly nested are processed. */
+      check_name_hiding_for_scope(scope_ptr);
+      /* This can invalidate pointers_block, so it is cleared here. */
+      pointers_block = NULL;
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   if (kind == (a_scope_kind)sck_namespace ||
       kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_file) {
@@ -7173,10 +7175,6 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
-  /* Get a new pointer to the current scope stack entry in case the scope
-     stack has been reallocated (e.g., by check_name_hiding_for_scope). */
-  ssep = &scope_stack[depth_scope_stack];
-  pointers_block = assoc_pointers_block_of(ssep);
   check_assertion(ssep->class_fixup_header.def_arg_list == NULL);
   check_assertion(ssep->class_fixup_header.inline_function_list == NULL);
   if (!(ssep->kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
