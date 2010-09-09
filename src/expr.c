@@ -13361,6 +13361,7 @@ called only in C++ mode.
                    (conversion_for_direct_reference_binding_possible(
                                            operand,
                                            type_cast_to,
+                                           /*question_conv=*/FALSE,
                                            &conversion,
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||

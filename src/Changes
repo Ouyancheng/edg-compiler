@@ -1,16 +1,40 @@
 Version 4.3
 
+9/9/10   [EDGcpfe/10998]
+Microsoft C++ mode: incorrect error on conversions for "?" operator
+
+The special Microsoft C++ bug emulation for conversions and reference binding
+(see Changes entry of 11/2/06) turns out not to be applicable when
+analyzing possible conversions on operands of a "?" operator (the
+conversions there are defined in terms of a reference binding, but
+apparently MSVC goes through a different path).  Now fixed, and a case
+like the one below no longer gets a spurious error in Microsoft mode:
+
+  class C {};
+  template<typename T> struct A {
+    operator T();
+    operator T&() const;
+  };
+  void foo() {
+    A<const C> a;
+    const C b;
+    true ? a : b;
+  }
+
+
 9/9/10   [EDGcpfe/11001]
 Possible buffer overrun in tildize_locator
 
 tildize_locator could potentially write one past the end of the ident_buffer.
 Now fixed.
 
+
 9/9/10   [EDGcpfe/11000]
 Abort in statement() if the structured statement stack is reallocated
 
 An abort could occur (in statement()) if the structured statement stack
 was reallocated.  Now fixed.
+
 
 9/9/10   [EDGcpfe/10999]
 Abort in wrapup_scopes with RECORD_HIDDEN_NAMES_IN_IL

@@ -1564,6 +1564,7 @@ pointer transformation should be done.
 a_boolean conversion_for_direct_reference_binding_possible(
                                       an_operand               *source_operand,
                                       a_type_ptr               dest_type,
+                                      a_boolean                question_conv,
                                       a_conv_descr             *conversion,
                                       a_boolean                *ambiguous,
                                       a_candidate_function_ptr *ambiguity_list)
@@ -1574,7 +1575,8 @@ to which a reference of type dest_type can be directly bound.  If so, set
 FALSE.  If more than one function matches, set *ambiguous to TRUE and
 return FALSE.  If ambiguity_list is non-NULL in that case, it is set to
 point to a list describing the set of ambiguous functions; the caller
-must free that list.
+must free that list.  If question_conv is TRUE, this is being checked as
+part of determining the conversions on the operands of a "?" operator.
 */
 {
   a_boolean  okay;
@@ -1609,7 +1611,7 @@ must free that list.
                                           ambiguous,
                                           ambiguity_list);
     if (okay && microsoft_bugs && microsoft_version >= 1310 &&
-        is_const_qualified_type(base_dest_type)) {
+        !question_conv && is_const_qualified_type(base_dest_type)) {
       /* MSVC++ (up to version 8.0, at least) has some confusion on
          doing a conversion to bind a reference.  Instead of doing one
          overload resolution for the direct binding case and one later
@@ -2185,10 +2187,11 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* An rvalue reference can only bind to an rvalue. */
     } else if (param_is_reference && arg_is_class_type &&
                (conversion_for_direct_reference_binding_possible(
-                                                          orig_arg_operand,
-                                                          orig_param_type,
-                                                          &conversion,
-                                                          &ambiguous,
+                                           orig_arg_operand,
+                                           orig_param_type,
+                                           /*question_conv=*/FALSE,
+                                           &conversion,
+                                           &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
          ambiguous)) {
       /* The parameter is a reference, and there exists a conversion function
@@ -14859,6 +14862,7 @@ been found to be acceptable, and *conversion describes it.
       if (conversion_for_direct_reference_binding_possible(
                                                       source_operand,
                                                       dest_type,
+                                                      /*question_conv=*/FALSE,
                                                       &conv_for_direct_binding,
                                                       &ambiguous,
                                                       &ambiguity_list) ||
@@ -15834,6 +15838,7 @@ used only in C++ mode.
       if (conversion_for_direct_reference_binding_possible(
                                            op1,
                                            conv_dest_type,
+                                           /*question_conv=*/TRUE,
                                            conv,
                                            &local_ambiguous,
                                            p_ambiguity_list) ||

@@ -739,6 +739,7 @@ extern void prep_elision_initializer_operand(
 extern a_boolean conversion_for_direct_reference_binding_possible(
                                      an_operand               *source_operand,
                                      a_type_ptr               dest_type,
+                                     a_boolean                question_conv,
                                      a_conv_descr             *conversion,
                                      a_boolean                *ambiguous,
                                      a_candidate_function_ptr *ambiguity_list);
