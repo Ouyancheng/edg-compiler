@@ -1,5 +1,11 @@
 Version 4.3
 
+9/9/10   [EDGcpfe/11001]
+Possible buffer overrun in tildize_locator
+
+tildize_locator could potentially write one past the end of the ident_buffer.
+Now fixed.
+
 9/9/10   [EDGcpfe/11000]
 Abort in statement() if the structured statement stack is reallocated
 

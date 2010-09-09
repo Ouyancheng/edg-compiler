@@ -6275,7 +6275,7 @@ front.  This is used in C++ for destructor names.
 
   /* Copy the identifier name into a dynamically-allocated buffer and put
      a tilde at the front.  The final null is not copied. */
-  ensure_ident_buffer_space(ident_length);
+  ensure_ident_buffer_space(ident_length+1);
   (void)memcpy(ident_buffer+1, locator->symbol_header->identifier,
                size_t_arg(ident_length));
   ident_buffer[0] = '~';
