@@ -5950,8 +5950,8 @@ Ensure that ident_buffer has at least size_needed bytes in it.
 If not, expand ident_buffer by reallocating it.
 */
 #define ensure_ident_buffer_space(size_needed)                        \
-{ if (size_ident_buffer < size_needed) {                              \
-    expand_ident_buffer((sizeof_t)(size_needed));                     \
+{ if (size_ident_buffer < (size_needed)) {                            \
+    expand_ident_buffer((sizeof_t)((size_needed)));                    \
   }  /* if */                                                         \
 }  /* ensure_ident_buffer_space */
 
