@@ -1,5 +1,11 @@
 Version 4.3
 
+9/9/10   [EDGcpfe/11000]
+Abort in statement() if the structured statement stack is reallocated
+
+An abort could occur (in statement()) if the structured statement stack
+was reallocated.  Now fixed.
+
 9/9/10   [EDGcpfe/10999]
 Abort in wrapup_scopes with RECORD_HIDDEN_NAMES_IN_IL
 

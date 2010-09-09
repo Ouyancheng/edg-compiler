@@ -5987,13 +5987,13 @@ this statement was preceded by the GNU keyword __extension__.
 {
   a_boolean        prev_was_label = FALSE;
   a_boolean        get_another_statement;
-  a_struct_stmt_stack_entry_ptr
-                   sssep = &struct_stmt_stack[depth_stmt_stack];
 
   db_enter(3, "statement");
 
 rescan_statement:
   if (std_attribute_tokens_next()) {
+    a_struct_stmt_stack_entry_ptr
+                   sssep = &struct_stmt_stack[depth_stmt_stack];
     /* Scan leading standard attributes. */
     sssep->prefix_attributes = scan_attributes(al_prefix);
   }  /* if */
@@ -6188,6 +6188,8 @@ expr_statement:
       if (!C_mode() &&
           (curr_token == tok_using || curr_token == tok_namespace ||
            is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) {
+        a_struct_stmt_stack_entry_ptr
+                   sssep = &struct_stmt_stack[depth_stmt_stack];
         /* Scan a declaration (C++ only). */
         if (any_cfront_mode() && is_dependent_statement) {
           /* In cfront mode, a dependent statement is not allowed to be a
