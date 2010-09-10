@@ -5670,7 +5670,9 @@ used to do the final namespace processing at the end of the translation
 unit.
 */
 {
-  a_symbol_ptr			sym;
+  a_symbol_ptr	sym;
+  a_symbol_ptr	symbol_list;
+  a_symbol_ptr	synth_namespace_projection_symbols;
 
   db_enter(3, "wrapup_scope");
 #if DEBUG
@@ -5690,6 +5692,15 @@ unit.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* DEBUG */
+  /* Save values from the pointers block that will be used later.  This is
+     done to guard against the scope stack being reallocated (e.g., by
+     hidden name processing) while this routine is processing, which could
+     invalidate the pointers_block pointer.  Clear pointers_block to make
+     sure it is not used later. */
+  symbol_list = pointers_block->symbols;
+  synth_namespace_projection_symbols =
+                            pointers_block->synth_namespace_projection_symbols;
+  pointers_block = NULL;
   /* Determine whether types defined in this scope should be handled
      as semivisible types.  Template classes and classes nested within
      template classes do not have this processing done. */
@@ -5712,13 +5723,13 @@ unit.
         do_semivisible_type_processing) {
       /* Determine whether any of the symbols from this class scope should
          be treated as semivisible types. */
-      do_nested_class_anachronism_processing(pointers_block->symbols);
+      do_nested_class_anachronism_processing(symbol_list);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
     } else if (kind == (a_scope_kind)sck_file && cfront_2_1_mode &&
                is_namespace_wrapup) {
       /* See if any of the file scope symbols conflict with semivisible
          nested types. */
-      file_scope_transitional_nested_type_processing(pointers_block->symbols);
+      file_scope_transitional_nested_type_processing(symbol_list);
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* if */
@@ -5736,6 +5747,20 @@ unit.
       set_correspondence_of_unvisited_entries(scope_ptr);
     }  /* if */
   }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+  if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
+    if (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block ||
+        (kind == (a_scope_kind)sck_file && is_namespace_wrapup)) {
+      /* Now that all declarations in the scope have been seen, check for
+         name hiding.  The hidden name table assists the C++-generating back
+         end to determine when to put out qualified names and elaborated
+         type specifiers.  Note that namespace and class scopes are handled
+         when the scopes in which they are directly nested are processed. */
+      check_name_hiding_for_scope(scope_ptr);
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   if (kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_namespace_reactivation) {
     /* Symbol processing is not done for namespace extension and
@@ -5756,16 +5781,14 @@ unit.
     }  /* if */
     /* Remove the symbols declared in this scope from the symbol table.
        Check for unreferenced symbols, and issue warnings for those. */
-    for (sym = pointers_block->symbols;
-         sym != NULL;
-         sym = sym->next_in_scope) {
+    for (sym = symbol_list; sym != NULL; sym = sym->next_in_scope) {
 #if DEBUG
       if (db_active && 
           (debug_level >= 3 ||
            db_flag_is_set("dump_symbols"))) {
         if ((kind != (a_scope_kind)sck_namespace &&
              kind != (a_scope_kind)sck_file) || is_namespace_wrapup) {
-          if (sym == pointers_block->symbols) {
+          if (sym == symbol_list) {
             fputs("Wrapping up ", f_debug);
             if (scope_ptr != NULL) {
               db_scope(scope_ptr);
@@ -5867,7 +5890,7 @@ unit.
     } else {
       /* Remove any synthesized namespace projection symbols from the
          others_symbols list of the symbol header. */
-      for (sym = pointers_block->synth_namespace_projection_symbols;
+      for (sym = synth_namespace_projection_symbols;
            sym != NULL;
            sym = sym->next_in_scope) {
         a_symbol_ptr	prev_sym = NULL;
@@ -5906,22 +5929,6 @@ unit.
       }  /* if */
     }  /* if */
   }  /* if */
-#if RECORD_HIDDEN_NAMES_IN_IL
-  if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block ||
-        (kind == (a_scope_kind)sck_file && is_namespace_wrapup)) {
-      /* Now that all declarations in the scope have been seen, check for
-         name hiding.  The hidden name table assists the C++-generating back
-         end to determine when to put out qualified names and elaborated
-         type specifiers.  Note that namespace and class scopes are handled
-         when the scopes in which they are directly nested are processed. */
-      check_name_hiding_for_scope(scope_ptr);
-      /* This can invalidate pointers_block, so it is cleared here. */
-      pointers_block = NULL;
-    }  /* if */
-  }  /* if */
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   if (kind == (a_scope_kind)sck_namespace ||
       kind == (a_scope_kind)sck_namespace_extension ||
       kind == (a_scope_kind)sck_file) {
