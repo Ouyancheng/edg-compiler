@@ -13743,8 +13743,9 @@ happen only in C++ mode.
   if (class_bitwise_copy) {
     /* The operation is a class bitwise copy (of the simplest kind, where
        the copy constructor is implicit and not user-declared). */
-    if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
-                        !C_mode()) {
+    if (!C_mode() &&
+        identical_types_ignoring_qualifiers(source_operand->type,
+                                            class_type)) {
       /* The source and destination types are the same, so the bitwise copy
          is a "copy constructor call" that may be eligible for elision. */
       /* See whether the source is a temporary that can be eliminated. */
@@ -13778,7 +13779,8 @@ happen only in C++ mode.
     if (conversion_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
       /* The routine is a constructor (copy or not). */
-      if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
+      if (identical_types_ignoring_qualifiers(source_operand->type,
+                                              class_type) &&
           is_copy_constructor(conversion_routine, class_type,
                               (a_type_qualifier_set *)NULL,
                               /*include_move_ctors=*/TRUE,
@@ -13826,7 +13828,8 @@ happen only in C++ mode.
                            /*force_copy_to_temp=*/FALSE);
       /* See if the result of the conversion is already in a temporary
          of the right type. */
-      if (identical_types(source_operand->type, dest_type) &&
+      if (identical_types_ignoring_qualifiers(source_operand->type,
+                                              class_type) &&
           is_temp_init_usable_in_optimization(source_operand,
                                               !fill_in_dtor,
                                               &temp_init_node,
