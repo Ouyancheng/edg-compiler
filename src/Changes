@@ -1,5 +1,29 @@
 Version 4.3
 
+9/10/10  [EDGcpfe/11002]
+cv-qualifier lost on SFINAE rescan of cast to reference
+
+The front end failed to correctly process a case like
+
+  struct A {
+    template <class T> operator volatile T();
+  };
+  struct B {
+    B();
+    virtual void f();
+    template <class T> operator T() const;
+  };
+  A aa;
+  template <class T> auto f(T p) -> decltype(p || (const B &)(aa));
+  int main() {
+    f(1);
+  }
+
+where a cast to a reference type involved both a conversion function call
+and then a cv-qualifier adjustment, and the cast was rescanned in a C++0X
+SFINAE context.  Now fixed.
+
+
 9/9/10   [EDGcpfe/10998]
 Microsoft C++ mode: incorrect error on conversions for "?" operator
 

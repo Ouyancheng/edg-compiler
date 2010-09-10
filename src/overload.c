@@ -14282,15 +14282,25 @@ be a reference type.  Only used in C++.  This is copy-initialization.
   }  /* if */
 #endif /* CHECKING */
   if (conversion != NULL &&
-      conversion->is_explicit_cast &&
-      is_null_user_conv_descr(conversion)) {
-    /* Move the explicit cast from the conversion of the operand to the
-       temp-init itself.  This is particularly important as the
-       convert_operand call may not in fact add anything to the IL if
-       there's no type change.  If there's a user-defined conversion
-       involved, let the call for that be marked as the explicit cast. */
+      conversion->is_explicit_cast) {
+    /* The overall result is the result of an explicit cast and must be
+       so marked.  Generally, the dynamic-init under the enk_temp_init will
+       be marked.  However, if the conversion calls a conversion function
+       that returns exactly the required destination type, mark that
+       conversion function call as the explicit cast, and not the
+       dynamic-init. */
     is_explicit_cast = TRUE;
     conversion->is_explicit_cast = FALSE;
+    if (conversion->routine != NULL &&
+        conversion->routine->special_kind ==
+                                     (a_special_function_kind)sfk_conversion) {
+      a_type_ptr conversion_type = return_type_of(conversion->routine->type);
+      if (identical_types(conversion_type, dest_type)) {
+        /* The conversion function returns the right type. */
+        is_explicit_cast = FALSE;
+        conversion->is_explicit_cast = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* See if the conversion is possible. */
   if (conversion_usable_or_possible(source_operand, dest_type, 
@@ -14304,16 +14314,34 @@ be a reference type.  Only used in C++.  This is copy-initialization.
                                     &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
+    a_type_ptr cv_qual_adjusted_type = NULL;
     /* Yes, the conversion is possible.  Do it. */
     if (conversion->class_object_adjustment_required) {
       /* The result of the conversion function is a class rvalue that can
          be bound to but has a slightly different type than dest_type
          (because of derived --> base issues or cv-qualifier differences).
          Do the conversion, but make the temporary have the type of the
-         result of the conversion function rather than dest_type. */
+         result of the conversion function rather than dest_type.
+         Core issue 1138 says that after that we just bind to the
+         result (or a subobject thereof); there's no additional copy. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
+      /* Core issue 1138 is C++0X.  Before that, we did something that
+         wasn't right, but we leave it the way it was to avoid affecting
+         existing code. */
+      if ((cpp0x_mode || cpp0x_sfinae_enabled) &&
+          !type_qualifiers_match(source_operand->type, dest_type) &&
+          !is_error_operand(source_operand) &&
+          !is_error_type(dest_type)) {
+        /* There's a cv-qualifier adjustment required on the result of
+           the conversion function.  Determine the type we'd like the
+           temporary to have, with the same cv-qualifiers as the
+           final result type. */
+        cv_qual_adjusted_type = type_plus_qualifiers_from_second_type(
+                                           skip_typerefs(source_operand->type),
+                                           dest_type);
+      }  /* if */
     } else {
       /* Normal case. */
       convert_operand(source_operand, dest_type, conversion);
@@ -14328,14 +14356,32 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     if (have_temp && is_an_lvalue(source_operand)) {
       /* The result of the conversion is already a temporary that is an
          lvalue (in particular, this includes array lvalues). */
-      /* No change needed. */
+      /* Adjust the cv-qualifiers on the temp-init if necessary, which
+         changes the cv-qualifiers of the temporary.  Base class differences,
+         if any, are handled later. */
+      if (cv_qual_adjusted_type != NULL) {
+        source_operand->variant.expression->type = cv_qual_adjusted_type;
+        source_operand->type = cv_qual_adjusted_type;
+      }  /* if */
     } else if (have_temp && is_class_struct_union_type(source_operand->type) &&
                is_an_rvalue(source_operand)) {
       /* The result of the conversion is already a class temporary, but
          it's an rvalue.  Convert it to an lvalue. */
       conv_class_rvalue_operand_to_lvalue(source_operand);
+      /* Adjust the cv-qualifiers on the temp-init if necessary, which
+         changes the cv-qualifiers of the temporary.  Base class differences,
+         if any, are handled later. */
+      if (cv_qual_adjusted_type != NULL &&
+          operand_is_temp_init(source_operand)) {
+        source_operand->variant.expression->type = cv_qual_adjusted_type;
+        source_operand->type = cv_qual_adjusted_type;
+      }  /* if */
     } else {
       /* Initialize a temporary with the converted value. */
+      if (cv_qual_adjusted_type != NULL) {
+        /* Adjust the cv-qualifiers before we create the temporary. */
+        adjust_class_rvalue_type(source_operand, cv_qual_adjusted_type);
+      }  /* if */
       temp_init_from_operand(source_operand, /*result_is_lvalue=*/TRUE);
     }  /* if */
     if (is_explicit_cast) {
@@ -14349,7 +14395,8 @@ be a reference type.  Only used in C++.  This is copy-initialization.
         unexpected_condition();
       }  /* if */
     }  /* if */
-    /* Handle base class casts and cv-qualifier adjustments, if any. */
+    /* Handle base class casts, if any.  cv-qualifier adjustments should have
+       been handled above. */
     adjust_lvalue_type(source_operand, dest_type);
   } else {
     /* The conversion is not possible.  The error has already been issued. */
