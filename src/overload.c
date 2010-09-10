@@ -14323,7 +14323,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
          Do the conversion, but make the temporary have the type of the
          result of the conversion function rather than dest_type.
          Core issue 1138 says that after that we just bind to the
-         result (or a subobject thereof); there's no additional copy. */
+         result (or a suboject thereof); there's no additional copy. */
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
