@@ -233,8 +233,8 @@ certain language features and preprocessing features are available.
 #endif /* ifndef USING_ISO_C */
 
 /*
-Flag that is TRUE if we should include the Solaris sys/int_types.h header to
-define the stdint.h types on Solaris.
+Flag that is TRUE if we should include the inttypes.h header to define the
+stdint.h types on systems such as Solaris.
 */
 #ifndef USE_INT_TYPES_HEADER
 #ifdef SOLARIS
@@ -250,7 +250,7 @@ typedefs for the various integer types.
 */
 #ifndef USE_STDINT_HEADER
 #if USE_INT_TYPES_HEADER
-/* Don't use stdint.h if int_types.h is to be used. */
+/* Don't use stdint.h if inttypes.h is to be used. */
 #define USE_STDINT_HEADER FALSE
 #else /* !USE_INT_TYPES_HEADER */
 /* gcc as of at least 3.2 includes stdint.h */
@@ -294,7 +294,7 @@ integral types.
 #include <stdint.h>
 #else /* !USE_STDINT_HEADER */
 #if USE_INT_TYPES_HEADER
-#include <sys/int_types.h>
+#include <inttypes.h>
 #else /* !USE_INT_TYPES_HEADER */
 #if !SUPPRESS_DEFINITION_OF_STDINT_TYPES
 #ifndef EDG_INT8_T

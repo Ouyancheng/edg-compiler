@@ -1,5 +1,16 @@
 Version 4.3
 
+9/12/10  [EDGcpfe/11004]
+Use of inttypes.h on systems without stdint.h
+
+Starting with version 4.2, the front end attempts to use stdint.h to
+define integer types with specific sizes (e.g., int32_t).  A different
+mechanism was provided for systems such as Solaris that don't provide
+stdint.h, but provide an alternate header to define such types.  In
+4.2 the alternate header was "sys/int_types.h".  This has been changed
+to "inttypes.h", which is more portable.  See the 1/26/10 entry for more
+information.
+
 9/10/10  [EDGcpfe/11002]
 cv-qualifier lost on SFINAE rescan of cast to reference
 
