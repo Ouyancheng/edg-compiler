@@ -11757,6 +11757,30 @@ Otherwise, return FALSE.
 }  /* member_template_param_list_matches_class */
 
 
+static a_boolean template_param_is_pack(a_template_param_ptr  tpp)
+/*
+Return TRUE if the given template parameter is a template parameter pack.
+*/
+{
+  a_boolean  result;
+
+  switch (tpp->param_symbol->kind) {
+    case sk_type:
+      result = tpp->variant.type->variant.template_param.is_pack;
+      break;
+    case sk_constant:
+      result = FALSE;
+      break;
+    case sk_class_template:
+      result = FALSE;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* template_param_is_pack */
+
+
 static void check_template_param_default_args(
 			a_template_param_ptr	param_list,
 			a_boolean		is_partial_specialization)
@@ -11783,8 +11807,14 @@ Make sure that any default arguments are at the end of the parameter list.
                 &last_tpp_with_default->param_symbol->decl_position);
     }  /* if */
     /* If there have been parameters with default and this one doesn't have
-       a default then issue an error and exit the loop. */
-    if (any_defaults && !has_default) {
+       a default (and isn't a pack) then issue an error and exit the loop.
+       If this one is a pack, check that no parameter follows. */
+    if (template_param_is_pack(tpp)) {
+      if (tpp->next != NULL) {
+        pos_error(ec_template_param_pack_not_at_end,
+                  &tpp->param_symbol->decl_position);
+      }  /* if */
+    } else if (any_defaults && !has_default) {
       pos_error(ec_default_arg_not_at_end,
                 &last_tpp_with_default->param_symbol->decl_position);
     }  /* if */
@@ -14409,6 +14439,10 @@ parameter declaration.
   }  /* if */
   if (curr_token == tok_declspec) prescan_decl_modifiers();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+    /* Bypass any ellipsis indicating a template parameter pack. */
+    (void)get_token();
+  }  /* if */
   /* Bypass the identifier, if present. */
   if (curr_token == tok_identifier) (void)get_token();
   is_end_of_param = curr_token == tok_comma ||
@@ -14529,6 +14563,7 @@ parameter entry for the parameter.
   a_symbol_ptr		sym;
   a_type_ptr		template_param_type;
   a_template_param_ptr	template_param;
+  a_boolean		is_pack = FALSE;
 
   /* Bypass "class" or "typename". */
   (void)get_token();
@@ -14547,6 +14582,10 @@ parameter entry for the parameter.
     scan_and_discard_extended_decl_modifiers();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+    is_pack = TRUE;
+    (void)get_token();
+  }  /* if */
   is_named = curr_token == tok_identifier;
   /* Create an sk_type symbol for the parameter. */
   sym = create_template_param_symbol((a_symbol_kind)sk_type,
@@ -14562,6 +14601,7 @@ parameter entry for the parameter.
                             coordinates.depth = decl_state->nesting_depth;
   template_param_type->variant.template_param.extra_info->
                            coordinates.position = template_param_list_pos;
+  template_param_type->variant.template_param.is_pack = is_pack;
   set_type_size(template_param_type);
   set_source_corresp(&template_param_type->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
@@ -14587,14 +14627,23 @@ parameter entry for the parameter.
     a_token_cache  def_arg_cache;
     a_boolean	   def_arg_involves_template_param = FALSE;
     a_type_ptr	   default_arg_type;
+    a_boolean      ignore_default = FALSE;
     /* Scan the default value for a type argument. */
+    if (is_pack) {
+      /* A parameter pack cannot have default argument.  Issue an error and
+         ignore the default. */
+      pos_error(ec_param_pack_cannot_have_default, &pos_curr_token);
+      ignore_default = TRUE;
+    }  /* if */
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
 			     /*is_friend_decl=*/FALSE);
-    if (microsoft_mode && !nonclass_prototype_instantiations) {
+    if (ignore_default) {
+      /* Ignore the default for a parameter pack. */
+    } else if (microsoft_mode && !nonclass_prototype_instantiations) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done. */
       def_arg_involves_template_param = TRUE;
@@ -14614,7 +14663,7 @@ parameter entry for the parameter.
          are still template dependent. */
       template_param->default_arg.type = default_arg_type;
     }  /* if */
-    template_param->has_default_arg = TRUE;
+    template_param->has_default_arg = !ignore_default;
     /* Update the default argument information in the template parameter. */
     if (def_arg_involves_template_param) {
       /* The default argument involves a template parameter.  This means that

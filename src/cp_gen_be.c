@@ -9973,11 +9973,14 @@ recorded with this particular header.
       }  /* if */  
     } else if (param->kind == (a_template_parameter_kind)tpk_type) {
       /* Remap the source correspondence entry for output. */
-      remap_template_param(&param->variant.type.ptr
-                              ->variant.template_param.extra_info
-                              ->coordinates,
+      a_type_ptr  type_param = param->variant.type.ptr;
+      remap_template_param(&type_param->variant.template_param.extra_info
+                                      ->coordinates,
                            &param->source_corresp);
       write_tok_str("class ");
+      if (type_param->variant.template_param.is_pack) {
+        write_tok_str("...");
+      }  /* if */
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       write_tok_str_if_nonnull(param->source_corresp.name);

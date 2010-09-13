@@ -7326,6 +7326,9 @@ typedef struct a_type {
       a_template_param_type_kind
 		kind;
 			/* The kind of template param type. */
+      a_bit_field
+		is_pack:1;
+			/* TRUE if this is a template parameter pack. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

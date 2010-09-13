@@ -2499,6 +2499,7 @@ not always enabled in default mode (e.g., exception handling).
   trailing_return_types_enabled = TRUE;
   std_attributes_enabled = TRUE;
   alias_declarations_enabled = TRUE;
+  variadic_templates_enabled = TRUE;
   if (!option_kind_used[(int)optk_nullptr]) {
     nullptr_enabled = TRUE;
   }  /* if */
@@ -8959,6 +8960,7 @@ variables declared in cmd_line.h.
   trailing_return_types_enabled = FALSE;
   std_attributes_enabled = FALSE;
   alias_declarations_enabled = FALSE;
+  variadic_templates_enabled = FALSE;
   gnu_attributes_enabled = FALSE;
   ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;

@@ -1027,6 +1027,11 @@ EXTERN a_boolean
 			   are allowed. */
 
 EXTERN a_boolean
+		variadic_templates_enabled;
+			/* TRUE if C++0x variadic templates (i.e., parameter
+			   packs) are accepted. */
+
+EXTERN a_boolean
 		std_attributes_enabled;
 			/* TRUE if C++0x attribute syntax (e.g., [[final]]) is
 			   accepted. */

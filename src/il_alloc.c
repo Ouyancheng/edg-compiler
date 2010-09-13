@@ -1623,6 +1623,7 @@ to default values.
         a_template_param_type_supplement_ptr	tptsp;
         pte->variant.template_param.kind =
                                        (a_template_param_type_kind)tptk_param;
+        pte->variant.template_param.is_pack = FALSE;
         tptsp = alloc_template_param_type_supplement();
         pte->variant.template_param.extra_info = tptsp;
         tptsp->coordinates.position = 0;

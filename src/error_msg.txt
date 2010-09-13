@@ -1958,6 +1958,8 @@ ec_cl_long_lifetime_temps_incompat_with_newer_features;;"long lifetime temporari
 ec_wide_deprecation_string;;"wide character string literal will not be quoted in diagnostics"
 ec_missing_attribute_arguments;;"missing arguments for attribute %sq"
 ec_sfinae_requires_newer_abi_version;;"options \"c++0x\" and \"c++0x_sfinae\" require a different compiler configuration"
+ec_template_param_pack_not_at_end;;"template parameter pack not at end of parameter list"
+ec_param_pack_cannot_have_default;;"a parameter pack cannot have a default"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

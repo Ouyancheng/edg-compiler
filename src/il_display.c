@@ -1918,6 +1918,9 @@ Display the indicated type entry.
         case tptk_unknown:  (void)printf("tptk_unknown\n");  break;
         default:           (void)printf("**BAD TEMPLATE PARAM TYPE KIND**\n");
       }  /* switch */
+      if (ptr->variant.template_param.is_pack) {
+        disp_boolean("is_pack", TRUE);
+      }  /* if */
       disp_template_param_type_supplement(
                                        ptr->variant.template_param.extra_info);
       break;
