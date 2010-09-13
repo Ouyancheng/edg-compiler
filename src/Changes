@@ -1,5 +1,14 @@
 Version 4.3
 
+9/13/10  [EDGcpfe/11007]
+GNU compatibility: define __STDC_VERSION__ in C99 mode
+
+The change (see the 1/13/09 entry for EDGcpfe/6518 below) not to define
+__STDC_VERSION__ in Microsoft and GNU C modes was too sweeping; gcc does,
+in fact, define that standard macro in C99 ("std=c99") mode.  The front
+end has now been changed to emulate this behavior.
+
+
 9/12/10  [EDGcpfe/11004]
 Use of inttypes.h on systems without stdint.h
 
