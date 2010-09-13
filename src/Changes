@@ -1,5 +1,20 @@
 Version 4.3
 
+9/13/10  [EDGcpfe/10945]
+GNU/Microsoft compatibility: Invalid virtual override returns in templates
+
+In GNU and Microsoft C++ modes, the front end no longer requires identical
+or covariant return types when checking a virtual function of a prototype
+instantiation of a class template (the constraint is still imposed when the
+class template is fully instantiated).  For example:
+
+  struct B { virtual int f(); };
+  template<typename T> struct D: B {
+    virtual float f();  // No error issued when parsing the generic template
+  };                    // in GNU or Microsoft mode.
+  template struct D<int>;  // An error is issued during this instantiation.
+
+
 9/13/10  [EDGcpfe/11007]
 GNU compatibility: define __STDC_VERSION__ in C99 mode
 

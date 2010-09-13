@@ -3216,9 +3216,12 @@ the overridden symbol.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!compatible) {
+  if (!compatible &&
+      !((gpp_mode || microsoft_mode) &&
+        is_prototype_instantiation_context())) {
     /* Error -- return type must be identical to or covariant with that of the
-       overridden function. */
+       overridden function.  (GNU and Microsoft compilers appear not to check
+       this during prototype instantiations.) */
     an_error_code  error_code =
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
                         ec_bad_return_type_on_virtual_function_override;
