@@ -5705,7 +5705,7 @@ though neither constructors nor initialization is involved here.)
      Loop through the symbol list for the class, not the field list, since
      the symbol list contains only user-defined fields whereas the field
      list may also include compiler-generated field entries. */
-  class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  class_sym = symbol_for(class_type);
   for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
        sym != NULL;
        sym = sym->next_in_scope) {
@@ -5770,16 +5770,14 @@ though neither constructors nor initialization is involved here.)
     do_check = TRUE;
 #endif /* DO_IL_LOWERING && IA64_ABI */
     if (do_check) {
-      a_symbol_ptr del_sym;
-      a_boolean    ambiguous;
-
+      a_symbol_ptr  del_sym, fund_del_sym;
+      a_boolean     ambiguous;
       del_sym = find_class_assoc_operator_delete_routine(class_type,
                                                          &ambiguous);
       if (ambiguous) {
         /* The operator delete is ambiguous by inheritance. */
         pos_sy2_error(ec_implicit_call_of_ambiguous_name,
-                      &source_pos, del_sym,
-                      (a_symbol_ptr)dtor_rout->source_corresp.assoc_info);
+                      &source_pos, del_sym, symbol_for(dtor_rout));
       } else if (del_sym == NULL) {
         /* There is no visible default operator delete. */
         pos_error(ec_no_default_delete_in_virtual_dtor,
@@ -5787,8 +5785,9 @@ though neither constructors nor initialization is involved here.)
       } else {
         /* There is an unambiguous operator delete.  Make sure it is accessible
            and not "deleted". */
-        check_assertion(is_simple_function_symbol(del_sym));
-        if (del_sym->variant.routine.ptr->is_deleted) {
+        fund_del_sym = fundamental_symbol_of(del_sym);
+        check_assertion(is_simple_function_symbol(fund_del_sym));
+        if (fund_del_sym->variant.routine.ptr->is_deleted) {
           pos_sy_error(ec_deleted_function, &source_pos, del_sym);
         } else if (del_sym->is_class_member) {
           /* Check access to a member operator delete (it might be in a base
@@ -5818,14 +5817,12 @@ though neither constructors nor initialization is involved here.)
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("dump_init")) {
-    db_symbol((a_symbol_ptr)dtor_rout->source_corresp.assoc_info,
-              "destructor: ", 2);
+    db_symbol(symbol_for(dtor_rout), "destructor: ", 2);
     for (cip = cip_list; cip != NULL; cip = cip->next) {
       if (cip->kind == (a_constructor_init_kind)cik_field) {
-        sym = (a_symbol_ptr)cip->variant.field->source_corresp.assoc_info;
+        sym = symbol_for(cip->variant.field);
       } else {
-        sym = (a_symbol_ptr)cip->variant.base_class->type->
-                                                source_corresp.assoc_info;
+        sym = symbol_for(cip->variant.base_class->type);
       }  /* if */
       fprintf(f_debug, "    destructor for %s %s%s: %s",
                        (cip->kind == (a_constructor_init_kind)cik_field) ?
