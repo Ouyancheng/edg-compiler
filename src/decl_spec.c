@@ -1024,6 +1024,14 @@ caution when modifying this routine.
     /* Determine whether this is a definition or something else (a
        declaration or an elaborated type specifier). */
     next_tok = next_token();
+    if (next_tok == tok_removed_template_body) {
+      /* The body of a nested class definition in a class templates was
+         replaced by a placeholder token.  If the declaration is autonomous,
+         ignore the placeholder token. */
+      a_token_kind  token_after_next;
+      (void)next_two_tokens(tok_removed_template_body, &token_after_next);
+      if (token_after_next == tok_semicolon) next_tok = tok_semicolon;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (!C_mode() && microsoft_mode && microsoft_version >= 1400 &&
         next_tok == tok_identifier && tag_kind != (a_symbol_kind)sk_enum_tag &&
@@ -2709,7 +2717,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_boolean               tag_resolution = FALSE;
   a_boolean               err = FALSE;
   a_scope_depth           effective_decl_level = decl_scope_level;
-  a_boolean               is_class_definition;
+  a_boolean               is_class_definition, definition_removed;
   a_source_position       decl_start_pos;
   a_source_position       tag_position;
   a_symbol_reference_kind srk_flags;
@@ -3017,12 +3025,31 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* If the next token is a "{" or, in C++, a ":" (introducing a list of
-     base classes) this is probably a class definition (but there are some
-     exceptions). */
-  is_class_definition = tag_definition_next(
+  if (curr_token == tok_removed_template_body) {
+    /* Presumably a nested class of class template.  The definition was
+       replaced by placeholder token.  If the declaration was autonomous,
+       ignore the placeholder token in what follows.  I.e., code like
+         template<class T> struct S { struct N {}; };
+       is treated like
+         template<class T> struct S { struct N; };
+       (during a real instantiation of S). */
+    is_class_definition = FALSE;
+    definition_removed = TRUE;
+    if (next_token() == tok_semicolon) {
+      /* We don't do a get_token at this point because that would change
+         curr_token_sequence_number, whose precise value is needed later.
+         The placeholder token is skipped at the end instead. */
+      curr_token = tok_semicolon;
+    }  /* if */
+  } else {
+    /* If the next token is a "{" or, in C++, a ":" (introducing a list of
+       base classes) this is probably a class definition (but there are some
+       exceptions). */
+    is_class_definition = tag_definition_next(
                                  curr_token, tag_kind, is_ref_within_new_expr,
                                  no_definition_allowed);
+    definition_removed = FALSE;
+  }  /* if */
   if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create
@@ -3591,7 +3618,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     preapply_microsoft_class_align_attribute(dps, &tag_attributes,
-                                             is_class_definition);
+                                             is_class_definition ||
+                                             definition_removed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -3641,7 +3669,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
   /* If the current token marks a removed template body, skip past that
      special token. */
-  if (curr_token == tok_removed_template_body) (void)get_token();
+  if (definition_removed) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
   if ((microsoft_mode or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {

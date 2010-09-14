@@ -3475,14 +3475,8 @@ and a list of the unprocessed entries is returned to the caller.
           /* Do not remove the body of anonymous unions. */
           if (!is_unnamed_tag_symbol(tcsp->symbol)) {
             a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            a_token_kind	repl_token_kind;
-            /* Normally, the body of the class is replaced with a semicolon.
-               But when the body is part of some other declaration, it is
-               replaced with a special placeholder token. */
-            repl_token_kind = tcsp->template_info->variant.
-                                class_template.not_standalone_nested_class
-                                   ? tok_removed_template_body : tok_semicolon;
-            remove_body_from_cache(tcsp, repl_token_kind);
+            /* Replace the body of a nested class by a placeholder token. */
+            remove_body_from_cache(tcsp, tok_removed_template_body);
             /* Remove the tokens for the nested class from the original
                cache to the cache for the nested class.  The tokens have
                actually already been unlinked from the first cache, but

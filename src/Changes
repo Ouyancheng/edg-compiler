@@ -1,5 +1,21 @@
 Version 4.3
 
+9/14/10  [EDGcpfe/11005]
+Microsoft __declspec(align(...)) ignored on class nested in template class
+
+In Microsoft C++ mode, the __declspec(align(...)) attribute was incorrectly
+ignored on a class nested in a class template when that class template was
+instantiated.  For example:
+
+  template<typename T> struct S {
+    struct __declspec(align(16)) N {};
+  };
+  S<int>::N n;  // S<int>::N was previously not aligned according to the
+                // __declspec attribute.
+
+This is now fixed.
+
+
 9/13/10  [EDGcpfe/10945]
 GNU/Microsoft compatibility: Invalid virtual override returns in templates
 
