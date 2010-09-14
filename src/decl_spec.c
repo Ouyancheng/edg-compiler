@@ -7300,8 +7300,15 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
        decl-specifiers.   If it turns out there are no decl-specifiers, the
        field will be reset to null_source_position.  If this declaration has
        an attached linkage specifier (like extern "C"), the position was
-       already set to that of the initial keyword "extern". */
-    decl_pos_block->specifiers_range.start = state->specifiers_pos;
+       already set to that of the initial keyword "extern".  If prefix
+       attributes preceded the decl-specifiers, record their position (which
+       is the same as state->start_pos) as the actual starting position of the
+       specifiers. */
+    if (state->prefix_attributes != NULL) {
+      decl_pos_block->specifiers_range.start = state->start_pos;
+    } else {
+      decl_pos_block->specifiers_range.start = state->specifiers_pos;
+    }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Helper macro to record the position of the first qualifier (other than

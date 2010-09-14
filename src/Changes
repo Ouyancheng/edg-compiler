@@ -1,5 +1,26 @@
 Version 4.3
 
+
+9/14/10  [EDGcpfe/10969]
+Specifiers position information with prefix attributes
+
+The implementation of the new attributes framework (see entries of 1/25/10 and
+12/3/09) changed the starting position of declaration specifiers (recorded
+when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE) when the specifiers are preceded by
+prefix attributes.  Before the new framework, the starting position was that
+of the first prefix attribute; with the new framework, it became the position
+of the first specifier following the prefix attributes.  Now, the original
+position (that of the first prefix attributes) has been restored.
+For example:
+
+  __declspec(dllimport) void f() {}
+
+If ptr is a pointer to the a_routine entry for f, then
+  ptr->source_corresp.decl_pos_info->specifiers_range.start
+now once again holds the position of the "__declspec" token (in version 4.2 it
+indicated the position of the "void" token).
+
+
 9/14/10  [EDGcpfe/11005]
 Microsoft __declspec(align(...)) ignored on class nested in template class
 
