@@ -1165,6 +1165,9 @@ Display a_param_type entry.
   if (ptr->type_involves_template_param) {
     disp_boolean("type_involves_template_param", TRUE);
   }  /* if */
+  if (ptr->is_function_parameter_pack) {
+    disp_boolean("is_function_parameter_pack", TRUE);
+  }  /* if */
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */

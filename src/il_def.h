@@ -4300,6 +4300,9 @@ typedef struct a_param_type {
 			/* TRUE if the type entry associated with the
 			   parameter involves a template parameter in any
 			   context. */
+  a_bit_field	is_function_parameter_pack:1;
+			/* TRUE if this entry represent a C++0x function
+			   parameter pack of a variadic template. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers that have been removed
 			   from the parameter type; always TQ_NONE except in

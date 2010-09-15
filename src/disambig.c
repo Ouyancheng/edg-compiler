@@ -1083,12 +1083,17 @@ part of a declarator is found, may_be_decl is set to FALSE.
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   } else {
+    a_boolean	is_name_start;
+    /* An ellipsis indicating a parameter pack declaration might be next. */
+    if (curr_token == tok_ellipsis && variadic_templates_enabled) {
+      cache_curr_token(&state->cache);
+      get_token_and_coalesce_if_identifier(flags);
+    }  /* if */
     /* An identifier is expected next, but is omitted in the 
        abstract declarator.  All tokens that could start an identifier will
        have already been coalesced into a tok_identifier.  Destructor
        declarators are not allowed in this context, so tildes don't need
        to be handled. */
-    a_boolean	is_name_start;
     /* Declarator names cannot contain global qualifiers (e.g., ::i). This
        is allowed for template prescans. */
     is_name_start = curr_token == tok_identifier &&

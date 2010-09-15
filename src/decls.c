@@ -109,6 +109,8 @@ reflected in start_secondary_declarator.
   ps->is_type_name = FALSE;
   ps->trailing_return_type_allowed = FALSE;
   ps->has_trailing_return_type = FALSE;
+  ps->pack_ellipsis_allowed = FALSE;
+  ps->has_pack_ellipsis = FALSE;
   ps->is_new_expr_type = FALSE;
   ps->is_evaluated_sizeof_type_arg = FALSE;
   ps->disallow_variably_modified_type = FALSE;
@@ -14856,6 +14858,8 @@ related-fields of *ps prior to scanning the next declarator.
     ps->type = ps->auto_type;
     ps->return_type_pos = null_source_position;
   }  /* if */
+  ps->pack_ellipsis_allowed = FALSE;
+  ps->has_pack_ellipsis = FALSE;
   ps->nested_ptr_or_ref_seen = FALSE;
   ps->has_initializer = FALSE;
   ps->first_decl = FALSE;

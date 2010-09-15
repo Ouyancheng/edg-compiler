@@ -398,6 +398,8 @@ typedef int a_gen_decl_options_set;
 #define GDO_FORCE_UNQUALIFIED_NAME 0x4
 			/* Force use of an unqualified name in the
 			   declarator. */
+#define GDO_PARAMETER_PACK 0x8
+			/* Render a "..." for a parameter pack declaration. */
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
                              a_source_correspondence      *scp,
@@ -4768,6 +4770,7 @@ default arguments should be suppressed (needed for template specializations).
              name from the parameter variable.  Note that the type in the
              variable might be slightly different than (though, of course,
              compatible with) the type in the param_type entry. */
+          a_gen_decl_options_set  gdo_flags = GDO_NO_OPTIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (param->ms_attributes != NULL) {
             gen_ms_parameter_attribute_block(param->ms_attributes);
@@ -4775,6 +4778,9 @@ default arguments should be suppressed (needed for template specializations).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (param_var->storage_class == (a_storage_class)sc_register) {
             gen_storage_class(param_var->storage_class);
+          }  /* if */
+          if (param->is_function_parameter_pack) {
+            gdo_flags |= GDO_PARAMETER_PACK;
           }  /* if */
           /* Watch out for unnamed parameters in C++. */
           gen_general_declaration_using_type(
@@ -4785,7 +4791,7 @@ default arguments should be suppressed (needed for template specializations).
                                           (a_src_seq_secondary_decl_ptr)NULL,
                                           TQ_NONE,
                                           /*suppress_specifiers=*/FALSE,
-                                          GDO_NO_OPTIONS,
+                                          gdo_flags,
                                           (a_name_reference_ptr)NULL);
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4804,6 +4810,7 @@ default arguments should be suppressed (needed for template specializations).
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
                                       &octl);
+          if (param->is_function_parameter_pack) write_tok_str("...");
           if (param->name != NULL) {
             write_tok_str(param->name);
           } else {
@@ -4830,9 +4837,12 @@ default arguments should be suppressed (needed for template specializations).
                                extra_qual, FTO_NO_OPTIONS, &octl);
           if (param->name != NULL) {
             write_space();
+            if (param->is_function_parameter_pack) write_tok_str("...");
             write_tok_str(param->name);
             gen_attributes(param->attributes, al_declarator_id,
                            /*primary_only=*/FALSE);
+          } else {
+            if (param->is_function_parameter_pack) write_tok_str(" ...");
           }  /* if */
           form_type_second_part_simple(param_type,
                                        /*under_lhs_declarator=*/FALSE, &octl);
@@ -4992,6 +5002,9 @@ recorded).
                                              FTO_NO_OPTIONS,
                        &octl);
   /* Write the name if there is one. */
+  if (options & GDO_PARAMETER_PACK) {
+    write_tok_str("...");
+  }  /* if */
   if (scp != NULL) {
     an_attribute_ptr  attributes;
     if (!(options & GDO_SUPPRESS_POSITION)) {

@@ -1950,6 +1950,7 @@ if this is the function declarator in a friend function declaration.
         param_state.assoc_func_decl_state = state;
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
+        param_state.pack_ellipsis_allowed = variadic_templates_enabled;
         copy_source_position(pos_curr_token, param_type_pos);
         clear_decl_pos_block(&local_decl_pos_block);
         /* Scan prefix attributes. */
@@ -2041,7 +2042,17 @@ if this is the function declarator in a friend function declaration.
            formed type specifier.  If an error is to be put out, that's done
            later. */
         if (!dangling_type_specifier &&
-            is_abstract_or_real_declarator_start()) {
+            (is_abstract_or_real_declarator_start() ||
+             /* Check for a parameter pack declaration like "P ...". This is
+                not handled by the is_abstract_or_real_declarator_start macro
+                because the specifiers type may be required for
+                disambiguation: If the next two tokens are "... )", the
+                ellipsis declare a parameter pack only if the specifiers type
+                is a pattern type (i.e., contains an unexpanded template
+                parameter pack). */
+             (variadic_templates_enabled && curr_token == tok_ellipsis &&
+              (next_token() != tok_rparen ||
+               is_variadic_pattern_type(param_state.specifiers_type))))) {
           a_decl_flag_set  di_flags = DI_IS_PARAMETER_DECL |
                                       DI_REAL_DECLARATOR_ALLOWED |
                                       DI_ABSTRACT_DECLARATOR_ALLOWED;
@@ -2131,6 +2142,16 @@ if this is the function declarator in a friend function declaration.
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
         ptp->qualifiers = param_qualifiers;
+        if (param_state.has_pack_ellipsis) {
+          /* This looks like the declaration of a function parameter pack.
+             Verify that the parameter type is a "pattern type". */
+          if (is_variadic_pattern_type(param_state.declared_type)) {
+            ptp->is_function_parameter_pack = TRUE;
+          } else {
+            pos_error(ec_function_parameter_pack_requires_pattern,
+                      &param_state.declarator_pos);
+          }  /* if */
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_state.ms_attributes != NULL) {
           apply_microsoft_attributes(&param_state.ms_attributes, (char*)ptp,
@@ -5160,6 +5181,15 @@ The syntax is:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* Not a nested declarator. */
+    if (variadic_templates_enabled && curr_token == tok_ellipsis) {
+      /* An ellipsis at this point can indicate a parameter pack. */
+      if (state->pack_ellipsis_allowed) {
+        state->has_pack_ellipsis = TRUE;
+      } else {
+        pos_error(ec_parameter_pack_decl_not_allowed, &pos_curr_token);
+      }  /* if */
+      (void)get_token();
+    }  /* if */
     /* An identifier is expected next, but is omitted in the 
        abstract declarator. */
     is_name_start = (is_decl_qualified_name_start() ||

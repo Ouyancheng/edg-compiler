@@ -882,6 +882,7 @@ at file scope.
   ptp->default_being_instantiated = FALSE;
   ptp->type_involves_deduced_template_param = FALSE;
   ptp->type_involves_template_param = FALSE;
+  ptp->is_function_parameter_pack = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;

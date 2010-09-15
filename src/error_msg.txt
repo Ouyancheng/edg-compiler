@@ -1959,7 +1959,9 @@ ec_wide_deprecation_string;;"wide character string literal will not be quoted in
 ec_missing_attribute_arguments;;"missing arguments for attribute %sq"
 ec_sfinae_requires_newer_abi_version;;"options \"c++0x\" and \"c++0x_sfinae\" require a different compiler configuration"
 ec_template_param_pack_not_at_end;;"template parameter pack not at end of parameter list"
+ec_parameter_pack_decl_not_allowed;;"a parameter pack declaration is not allowed here"
 ec_param_pack_cannot_have_default;;"a parameter pack cannot have a default"
+ec_function_parameter_pack_requires_pattern;;"type of function parameter pack does not contain an unexpanded template parameter pack"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

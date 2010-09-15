@@ -356,6 +356,15 @@ typedef struct a_decl_parse_state {
 			   return type (this is set after the trailing return
 			   type has been parsed). */
   a_bit_field
+		pack_ellipsis_allowed:1;
+			/* TRUE if the current declaration can declare a
+			   parameter pack. */
+  a_bit_field
+		has_pack_ellipsis:1;
+			/* TRUE if the current declaration includes an
+			   ellipsis indicating that a parameter pack is
+			   being declared. */
+  a_bit_field
 		is_new_expr_type:1;
 			/* TRUE if this information block describes the parsing
 			   of a type for a "new-expression". */
