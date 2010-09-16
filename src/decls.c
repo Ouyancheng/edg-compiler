@@ -3827,7 +3827,7 @@ any diagnostics.
     flags &= (a_decl_modifier)~DM_THREAD;
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-  check_assertion(flags == 0);
+  check_assertion(flags == 0 || total_errors != 0);
 }  /* update_routine_decl_modifiers */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

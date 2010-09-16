@@ -10161,6 +10161,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     { a_decl_modifiers_block  decl_modifiers;
       clear_decl_modifiers_block(&decl_modifiers);
       decl_modifiers.flags = templ_rout->decl_modifiers;
+      /* Some modifier flags were handled by the call to
+         attach_attributes_to_routine_instance above:
+         update_routine_decl_modifiers does not expect those. */
+      decl_modifiers.flags &= ~(rp->decl_modifiers);
       update_routine_decl_modifiers(rp, &decl_modifiers, &locator_position,
                                     /*is_redecl=*/FALSE,
                                     (a_boolean)templ_rout->defined,
