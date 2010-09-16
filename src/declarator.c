@@ -2134,7 +2134,8 @@ if this is the function declarator in a friend function declaration.
           /* Note: whether to remove top-level qualifiers is sensitive to the
              ABI version because qualifiers are reflected in mangled names. */
           check_assertion(!C_mode());
-          param_qualifiers = get_type_qualifiers(param_state.declared_type);
+          param_qualifiers = get_top_level_type_qualifiers(
+                                                   param_state.declared_type);
           param_state.type = make_unqualified_type(param_state.type);
         }  /* if */
         /* Create a param-type entry and add it to the list of param-types
