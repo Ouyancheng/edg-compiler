@@ -3026,8 +3026,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_removed_template_body) {
-    /* Presumably a nested class of class template.  The definition was
-       replaced by placeholder token.  If the declaration was autonomous,
+    /* Presumably a nested class of a class template.  The definition was
+       replaced by a placeholder token.  If the declaration is autonomous,
        ignore the placeholder token in what follows.  I.e., code like
          template<class T> struct S { struct N {}; };
        is treated like
