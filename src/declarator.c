@@ -5182,7 +5182,17 @@ The syntax is:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* Not a nested declarator. */
-    if (variadic_templates_enabled && curr_token == tok_ellipsis) {
+    /* Check for a declarator-id or abstract declarator that starts with an
+       ellipsis indicating a parameter pack.  There is a an ambiguity in this
+       context where the ellipsis can either indicate a parameter pack for an
+       abstract declarator, or a classic vararg function: It is the former
+       only if the specifiers type is a pattern.  E.g.:
+         template<typename ... T> void f(T ...);  // Parameter pack.
+         template<typename T>     void f(T ...);  // Classic vararg function.
+       */
+    if (variadic_templates_enabled && curr_token == tok_ellipsis &&
+        (next_token() != tok_rparen ||
+         (state->type != NULL && is_variadic_pattern_type(state->type)))) {
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {
         state->has_pack_ellipsis = TRUE;
