@@ -10739,14 +10739,12 @@ return TRUE and set *kind to the corresponding name-linkage kind.
 }  /* scan_name_linkage_string */
 
 
-static void linkage_specification(a_boolean      function_definition_allowed,
-                                  a_boolean      is_old_style_param_decl,
-                                  a_boolean      is_top_level_declaration,
+static void linkage_specification(a_decl_parse_state  *dps,
                                   a_param_id_ptr param_id_list)
 /*
 The caller has determined that we are at the start of a C++ linkage
 specification -- that is, the current token is "extern" and it is followed
-by a string literal.  The syntax (from ARM 7.4) is:
+by a string literal.  The syntax is:
 
   linkage-specification:
       extern string-literal { declaration-list    }
@@ -10756,7 +10754,7 @@ by a string literal.  The syntax (from ARM 7.4) is:
 Since linkage specifications nest, the current linkage specifier is saved
 in a local variable, the new one is established by updating a global
 variable, the declaration(s) are processed, and then the original linkage
-specifier is restored.
+specifier is restored.  dps describes the linkage-specification declaration.
 */
 {
   a_name_linkage_kind  kind;
@@ -10768,7 +10766,7 @@ specifier is restored.
     error(ec_linkage_specifier_not_allowed);
     err = TRUE;
   }  /* if */
-  linkage_spec_range.start = pos_curr_token;
+  linkage_spec_range.start = dps->start_pos;
   /* Advance to the string literal. */
   (void)get_token();
   check_assertion(curr_token == tok_string_literal);
@@ -10802,7 +10800,8 @@ specifier is restored.
     add_stop_token(tok_rbrace);
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-      declaration(function_definition_allowed, is_old_style_param_decl,
+      declaration(dps->function_definition_allowed,
+                  dps->is_old_style_param_decl,
                   /*is_top_level_declaration=*/FALSE,
                   /*marked_as_gnu_extension=*/FALSE, param_id_list,
                   (a_source_range *)NULL);
@@ -10822,7 +10821,9 @@ specifier is restored.
       /* Advance past right brace.  If the current declaration is a top-level
          declaration, set a global flag to enable checking for a header
          stop. */
-      if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
+      if (dps->is_top_level_declaration) {
+        next_token_is_top_level_decl_start = TRUE;
+      }  /* if */
       (void)get_token();
       next_token_is_top_level_decl_start = FALSE;
     }  /* if */
@@ -10838,9 +10839,10 @@ specifier is restored.
          object defined withing an `extern "C" {...}' construct is still
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
-      declaration(function_definition_allowed, is_old_style_param_decl,
-                  is_top_level_declaration, /*marked_as_gnu_extension=*/FALSE,
-                  param_id_list, &linkage_spec_range);
+      declaration(dps->function_definition_allowed,
+                  dps->is_old_style_param_decl, dps->is_top_level_declaration,
+                  /*marked_as_gnu_extension=*/FALSE, param_id_list,
+                  &linkage_spec_range);
       /* pop_name_linkage will already have been called in declaration
          (before advancing past the end of the declaration, because there
          is a dependency in precompiled header processing on the state
@@ -14508,9 +14510,7 @@ indicates how processing should proceed after the call.
         }  /* if */
         state->prefix_attributes = NULL;
       }  /* if */
-      linkage_specification(state->function_definition_allowed,
-                            state->is_old_style_param_decl,
-                            state->is_top_level_declaration, param_id_list);
+      linkage_specification(state, param_id_list);
       end_of_decl_action = eoda_done;
     } else if (curr_token == tok_template ||
                curr_token == tok_export ||
