@@ -10740,7 +10740,7 @@ return TRUE and set *kind to the corresponding name-linkage kind.
 
 
 static void linkage_specification(a_decl_parse_state  *dps,
-                                  a_param_id_ptr param_id_list)
+                                  a_param_id_ptr      param_id_list)
 /*
 The caller has determined that we are at the start of a C++ linkage
 specification -- that is, the current token is "extern" and it is followed
