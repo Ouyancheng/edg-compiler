@@ -5841,8 +5841,12 @@ and global namespaces.
                                  IDL_NO_OPTIONS);
       if (sym != NULL && is_type_symbol(sym)) {
         va_list_type = type_symbol_type(sym);
+      } else if (type_underlying_va_list != NULL) {
+        va_list_type = type_underlying_va_list;
       } else {
-        /* The special symbol does not exist, so use the default "void *". */
+        /* The special symbol does not exist and no default is configured.
+           So use "char*" as the default in Microsoft mode, and "void*" in
+           other modes. */
         va_list_type = make_pointer_type(void_type());
       }  /* if */
       /* If the new va_list symbol is to be created in the std namespace,
@@ -5915,9 +5919,8 @@ and global namespaces.
   }  /* if */
   if (!is_cstdarg && va_list_in_std_namespace &&
       !va_list_global_alias_has_been_created) {
-    a_symbol_ptr     sym;
-    sym = (a_symbol_ptr)builtin_va_list_type->source_corresp.assoc_info;
     /* Create a file-scope using-declaration for the namespace scope type. */
+    a_symbol_ptr     sym = symbol_for(builtin_va_list_type);
     (void)make_using_decl(sym, &null_source_position, DEPTH_OF_FILE_SCOPE);
     clear_locator(&locator, &null_source_position);
     (void)enter_namespace_projection_symbol(sym, &locator,
@@ -12642,6 +12645,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(symbol_for_namespace_abi),
 #endif /* IA64_ABI */
       pch_saved_var_array_elem(builtin_va_list_type),
+      pch_saved_var_array_elem(type_underlying_va_list),
       pch_saved_var_array_elem(error_class_template_symbol),
       pch_saved_var_array_elem(file_scope_number),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
@@ -12706,6 +12710,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(symbol_for_namespace_abi);
 #endif /* IA64_ABI */
   register_trans_unit_variable(builtin_va_list_type);
+  register_trans_unit_variable(type_underlying_va_list);
   register_trans_unit_variable(symbols_with_no_scope);
   register_trans_unit_variable(symbols_with_no_scope_tail);
   register_trans_unit_variable(file_scope_symbols_are_on_inactive_list);
@@ -12744,6 +12749,7 @@ given translation unit.
   symbol_for_namespace_abi = NULL;
 #endif /* IA64_ABI */
   builtin_va_list_type = NULL;
+  type_underlying_va_list = NULL;
   symbols_with_no_scope = NULL;
   symbols_with_no_scope_tail = NULL;
   file_scope_symbols_are_on_inactive_list = FALSE;

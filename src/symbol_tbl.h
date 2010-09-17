@@ -3579,6 +3579,17 @@ EXTERN a_type_ptr
 			   this points to the va_list type once it has been
 			   defined.  NULL until then. */
 
+EXTERN a_type_ptr
+		type_underlying_va_list;
+			/* This is a configurable type (NULL by default; it
+			   can conveniently be set in sys_predef.c).  When the
+			   <stdarg.h> header is handled as a builtin, this is
+			   the type underlying the generated va_list type.
+			   Otherwise, if GNU builtin <stdarg.h> operators are
+			   supported (see GCC_BUILTIN_VARARGS), it is the
+			   underlying type of __builtin_va_list.  If this type
+			   is NULL, a default type (usual "void*") is used. */
+
 EXTERN a_symbol_ptr
 		symbols_with_no_scope;
 			/* A list of symbols that were entered into the

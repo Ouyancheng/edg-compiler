@@ -2082,30 +2082,38 @@ global array named_register_storage_classes (see targ_def.h).
 
 static void enter_builtin_va_list_type(void)
 /*
-Enter a predefined type __builtin_va_list.  On many 32-bit GCC implementations
-this is a type compatible with void* (but on some systems, such as Solaris,
-va_list is a simple typedef of void* and no __builtin_va_list is defined).
-On x86-64 (at least on Linux), it is an array of one element of struct type.
+Enter a predefined type __builtin_va_list.
 */
 {
+  /* On many 32-bit GCC implementations __builtin_va_list is a type compatible
+     with char* (but on some systems, such as Solaris, va_list is a simple
+     typedef of void* and no __builtin_va_list is defined).  On x86-64 (at
+     least on Linux), __builtin_va_list is an array of one element of struct
+     type. */
   a_type_ptr  tp;
+
+  if (type_underlying_va_list != NULL) {
+    /* Use type_underlying_va_list as the type underlying __builtin_va_list. */
+    tp = type_underlying_va_list;
+  } else {
 #if USE_X86_64
-  /* The x86-64 __builtin_va_list type is defined as follows:
-       struct __va_list_tag {
-         unsigned int  gp_offset;
-         unsigned int  fp_offset;
-         void          *overflow_arg_area;
-         void          *reg_save_area;
-       };
-       typedef struct __va_list_tag __builtin_va_list[1];
-  */    
-  tp = alloc_type((a_type_kind)tk_array);
-  tp->variant.array.element_type = make_va_list_tag_type();
-  tp->variant.array.variant.number_of_elements = 1;
-  set_type_size(tp);
+    /* The x86-64 __builtin_va_list type is defined as follows:
+         struct __va_list_tag {
+           unsigned int  gp_offset;
+           unsigned int  fp_offset;
+           void          *overflow_arg_area;
+           void          *reg_save_area;
+         };
+         typedef struct __va_list_tag __builtin_va_list[1];
+    */    
+    tp = alloc_type((a_type_kind)tk_array);
+    tp->variant.array.element_type = make_va_list_tag_type();
+    tp->variant.array.variant.number_of_elements = 1;
+    set_type_size(tp);
 #else /* !USE_X86_64 */
-  tp = make_pointer_type(void_type());
+    tp = make_pointer_type(integer_type((an_integer_kind)ik_char));
 #endif /* USE_X86_64 */
+  }  /* if */
   builtin_va_list_type = enter_predefined_typedef("__builtin_va_list", tp);
   builtin_va_list_type->is_builtin_va_list = TRUE;
 }  /* enter_builtin_va_list_type */

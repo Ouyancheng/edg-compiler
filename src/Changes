@@ -1,5 +1,25 @@
 Version 4.3
 
+9/17/10  [EDGcpfe/8731,EDGcpfe/11011]
+Determining the type underlying va_list/__builtin_va_list
+
+A new global variable type_underlying_va_list has been introduced to control
+the default type underlying va_list or (in GNU modes) __builtin_va_list.  This
+variable is NULL by default, but customers can set it to something appropriate
+in sys_predef.c.
+
+When <stdarg.h> is treated as a built-in header and type_underlying_va_list is
+non-NULL, it is used as the type underlying the generated va_list typedef.
+Furthermore, when type_underlying_va_list is NULL, the default type underlying
+va_list in Microsoft modes is now char* instead of void* (it's still void* in
+non-Microsoft modes).
+
+Similarly, in GNU modes with GCC_BUILTIN_VARARGS, type_underlying_va_list is
+used as the type underlying __builtin_va_list if it is non-NULL.  Furthermore,
+when type_underlying_va_list is NULL and USE_X86_64 is FALSE, the type
+underlying __builtin_va_list is now char* (instead of void*) by default.
+
+
 9/16/10  [EDGcpfe/10977]
 Abort on instantiation of function template with noalias or restrict attribute
 
