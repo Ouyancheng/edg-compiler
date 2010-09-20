@@ -5847,7 +5847,10 @@ and global namespaces.
         /* The special symbol does not exist and no default is configured.
            So use "char*" as the default in Microsoft mode, and "void*" in
            other modes. */
-        va_list_type = make_pointer_type(void_type());
+        va_list_type = make_pointer_type(
+                         microsoft_mode ?
+                                      integer_type((an_integer_kind)ik_char) :
+                                      void_type());
       }  /* if */
       /* If the new va_list symbol is to be created in the std namespace,
          push the namespace now. */

@@ -1936,8 +1936,7 @@ Enter the standard predeclared functions for GCC.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || \
-    (GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS)
+#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
 
 static void enter_predefined_type(a_type_ptr type,
                                   char       *name)
@@ -1971,7 +1970,7 @@ the type entry.
   return result;
 }  /* enter_predefined_typedef */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || (GNU_EXTENSIONS_ALLOWED && ...) */
+#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void enter_microsoft_predeclared_functions(void)
@@ -2085,11 +2084,9 @@ static void enter_builtin_va_list_type(void)
 Enter a predefined type __builtin_va_list.
 */
 {
-  /* On many 32-bit GCC implementations __builtin_va_list is a type compatible
-     with char* (but on some systems, such as Solaris, va_list is a simple
-     typedef of void* and no __builtin_va_list is defined).  On x86-64 (at
-     least on Linux), __builtin_va_list is an array of one element of struct
-     type. */
+  /* On most 32-bit GCC implementations __builtin_va_list is a type compatible
+     with char*.  On x86-64 (at least on Linux), __builtin_va_list is an array
+     of one element of struct type. */
   a_type_ptr  tp;
 
   if (type_underlying_va_list != NULL) {
@@ -2196,12 +2193,7 @@ Enter predeclared symbols as required by the implementation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    /* Ensure that a predefined va_list type will be char* (instead of the
-       default void*). */
     enter_microsoft_predeclared_functions();
-    (void)enter_predefined_typedef(
-                   BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
-                   make_pointer_type(integer_type((an_integer_kind)ik_char)));
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
