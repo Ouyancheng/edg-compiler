@@ -8839,9 +8839,18 @@ exit_loop:
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL && !any_decl_specifiers_seen &&
-      !state->is_linkage_spec_decl) {
-    /* No decl-specifiers were seen, so clear the starting position. */
-    decl_pos_block->specifiers_range.start = null_source_position;
+     !state->is_linkage_spec_decl) {
+    /* No decl-specifiers were seen, so clear the starting position.  If
+       there were prefix attributes their starting position is already
+       recorded and we keep that, but also record their ending position. */
+    an_attribute_ptr  ap = state->prefix_attributes;
+    if (ap == NULL) {
+      decl_pos_block->specifiers_range.start = null_source_position;
+    } else {
+      while (ap->next != NULL) ap = ap->next;
+      decl_pos_block->specifiers_range.end =
+        ap->group != NULL ? ap->group->end_position : ap->end_position;
+    }  /* if */
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 

@@ -80,7 +80,7 @@ base class.  For example:
 This is now fixed.
 
 
-9/14/10  [EDGcpfe/10969]
+9/14/10  [EDGcpfe/10969,EDGcpfe/11016]
 Specifiers position information with prefix attributes
 
 The implementation of the new attributes framework (see entries of 1/25/10 and
@@ -97,7 +97,16 @@ For example:
 If ptr is a pointer to the a_routine entry for f, then
   ptr->source_corresp.decl_pos_info->specifiers_range.start
 now once again holds the position of the "__declspec" token (in version 4.2 it
-indicated the position of the "void" token).
+indicated the position of the "void" token).  In addition, in versions prior
+to 4.2, the front end failed to record the end position of a prefix attribute
+specified on a constructor or destructor declaration as the end position of
+the specifiers in the associated a_routine entry.  For example:
+
+  struct S { S(); };
+  __declspec(dllexport) S::S() {}  // Previously the end position of the
+                                   // specifiers was null.
+
+This is now fixed.
 
 
 9/14/10  [EDGcpfe/11005]
