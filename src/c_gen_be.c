@@ -29,6 +29,7 @@ instead of K&R C.
 #endif /* PCH_PRAGMA_GUARD */
 
 #include "basic_hdrs.h"
+#include "layout.h"
 
 #if STANDALONE_C_GEN_BE
 #if !BACK_END_IS_C_GEN_BE
@@ -2948,8 +2949,6 @@ padding in the generated code.
 {
   a_field_ptr field;
   a_field_ptr prev_field = NULL;
-  a_member_name_prefix_component_ptr saved_name_prefix_components =
-                                                        name_prefix_components;
 
   check_assertion(is_immediate_class_type(type));
   for (field = type->variant.class_struct_union.field_list;
