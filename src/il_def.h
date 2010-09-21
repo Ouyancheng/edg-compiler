@@ -9440,6 +9440,19 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_cvttss2si64,         /* __builtin_ia32_cvttss2si64 */
   bfk_ia32_stmxcsr,             /* __builtin_ia32_stmxcsr */
   bfk_ia32_ldmxcsr,             /* __builtin_ia32_ldmxcsr */
+  bfk_ia32_bsrsi,               /* __builtin_ia32_bsrsi */
+  bfk_ia32_bsrdi,               /* __builtin_ia32_bsrdi */
+  bfk_ia32_rdpmc,               /* __builtin_ia32_rdpmc */
+  bfk_ia32_rdtsc,               /* __builtin_ia32_rdtsc */
+  bfk_ia32_rdtscp,              /* __builtin_ia32_rdtscp */
+  bfk_ia32_rolqi,               /* __builtin_ia32_rolqi */
+  bfk_ia32_rolhi,               /* __builtin_ia32_rolhi */
+  bfk_ia32_rolsi,               /* __builtin_ia32_rolsi */
+  bfk_ia32_roldi,               /* __builtin_ia32_roldi */
+  bfk_ia32_rorqi,               /* __builtin_ia32_rorqi */
+  bfk_ia32_rorhi,               /* __builtin_ia32_rorhi */
+  bfk_ia32_rorsi,               /* __builtin_ia32_rorsi */
+  bfk_ia32_rordi,               /* __builtin_ia32_rordi */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   bfk_va_arg_pack,              /* __builtin_va_arg_pack */
   bfk_va_arg_pack_len,          /* __builtin_va_arg_pack_len */
@@ -10698,6 +10711,19 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_cvttss2si64 */         "__builtin_ia32_cvttss2si64",
   /* bfk_ia32_stmxcsr */             "__builtin_ia32_stmxcsr",
   /* bfk_ia32_ldmxcsr */             "__builtin_ia32_ldmxcsr",
+  /* bfk_ia32_bsrsi */               "__builtin_ia32_bsrsi",
+  /* bfk_ia32_bsrdi */               "__builtin_ia32_bsrdi",
+  /* bfk_ia32_rdpmc */               "__builtin_ia32_rdpmc",
+  /* bfk_ia32_rdtsc */               "__builtin_ia32_rdtsc",
+  /* bfk_ia32_rdtscp */              "__builtin_ia32_rdtscp",
+  /* bfk_ia32_rolqi */               "__builtin_ia32_rolqi",
+  /* bfk_ia32_rolhi */               "__builtin_ia32_rolhi",
+  /* bfk_ia32_rolsi */               "__builtin_ia32_rolsi",
+  /* bfk_ia32_roldi */               "__builtin_ia32_roldi",
+  /* bfk_ia32_rorqi */               "__builtin_ia32_rorqi",
+  /* bfk_ia32_rorhi */               "__builtin_ia32_rorhi",
+  /* bfk_ia32_rorsi */               "__builtin_ia32_rorsi",
+  /* bfk_ia32_rordi */               "__builtin_ia32_rordi",
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   /* bfk_va_arg_pack */              "__builtin_va_arg_pack",
   /* bfk_va_arg_pack_len */          "__builtin_va_arg_pack_len",

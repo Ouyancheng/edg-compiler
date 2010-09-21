@@ -618,6 +618,7 @@ extensions.)
   a_type_ptr  int_star_type = make_pointer_type(int_type);
   a_type_ptr  unsigned_int_type =
                                integer_type((an_integer_kind)ik_unsigned_int);
+  a_type_ptr  unsigned_int_star_type = make_pointer_type(unsigned_int_type);
   a_type_ptr  long_long_type = integer_type((an_integer_kind)ik_long_long);
   a_type_ptr  unsigned_long_long_type =
                          integer_type((an_integer_kind)ik_unsigned_long_long);
@@ -1390,6 +1391,19 @@ extensions.)
   enter_gnu_builtin_func1(_ia32_cvttss2si64, di, v4sf);
   enter_gnu_builtin_func0(_ia32_stmxcsr, unsigned_int);
   enter_gnu_builtin_func1(_ia32_ldmxcsr, no_return, unsigned_int);
+  enter_gnu_builtin_func1(_ia32_bsrsi, si, si);
+  enter_gnu_builtin_func1(_ia32_bsrdi, di, di);
+  enter_gnu_builtin_func1(_ia32_rdpmc, unsigned_long_long, int);
+  enter_gnu_builtin_func0(_ia32_rdtsc, unsigned_long_long);
+  enter_gnu_builtin_func1(_ia32_rdtscp, unsigned_long_long, unsigned_int_star);
+  enter_gnu_builtin_func2(_ia32_rolqi, qi, qi, int);
+  enter_gnu_builtin_func2(_ia32_rolhi, hi, hi, int);
+  enter_gnu_builtin_func2(_ia32_rolsi, si, di, int);
+  enter_gnu_builtin_func2(_ia32_roldi, di, di, int);
+  enter_gnu_builtin_func2(_ia32_rorqi, qi, qi, int);
+  enter_gnu_builtin_func2(_ia32_rorhi, hi, hi, int);
+  enter_gnu_builtin_func2(_ia32_rorsi, si, di, int);
+  enter_gnu_builtin_func2(_ia32_rordi, di, di, int);
 }  /* enter_builtin_ia32_vector_functions */
 
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */

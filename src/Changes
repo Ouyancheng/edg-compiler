@@ -1,5 +1,16 @@
 Version 4.3
 
+9/21/10  [EDGcpfe/10981]
+GNU compatibility: Additional IA-32 built-in functions
+
+In GNU modes with GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED set to TRUE, the
+front end now predeclares the following functions: __builtin_ia32_bsrsi,
+__builtin_ia32_bsrdi, __builtin_ia32_rdpmc, __builtin_ia32_rdtsc,
+__builtin_ia32_rdtscp, __builtin_ia32_rolqi, __builtin_ia32_rolhi,
+__builtin_ia32_rolsi, __builtin_ia32_roldi, __builtin_ia32_rorqi,
+__builtin_ia32_rorhi, __builtin_ia32_rorsi, and __builtin_ia32_rordi.
+
+
 9/17/10  [EDGcpfe/8731,EDGcpfe/11011]
 Determining the type underlying va_list/__builtin_va_list
 
