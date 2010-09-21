@@ -102,7 +102,7 @@ to 4.2, the front end failed to record the end position of a prefix attribute
 specified on a constructor or destructor declaration as the end position of
 the specifiers in the associated a_routine entry.  For example:
 
-  struct S { S(); };
+  struct __declspec(dllexport) S { S(); };
   __declspec(dllexport) S::S() {}  // Previously the end position of the
                                    // specifiers was null.
 
