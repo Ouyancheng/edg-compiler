@@ -800,6 +800,7 @@ by the caller (including token, source_position, and extra_info_kind).
     ctp = (a_cached_token_ptr)alloc_fe(sizeof(a_cached_token));         \
     incr_num_cached_tokens_allocated();                                 \
   }  /* if */                                                           \
+  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;				\
   ctp->next = NULL;                                                     \
 }  /* alloc_cached_token */
 
@@ -1157,6 +1158,12 @@ This is used to save tokens for later rescanning.
   ctp->end_source_position = end_pos_curr_token;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
   ctp->token_sequence_number = curr_token_sequence_number;
+  if (cache->is_reusable) {
+    /* For reusable caches, save a pointer to the cached token entry as
+       a handle into the cache that can be used to rescan a range of
+       tokens. */
+    ctp->token_handle = ctp;
+  }  /* if */
   if (fetch_pp_tokens) {
     /* The token being saved is a pp token.  Save this by copying the token
        string. */
@@ -2029,6 +2036,9 @@ an equivalent change.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
   curr_token_sequence_number = ctp->token_sequence_number;
+  /* Normally tokens in non-reusable caches won't have a token handle,
+     but they could if the token originated from a reusable cache. */
+  curr_cached_token_handle = ctp->token_handle;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
@@ -2109,6 +2119,7 @@ an equivalent change.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   error_position = pos_curr_token;
   curr_token_sequence_number = ctp->token_sequence_number;
+  curr_cached_token_handle = ctp->token_handle;
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
@@ -10125,6 +10136,7 @@ restart:
      two tokens because it closes two template argument lists. */
   last_token_sequence_number_used += 2;
   curr_token_sequence_number = last_token_sequence_number_used;
+  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
 rescan_token:
   /* Skip over any initial white space blanks and horizontal tabs.
      These are very common, so they're handled inline here.  The
@@ -17722,6 +17734,7 @@ are handled in lexical_init.)
   register_trans_unit_variable(treat_newline_as_token);
   register_trans_unit_variable(curr_token_asm_string);
   register_trans_unit_variable(curr_token_sequence_number);
+  register_trans_unit_variable(curr_cached_token_handle);
   include_search_hash_table = alloc_hash_table(NO_MEMORY_REGION_NUMBER,
 					       (a_hash_table_size)1024,
 					       hash_include_search_result,
@@ -17773,6 +17786,7 @@ done to determine whether a precompiled header may be used.
   any_initial_get_token_tests_needed = FALSE;
   treat_newline_as_token = FALSE;
   curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED

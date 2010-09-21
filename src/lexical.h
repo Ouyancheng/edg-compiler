@@ -21,6 +21,8 @@ lexical.h -- Declarations relating to lexical.c (having to do with source
 /* Declare pointer types up front to minimize mutual recursion problems. */
 typedef struct an_orig_line_modif  *an_orig_line_modif_ptr;
 typedef struct a_source_line_modif *a_source_line_modif_ptr;
+typedef struct a_token_cache *a_token_cache_ptr;
+typedef struct a_cached_token *a_cached_token_ptr;
 
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
@@ -56,6 +58,22 @@ EXTERN a_token_sequence_number
 #define NO_TOKEN_SEQUENCE_NUMBER (0)
 			/* The value used to indicate that no sequence number
 			   is present. */
+
+/*
+A type used to represent a token from a reusable cache.
+*/
+typedef a_cached_token_ptr a_cached_token_handle;
+typedef a_cached_token_handle *a_cached_token_handle_ptr;
+
+EXTERN a_cached_token_handle
+		curr_cached_token_handle;
+			/* If the current token originated from a reusable
+			   token cache, this is a handle that can be used
+			   to access that token from the reusable cache.
+			   It will be NO_CACHED_TOKEN_HANDLE if the token did
+			   not originate from a reusable cache. */
+
+#define NO_CACHED_TOKEN_HANDLE ((a_cached_token_handle)NULL)
 
 
 /* These declarations are placed here so that they will be defined before
@@ -196,8 +214,6 @@ typedef enum /* an_identifier_lookup_mode */ {
 } an_identifier_lookup_mode;
 
 
-typedef struct a_token_cache *a_token_cache_ptr;
-typedef struct a_cached_token *a_cached_token_ptr;
 typedef struct a_token_cache {
   /* Data structure used to hold a token cache, i.e., some number of
      tokens that are being saved for later rescanning. */
@@ -1653,6 +1669,15 @@ typedef struct a_cached_token {
   a_token_sequence_number
 		token_sequence_number;
 			/* The sequence number associated with this token. */
+  a_cached_token_handle
+		token_handle;
+			/* For tokens from reusable caches, this identifies the
+			   token entry from the reusable cache.  This is used
+			   for variadic templates to allow an arbitrary
+			   set of tokens from a cache to be rescanned.  If
+			   a token from a reusable cache is later placed in
+			   a non-reusable one, this still refers to the
+			   entry in the reusable cache. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
     /* When extra_info_kind == teik_identifier: */
