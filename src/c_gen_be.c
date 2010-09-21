@@ -99,6 +99,11 @@ instead of K&R C.
  #error -- The C-generating back end requires LOWER_CLASS_RVALUE_ADJUST TRUE
 #endif /* !LOWER_CLASS_RVALUE_ADJUST */
 
+#if TARG_REUSE_TAIL_PADDING && !IA64_ABI
+ #error -- The C-generating back end only supports tail-padding reuse \
+            with the IA-64 ABI
+#endif /* TARG_REUSE_TAIL_PADDING && !IA64_ABI */
+
 /*
 See if the target is the SunPro C compiler.
 */
@@ -416,6 +421,9 @@ typedef struct an_init_control_block {
 /* Value to use to specify no routine. */
 #define NO_ROUTINE ((a_routine_ptr)NULL)
 
+/* Value to use to specify no field. */
+#define NO_FIELD ((a_field_ptr)NULL)
+
 /* Value to use to specify no temporary name generated from an IL entry
    address. */
 #define NO_TEMP ((char *)NULL)
@@ -458,6 +466,54 @@ reused.
 static a_pending_typedef_ptr
 		avail_pending_typedefs;
 
+/*
+Data structures used to create the prefix for the mangled name of a data
+member that is "promoted" out of a base class subobject to become a direct
+member of the derived class.  (This is done to permit use of tail padding
+in the base class, which is not possible if the base class subobject is
+represented as a single struct member of the derived class.)  The names of
+the base class members must be mangled in order to prevent collisions with
+the names of derived class members.  In order to support base classes of
+base classes, each level of derivation for a given base class member that
+is promoted will be reflected in a member name prefix component, which are
+kept on a doubly-linked list.
+*/
+typedef struct a_member_name_prefix_component
+                                           *a_member_name_prefix_component_ptr;
+typedef struct a_member_name_prefix_component {
+  a_member_name_prefix_component_ptr
+		next;	/* The component corresponding to the next (i.e.,
+			   less-derived) base class for the current
+			   member. */
+  a_member_name_prefix_component_ptr
+		prev;	/* The component corresponding to the previous
+                           (i.e., more-derived) base class for the current
+                           member. */
+  char		*str;	/* The name of the base class subobject member out
+			   of which the current member is being
+			   promoted. */
+  a_targ_size_t	prev_subobject_offset;
+			/* The offset within the most-derived class of the
+			   previous component's subobject (to allow saving
+			   and restoring the cumulative offset when name
+			   prefix components are pushed and popped). */
+} a_member_name_prefix_component;
+
+/*
+Head and tail of a doubly-linked list of member name prefix components.
+*/
+static a_member_name_prefix_component_ptr
+		name_prefix_components;
+static a_member_name_prefix_component_ptr
+		last_name_prefix_component;
+
+/*
+The offset within the most-derived class of the subobject associated with
+the current member name prefix, or 0 if none.  (Used to adjust the offsets
+displayed in layout annotations to be relative to the complete object.)
+*/
+a_targ_size_t subobject_offset;
+
 
 /* Declarations needed because of forward references: */
 static void dump_constant(a_constant_ptr constant);
@@ -469,6 +525,7 @@ static void dump_general_declaration_using_type(
                                       a_source_correspondence *scp,
                                       a_variable_ptr          var,
                                       a_routine_ptr           rout,
+                                      a_field_ptr             field,
                                       char                    *temp,
                                       char                    *name,
                                       a_type_qualifier_set    added_qualifiers,
@@ -1419,10 +1476,43 @@ done:;
 }  /* dump_type_name */
 
 
+static void dump_field_name_with_prefix(char *field_name, a_field_ptr field)
+/*
+Print the supplied field name, prefixed by the current set of member name
+prefix components.  field_name may be NULL, in which case a temporary
+name generated from the field pointer will be used.
+*/
+{
+  a_member_name_prefix_component_ptr pfxp;
+  sizeof_t                           name_len;
+
+  check_assertion(field_name != NULL || field != NULL);
+  /* Calculate the length of the name (we assume a generated temporary name
+     will be no more than 32 characters long). */
+  name_len = field_name != NULL ? (sizeof_t)strlen(field_name) : 32;
+  for (pfxp = name_prefix_components; pfxp != NULL; pfxp = pfxp->next) {
+    name_len += (sizeof_t)strlen(pfxp->str) + 1;
+  }  /* for */
+  ensure_enough_room_on_line(name_len);
+  /* Dump the component prefixes, followed by the field name. */
+  for (pfxp = name_prefix_components; pfxp != NULL; pfxp = pfxp->next) {
+    write_str(pfxp->str);
+    write_ch('_');
+  }  /* for */
+  if (field_name != NULL) {
+    write_str(field_name);
+  } else {
+    dump_temp_name((char *)field);
+  }  /* if */
+}  /* dump_field_name_with_prefix */
+
+#define dump_field_name(field) \
+  dump_field_name_with_prefix((field)->source_corresp.name, field)
+
+
 /* Interface routines to dump_name. */
 #define dump_routine_name(routine) dump_name(&(routine)->source_corresp)
 #define dump_constant_name(constant) dump_name(&(constant)->source_corresp)
-#define dump_field_name(field) dump_name(&(field)->source_corresp)
 
 
 static void dump_label_name(a_label_ptr label)
@@ -1841,7 +1931,8 @@ is non-NULL, in which case that is the function scope.
             dump_general_declaration_using_type(param_var->type,
                                                 &param_var->source_corresp,
                                                 param_var, NO_ROUTINE,
-                                                NO_TEMP, NO_NAME, TQ_NONE,
+                                                NO_FIELD, NO_TEMP, NO_NAME,
+                                                TQ_NONE,
                                                 /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
             /* Output any attributes associated with the variable. */
@@ -1880,8 +1971,9 @@ is non-NULL, in which case that is the function scope.
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
             dump_general_declaration_using_type(param->type, NO_SCP,
-                                                NO_VARIABLE, NO_ROUTINE, temp,
-                                                name, (a_type_qualifier_set)
+                                                NO_VARIABLE, NO_ROUTINE,
+                                                NO_FIELD, temp, name,
+                                                (a_type_qualifier_set)
                                                              param->qualifiers,
                                                 /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
@@ -1968,6 +2060,7 @@ static void dump_general_declaration_using_type(
                                       a_source_correspondence *scp,
                                       a_variable_ptr          var,
                                       a_routine_ptr           rout,
+                                      a_field_ptr             field,
                                       char                    *temp,
                                       char                    *name,
                                       a_type_qualifier_set    added_qualifiers,
@@ -1980,11 +2073,12 @@ for the entity being declared, or NULL if there is no name.  If var is
 non-NULL, it points to a variable being declared (and &scp ==
 &var->source_corresp); var is ignored if scp is NULL.  If rout is non-NULL,
 it points to a routine being declared (and &scp == &rout->source_corresp).
-If temp is non-NULL, it gives the address of an IL entry from which a
-temporary name is to be generated.  If name is not NULL, it gives the name
-to be put out.  If added_qualifiers is not zero, the indicated qualifiers
-are added on top of the type.  If suppress_const is TRUE, suppress
-generation of top-level "const" in ANSI C mode.
+If field is non-NULL, it points to a field being declared (and &scp ==
+&field->source_corresp).  If temp is non-NULL, it gives the address of an
+IL entry from which a temporary name is to be generated.  If name is not
+NULL, it gives the name to be put out.  If added_qualifiers is not zero,
+the indicated qualifiers are added on top of the type.  If suppress_const
+is TRUE, suppress generation of top-level "const" in ANSI C mode.
 */
 {
   a_form_type_options_set options = FTO_NO_OPTIONS;
@@ -2013,6 +2107,8 @@ generation of top-level "const" in ANSI C mode.
     /* Write the name. */
     if (var != NULL) {
       dump_variable_name(var);
+    } else if (field != NULL) {
+      dump_field_name(field);
     } else {
       dump_name(scp);
     }  /* if */
@@ -2035,7 +2131,7 @@ no name.
 */
 {
   dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_ROUTINE,
-                                      NO_TEMP, NO_NAME, TQ_NONE,
+                                      NO_FIELD, NO_TEMP, NO_NAME, TQ_NONE,
                                       /*suppress_const=*/FALSE);
 }  /* dump_declaration_using_type */
 
@@ -2668,25 +2764,33 @@ These two fields are normally consecutive members of the given "type", but
      !field->is_bit_field) {
     /* Compute any required padding before the field.  This only comes up
        for empty base class layout, so check this only when the field has
-       a class type (hence also the bit_field_test).  Note that one reason
-       to avoid the check for fields of builtin types is that when the GNU
-       dual-alignment option is in effect the alignment of the field's type
-       is not necessarily the alignment that was used to place the field. */
+       a class type (hence also the bit_field_test). */
     a_type_ptr  field_type = field->type;
+    a_field_ptr effective_field = field;
+    while (effective_field->base_class_subobject_with_tail_padding) {
+      /* Use the first promoted field to compute the required alignment. */
+      if (field_type->variant.class_struct_union.field_list == NULL) {
+        /* Empty base; use the base class subobject. */
+        break;
+      } else {
+        effective_field = field_type->variant.class_struct_union.field_list;
+        field_type = effective_field->type;
+      }  /* if */
+    }  /* while */
     if (is_array_type(field_type)) {
       /* Arrays of class type have to be checked as well. */
       field_type = underlying_array_element_type(field_type);
     }  /* if */
     field_type = skip_typerefs(field_type);
-    if (is_immediate_class_type(field_type)) {
+    if (is_immediate_class_type(field_type) || effective_field != field) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
-      a_targ_alignment  alignment = alignment_of_type(field->type);
+      a_targ_alignment  alignment = field_alignment_for(effective_field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
-      if (field->alignment != 0) {
+      if (effective_field->alignment != 0) {
         /* The alignment of the field was explicitly specified. */
-        alignment = field->alignment;
+        alignment = effective_field->alignment;
 #if GNU_EXTENSIONS_ALLOWED
-      } else if (field->is_packed) {
+      } else if (effective_field->is_packed) {
         /* If no alignment is explicitly specified, the GNU "packed"
            attribute implies an alignment of 1. */
         alignment = 1;
@@ -2742,8 +2846,9 @@ NULL, in which case the padding starts at offset zero.
     /* Some padding is required. */  
     a_targ_size_t  after_field = (field != NULL) ? offset_after_field(field)
                                                  : 0;
+    write_tok_str("char ");
     disable_line_wrapping();
-    write_tok_str("char __dummy");
+    dump_field_name_with_prefix("__dummy", (a_field_ptr)NULL);
     write_unsigned_num((a_host_large_unsigned)after_field);
     enable_line_wrapping();
     if (padding > 1) {
@@ -2761,7 +2866,7 @@ static void dump_field_annotation_comment(a_field_ptr  field)
 Emit a comment describing the layout of the given field.
 */
 {
-  a_host_large_unsigned temp = field->offset;
+  a_host_large_unsigned temp = field->offset + subobject_offset;
 
   write_space();
   start_comment();
@@ -2782,6 +2887,270 @@ Emit a comment describing the layout of the given field.
 }  /* dump_field_annotation_comment */
 
 
+static void push_member_name_prefix_component(
+                                      a_member_name_prefix_component_ptr pfxp,
+                                      a_field_ptr                        field)
+/*
+Link the specified member name prefix component at the end of the list of
+components and set its "str" member to point to the name in the specified
+field.
+*/
+{
+  pfxp->str = field->source_corresp.name;
+  pfxp->prev = last_name_prefix_component;
+  if (name_prefix_components == NULL) {
+    /* This is the first one. */
+    name_prefix_components = pfxp;
+  } else {
+    /* Link at the end. */
+    last_name_prefix_component->next = pfxp;
+  }  /* if */
+  last_name_prefix_component = pfxp;
+  pfxp->next = NULL;
+  pfxp->prev_subobject_offset = subobject_offset;
+  subobject_offset += field->offset;
+}  /* push_member_name_prefix_component */
+
+
+static void pop_member_name_prefix_component(
+                                       a_member_name_prefix_component_ptr pfxp)
+/*
+Remove the specified member name prefix component (which must be the last
+one) from the list of components.
+*/
+{
+  check_assertion(pfxp == last_name_prefix_component);
+  last_name_prefix_component = pfxp->prev;
+  if (pfxp == name_prefix_components) {
+    /* The last one remaining in the list. */
+    name_prefix_components = NULL;
+  } else {
+    /* Unlink from the tail of the list. */
+    last_name_prefix_component->next = NULL;
+  }  /* if */
+  subobject_offset = pfxp->prev_subobject_offset;
+}  /* pop_member_name_prefix_component */
+
+
+static void dump_field_list(a_type_ptr  type,
+                            a_field_ptr *last_field,
+                            a_boolean   *union_alignment_needed)
+/*
+Put out declarations for the fields of the specified class type.
+*last_field is set to the last field declared for a class or struct and to
+the largest field for a union.  *union_alignment_needed is set to TRUE if a
+bit-field is declared that is larger than the underlying type.  If a field
+representing a base class subobject with tail padding is encountered, it is
+replaced (via a recursive call) by the members of the base class (with
+names suitably mangled to avoid collisions) to allow for reuse of the tail
+padding in the generated code.
+*/
+{
+  a_field_ptr field;
+  a_field_ptr prev_field = NULL;
+  a_member_name_prefix_component_ptr saved_name_prefix_components =
+                                                        name_prefix_components;
+
+  check_assertion(is_immediate_class_type(type));
+  for (field = type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    a_targ_size_t padding;
+    /* Add any required padding before the field. */
+    padding = field_padding(prev_field, field, type);
+    check_assertion(padding <= type->size);
+    if (padding > 0) {
+      dump_field_padding(prev_field, padding);
+    }  /* if */
+    set_output_position(&field->source_corresp.decl_position);
+    dump_decl_associated_pragmas(&field->source_corresp);
+#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_dialect_is_generated_code_target) {
+      dump_microsoft_align_declspec(field->alignment);
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
+    if (field->base_class_subobject_with_tail_padding) {
+      /* This field represents a base class subobject that has tail
+         padding.  Register the name of the field for use in mangling, and
+         call this routine recursively to dump the base class members
+         instead of the subobject field declaration, to allow for reuse of
+         the tail padding. */
+      a_member_name_prefix_component prefix;
+      a_targ_size_t                  offset_after_fields;
+      push_member_name_prefix_component(&prefix, field);
+      dump_field_list(field->type, last_field, union_alignment_needed);
+      offset_after_fields = offset_after_field(*last_field);
+      if (offset_after_fields < field->type->size) {
+        /* Add end-of-struct padding. */
+        dump_field_padding(*last_field,
+                           field->type->size - offset_after_fields);
+      }  /* if */
+      pop_member_name_prefix_component(&prefix);
+    } else if (!field->is_bit_field) {
+      a_type_ptr field_type = field->type;
+      /* Not a bit field. */
+#if GCC_IS_GENERATED_CODE_TARGET
+      /* If we are generating code for an early GNU compiler, check for a
+         flexible array member and put out its bound as [0] instead of [].
+         Starting with GNU C/C++ 3.0, the [] syntax is accepted (and only
+         that syntax allows for the initialization of flexible array members
+         using aggregate initializer syntax). */
+      if (gcc_is_generated_code_target &&
+          gnu_target_version_number < 30000 &&
+          type->variant.class_struct_union.contains_flexible_array_member &&
+          is_array_type(field_type) &&
+          is_incomplete_type(field_type)) {
+        skip_typerefs(field_type)->variant.array.bound_is_zero = TRUE;
+      }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+      /* Note that a name will be generated for an anonymous union in C++. */
+      /* Note that "const" is dropped; that's important so that
+         initialization code rewritten as executable code by IL lowering
+         can assign to this member and the overall struct. */
+      dump_general_declaration_using_type(field_type,
+                                          &field->source_corresp,
+                                          NO_VARIABLE, NO_ROUTINE, field,
+                                          NO_TEMP, NO_NAME, TQ_NONE,
+                                          /*suppress_const=*/TRUE);
+#if GNU_EXTENSIONS_ALLOWED
+      (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      write_tok_ch(';');
+    } else {
+      /* Bit field. */
+#if !C_GEN_BE_GENERATES_ANSI_C
+      if (type->kind == (a_type_kind)tk_union) {
+        /* When generating K&R C, don't generate bit fields in unions
+           because pcc doesn't allow them. */
+        /* Don't put out unnamed bit fields.  That's important to keep
+           the first initializable field first. */
+        if (has_name(field)) {
+          a_type_ptr       eff_type = field->type;
+          a_type_ptr       under_type = skip_typerefs(eff_type);
+          a_targ_size_t    union_size = type->size;
+          a_targ_alignment union_alignment = type->alignment;
+          a_type           local_type;
+          /* If the underlying type is bigger than the size allocated for
+             the union, use a smaller integral type. */
+          if (under_type->size > union_size ||
+              alignment_of_type(eff_type) > union_alignment) {
+            /* Find the largest integral type with the right signedness that
+               will fit in the union. */
+            an_integer_kind  ikind, eff_ikind;
+            a_targ_size_t    int_size;
+            a_targ_alignment int_alignment;
+            for (ikind = (an_integer_kind)ik_unsigned_int; ; ikind--) {
+              get_integer_size_and_alignment(ikind, &int_size,
+                                             &int_alignment);
+              if (int_size <= union_size &&
+                  int_alignment <= union_alignment &&
+                  int_kind_is_signed[(int)ikind] ==
+                                                field->bit_field_is_signed) {
+                /* This size is okay. */
+                eff_ikind = ikind;
+                break;
+              }  /* if */
+            }  /* for */
+            /* Make a local type (not allocated in the IL) that is the right
+               integer type.  We can't use integer_type in a "back end". */
+            local_type = *under_type;
+            eff_type = &local_type;
+            check_assertion(local_type.kind == (a_type_kind)tk_integer);
+            local_type.variant.integer.int_kind = eff_ikind;
+          }  /* if */
+          dump_general_declaration_using_type(eff_type,
+                                              &field->source_corresp,
+                                              NO_VARIABLE, NO_ROUTINE,
+                                              NO_FIELD, NO_TEMP, NO_NAME,
+                                              TQ_NONE,
+                                              /*suppress_const=*/TRUE);
+          write_tok_ch(';');
+        }  /* if */
+      } else
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+      /* Don't insert code here -- this is the "else" of an "if". */
+      {
+        /* Put out a bit field declaration. */
+        if (field->bit_field_alignment_type != NULL) {
+          /* Put out an alignment indication for a field that was declared
+             larger than the underlying base type. */
+          if (type->kind == (a_type_kind)tk_union) {
+            /* For the union case, do this at the end. */
+            *union_alignment_needed = TRUE;
+          } else {
+            dump_type(field->bit_field_alignment_type,
+                      /*add_pointer_to=*/FALSE);
+            write_tok_str(": 0;");
+            write_space();
+          }  /* if */
+        }  /* if */
+        dump_bit_field_base_type_name(field);
+        /* Write the name if the field is named. */
+        if (has_name(field)) {
+          write_space();
+          dump_field_name(field);
+        }  /* if */
+        write_tok_str(": ");
+        write_unsigned_num((a_host_large_unsigned)field->bit_size);
+#if GNU_EXTENSIONS_ALLOWED
+        (void)form_field_attributes(field, /*need_leading_space=*/TRUE,
+                                    &octl);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        write_tok_ch(';');
+        if (field->declared_bit_size > field->bit_size) {
+          /* A bit field declared to be larger than the underlying type
+             (in C++).  Emit additional padding.  Finish the current
+             byte, then put out single bytes, then put out the bits
+             in the final byte.  Note that we can only put out unnamed
+             fields; we don't want to change the initialization order
+             of the struct. */
+          if (type->kind == (a_type_kind)tk_union) {
+            /* Handle unions at the end.  It doesn't do any good to put
+               out padding as another field -- it wouldn't go after the
+               field just put out. */
+            *union_alignment_needed = TRUE;
+          } else {
+            dump_bit_field_padding(field);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (annotate && !field->base_class_subobject_with_tail_padding) {
+      /* Display the offset in an annotation comment. */
+      dump_field_annotation_comment(field);
+    }  /* if */
+    if (type->kind != (a_type_kind)tk_union || *last_field == NULL) {
+      *last_field = field;
+    } else {
+      /* For a union, remember the biggest field. */
+      if (offset_after_field(*last_field) < offset_after_field(field)) {
+        *last_field = field;
+      }  /* if */
+    }  /* if */
+    prev_field = field;
+  }  /* for */
+  if (name_prefix_components != NULL && prev_field != NULL &&
+      prev_field->is_bit_field) {
+    /* The last field of a base class subobject whose members have been
+       promoted into the derived class is a bit-field.  Add a dummy
+       bit-field if needed to ensure that if the following derived class
+       member is a bit-field, it doesn't bleed into the space leftover
+       from the base class field. */
+    an_offset_bit_remainder dummy_bits = 
+                                      (targ_char_bit -
+                                       (prev_field->offset_bit_remainder +
+                                        prev_field->bit_size)) % targ_char_bit;
+    if (dummy_bits != 0) {
+      write_tok_str("unsigned int ");
+      dump_field_name_with_prefix("__dummy_bits", (a_field_ptr)NULL);
+      write_tok_ch(':');
+      write_unsigned_num((a_host_large_unsigned)dummy_bits);
+      write_tok_ch(';');
+    }  /* if */
+  }  /* if */
+}  /* dump_field_list */
+
+
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi)
 /*
@@ -2789,7 +3158,7 @@ Output the definition of the indicated struct or union type.  Output the
 final semicolon if output_final_semi is TRUE.
 */
 {
-  a_field_ptr field, prev_field, last_field = NULL;
+  a_field_ptr field, last_field = NULL;
   a_boolean   union_alignment_needed = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_boolean   need_to_restore_default_alignment = FALSE;
@@ -2851,165 +3220,7 @@ final semicolon if output_final_semi is TRUE.
       write_space();
     }  /* if */
     indent += 2;
-    prev_field = NULL;
-    for (field = type->variant.class_struct_union.field_list;
-         field != NULL;
-         field = field->next) {
-      /* Add any required padding before the field. */
-      a_targ_size_t  padding = field_padding(prev_field, field, type);
-      check_assertion(padding <= type->size);
-      if (padding > 0) {
-        dump_field_padding(prev_field, padding);
-      }  /* if */
-      set_output_position(&field->source_corresp.decl_position);
-      dump_decl_associated_pragmas(&field->source_corresp);
-#if USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_dialect_is_generated_code_target) {
-        dump_microsoft_align_declspec(field->alignment);
-      }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
-      if (!field->is_bit_field) {
-        a_type_ptr field_type = field->type;
-        /* Not a bit field. */
-#if GCC_IS_GENERATED_CODE_TARGET
-        /* If we are generating code for an early GNU compiler, check for a
-           flexible array member and put out its bound as [0] instead of [].
-           Starting with GNU C/C++ 3.0, the [] syntax is accepted (and only
-           that syntax allows for the initialization of flexible array members
-           using aggregate initializer syntax). */
-        if (gcc_is_generated_code_target &&
-            gnu_target_version_number < 30000 &&
-            type->variant.class_struct_union.contains_flexible_array_member &&
-            is_array_type(field_type) &&
-            is_incomplete_type(field_type)) {
-          skip_typerefs(field_type)->variant.array.bound_is_zero = TRUE;
-        }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
-        /* Note that a name will be generated for an anonymous union in C++. */
-        /* Note that "const" is dropped; that's important so that
-           initialization code rewritten as executable code by IL lowering
-           can assign to this member and the overall struct. */
-        dump_general_declaration_using_type(field_type,
-                                            &field->source_corresp,
-                                            NO_VARIABLE, NO_ROUTINE, NO_TEMP,
-                                            NO_NAME, TQ_NONE,
-                                            /*suppress_const=*/TRUE);
-#if GNU_EXTENSIONS_ALLOWED
-        (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        write_tok_ch(';');
-      } else {
-        /* Bit field. */
-#if !C_GEN_BE_GENERATES_ANSI_C
-        if (type->kind == (a_type_kind)tk_union) {
-          /* When generating K&R C, don't generate bit fields in unions
-             because pcc doesn't allow them. */
-          /* Don't put out unnamed bit fields.  That's important to keep
-             the first initializable field first. */
-          if (has_name(field)) {
-            a_type_ptr       eff_type = field->type;
-            a_type_ptr       under_type = skip_typerefs(eff_type);
-            a_targ_size_t    union_size = type->size;
-            a_targ_alignment union_alignment = type->alignment;
-            a_type           local_type;
-            /* If the underlying type is bigger than the size allocated for
-               the union, use a smaller integral type. */
-            if (under_type->size > union_size ||
-                alignment_of_type(eff_type) > union_alignment) {
-              /* Find the largest integral type with the right signedness that
-                 will fit in the union. */
-              an_integer_kind  ikind, eff_ikind;
-              a_targ_size_t    int_size;
-              a_targ_alignment int_alignment;
-              for (ikind = (an_integer_kind)ik_unsigned_int; ; ikind--) {
-                get_integer_size_and_alignment(ikind, &int_size,
-                                               &int_alignment);
-                if (int_size <= union_size &&
-                    int_alignment <= union_alignment &&
-                    int_kind_is_signed[(int)ikind] ==
-                                                  field->bit_field_is_signed) {
-                  /* This size is okay. */
-                  eff_ikind = ikind;
-                  break;
-                }  /* if */
-              }  /* for */
-              /* Make a local type (not allocated in the IL) that is the right
-                 integer type.  We can't use integer_type in a "back end". */
-              local_type = *under_type;
-              eff_type = &local_type;
-              check_assertion(local_type.kind == (a_type_kind)tk_integer);
-              local_type.variant.integer.int_kind = eff_ikind;
-            }  /* if */
-            dump_general_declaration_using_type(eff_type,
-                                                &field->source_corresp,
-                                                NO_VARIABLE, NO_ROUTINE,
-                                                NO_TEMP, NO_NAME, TQ_NONE,
-                                                /*suppress_const=*/TRUE);
-            write_tok_ch(';');
-          }  /* if */
-        } else
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
-        /* Don't insert code here -- this is the "else" of an "if". */
-        {
-          /* Put out a bit field declaration. */
-          if (field->bit_field_alignment_type != NULL) {
-            /* Put out an alignment indication for a field that was declared
-               larger than the underlying base type. */
-            if (type->kind == (a_type_kind)tk_union) {
-              /* For the union case, do this at the end. */
-              union_alignment_needed = TRUE;
-            } else {
-              dump_type(field->bit_field_alignment_type,
-                        /*add_pointer_to=*/FALSE);
-              write_tok_str(": 0;");
-              write_space();
-            }  /* if */
-          }  /* if */
-          dump_bit_field_base_type_name(field);
-          /* Write the name if the field is named. */
-          if (has_name(field)) {
-            write_space();
-            dump_field_name(field);
-          }  /* if */
-          write_tok_str(": ");
-          write_unsigned_num((a_host_large_unsigned)field->bit_size);
-#if GNU_EXTENSIONS_ALLOWED
-          (void)form_field_attributes(field, /*need_leading_space=*/TRUE,
-                                      &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          write_tok_ch(';');
-          if (field->declared_bit_size > field->bit_size) {
-            /* A bit field declared to be larger than the underlying type
-               (in C++).  Emit additional padding.  Finish the current
-               byte, then put out single bytes, then put out the bits
-               in the final byte.  Note that we can only put out unnamed
-               fields; we don't want to change the initialization order
-               of the struct. */
-            if (type->kind == (a_type_kind)tk_union) {
-              /* Handle unions at the end.  It doesn't do any good to put
-                 out padding as another field -- it wouldn't go after the
-                 field just put out. */
-              union_alignment_needed = TRUE;
-            } else {
-              dump_bit_field_padding(field);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      if (annotate) {
-        /* Display the offset in an annotation comment. */
-        dump_field_annotation_comment(field);
-      }  /* if */
-      if (type->kind != (a_type_kind)tk_union || last_field == NULL) {
-        last_field = field;
-      } else {
-        /* For a union, remember the biggest field. */
-        if (offset_after_field(last_field) < offset_after_field(field)) {
-          last_field = field;
-        }  /* if */
-      }  /* if */
-      prev_field = field;
-    }  /* for */
+    dump_field_list(type, &last_field, &union_alignment_needed);
     if (union_alignment_needed) {
       /* Put out extra fields to force alignment for the struct when
          there are fields that did not fit in their base types. */
@@ -3729,6 +3940,31 @@ bind correctly to the entity whose address is taken.
 }  /* dump_ampersand */
 
 
+static void create_prefix_and_dump_field_name(a_field_ptr field)
+/*
+Dump the name of the specified field, recursively scanning through base
+class subobject members as needed to create the member name prefix.
+*/
+{
+  if (field->base_class_subobject_with_tail_padding) {
+    /* The specified field represents the subobject for a base class with
+       tail padding.  This field does not exist in the generated derived
+       class, so we transform this reference into a reference to the
+       (mangled) name of the first member of the base class, using recursion
+       to build the mangling prefix by traversing the base class subobject
+       fields. */
+    a_member_name_prefix_component prefix;
+    push_member_name_prefix_component(&prefix, field);
+    /* Use the (mangled) name of the first member. */
+    create_prefix_and_dump_field_name(field->type->
+                                        variant.class_struct_union.field_list);
+    pop_member_name_prefix_component(&prefix);
+  } else {
+    dump_field_name(field);
+  }  /* if */
+}  /* create_prefix_and_dump_field_name */
+
+
 static void dump_field_from_second_operand(an_expr_node_ptr node)
 /*
 Dump the name of the field from the second operand under node (a field
@@ -3767,7 +4003,7 @@ selection operation).
     }  /* if */
   }
 #endif /* CHECKING */
-  dump_field_name(field);
+  create_prefix_and_dump_field_name(field);
 }  /* dump_field_from_second_operand */
 
 
@@ -3941,12 +4177,69 @@ output with parentheses if needed.
   a_field_ptr      field;
   a_boolean        mutable_case = FALSE;
   a_boolean        need_closing_paren = FALSE;
+  a_boolean        promoted_bit_field_case = FALSE;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
                    node_operator_is(expr, eok_points_to_field)));
   struct_expr = expr->variant.operation.operands;
   field = struct_expr->next->variant.field;
+  if (field->base_class_subobject_with_tail_padding) {
+    /* The field represents a base class subobject with padding.  The
+       fields of such subobjects are promoted into the derived class, so
+       the referenced field does not exist in the generated code, so
+       dump_field_from_second_operand translates a reference to the
+       field into a reference to the first member of the base class
+       subobject.  That will be the correct offset for the member, but the
+       type will be wrong, so we need to add code that will take the
+       address of the referenced member, cast it to a pointer to the base
+       class type, and dereference that pointer, in order to make this
+       field selection equivalent to what it would have been if the base
+       class members had not been promoted into the derived class.  For
+       example, C++
+
+           struct B { int i; };
+           struct D: B { };
+
+       becomes in the lowered IL
+
+           struct D { struct B __b_1B; };
+
+       and in the generated C code
+
+           struct D { int __b_1B_i; };
+
+       A field selection like dptr->__b_1B (calculating the "this" pointer
+       for a B member function, for example) will be generated as
+
+           (*(struct B*)&(dptr->__b_1B_i))
+
+       This pattern does not work, however, if the first field of the base
+       class is a bit-field, since it is not permitted to take the address
+       of a bit-field.  In this case, the expression dptr->__b_1B is
+       generated as
+
+           (*(struct B*)(((char*)dptr)+N))
+
+       where N is the offset of __b_1B in D, and x.__b_1B becomes
+
+           (*(struct B*)(((char*)&x)+N))
+       */
+    promoted_bit_field_case =
+            (field->type->variant.class_struct_union.field_list != NULL &&
+             field->type->variant.class_struct_union.field_list->is_bit_field);
+    write_tok_str("(*(");
+    dump_type(field->type, /*add_pointer_to=*/TRUE);
+    if (promoted_bit_field_case) {
+      if (node_operator_is(expr, eok_dot_field)) {
+        write_tok_str(")(((char*)&");
+      } else {
+        write_tok_str(")(((char*)");
+      }  /* if */
+    } else {
+      write_tok_str(")&(");
+    }  /* if */
+  }  /* if */
   if (node_operator_is(expr, eok_dot_field) && !struct_expr->is_lvalue) {
     a_boolean comma_case;
     /* Because pcc compilers do not allow selection of a field from an
@@ -3996,7 +4289,9 @@ output with parentheses if needed.
       write_tok_str(", ");
       dump_temp_name((char *)expr);
     }  /* if */
-    write_tok_ch('.');
+    if (!promoted_bit_field_case) {
+      write_tok_ch('.');
+    }  /* if */
   } else {
     a_type_ptr unqual_underlying_type;
     /* Look for a field selection of a mutable field from a const
@@ -4036,16 +4331,32 @@ output with parentheses if needed.
       }  /* if */
       dump_expr_with_parens(struct_expr);
       if (mutable_case) write_tok_ch(')');
-      write_tok_str("->");
+      if (!promoted_bit_field_case) {
+        write_tok_str("->");
+      }  /* if */
     } else {
       /* "." case. */
       dump_expr_with_parens(struct_expr);
-      write_tok_ch('.');
+      if (!promoted_bit_field_case) {
+        write_tok_ch('.');
+      }  /* if */
     }  /* if */
   }  /* if */
-  dump_field_from_second_operand(expr);
+  if (!promoted_bit_field_case) {
+    dump_field_from_second_operand(expr);
+  }  /* if */
   if (need_closing_paren) {
     write_tok_ch(')');
+  }  /* if */
+  if (field->base_class_subobject_with_tail_padding) {
+    if (promoted_bit_field_case) {
+      write_tok_ch(')');
+      if (field->offset != 0) {
+        write_tok_ch('+');
+        write_unsigned_num((a_host_large_unsigned)field->offset);
+      }  /* if */
+    }  /* if */
+    write_tok_str("))");
   }  /* if */
 }  /* dump_field_selection */
 
@@ -6004,7 +6315,7 @@ out in this way to guarantee their alignment.
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("static ");
     dump_general_declaration_using_type(constant->type, NO_SCP,
-                                        NO_VARIABLE, NO_ROUTINE,
+                                        NO_VARIABLE, NO_ROUTINE, NO_FIELD,
                                         (char *)constant, NO_NAME, TQ_NONE,
                                         /*suppress_const=*/FALSE);
     write_tok_str(" = {");
@@ -6091,6 +6402,7 @@ block with state information for the processing.
   a_type_ptr           elem_type;
   a_boolean            need_close_brace = FALSE;
   a_boolean            is_aggregate;
+  a_boolean            suppress_brace_for_base_class_subobject = FALSE;
 
   type = skip_typerefs(type);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -6163,6 +6475,7 @@ block with state information for the processing.
     ipdp->prev = outer_level_pos;
     ipdp->next = NULL;
     ipdp->type = type;
+    ipdp->curr_field = NULL;
     if (constant != NULL) {
       elem_con = constant->variant.aggregate.first_constant;
       check_assertion_str(constant->type != NULL,
@@ -6205,8 +6518,17 @@ block with state information for the processing.
       default:
         unexpected_condition_str("dump_initializer_part: bad entity type");
     }  /* switch */
-    /* If generating initializer constants, output a "{". */
-    if (!*gen_assignments) {
+    if (outer_level_pos != NULL &&
+        outer_level_pos->curr_field != NULL &&
+        outer_level_pos->curr_field->base_class_subobject_with_tail_padding) {
+      /* The base class subobject members are promoted into the derived
+         class, so we need to suppress the braces for the subobject. */
+      suppress_brace_for_base_class_subobject = TRUE;
+    }  /* if */
+    /* If generating initializer constants and this is not a base class
+       object with tail padding whose members are promoted into the
+       derived class, output a "{". */
+    if (!*gen_assignments && !suppress_brace_for_base_class_subobject) {
       initializer_open_brace(icbp);
       need_close_brace = TRUE;
     }  /* if */
@@ -6378,7 +6700,19 @@ block with state information for the processing.
       }  /* for */
     }  /* if */
     /* If generating initializer constants, output a "}". */
-    if (need_close_brace) initializer_close_brace(icbp);
+    if (need_close_brace) {
+      initializer_close_brace(icbp);
+    } else  if (suppress_brace_for_base_class_subobject &&
+                ipdp->curr_field != NULL) {
+      /* We're at the end of the fields that were promoted from a base
+         class subobject into the derived class.  If padding was inserted
+         to make the offset equal to the base class size, we need to
+         generate initializers for it. */
+      a_targ_size_t offset_after_fields = offset_after_field(ipdp->curr_field);
+      while (offset_after_fields++ < type->size) {
+        write_tok_str(",'\\0'");
+      }  /* while */
+    }  /* if */
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
 }  /* dump_initializer_part */
@@ -6745,8 +7079,8 @@ parameters.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
         dump_general_declaration_using_type(var_type,
                                             &variable->source_corresp,
-                                            variable, NO_ROUTINE, NO_TEMP,
-                                            NO_NAME, TQ_NONE,
+                                            variable, NO_ROUTINE, NO_FIELD,
+                                            NO_TEMP, NO_NAME, TQ_NONE,
                                             suppress_const);
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
@@ -7684,8 +8018,8 @@ statement expression, i.e., ({...}).
           } else {
             dump_general_declaration_using_type(param->type,
                                                 &param->source_corresp,
-                                                param, NO_ROUTINE, NO_TEMP,
-                                                NO_NAME, TQ_NONE,
+                                                param, NO_ROUTINE, NO_FIELD,
+                                                NO_TEMP,NO_NAME, TQ_NONE,
                                                 /*suppress_const=*/FALSE);
           }  /* if */
           write_tok_str(")");
@@ -7837,8 +8171,9 @@ prescan temporaries in the indicated expression.
       } else {
         /* Declare the temporary. */
         dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
-                                            NO_ROUTINE, (char *)node, NO_NAME,
-                                            TQ_NONE, /*suppress_const=*/FALSE);
+                                            NO_ROUTINE, NO_FIELD, (char *)node,
+                                            NO_NAME, TQ_NONE,
+                                            /*suppress_const=*/FALSE);
         write_tok_ch(';');
       }  /* if */
     }  /* if */
@@ -7949,8 +8284,8 @@ routine whose parameters are being processed.
     set_output_position(&param_var->source_corresp.decl_position);
     dump_general_declaration_using_type(param_var->type,
                                         &param_var->source_corresp,
-                                        param_var, NO_ROUTINE, NO_TEMP,
-                                        NO_NAME, TQ_NONE,
+                                        param_var, NO_ROUTINE, NO_FIELD,
+                                        NO_TEMP, NO_NAME, TQ_NONE,
                                         /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
     (void)form_variable_attributes(param_var, /*need_leading_space=*/TRUE,
@@ -8577,8 +8912,9 @@ if this routine has a body (dump nothing if it has no body).
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_general_declaration_using_type(rout->type, &rout->source_corresp,
-                                          NO_VARIABLE, rout, NO_TEMP, NO_NAME,
-                                          TQ_NONE, /*suppress_const=*/FALSE);
+                                          NO_VARIABLE, rout, NO_FIELD, NO_TEMP,
+                                          NO_NAME, TQ_NONE,
+                                          /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
       form_asm_name(rout->asm_name, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9214,6 +9550,9 @@ The IL is already available when this routine is called.
   pending_typedefs = NULL;
   last_pending_typedef = NULL;
   avail_pending_typedefs = NULL;
+  name_prefix_components = NULL;
+  last_name_prefix_component = NULL;
+  subobject_offset = 0;
 }  /* c_gen_be_init */
 
 

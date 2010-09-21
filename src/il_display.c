@@ -2434,6 +2434,11 @@ Display the indicated field.
   }  /* if */
   if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
+#if DO_IL_LOWERING
+  if (ptr->base_class_subobject_with_tail_padding) {
+    disp_boolean("base_class_subobject_with_tail_padding", TRUE);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->get_property_name != NULL) {
     disp_string_ptr("get_property_name", ptr->get_property_name,
@@ -5242,6 +5247,8 @@ Display the indicated base class entry.
              iek_base_class);
     disp_boolean("complete_subobject", (a_boolean)ptr->complete_subobject);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+    disp_boolean("is_optimized_empty_base",
+                 (a_boolean)ptr->is_optimized_empty_base);
 #if !IA64_ABI
     disp_host_large_unsigned("pointer_offset",
                              (a_host_large_unsigned)ptr->pointer_offset);

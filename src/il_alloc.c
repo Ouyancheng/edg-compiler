@@ -2104,6 +2104,9 @@ to it.
   fp->is_anonymous_parent_object = FALSE;
   fp->is_mutable           = FALSE;
   fp->compiler_generated   = FALSE;
+#if DO_IL_LOWERING
+  fp->base_class_subobject_with_tail_padding = FALSE;
+#endif /* DO_IL_LOWERING */
 #if CENTERLINE_CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

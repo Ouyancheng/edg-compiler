@@ -957,15 +957,16 @@ and (where allowed) incomplete array fields.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static void add_field(char          *field_name,
-                      a_type_ptr    field_type,
-                      a_targ_size_t field_offset,
-                      a_type_ptr    struct_type)
+static a_field_ptr add_field(char          *field_name,
+                             a_type_ptr    field_type,
+                             a_targ_size_t field_offset,
+                             a_type_ptr    struct_type)
 /*
-Make a field with the given type and add it at the right spot in the
-list of fields attached to struct_type.  field_name gives the field name
-(already allocated in the IL memory region).  field_offset gives the byte
-offset for the field.  The field allocated is not a bit field.
+Make a field with the given type, add it at the right spot in the list of
+fields attached to struct_type, and return a pointer to the new field.
+field_name gives the field name (already allocated in the IL memory
+region).  field_offset gives the byte offset for the field.  The field
+allocated is not a bit field.
 */
 {
   a_field_ptr prev_field, next_field;
@@ -1011,6 +1012,7 @@ offset for the field.  The field allocated is not a bit field.
     prev_field->next = field_ptr;
   }  /* if */
   field_ptr->next = next_field;
+  return field_ptr;
 }  /* add_field */
 
 
@@ -1037,7 +1039,7 @@ field_offset gives the byte offset for the field.
   /* Copy in the name. */
   (void)strcpy(name_ptr, field_name);
   /* Create the field. */
-  add_field(name_ptr, field_type, field_offset, struct_type);
+  (void)add_field(name_ptr, field_type, field_offset, struct_type);
 }  /* add_dummy_field */
 
 
@@ -1054,8 +1056,9 @@ field_type gives the type for the field.  field_offset gives the byte
 offset for the field.
 */
 {
-  sizeof_t prefix_length, alloc_length;
-  char     *temp_name, *name_ptr;
+  sizeof_t    prefix_length, alloc_length;
+  char        *temp_name, *name_ptr;
+  a_field_ptr field_ptr;
 
   /* Build the name for the field.  This is done by combining the
      field_prefix and the (possibly mangled) base class name. */
@@ -1072,7 +1075,16 @@ offset for the field.
   /* Store the base class name. */
   (void)strcpy(name_ptr+prefix_length, temp_name);
   /* Create the field. */
-  add_field(name_ptr, field_type, field_offset, struct_type);
+  field_ptr = add_field(name_ptr, field_type, field_offset, struct_type);
+#if IA64_ABI
+  if (targ_reuse_tail_padding && is_immediate_class_type(field_type) &&
+      class_type_supp(field_type)->compiler_generated &&
+      (field_type->size % field_type->alignment) != 0) {
+    /* There is padding at the end of the base class subobject in which
+       derived class members may be allocated. */
+    field_ptr->base_class_subobject_with_tail_padding = TRUE;
+  }  /* if */
+#endif /* IA64_ABI */
 }  /* add_base_class_dummy_field */
 
 
@@ -8137,7 +8149,7 @@ routine assumes the class type is as complete as it will ever get.
       prelower_class_type(bcp->type);
       base_ctsp = bcp->type->variant.class_struct_union.extra_info;
       base_class_type = base_ctsp->type_as_subobject;
-      add_base_class_dummy_field(bcp->type, 
+      add_base_class_dummy_field(bcp->type,
                                  (char *)(bcp->is_virtual ? "__v_" : "__b_"),
                                  base_class_type, bcp->offset, 
                                  class_type);

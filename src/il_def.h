@@ -5652,7 +5652,7 @@ typedef struct a_base_class {
 			   subobject).  For the IA-64 ABI, TRUE for every
 			   direct empty base. */
 #if IA64_ABI
-  a_bit_field   offset_is_set:1;
+  a_bit_field	offset_is_set:1;
                         /* TRUE for a base after its offset has been set. */
 #endif /* IA64_ABI */
   bitfield_to_avoid_codecenter_warnings()
@@ -8089,6 +8089,13 @@ typedef struct a_field {
 			/* TRUE for fields that are created by the compiler
 			   and have not been declared in the source,
 			   e.g., the virtual function table pointer. */
+#if DO_IL_LOWERING
+  a_bit_field	base_class_subobject_with_tail_padding:1;
+			/* TRUE if this field was added by IL lowering to
+			   represent a base class subobject and the base
+			   class has tail padding in which derived class
+			   members may be allocated. */
+#endif /* DO_IL_LOWERING */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_ptr
 		bit_size_constant;

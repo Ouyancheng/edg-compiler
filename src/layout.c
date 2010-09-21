@@ -2391,14 +2391,14 @@ of a base class.  Either field or base (but not both) must be NULL.
                   (field == NULL && base != NULL));
   offset = (field != NULL) ? field->offset : base->offset;
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && bcp->offset_is_set && !is_empty_class_type(bcp->type)) {
+    if ((bcp->direct || bcp->is_virtual) && bcp->offset_is_set &&
+        !is_empty_class_type(bcp->type)) {
       /* Note that we don't need to warn about empty base classes because
          they are handled correctly through the empty base class optimization
          code. */
       an_unnormalized_bit_offset
                       dummy = 0;
-      a_class_type_supplement_ptr
-                      cts = bcp->type->variant.class_struct_union.extra_info;
+      a_class_type_supplement_ptr cts = class_type_supp(bcp->type);
       a_targ_alignment
                       alignment = cts->alignment_without_virtual_base_classes;
       a_targ_size_t   size = cts->size_without_virtual_base_classes;
@@ -2409,8 +2409,7 @@ of a base class.  Either field or base (but not both) must be NULL.
                       &field->source_corresp.decl_position);
         } else {
           pos_sy2_warning(ec_base_uses_tail_padding, &base->decl_position,
-                          (a_symbol_ptr)base->type->source_corresp.assoc_info,
-                          (a_symbol_ptr)bcp->type->source_corresp.assoc_info);
+                          symbol_for(base->type), symbol_for(bcp->type));
         }  /* if */
         break;
       }  /* if */

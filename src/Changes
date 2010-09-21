@@ -1,5 +1,21 @@
 Version 4.3
 
+9/21/10  [EDGcpfe/11008]
+C-generating back end: support for tail-padding reuse
+
+The IA64 ABI requires in some cases that derived class members be allocated
+in the tail padding of base class subobjects, but the C-generating back end
+was unable to support tail-padding reuse and thus did not comply with this
+requirement.  This limitation has now been lifted, and the default setting
+for TARG_REUSE_TAIL_PADDING has been changed to TRUE for C-generating back
+end configurations with IA64_ABI set to TRUE.  In this configuration, the
+members of base classes with reusable tail padding are "promoted" into the
+derived class in the generated C code and member access expressions
+designating such promoted members are adjusted accordingly.  The previous
+class layout in the generated code can be retained by explicitly setting
+TARG_REUSE_TAIL_PADDING to FALSE.
+
+
 9/21/10  [EDGcpfe/10981]
 GNU compatibility: Additional IA-32 built-in functions
 
