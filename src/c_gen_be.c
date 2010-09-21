@@ -6707,7 +6707,15 @@ block with state information for the processing.
          class subobject into the derived class.  If padding was inserted
          to make the offset equal to the base class size, we need to
          generate initializers for it. */
-      a_targ_size_t offset_after_fields = offset_after_field(ipdp->curr_field);
+      a_targ_size_t offset_after_fields;
+      a_field_ptr   last_field = ipdp->curr_field;
+      /* ipdp->curr_field was left pointing at the last initializable field,
+         but the decision regarding insertion of padding was made on the
+         basis of all declared fields, not just the initializable ones. */
+      while (last_field->next != NULL) {
+        last_field = last_field->next;
+      }  /* while */
+      offset_after_fields = offset_after_field(last_field);
       while (offset_after_fields++ < type->size) {
         write_tok_str(",'\\0'");
       }  /* while */
