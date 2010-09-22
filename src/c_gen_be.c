@@ -29,7 +29,6 @@ instead of K&R C.
 #endif /* PCH_PRAGMA_GUARD */
 
 #include "basic_hdrs.h"
-#include "layout.h"
 
 #if STANDALONE_C_GEN_BE
 #if !BACK_END_IS_C_GEN_BE
@@ -51,6 +50,7 @@ instead of K&R C.
 
 /* Additional header files. */
 #include "c_gen_be.h"
+#include "layout.h"
 
 #include "il_walk.h"
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
@@ -474,10 +474,10 @@ member of the derived class.  (This is done to permit use of tail padding
 in the base class, which is not possible if the base class subobject is
 represented as a single struct member of the derived class.)  The names of
 the base class members must be mangled in order to prevent collisions with
-the names of derived class members.  In order to support base classes of
-base classes, each level of derivation for a given base class member that
-is promoted will be reflected in a member name prefix component, which are
-kept on a doubly-linked list.
+the names of derived class members.  Multi-level promotion, where members
+of a base of a base become members of the derived class, is possible, so
+the member name prefix components for the bases are kept on a doubly-linked
+list.
 */
 typedef struct a_member_name_prefix_component
                                            *a_member_name_prefix_component_ptr;
@@ -513,7 +513,7 @@ The offset within the most-derived class of the subobject associated with
 the current member name prefix, or 0 if none.  (Used to adjust the offsets
 displayed in layout annotations to be relative to the complete object.)
 */
-a_targ_size_t subobject_offset;
+static a_targ_size_t subobject_offset;
 
 
 /* Declarations needed because of forward references: */
@@ -2765,7 +2765,7 @@ These two fields are normally consecutive members of the given "type", but
      !field->is_bit_field) {
     /* Compute any required padding before the field.  This only comes up
        for empty base class layout, so check this only when the field has
-       a class type (hence also the bit_field_test). */
+       a class type (hence also the is_bit_field test). */
     a_type_ptr  field_type = field->type;
     a_field_ptr effective_field = field;
     while (effective_field->base_class_subobject_with_tail_padding) {
