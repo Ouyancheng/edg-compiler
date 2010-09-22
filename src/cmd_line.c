@@ -7537,7 +7537,9 @@ enable_microsoft_mode:
 #endif /* NEAR_AND_FAR_ALLOWED */
       case optk_cppcli:
         cppcli_enabled = opt_value;
-        if (opt_value) goto enable_microsoft_mode;
+        if (opt_value && !option_kind_used[(int)optk_microsoft_mode]) {
+          goto enable_microsoft_mode;
+        }  /* if */
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
