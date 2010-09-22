@@ -491,6 +491,14 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if CPPCLI_ENABLING_POSSIBLE
+  add_option_description(optk_cppcli, "cppcli",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cppcli, "no_cppcli",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -2665,7 +2673,8 @@ otherwise implicitly enabled Microsoft mode.
 #if NEAR_AND_FAR_ALLOWED
         option_kind_used[(int)optk_microsoft_16_mode] ||
 #endif /* NEAR_AND_FAR_ALLOWED */
-        option_kind_used[(int)optk_microsoft_bugs]) {
+        option_kind_used[(int)optk_microsoft_bugs] ||
+        option_kind_used[(int)optk_cppcli]) {
       /* Microsoft mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
@@ -7526,6 +7535,10 @@ enable_microsoft_mode:
         il_header.near_and_far_are_enabled = TRUE;
         break;
 #endif /* NEAR_AND_FAR_ALLOWED */
+      case optk_cppcli:
+        cppcli_enabled = opt_value;
+        if (opt_value) goto enable_microsoft_mode;
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -8184,6 +8197,15 @@ enable_microsoft_mode:
   } else {
     /* Microsoft mode is not being used. */
     microsoft_bugs = FALSE;
+    if (cppcli_enabled) {
+      if (option_kind_used[(int)optk_cppcli] &&
+          option_kind_used[(int)optk_microsoft_mode]) {
+        /* Issue an error if Microsoft mode is explicitly turned off and
+           C++/CLI mode is explicitly turned on. */
+        command_line_error(ec_cl_cppcli_only_in_microsoft);
+      }  /* if */
+      cppcli_enabled = FALSE;
+    }  /* if */
     if (import_dir_name != NULL) {
       /* --import_dir is allowed only in Microsoft mode. */
       command_line_error(ec_cl_import_only_in_microsoft);
@@ -9146,10 +9168,12 @@ variables declared in cmd_line.h.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS;
+  cppcli_enabled = DEFAULT_CPPCLI_ENABLED;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;
   microsoft_bugs = FALSE;
+  cppcli_enabled = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;

@@ -576,6 +576,7 @@ check_abbreviation()
 --const_string_literals
 --context_limit
 --cpfe_only
+--cppcli
 --create_pch
 --db
 --db_alloc_seq
@@ -676,6 +677,7 @@ check_abbreviation()
 --no_code_gen
 --no_compound_literals
 --no_const_string_literals
+--no_cppcli
 --no_defer_parse_function_templates
 --no_definition_list_file
 --no_demangle
@@ -1196,6 +1198,8 @@ process_option()
 	 --microsoft_bugs | \
 	 --no_microsoft_bugs | \
 	 --microsoft_16 | \
+	 --cppcli | \
+	 --no_cppcli | \
 	 --far_data_pointers | \
 	 --near_data_pointers | \
 	 --far_code_pointers | \

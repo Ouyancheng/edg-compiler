@@ -719,6 +719,31 @@ by a command line option.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE if C++/CLI extensions (ECMA-372) can be accepted.  (Setting
+the flag to TRUE enables command-line ption --cppcli and --no_cppcli.)  If the
+flag is TRUE, MICROSOFT_EXTENSIONS_ALLOWED must be TRUE as well.
+*/
+#ifndef CPPCLI_ENABLING_POSSIBLE
+#define CPPCLI_ENABLING_POSSIBLE FALSE
+#endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
+
+#if CPPCLI_ENABLING_POSSIBLE && !MICROSOFT_EXTENSIONS_ALLOWED
+ #error -- CPPCLI_ENABLING_POSSIBLE requires MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* CPPCLI_ENABLING_POSSIBLE && !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE to enable C++/CLI extensions by default when Microsoft
+extensions are enabled.
+*/
+#ifndef DEFAULT_CPPCLI_ENABLED
+#define DEFAULT_CPPCLI_ENABLED FALSE
+#endif /* ifndef DEFAULT_CPPCLI_ENABLED */
+
+#if DEFAULT_CPPCLI_ENABLED && !CPPCLI_ENABLING_POSSIBLE
+ #error -- DEFAULT_CPPCLI_ENABLED requires CPPCLI_ENABLING_POSSIBLE
+#endif /* DEFAULT_CPPCLI_ENABLED && !CPPCLI_ENABLING_POSSIBLE */
+
+/*
 Flag that is TRUE if by default in Microsoft modes the front end should accept
 64-bit pointer extensions (__ptr32/__ptr64 and __sptr/__uptr).  This is used
 to initialize the global variable microsoft_64bit_pointer_extensions_enabled.
@@ -948,6 +973,10 @@ EXTERN a_boolean
 EXTERN a_boolean
 		microsoft_bugs;
 			/* TRUE if Microsoft bugs are to be emulated. */
+
+EXTERN a_boolean
+		cppcli_enabled;
+			/* TRUE if C++/CLI features should be accepted. */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
    mode and Microsoft bugs with macros.  This will allow optimizers to remove
@@ -958,9 +987,12 @@ EXTERN a_boolean
 		microsoft_mode;
 EXTERN a_boolean
 		microsoft_bugs;
+EXTERN a_boolean
+		cppcli_enabled;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
 #define microsoft_bugs FALSE
+#define cppcli_enabled FALSE
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
