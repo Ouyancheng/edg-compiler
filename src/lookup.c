@@ -3005,7 +3005,8 @@ that do normal id lookup processing.
       if (((kind == (a_scope_kind)sck_namespace ||
             kind == (a_scope_kind)sck_namespace_extension) &&
            !(lookup_state->must_be_tag &&
-            (gpp_mode || sun_mode || microsoft_mode))) ||
+             ((gpp_mode && gnu_version < 40000) ||
+              sun_mode || microsoft_mode))) ||
           (!any_cfront_mode() && (kind == (a_scope_kind)sck_function ||
                                   kind == (a_scope_kind)sck_block))) {
         break;
@@ -3195,6 +3196,8 @@ that do normal id lookup processing.
      if the innermost namespace scope is part of the common lookup. */
   if ((ref_sym == NULL || def_sym == NULL) &&
       (!lookup_state->is_friend_lookup ||
+       (lookup_state->must_be_tag &&
+        ((gpp_mode && gnu_version < 40000) || sun_mode || microsoft_mode)) ||
        depth_innermost_namespace_scope <= common_depth ||
        locator->is_template_id) &&
        !do_not_look_in_common_scopes) {

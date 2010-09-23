@@ -1,5 +1,35 @@
 Version 4.3
 
+9/23/10  [EDGcpfe/10951]
+Microsoft and GNU C++ compatibility: lookup of friend class names
+
+The Microsoft compiler and certain versions of g++ incorrectly consider
+names outside of the nearest enclosing namespace when looking for a prior
+declaration of a class named in a friend class declaration.  A bug in our
+emulation of this feature caused friend declarations from class templates
+to be handled incorrectly (resulting in a spurious access error on X in the
+example below).  This is now fixed.  In addition, g++ versions 4.0 and
+newer correctly limit the lookup to the nearest enclosing namespace, so we
+now disable our emulation when gnu_version >= 40000.
+
+  class A;
+  namespace N {
+    template <class T> class X {
+      X(){}
+      friend class A;
+    };
+    class Y {
+      Y(){}
+      friend class A;
+    };
+  }
+  class A {
+    A(){}
+    N::X<int> x;
+    N::Y y;
+  };
+
+
 9/21/10  [EDGcpfe/11008]
 C-generating back end: support for tail-padding reuse
 
