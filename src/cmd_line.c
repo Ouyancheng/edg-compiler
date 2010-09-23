@@ -4139,6 +4139,11 @@ file.
 #else /* !defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
   comment_undefined_macro_name(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT);
 #endif /* defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT) */
+#if defined(CPPCLI_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(CPPCLI_ENABLING_POSSIBLE);
+#else /* !defined(CPPCLI_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(CPPCLI_ENABLING_POSSIBLE);
+#endif /* defined(CPPCLI_ENABLING_POSSIBLE) */
 #if defined(CPP0X_IL_EXTENSIONS_SUPPORTED)
   define_numeric_valued_macro(CPP0X_IL_EXTENSIONS_SUPPORTED);
 #else /* !defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
@@ -4318,6 +4323,11 @@ file.
 #else /* !defined(DEFAULT_CONTEXT_LIMIT) */
   comment_undefined_macro_name(DEFAULT_CONTEXT_LIMIT);
 #endif /* defined(DEFAULT_CONTEXT_LIMIT) */
+#if defined(DEFAULT_CPPCLI_ENABLED)
+  define_numeric_valued_macro(DEFAULT_CPPCLI_ENABLED);
+#else /* !defined(DEFAULT_CPPCLI_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_CPPCLI_ENABLED);
+#endif /* defined(DEFAULT_CPPCLI_ENABLED) */
 #if defined(DEFAULT_CPP0X_MODE)
   define_numeric_valued_macro(DEFAULT_CPP0X_MODE);
 #else /* !defined(DEFAULT_CPP0X_MODE) */
@@ -7526,6 +7536,12 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* NEAR_AND_FAR_ALLOWED */
 enable_microsoft_mode:
         microsoft_mode = opt_value;
+        if (!option_kind_used[(int)optk_cppcli]) {
+          cppcli_enabled = DEFAULT_CPPCLI_ENABLED;
+        }  /* if */
+        if (!option_kind_used[(int)optk_microsoft_bugs]) {
+          cppcli_enabled = DEFAULT_MICROSOFT_BUGS;
+        }  /* if */
         break;
 #if NEAR_AND_FAR_ALLOWED
       case optk_microsoft_16_mode:
@@ -8199,15 +8215,6 @@ enable_microsoft_mode:
   } else {
     /* Microsoft mode is not being used. */
     microsoft_bugs = FALSE;
-    if (cppcli_enabled) {
-      if (option_kind_used[(int)optk_cppcli] &&
-          option_kind_used[(int)optk_microsoft_mode]) {
-        /* Issue an error if Microsoft mode is explicitly turned off and
-           C++/CLI mode is explicitly turned on. */
-        command_line_error(ec_cl_cppcli_only_in_microsoft);
-      }  /* if */
-      cppcli_enabled = FALSE;
-    }  /* if */
     if (import_dir_name != NULL) {
       /* --import_dir is allowed only in Microsoft mode. */
       command_line_error(ec_cl_import_only_in_microsoft);
@@ -8216,6 +8223,26 @@ enable_microsoft_mode:
   /* If no directory was specified for #import, use the current directory. */
   if (import_dir_name == NULL) {
     import_dir_name = ".";
+  }  /* if */
+  if (cppcli_enabled) {
+    /* C++/CLI requires Microsoft C++ mode. */
+    if (!microsoft_mode) {
+      if (option_kind_used[(int)optk_cppcli] &&
+          option_kind_used[(int)optk_microsoft_mode]) {
+        /* Issue an error if Microsoft mode is explicitly turned off and
+           C++/CLI mode is explicitly turned on. */
+        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
+      }  /* if */
+      cppcli_enabled = FALSE;
+    } else if (C_mode()) {
+      if (C_mode()) {
+        if (option_kind_used[(int)optk_cppcli]) {
+          /* Issue an error if C++/CLI was turned on explicitly in C mode. */
+          command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
+        }  /* if */
+        cppcli_enabled = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (extended_designators_allowed) {
@@ -9169,8 +9196,8 @@ variables declared in cmd_line.h.
   gnu_version = DEFAULT_GNU_VERSION;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
-  microsoft_bugs = DEFAULT_MICROSOFT_BUGS;
-  cppcli_enabled = DEFAULT_CPPCLI_ENABLED;
+  microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;
+  cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;
