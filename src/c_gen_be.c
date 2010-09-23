@@ -488,8 +488,8 @@ typedef struct a_member_name_prefix_component {
 			   member. */
   a_member_name_prefix_component_ptr
 		prev;	/* The component corresponding to the previous
-                           (i.e., more-derived) base class for the current
-                           member. */
+			   (i.e., more-derived) base class for the current
+			   member. */
   char		*str;	/* The name of the base class subobject member out
 			   of which the current member is being
 			   promoted. */
@@ -2770,13 +2770,8 @@ These two fields are normally consecutive members of the given "type", but
     a_field_ptr effective_field = field;
     while (effective_field->base_class_subobject_with_tail_padding) {
       /* Use the first promoted field to compute the required alignment. */
-      if (field_type->variant.class_struct_union.field_list == NULL) {
-        /* Empty base; use the base class subobject. */
-        break;
-      } else {
-        effective_field = field_type->variant.class_struct_union.field_list;
-        field_type = effective_field->type;
-      }  /* if */
+      effective_field = field_type->variant.class_struct_union.field_list;
+      field_type = effective_field->type;
     }  /* while */
     if (is_array_type(field_type)) {
       /* Arrays of class type have to be checked as well. */
@@ -3133,7 +3128,7 @@ padding in the generated code.
     /* The last field of a base class subobject whose members have been
        promoted into the derived class is a bit-field.  Add a dummy
        bit-field if needed to ensure that if the following derived class
-       member is a bit-field, it doesn't bleed into the space leftover
+       member is a bit-field, it doesn't bleed into the space left over
        from the base class field. */
     an_offset_bit_remainder dummy_bits = 
                                       (targ_char_bit -
