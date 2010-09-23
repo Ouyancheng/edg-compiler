@@ -8271,6 +8271,128 @@ is called only in C++.
                                     saved_innermost_scope_that_affects_access;
 }  /* pop_class_reactivation_scope */
 
+
+a_boolean begin_potential_pack_expansion_context(
+				a_pack_expansion_descr_ptr	*pedp)
+/*
+This is called at the start of a construct that could be a variadic template
+pack expansion.  Such pack expansions occur only within the declarations
+and bodies of templates.  This routine is called when entering a potential
+pack expansion context.  In most cases it will turn out that the context
+does not actually contain a pack expansion.  In the example below, this
+routine is called at the points marked with "^".   On each of the lines, the
+first "^" is not actually a pack expansion but the second one is.
+
+  template <class ... T> void f(int i, T ... args){
+                                ^      ^
+    h(1, (args+1)...);
+      ^  ^
+  }
+
+A variadic template must undergo a prototype instantiation before a real
+instantiation can be done.  During the prototype instantiation the token
+range of each actual pack expansion is recorded.  A list of the parameter packs
+actually referenced from within the expansion is also recorded.  When we
+reach the corresponding potential pack expansion context during a real
+instantiation we know which argument values, if any, need to be expanded.
+
+This routine returns TRUE if there are any argument values to be expanded or
+if this is not an actual pack expansion.  In other words, it returns FALSE
+for an actual pack expansion for which the associated parameter packs have
+zero elements.  It will also issue an error and return FALSE for a pack
+expansion that uses multiple parameter packs but for which the parameter
+packs do not all have the same number of elements.  When FALSE is returned,
+the token stream will be advanced so that the current token is the one
+following the end of the pack expansion context (i.e., usually after
+the "...").
+
+When this routine is called in a prototype instantiation, it always returns
+TRUE -- we have either a non-pack context or a prototype instantiation of
+a pack expansion, which is always treated as having a single element.
+
+When this routine is called in a real instantiation context (and the
+parameter packs are non-empty), the symbols for any parameter packs
+referenced in the expansion are updated to refer to the first element
+of the associated pack.
+
+*pedp is a pointer to an entry that describes the current pack expansion
+context.  A stack of such entries is maintained and the pedp pointer passed
+by the caller is updated to point to the stack entry created for the
+new context.  In a non-variadic context in an actual instantiation, *pedp
+will be set to NULL.
+*/
+{
+  /* FIXME: stub version. */
+  return TRUE;
+}  /* begin_potential_pack_expansion_context */
+
+
+void end_potential_pack_expansion_context(
+				a_pack_expansion_descr_ptr	pedp,
+				a_boolean			is_declarator)
+/*
+This is called at the end of a construct that could be a variadic template
+pack expansion.  This is called in circumstances similar to those for
+begin_potential_pack_expansion_context (see also for more information).
+pedp describes the current pack expansion, and can be NULL in an actual
+instantiation of a context that did not turn out to be variadic.  Note that
+this routine will not be called during an actual instantiation in which the
+parameter packs are empty.
+
+is_declarator is TRUE if this is being called while scanning a parameter
+declaration.  Normally, this routine expects to be called when the "..."
+is the current token, and that token is bypassed.  This is not done when
+is_declarator is TRUE (in which case the caller is expected to call
+record_pack_expansion_ellipsis when the "..." is encountered in the middle
+of the declaration).
+*/
+{
+}  /* end_potential_pack_expansion_context */
+
+
+a_boolean advance_to_next_pack_element(a_pack_expansion_descr_ptr	pedp)
+/*
+This routine is called after end_potential_pack_expansion_context has been
+called, to update the symbols that refer to pack expansions so that they
+refer to the next element of the pack, if any.
+
+TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
+*/
+{
+  /* FIXME: stub version. */
+  return FALSE;
+}  /* advance_to_next_pack_element */
+
+
+void record_pack_reference(a_symbol_ptr	pack_symbol)
+/*
+This routine is called during the prototype instantiation of a variadic
+template parameter pack expansion to record a reference to a parameter
+pack.  pack_symbol is the symbol for the template parameter that names
+the parameter pack.  This can be a template parameter symbol for a
+template parameter pack, or a variable symbol for the parameter variable
+for a function parameter pack.
+
+This routine should never be called in a real instantiation as name lookup
+should never find an unexpanded pack.
+*/
+{
+}  /* record_pack_reference */
+
+
+void record_pack_expansion_ellipsis(void)
+/*
+Called during the processing of a variadic template declaration when the
+"..." indicating the pack expansion is detected.  This marks an expansion of
+the pack on the top of the pack expansion stack.  The current token must
+be "...", and that token is bypassed by this routine.
+
+This routine is only called for pack expansions in declarators (see
+end_potential_pack_expansion_context).
+*/
+{
+}  /* record_pack_expansion_ellipsis */
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean in_deprecated_definition(void)

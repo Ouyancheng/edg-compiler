@@ -1451,6 +1451,20 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup);
 
+extern a_boolean begin_potential_pack_expansion_context(
+				a_pack_expansion_descr_ptr	*pedp);
+
+extern void end_potential_pack_expansion_context(
+				a_pack_expansion_descr_ptr	pedp,
+				a_boolean			is_declarator);
+
+extern
+a_boolean advance_to_next_pack_element(a_pack_expansion_descr_ptr	pedp);
+
+extern void record_pack_reference(a_symbol_ptr	pack_symbol);
+
+extern void record_pack_expansion_ellipsis(void);
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 extern a_boolean in_deprecated_definition(void);
