@@ -27,6 +27,9 @@ folding.c -- Folding routines.
 #include "folding.h"
 #include "layout.h"
 #include "exprutil.h"
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
 
 /*
 Determine the severity (error or warning) to be used for integer
@@ -1824,7 +1827,8 @@ for any diagnostics issued.
   }  /* if */
   template_case = (!C_mode() &&
                    (constant->kind == (a_constant_repr_kind)ck_template_param||
-                    (in_front_end && is_template_dependent_type(new_type))));
+                    (context_may_have_dependent_types() &&
+                     is_template_dependent_type(new_type))));
   if (identical_types(constant_type, new_type) &&
       (is_implicit_cast || !template_case)) {
     /* The current and new types are the same, so no change is required. */
@@ -2680,7 +2684,7 @@ for any diagnostics issued.
     set_error_constant(result);
   } else if (!C_mode() &&
              (constant->kind == (a_constant_repr_kind)ck_template_param ||
-              (is_template_dependent_context() &&
+              (context_may_have_dependent_types() &&
                is_template_dependent_type(result_type)))) {
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
@@ -5011,7 +5015,7 @@ error.  *err_pos is used as the position for any diagnostics issued.
   } else if (!C_mode() &&
              (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
               constant_2->kind == (a_constant_repr_kind)ck_template_param ||
-              (is_template_dependent_context() &&
+              (context_may_have_dependent_types() &&
                is_template_dependent_type(result_type)))) {
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
@@ -5571,7 +5575,7 @@ template_constant is always non-NULL).
     /* In a prototype instantiation, a static member function of the
        current class is template-dependent. */
     *template_constant = TRUE;
-  } else if ((!in_front_end || is_template_dependent_context()) &&
+  } else if (context_may_have_dependent_types() &&
              is_template_dependent_type(rout->type)) {
     *template_constant = TRUE;
   }  /* if */

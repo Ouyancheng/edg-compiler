@@ -1,5 +1,15 @@
 Version 4.3
 
+9/23/10  [EDGcpfe/11031]
+is_template_dependent_context used in folding.c after scope stack empty
+
+folding.c contained some calls of is_template_dependent_context that
+in some cases were executed after the scope stack was empty.  These
+have been replaced by uses of a new macro context_may_have_dependent_types,
+which guards the call of is_template_dependent_context appropriately
+for use outside the front end proper.
+
+
 9/23/10  [EDGcpfe/10951]
 Microsoft and GNU C++ compatibility: lookup of friend class names
 

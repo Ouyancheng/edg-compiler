@@ -1084,6 +1084,20 @@ scopes.  It is also TRUE when is_nonreal_instantiation is TRUE.
    scope_stack[depth_scope_stack].in_prototype_instantiation ||		\
    scope_stack[depth_scope_stack].in_nonreal_instantiation)
 
+/*
+Safe version of is_template_dependent_context that can be used in
+back ends (returns TRUE there and FALSE in IL lowering).  Basically guards
+is_template_dependent_context to avoid calling it when the scope
+stack does not exist.
+*/
+#if DO_IL_LOWERING
+#define context_may_have_dependent_types() \
+ (!il_lowering_underway && (!in_front_end || is_template_dependent_context()))
+#else /* !DO_IL_LOWERING */
+#define context_may_have_dependent_types() \
+ (!in_front_end || is_template_dependent_context())
+#endif /* DO_IL_LOWERING */
+
 
 /*
 TRUE if we are in a context in which an expression is being scanned
