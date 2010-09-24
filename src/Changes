@@ -1,5 +1,18 @@
 Version 4.3
 
+9/24/10  [EDGcpfe/11030]
+GNU C++ compatibility: allow redeclaration of class template from using-decl
+
+In g++ mode, a class template made visible via a using-declaration can now
+be redeclared or defined in the scope containing the using-declaration.
+
+  namespace N {
+   template <class T> struct A {};
+  }
+  using N::A;
+  template <class T> struct A;
+
+
 9/23/10  [EDGcpfe/11031]
 is_template_dependent_context used in folding.c after scope stack empty
 
