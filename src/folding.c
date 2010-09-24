@@ -1825,9 +1825,11 @@ for any diagnostics issued.
     set_error_constant(&new_constant);
     goto exit;
   }  /* if */
+  /* Not using context_may_have_dependent_types here because we can get
+     "auto" from type deductions in initializations. */
   template_case = (!C_mode() &&
                    (constant->kind == (a_constant_repr_kind)ck_template_param||
-                    (context_may_have_dependent_types() &&
+                    (in_front_end &&
                      is_template_dependent_type(new_type))));
   if (identical_types(constant_type, new_type) &&
       (is_implicit_cast || !template_case)) {
