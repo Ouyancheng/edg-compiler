@@ -7540,7 +7540,7 @@ enable_microsoft_mode:
           cppcli_enabled = DEFAULT_CPPCLI_ENABLED;
         }  /* if */
         if (!option_kind_used[(int)optk_microsoft_bugs]) {
-          cppcli_enabled = DEFAULT_MICROSOFT_BUGS;
+          microsoft_bugs = DEFAULT_MICROSOFT_BUGS;
         }  /* if */
         break;
 #if NEAR_AND_FAR_ALLOWED
