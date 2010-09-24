@@ -7547,9 +7547,8 @@ enable_microsoft_mode:
       case optk_microsoft_16_mode:
         /* Enable or disable Microsoft extensions, in 16-bit mode. */
         check_assertion(opt_value == TRUE);
-        microsoft_mode = TRUE;
         il_header.near_and_far_are_enabled = TRUE;
-        break;
+        goto enable_microsoft_mode;
 #endif /* NEAR_AND_FAR_ALLOWED */
       case optk_cppcli:
         cppcli_enabled = opt_value;
