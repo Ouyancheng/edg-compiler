@@ -9195,8 +9195,8 @@ variables declared in cmd_line.h.
   gnu_version = DEFAULT_GNU_VERSION;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
-  microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;
-  cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;
+  microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
+  cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;
