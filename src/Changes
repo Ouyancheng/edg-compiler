@@ -1,5 +1,30 @@
 Version 4.3
 
+9/24/10  [EDGcpfe/11026]
+Unnecessary instantiation of class to determine related-class relationship
+
+The front end unnecessarily instantiated a class template as part of
+determining a related-class relationship for a Microsoft bugs mode
+feature.  Specifically, in checking whether a conversion from "pointer to X"
+to "pointer to X" (i.e., the same type) is a cast to an ambiguous base
+class, it instantiated X even though the fact that there is no base
+class relationship can be determined without doing so.  Now, the class
+is not instantiated in such cases.  Because the change was made at a
+low level, it's possible that in some other obscure cases (even
+non-Microsoft-mode cases) the front end will no longer instantiate a
+class where formerly it did so.
+
+  template<typename T> struct X {
+    enum { E=sizeof(T) };
+  };
+  struct S;
+  typedef X<S> XS;
+  XS* f(XS *p) { return p; }  // No longer gets an error in
+                              // Microsoft bugs mode
+
+This bug was introduced in version 4.1.
+
+
 9/24/10  [EDGcpfe/11029]
 Incorrect consistency check on "*" operator over pointer to cv-qualified
 function type

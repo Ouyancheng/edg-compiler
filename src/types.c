@@ -1871,7 +1871,8 @@ class will be instantiated if necessary so that its base classes are known.
   if (C_dialect == C_dialect_cplusplus) {
     derived_class = skip_typerefs(derived_class);
     base_class = skip_typerefs(base_class);
-    if (instantiate_if_necessary) {
+    if (instantiate_if_necessary &&
+        !same_entities(derived_class, base_class)) {
 #if !STANDALONE_UTILITY_PROGRAM
       /* Force instantiation of the derived type if it is an uninstantiated
          template class.  This is necessary so that we can see what its base
