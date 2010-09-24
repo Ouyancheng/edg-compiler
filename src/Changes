@@ -1,5 +1,20 @@
 Version 4.3
 
+9/24/10  [EDGcpfe/11029]
+Incorrect consistency check on "*" operator over pointer to cv-qualified
+function type
+
+A consistency check on the result type of the "*" operator gave a spurious
+abort on cases where the type of the operand is a pointer to a cv-qualified
+function type.  cv-qualifiers over a function type are ignored, but the
+consistency check failed to drop them in doing the check.  Now fixed.
+
+  typedef void foo(void);
+  void f(const foo* v) {
+    (*v)();  // Formerly aborted in C99 mode
+  }
+
+
 9/24/10  [EDGcpfe/11030]
 GNU C++ compatibility: allow redeclaration of class template from using-decl
 

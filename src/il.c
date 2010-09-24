@@ -21262,6 +21262,9 @@ node, and report any failure as an internal error.
          type decays back to a pointer to function; we need to check
          against the function type itself. */
       result_type = type_pointed_to(result_type);
+      /* Drop cv-qualifiers on top of the function type.  They would be
+         ignored anyway. */
+      result_type = skip_typerefs(result_type);
     }  /* if */
     if (!pointer_type_is_consistent(
                          operand_1->type, result_type,
