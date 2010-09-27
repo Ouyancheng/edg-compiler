@@ -1,5 +1,27 @@
 Version 4.3
 
+9/27/10  [EDGcpfe/10720]
+C++-generating back end: expressions in non-type template arguments
+
+The front end previously did not retain backing expressions for non-type
+template argument constants, with the consequence that the C++-generating
+back end always generated the template argument as simply the folded
+constant value.  This caused problems with the generated code if the
+argument expression contains a reference that causes the instantiation of
+another template, since that template might not otherwise be instantiated.
+The front end has now been changed to retain the backing expression for a
+non-type template argument that results in the instantiation of a class
+template.  (The C++-generating back end only uses the backing expression
+for the first reference to the template instance, in order to avoid scope
+issues for names appearing in the expression.)  For example:
+
+  template<typename T> struct A {
+    typedef int I;
+  };
+  template<int N> struct B { };
+  B<sizeof(A<int>::I)> b4;   // previously generated as B<4>
+
+
 9/24/10  [EDGcpfe/11026]
 Unnecessary instantiation of class to determine related-class relationship
 

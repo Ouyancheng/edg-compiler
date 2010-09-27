@@ -329,6 +329,15 @@ Output the indicated template argument in the way described by octl.
             /* Normal (non-reference) case. */
             form_constant(con, /*need_parens=*/FALSE, octl);
           }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+          if (octl->gen_compilable_code) {
+            /* We only want to generate an expression, rather than a
+               constant value, for the first reference to a given template
+               instance, because the expression might use names that will
+               not be in scope in later references to the instance. */
+            con->expr = NULL;
+          }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
         }  /* if */
       }
       break;

@@ -24368,6 +24368,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
   an_operand             result;
   an_expr_stack_entry    expr_stack_entry;
   a_memory_region_number region_to_switch_back_to;
+  a_decl_sequence_number class_inst_seq_on_entry =
+                                           class_instantiation_sequence_number;
 
   db_enter(3, "scan_template_argument_constant_expression");
   check_assertion(constant != NULL && in_file_scope(constant));
@@ -24395,8 +24397,19 @@ memory region).  If param_type is NULL, the parameter type is not known.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
-  check_assertion(constant->expr == NULL ||
-                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
+  if (depth_template_declaration_scope == NO_SCOPE_DEPTH &&
+      class_instantiation_sequence_number == class_inst_seq_on_entry) {
+    /* In general, backing expressions for template arguments are not
+       retained (because a given template instance can be referred to many
+       times with different expressions that evaluate to the same constant,
+       only one of which would appear in the instance's template argument
+       list).  The two exceptions are inside template declarations, because
+       they are needed for name mangling (at least in the IA-64 ABI), and
+       when a given template argument causes another template to be
+       instantiated, because just using the constant would likely lose the
+       reference that caused the instantiation. */
+    constant->expr = NULL;
+  }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;

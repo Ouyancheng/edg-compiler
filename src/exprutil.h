@@ -875,26 +875,15 @@ kinds are at the beginning of the list.
 
 /*
 Macro that returns TRUE if the current expression kind is one in which
-backing expressions are recorded for constants.  They are never recorded for
-preprocessing expressions (because the constants are never saved).
-Otherwise they are recorded in general but not for template argument
-expressions except as noted below (because a template can be specified
-many times with a different argument expression each time).  They are also
-recorded for expressions in template declarations, including template
-arguments, because that's needed for name mangling (at least in the IA-64
-ABI).  They are not generally recorded when IL lowering is being done,
-but see RECORD_BACKING_EXPRS_WITH_IL_LOWERING to override that.
+backing expressions are recorded for constants.  They are never recorded
+for preprocessing expressions (because the constants are never saved).
+Otherwise they are recorded in general (but see
+scan_template_argument_constant_expression for the criteria used to
+determine whether they are recorded for non-type template argument
+constants).
 */
-#if !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
-  (!curr_expr_kind_is(ek_pp) && \
-   (!curr_expr_kind_is(ek_template_arg) || \
-    depth_template_declaration_scope != NO_SCOPE_DEPTH))
-#else /* !(!DO_IL_LOWERING ...) */
-#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
-  (!curr_expr_kind_is(ek_pp) && \
-   depth_template_declaration_scope != NO_SCOPE_DEPTH)
-#endif /* !(!DO_IL_LOWERING ...) */
+  !curr_expr_kind_is(ek_pp)
 
 /*
 Macro that returns TRUE if the current expression is evaluated, i.e.,

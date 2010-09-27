@@ -3048,6 +3048,8 @@ loading of classes.
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
+      /* Update the instantiation sequence number. */
+      ++class_instantiation_sequence_number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (saved_sse_insertion_point != NULL) {
@@ -24516,6 +24518,7 @@ given translation unit.
   set_type_size(type_of_unknown_templ_param_nontype);
   type_of_unknown_templ_param_nontype->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_unknown;
+  class_instantiation_sequence_number = 0;
 }  /* templates_trans_unit_init */
 
 

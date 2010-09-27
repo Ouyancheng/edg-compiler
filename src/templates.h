@@ -717,6 +717,12 @@ EXTERN a_symbol_list_entry_ptr
 			   includes only functions and static data members
 			   (i.e., not classes). */
 
+EXTERN a_decl_sequence_number
+		class_instantiation_sequence_number;
+			/* Count of the number of instantiations of class
+			   templates that have been performed in the
+			   current translation unit. */
+
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
 
 EXTERN a_boolean
