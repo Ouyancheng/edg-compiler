@@ -720,8 +720,8 @@ by a command line option.
 
 /*
 Flag that is TRUE if C++/CLI extensions (ECMA-372) can be accepted.  (Setting
-the flag to TRUE enables command-line ption --cppcli and --no_cppcli.)  If the
-flag is TRUE, MICROSOFT_EXTENSIONS_ALLOWED must be TRUE as well.
+the flag to TRUE enables the command-line options --cppcli and --no_cppcli.)
+If the flag is TRUE, MICROSOFT_EXTENSIONS_ALLOWED must be TRUE as well.
 */
 #ifndef CPPCLI_ENABLING_POSSIBLE
 #define CPPCLI_ENABLING_POSSIBLE FALSE
