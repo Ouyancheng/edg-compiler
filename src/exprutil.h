@@ -876,14 +876,22 @@ kinds are at the beginning of the list.
 /*
 Macro that returns TRUE if the current expression kind is one in which
 backing expressions are recorded for constants.  They are never recorded
-for preprocessing expressions (because the constants are never saved).
-Otherwise they are recorded in general (but see
-scan_template_argument_constant_expression for the criteria used to
-determine whether they are recorded for non-type template argument
-constants).
+for preprocessing expressions (because the constants are never saved).  In
+IL-lowering configurations, they are recorded only within template
+declarations, where they may be needed for name mangling (at least for the
+IA-64 ABI).  In configurations without IL lowering (or if
+RECORD_BACKING_EXPRS_WITH_IL_LOWERING is TRUE), they are generally recorded
+(but only under certain circumstances in template arguments; see
+scan_template_argument_constant_expression for details).
 */
+#if !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
-  !curr_expr_kind_is(ek_pp)
+  (!curr_expr_kind_is(ek_pp))
+#else /* !(!DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
+  (!curr_expr_kind_is(ek_pp) && \
+   depth_template_declaration_scope != NO_SCOPE_DEPTH)
+#endif /* !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 
 /*
 Macro that returns TRUE if the current expression is evaluated, i.e.,

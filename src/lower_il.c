@@ -14758,7 +14758,9 @@ a 0/1 value.  This routine is called for both C and C++ expressions.
                          (a_host_large_integer)
                                     !is_false_constant(expr->variant.constant),
                          (an_integer_kind)ik_int);
+#if RECORD_BACKING_EXPRS_WITH_IL_LOWERING
     norm_con.expr = expr->variant.constant->expr;
+#endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
     expr->variant.constant = alloc_shareable_constant(&norm_con);
     expr->type = norm_con.type;
   } else {
