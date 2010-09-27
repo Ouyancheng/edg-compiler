@@ -7150,12 +7150,14 @@ possibility.
             (void)update_src_seq_secondary_decl(
                                (char *)rp, func_info->declared_type, name_ref,
                                SSSD_FRIEND_DECL, &decl_info->decl_pos_block);
-            wrapup_sse_for_simple_decl(state);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
       }  /* if */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    wrapup_sse_for_simple_decl(state);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (is_error_locator(*locator)) {
     /* Create a dummy symbol to return when there's been an error.  This is

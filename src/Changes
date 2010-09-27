@@ -1,5 +1,21 @@
 Version 4.3
 
+9/27/10  [EDGcpfe/11033]
+C++-generating back end and attributes in friend declarations
+
+The new attributes framework of version 4.2 introduced a bug causing the C++-
+generating back end to fail to render attributes on certain friend function
+declarations.  For example:
+
+  __declspec(import) struct S {
+    friend __declspec(import) void f(S);
+      // The front previously did not render "__declspec(import)" in
+      // this friend declaration.
+  };
+
+This is now fixed.
+
+
 9/27/10  [EDGcpfe/11032]
 Representation of integral types (IL CHANGE)
 
