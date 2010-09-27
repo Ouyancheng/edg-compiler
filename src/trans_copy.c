@@ -1110,12 +1110,12 @@ not being eliminated.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_immediate_enum_type(type)) {
-    if (corresp_type->variant.integer.uuid_string == NULL &&
-        type->variant.integer.uuid_string != NULL) {
+    if (integer_type_supp(corresp_type)->uuid_string == NULL &&
+        integer_type_supp(type)->uuid_string != NULL) {
       /* Preserve the UUID string associated with an enum type if it was only
          specified on the entry about to be eliminated. */
-      corresp_type->variant.integer.uuid_string =
-                                            type->variant.integer.uuid_string;
+      integer_type_supp(corresp_type)->uuid_string =
+                                         integer_type_supp(type)->uuid_string;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

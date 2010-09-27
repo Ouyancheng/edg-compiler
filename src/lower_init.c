@@ -14126,8 +14126,8 @@ GUID.
       p_uuid_var = &type->variant.class_struct_union.extra_info->uuid_variable;
       uuid_string = type->variant.class_struct_union.extra_info->uuid_string;
     } else if (is_immediate_enum_type(type)) {
-      p_uuid_var = &type->variant.integer.uuid_variable;
-      uuid_string = type->variant.integer.uuid_string;
+      p_uuid_var = &type->variant.integer.extra_info->uuid_variable;
+      uuid_string = type->variant.integer.extra_info->uuid_string;
     } else {
       unexpected_condition_str("uuid_variable_for_type: bad type kind");
     }  /* if */

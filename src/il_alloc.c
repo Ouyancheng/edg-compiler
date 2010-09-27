@@ -48,6 +48,7 @@ static unsigned long
 		num_template_args_allocated,
 		num_template_param_type_supplements_allocated,
 		num_typeref_type_supplements_allocated,
+		num_integer_type_supplements_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_local_static_variable_inits_allocated,
@@ -1115,6 +1116,30 @@ a pointer to it.
 }  /* alloc_typeref_type_supplement */
 
 
+static an_integer_type_supplement_ptr alloc_integer_type_supplement(void)
+/*
+Allocate an integral type supplement entry, initialize its fields, and return
+a pointer to it.
+*/
+{
+  an_integer_type_supplement_ptr  itsp;
+
+  itsp = (an_integer_type_supplement_ptr)alloc_il(
+                                          sizeof(an_integer_type_supplement));
+#if DEBUG
+  num_integer_type_supplements_allocated++;
+#endif /* DEBUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  itsp->uuid_string = NULL;
+#if DO_IL_LOWERING
+  itsp->uuid_variable = NULL;
+#endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  itsp->base_type = NULL;
+  return itsp;
+}  /* alloc_integer_type_supplement */
+
+
 a_base_class_ptr alloc_base_class(void)
 /*
 Allocate a base class entry, initialize its fields, and return a pointer
@@ -1394,18 +1419,12 @@ to default values.
       pte->variant.integer.originally_unnamed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
-      pte->variant.integer.uuid_string = NULL;
-#if DO_IL_LOWERING
-      pte->variant.integer.uuid_variable = NULL;
-#endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
-      pte->variant.integer.base_type = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
 #if CENTERLINE_CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
       pte->variant.integer.enum_info.affiliated_type = NULL;
+      pte->variant.integer.extra_info = alloc_integer_type_supplement();
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -4379,6 +4398,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("typeref type supplement",
                 num_typeref_type_supplements_allocated,
                 a_typeref_type_supplement);
+  db_space_used("integer type supplement",
+                num_integer_type_supplements_allocated,
+                an_integer_type_supplement);
   db_space_used("type", num_types_allocated, a_type);
   db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   db_space_used("local static var inits",
@@ -4741,6 +4763,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_template_args_allocated),
       pch_saved_var_array_elem(num_template_param_type_supplements_allocated),
       pch_saved_var_array_elem(num_typeref_type_supplements_allocated),
+      pch_saved_var_array_elem(num_integer_type_supplements_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
       pch_saved_var_array_elem(num_condition_supplements_allocated),
       pch_saved_var_array_elem(num_types_allocated),
@@ -4874,6 +4897,7 @@ initializations that are done for each compilation.
   num_template_param_type_supplements_allocated
                                          = 0;
   num_typeref_type_supplements_allocated = 0;
+  num_integer_type_supplements_allocated = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_local_static_variable_inits_allocated

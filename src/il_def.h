@@ -550,6 +550,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_attribute_group,	/* an_attribute_group */
   iek_typeref_type_supplement,
 			/* a_typeref_type_supplement */
+  iek_integer_type_supplement,
+			/* an_integer_type_supplement */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -687,6 +689,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_attribute_arg */			"attribute-arg",
 /* iek_attribute_group */		"attribute-group",
 /* iek_typeref_type_supplement */	"typeref-type-supplement",
+/* iek_integer_type_supplement */	"integer-type-supplement",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -6368,6 +6371,33 @@ typedef struct a_typeref_type_supplement {
 
 
 /*
+Entry containing additional information about an integral type.
+*/
+typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
+typedef struct an_integer_type_supplement {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  char
+		*uuid_string;
+			/* Pointer to a character string representing the
+			   argument of a uuid decl-modifier (enums only). */
+#if DO_IL_LOWERING
+  a_variable_ptr
+		uuid_variable;
+			/* When IL lowering is done and field uuid_string is
+			   non-NULL, this points to a variable of type _GUID
+			   that is initialized to reflect the value of the
+			   string. */
+#endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_type_ptr
+		base_type;
+			/* For enumeration types, the type explicitly set as
+			   the underlying type (if any).  Otherwise NULL.
+			   If non-NULL, has_explicit_enum_base will be TRUE. */
+} an_integer_type_supplement;
+
+
+/*
 Entry pointed to by the based_types field of a_type entries.  A list
 of these entries gives pointers to types based on the type entry, e.g.,
 pointer-to type entry.
@@ -6733,16 +6763,16 @@ typedef struct a_type {
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name. */
       bitfield_to_avoid_codecenter_warnings()
+      /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
       union {
-        /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
         a_constant_ptr
 		constant_list;
 			/* The list of constants that defines the enumeration.
 			   NULL if the enumeration has not yet been defined.
 			   In C++, may be NULL even after definition, since
 			   empty enumerations are allowed. */
-	/* When enum_type and is_scoped_enum are both TRUE: */
-	a_scope_ptr
+        /* When enum_type and is_scoped_enum are both TRUE: */
+        a_scope_ptr
 		assoc_scope;
 			/* The scope holding the enumerator constants. */
         /* When enum_type is FALSE: */
@@ -6755,27 +6785,8 @@ typedef struct a_type {
 			   to suppress conversion warnings.  Always NULL
 			   in C++. */
       } enum_info;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      char
-		*uuid_string;
-			/* Pointer to a character string representing the
-			   argument of a uuid decl-modifier (enums only). */
-#if DO_IL_LOWERING
-      a_variable_ptr
-		uuid_variable;
-			/* When IL lowering is done and field uuid_string is
-			   non-NULL, this points to a variable of type _GUID
-			   that is initialized to reflect the value of the
-			   string. */
-#endif /* DO_IL_LOWERING */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
-      a_type_ptr
-		base_type;
-			/* For enumeration types, the type explicitly set as
-			   the underlying type (if any).  Otherwise NULL.
-			   If non-NULL, has_explicit_enum_base will be TRUE. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+      an_integer_type_supplement_ptr
+		extra_info;
     } integer;
 #if FIXED_POINT_ALLOWED
     /* When kind == tk_fixed_point: */
@@ -15193,6 +15204,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_attribute_arg),
   sizeof(an_attribute_group),
   sizeof(a_typeref_type_supplement),
+  sizeof(an_integer_type_supplement),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

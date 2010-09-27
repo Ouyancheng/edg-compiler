@@ -1,5 +1,16 @@
 Version 4.3
 
+9/27/10  [EDGcpfe/11032]
+Representation of integral types (IL CHANGE)
+
+IL entries representing integer and enumeration types (i.e., a_type entries
+of kind tk_integer) now point to a supplement entry via the variant field
+variant.integer.extra_info.  Some of the variant fields have been moved to
+this supplement.  This includes the "base_type" field, which is now present
+in all configurations (previously, it was present only when
+PROTOTYPE_INSTANTIATIONS_IN_IL or BACK_END_IS_CP_GEN_BE were TRUE).
+
+
 9/27/10  [EDGcpfe/10720]
 C++-generating back end: expressions in non-type template arguments
 

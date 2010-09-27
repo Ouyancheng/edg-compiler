@@ -10242,7 +10242,7 @@ there was an error type somewhere in the type.
        instantiation.  Assume the type has a uuid. */
     *template_case = TRUE;
   } else if (is_enum) {
-    if (uuidof_type->variant.integer.uuid_string == NULL) {
+    if (integer_type_supp(uuidof_type)->uuid_string == NULL) {
       /* No uuid on this enum. */
       uuidof_type = NULL;
     }  /* if */

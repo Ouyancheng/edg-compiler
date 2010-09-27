@@ -3931,17 +3931,13 @@ configurations, the type is recorded in enum_type.
         /* Record the type in enum_type, but proceed with
            largest_enum_int_kind. */
         enum_type->variant.integer.has_explicit_enum_base = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
-        enum_type->variant.integer.base_type = base_type;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+        integer_type_supp(enum_type)->base_type = base_type;
         result = largest_enum_int_kind;
       } else if (!is_integral_type(base_type) || is_bool_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
       } else {
         enum_type->variant.integer.has_explicit_enum_base = TRUE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
-        enum_type->variant.integer.base_type = base_type;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+        integer_type_supp(enum_type)->base_type = base_type;
         result = skip_typerefs(base_type)->variant.integer.int_kind;
       }  /* if */
     }  /* if */

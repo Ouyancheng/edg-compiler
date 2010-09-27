@@ -1394,6 +1394,24 @@ Display the indicated typeref type supplement.
 }  /* disp_typeref_type_supplement */
 
 
+static void disp_integer_type_supplement(an_integer_type_supplement_ptr  ptr)
+/*
+Display the indicated integral type supplement.
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->uuid_string != NULL) {
+    disp_string_ptr("uuid_string", ptr->uuid_string,
+                    iek_other_text, (sizeof_t)0);
+  }  /* if */
+  /* uuid_variable not displayed since it is used for IL lowering only. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (ptr->base_type != NULL) {
+    disp_ptr("base_type", (char *)ptr->base_type, iek_type);
+  }  /* if */
+}  /* disp_integer_type_supplement */
+
+
 static char* type_kind_string(a_type_kind  type_kind)
 /*
 Return a string corresponding to the indicated type kind.
@@ -1591,25 +1609,12 @@ Display the indicated type entry.
                    (char *)ptr->variant.integer.enum_info.constant_list,
                    iek_constant);
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (ptr->variant.integer.uuid_string != NULL) {
-          disp_string_ptr("uuid_string", ptr->variant.integer.uuid_string,
-                          iek_other_text, (sizeof_t)0);
-        }  /* if */
-        /* uuid_variable not displayed since it is used for IL lowering
-           only. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
-        if (ptr->variant.integer.base_type != NULL) {
-          disp_ptr("base_type", (char *)ptr->variant.integer.base_type,
-                   iek_type);
-        }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
       } else if (ptr->variant.integer.enum_info.affiliated_type != NULL) {
         disp_ptr("enum_info.affiliated_type",
                  (char *)ptr->variant.integer.enum_info.affiliated_type,
                  iek_type);
       }  /* if */
+      disp_integer_type_supplement(ptr->variant.integer.extra_info);
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:

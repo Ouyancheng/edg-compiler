@@ -1001,16 +1001,9 @@ the file scope, do not process it (but record an orphan in the latter case).
               walk_ptr(ptr->variant.integer.enum_info.affiliated_type,
                        a_type_ptr, iek_type);
             }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            walk_string_ptr(ptr->variant.integer.uuid_string,
-                            iek_other_text, 0);
-#if DO_IL_LOWERING
-            conditionally_clear_fe_pointer(ptr->variant.integer.uuid_variable);
-#endif /* DO_IL_LOWERING */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
-            walk_ptr(ptr->variant.integer.base_type, a_type_ptr, iek_type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
+            walk_ptr(ptr->variant.integer.extra_info,
+                     an_integer_type_supplement_ptr,
+                     iek_integer_type_supplement);
             break;
           case tk_pointer:
             walk_ptr(ptr->variant.pointer.type, a_type_ptr, iek_type);
@@ -3126,6 +3119,18 @@ after_entry_from_class:
       break;
     case iek_attribute_group:
       /* No pointer members. */
+      break;
+    case iek_integer_type_supplement:
+      { an_integer_type_supplement_ptr  ptr =
+                                    (an_integer_type_supplement_ptr)entry_ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_string_ptr(ptr->uuid_string, iek_other_text, 0);
+#if DO_IL_LOWERING
+        conditionally_clear_fe_pointer(ptr->uuid_variable);
+#endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        walk_ptr(ptr->base_type, a_type_ptr, iek_type);
+      }
       break;
     case iek_id_name:
     case iek_string_text:

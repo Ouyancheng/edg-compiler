@@ -3093,10 +3093,10 @@ type is in fact valid.
     if (match && 
         (
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         (type->variant.integer.uuid_string != NULL &&
-          corresp_type->variant.integer.uuid_string != NULL &&
-          !same_str(type->variant.integer.uuid_string,
-                    corresp_type->variant.integer.uuid_string)) ||
+         (integer_type_supp(type)->uuid_string != NULL &&
+          integer_type_supp(corresp_type)->uuid_string != NULL &&
+          !same_str(integer_type_supp(type)->uuid_string,
+                    integer_type_supp(corresp_type)->uuid_string)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          type->variant.integer.int_kind !=
                                      corresp_type->variant.integer.int_kind)) {

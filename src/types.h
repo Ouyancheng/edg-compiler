@@ -167,6 +167,12 @@ Return a pointer to the associated class type supplement.
   ((tp)->variant.class_struct_union.extra_info)
 
 /*
+Return a pointer to the associated integer type supplement.
+*/
+#define integer_type_supp(tp)                                        \
+  ((tp)->variant.integer.extra_info)
+
+/*
 Return TRUE if a type is a direct error type (i.e., not a typeref on
 top of such a type).
 */

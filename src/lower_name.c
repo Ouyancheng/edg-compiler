@@ -2538,7 +2538,7 @@ template classes.
     } else if (is_immediate_class_type(uuid_type)) {
       uuid_str = uuid_type->variant.class_struct_union.extra_info->uuid_string;
     } else if (uuid_type->kind == (a_type_kind)tk_enum) {
-      uuid_str = uuid_type->variant.integer.uuid_string;
+      uuid_str = uuid_type->variant.integer.extra_info->uuid_string;
     }  /* if */
     if (uuid_str == NULL) {
       /* This can happen in error cases. */

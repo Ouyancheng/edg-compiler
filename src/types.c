@@ -10824,7 +10824,7 @@ not a class or enum type, return NULL.
   if (is_immediate_class_type(type)) {
     result = type->variant.class_struct_union.extra_info->uuid_string;
   } else if (is_immediate_enum_type(type)) {
-    result = type->variant.integer.uuid_string;
+    result = type->variant.integer.extra_info->uuid_string;
   } else {
     result = NULL;
   }  /* if */

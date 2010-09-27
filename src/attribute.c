@@ -6122,7 +6122,7 @@ return that entity).
       if (C_mode()) {
         report_bad_attribute_target(es_discretionary_error, ap);
       } else {
-        tp->variant.integer.uuid_string = str;
+        integer_type_supp(tp)->uuid_string = str;
       }  /* if */
     } else {
       unexpected_condition();

@@ -5176,11 +5176,11 @@ is the one associated with the definition of the enum.
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
   }  /* if */
-  if (type->variant.integer.base_type != NULL) {
+  if (integer_type_supp(type)->base_type != NULL) {
     /* C++0x and Microsoft C++ allow the explicit specification of an
        underlying type. */
     write_tok_str(": ");
-    gen_type(type->variant.integer.base_type);
+    gen_type(integer_type_supp(type)->base_type);
   }  /* if */
   write_tok_str(" { ");
   enum_con = enum_constants(type);
