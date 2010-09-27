@@ -3,13 +3,14 @@ Version 4.3
 9/27/10  [EDGcpfe/10112]
 Enum types with explicit underlying type "bool"
 
-In C++ modes that accept explicit specification of an underlying type of an
-enum type (i.e., C++0x mode and some Microsoft C++ modes), the front end did
-not accept "bool" as the underlying type.  E.g.:
+In C++0x mode, the front end previously did not accept bool as an explicit
+underlying type for an enum type.  For example:
 
-  enum E: bool { x };  // Previously "bool" was not accepted in this context.
+  enum E: bool { x };  // Previously "bool" was diagnosed as an error in
+                       // C++0x mode.
 
-This restriction is now removed.
+This restriction is now removed in C++0x mode (it is still enforced in some
+Microsoft modes).
 
 
 9/27/10  [EDGcpfe/11033]
