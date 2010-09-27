@@ -1587,7 +1587,7 @@ ec_cl_unrecognized_calling_convention;;"unrecognized calling convention %s, must
 ec_cl_calling_convention_list;INTERNAL;"%s"
 ec_cl_uliterals_option_only_in_C;;"option to control char16_t/char32_t literals can be used only when compiling C"
 REMOVED;ec_parameter_attribute_invalid;;"attribute %sq not allowed on parameter declarations"
-ec_enum_base_type_must_be_integral;;"underlying type of enum type must be an integral type other than bool"
+ec_enum_base_type_must_be_integral;;"underlying type of enum type must be an integral type"
 ec_enum_base_type_too_limited;;"some enumerator constants cannot be represented by %t"
 ec_feature_not_allowed_in_current_mode;;"%sq not allowed in current mode"
 ec_cl_type_traits_helpers_option_only_in_cplusplus;;"type traits helpers option can be used only when compiling C++"
