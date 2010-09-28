@@ -3902,6 +3902,35 @@ static an_integer_kind
 			   largest integer type supported. */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean validate_cppcli_enum_base_type(
+                                              a_type_ptr         *p_base_type,
+                                              a_source_position  *pos_type)
+/*
+*p_base_type was specified as an explicit underlying type for an enum type in
+C++/CLI mode.  If that type is valid in that context, return TRUE; otherwise,
+issue an error at the given position and return FALSE.  If *p_base_type is a
+valid value class type in that context (e.g., System::Boolean), replace
+*p_base_type by the associated primitive type.
+*/
+{
+  a_boolean  valid = FALSE;
+
+  if (!is_integral_type(*p_base_type)) {
+    /* FIXME: Predeclared value types like System::UInt64 are not implemented
+       yet. */
+    pos_error(ec_enum_base_type_must_be_integral, pos_type);
+  } else if ((*p_base_type)->variant.integer.wchar_t_type) {
+    pos_error(ec_wchar_t_type_not_allowed, pos_type);
+  } else {
+    valid = TRUE;
+  }  /* if */
+  return valid;
+}  /* validate_cppcli_enum_base_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE)
 /*ARGSUSED*/  /* enum_type is not used in all configurations. */
 #endif /* !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE) */
@@ -3927,22 +3956,33 @@ configurations, the type is recorded in enum_type.
     type_name(&base_type);
     remove_stop_token(tok_lbrace);
     if (base_type != NULL) {
+      integer_type_supp(enum_type)->base_type = base_type;
       if (is_template_dependent_type(base_type)) {
         /* Record the type in enum_type, but proceed with
            largest_enum_int_kind. */
         enum_type->variant.integer.has_explicit_enum_base = TRUE;
-        integer_type_supp(enum_type)->base_type = base_type;
         result = largest_enum_int_kind;
-      } else if (!is_integral_type(base_type)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled) {
+        /* C++/CLI allows a specific list of integral types and is therefore
+           handled separately. */
+        if (validate_cppcli_enum_base_type(&base_type, pos_type)) {
+          enum_type->variant.integer.has_explicit_enum_base = TRUE;
+          result = skip_typerefs(base_type)->variant.integer.int_kind;
+        } else {
+          integer_type_supp(enum_type)->base_type = NULL;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if (!cppcli_enabled && is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
-      } else if (microsoft_mode && !cpp0x_mode &&
-                 is_bool_type(base_type)) {
+        integer_type_supp(enum_type)->base_type = NULL;
+      } else if (microsoft_mode && !cpp0x_mode && is_bool_type(base_type)) {
         /* Microsoft compilers do not accept bool as the integral type
-           underlying an enum type. */
+           underlying an enum type (in non-C++/CLI mode). */
         pos_error(ec_bool_type_not_allowed, pos_type);
+        integer_type_supp(enum_type)->base_type = NULL;
       } else {
         enum_type->variant.integer.has_explicit_enum_base = TRUE;
-        integer_type_supp(enum_type)->base_type = base_type;
         result = skip_typerefs(base_type)->variant.integer.int_kind;
       }  /* if */
     }  /* if */
@@ -4227,7 +4267,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   /* Skip over "enum". */
   check_assertion(curr_token == tok_enum);
   (void)get_token();
-  if (cpp0x_mode && (curr_token == tok_class || curr_token == tok_struct)) {
+  if ((cpp0x_mode || cppcli_enabled) &&
+      (curr_token == tok_class || curr_token == tok_struct)) {
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
@@ -4582,6 +4623,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                                          )) {
       /* An enumerator constant list is optional in C++ and Microsoft C. */
     } else {
+      a_boolean  cppcli_enum_init_error_issued = FALSE;
       add_stop_token(tok_rbrace);
       end_of_enum_con_list = NULL;
       /* Scan the list of enumerated constants. */
@@ -4612,6 +4654,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           enum_id_range.start = pos_curr_token;
           enum_id_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcli_enabled && curr_token_is_identifier_string("value__")) {
+            pos_error(ec_reserved_enumerator_name, &pos_curr_token);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Advance past the identifier. */
           (void)get_token();
           /* Set the error position to the identifier position. */
@@ -4688,6 +4735,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           }  /* if */
         } else {
           /* No explicit value. */
+          if (cppcli_enabled && !cppcli_enum_init_error_issued &&
+              explicit_base_kind != (an_integer_kind)ik_none &&
+              is_bool_type(integer_type_supp(enum_type)->base_type)) {
+            pos_error(ec_cppcli_enumerator_requires_explicit_value,
+                      &pos_curr_token);
+            cppcli_enum_init_error_issued = TRUE;
+          }  /* if */
           if (end_of_enum_con_list == NULL) {
             /* This is the first enumerator.  Start with zero. */
             set_integer_constant(&constant, (a_host_large_integer)0,
@@ -4878,7 +4932,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
               SPEC benchmark suite). */
           done = TRUE;
           if (C_dialect != C_dialect_pcc && !c99_mode && !cpp0x_mode) {
-            an_error_severity    severity;
+            an_error_severity  severity;
             severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
                                           es_remark;
             pos_diagnostic(severity, ec_nonstd_extra_comma, &pos_comma);

@@ -1931,8 +1931,8 @@ by a command line option.
        microsoft_version < 1400, an error is issued if the enumeration is not
        a class member. */
     enum_qualifiers_enabled = TRUE;
+    explicit_enum_base_enabled = (microsoft_version >= 1400) || cppcli_enabled;
     if (microsoft_version >= 1400) {
-      explicit_enum_base_enabled = TRUE;
       if (!option_kind_used[(int)optk_type_traits_helpers]) {
         type_traits_helpers_enabled = TRUE;
       }  /* if */
