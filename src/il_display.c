@@ -1396,7 +1396,7 @@ Display the indicated typeref type supplement.
 
 static void disp_integer_type_supplement(an_integer_type_supplement_ptr  ptr)
 /*
-Display the indicated integral type supplement.
+Display the indicated integer type supplement.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED

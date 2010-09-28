@@ -14123,11 +14123,11 @@ GUID.
 
   if (type != NULL) {
     if (is_immediate_class_type(type)) {
-      p_uuid_var = &type->variant.class_struct_union.extra_info->uuid_variable;
-      uuid_string = type->variant.class_struct_union.extra_info->uuid_string;
+      p_uuid_var = &class_type_supp(type)->uuid_variable;
+      uuid_string = class_type_supp(type)->uuid_string;
     } else if (is_immediate_enum_type(type)) {
-      p_uuid_var = &type->variant.integer.extra_info->uuid_variable;
-      uuid_string = type->variant.integer.extra_info->uuid_string;
+      p_uuid_var = &integer_type_supp(type)->uuid_variable;
+      uuid_string = integer_type_supp(type)->uuid_string;
     } else {
       unexpected_condition_str("uuid_variable_for_type: bad type kind");
     }  /* if */

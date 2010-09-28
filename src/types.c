@@ -10822,9 +10822,9 @@ not a class or enum type, return NULL.
 
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
-    result = type->variant.class_struct_union.extra_info->uuid_string;
+    result = class_type_supp(type)->uuid_string;
   } else if (is_immediate_enum_type(type)) {
-    result = type->variant.integer.extra_info->uuid_string;
+    result = integer_types_supp(type)->uuid_string;
   } else {
     result = NULL;
   }  /* if */

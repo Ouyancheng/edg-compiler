@@ -6763,8 +6763,8 @@ typedef struct a_type {
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name. */
       bitfield_to_avoid_codecenter_warnings()
-      /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
       union {
+        /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
         a_constant_ptr
 		constant_list;
 			/* The list of constants that defines the enumeration.
@@ -6787,6 +6787,8 @@ typedef struct a_type {
       } enum_info;
       an_integer_type_supplement_ptr
 		extra_info;
+                        /* Supplementary information, in a separate block
+                           to keep down the size of a_type. */
     } integer;
 #if FIXED_POINT_ALLOWED
     /* When kind == tk_fixed_point: */

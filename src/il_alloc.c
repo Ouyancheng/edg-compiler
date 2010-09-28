@@ -1118,7 +1118,7 @@ a pointer to it.
 
 static an_integer_type_supplement_ptr alloc_integer_type_supplement(void)
 /*
-Allocate an integral type supplement entry, initialize its fields, and return
+Allocate an integer type supplement entry, initialize its fields, and return
 a pointer to it.
 */
 {
