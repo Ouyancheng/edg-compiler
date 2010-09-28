@@ -20,8 +20,8 @@ The new attributes framework of version 4.2 introduced a bug causing the C++-
 generating back end to fail to render attributes on certain friend function
 declarations.  For example:
 
-  __declspec(import) struct S {
-    friend __declspec(import) void f(S);
+  struct __declspec(dllimport) S {
+    friend __declspec(dllimport) void f(S);
       // The front previously did not render "__declspec(import)" in
       // this friend declaration.
   };
