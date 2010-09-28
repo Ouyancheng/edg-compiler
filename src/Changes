@@ -22,8 +22,8 @@ declarations.  For example:
 
   struct __declspec(dllimport) S {
     friend __declspec(dllimport) void f(S);
-      // The front previously did not render "__declspec(import)" in
-      // this friend declaration.
+      // The front previously did not render "__declspec(dllimport)"
+      // in this friend declaration.
   };
 
 This is now fixed.
