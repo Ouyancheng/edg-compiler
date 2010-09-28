@@ -24397,17 +24397,23 @@ memory region).  If param_type is NULL, the parameter type is not known.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
-  if (depth_template_declaration_scope == NO_SCOPE_DEPTH &&
-      class_instantiation_sequence_number == class_inst_seq_on_entry) {
+  if (depth_template_declaration_scope == NO_SCOPE_DEPTH
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+              && class_instantiation_sequence_number == class_inst_seq_on_entry
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      ) {
     /* In general, backing expressions for template arguments are not
        retained (because a given template instance can be referred to many
        times with different expressions that evaluate to the same constant,
-       only one of which would appear in the instance's template argument
+       only one of which can appear in the instance's template argument
        list).  The two exceptions are inside template declarations, because
        they are needed for name mangling (at least in the IA-64 ABI), and
        when a given template argument causes another template to be
-       instantiated, because just using the constant would likely lose the
-       reference that caused the instantiation. */
+       instantiated, because just using the folded constant would likely
+       lose the reference that caused the instantiation.  (The latter does
+       not apply when instantiations are placed into the source sequence
+       list, since the instance will be represented by an explicit
+       specialization and implicit instantiation is not needed). */
     constant->expr = NULL;
   }  /* if */
   pop_expr_stack();
