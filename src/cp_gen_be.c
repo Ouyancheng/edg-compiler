@@ -3833,6 +3833,9 @@ constant is an aggregate the braces around it are suppressed.
     type = skip_typerefs(type);
     switch (type->kind) {
       case tk_array:
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         array_case = TRUE;
         break;
       case tk_class:

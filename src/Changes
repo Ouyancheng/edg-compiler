@@ -1,5 +1,16 @@
 Version 4.3
 
+9/28/10  [EDGcpfe/11017]
+C++-generating back end, GNU compatibility: initializers for vector types
+
+In C++-generating back end configurations with GNU_VECTOR_TYPES_ALLOWED set
+to TRUE, an initializer for a variable with a vector type caused an assertion
+failure in gen_initializer_constant.  This is now fixed.  For example:
+
+  typedef int int4 __attribute__((vector_size(16)));
+  int4 a = {0, 1, 2, 3};    // Previously aborted
+
+
 9/27/10  [EDGcpfe/10112]
 Enum types with explicit underlying type "bool"
 
