@@ -7537,10 +7537,12 @@ Process the arguments on the command line that invoked the compiler.
 enable_microsoft_mode:
         microsoft_mode = opt_value;
         if (!option_kind_used[(int)optk_cppcli]) {
-          cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;
+          cppcli_enabled =
+                     DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
         }  /* if */
         if (!option_kind_used[(int)optk_microsoft_bugs]) {
-          microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;
+          microsoft_bugs =
+                     DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
         }  /* if */
         break;
 #if NEAR_AND_FAR_ALLOWED
