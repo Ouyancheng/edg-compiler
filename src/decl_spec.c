@@ -3935,7 +3935,8 @@ configurations, the type is recorded in enum_type.
         result = largest_enum_int_kind;
       } else if (!is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
-      } else if (microsoft_mode && !cpp0x_mode) {
+      } else if (microsoft_mode && !cpp0x_mode &&
+                 is_bool_type(base_type)) {
         /* Microsoft compilers do not accept bool as the integral type
            underlying an enum type. */
         pos_error(ec_bool_type_not_allowed, pos_type);
