@@ -3973,7 +3973,7 @@ configurations, the type is recorded in enum_type.
           integer_type_supp(enum_type)->base_type = NULL;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (!cppcli_enabled && is_integral_type(base_type)) {
+      } else if (!cppcli_enabled && !is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         integer_type_supp(enum_type)->base_type = NULL;
       } else if (microsoft_mode && !cpp0x_mode && is_bool_type(base_type)) {
