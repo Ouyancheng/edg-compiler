@@ -10325,13 +10325,26 @@ be returned for a C mode const variable.
       }  /* if */
     }  /* if */
     if (con_val != NULL) {
-      if (con_val->kind == (a_constant_repr_kind)ck_aggregate ||
-          (con_val->kind == (a_constant_repr_kind)ck_address &&
-          !(gpp_mode && gnu_version < 30300))) {
-        /* An aggregate or the address of a variable, routine, or
-           string literal cannot be considered a constant value (except
-           for address constants in GNU C++ mode up to version 3.2). */
+      if (con_val->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* An aggregate cannot be considered a constant value. */
         con_val = NULL;
+      } else if (con_val->kind == (a_constant_repr_kind)ck_address) {
+        /* The address of a variable, routine, or string literal cannot
+           generally be considered a constant value. */
+        /* However, in g++ mode they are allowed because const variables
+           initialized with scalars are considered constants (see
+           is_const_variable).  String literals are excluded so that
+           back ends can distinguish cases specified as constants
+           (for which back ends can assume that string literals have
+           no identity, and use different constants for different uses
+           of the same constant if that helps optimization) and
+           cases specified as constant variables (for which back ends are
+           required to use the same constant for every reference). */
+        if (!gpp_mode ||
+            con_val->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant) {
+          con_val = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

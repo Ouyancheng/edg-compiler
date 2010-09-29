@@ -1,5 +1,20 @@
 Version 4.3
 
+9/29/10  [EDGcpfe/10795]
+GNU C++ mode constant variables with pointer values
+
+The change made for EDGcpfe/9421, for uses in g++ mode of const variables
+initialized with constant addresses, wasn't quite right.  It broke cases
+like:
+
+  int i;
+  int *const p = &i;
+  template <int* pi = p>
+  struct A {};
+
+which is accepted by all version of g++.  A further tweak has now been made.
+
+
 9/28/10  [EDGcpfe/11017]
 C++-generating back end, GNU compatibility: initializers for vector types
 
