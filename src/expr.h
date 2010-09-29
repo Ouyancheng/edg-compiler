@@ -256,7 +256,8 @@ extern void scan_class_parenthesized_initializer(
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                        a_constant *constant);
 
-extern an_arg_operand_ptr scan_nontype_template_argument(void);
+extern an_arg_operand_ptr scan_nontype_template_argument(
+                                  a_decl_sequence_number initial_inst_seq_num);
 
 extern a_boolean nontype_template_arg_is_compatible_with_param_type(
                                             an_arg_operand_ptr arg_operand,

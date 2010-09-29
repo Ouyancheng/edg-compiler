@@ -24302,8 +24302,27 @@ for the converted result in *constant (which must be in the file scope
 memory region).  Do various error checks.
 */
 {
+  a_boolean need_backing_expr;
+
   db_enter(3, "prep_nontype_template_argument_initializer");
   check_assertion(constant != NULL && in_file_scope(constant));
+  /* In general, backing expressions for template arguments are not
+     retained (because a given template instance can be referred to many
+     times with different expressions that evaluate to the same constant,
+     only one of which can appear in the instance's template argument
+     list).  The two exceptions are inside template declarations, because
+     they are needed for name mangling (at least in the IA-64 ABI), and
+     when a given template argument causes another template to be
+     instantiated, because just using the folded constant would likely lose
+     the reference that caused the instantiation.  (The latter does not
+     apply when instantiations are placed into the source sequence list,
+     because the instance will be represented by an explicit specialization
+     and implicit instantiation is not needed). */
+  need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH
+#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+                       || operand->caused_template_instantiation
+#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+                       );
   if (microsoft_mode && microsoft_version < 1310 &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
@@ -24330,6 +24349,9 @@ memory region).  Do various error checks.
     extract_constant_from_operand_with_fs_fixup(operand, constant);
   }  /* if */
   break_constant_source_corresp(constant);
+  if (!need_backing_expr) {
+    constant->expr = NULL;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);
@@ -24368,8 +24390,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   an_operand             result;
   an_expr_stack_entry    expr_stack_entry;
   a_memory_region_number region_to_switch_back_to;
-  a_decl_sequence_number class_inst_seq_on_entry =
-                                           class_instantiation_sequence_number;
+  a_decl_sequence_number inst_seq_on_entry = instantiation_sequence_number;
 
   db_enter(3, "scan_template_argument_constant_expression");
   check_assertion(constant != NULL && in_file_scope(constant));
@@ -24381,6 +24402,9 @@ memory region).  If param_type is NULL, the parameter type is not known.
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   check_nontype_template_argument_type(&result);
+  if (instantiation_sequence_number != inst_seq_on_entry) {
+    result.caused_template_instantiation = TRUE;
+  }  /* if */
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
   if (param_type != NULL) {
@@ -24396,25 +24420,6 @@ memory region).  If param_type is NULL, the parameter type is not known.
       eliminate_unusual_operand_kinds(&result);
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
-  }  /* if */
-  if (depth_template_declaration_scope == NO_SCOPE_DEPTH
-#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-              && class_instantiation_sequence_number == class_inst_seq_on_entry
-#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      ) {
-    /* In general, backing expressions for template arguments are not
-       retained (because a given template instance can be referred to many
-       times with different expressions that evaluate to the same constant,
-       only one of which can appear in the instance's template argument
-       list).  The two exceptions are inside template declarations, because
-       they are needed for name mangling (at least in the IA-64 ABI), and
-       when a given template argument causes another template to be
-       instantiated, because just using the folded constant would likely
-       lose the reference that caused the instantiation.  (The latter does
-       not apply when instantiations are placed into the source sequence
-       list, since the instance will be represented by an explicit
-       specialization and implicit instantiation is not needed). */
-    constant->expr = NULL;
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -24432,12 +24437,16 @@ memory region).  If param_type is NULL, the parameter type is not known.
 }  /* scan_template_argument_constant_expression */
 
 
-an_arg_operand_ptr scan_nontype_template_argument(void)
+an_arg_operand_ptr scan_nontype_template_argument(
+                                   a_decl_sequence_number initial_inst_seq_num)
 /*
-Scan a nontype template argument in a template reference.  Allocate
-an arg_operand entry, fill it with information about the template
-argument, and return a pointer to it to the caller.  The caller must
-at some later point call free_arg_operand_list to free the entry.
+Scan a nontype template argument in a template reference.  Allocate an
+arg_operand entry, fill it with information about the template argument,
+and return a pointer to it to the caller.  initial_inst_seq_num is the
+value of instantiation_sequence_number before processing this argument; if
+it is now different, set caused_template_instantiation to TRUE in the
+operand.  The caller must at some later point call free_arg_operand_list to
+free the entry.
 */
 {
   an_arg_operand_ptr     arg_operand;
@@ -24469,6 +24478,9 @@ at some later point call free_arg_operand_list to free the entry.
   }  /* if */
 #endif /* DEBUG */
   switch_back_to_original_region(region_to_switch_back_to);
+  if (instantiation_sequence_number != initial_inst_seq_num) {
+    arg_operand->operand.caused_template_instantiation = TRUE;
+  }  /* if */
   db_exit();
   return arg_operand;
 }  /* scan_nontype_template_argument */

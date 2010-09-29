@@ -1600,6 +1600,7 @@ values.
   operand->is_dummy_lvalue = FALSE;
   operand->is_parenthesized = FALSE;
   operand->name_reference_set = FALSE;
+  operand->caused_template_instantiation = FALSE;
   operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

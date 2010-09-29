@@ -718,8 +718,8 @@ EXTERN a_symbol_list_entry_ptr
 			   (i.e., not classes). */
 
 EXTERN a_decl_sequence_number
-		class_instantiation_sequence_number;
-			/* Count of the number of instantiations of class
+		instantiation_sequence_number;
+			/* Count of the number of instantiations of
 			   templates that have been performed in the
 			   current translation unit. */
 

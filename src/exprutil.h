@@ -367,6 +367,9 @@ typedef struct an_operand {
 			   of parentheses. */
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
+  a_bit_field	caused_template_instantiation:1;
+			/* TRUE if scanning this operand caused a template
+			   to be instantiated. */
   a_name_reference
 		name_reference;
 			/* Records the form of reference to a name, for
