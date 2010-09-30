@@ -6052,7 +6052,11 @@ declaration following this one is such a continuation.
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
   gen_attributes(attributes, al_id_equivalent, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
-  register_accessible_typedef(type);
+  if (innermost_function_scope == NULL) {
+    /* This typedef is in namespace or class scope, so it can potentially
+       be used as a substitute if the target type is inaccessible. */
+    register_accessible_typedef(type);
+  }  /* if */
 }  /* gen_typedef_definition */
 
 
