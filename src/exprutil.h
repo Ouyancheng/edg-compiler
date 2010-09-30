@@ -885,7 +885,7 @@ declarations, where they may be needed for name mangling (at least for the
 IA-64 ABI).  In configurations without IL lowering (or if
 RECORD_BACKING_EXPRS_WITH_IL_LOWERING is TRUE), they are generally recorded
 (but only under certain circumstances in template arguments; see
-scan_template_argument_constant_expression for details).
+prep_nontype_template_argument_initializer for details).
 */
 #if !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
