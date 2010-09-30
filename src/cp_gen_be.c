@@ -3563,7 +3563,11 @@ literal (but the source form doesn't include the cast-like prefix).
     write_tok_ch('(');
     gen_cast(literal_type);
   }  /* if */
-  is_scalar = !is_aggregate_or_union_type(literal_type);
+  is_scalar = !is_aggregate_or_union_type(literal_type)
+#if GNU_VECTOR_TYPES_ALLOWED
+    && !is_vector_type(literal_type)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    ;
   if (is_scalar) {
     /* Scalar initialization.  Put an extra set of braces around the
        initializer. */
@@ -3937,7 +3941,14 @@ constant is an aggregate the braces around it are suppressed.
       /* The subobject type is unknown. */
       sub_type = NULL;
     } else if (array_case) {
-      /* Array -- each constant will fill an element of the array. */
+      /* Array or vector -- each constant will fill an element of the
+         array. */
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (type->kind == (a_type_kind)tk_vector) {
+        sub_type = type->variant.vector.element_type;
+      } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      /* Do not insert code here. */
       sub_type = type->variant.array.element_type;
     } else {
       check_assertion_str(is_class_type_kind(type->kind),
