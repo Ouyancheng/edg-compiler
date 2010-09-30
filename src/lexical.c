@@ -12634,15 +12634,29 @@ done using the disambiguation routines.
       arg_ptr->variant.type = scan_template_type_argument();
     } else if (is_nontype_templ_arg(arg_ptr)) {
       if (is_nonreal) {
-        /* Scan a constant.  We can't know the type, so pass in a NULL
-           type to indicate this. */
+        /* Scan a constant.  We can't know the type, so pass in a NULL type
+           to indicate this.  (Note: in the !is_nonreal case, we pass
+           initial_inst_seq_num to scan_nontype_template_argument so it can
+           decide whether to keep the backing expression for the argument
+           or not.  Here, in the is_nonreal case, we're in a template
+           declaration and backing expressions are being kept anyway, so we
+           don't have to do anything with initial_inst_seq_num.) */
         constant = fs_constant((a_constant_repr_kind)ck_error);
         scan_template_argument_constant_expression((a_type_ptr)NULL, constant);
         arg_ptr->variant.constant = constant;
       } else {
         /* Scan the expression, but retain it in the form of an operand so
-           that the necessary conversions can be done later when the parameter
-           type is known. */
+           that the necessary conversions can be done later when the
+           parameter type is known.  (Note: we saved initial_inst_seq_num
+           above, before the call to is_generalized_identifier_start,
+           because that call could result in an instantiation.  We pass
+           that initial value to scan_nontype_template_argument, which
+           compares it against the current value of
+           instantiation_sequence_number after all its processing.  The
+           decision as to whether the argument caused an instantiation will
+           thus include both the scan of the argument itself and that of
+           any conversion function template instantiated to convert the
+           argument to the parameter type.) */
         arg_ptr->variant.constant = NULL;
         arg_ptr->arg_operand =
                           scan_nontype_template_argument(initial_inst_seq_num);

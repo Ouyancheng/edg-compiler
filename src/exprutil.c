@@ -3562,6 +3562,8 @@ destroyed its source position, etc.  Restore such things from
   if (operand->is_operand_of_address_of) {
     operand->ampersand_position = orig_operand->ampersand_position;
   }  /* if */
+  operand->caused_template_instantiation =
+                                   orig_operand->caused_template_instantiation;
 }  /* restore_operand_details */
 
 
