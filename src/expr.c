@@ -24317,7 +24317,12 @@ memory region).  Do various error checks.
      the reference that caused the instantiation.  (The latter does not
      apply when instantiations are placed into the source sequence list,
      because the instance will be represented by an explicit specialization
-     and implicit instantiation is not needed). */
+     and implicit instantiation is not needed).  Note that this mechanism
+     has limitations: as noted above, only one version of a template
+     argument is saved, so subsequent references to the template with
+     different argument expressions that fold to the same constant value
+     will not be saved, even if they cause template instantiations of their
+     own. */
   need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH
 #if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
                        || operand->caused_template_instantiation
