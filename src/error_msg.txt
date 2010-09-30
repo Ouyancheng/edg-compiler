@@ -1964,7 +1964,7 @@ ec_param_pack_cannot_have_default;;"a parameter pack cannot have a default"
 ec_function_parameter_pack_requires_pattern;;"type of function parameter pack does not contain an unexpanded template parameter pack"
 ec_cl_cppcli_only_in_microsoft_cplusplus;;"C++/CLI can be enabled only in Microsoft C++ mode"
 ec_reserved_enumerator_name;;"\"value__\" cannot be used as the name of an enumerator constant (it is a reserved name in this context)"
-ec_cppcli_enumerator_requires_explicit_value;;"expected an explicit enumerator value in enumeration type with boolean underlying type"
+ec_cppcli_enumerator_requires_explicit_value;;"an explicit enumerator value is required in an enumeration type with boolean underlying type"
 ec_wchar_t_type_not_allowed;;"wchar_t type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #

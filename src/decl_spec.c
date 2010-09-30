@@ -3921,7 +3921,7 @@ valid value class type in that context (e.g., System::Boolean), replace
     /* FIXME: Predeclared value types like System::UInt64 are not implemented
        yet. */
     pos_error(ec_enum_base_type_must_be_integral, pos_type);
-  } else if ((*p_base_type)->variant.integer.wchar_t_type) {
+  } else if (skip_typerefs(*p_base_type)->variant.integer.wchar_t_type) {
     pos_error(ec_wchar_t_type_not_allowed, pos_type);
   } else {
     valid = TRUE;
@@ -3956,34 +3956,34 @@ configurations, the type is recorded in enum_type.
     type_name(&base_type);
     remove_stop_token(tok_lbrace);
     if (base_type != NULL) {
-      integer_type_supp(enum_type)->base_type = base_type;
+      a_type_ptr  orig_base_type = base_type;
       if (is_template_dependent_type(base_type)) {
         /* Record the type in enum_type, but proceed with
            largest_enum_int_kind. */
-        enum_type->variant.integer.has_explicit_enum_base = TRUE;
         result = largest_enum_int_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cppcli_enabled) {
         /* C++/CLI allows a specific list of integral types and is therefore
            handled separately. */
-        if (validate_cppcli_enum_base_type(&base_type, pos_type)) {
-          enum_type->variant.integer.has_explicit_enum_base = TRUE;
-          result = skip_typerefs(base_type)->variant.integer.int_kind;
-        } else {
-          integer_type_supp(enum_type)->base_type = NULL;
+        if (!validate_cppcli_enum_base_type(&base_type, pos_type)) {
+          base_type = NULL;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (!cppcli_enabled && !is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
-        integer_type_supp(enum_type)->base_type = NULL;
+        base_type = NULL;
       } else if (microsoft_mode && !cpp0x_mode && is_bool_type(base_type)) {
         /* Microsoft compilers do not accept bool as the integral type
            underlying an enum type (in non-C++/CLI mode). */
         pos_error(ec_bool_type_not_allowed, pos_type);
-        integer_type_supp(enum_type)->base_type = NULL;
-      } else {
+        base_type = NULL;
+      }  /* if */
+      if (base_type != NULL) {
+        integer_type_supp(enum_type)->base_type = orig_base_type;
         enum_type->variant.integer.has_explicit_enum_base = TRUE;
-        result = skip_typerefs(base_type)->variant.integer.int_kind;
+        if (result != (an_integer_kind)ik_none) {
+          result = skip_typerefs(base_type)->variant.integer.int_kind;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4628,6 +4628,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       end_of_enum_con_list = NULL;
       /* Scan the list of enumerated constants. */
       do {
+        a_source_position            enum_con_pos;
         a_source_sequence_entry_ptr  enum_con_ssep = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         a_source_range               enum_id_range, enum_value_range;
@@ -4636,6 +4637,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         add_stop_token(tok_comma);
         add_stop_token(tok_assign);
+        enum_con_pos = pos_curr_token;
         if (curr_token != tok_identifier) {
           (void)required_token(tok_identifier, ec_exp_identifier);
           set_to_error_locator(locator);
@@ -4738,8 +4740,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           if (cppcli_enabled && !cppcli_enum_init_error_issued &&
               explicit_base_kind != (an_integer_kind)ik_none &&
               is_bool_type(integer_type_supp(enum_type)->base_type)) {
+            /* ECMA-372 (the C++/CLI standard) requires that C++/CLI enum
+               types with an explicit boolean underlying type have explicit
+               values for each of their enumerator constants. */
             pos_error(ec_cppcli_enumerator_requires_explicit_value,
-                      &pos_curr_token);
+                      &enum_con_pos);
             cppcli_enum_init_error_issued = TRUE;
           }  /* if */
           if (end_of_enum_con_list == NULL) {
