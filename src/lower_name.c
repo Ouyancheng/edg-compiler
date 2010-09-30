@@ -513,7 +513,9 @@ static void mangled_simple_id(a_source_correspondence_ptr scp,
                               a_name_reference_ptr        name_reference,
                               a_boolean                   include_length,
                               a_mangling_control_block    *mctl);
+#if DO_IL_LOWERING || IA_64_ABI
 static char *unmangled_or_fabricated_name_of_variable(a_variable_ptr var);
+#endif /* DO_IL_LOWERING || IA_64_ABI */
 #if ABI_COMPATIBILITY_VERSION >= 402
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     an_expr_node_ptr         arguments,
@@ -2607,6 +2609,7 @@ first named field; leave it unchanged if there is no named field.
   return name;
 }  /* first_field_name */
 
+#if DO_IL_LOWERING || IA_64_ABI
 
 static char *unmangled_or_fabricated_name_of_variable(a_variable_ptr var)
 /*
@@ -2628,6 +2631,7 @@ appear in mangled names).
   return name;
 }  /* unmangled_or_fabricated_name_of_variable */
 
+#endif /* DO_IL_LOWERING || IA_64_ABI */
 
 static a_boolean is_unresolved_type(a_type_ptr type)
 /*
