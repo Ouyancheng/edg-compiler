@@ -25,6 +25,9 @@ typedef struct an_active_using_directive *an_active_using_directive_ptr;
 typedef struct an_expr_stack_entry an_expr_stack_entry_dummy_typedef;
 typedef struct a_class_def_state a_class_def_state_dummy_typedef;
 typedef struct a_class_fixup *a_class_fixup_ptr;
+typedef struct a_pack_expansion_descr *a_pack_expansion_descr_ptr;
+typedef struct a_pack_expansion_stack_entry *a_pack_expansion_stack_entry_ptr;
+typedef struct a_pack_instantiation_descr *a_pack_instantiation_descr_ptr;
 
 /*
 Option flags passed to the push_scope routines.
@@ -230,6 +233,71 @@ typedef struct a_scope_pointers_block {
 			   added to the active list as is usually done. */
   bitfield_to_avoid_codecenter_warnings()
 } a_scope_pointers_block;
+
+
+/*
+Structure used for variadic templates to record information about potential
+pack expansion contexts.
+*/
+typedef struct a_pack_expansion_descr {
+  a_pack_expansion_descr_ptr
+		next;
+			/* The next entry on a list of pack expansion entries,
+			   or NULL for the last entry on the list. */
+  a_cached_token_handle
+		first_token;
+			/* Identifies the first token of the range of tokens
+			   to be rescanned for an expansion of the pack. */
+  a_cached_token_handle
+		last_token;
+			/* Identifies the last token of the range of tokens
+			   to be rescanned for an expansion of the pack. */
+  a_symbol_list_entry_ptr
+		packs_referenced;
+			/* A list of the parameter packs used within the pack
+			   expansion.  This will include template parameter
+			   symbols for template parameter packs as well as
+			   variable symbols for function parameter packs. */
+} a_pack_expansion_descr;
+
+
+/*
+Structure used for variadic templates to track information about actual
+pack instantiations.
+*/
+typedef struct a_pack_instantiation_descr {
+  a_pack_instantiation_descr_ptr
+		next;
+			/* The next entry on a list of pack instantiation
+			   entries, or NULL for the last entry on the list. */
+} a_pack_instantiation_descr;
+
+
+/*
+Entry used to maintain a stack of variadic template pack expansions.
+*/
+typedef struct a_pack_expansion_stack_entry {
+  a_pack_expansion_stack_entry_ptr
+		next;
+			/* The next entry on the pack expansion stack, or
+			   NULL if this is the bottom of the stack. */
+  a_pack_expansion_descr_ptr
+		expansion_descr;
+			/* A pointer to the entry that describes this pack
+			   expansion.  During prototype instantiations this
+			   points to an entry that is being constructed to
+			   describe a potential pack expansion context.  The
+			   entry will be freed later if this is not actually
+			   a pack expansion.  During a real instantiation,
+			   this points to a pack expansion descriptor created
+			   during the prototype instantiation. */
+  a_pack_instantiation_descr_ptr
+		instantiation_descr;
+			/* During a real instantiation, this points to
+			   information about the actual parameter packs being
+			   used for the instantiation.  NULL during prototype
+			   instantiations. */
+} a_pack_expansion_stack_entry;
 
 
 /*
@@ -1465,17 +1533,19 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup);
 
+extern a_template_decl_info_ptr get_current_template_decl_info(void);
+
 extern a_boolean begin_potential_pack_expansion_context(
-				a_pack_expansion_descr_ptr	*pedp);
+			a_pack_expansion_stack_entry_ptr	*p_pesep);
 
 extern void end_potential_pack_expansion_context(
-				a_pack_expansion_descr_ptr	pedp,
-				a_boolean			is_declarator);
+			a_pack_expansion_stack_entry_ptr	pesep,
+			a_boolean				is_declarator);
 
 extern
-a_boolean advance_to_next_pack_element(a_pack_expansion_descr_ptr	pedp);
+a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep);
 
-extern void record_pack_reference(a_symbol_ptr	pack_symbol);
+extern void record_potential_pack_reference(a_symbol_ptr	pack_symbol);
 
 extern void record_pack_expansion_ellipsis(void);
 

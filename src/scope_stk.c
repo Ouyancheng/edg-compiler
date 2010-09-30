@@ -55,11 +55,33 @@ static a_function_shareable_constants_table_ptr
 			   that have been freed and are available for
 			   reuse. */
 
+static a_pack_expansion_stack_entry_ptr
+		pack_expansion_stack;
+			/* Pointer to the top of the pack expansion stack. */
+
+static a_pack_expansion_stack_entry_ptr
+		avail_pack_expansion_stack_entries;
+			/* A list of pack expansion stack entries that have
+			   been freed and are available for reuse. */
+
+static a_pack_expansion_descr_ptr
+		avail_pack_expansion_descrs;
+			/* A list of pack expansion descriptors that have
+			   been freed and are available for reuse. */
+
+static a_pack_instantiation_descr_ptr
+		avail_pack_instantiation_descrs;
+			/* A list of pack instantiation descriptors that have
+			   been freed and are available for reuse. */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
 */
 static unsigned long
+		num_pack_expansion_stack_entries_allocated,
+		num_pack_expansion_descrs_allocated,
+		num_pack_instantiation_descrs_allocated,
 		num_function_shareable_constants_tables_allocated;
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
@@ -8272,8 +8294,148 @@ is called only in C++.
 }  /* pop_class_reactivation_scope */
 
 
+a_template_decl_info_ptr get_current_template_decl_info(void)
+/*
+Return a pointer to the template declaration information entry associated
+with the innermost template instantiation or template declaration scope.
+Note that such a scope is required to exist when this routine is called.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_depth			depth_to_use;
+  a_template_decl_info_ptr	tdip;
+
+  /* Find the innermost template declaration or template instantiation
+     scope. */
+  depth_to_use = depth_innermost_instantiation_scope;
+  if (depth_to_use < depth_template_declaration_scope) {
+    depth_to_use = depth_template_declaration_scope;
+  } else {
+    /* A template instantiation scope must be for a prototype instantiation. */
+    check_assertion(depth_to_use != NO_SCOPE_DEPTH);
+    check_assertion(scope_stack[depth_to_use].in_prototype_instantiation);
+  }  /* if */
+  check_assertion(depth_to_use != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth_to_use];
+  tdip = ssep->template_decl_info;
+  check_assertion(tdip != NULL);
+  return tdip;
+}  /* get_current_template_decl_info */
+
+
+static a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
+/*
+Allocate a new pack expansion descriptor, initialize it, and return a pointer
+to it.
+*/
+{
+  a_pack_expansion_descr_ptr	pedp;
+
+  if (avail_pack_expansion_descrs != NULL) {
+    /* Reuse an existing entry. */
+    pedp = avail_pack_expansion_descrs;
+    avail_pack_expansion_descrs = avail_pack_expansion_descrs->next;
+  } else {
+    /* Allocate a new entry. */
+    pedp = alloc_fe_of_type(a_pack_expansion_descr);
+#if DEBUG
+   num_pack_expansion_descrs_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  pedp->next = NULL;
+  pedp->first_token = NO_CACHED_TOKEN_HANDLE;
+  pedp->last_token = NO_CACHED_TOKEN_HANDLE;
+  pedp->packs_referenced = NULL;
+  return pedp;
+}  /* alloc_pack_expansion_descr */
+
+#if 0
+
+static a_pack_instantiation_descr_ptr alloc_pack_instantiation_descr(void)
+/*
+Allocate a new pack instantiation descriptor, initialize it, and return a
+pointer to it.
+*/
+{
+  a_pack_instantiation_descr_ptr	pidp;
+
+  if (avail_pack_instantiation_descrs != NULL) {
+    /* Reuse an existing entry. */
+    pidp = avail_pack_instantiation_descrs;
+    avail_pack_instantiation_descrs = avail_pack_instantiation_descrs->next;
+  } else {
+    /* Allocate a new entry. */
+    pidp = alloc_fe_of_type(a_pack_instantiation_descr);
+#if DEBUG
+   num_pack_instantiation_descrs_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  pidp->next = NULL;
+  return pidp;
+}  /* alloc_pack_instantiation_descr */
+
+#endif /* 0 */
+
+static a_pack_expansion_stack_entry_ptr alloc_pack_expansion_stack_entry(void)
+/*
+Allocate a new pack expansion stack entry, initialize it, and return a pointer
+to it.
+*/
+{
+  a_pack_expansion_stack_entry_ptr	pesep;
+
+  if (avail_pack_expansion_stack_entries != NULL) {
+    /* Reuse an existing entry. */
+    pesep = avail_pack_expansion_stack_entries;
+    avail_pack_expansion_stack_entries =
+                                      avail_pack_expansion_stack_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    pesep = alloc_fe_of_type(a_pack_expansion_stack_entry);
+#if DEBUG
+   num_pack_expansion_stack_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  pesep->next = NULL;
+  pesep->expansion_descr = NULL;
+  pesep->instantiation_descr = NULL;
+  return pesep;
+}  /* alloc_pack_expansion_stack_entry */
+
+
+static a_pack_expansion_stack_entry_ptr push_pack_expansion_stack(void)
+/*
+Push a new entry on the pack expansion stack.  Return a pointer to the
+new stack entry.
+*/
+{
+  a_pack_expansion_stack_entry_ptr	pesep;
+
+  pesep = alloc_pack_expansion_stack_entry();
+  pesep->next = pack_expansion_stack;
+  pack_expansion_stack = pesep;
+  return pesep;
+}  /* push_pack_expansion_stack */
+
+
+static void pop_pack_expansion_stack(void)
+/*
+Pop the current entry off of the pack expansion stack.
+*/
+{
+  a_pack_expansion_stack_entry_ptr	pesep;
+
+  pesep = pack_expansion_stack;
+  /* Unlink this entry from the stack. */
+  pack_expansion_stack = pesep->next;
+  /* Add the old entry to the list of available stack entries. */
+  pesep->next = avail_pack_expansion_stack_entries;
+  avail_pack_expansion_stack_entries = pesep;
+}  /* pop_pack_expansion_stack */
+
+
 a_boolean begin_potential_pack_expansion_context(
-				a_pack_expansion_descr_ptr	*pedp)
+			a_pack_expansion_stack_entry_ptr	*p_pesep)
 /*
 This is called at the start of a construct that could be a variadic template
 pack expansion.  Such pack expansions occur only within the declarations
@@ -8315,26 +8477,57 @@ parameter packs are non-empty), the symbols for any parameter packs
 referenced in the expansion are updated to refer to the first element
 of the associated pack.
 
-*pedp is a pointer to an entry that describes the current pack expansion
-context.  A stack of such entries is maintained and the pedp pointer passed
+*p_pesep is a pointer to an entry that describes the current pack expansion
+context.  A stack of such entries is maintained and the p_pesep pointer passed
 by the caller is updated to point to the stack entry created for the
-new context.  In a non-variadic context in an actual instantiation, *pedp
+new context.  In a non-variadic context in an actual instantiation, *p_pesep
 will be set to NULL.
 */
 {
-  /* FIXME: stub version. */
-  return TRUE;
+  a_boolean				any_args = FALSE;
+  a_pack_expansion_stack_entry_ptr	pesep = NULL;
+
+#if 0
+#else /* !0 */
+  /* Temporarily disable this routine. */
+  if (0) {
+  } else
+#endif /* 0 */
+  if (!variadic_templates_enabled) {
+    /* Variadic template processing is not enabled.  Return TRUE as this will
+       always be treated as a single argument value. */
+    any_args = TRUE;
+  } else if (is_template_dependent_context()) {
+    any_args = TRUE;
+    pesep = push_pack_expansion_stack();
+    /* Allocate an expansion descriptor for this stack entry. */
+    pesep->expansion_descr = alloc_pack_expansion_descr();
+    /* Save a handle to the start of the token range for the pack. */
+    check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
+    pesep->expansion_descr->first_token = curr_cached_token_handle;
+  } else if (is_real_instantiation_context()) {
+    /* This is a real instantiation.  Check whether this is a variadic
+       context. */
+    /* FIXME: Not implemented yet. */
+    any_args = TRUE;
+  } else {
+    /* Some other context -- assumed to have a single nonvariadic argument. */
+    any_args = TRUE;
+  }  /* if */
+  /* Return the pack expansion descriptor, if any, to the caller. */
+  *p_pesep = pesep;
+  return any_args;
 }  /* begin_potential_pack_expansion_context */
 
 
 void end_potential_pack_expansion_context(
-				a_pack_expansion_descr_ptr	pedp,
-				a_boolean			is_declarator)
+			a_pack_expansion_stack_entry_ptr	pesep,
+			a_boolean				is_declarator)
 /*
 This is called at the end of a construct that could be a variadic template
 pack expansion.  This is called in circumstances similar to those for
 begin_potential_pack_expansion_context (see also for more information).
-pedp describes the current pack expansion, and can be NULL in an actual
+pesep describes the current pack expansion, and can be NULL in an actual
 instantiation of a context that did not turn out to be variadic.  Note that
 this routine will not be called during an actual instantiation in which the
 parameter packs are empty.
@@ -8347,37 +8540,52 @@ record_pack_expansion_ellipsis when the "..." is encountered in the middle
 of the declaration).
 */
 {
+  if (pesep == NULL) {
+    /* A non-variadic context.  There is nothing to be done. */
+  } else {
+    /* The pack expansion descriptor passed in should be on top of the
+       stack. */
+    check_assertion(pesep == pack_expansion_stack);
+    /* Save a handle to the start of the token range for the pack. */
+    check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
+    pesep->expansion_descr->last_token = curr_cached_token_handle;
+  }  /* if */
 }  /* end_potential_pack_expansion_context */
 
 
-a_boolean advance_to_next_pack_element(a_pack_expansion_descr_ptr	pedp)
+a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep)
 /*
 This routine is called after end_potential_pack_expansion_context has been
 called, to update the symbols that refer to pack expansions so that they
-refer to the next element of the pack, if any.
+refer to the next element of the pack, if any.  pesep describes the current
+pack expansion, and can be NULL in an actual instantiation of a context that
+did not turn out to be variadic.
 
 TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 */
 {
   /* FIXME: stub version. */
+  if (pesep != NULL) {
+    /* The pack expansion descriptor passed in should be on top of the
+       stack. */
+    check_assertion(pesep == pack_expansion_stack);
+    pop_pack_expansion_stack();
+  }  /* if */
   return FALSE;
 }  /* advance_to_next_pack_element */
 
 
-void record_pack_reference(a_symbol_ptr	pack_symbol)
+void record_potential_pack_reference(a_symbol_ptr	pack_symbol)
 /*
-This routine is called during the prototype instantiation of a variadic
-template parameter pack expansion to record a reference to a parameter
-pack.  pack_symbol is the symbol for the template parameter that names
-the parameter pack.  This can be a template parameter symbol for a
-template parameter pack, or a variable symbol for the parameter variable
-for a function parameter pack.
-
-This routine should never be called in a real instantiation as name lookup
-should never find an unexpanded pack.
+This routine is called to determine whether pack_symbol is a reference
+to a parameter pack, and if so, make a record that the particular
+parameter pack has been referenced in the current variadic context.
+The symbol passed in can be of any kind (but, an actual pack can only
+be a template parameter symbol for a template parameter pack, or a variable
+symbol for the parameter variable for a function parameter pack).
 */
 {
-}  /* record_pack_reference */
+}  /* record_potential_pack_reference */
 
 
 void record_pack_expansion_ellipsis(void)
@@ -8471,6 +8679,18 @@ routines is reported as part of the symbol table memory used.
                 num_delayed_lowering_list_entries_allocated,
                 a_delayed_lowering_list_entry);
 #endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
+  db_space_used_lost("pack exp. stack entries",
+                     avail_pack_expansion_stack_entries,
+                     num_pack_expansion_stack_entries_allocated,
+                     a_pack_expansion_stack_entry);
+  db_space_used_lost("pack expansion descrs",
+                     avail_pack_expansion_descrs,
+                     num_pack_expansion_descrs_allocated,
+                     a_pack_expansion_descr);
+  db_space_used_lost("pack instantiation descrs",
+                     avail_pack_instantiation_descrs,
+                     num_pack_instantiation_descrs_allocated,
+                     a_pack_instantiation_descr);
   return grand_total;
 }  /* db_show_scope_stack_space_used */
 
@@ -8490,6 +8710,10 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(num_classes_on_scope_stack),
       pch_saved_var_array_elem(avail_names_hidden_by_old_for_init),
       pch_saved_var_array_elem(name_linkage_stack),
+      pch_saved_var_array_elem(pack_expansion_stack),
+      pch_saved_var_array_elem(avail_pack_expansion_stack_entries),
+      pch_saved_var_array_elem(avail_pack_expansion_descrs),
+      pch_saved_var_array_elem(avail_pack_instantiation_descrs),
       pch_saved_var_array_elem(avail_name_linkage_stack_entries),
       pch_saved_var_array_elem(avail_function_shareable_constants_tables),
       pch_saved_var_array_elem(
@@ -8537,6 +8761,7 @@ are handled in scope_stk_init.)
   register_trans_unit_variable(
                          depth_of_innermost_scope_that_affects_access_control);
   register_trans_unit_variable(num_classes_on_scope_stack);
+  register_trans_unit_variable(pack_expansion_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   register_trans_unit_variable(source_sequence_entries_disallowed);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -8563,6 +8788,7 @@ given translation unit.
   depth_innermost_namespace_scope = NO_SCOPE_DEPTH;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
   num_classes_on_scope_stack = 0;
+  pack_expansion_stack = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Source sequence entries are always suppressed when compiling secondary
      translation units. */
@@ -8593,6 +8819,9 @@ of the front end.
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
   avail_function_shareable_constants_tables = NULL;
+  avail_pack_expansion_stack_entries = NULL;
+  avail_pack_expansion_descrs = NULL;
+  avail_pack_instantiation_descrs = NULL;
 #if NEED_NAME_MANGLING
   avail_collision_tables = NULL;
 #endif /* NEED_NAME_MANGLING */
@@ -8609,6 +8838,9 @@ of the front end.
 #if DEBUG
   num_c99_inline_definition_locators_allocated = 0;
   num_function_shareable_constants_tables_allocated = 0;
+  num_pack_expansion_stack_entries_allocated = 0;
+  num_pack_expansion_descrs_allocated = 0;
+  num_pack_instantiation_descrs_allocated = 0;
 #endif /* DEBUG */
 #if DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM
   waiting_for_module_id_list_head = NULL;

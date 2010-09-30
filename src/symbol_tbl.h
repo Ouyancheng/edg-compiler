@@ -42,7 +42,6 @@ typedef struct an_exception_spec_error_descr
 typedef struct a_gnu_attribute  a_gnu_attribute_dummy_typedef;
 typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
 typedef struct a_hash_table *a_hash_table_ptr;
-typedef struct a_pack_expansion_descr *a_pack_expansion_descr_ptr;
 
 /* The pointer to a_routine_fixup is declared here even though the struct
    itself is defined in class_decl.c.  This allows the pointer to be made
@@ -1451,15 +1450,6 @@ typedef struct a_decl_modifiers_block {
 			   a "uuid" decl-modifier (in Microsoft mode). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_decl_modifiers_block;
-
-
-/*
-Structure used for variadic templates to keep a stack of potential
-pack expansion contexts.
-*/
-typedef struct a_pack_expansion_descr {
-  int	dummy;
-} a_pack_expansion_descr;
 
 
 /*

@@ -2420,25 +2420,12 @@ depth is usually zero, but serves as an additional position disambiguator
 on tsn if non-zero.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			depth_to_use;
   a_template_decl_info_ptr	tdip;
   a_nondependent_call_info_ptr	ndcip;
 
-  /* Find the innermost template declaration or template instantiation
-     scope. */
-  depth_to_use = depth_innermost_instantiation_scope;
-  if (depth_to_use < depth_template_declaration_scope) {
-    depth_to_use = depth_template_declaration_scope;
-  } else {
-    /* A template instantiation scope must be for a prototype instantiation. */
-    check_assertion(depth_to_use != NO_SCOPE_DEPTH);
-    check_assertion(scope_stack[depth_to_use].in_prototype_instantiation);
-  }  /* if */
-  check_assertion(depth_to_use != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[depth_to_use];
-  tdip = ssep->template_decl_info;
-  check_assertion(tdip != NULL);
+  /* Get the template declaration information entry associated with the
+     current context. */
+  tdip = get_current_template_decl_info();
 #if DEBUG
   if (db_flag_is_set("nondep_call")) {
     fprintf(f_debug, "Recording nondependent call at %ld ", (long)tsn);
