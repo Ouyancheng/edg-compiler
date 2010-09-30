@@ -277,6 +277,27 @@ Given that the current name context is a class, return the class type.
 
 
 /*
+Entry used to record a publicly-accessible typedef that is a synonym for a
+type that is not publicly accessible or that has template arguments that
+are not publicly accessible.  This allows a use of that type at a point
+where it is inaccessible to be replaced by the publicly-accessible typedef.
+This situation arises with template arguments (where the type reflects the
+argument in the first reference to the instance, which might have been at a
+point where the non-public type was accessible) and in qualifiers generated
+when name_references are not available.
+*/
+typedef struct an_accessible_typedef *an_accessible_typedef_ptr;
+typedef struct an_accessible_typedef {
+  an_accessible_typedef_ptr
+		next;	/* The next typedef in the list. */
+  a_type_ptr	type;	/* The accessible typedef. */
+} an_accessible_typedef;
+static an_accessible_typedef_ptr
+		accessible_typedefs;
+			/* Root of the list of accessible typedefs. */
+
+
+/*
 Macro to test a type kind to see if it is a class, struct, or union.
 */
 #define is_class_type_kind(kind)                                      \
@@ -384,8 +405,10 @@ static void gen_routine_decl(a_boolean suppress_specifiers,
 static void gen_declaration(a_boolean for_init);
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand);
-static a_boolean entity_name_is_accessible(a_source_correspondence_ptr scp,
-                                           an_il_entry_kind            kind);
+static a_boolean entity_name_is_accessible(
+                                   a_source_correspondence_ptr scp,
+                                   an_il_entry_kind            kind,
+                                   a_boolean                   ignore_context);
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -942,6 +965,34 @@ are also considered to be on the stack.
 }  /* class_is_in_name_context_stack */
 
 
+static void register_accessible_typedef(a_type_ptr type)
+/*
+type is a typedef that has just been defined.  If it is publicly accessible
+and is a synonym for a named type that is not publicly accessible or whose
+template arguments are not publicly accessible, add it to the list of
+typedefs that can be used as a substitute when the underlying type is named
+in a context in which it is not accessible.
+*/
+{
+  a_type_ptr targ_type;
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref);
+  targ_type = type->variant.typeref.type;
+  if (type->source_corresp.access == (an_access_specifier)as_public &&
+      has_name_before_mangling(targ_type) &&
+      !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
+                                 /*ignore_context=*/TRUE)) {
+    /* This typedef can be substituted for the target type when that type
+       is inaccessible.  Add it to the list of such typedefs. */
+    an_accessible_typedef_ptr atp =
+       (an_accessible_typedef_ptr)alloc_general(sizeof(an_accessible_typedef));
+    atp->next = accessible_typedefs;
+    accessible_typedefs = atp;
+    atp->type = type;
+  }  /* if */
+}  /* register_accessible_typedef */
+
+
 static a_scope_ptr decl_scope_of(a_source_correspondence *scp)
 /*
 Return the scope in which the entity with the given source correspondence
@@ -1090,10 +1141,12 @@ Restore the current source sequence list scan state from *state.
 }  /* restore_source_sequence_scan_state */
 
 
-static a_boolean template_arg_is_accessible(a_template_arg_ptr argp)
+static a_boolean template_arg_is_accessible(a_template_arg_ptr argp,
+                                            a_boolean          ignore_context)
 /*
-Return TRUE if all names in the template argument are accessible in the
-current context or if the argument contains no names, FALSE otherwise.
+Return TRUE if all names in the template argument are accessible (either
+publicly or in the current context, depending on the value of
+ignore_context) or if the argument contains no names, FALSE otherwise.
 */
 {
   a_boolean is_accessible = TRUE;
@@ -1102,7 +1155,7 @@ current context or if the argument contains no names, FALSE otherwise.
   case tak_type:
     is_accessible = entity_name_is_accessible(
                                            &argp->variant.type->source_corresp,
-                                           iek_type);
+                                           iek_type, ignore_context);
     break;
   case tak_nontype:
     if (!argp->is_array_bound_of_unknown_type &&
@@ -1115,24 +1168,24 @@ current context or if the argument contains no names, FALSE otherwise.
                                            (an_address_base_kind)abk_routine) {
           is_accessible = entity_name_is_accessible(
                     &constant->variant.address.variant.routine->source_corresp,
-                    iek_routine);
+                    iek_routine, ignore_context);
         } else if (constant->variant.address.kind ==
                                           (an_address_base_kind)abk_variable) {
           is_accessible = entity_name_is_accessible(
                    &constant->variant.address.variant.variable->source_corresp,
-                   iek_variable);
+                   iek_variable, ignore_context);
         }  /* if */
       } else {
         if (constant->variant.ptr_to_member.is_function_ptr &&
             constant->variant.ptr_to_member.variant.routine != NULL) {
           is_accessible = entity_name_is_accessible(
               &constant->variant.ptr_to_member.variant.routine->source_corresp,
-              iek_routine);
+              iek_routine, ignore_context);
         } else if (!constant->variant.ptr_to_member.is_function_ptr &&
                    constant->variant.ptr_to_member.variant.field != NULL) {
           is_accessible = entity_name_is_accessible(
                 &constant->variant.ptr_to_member.variant.field->source_corresp,
-                iek_field);
+                iek_field, ignore_context);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1140,7 +1193,7 @@ current context or if the argument contains no names, FALSE otherwise.
   case tak_template:
     is_accessible = entity_name_is_accessible(
                                       &argp->variant.templ.ptr->source_corresp,
-                                      iek_template);
+                                      iek_template, ignore_context);
     break;
   default:
     unexpected_condition();
@@ -1149,15 +1202,17 @@ current context or if the argument contains no names, FALSE otherwise.
 }  /* template_arg_is_accessible */
 
 
-static a_boolean entity_name_is_accessible(a_source_correspondence_ptr scp,
-                                           an_il_entry_kind            kind)
+static a_boolean entity_name_is_accessible(
+                                    a_source_correspondence_ptr scp,
+                                    an_il_entry_kind            kind,
+                                    a_boolean                   ignore_context)
 /*
 Return TRUE if the entity described by scp and kind can be named without
-access errors in the current scope -- i.e., if the entity and any classes
-in which it is nested are non-members or public members of their containing
-classes, or if the containing class is in the context stack.  This check
-also includes the names of the template arguments of a class template
-instance.
+access errors -- i.e., if the entity and any classes in which it is nested
+are non-members or public members of their containing classes, or (when
+ignore_context is FALSE) if the containing class is in the context stack.
+This check also includes the names of the template arguments of a class
+template instance.
 */
 {
   a_boolean is_accessible;
@@ -1170,7 +1225,7 @@ instance.
   if (scp->access == (an_access_specifier)as_public) {
     /* Either a public class member or a non-member. */
     is_accessible = TRUE;
-  } else {
+  } else if (!ignore_context) {
     /* Check to see if the containing class is in the context stack. */
     a_type_ptr parent_class = scp_parent_class(scp);
     is_accessible = (class_is_in_name_context_stack(
@@ -1179,6 +1234,8 @@ instance.
                      (curr_name_context != NULL &&
                       curr_name_context->class_type_for_access_not_naming ==
                                                                 parent_class));
+  } else {
+    is_accessible = FALSE;
   }  /* if */
   if (is_accessible && kind == iek_type) {
     /* If the name of the type itself is accessible, also check for the
@@ -1189,7 +1246,7 @@ instance.
       for (tap =
                 type->variant.class_struct_union.extra_info->template_arg_list;
            is_accessible && tap != NULL; tap = tap->next) {
-        if (!template_arg_is_accessible(tap)) {
+        if (!template_arg_is_accessible(tap, ignore_context)) {
           is_accessible = FALSE;
         }  /* if */
       }  /* for */
@@ -2282,7 +2339,7 @@ that the remaining arguments will be defaulted.
              accessibility of the argument to see if we should truncate the
              argument list at this point to avoid possible access
              problems. */
-          if (!template_arg_is_accessible(argp)) {
+          if (!template_arg_is_accessible(argp, /*ignore_context=*/FALSE)) {
             break;
           }  /* if */
         }  /* if */
@@ -2601,7 +2658,8 @@ is called.
        <stdarg.h> header is included). */
     if (type->is_builtin_va_list) invisible = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
-  } else if (!entity_name_is_accessible(&type->source_corresp, iek_type)) {
+  } else if (!entity_name_is_accessible(&type->source_corresp, iek_type,
+                                        /*ignore_context=*/FALSE)) {
     /* The typedef is an inaccessible member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template
@@ -2630,7 +2688,8 @@ is called.
          represented via typedefs). */
       invisible = FALSE;
     } else if (!entity_name_is_accessible(&underlying_type->source_corresp,
-                                          iek_type)) {
+                                          iek_type,
+                                          /*ignore_context=*/FALSE)) {
       /* The underlying type may be inaccessible, so we have to use the
          typedef. */
       invisible = FALSE;
@@ -2638,6 +2697,28 @@ is called.
   }  /* if */
   return invisible;
 }  /* is_typedef_invisible_in_cp_gen_be */
+
+
+static void replace_inaccessible_type_with_accessible_typedef(
+                                              a_source_correspondence_ptr *scp)
+/*
+*scp points to the source_correspondence field of a type.  If that type is
+inaccessible in the current context and there is an accessible typedef that
+designates the same type, set *scp to point to that typedef instead.
+*/
+{
+  if (!entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE)) {
+    an_accessible_typedef_ptr atp;
+    a_type_ptr                type = (a_type_ptr)*scp;
+    for (atp = accessible_typedefs; atp != NULL; atp = atp->next) {
+      if (standalone_identical_types(type, atp->type->variant.typeref.type)) {
+        /* Found an accessible substitute. */
+        *scp = &atp->type->source_corresp;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* replace_inaccessible_type_with_accessible_typedef */
 
 
 static a_boolean force_qualifier_for_msvc(a_source_correspondence *scp,
@@ -2689,8 +2770,10 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   if (il_header.source_language == sl_Cplusplus) {
     a_boolean save_qualification_needed = scp->qualification_needed;
     if (entry_kind == iek_type) {
-      a_type_ptr     tp = (a_type_ptr)scp;
+      a_type_ptr     tp;
       a_template_ptr assoc_template = NULL;
+      replace_inaccessible_type_with_accessible_typedef(&scp);
+      tp = (a_type_ptr)scp;
       if ((tp->kind == (a_type_kind)tk_class ||
            tp->kind == (a_type_kind)tk_struct ||
            tp->kind == (a_type_kind)tk_union) &&
@@ -5958,6 +6041,7 @@ declaration following this one is such a continuation.
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
   gen_attributes(attributes, al_id_equivalent, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
+  register_accessible_typedef(type);
 }  /* gen_typedef_definition */
 
 
@@ -13473,6 +13557,7 @@ Initialize for the C++/C-generating back end.
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
+  accessible_typedefs = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);

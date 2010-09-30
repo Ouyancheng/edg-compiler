@@ -1,5 +1,32 @@
 Version 4.3
 
+9/30/10  [EDGcpfe/11015]
+C++-generating back end: inaccessible types with accessible typedefs
+
+In some cases the C++-generating back end emitted a reference to a type
+that is inaccessible or uses inaccessible names in its template arguments,
+even though the source code referred to the type using a public typedef.
+This problem occurred when generating qualifiers in cases where name
+references are not recorded and in template arguments (where the template
+argument reflects the first reference to the instance, which might have
+occurred in a context in which the name is accessible).  The C++-generating
+back end has now been changed to keep track of publicly-accessible typedefs
+to potentially-inaccessible types and to substitute the typedef for a use
+of the type in a context where it is inaccessible.  (Note that in cases
+where more than one public typedef names the same inaccessible type, the
+typedef appearing in the generated code might not be the one used in the
+source.)  For example:
+
+  class A {
+    struct priv {
+      typedef int I;
+    };
+  public:
+    typedef priv pub;
+  };
+  A::pub::I i;    // Previously generated as A::priv::I
+
+
 9/29/10  [EDGcpfe/10795]
 GNU C++ mode constant variables with pointer values
 
