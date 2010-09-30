@@ -3981,7 +3981,7 @@ configurations, the type is recorded in enum_type.
       if (base_type != NULL) {
         integer_type_supp(enum_type)->base_type = orig_base_type;
         enum_type->variant.integer.has_explicit_enum_base = TRUE;
-        if (result != (an_integer_kind)ik_none) {
+        if (result == (an_integer_kind)ik_none) {
           result = skip_typerefs(base_type)->variant.integer.int_kind;
         }  /* if */
       }  /* if */
