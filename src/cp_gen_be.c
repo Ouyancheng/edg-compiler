@@ -965,6 +965,65 @@ are also considered to be on the stack.
 }  /* class_is_in_name_context_stack */
 
 
+static a_type_ptr
+		type_to_match;
+			/* Type set by target_type_has_circularity for use
+			   by ttt_check_type_match. */
+
+
+static a_boolean ttt_check_type_match(a_type_ptr type,
+                                      a_boolean  *end_traversal)
+/*
+This function is called via traverse_type_tree from
+target_type_has_circularity.  If type matches type_to_match, it sets
+*end_traversal to TRUE and returns TRUE; otherwise, it returns FALSE.
+*/
+{
+  a_boolean found_match = FALSE;
+  if (standalone_identical_types(type, type_to_match)) {
+    found_match = TRUE;
+    *end_traversal = TRUE;
+  }  /* if */
+  return found_match;
+}  /* ttt_check_type_match */
+
+
+static a_boolean target_type_has_circularity(a_type_ptr type)
+/*
+Return TRUE if the target of type (a typedef) is used in the qualifiers that
+will be used to name the typedef.  This can arise in an example like
+
+    template<typename T> struct S {
+      typedef T type;
+    };
+
+If X is a non-public type, an attempt to subsitute S<X>::type for an
+occurrence of X in the generated code will result in an infinite recursion
+on the template argument, so this case must be detected and not added to
+the list of accessible typedefs.
+*/
+{
+  a_boolean  has_circularity = FALSE;
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref);
+  if (type->source_corresp.is_class_member) {
+    a_type_ptr parent_class = parent_class_of(type);
+    a_type_tree_traversal_flag_set ttt_flags = (TTT_TEMPLATE_ARGS |
+                                                TTT_SKIP_TYPEREFS |
+                                                TTT_PARENT_CLASSES);
+    /* We skip typerefs in the comparison to allow for cv-qualification.
+       That results in a more conservative approach than is absolutely
+       necessary, as a given template argument might be an accessible
+       typedef instead of its inaccessible target type, but it's better to
+       be safe than sorry. */
+    type_to_match = skip_typerefs(type->variant.typeref.type);
+    has_circularity = traverse_type_tree(parent_class, ttt_check_type_match,
+                                         ttt_flags);
+  }  /* if */
+  return has_circularity;
+}  /* target_type_has_circularity */
+
+
 static void register_accessible_typedef(a_type_ptr type)
 /*
 type is a typedef that has just been defined.  If it is publicly accessible
@@ -981,7 +1040,8 @@ in a context in which it is not accessible.
   if (type->source_corresp.access == (an_access_specifier)as_public &&
       has_name_before_mangling(targ_type) &&
       !entity_name_is_accessible(&targ_type->source_corresp, iek_type,
-                                 /*ignore_context=*/TRUE)) {
+                                 /*ignore_context=*/TRUE) &&
+      !target_type_has_circularity(type)) {
     /* This typedef can be substituted for the target type when that type
        is inaccessible.  Add it to the list of such typedefs. */
     an_accessible_typedef_ptr atp =
