@@ -866,16 +866,28 @@ A pointer to the resulting operand list is returned.
     add_stop_token(tok_comma);
     /* Scan a comma-separated list of arguments. */
     do {
+      a_pack_expansion_stack_entry_ptr pesep;
+      a_boolean                        any_more;
       if (trailing_comma_okay) {
         /* Allow an extra comma at the end of the argument list. */
         if (curr_token == tok_rparen) break;
       }  /* if */
-      /* Add an entry to the argument operand list. */
-      *p_arg = alloc_arg_operand();
-      /* Scan an argument expression.  Note that it is not converted to an
-         rvalue yet. */
-      scan_expr(&(*p_arg)->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-      p_arg = &(*p_arg)->next;
+      /* Each expression on the list is potentially a pack expansion
+         ended by "...". */
+      any_more = begin_potential_pack_expansion_context(&pesep);
+      while (any_more) {
+        /* Add an entry to the argument operand list. */
+        *p_arg = alloc_arg_operand();
+        /* Scan an argument expression.  Note that it is not converted to an
+           rvalue yet. */
+        scan_expr(&(*p_arg)->operand, PREC_LOWEST,
+                  EOPT_DISALLOW_COMMA_OPERATOR);
+        p_arg = &(*p_arg)->next;
+        /* If this is a pack expansion, swallow the trailing "..." and
+           loop for the next iteration of the expansion. */
+        end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
+        any_more = advance_to_next_pack_element(pesep);
+      }  /* while */
     } while (loop_token(tok_comma));
     remove_stop_token(tok_comma);
   }  /* if */
@@ -20659,6 +20671,9 @@ if rescan_is_template_id is TRUE, and return the result in *operand
         }  /* if */
       }  /* if */
       projection_sym_ptr = locator.specific_symbol;
+      /* If the symbol is a reference to a parameter pack, record it.
+         Otherwise, this does nothing. */
+      record_potential_pack_reference(sym_ptr);
       /* What kind of symbol is it? */
       switch (sym_ptr->kind) {
         case sk_constant:
