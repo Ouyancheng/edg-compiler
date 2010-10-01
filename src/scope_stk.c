@@ -8490,7 +8490,7 @@ will be set to NULL.
 #if 0
 #else /* !0 */
   /* Temporarily disable this routine. */
-  if (0) {
+  if (1) {
   } else
 #endif /* 0 */
   if (!variadic_templates_enabled) {
