@@ -8491,6 +8491,7 @@ will be set to NULL.
 #else /* !0 */
   /* Temporarily disable this routine. */
   if (1) {
+    any_args = TRUE;
   } else
 #endif /* 0 */
   if (!variadic_templates_enabled) {
