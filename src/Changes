@@ -42,7 +42,7 @@ like:
 which is accepted by all version of g++.  A further tweak has now been made.
 
 
-9/28/10  [EDGcpfe/11017]
+9/28/10  [EDGcpfe/11017,EDGcpfe/10898,EDGcpfe/10196]
 C++-generating back end, GNU compatibility: initializers for vector types
 
 In C++-generating back end configurations with GNU_VECTOR_TYPES_ALLOWED set
