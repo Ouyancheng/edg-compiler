@@ -997,7 +997,7 @@ will be used to name the typedef.  This can arise in an example like
       typedef T type;
     };
 
-If X is a non-public type, an attempt to subsitute S<X>::type for an
+If X is a non-public type, an attempt to substitute S<X>::type for an
 occurrence of X in the generated code will result in an infinite recursion
 on the template argument, so this case must be detected and not added to
 the list of accessible typedefs.
