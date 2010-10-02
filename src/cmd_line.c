@@ -5436,6 +5436,13 @@ file.
   comment_undefined_macro_name(
                       KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED);
 #endif /* defined(KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED) */
+#if defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION)
+  define_numeric_valued_macro(
+                             KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION);
+#else /* !defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION) */
+  comment_undefined_macro_name(
+                             KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION);
+#endif /* defined(KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION) */
 #if defined(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS)
   define_numeric_valued_macro(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS);
 #else /* !defined(LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS) */

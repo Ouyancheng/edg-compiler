@@ -1079,6 +1079,30 @@ back end does not understand.
 #endif /* RECORD_BACKING_EXPRS_WITH_IL_LOWERING && !DO_IL_LOWERING */
 
 /*
+Flag that is TRUE to indicate that backing expressions should be kept for
+non-type template arguments that cause template instantiations.  Normally
+such backing expressions are not kept because a given template instance can
+be referred to many times using different expressions that fold to the same
+constant value, and only one of those could be kept in the template
+argument.  In some configurations, however, particularly for the
+C++-generating back end, it is desirable to retain the backing expression
+if it causes a template to be instantiated; eliminating the expression
+could cause that template not to be instantiated in the generated code.
+This flag allows the backing expression to be kept in such cases, but only
+for the first reference; because the template argument can reflect only a
+single backing expression, the expressions in subsequent references will be
+discarded, even if they cause other template instantiations.
+*/
+#ifndef KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION
+#define KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION FALSE
+#endif /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
+#if KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION && DO_IL_LOWERING && \
+    !RECORD_BACKING_EXPRS_WITH_IL_LOWERING
+ #error -- KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION requires a \
+           configuration in which backing expressions are recorded
+#endif /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION && ... */
+
+/*
 Flag that is TRUE to cause source-sequence lists to be generated.  These
 lists are attached to scope entries and represent the sequence in which
 declarations, statements, comments, macros, and pragmas appear in the

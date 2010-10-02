@@ -879,22 +879,36 @@ kinds are at the beginning of the list.
 /*
 Macro that returns TRUE if the current expression kind is one in which
 backing expressions are recorded for constants.  They are never recorded
-for preprocessing expressions (because the constants are never saved).  In
-IL-lowering configurations, they are recorded only within template
-declarations, where they may be needed for name mangling (at least for the
-IA-64 ABI).  In configurations without IL lowering (or if
-RECORD_BACKING_EXPRS_WITH_IL_LOWERING is TRUE), they are generally recorded
-(but only under certain circumstances in template arguments; see
-prep_nontype_template_argument_initializer for details).
+for preprocessing expressions (because the constants are never saved).  The
+decision for other kinds of expressions depends on the configuration; see
+below.
 */
-#if !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING
+#if DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING
+/* In IL-lowering configurations, unless otherwise requested, the only
+   backing expressions kept are those appearing in template declarations,
+   where they may be needed for mangling, at least in the IA64 ABI. */
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
+  (!curr_expr_kind_is(ek_pp) &&                                   \
+   depth_template_declaration_scope != NO_SCOPE_DEPTH)
+#else /* !(DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
+#if !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION
+/* In non-IL-lowering configurations, backing expressions are normally kept
+   for all non-preprocessing constants except non-type template arguments,
+   but even those are kept within template declarations. */
+#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
+  (!curr_expr_kind_is(ek_pp) &&                                   \
+   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||         \
+    !curr_expr_kind_is(ek_template_arg)))
+#else /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
+/* When KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE, all
+   non-preprocessing contexts allow backing expressions to be recorded.
+   Most such backing expressions for non-type template arguments are
+   eventually discarded, however; see
+   prep_nontype_template_argument_initializer for details. */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp))
-#else /* !(!DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING) */
-#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
-  (!curr_expr_kind_is(ek_pp) && \
-   depth_template_declaration_scope != NO_SCOPE_DEPTH)
-#endif /* !DO_IL_LOWERING || RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
+#endif /* !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
+#endif /* DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 
 /*
 Macro that returns TRUE if the current expression is evaluated, i.e.,

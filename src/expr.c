@@ -24326,18 +24326,18 @@ memory region).  Do various error checks.
      times with different expressions that evaluate to the same constant,
      only one of which can appear in the instance's template argument
      list).  The two exceptions are inside template declarations, because
-     they are needed for name mangling (at least in the IA-64 ABI), and
-     when a given template argument causes another template to be
-     instantiated, because just using the folded constant would likely lose
-     the reference that caused the instantiation.  (The latter does not
-     apply when instantiations are placed into the source sequence list,
-     because the instance will be represented by an explicit specialization
-     and implicit instantiation is not needed).  Note that this mechanism
-     has limitations: as noted above, only one version of a template
-     argument is saved, so subsequent references to the template with
-     different argument expressions that fold to the same constant value
-     will not be saved, even if they cause template instantiations of their
-     own. */
+     they are needed for name mangling (at least in the IA-64 ABI), and (if
+     KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE) when a given
+     template argument causes another template to be instantiated, because
+     just using the folded constant would likely lose the reference that
+     caused the instantiation.  (The latter does not apply when
+     instantiations are placed into the source sequence list, because the
+     instance will be represented by an explicit specialization and
+     implicit instantiation is not needed).  Note that this mechanism has
+     limitations: as noted above, only one version of a template argument
+     is saved, so subsequent references to the template with different
+     argument expressions that fold to the same constant value will not be
+     saved, even if they cause template instantiations of their own. */
   need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH
 #if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
                        || operand->caused_template_instantiation
@@ -24441,6 +24441,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
+  check_assertion(constant->expr == NULL ||
+                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;

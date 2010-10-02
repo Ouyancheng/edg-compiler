@@ -102,11 +102,12 @@ back end always generated the template argument as simply the folded
 constant value.  This caused problems with the generated code if the
 argument expression contains a reference that causes the instantiation of
 another template, since that template might not otherwise be instantiated.
-The front end has now been changed to retain the backing expression for a
-non-type template argument that results in the instantiation of a class
-template.  (The C++-generating back end only uses the backing expression
-for the first reference to the template instance, in order to avoid scope
-issues for names appearing in the expression.)  For example:
+When KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE, the front
+end now retains the backing expression for a non-type template argument
+that results in the instantiation of a template.  (The C++-generating back
+end only uses the backing expression for the first reference to the
+template instance, in order to avoid scope issues for names appearing in
+the expression.)  For example:
 
   template<typename T> struct A {
     enum { I = 4 };
