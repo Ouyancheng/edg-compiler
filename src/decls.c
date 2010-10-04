@@ -14923,11 +14923,17 @@ required updates in the source sequence entry for this declaration.
       mark_decl_after_first_in_comma_list(dps);
     }  /* if */
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
-        an_attribute_ptr  *p_attr =
-                &ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes;
-        *p_attr = copy_of_attributes_list(dps->id_attributes);
-        *last_attribute_link(p_attr) =
+      /* Attach a copy of the attributes to the secondary source sequence
+         entry.  Since the attributes have already been attached to the main
+         IL entry, any id attributes on the id_attributes list will be
+         followed by any prefix attributes: We therefore do not copy the
+         prefix_attributes list if the id_attributes list is non-empty (since
+         that would result in duplicate attributes). */
+      if (dps->id_attributes != NULL) {
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes =
+                                  copy_of_attributes_list(dps->id_attributes);
+      } else if (dps->prefix_attributes != NULL) {
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->attributes =
                               copy_of_attributes_list(dps->prefix_attributes);
       }  /* if */
       if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {

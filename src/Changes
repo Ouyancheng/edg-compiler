@@ -1,5 +1,21 @@
 Version 4.3
 
+10/4/10  [EDGcpfe/11045]
+Attributes duplicated by C++-generating back end
+
+In version 4.2, when a declaration has both prefix and postfix attributes, the
+C++-generating back end sometimes duplicated the prefix attributes (the result
+was frequently invalid code).  For example (in C++0x mode):
+
+  [[noreturn]] int f [[carries_dependency]] ();
+    // In version 4.2, the C++-generating back end rendered this as:
+    //   [[noreturn, noreturn]] int f [[carries_dependency]]();
+    // which is invalid C++0x (the attribute cannot be repeated).
+  int i = f();
+
+This is now fixed.
+
+
 10/4/10  [EDGcpfe/11040]
 C++-generating back end aborts on duplicate using-declaration
 

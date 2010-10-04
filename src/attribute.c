@@ -2781,6 +2781,18 @@ done:;
 }  /* db_attribute */
 
 
+static void db_attribute_list(an_attribute_ptr  ap)
+/*
+Output the given list of attributes to f_debug.
+*/
+{
+  for (; ap != NULL; ap = ap->next) {
+    db_attribute(ap);
+    (void)fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_attribute_list */
+
+
 static void db_log_attribute_action(char               *descr,
                                     an_attribute_ptr   ap,
                                     char               *entity,
