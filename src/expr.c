@@ -24326,23 +24326,18 @@ memory region).  Do various error checks.
      times with different expressions that evaluate to the same constant,
      only one of which can appear in the instance's template argument
      list).  The two exceptions are inside template declarations, because
-     they are needed for name mangling (at least in the IA-64 ABI), and (if
-     KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE) when a given
-     template argument causes another template to be instantiated, because
-     just using the folded constant would likely lose the reference that
-     caused the instantiation.  (The latter does not apply when
-     instantiations are placed into the source sequence list, because the
-     instance will be represented by an explicit specialization and
-     implicit instantiation is not needed).  Note that this mechanism has
+     they are needed for name mangling (at least in the IA-64 ABI), and
+     when a given template argument causes another template to be
+     instantiated, because just using the folded constant would likely lose
+     the reference that caused the instantiation.  (See the definition of
+     curr_expr_kind_is_one_in_which_const_exprs_are_recorded() for
+     restrictions on the latter case.)  Note that this mechanism has
      limitations: as noted above, only one version of a template argument
      is saved, so subsequent references to the template with different
      argument expressions that fold to the same constant value will not be
      saved, even if they cause template instantiations of their own. */
-  need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH
-#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-                       || operand->caused_template_instantiation
-#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-                       );
+  need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
+                       operand->caused_template_instantiation);
   if (microsoft_mode && microsoft_version < 1310 &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
