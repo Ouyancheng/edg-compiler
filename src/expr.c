@@ -24405,7 +24405,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
   an_operand             result;
   an_expr_stack_entry    expr_stack_entry;
   a_memory_region_number region_to_switch_back_to;
-  a_decl_sequence_number inst_seq_on_entry = instantiation_sequence_number;
+  a_decl_sequence_number inst_seq_on_entry =
+                                           class_instantiation_sequence_number;
 
   db_enter(3, "scan_template_argument_constant_expression");
   check_assertion(constant != NULL && in_file_scope(constant));
@@ -24417,7 +24418,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   check_nontype_template_argument_type(&result);
-  if (instantiation_sequence_number != inst_seq_on_entry) {
+  if (class_instantiation_sequence_number != inst_seq_on_entry) {
     result.caused_template_instantiation = TRUE;
   }  /* if */
   /* Convert to the required type if necessary.  Do not use user-defined
@@ -24460,10 +24461,10 @@ an_arg_operand_ptr scan_nontype_template_argument(
 Scan a nontype template argument in a template reference.  Allocate an
 arg_operand entry, fill it with information about the template argument,
 and return a pointer to it to the caller.  initial_inst_seq_num is the
-value of instantiation_sequence_number before processing this argument; if
-it is now different, set caused_template_instantiation to TRUE in the
-operand.  The caller must at some later point call free_arg_operand_list to
-free the entry.
+value of class_instantiation_sequence_number before processing this
+argument; if it is now different, set caused_template_instantiation to TRUE
+in the operand.  The caller must at some later point call
+free_arg_operand_list to free the entry.
 */
 {
   an_arg_operand_ptr     arg_operand;
@@ -24495,7 +24496,7 @@ free the entry.
   }  /* if */
 #endif /* DEBUG */
   switch_back_to_original_region(region_to_switch_back_to);
-  if (instantiation_sequence_number != initial_inst_seq_num) {
+  if (class_instantiation_sequence_number != initial_inst_seq_num) {
     arg_operand->operand.caused_template_instantiation = TRUE;
   }  /* if */
   db_exit();

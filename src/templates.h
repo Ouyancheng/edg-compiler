@@ -718,9 +718,9 @@ EXTERN a_symbol_list_entry_ptr
 			   (i.e., not classes). */
 
 EXTERN a_decl_sequence_number
-		instantiation_sequence_number;
+		class_instantiation_sequence_number;
 			/* Count of the number of instantiations of
-			   templates that have been performed in the
+			   class templates that have been performed in the
 			   current translation unit. */
 
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING

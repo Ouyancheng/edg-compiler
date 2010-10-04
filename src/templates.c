@@ -3049,7 +3049,7 @@ loading of classes.
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
       /* Update the instantiation sequence number. */
-      ++instantiation_sequence_number;
+      ++class_instantiation_sequence_number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (saved_sse_insertion_point != NULL) {
@@ -4502,8 +4502,6 @@ Instantiate the body of the template function associated with tip.
   /* Pop the template instantiation scope. */
   pop_template_instantiation_scope();
   --(tssp->pending_instantiations);
-  /* Update the instantiation sequence number. */
-  ++instantiation_sequence_number;
   /* In the normal case the current token should be end_of_source, which was
      inserted to mark the end of the cached token stream. If necessary, keep
      flushing until end-of-source is found. */
@@ -24520,7 +24518,7 @@ given translation unit.
   set_type_size(type_of_unknown_templ_param_nontype);
   type_of_unknown_templ_param_nontype->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_unknown;
-  instantiation_sequence_number = 0;
+  class_instantiation_sequence_number = 0;
 }  /* templates_trans_unit_init */
 
 

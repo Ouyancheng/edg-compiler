@@ -12592,7 +12592,7 @@ done using the disambiguation routines.
   scope_stack_top().in_template_arg_list = TRUE;
   do {
     a_decl_sequence_number initial_inst_seq_num =
-                                                 instantiation_sequence_number;
+                                           class_instantiation_sequence_number;
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list.
        If it occurs elsewhere, we must have a comma followed by the closing
@@ -12652,10 +12652,10 @@ done using the disambiguation routines.
            because that call could result in an instantiation.  We pass
            that initial value to scan_nontype_template_argument, which
            compares it against the current value of
-           instantiation_sequence_number after all its processing.  The
-           decision as to whether the argument caused an instantiation will
-           thus include both the scan of the argument itself and that of
-           any conversion function template instantiated to convert the
+           class_instantiation_sequence_number after all its processing.
+           The decision as to whether the argument caused an instantiation
+           will thus include both the scan of the argument itself and that
+           of any conversion function template instantiated to convert the
            argument to the parameter type.) */
         arg_ptr->variant.constant = NULL;
         arg_ptr->arg_operand =
