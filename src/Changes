@@ -102,9 +102,14 @@ back end always generated the template argument as simply the folded
 constant value.  This caused problems with the generated code if the
 argument expression contains a reference that causes the instantiation of
 another template, since that template might not otherwise be instantiated.
-When KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE, the front
-end now retains the backing expression for a non-type template argument
-that results in the instantiation of a template.  (The C++-generating back
+This issue has been addressed (for the first reference to a given template
+instance only, since the instance's template argument list reflects the
+arguments given in that initial reference) by the addition of the
+KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION configuration macro.  If
+that is TRUE (and TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is
+FALSE), a non-type template argument that causes an instantiation in the
+first reference to an instance of a template will be recorded as a backing
+expression for the template argument constant.  (The C++-generating back
 end only uses the backing expression for the first reference to the
 template instance, in order to avoid scope issues for names appearing in
 the expression.)  For example:

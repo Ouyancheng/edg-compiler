@@ -906,7 +906,7 @@ below.
   (!curr_expr_kind_is(ek_pp) &&                                   \
    (depth_template_declaration_scope != NO_SCOPE_DEPTH ||         \
     !curr_expr_kind_is(ek_template_arg)))
-#else /* KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
+#else /* !(!KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION || ...) */
 /* When KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION is TRUE, all
    non-preprocessing contexts allow backing expressions to be
    recorded.  Backing expressions for non-type template arguments that
@@ -915,7 +915,7 @@ below.
    details. */
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp))
-#endif /* !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION */
+#endif /* !KEEP_TEMPLATE_ARG_EXPR_THAT_CAUSES_INSTANTIATION || ... */
 #endif /* DO_IL_LOWERING && !RECORD_BACKING_EXPRS_WITH_IL_LOWERING */
 
 /*
