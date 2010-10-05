@@ -2781,7 +2781,7 @@ done:;
 }  /* db_attribute */
 
 
-static void db_attribute_list(an_attribute_ptr  ap)
+void db_attribute_list(an_attribute_ptr  ap)
 /*
 Output the given list of attributes to f_debug.
 */
