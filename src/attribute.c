@@ -578,7 +578,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { ak_malloc, "r", apply_malloc_attr },
   { ak_may_alias, "T|c|e", apply_may_alias_attr },
-  { ak_mode, "T", apply_mode_attr },
+  { ak_mode, "T|e", apply_mode_attr },
   { ak_no_instrument_function, "r", apply_no_instrument_function_attr },
   { ak_no_check_memory_usage, "r", apply_no_check_memory_usage_attr },
   { ak_nocommon, "v:-a|Wr", apply_nocommon_attr },
@@ -2900,8 +2900,7 @@ attributes, call attach_type_attributes.)
   }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     db_log_attribute_action("attach", ap, entity, entity_kind);
-    if (!is_type_transforming_attribute(ap) ||
-        ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+    if (!is_type_transforming_attribute(ap) || is_tag_attribute(ap)) {
       new_entity = apply_one_attribute(ap, new_entity, entity_kind);
     }  /* if */
   }  /* for */
@@ -4882,13 +4881,24 @@ doesn't apply to the given type, issue an error and return an error type.
   }  /* if */
   if (i == (int)tmk_last) {
     /* If the mode was not valid, issue an error message and return an error
-       type. */
+       type if the attribute not a tag attribute (if it is a tag attribute,
+       the caller does not expect the type to be changed). */
     report_bad_attribute_arg(aap, ap);
-    type = error_type();
+    if (!is_tag_attribute(ap)) type = error_type();
   } else {
-    type = get_type_with_mode(type, (a_type_mode_kind)i, &ap->position);
+    a_type_ptr  mode_type =
+                 get_type_with_mode(type, (a_type_mode_kind)i, &ap->position);
+    if (is_tag_attribute(ap)) {
+      /* Something like "enum E { x } __attribute((mode(byte)))": Just change
+         the underlying type of the enum to correspond to the given mode. */
+      if (is_immediate_enum_type(type) && !is_error_type(mode_type)) {
+        type->variant.integer.int_kind = mode_type->variant.integer.int_kind;
+      }  /* if */
+    } else {
+      type = mode_type;
+    }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-    if (vector_length != 0 && !is_error_type(type)) {
+    if (vector_length != 0 && !is_error_type(mode_type)) {
       a_type_ptr            unqual_type = skip_typerefs(type);
       a_type_qualifier_set  qualifiers = get_type_qualifiers(type);
       if (unqual_type->kind != (a_type_kind)tk_integer &&
@@ -4897,6 +4907,10 @@ doesn't apply to the given type, issue an error and return an error type.
            tk_integer or tk_float. */
         make_attr_unrecognized(ap);
         expect_error();
+      } else if (is_tag_attribute(ap)) {
+        pos_diagnostic(gnu_version >= 40000 ? es_error : es_warning,
+                       ec_vector_size_attribute_on_enum_type, &ap->position);
+        make_attr_unrecognized(ap);
       } else {
         a_type_ptr  vtype = make_vector_type(unqual_type, vector_length);
         vtype->source_corresp.decl_position = ap->position;

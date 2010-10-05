@@ -2538,6 +2538,43 @@ attributes are attached as part of the template instantiation process.
   }  /* if */
 }  /* attach_tag_attributes */
 
+
+static void attach_postfix_enum_attributes(an_attribute_ptr    attributes,
+                                           a_type_ptr          enum_type,
+                                           a_decl_parse_state  *dps)
+/*
+The given GNU attributes were specified immediately after the definition of
+enum_type (an enumeration type) in a declaration described by *dps.  Apply
+any of the attributes that modify the enum type directly (e.g., "packed")
+and move the remaining attributes to dps->specifier_attributes.
+*/
+{
+  an_attribute_ptr  *p_from = &attributes, *p_to;
+
+  p_to = last_attribute_link(&dps->specifier_attributes);
+  /* Traverse the attribute list and move those that are ordinary specifier
+     attributes to the dps->specifier_attributes list. */
+  while (*p_from != NULL) {
+    switch ((*p_from)->kind) {
+      case ak_packed:
+      case ak_mode:
+        /* Leave these attributes on the list. */
+        p_from = &(*p_from)->next;
+        break;
+      default:
+        /* Move all other attributes to the specifiers list. */
+        *p_to = *p_from;
+        (*p_from)->syntactic_location =
+                                      (a_byte_attribute_location)al_specifier;
+        *p_from = (*p_from)->next;
+        p_to = &(*p_to)->next;
+    }  /* switch */
+  }  /* while */
+  attach_tag_attributes(attributes, enum_type, dps, /*is_definition=*/TRUE,
+                        /*is_forward_decl=*/FALSE,
+                        /*ignore_gnu_attributes=*/FALSE);
+}  /* attach_postfix_enum_attributes */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void update_sse_for_first_class_declaration(
@@ -4970,7 +5007,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
     if (gnu_mode && curr_token == tok_attribute) {
-      /* Check for something like "enum E { e } __attribute((packed));". */
+      /* Check for something like "enum E { e } __attribute((packed));".
+         Ordinarily, specifier attributes should be applied after all
+         specifiers have been seen, but in this case some may have to be
+         applied before the type underlying the enumeration is fixed. */
       an_attribute_ptr  attributes =
                             scan_gnu_attribute_groups(al_post_tag_definition);
       if (attributes != NULL) {
@@ -4982,8 +5022,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           decl_pos_block->specifiers_range.end = curr_construct_end_position;
         }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        mark_primary_decl_attributes(attributes);
-        attach_attributes(attributes, (char*)enum_type, iek_type);
+        attach_postfix_enum_attributes(attributes, enum_type, dps);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
