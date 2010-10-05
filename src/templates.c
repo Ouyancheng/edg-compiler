@@ -471,6 +471,7 @@ Initialize a template declaration state block.
   tdsp->has_dependent_templ_param = FALSE;
   tdsp->is_template_template_param = FALSE;
   tdsp->is_template_template_param_rescan = FALSE;
+  tdsp->is_variadic = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
@@ -13742,6 +13743,7 @@ friend_template_checks_done:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     tssp->variant.class_template.is_interface = is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    tssp->is_variadic = decl_state->is_variadic;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
     /* Normally, a template has C++ linkage. */
@@ -14626,6 +14628,8 @@ parameter entry for the parameter.
   record_template_param_symbol(sym);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
+  template_param->is_pack = is_pack;
+  if (is_pack) decl_state->is_variadic = TRUE;
   if (curr_token == tok_assign) {
     a_token_cache  def_arg_cache;
     a_boolean	   def_arg_involves_template_param = FALSE;
@@ -17190,6 +17194,7 @@ information gathered in the front end structures.
   /* Copy the template parameter list into the IL: */
   for (sym_tpp = tp_list; sym_tpp != NULL; sym_tpp = sym_tpp->next) {
     a_template_parameter_ptr  new_tpp = alloc_template_parameter();
+    new_tpp->is_pack = sym_tpp->is_pack;
     switch (sym_tpp->param_symbol->kind) {
       case sk_type:
         new_tpp->kind = (a_template_parameter_kind)tpk_type;
@@ -17539,6 +17544,7 @@ alias
   tssp = sym->variant.template_info;
   tssp->variant.class_template.is_alias_template = TRUE;
   tssp->attributes = attributes;
+  tssp->is_variadic = decl_state->is_variadic;
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,

@@ -1165,8 +1165,8 @@ Display a_param_type entry.
   if (ptr->type_involves_template_param) {
     disp_boolean("type_involves_template_param", TRUE);
   }  /* if */
-  if (ptr->is_function_parameter_pack) {
-    disp_boolean("is_function_parameter_pack", TRUE);
+  if (ptr->is_parameter_pack) {
+    disp_boolean("is_parameter_pack", TRUE);
   }  /* if */
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
@@ -2260,6 +2260,9 @@ Display the indicated variable.
   }  /* if */
   if (ptr->is_parameter) {
     disp_boolean("is_parameter", TRUE);
+  }  /* if */
+  if (ptr->is_parameter_pack) {
+    disp_boolean("is_parameter_pack", TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->embedded_source_sequence_entries) {
@@ -4113,6 +4116,9 @@ Display the indicated template parameter.
   disp_source_corresp(&ptr->source_corresp, iek_template_parameter);
   if (ptr->next != NULL) {
     disp_ptr("next", (char*)ptr->next, iek_template_parameter);
+  }  /* if */
+  if (ptr->is_pack) {
+    disp_boolean("is_pack", TRUE);
   }  /* if */
   disp_name("kind");
   switch (ptr->kind) {

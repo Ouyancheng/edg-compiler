@@ -2147,7 +2147,7 @@ if this is the function declarator in a friend function declaration.
           /* This looks like the declaration of a function parameter pack.
              Verify that the parameter type is a "pattern type". */
           if (is_variadic_pattern_type(param_state.declared_type)) {
-            ptp->is_function_parameter_pack = TRUE;
+            ptp->is_parameter_pack = TRUE;
           } else {
             pos_error(ec_function_parameter_pack_requires_pattern,
                       &param_state.declarator_pos);
@@ -5183,7 +5183,7 @@ The syntax is:
   } else {
     /* Not a nested declarator. */
     /* Check for a declarator-id or abstract declarator that starts with an
-       ellipsis indicating a parameter pack.  There is a an ambiguity in this
+       ellipsis indicating a parameter pack.  There is an ambiguity in this
        context where the ellipsis can either indicate a parameter pack for an
        abstract declarator, or a classic vararg function: It is the former
        only if the specifiers type is a pattern.  E.g.:

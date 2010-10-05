@@ -883,7 +883,7 @@ at file scope.
   ptp->default_being_instantiated = FALSE;
   ptp->type_involves_deduced_template_param = FALSE;
   ptp->type_involves_template_param = FALSE;
-  ptp->is_function_parameter_pack = FALSE;
+  ptp->is_parameter_pack = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;
@@ -1983,6 +1983,7 @@ Clear the fields of the given variable to default values.
   vp->is_parameter                = FALSE;
   vp->declared_using_type_without_linkage
                                   = FALSE;
+  vp->is_parameter_pack           = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
@@ -3861,7 +3862,7 @@ initialize its fields, and return a pointer to it.
   set_default_source_corresp(tpp->source_corresp);
   tpp->next = NULL;
   tpp->kind = (a_template_parameter_kind)tpk_error;
-
+  tpp->is_pack = FALSE;
   return tpp; 
 }  /* alloc_template_parameter */
 

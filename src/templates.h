@@ -101,6 +101,9 @@ typedef struct a_tmpl_decl_state {
 			/* TRUE when rescanning a template template parameter
 			   whose declaration depends on other template
 			   parameters. */
+  a_boolean	is_variadic;
+			/* TRUE if any of the template parameters are
+			   parameter packs. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the

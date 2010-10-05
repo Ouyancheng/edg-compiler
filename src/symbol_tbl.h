@@ -1369,6 +1369,15 @@ typedef struct a_template_decl_info {
 		last_entry_added;
 			/* Pointer to the entry most recently added to the
 			   list. */
+  a_pack_expansion_descr_ptr
+		pack_expansions;
+			/* For a variadic template, a list of entries that
+			   describe the contexts in which any pack expansions
+			   occur.  NULL for non-variadic templates or if
+			   no pack expansions are used. */
+  a_pack_expansion_descr_ptr
+		last_pack_expansion;
+			/* Pointer to the end of the pack expansion list. */
 } a_template_decl_info;
 
 
@@ -1499,6 +1508,8 @@ typedef struct a_template_param {
   a_bit_field	def_arg_has_not_been_scanned:1;
 			/* TRUE if the tokens that make up the default argument
 			   have not yet been scanned. */
+  a_bit_field	is_pack:1;
+			/* TRUE if this is a template parameter pack. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When param_symbol->kind = sk_type. */
@@ -2048,6 +2059,8 @@ typedef struct a_template_symbol_supplement {
   a_bit_field	is_error:1;
 			/* TRUE if this is an error class template created
 			   for error recovery purposes. */
+  a_bit_field	is_variadic:1;
+			/* TRUE if this is a variadic template. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template (note that this symbol kind is used
@@ -4303,6 +4316,15 @@ symbol found by the lookup is semantically valid.
                    variant.class_struct_union.is_nonreal_class)
 
 extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
+
+extern a_boolean f_symbol_is_pack(a_symbol_ptr	sym);
+
+/*
+Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
+*/
+#define symbol_is_pack(sym)						\
+  (is_variadic_template_context() && is_template_dependent_context() ?	\
+   f_symbol_is_pack(sym) : FALSE)
 
 /* Return TRUE if the symbol is a specific definition of a class template
    instance or a class nested within a class template. */

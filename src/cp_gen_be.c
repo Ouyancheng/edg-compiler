@@ -4934,7 +4934,7 @@ default arguments should be suppressed (needed for template specializations).
           if (param_var->storage_class == (a_storage_class)sc_register) {
             gen_storage_class(param_var->storage_class);
           }  /* if */
-          if (param->is_function_parameter_pack) {
+          if (param->is_parameter_pack) {
             gdo_flags |= GDO_PARAMETER_PACK;
           }  /* if */
           /* Watch out for unnamed parameters in C++. */
@@ -4965,7 +4965,7 @@ default arguments should be suppressed (needed for template specializations).
                                       /*under_lhs_declarator=*/FALSE,
                                       /*need_trailing_space=*/TRUE,
                                       &octl);
-          if (param->is_function_parameter_pack) write_tok_str("...");
+          if (param->is_parameter_pack) write_tok_str("...");
           if (param->name != NULL) {
             write_tok_str(param->name);
           } else {
@@ -4992,12 +4992,12 @@ default arguments should be suppressed (needed for template specializations).
                                extra_qual, FTO_NO_OPTIONS, &octl);
           if (param->name != NULL) {
             write_space();
-            if (param->is_function_parameter_pack) write_tok_str("...");
+            if (param->is_parameter_pack) write_tok_str("...");
             write_tok_str(param->name);
             gen_attributes(param->attributes, al_declarator_id,
                            /*primary_only=*/FALSE);
           } else {
-            if (param->is_function_parameter_pack) write_tok_str(" ...");
+            if (param->is_parameter_pack) write_tok_str(" ...");
           }  /* if */
           form_type_second_part_simple(param_type,
                                        /*under_lhs_declarator=*/FALSE, &octl);

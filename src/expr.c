@@ -20673,7 +20673,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       projection_sym_ptr = locator.specific_symbol;
       /* If the symbol is a reference to a parameter pack, record it.
          Otherwise, this does nothing. */
-      record_potential_pack_reference(sym_ptr);
+      record_potential_pack_reference(sym_ptr, &locator.source_position);
       /* What kind of symbol is it? */
       switch (sym_ptr->kind) {
         case sk_constant:

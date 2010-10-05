@@ -8273,6 +8273,7 @@ definition of a member function of a class template.
         if (set_invisible) sym->is_invisible = TRUE;
       }  /* if */
       tssp = template_supplement_for_symbol(sym);
+      tssp->is_variadic = decl_state->is_variadic;
       if (tssp->variant.function.decl_cache.decl_info == NULL) {
         /* If this is the initial declaration of this template, set the
            template cache information to point to the template declaration

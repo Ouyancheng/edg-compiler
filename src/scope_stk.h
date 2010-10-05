@@ -236,6 +236,24 @@ typedef struct a_scope_pointers_block {
 
 
 /*
+Entry used to construct a list of pack symbols that have been referenced
+in a variadic pack expansion context.
+*/
+typedef struct a_pack_reference *a_pack_reference_ptr;
+typedef struct a_pack_reference {
+  a_pack_reference_ptr
+		next;
+			/* The next entry on the list or NULL for the last
+			   entry. */
+  a_symbol_ptr	symbol;
+			/* The symbol of the pack that was referenced. */
+  a_source_position
+		position;
+			/* The source position of the pack reference. */
+} a_pack_reference;
+
+
+/*
 Structure used for variadic templates to record information about potential
 pack expansion contexts.
 */
@@ -252,12 +270,22 @@ typedef struct a_pack_expansion_descr {
 		last_token;
 			/* Identifies the last token of the range of tokens
 			   to be rescanned for an expansion of the pack. */
-  a_symbol_list_entry_ptr
+  a_pack_reference_ptr
 		packs_referenced;
 			/* A list of the parameter packs used within the pack
 			   expansion.  This will include template parameter
 			   symbols for template parameter packs as well as
 			   variable symbols for function parameter packs. */
+  a_boolean	ellipsis_seen;
+			/* TRUE if the ellipsis marking a pack expansion
+			   as been encountered.  This is primarily used for
+			   the declarator case where the "..." is not
+			   necessarily at the end. */
+  a_source_position
+		ellipsis_position;
+			/* If ellipsis_seen is TRUE, this is the position of
+			   the ellipsis token; null_source_position
+			   otherwise. */
 } a_pack_expansion_descr;
 
 
@@ -450,6 +478,11 @@ typedef struct a_scope_stack_entry {
 			   participate in template argument deduction
 			   and/or template argument substitution into an
 			   expression. */
+  a_bit_field	in_variadic_template:1;
+			/* TRUE if we are in the context of a variadic
+			   template.  This is TRUE both in the context of the
+			   original definition of the template and in actual
+			   instantiations. */
   a_bit_field	record_form_of_name_reference:1;
 			/* TRUE if the form of name references should be
 			   recorded in this scope. */
@@ -1016,6 +1049,13 @@ typedef struct a_scope_stack_entry {
 			   for the current instantiation.  During a real
 			   instantiation this list is used to determine
 			   whether a given call is dependent. */
+  a_pack_expansion_descr_ptr
+		next_pack_expansion;
+			/* In real instantiation scopes for variadic
+			   templates, this points to the next entry on the
+			   list of pack expansions.  This is used to find
+			   the pack expansion entry for a given point within
+			   the actual instantiation. */
   a_type_ptr	conversion_parent_type;
 			/* When scanning a conversion operator, this provides
 			   the left hand side of the field selection associated
@@ -1151,6 +1191,14 @@ scopes.  It is also TRUE when is_nonreal_instantiation is TRUE.
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation ||		\
    scope_stack[depth_scope_stack].in_nonreal_instantiation)
+
+/*
+TRUE if we are in the context of a variadic template.  This is TRUE both
+when the original template is scanned and during a real instantiation.
+*/
+#define is_variadic_template_context()					\
+  (depth_scope_stack != NO_SCOPE_DEPTH ?				\
+   scope_stack[depth_scope_stack].in_variadic_template : FALSE)
 
 /*
 Safe version of is_template_dependent_context that can be used in
@@ -1545,7 +1593,9 @@ extern void end_potential_pack_expansion_context(
 extern
 a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep);
 
-extern void record_potential_pack_reference(a_symbol_ptr	pack_symbol);
+extern
+void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
+				     a_source_position_ptr	position);
 
 extern void record_pack_expansion_ellipsis(void);
 

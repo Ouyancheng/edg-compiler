@@ -1666,6 +1666,42 @@ class.  (E.g., the symbol returned for T::f, where T is a template parameter.
 }  /* is_proxy_member_symbol */
 
 
+a_boolean f_symbol_is_pack(a_symbol_ptr	sym)
+/*
+Return TRUE if sym is a template parameter pack or function parameter pack.
+*/
+{
+  a_boolean	result = FALSE;
+
+  switch (sym->kind) {
+    case sk_type:
+      /* For a type, check for a template parameter type that is marked as
+         a pack. */
+      { a_type_ptr	tp = sym->variant.type.ptr;
+        tp = skip_typerefs(tp);
+        if (tp->kind == (a_type_kind)tk_template_param) {
+          result = tp->variant.template_param.is_pack;
+        }  /* if */
+      }
+      break;
+    case sk_constant:
+      /* FIXME: Flag for constant needs to be added. */
+      break;
+    case sk_class_template:
+      /* FIXME: Flag for template template parameter needs to be added. */
+      break;
+    case sk_variable:
+      /* For variables, check for a parameter variable marked as a parameter
+         pack. */
+      result = sym->variant.variable.ptr->is_parameter_pack;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* f_symbol_is_pack */
+
+
 static a_symbol_header_ptr alloc_symbol_header(void)
 /*
 Allocate a new symbol header, and return a pointer to it.
@@ -2276,6 +2312,8 @@ fields, and return a pointer to it.  Reuse a freed entry if possible.
   tdip->decl_seq = NO_DECL_SEQUENCE_NUMBER;
   tdip->nondependent_calls = NULL;
   tdip->last_entry_added = NULL;
+  tdip->pack_expansions = NULL;
+  tdip->last_pack_expansion = NULL;
   return tdip;
 }  /* alloc_template_decl_info */
 
@@ -2617,6 +2655,7 @@ and return a pointer to it.
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;
+  tssp->is_variadic = FALSE;
 #if CENTERLINE_CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */
@@ -11606,6 +11645,7 @@ and return a pointer to it.
   ptr->has_default_arg = FALSE;
   ptr->def_arg_involves_template_param = FALSE;
   ptr->def_arg_has_not_been_scanned = FALSE;
+  ptr->is_pack = FALSE;
 #if CENTERLINE_CHECKING
   ptr->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

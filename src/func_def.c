@@ -557,6 +557,7 @@ pointer decay).
   }  /* if */
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
+  vp->is_parameter_pack = ptp->is_parameter_pack;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Record the type exactly as it was declared (before array-to-pointer
      decay, etc.). */

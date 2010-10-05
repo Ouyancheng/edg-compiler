@@ -4308,7 +4308,7 @@ typedef struct a_param_type {
 			/* TRUE if the type entry associated with the
 			   parameter involves a template parameter in any
 			   context. */
-  a_bit_field	is_function_parameter_pack:1;
+  a_bit_field	is_parameter_pack:1;
 			/* TRUE if this entry represent a C++0x function
 			   parameter pack of a variadic template. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
@@ -7937,6 +7937,9 @@ typedef struct a_variable {
 			/* In C++, TRUE for variables with linkage (but not
 			   extern "C" linkage) that were declared using
 			   types without linkage. */
+  a_bit_field	is_parameter_pack:1;
+			/* TRUE for the parameter variable for a function
+			   parameter pack of a variadic template. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -13587,6 +13590,9 @@ typedef struct a_template_parameter {
   a_template_parameter_kind
 		kind;
 			/* The kind of parameter: type, nontype or template. */
+  a_byte_boolean
+		is_pack;
+			/* TRUE if this is a template parameter pack. */
   union {
     /* When kind == tpk_type: */
     struct {
