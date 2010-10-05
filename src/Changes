@@ -1,5 +1,18 @@
 Version 4.3
 
+10/5/10  [EDGcpfe/11042]
+C++-generating back end: Attributes missing in explicit instantiations
+
+In version 4.2, Microsoft __declspec attributes specified on explicit
+instantiation directives were sometimes not rendered by the C++-generating
+back end (a regression).  For example:
+
+  template<class T> struct __declspec(dllimport) S {};
+  template struct __declspec(dllimport) S<int>;
+
+This is now fixed.
+
+
 10/5/10  [EDGcpfe/11047]
 Some nonreal types still unintentionally shared
 

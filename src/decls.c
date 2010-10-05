@@ -139,6 +139,7 @@ reflected in start_secondary_declarator.
   ps->prefix_attributes = NULL;
   ps->id_attributes = NULL;
   ps->specifier_attributes = NULL;
+  ps->tag_attributes = NULL;
   clear_decl_modifiers_block(&ps->decl_modifiers);
   ps->ms_attributes = NULL;
   ps->asm_name = NULL;

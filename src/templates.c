@@ -23620,14 +23620,15 @@ symbol, otherwise we return NULL.
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static
 void make_instantiation_directive(a_pragma_kind                pragma_kind,
+                                  a_decl_parse_state_ptr       dps,
                                   a_symbol_ptr                 sym,
                                   a_source_sequence_entry_ptr  ssep,
-                                  a_source_position            *pos,
                                   a_decl_pos_block_ptr         decl_pos_block)
 /*
 Create an IL entry to represent an instantiation directive.  pragma_kind is
 used to distinguish an instantiation directive from a "do not instantiate"
 directive (which is specified as "extern template" in some modes).
+*dps describes the declaration embedded in the directive.
 sym identifies the entity being instantiated, pos is the source position
 of the template keyword, and ssep is the empty source sequence entry that
 should be used.  When EXTRA_SOURCE_POSITIONS_IN_IL is set to TRUE,
@@ -23640,7 +23641,7 @@ processing.
 
   if (!source_sequence_entries_disallowed) /*lint !e506*/ {
     idp = alloc_instantiation_directive();
-    idp->position = *pos;
+    idp->position = dps->start_pos;
     idp->entity.ptr = il_entry_for_symbol(sym, &kind);
     idp->entity.kind = (a_byte_il_entry_kind)kind;
     if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
@@ -23650,11 +23651,20 @@ processing.
     idp->decl_pos_info = make_decl_pos_supplement(/*at_file_scope=*/TRUE,
                                                   decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (dps->prefix_attributes != NULL || dps->id_attributes != NULL ||
+        dps->tag_attributes != NULL) {
+      idp->attributes = copy_of_attributes_list(dps->prefix_attributes);
+      *last_attribute_link(&idp->attributes) =
+                                  copy_of_attributes_list(dps->id_attributes);
+      *last_attribute_link(&idp->attributes) =
+                                 copy_of_attributes_list(dps->tag_attributes);
+    }  /* if */
     update_source_sequence_list((char *)idp,
-                                 (an_il_entry_kind)iek_instantiation_directive,
-                                 ssep);
+                                (an_il_entry_kind)iek_instantiation_directive,
+                                ssep);
   }  /* if */
 }  /* make_instantiation_directive */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static
@@ -23748,8 +23758,7 @@ instantiation.
         decl_pos_block.identifier_range.start = *start_pos;
         decl_pos_block.identifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        make_instantiation_directive(kind, sym, ssep, &state.start_pos,
-                                     &decl_pos_block);
+        make_instantiation_directive(kind, &state, sym, ssep, &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (sym != NULL && !sym->is_error) {
@@ -23815,8 +23824,7 @@ instantiation.
                                            /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(kind, sym, ssep, &state.start_pos,
-                                     &decl_pos_block);
+        make_instantiation_directive(kind, &state, sym, ssep, &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
@@ -23912,8 +23920,7 @@ instantiation.
                                      is_pragma, /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
-            make_instantiation_directive(kind, sym, ssep,
-                                         &state.start_pos,
+            make_instantiation_directive(kind, &state, sym, ssep,
                                          &decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -23994,8 +24001,8 @@ instantiation.
                           (a_boolean)new_sym-> variant.routine.ptr->is_inline);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
-          make_instantiation_directive(kind, new_sym, ssep,
-                                       &state.start_pos, &decl_pos_block);
+          make_instantiation_directive(kind, &state, new_sym, ssep,
+                                       &decl_pos_block);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         accept_extern = gpp_mode;

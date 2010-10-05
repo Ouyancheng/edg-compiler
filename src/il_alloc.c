@@ -3783,6 +3783,7 @@ a pointer to it.
   idp->position    = null_source_position;
   clear_tagged_ptr(idp->entity);
   idp->do_not_instantiate = FALSE;
+  idp->attributes = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   idp->decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

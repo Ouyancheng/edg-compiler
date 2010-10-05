@@ -2292,14 +2292,13 @@ reclassified as al_tag_name).
 
 static void preapply_microsoft_class_align_attribute(
                                      a_decl_parse_state  *dps,
-                                     an_attribute_ptr    *tag_attributes,
                                      a_boolean            is_class_definition)
 /*
 The Microsoft __declspec(align(...)) attribute applied to a class type behaves
 differently from other __declspec attributes.  If necessary, adjust the
-*tag_attributes, dps->prefix_attributes, and dps->specifier_attributes lists
-to achieve the same effect as Microsoft compilers.  A diagnostic may be issued
-in some cases.
+dps->tag_attributes, dps->prefix_attributes, and dps->specifier_attributes
+lists to achieve the same effect as Microsoft compilers.  A diagnostic may be
+issued in some cases.
 */
 {
   if (is_class_definition) {
@@ -2310,16 +2309,18 @@ in some cases.
        (and this is specific to the "align" attributes).  Emulate this behavior
        by moving "__declspec(align(...))" attributes on dps->prefix_attributes
        and dps->specifier_attributes to the head of the list pointed to by
-       tag_attributes (the moved attributes are reclassified as al_tag_name).
+       dps->tag_attributes (the moved attributes are reclassified as
+       al_tag_name).
     */
     if (dps->prefix_attributes != NULL) {
-      move_declspec_align_attr(&dps->prefix_attributes, tag_attributes);
+      move_declspec_align_attr(&dps->prefix_attributes, &dps->tag_attributes);
     }
     if (dps->specifier_attributes != NULL) {
-      move_declspec_align_attr(&dps->specifier_attributes, tag_attributes);
+      move_declspec_align_attr(&dps->specifier_attributes,
+                               &dps->tag_attributes);
     }
   } else {
-    an_attribute_ptr  ap = *tag_attributes;
+    an_attribute_ptr  ap = dps->tag_attributes;
     for (; ap != NULL; ap = ap->next) {
       if (ap->kind == (a_byte_attribute_kind)ak_align &&
           ap->family == (a_byte_attribute_family)af_ms_declspec) {
@@ -2707,7 +2708,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_symbol_ptr            parent_sym;
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
-  an_attribute_ptr        tag_attributes = NULL;
   a_boolean               is_local_class = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
@@ -2789,13 +2789,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     (void)get_token();
-    tag_attributes = scan_attributes(al_tag_name);
+    dps->tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
       /* Scan the decl-modifiers that apply to an entire class.  They will be
          passed on to scan_class_definition and applied to each member
          declaration, where appropriate. */
-      scan_extended_decl_modifiers(&extended_decl_info, &tag_attributes,
+      scan_extended_decl_modifiers(&extended_decl_info, &dps->tag_attributes,
                                    al_tag_name, /*is_enum_decl=*/FALSE);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -3617,14 +3617,14 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if USER_CONTROL_OF_STRUCT_PACKING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    preapply_microsoft_class_align_attribute(dps, &tag_attributes,
-                                             is_class_definition ||
-                                             definition_removed);
+    preapply_microsoft_class_align_attribute(dps, is_class_definition ||
+                                                  definition_removed);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (tag_attributes != NULL) {
-    a_boolean  ignore_gnu_attributes = FALSE;
+  if (dps->tag_attributes != NULL) {
+    a_boolean         ignore_gnu_attributes = FALSE;
+    an_attribute_ptr  attributes_to_attach = dps->tag_attributes;
     if (gnu_mode && gnu_version < 40200) {
       /* In some GNU modes, attributes appearing between the class/struct/union
          keyword and the type name are ignored if the elaborated name specifier
@@ -3646,17 +3646,24 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         ignore_gnu_attributes = TRUE;
       }  /* if */
     }  /* if */
-    if (std_attributes_enabled && is_explicit_instantiation) {
-      diagnose_std_attribute_on_explicit_instantiation(tag_attributes);
+    if (is_explicit_instantiation) {
+      /* Make a copy of the attributes recorded in dps->tag_attributes; the
+         original entries will be recorded in an instantiation directive entry
+         later on. */
+      attributes_to_attach = copy_of_attributes_list(dps->tag_attributes);
+      if (std_attributes_enabled) {
+        diagnose_std_attribute_on_explicit_instantiation(attributes_to_attach);
+      }  /* if */
     }  /* if */
-    attach_tag_attributes(tag_attributes, class_type, dps, is_class_definition,
-                          curr_token == tok_semicolon, ignore_gnu_attributes);
+    attach_tag_attributes(attributes_to_attach, class_type, dps,
+                          is_class_definition, curr_token == tok_semicolon,
+                          ignore_gnu_attributes);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The call to attach_tag_attributes does not directly apply DLL
        attributes.  Instead, the call to update_extended_decl_info_for_class
        does that below.  Set the required flags in extended_decl_info. */
     add_flags_from_dll_attributes(&extended_decl_info.decl_modifiers.flags,
-                                  tag_attributes);
+                                  attributes_to_attach);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
     if (is_class_definition) {
@@ -4215,7 +4222,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_symbol_ptr                 tag_sym;
   a_boolean                    tag_id_present;
   a_type_ptr                   enum_type;
-  an_attribute_ptr             tag_attributes;
   a_type_ptr                   enum_con_type;
   a_symbol_ptr                 enum_sym;
   a_constant                   constant;
@@ -4272,13 +4278,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
-  tag_attributes = scan_attributes(al_tag_name);
+  dps->tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Scan Microsoft-specific modifiers.  Most are invalid or ignored, but
        __declspec(uuid(...)) will be recorded in C++ mode. */
     clear_extended_decl_info_block(extended_decl_info);
-    scan_extended_decl_modifiers(&extended_decl_info, &tag_attributes,
+    scan_extended_decl_modifiers(&extended_decl_info, &dps->tag_attributes,
                                  al_tag_name, /*is_enum_decl=*/TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4960,7 +4966,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     } else {
       enum_type->variant.integer.enum_info.constant_list = constant_list;
     }  /* if */
-    attach_tag_attributes(tag_attributes, enum_type, dps, is_definition,
+    attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
     if (gnu_mode && curr_token == tok_attribute) {
@@ -5042,7 +5048,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     check_for_file_with_unterminated_type_definition(&end_pos);
   } else {
     /* No brace-enclosed list follows. */
-    attach_tag_attributes(tag_attributes, enum_type, dps, is_definition,
+    attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
                           curr_token == tok_semicolon && !strict_ansi_mode,
                           /*ignore_gnu_attributes=*/TRUE);
   }  /* if */

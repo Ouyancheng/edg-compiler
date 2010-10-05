@@ -1525,6 +1525,11 @@ typedef struct an_instantiation_directive {
 			   "template" keyword in an instantiation directive
 			   may be prefixed with "extern" to indicate that the
 			   instantiation of an entity should be suppressed. */
+  an_attribute_ptr
+		attributes;
+			/* Attributes specified explicitly in the instantiation
+			   directive (as opposed to the attributes specified
+			   on the template being instantiated). */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
 		decl_pos_info;

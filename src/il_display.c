@@ -5685,6 +5685,7 @@ Display the indicated instantiation-directive entry.
   if (idp->do_not_instantiate) {
     disp_boolean("do_not_instantiate", idp->do_not_instantiate);
   }  /* if */
+  disp_ptr("attributes", (char *)idp->attributes, iek_attribute);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (idp->decl_pos_info != NULL) {
     disp_source_range("identifier_range",

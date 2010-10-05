@@ -10650,6 +10650,7 @@ Generate code for an instantiation directive.
       write_tok_str("extern ");
     }  /* if */
     write_tok_str("template ");
+    gen_attributes(idp->attributes, al_prefix, /*primary_only=*/FALSE);
     switch (kind) {
       case iek_routine:
         { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
@@ -10691,7 +10692,13 @@ Generate code for an instantiation directive.
         }
         break;
       case iek_type:
-        { a_type_ptr class_type = (a_type_ptr)idp->entity.ptr;
+        { a_type_ptr        class_type = (a_type_ptr)idp->entity.ptr;
+          an_attribute_ptr  saved_attributes =
+                                         class_type->source_corresp.attributes;
+          /* Temporarily detach the attributes from the type entry, so that
+             attributes copied during the instantiation process do not get
+             rendered. */
+          class_type->source_corresp.attributes = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* Force output of class modifiers on a template instantiation
              directive, in case it is the first or only declaration. */
@@ -10699,9 +10706,10 @@ Generate code for an instantiation directive.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Allow qualified names in instantiation directives. */
           class_type->has_been_declared = TRUE;
-          gen_tag_reference(class_type, (a_gen_name_options_set)GN_NO_OPTIONS,
-                            (an_attribute_ptr)NULL);
+          gen_tag_reference(class_type, (a_gen_name_options_set)GN_DECLARATION,
+                            idp->attributes);
           write_tok_ch(';');
+          class_type->source_corresp.attributes = saved_attributes;
         }
         break;
       default:

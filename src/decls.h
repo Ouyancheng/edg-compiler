@@ -488,6 +488,11 @@ typedef struct a_decl_parse_state {
 		specifier_attributes;
 			/* A list of attributes scanned as part of the
 			   declaration specifiers. */
+  an_attribute_ptr
+		tag_attributes;
+			/* If the specifiers contain an elaborated tag name
+			   (e.g., "enum [[align(4)]] X"), the list of
+			   attributes specified in that tag reference. */
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Extended declaration information (most of it
