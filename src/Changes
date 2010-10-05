@@ -1,5 +1,18 @@
 Version 4.3
 
+10/5/10  [EDGcpfe/11034]
+GNU attributes following an enum definition
+
+In version 4.2, GNU attributes immediately following the definition of an
+enumeration type were not handled properly (a regression).  For example:
+
+  typedef enum { e } __attribute((mode(byte))) E;
+    // In version 4.2, the underlying type of the enumeration was not
+    // changed to a byte-sized integer.
+
+This is now fixed.
+
+
 10/5/10  [EDGcpfe/11042]
 C++-generating back end: Attributes missing in explicit instantiations
 
