@@ -4101,7 +4101,8 @@ check_typerefs:
         break;
       case tk_template_param:
         if (type_1->variant.template_param.kind ==
-                                  type_2->variant.template_param.kind) {
+                                  type_2->variant.template_param.kind &&
+            (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
           a_template_param_type_supplement_ptr	tptsp_1, tptsp_2;
           tptsp_1 = type_1->variant.template_param.extra_info;
           tptsp_2 = type_2->variant.template_param.extra_info;
@@ -4111,8 +4112,7 @@ check_typerefs:
                   if their positions in the template parameter list are
                   the same, and they are associated with template
                   declarations of the same nesting level. */
-              identical = (flags &
-                           ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
+              identical =
                   (tptsp_1->coordinates.position ==
                                             tptsp_2->coordinates.position) &&
                     ((flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0

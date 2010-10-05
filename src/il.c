@@ -6084,11 +6084,11 @@ definition of the CC flags in il.h for more information.
       case ck_template_param:
         /* Note that the constant types have been compared above. */
         if (cp1->variant.template_param.kind ==
-                                      cp2->variant.template_param.kind) {
+                                      cp2->variant.template_param.kind &&
+            (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
           switch (cp1->variant.template_param.kind) {
             case tpck_param:
-              eq = (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
-                   (cp1->variant.template_param.variant.coordinates.position ==
+              eq = (cp1->variant.template_param.variant.coordinates.position ==
                     cp2->variant.template_param.variant.coordinates.position)
                 && equiv_nesting_depths(
                         cp1->variant.template_param.variant.coordinates.depth,

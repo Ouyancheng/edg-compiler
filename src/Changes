@@ -1,5 +1,25 @@
 Version 4.3
 
+10/5/10  [EDGcpfe/11047]
+Some nonreal types still unintentionally shared
+
+Starting with version 4.2, nonreal types based on template parameter were
+no longer shared (see 5/4/10 entry).  However, certain types that
+indirectly made use of template parameters were still shared when they
+should not have been.  In the example below the return type of "f" in the
+instantiations of A<char> and A<wchar_t> (typename B<C<U>::value>::type)
+shared the same type when they should not have because the two instances of
+C<U>::value were not considered distinct.  Now fixed.
+
+  template <bool b> struct B { };
+  template <typename T> struct C { };
+  template <typename T> class A {
+    template <typename U> typename B<C<U>::value>::type f() { return 0; }
+  };
+  A<char> achar;
+  A<wchar_t> awchar;
+
+
 10/4/10  [EDGcpfe/11045]
 Attributes duplicated by C++-generating back end
 
