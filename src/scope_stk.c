@@ -8803,8 +8803,8 @@ end_potential_pack_expansion_context).
 {
   check_assertion(curr_token == tok_ellipsis);
   if (is_template_dependent_context()) {
-    check_assertion(pack_expansion_stack != NULL);
     a_pack_expansion_descr_ptr	pedp = pack_expansion_stack->expansion_descr;
+    check_assertion(pack_expansion_stack != NULL);
     pedp->ellipsis_seen = TRUE;
     pedp->ellipsis_position = pos_curr_token;
   }  /* if */
