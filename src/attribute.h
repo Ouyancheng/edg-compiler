@@ -18,6 +18,9 @@ attribute.h -- Declarations related to attribute.c (having to do with
 #ifndef ATTRIBUTE_H
 #define ATTRIBUTE_H 1
 
+#if DEBUG
+extern void db_attribute_list(an_attribute_ptr  ap);
+#endif /* DEBUG */
 
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
 extern void redefine_extname_pragma(a_pending_pragma_ptr  ppp);
