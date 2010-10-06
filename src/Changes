@@ -1,5 +1,30 @@
 Version 4.3
 
+10/6/10  [EDGcpfe/11051]
+Incorrect handling of return value type in template
+
+In versions that do IL lowering, functions that return a class by
+value are changed to use an added parameter when the class must be returned
+by calling a copy constructor.  In some cases where the return type of
+a template is a nonreal class (one whose arguments are template parameters),
+the front end sometimes concluded that instances of the template needed to
+use an added parameter even when that wasn't in fact necessary.  Among other
+things, this could mean that different instances of the template function
+had different numbers of parameters.  Now fixed.  The following example
+generated incorrect C code when compiled with the C-generating back end,
+because the type of f<int> did not match the type of the parameter of
+the instance of g.
+
+ template <class T> struct A {};
+ template <class T> A<T> f() {
+   return A<T>();
+ }
+ template <class T> void g(T) {}
+ int main() {
+   g(f<int>);
+ }
+
+
 10/5/10  [EDGcpfe/11034]
 GNU attributes following an enum definition
 

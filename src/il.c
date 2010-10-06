@@ -16976,7 +16976,10 @@ the case if the return type was incomplete at the point of definition.
          constructor, make the caller provide a temporary for the result. */
       return_type = skip_typerefs(routine_type->variant.routine.return_type);
       if (is_immediate_class_type(return_type)) {
-        if (is_incomplete_type(return_type)) {
+        if (return_type->variant.class_struct_union.is_nonreal_class) {
+          /* For a nonreal class, we can't answer the question, so leave the
+             flag FALSE. */
+        } else if (is_incomplete_type(return_type)) {
           /* The return type is an incomplete class so we can't tell whether
              special handling will be required for the return.  Enter the
              routine type on a fixup list and check again when the return
