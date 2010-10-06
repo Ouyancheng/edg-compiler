@@ -4678,7 +4678,7 @@ given "may_alias" attribute to it.
   a_type_ptr  type = (a_type*)entity;
 
   check_assertion(entity_kind == iek_type);
-  if (ap->syntactic_location == (a_byte_attribute_location)al_tag_name) {
+  if (is_tag_attribute(ap)) {
     /* The attribute appears in a class or enum definition.  E.g.:
          struct __attribute((may_alias)) X { ... };
        Set the may_alias flag directly. */
