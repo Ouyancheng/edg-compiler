@@ -4881,7 +4881,7 @@ doesn't apply to the given type, issue an error and return an error type.
   }  /* if */
   if (i == (int)tmk_last) {
     /* If the mode was not valid, issue an error message and return an error
-       type if the attribute not a tag attribute (if it is a tag attribute,
+       type if the attribute is not a tag attribute (if it is a tag attribute,
        the caller does not expect the type to be changed). */
     report_bad_attribute_arg(aap, ap);
     if (!is_tag_attribute(ap)) type = error_type();
