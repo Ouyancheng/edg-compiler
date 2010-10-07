@@ -2172,11 +2172,14 @@ it returns FALSE.
 
   if (gpp_mode || microsoft_mode) {
     /* The proxy class test below is to prevent "struct T::X {}" from being
-       allowed. */
+       allowed.  The is_any_template_instance_class_symbol test is used to
+       prevent an instantiation from being treated as a delayed nested class
+       definition. */
     if (innermost_function_scope == NULL &&
         scope_stack[depth_scope_stack].kind ==
                                        (a_scope_kind)sck_class_struct_union &&
-        !is_proxy_class(type_symbol_type(sym))) {
+        !is_proxy_class(type_symbol_type(sym)) &&
+        !is_any_template_instance_class_symbol(sym)) {
       /* Check that the current scope encloses sym (not required for earlier
          Microsoft versions). */
       if ((microsoft_bugs && microsoft_version < 1400) ||
