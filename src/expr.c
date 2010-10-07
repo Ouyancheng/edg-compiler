@@ -18084,6 +18084,17 @@ that case.
           conv_3_to_2_possible = FALSE;
         }  /* if */
       }  /* if */
+      if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible &&
+          !ambig_2_to_3 && !ambig_3_to_2 &&
+          is_class_struct_union_type(operand_2.type) &&
+          is_class_struct_union_type(operand_3.type)) {
+        /* MSVC (checked up to MSVC10) picks the conversion from 3->2 if
+           both are possible.  Apparently it makes some effort to compare the
+           conversions to see which is better, but since we don't know the
+           exact tie-breakers used, we apply this trick only when both
+           operands have class types. */
+        conv_2_to_3_possible = FALSE;
+      }  /* if */
       /* Decide whether the extra temporary for the case where the result
          is a class rvalue should be suppressed (suppress_class_rvalue_temp),
          and whether a conversion from derived to base should force a copy

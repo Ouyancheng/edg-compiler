@@ -1,5 +1,34 @@
 Version 4.3
 
+10/7/10  [EDGcpfe/11052]
+Microsoft mode handling of "?" operator with interconvertible 2nd/3rd operands
+
+According to the C++ standard, if the second and third operands of a "?"
+operand have different class types and are each convertible to the other, the
+operator is ambiguous.  In such cases, MSVC favors the second operand,
+converting the third operand to the type of the second.  Now, we do
+that too.
+
+  extern "C" int printf(const char *, ...);
+  struct B;
+  struct A {
+    A() {}
+    A(const A&) {}
+    A(const B&) { printf("converting B to A\n"); }
+  };
+  struct B {
+    B() {}
+    B(const B&) {}
+    B(const A&) { printf("converting A to B\n"); }
+  };
+  int main() {
+    int foo = 1;
+    foo ? A() : B();
+    foo = 0;
+    foo ? A() : B();  // Now prints "converting B to A" in Microsoft bugs mode
+  }
+
+
 10/6/10  [EDGcpfe/11051]
 Incorrect handling of return value type in template
 
