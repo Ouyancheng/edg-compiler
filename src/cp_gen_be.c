@@ -9335,8 +9335,9 @@ gen_expr that might end up generating this expr as a temporary.
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
           if (gcc_builtin_varargs_in_generated_code) {
-            /* Use the intrinsic GNU C/C++ "__builtin_varargs_start". */
-            write_tok_str("__builtin_stdarg_start(");
+            /* Use the intrinsic GNU C/C++ "__builtin_va_start". */
+            write_tok_str(gnu_target_version_number < 30300 ?
+                            "__builtin_stdarg_start(" : "__builtin_va_start(");
           } else {
             write_tok_str("va_start(");
           }  /* if */

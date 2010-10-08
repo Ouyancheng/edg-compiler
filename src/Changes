@@ -1,5 +1,24 @@
 Version 4.3
 
+10/8/10  [EDGcpfe/11062]
+C++-generating back end, GNU compatibility: __builtin_stdarg_start
+
+In configurations with GCC_BUILTIN_VARARGS and either
+CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT or
+GCC_BUILTIN_VARARGS_IN_GENERATED_CODE set to TRUE, the C++-generating back
+end used the obsolete builtin __builtin_stdarg_start instead of the current
+__builtin_va_start for references to va_start in --g++ and --gcc mode.  It
+has now been changed to use the older form only when
+gnu_target_version_number is less than 30300.  For example:
+
+  void f(int i, ...) {
+    __builtin_va_list args;
+    __builtin_va_start(args, i);  // Previously generated as
+                                  // __builtin_stdarg_start
+    __builtin_va_end(args);
+  }
+
+
 10/7/10  [EDGcpfe/11049]
 Microsoft property references and subscripting
 
