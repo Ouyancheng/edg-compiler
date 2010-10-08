@@ -1,5 +1,24 @@
 Version 4.3
 
+10/8/10  [EDGcpfe/11066]
+Abort reading name references from standalone utility program
+
+In versions with PROTOTYPE_INSTANTIATION_IN_IL an abort could occur
+in a standalone utility program when reading an IL file containing name
+reference entries for prototype instantiations.  Now fixed.  The
+example below would abort in the IL display program if an IL file
+was created by, for example, a C++-generating back end version configured
+with prototype instantiations in the IL.
+
+  template <bool b> struct A { };
+  template <typename T> struct B  { };
+  template <typename U> class C {
+    template <typename U2> typename A<B<U2>::v>::t f() { return 0; }
+  };
+  C<char> cC;
+  C<wchar_t> wC;
+
+
 10/8/10  [EDGcpfe/11062]
 C++-generating back end, GNU compatibility: __builtin_stdarg_start
 
