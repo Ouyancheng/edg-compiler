@@ -14938,6 +14938,12 @@ typedef struct an_il_header {
 			/* TRUE if a variable-length array type was used
 			   anywhere in the translation unit. */
   a_byte_boolean
+		prototype_instantiations_in_il;
+			/* TRUE if the IL contains some prototype
+			   instantiations.  When this is TRUE, consumers
+			   of the IL must be prepared to handle prototype
+			   instantiations, nonreal types, etc. */
+  a_byte_boolean
 		il_has_all_prototype_instantiations;
 			/* TRUE if if both class and nonclass prototype
 			   instantiations were recorded in the IL.  In that
