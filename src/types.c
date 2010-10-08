@@ -3334,7 +3334,8 @@ equivalent templates, such as T in "T<int>" and "T<int>".
 
 a_boolean equiv_class_types(a_type_ptr type_1,
                             a_type_ptr type_2,
-                            a_boolean  error_matches_anything)
+                            a_boolean  error_matches_anything,
+                            a_boolean  exact_templ_arg_match_required)
 /*
 type_1 and type_2 are class/struct/union types.  Return TRUE if they are
 equivalent types.  In general, classes, structs, and unions that aren't
@@ -3344,7 +3345,9 @@ nonreal template classes are identical if they are based on the same
 class template and have identical template arguments.
 If error_matches_anything is TRUE, consider an error type or constant in
 a template argument to match anything (that's appropriate for compatibility
-checking instead of equivalence checking).
+checking instead of equivalence checking).  exact_templ_arg_match_required
+is TRUE if the values of the templates arguments must match exactly (e.g.,
+point to the same type or constant).  FALSE if only equivalence is required.
 */
 {
   a_boolean                     equiv = FALSE;
@@ -3402,6 +3405,11 @@ checking instead of equivalence checking).
             if (is_nonreal_template_symbol(cssp_1->class_template) ||
                 is_nonreal_template_symbol(cssp_2->class_template)) {
               eta_options |= ETA_IS_NONREAL_MEMBER;
+            }  /* if */
+            if (exact_templ_arg_match_required) {
+              /* Template argument lists must match exactly, not just be
+                 equivalent. */
+              eta_options |= ETA_EXACT_MATCH_REQUIRED;
             }  /* if */
             if (equiv_template_arg_lists(
                              type_1->variant.class_struct_union.extra_info->
@@ -3990,8 +3998,11 @@ check_typerefs:
                correspondence of their inner structure must be checked. */
             identical = seek_type_corresp(type_1, type_2);
           }  /* if */
-        } else if (equiv_class_types(type_1, type_2,
-                                     /*error_matches_anything=*/FALSE)) {
+        } else if (equiv_class_types(
+                             type_1, type_2,
+                             /*error_matches_anything=*/FALSE,
+                             (flags &
+                               ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0)) {
           identical = TRUE;
         }  /* if */
         break;
@@ -4644,7 +4655,8 @@ check_typerefs:
              type aren't compatible.  There are some exceptions with template
              classes.  Check for those. */
           if (!C_mode() &&
-              equiv_class_types(type_1, type_2, error_matches_anything)) {
+              equiv_class_types(type_1, type_2, error_matches_anything,
+                                /*exact_templ_arg_match_required=*/FALSE)) {
             compat = TRUE;
           }  /* if */
           break;

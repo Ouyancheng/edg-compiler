@@ -6502,7 +6502,8 @@ determine the correspondences.
     a_type_ptr  type1 = (a_type_ptr)canon1, type2 = (a_type_ptr)canon2;
     if (is_immediate_class_type(type1) && is_immediate_class_type(type2)) {
       result = equiv_class_types(type1, type2,
-                                 /*error_matches_anything=*/FALSE);
+                                 /*error_matches_anything=*/FALSE,
+                                 /*exact_templ_arg_match_required=*/FALSE);
     }  /* if */
   }  /* if */
   return result;

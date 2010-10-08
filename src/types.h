@@ -703,7 +703,8 @@ circuit some of the processing in common cases.
 
 extern a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_type_ptr type_2,
-                                   a_boolean  error_matches_anything);
+                                   a_boolean  error_matches_anything,
+                                   a_boolean  exact_templ_arg_match_required);
 
 extern a_boolean is_address_of_string_constant(a_constant *constant);
 
