@@ -2541,6 +2541,7 @@ attributes are attached as part of the template instantiation process.
   }  /* if */
 }  /* attach_tag_attributes */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 static void attach_postfix_enum_attributes(an_attribute_ptr    attributes,
                                            a_type_ptr          enum_type,
@@ -2578,6 +2579,7 @@ and move the remaining attributes to dps->specifier_attributes.
                         /*ignore_gnu_attributes=*/FALSE);
 }  /* attach_postfix_enum_attributes */
 
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void update_sse_for_first_class_declaration(
@@ -5009,6 +5011,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
                           /*is_forward_decl=*/FALSE,
                           /*ignore_gnu_attributes=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && curr_token == tok_attribute) {
       /* Check for something like "enum E { e } __attribute((packed));".
          Ordinarily, specifier attributes should be applied after all
@@ -5028,6 +5031,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         attach_postfix_enum_attributes(attributes, enum_type, dps);
       }  /* if */
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
         depth_innermost_function_scope == NO_SCOPE_NUMBER &&
