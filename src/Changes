@@ -1,5 +1,28 @@
 Version 4.3
 
+10/7/10  [EDGcpfe/11049]
+Microsoft property references and subscripting
+
+The expansion of Microsoft mode property field references did not match
+MSVC in some cases where a property field is subscripted.  It appears
+that if the property has a "get" function that takes no arguments and
+returns a pointer, MSVC will use that to convert the property to a
+pointer value which is then subscripted by the following [...].
+Formerly, the front end always tried to match such a case against
+a "get" or "put" function that could take all the subscripts as
+arguments.
+
+  class Accessor {
+    char *theStr;
+        __declspec( property( get=_GetString, put=_PutString) ) char *strProp;
+    char *_GetString() { return(theStr); }
+    void _PutString(char *s) { theStr=s; }
+    bool IsStrNonNull() {
+      return(strProp[0]!=NULL);  // Formerly got an error
+    }
+  };
+
+
 10/7/10  [EDGcpfe/11052]
 Microsoft mode handling of "?" operator with interconvertible 2nd/3rd operands
 

@@ -14337,6 +14337,57 @@ qualifiers as appropriate).  If operand != NULL, it is the associated operand
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+a_symbol_ptr get_property_accessor_symbol(a_field_ptr       field,
+                                          a_boolean         put,
+                                          a_boolean         must_be_present,
+                                          a_source_position *pos)
+/*
+"field" is a Microsoft property field.  Get and return the symbol for the
+accessor function, either for "get" (put == FALSE) or "put" (put == TRUE).
+Return NULL if there is no such symbol.  In that case, if must_be_present is
+TRUE also put out an error.  The source position of the reference is given
+by pos.
+*/
+{
+  a_symbol_ptr getput_sym = NULL;
+  char         *getput_property_name = (put ? field->put_property_name :
+                                              field->get_property_name);
+
+  if (getput_property_name == NULL) {
+    if (must_be_present) {
+      expr_pos_error(put ? ec_no_put_property : ec_no_get_property, pos);
+    }  /* if */
+  } else {
+    a_symbol_locator locator;
+    a_type_ptr       class_type;
+
+    /* Look up the "get" or "put" function name in the symbol table to get
+       the locator set. */
+    clear_locator(&locator, pos);
+    (void)find_symbol(getput_property_name,
+                      (sizeof_t)strlen(getput_property_name),
+                      &locator);
+    class_type = parent_class_of(field);
+    /* Look for the "get" or "put" function by name in the class. */
+    getput_sym = class_qualified_id_lookup(&locator, class_type,
+                                           IDL_NO_OPTIONS);
+    if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
+      if (must_be_present &&
+          expr_error_should_be_issued()) {
+        pos_st_error(put ? ec_put_property_function_missing :
+                           ec_get_property_function_missing,
+                     pos, getput_property_name);
+      }  /* if */
+      getput_sym = NULL;
+    } else {
+      /* Use a projection symbol if there is one. */
+      getput_sym = locator.specific_symbol;
+    }  /* if */
+  }  /* if */
+  return getput_sym;
+}  /* get_property_accessor_symbol */
+
+
 void rewrite_property_field_reference(an_operand *operand,
                                       an_operand *put_operand)
 /*
@@ -14347,9 +14398,8 @@ is non-NULL (and *put_operand gives the value to be put); the access
 is a "get" if put_operand is NULL.
 */
 {
-  an_expr_node_ptr  object_expr = operand->variant.property_ref.object;
   a_field_ptr       field = operand->variant.property_ref.field;
-  char              *getput_property_name;
+  a_symbol_ptr      getput_sym;
   a_source_position operand_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position operand_end_position;
@@ -14360,118 +14410,82 @@ is a "get" if put_operand is NULL.
   operand_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Get the "get" or "put" function name from the field. */
-  getput_property_name = (put_operand != NULL) ? field->put_property_name :
-                                                 field->get_property_name;
-  if (getput_property_name == NULL) {
-    error_in_operand(put_operand != NULL ? ec_no_put_property :
-                                           ec_no_get_property,
-                     operand);
+  getput_sym = get_property_accessor_symbol(field,
+                                            /*put=*/(put_operand != NULL),
+                                            /*must_be_present=*/TRUE,
+                                            &operand_position);
+  if (getput_sym == NULL) {
+    /* Some error. */
+    conv_to_error_operand(operand);
   } else {
-    a_symbol_locator locator;
-    a_symbol_ptr     getput_sym;
-    a_type_ptr       class_type, tp;
+    an_operand         function_operand;
+    an_operand         bound_function_selector;
+    an_arg_operand_ptr arg_operand_list;
+    an_expr_node_ptr   argument_list;
 
-    /* Look up the "get" or "put" function name in the symbol table to get
-       the locator set. */
-    clear_locator(&locator, &operand->position);
-    (void)find_symbol(getput_property_name,
-                      (sizeof_t)strlen(getput_property_name),
-                      &locator);
-    /* Get the class type from the object pointer expression. */
-    class_type = NULL;
-    tp = object_expr->type;
-    if (is_pointer_type(tp)) {
-      tp = type_pointed_to(tp);
-      tp = skip_typerefs(tp);
-      if (is_class_struct_union_type(tp)) class_type = tp;
+    /* Make an operand for the object pointer. */
+    make_expression_operand(operand->variant.property_ref.object,
+                            &bound_function_selector);
+    bound_function_selector.selector_is_object_pointer = TRUE;
+    /* The arg_operand list is the subscript expression list, if any. */
+    arg_operand_list = operand->variant.property_ref.subscripts;
+    /* The subscript arg_operands will be freed by the overload
+       resolution process, so detach them from the operand. */
+    operand->variant.property_ref.subscripts = NULL;
+    if (put_operand != NULL) {
+      /* The last argument for a "put" is the value to be put. */
+      an_arg_operand_ptr new_arg_operand = alloc_arg_operand();
+      new_arg_operand->operand = *put_operand;
+      if (arg_operand_list == NULL) {
+        arg_operand_list = new_arg_operand;
+      } else {
+        an_arg_operand_ptr end_arg_operand_list = arg_operand_list;
+        while (end_arg_operand_list->next != NULL) {
+          end_arg_operand_list = end_arg_operand_list->next;
+        }  /* if */
+        end_arg_operand_list->next = new_arg_operand;
+      }  /* if */
     }  /* if */
-    if (class_type == NULL) {
-      /* Some previous error. */
+    /* Do overload resolution to determine the function to call. */
+    if (select_and_prepare_to_call_overloaded_function(
+                                       getput_sym,
+                                       /*is_template_id=*/FALSE,
+                                       (a_template_arg_ptr)NULL,
+                                       /*have_selector=*/TRUE,
+                                       &bound_function_selector,
+                                       arg_operand_list,
+                                       /*do_arg_dep_lookup=*/FALSE,
+                                       /*try_surrogate_functions=*/FALSE,
+                                       /*is_property=*/TRUE,
+                                       ec_no_matching_function,
+                                       ec_ambiguous_overloaded_function,
+                                       (an_operand *)NULL,
+                                       &operand_position,
+                                       (a_token_sequence_number)0,
+                                       (a_source_position *)NULL,
+                                       (a_boolean *)NULL,
+                                       (a_boolean *)NULL,
+                                       &function_operand,
+                                       &argument_list) == NULL) {
+      /* Some error. */
       conv_to_error_operand(operand);
     } else {
-      /* Look for the "get" or "put" function by name in the class. */
-      getput_sym = class_qualified_id_lookup(&locator, class_type,
-                                             IDL_NO_OPTIONS);
-      if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
-        if (expr_error_should_be_issued()) {
-          pos_st_error(put_operand != NULL ? ec_put_property_function_missing :
-                                             ec_get_property_function_missing,
-                       &operand->position, getput_property_name);
-        }  /* if */
-        conv_to_error_operand(operand);
-      } else {
-        an_operand         function_operand;
-        an_operand         bound_function_selector;
-        an_arg_operand_ptr arg_operand_list;
-        an_expr_node_ptr   argument_list;
-
-        /* Use a projection symbol if there is one. */
-        getput_sym = locator.specific_symbol;
-        /* Make an operand for the object pointer. */
-        make_expression_operand(operand->variant.property_ref.object,
-                                &bound_function_selector);
-        bound_function_selector.selector_is_object_pointer = TRUE;
-        /* The arg_operand list is the subscript expression list, if any. */
-        arg_operand_list = operand->variant.property_ref.subscripts;
-        /* The subscript arg_operands will be freed by the overload
-           resolution process, so detach them from the operand. */
-        operand->variant.property_ref.subscripts = NULL;
-        if (put_operand != NULL) {
-          /* The last argument for a "put" is the value to be put. */
-          an_arg_operand_ptr new_arg_operand = alloc_arg_operand();
-          new_arg_operand->operand = *put_operand;
-          if (arg_operand_list == NULL) {
-            arg_operand_list = new_arg_operand;
-          } else {
-            an_arg_operand_ptr end_arg_operand_list = arg_operand_list;
-            while (end_arg_operand_list->next != NULL) {
-              end_arg_operand_list = end_arg_operand_list->next;
-            }  /* if */
-            end_arg_operand_list->next = new_arg_operand;
-          }  /* if */
-        }  /* if */
-        /* Do overload resolution to determine the function to call. */
-        if (select_and_prepare_to_call_overloaded_function(
-                                           getput_sym,
-                                           /*is_template_id=*/FALSE,
-                                           (a_template_arg_ptr)NULL,
-                                           /*have_selector=*/TRUE,
-                                           &bound_function_selector,
-                                           arg_operand_list,
-                                           /*do_arg_dep_lookup=*/FALSE,
-                                           /*try_surrogate_functions=*/FALSE,
-                                           /*is_property=*/TRUE,
-                                           ec_no_matching_function,
-                                           ec_ambiguous_overloaded_function,
-                                           (an_operand *)NULL,
-                                           &locator.source_position,
-                                           (a_token_sequence_number)0,
-                                           (a_source_position *)NULL,
-                                           (a_boolean *)NULL,
-                                           (a_boolean *)NULL,
-                                           &function_operand,
-                                           &argument_list) == NULL) {
-          /* Some error. */
-          conv_to_error_operand(operand);
-        } else {
-          /* Create the function call. */
-          assemble_function_call(&function_operand, &bound_function_selector,
-                                 argument_list,
-                                 /*compiler_generated=*/TRUE,
-                                 /*arg_dep_lookup_suppressed=*/FALSE,
-                                 /*qualified_function_name=*/FALSE,
-                                 /*found_through_adl=*/FALSE,
-                                 /*uses_operator_syntax=*/FALSE,
-                                 &operand_position, operand,
-                                 (an_expr_node_ptr *)NULL);
+      /* Create the function call. */
+      assemble_function_call(&function_operand, &bound_function_selector,
+                             argument_list,
+                             /*compiler_generated=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
+                             /*qualified_function_name=*/FALSE,
+                             /*found_through_adl=*/FALSE,
+                             /*uses_operator_syntax=*/FALSE,
+                             &operand_position, operand,
+                             (an_expr_node_ptr *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-          /* The operand's end position now reflects the end of the current
-             token, which is past the end of the field reference.  Restore
-             the original operand end position. */
-          operand->end_position = operand_end_position;
+      /* The operand's end position now reflects the end of the current
+         token, which is past the end of the field reference.  Restore
+         the original operand end position. */
+      operand->end_position = operand_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        }  /* if */
-      }  /* if */
     }  /* if */
   }  /* if */
   if (curr_expr_kind_is_const() && !is_error_operand(operand)) {

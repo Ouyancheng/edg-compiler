@@ -1259,6 +1259,12 @@ extern void change_binary_operand_types(a_type_ptr             type,
                                         an_expr_operator_kind  op);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern
+a_symbol_ptr get_property_accessor_symbol(a_field_ptr       field,
+                                          a_boolean         put,
+                                          a_boolean         must_be_present,
+                                          a_source_position *pos);
+
 extern void rewrite_property_field_reference(an_operand *operand,
                                              an_operand *put_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

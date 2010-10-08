@@ -655,6 +655,54 @@ expression node to indicate that.
   }  /* if */
 }  /* set_pointer_operand_is_second_flag */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean property_ref_has_simple_pointer_get_accessor(
+                                                           an_operand *operand)
+/*
+Return TRUE if the property reference given by "operand" has a "get"
+accessor that will allow the conversion of the property reference to a
+pointer type that can then be subscripted.
+*/
+{
+  a_boolean    has_pointer_accessor = FALSE;
+  a_symbol_ptr get_sym;
+
+  check_assertion(is_property_ref_operand(operand));
+  /* Get the "get" functions symbol. */
+  get_sym = get_property_accessor_symbol(operand->variant.property_ref.field,
+                                         /*put=*/FALSE,
+                                         /*must_be_present=*/FALSE,
+                                         &operand->position);
+  if (get_sym != NULL) {
+    a_boolean overloaded_case = FALSE;
+    reduce_projection_symbol_to_fundamental_symbol(get_sym);
+    if (get_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      overloaded_case = TRUE;
+      get_sym = get_sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; get_sym != NULL;
+         get_sym = overloaded_case ? get_sym->next : NULL) {
+      a_type_ptr   rout_type;
+      a_symbol_ptr fund_sym = fundamental_symbol_of(get_sym);
+      check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
+      rout_type = routine_symbol_type(get_sym);
+      if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
+        a_type_ptr return_type = return_type_of(rout_type);
+        if (is_pointer_type(return_type) &&
+            is_object_type(type_pointed_to(return_type))) {
+          /* This function has zero arguments and returns a pointer to object
+             type, so it can be used to get an "array" to be subscripted. */
+          has_pointer_accessor = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return has_pointer_accessor;
+}  /* property_ref_has_simple_pointer_get_accessor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void scan_subscript_operator(an_operand             *operand_1,
                                     a_rescan_control_block *rcblock,
@@ -728,7 +776,16 @@ This routine is also used when scanning __builtin_offsetof constructs.
     scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
     closing_bracket_position = pos_curr_token;
   }  /* if */
-
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode &&
+      is_property_ref_operand(operand_1) &&
+      property_ref_has_simple_pointer_get_accessor(operand_1)) {
+    /* For a property field reference where there's a zero-argument get
+       accessor that returns a pointer type, use that and then subscript the
+       returned value. */
+    rewrite_property_field_reference(operand_1, (an_operand *)NULL);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (err) {
     /* Subscripting is not allowed in this kind of expression. */
     make_error_operand(result);
