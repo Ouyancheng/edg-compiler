@@ -33,7 +33,7 @@ arguments.
 
   class Accessor {
     char *theStr;
-        __declspec( property( get=_GetString, put=_PutString) ) char *strProp;
+    __declspec( property( get=_GetString, put=_PutString) ) char *strProp;
     char *_GetString() { return(theStr); }
     void _PutString(char *s) { theStr=s; }
     bool IsStrNonNull() {
