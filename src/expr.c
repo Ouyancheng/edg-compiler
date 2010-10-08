@@ -686,7 +686,7 @@ pointer type that can then be subscripted.
       a_type_ptr   rout_type;
       a_symbol_ptr fund_sym = fundamental_symbol_of(get_sym);
       check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
-      rout_type = routine_symbol_type(get_sym);
+      rout_type = routine_symbol_type(fund_sym);
       if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
         a_type_ptr return_type = return_type_of(rout_type);
         if (is_pointer_type(return_type) &&
