@@ -9334,11 +9334,15 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
           if (gcc_builtin_varargs_in_generated_code) {
             /* Use the intrinsic GNU C/C++ "__builtin_va_start". */
             write_tok_str(gnu_target_version_number < 30300 ?
                             "__builtin_stdarg_start(" : "__builtin_va_start(");
-          } else {
+          } else 
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+          /* Do not insert code here. */
+          {
             write_tok_str("va_start(");
           }  /* if */
           gen_expr_with_parens(operand_1);
