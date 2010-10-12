@@ -5909,6 +5909,10 @@ are created by a new expression (in which case sym is NULL).  In both cases
         if (name_linkage == (a_name_linkage_kind)nlk_none ||
             (name_linkage == (a_name_linkage_kind)nlk_internal &&
              decl_scope_level <= depth_innermost_namespace_scope) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            ((vp->decl_modifiers & DM_DLLEXPORT) != 0 &&
+             vp->storage_class != (a_storage_class)sc_extern) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             sym->kind == (a_symbol_kind)sk_static_data_member) {
           /* In C++ const qualified variables that are internally linked
              must be initialized (ARM 7.1.6). */

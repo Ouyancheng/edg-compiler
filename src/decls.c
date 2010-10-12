@@ -2628,12 +2628,13 @@ only.
 }  /* has_linkage_within_innermost_namespace_scope */
 
 
-static void id_linkage(an_id_linkage_block  *idlbp)
+static void id_linkage(an_id_linkage_block  *idlbp,
+                       a_decl_parse_state   *dps)
 /*
 Determine the linkage (internal, external, or none) of the current variable,
-routine, or function template declaration.  Find previous declarations with
-the same name that may affect the linkage.  Return the information in the
-specified id-linkage block.
+routine, or function template declaration (described by *dps).  Find previous
+declarations with the same name that may affect the linkage.  Return the
+information in the specified id-linkage block.
 */
 {
   a_boolean        is_object, is_function;
@@ -2680,11 +2681,16 @@ specified id-linkage block.
                is_const_qualified_type(idlbp->type) &&
                decl_scope_level == depth_innermost_namespace_scope &&
                idlbp->storage_class == (a_storage_class)sc_unspecified &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               find_attribute(ak_dllexport, dps->prefix_attributes) == NULL &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                !(idlbp->extern_C_name_linkage_specified &&
                  idlbp->direct_linkage_specifier)) {
       /* In C++ all const qualified objects at file or namespace scope with
          no explicit storage class are internally linked (unless previously
-         declared to be extern -- see below). */
+         declared to be extern -- see below).  An exception are variables
+         declared with the Microsoft __declspec(dllexport) attribute: They
+         are treated as having external linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
     } else {
@@ -5560,7 +5566,7 @@ for use in generating cross-reference output describing this declaration.
     qualified_name_redecl_sym(&idlb);
   } else {
     /* Determine the linkage of this symbol. */
-    id_linkage(&idlb);
+    id_linkage(&idlb, dps);
   }  /* if */
   locator = idlb.locator;
   storage_class = idlb.storage_class;
@@ -6712,7 +6718,7 @@ for use in generating cross-reference output describing this declaration.
       qualified_name_redecl_sym(&idlb);
     } else {
       /* Determine the linkage of this symbol. */
-      id_linkage(&idlb);
+      id_linkage(&idlb, dps);
     }  /* if */
     linkage = idlb.linkage;
     linked_symbol = idlb.linked_symbol;
@@ -8199,7 +8205,7 @@ definition of a member function of a class template.
     } else {
       /* id_linkage will set sym to point to an existing symbol when we have
          a redeclaration of a function template. */
-      id_linkage(&idlb);
+      id_linkage(&idlb, dps);
       sym = idlb.linked_symbol;
       homonym_symbol = idlb.homonym_symbol;
       overload_symbol = idlb.overload_symbol;
