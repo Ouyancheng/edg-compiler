@@ -815,16 +815,23 @@ and for the instantiation of template functions.
         /* Push a class symbol reactivation scope, to make class member names
            visible for processing the function definition.  If the class is a
            member of a namespace, reactivating the namespace is treated as a
-           namespace extension.  In Microsoft mode, old-style specializations
-           (those without the "template <>") can make use of the template
-           parameters of the enclosing class template. */
+           namespace extension. */
+        a_boolean  reactivate_template_params = FALSE,
+                   saved_use_microsoft_specialization_scope =
+                                           use_microsoft_specialization_scope;
+        if (microsoft_mode && rout_ptr->specialized_with_old_syntax) {
+          /* In Microsoft mode, old-style specializations (those without the
+             "template <>") can make use of the template parameters of the
+             enclosing class template. */
+          reactivate_template_params = TRUE;
+          use_microsoft_specialization_scope = TRUE;
+        }  /* if */
         push_class_and_template_reactivation_scope_full(
-                               class_type,
-                               /*reactivate_template_params=*/
-                                         microsoft_mode &&
-                                         rout_ptr->specialized_with_old_syntax,
+                               class_type, reactivate_template_params,
                                /*extend_namespace=*/TRUE,
                                /*force_new_entry_for_namespace=*/FALSE);
+        use_microsoft_specialization_scope =
+                                     saved_use_microsoft_specialization_scope;
       }  /* if */
     } else {
       nsp = parent_namespace_or_null(rout_ptr);
