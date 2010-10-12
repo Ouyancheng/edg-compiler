@@ -2682,15 +2682,17 @@ information in the specified id-linkage block.
                decl_scope_level == depth_innermost_namespace_scope &&
                idlbp->storage_class == (a_storage_class)sc_unspecified &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-               find_attribute(ak_dllexport, dps->prefix_attributes) == NULL &&
+               !(microsoft_mode && microsoft_version >= 1400 &&
+                 find_attribute(ak_dllexport,
+                                dps->prefix_attributes) != NULL) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                !(idlbp->extern_C_name_linkage_specified &&
                  idlbp->direct_linkage_specifier)) {
       /* In C++ all const qualified objects at file or namespace scope with
          no explicit storage class are internally linked (unless previously
          declared to be extern -- see below).  An exception are variables
-         declared with the Microsoft __declspec(dllexport) attribute: They
-         are treated as having external linkage. */
+         declared with the __declspec(dllexport) attribute in some Microsoft
+         modes: They are treated as having external linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
     } else {
