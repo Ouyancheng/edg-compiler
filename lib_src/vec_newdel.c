@@ -928,7 +928,7 @@ destructor elements throws an exception; otherwise, the remainder of the
 elements will be destroyed and the exception will be rethrown.
 */
 {
-  ptrdiff_t             i;
+  size_t                i;
   void                  *arr_ptr;
   size_t		array_size = 0;
   size_t		number_of_elements = number_of_elements_param;

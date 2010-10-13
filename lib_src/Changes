@@ -1,3 +1,13 @@
+Version 4.3
+
+10/12/10 [EDGcpfe/11068]
+Warn on signed/unsigned comparison in vec_newdel.c
+
+Some compilers warn on a comparison of signed and unsigned variables.
+vec_newdel.c made use of such a comparison resulting in a warning from
+those compilers.  This code has been revised to avoid the warning.
+
+-------------------------------------------------------------------------------
 Version 4.2, August 25, 2010
 
 10/28/09 [EDGcpfe/10145]
