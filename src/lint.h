@@ -280,12 +280,12 @@ Included from basic_hdrs.h in every compilation.
 #if !INCLUDE_EDG_TEST_PRAGMAS
 /*lint -esym(528,add_other_pragma_kind_description)*/
 #endif /* !INCLUDE_EDG_TEST_PRAGMAS */
-#ifdef SOLARIS
+#ifdef __sun
 /* Solaris stdio.h doesn't define fileno in strict mode (fileno is not
    ANSI/ISO C; it's in POSIX). */
 extern int fileno(FILE *);
 /*lint -esym(526,fileno)*/
-#endif /* ifdef SOLARIS */
+#endif /* ifdef __sun */
 #ifdef sun
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/

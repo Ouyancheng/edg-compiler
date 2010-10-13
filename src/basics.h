@@ -237,11 +237,11 @@ Flag that is TRUE if we should include the inttypes.h header to define the
 stdint.h types on systems such as Solaris.
 */
 #ifndef USE_INT_TYPES_HEADER
-#ifdef SOLARIS
+#ifdef __sun
 #define USE_INT_TYPES_HEADER TRUE
-#else /* ifndef SOLARIS */
+#else /* ifndef __sun */
 #define USE_INT_TYPES_HEADER FALSE
-#endif /* ifdef SOLARIS */
+#endif /* ifdef __sun */
 #endif /* ifndef USE_INT_TYPES_HEADER */
 
 /*

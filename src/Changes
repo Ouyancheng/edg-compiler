@@ -1,5 +1,13 @@
 Version 4.3
 
+10/13/10 [EDGcpfe/11067]
+Conditional compilation should test __sun not SOLARIS
+
+In several places (basics.h and lint.h) there are conditional compilation
+tests that use SOLARIS (which is used internally at EDG) instead of the
+more standard __sun.  Now fixed.
+
+
 10/12/10 [EDGcpfe/11043]
 C++-generating back aborts on old-style member function specialization
 
