@@ -15895,11 +15895,11 @@ a_boolean coalesce_and_lookup_qualified_name
 	       an_identifier_lookup_mode	ilm,
                a_boolean			*err)
 /*
-Coalesces a generalized identifier (see coalesce_generalized_identifier).
-If the identifier was qualified (e.g., A::x or ::x) the identifier
-is looked up.  Returns TRUE if identifier is a qualified name.
-The caller must guarantee that is_generalized_identifier_start is TRUE
-(i.e., that the thing being scanned is, in fact, an identifier).
+Coalesces a generalized identifier If the identifier was qualified (e.g.,
+A::x or ::x) the identifier is looked up.  Returns TRUE if identifier is a
+qualified name.  The caller must guarantee that is_generalized_identifier_start
+is TRUE (i.e., that the thing being scanned is, in fact, an identifier).
+See also coalesce_and_lookup_generalized_identifier.
 */
 {
   a_boolean             return_value = FALSE;
