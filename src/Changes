@@ -1,11 +1,13 @@
 Version 4.3
 
 10/13/10 [EDGcpfe/11067]
-Conditional compilation should test __sun not SOLARIS
+Conditional compilation should test __sun and __sparc
 
-In several places (basics.h and lint.h) there are conditional compilation
-tests that use SOLARIS (which is used internally at EDG) instead of the
-more standard __sun.  Now fixed.
+In several places there were conditional compilation tests that use SOLARIS
+(which is used internally at EDG).  These have been changed to the more
+standard __sun.  In addition, there are places that check whether the
+macros "sun" and "sparc" are defined.  These have been changed to __sun and
+__sparc, respectively.
 
 
 10/12/10 [EDGcpfe/11043]

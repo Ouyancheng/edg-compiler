@@ -503,14 +503,14 @@ extern void * memcpy (void *, const void *, size_t);
 #define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
 #define memzero(dest, nbytes) bzero(dest, nbytes)
 #endif /* USING_ISO_C */
-#ifdef sun
+#ifdef __sun
 /* SunOS 4.1.x uses the __BSD__ flag, but should use the System V-like
 strchr and strrchr routines. */
 #include <string.h>
-#else /* ifndef sun */
+#else /* ifndef __sun */
 #define strchr(str, c) index(str, c)
 #define strrchr(str, c) rindex(str, c)
-#endif /* ifdef sun */
+#endif /* ifdef __sun */
 #endif /* __BSD__ */
 #endif /* __SYSV__ */
 #endif /* __ANSIC__ */
@@ -918,7 +918,7 @@ one.
 #endif /* ifdef __EDG__ */
 #endif /* ifndef offsetof */
 
-#if defined(sun) && defined(__i386__)
+#if defined(__sun) && defined(__i386__)
 /* Some versions of the GNU float.h file on Intel Solaris incorrectly
    define the long double macros (LDBL_MANT_DIG, etc.), giving them the
    values appropriate for the double type.  If LDBL_MANT_DIG is set
@@ -952,7 +952,7 @@ one.
 #endif /* LDBL_MANT_DIG == 53 */
 #endif /* __GNUC__ == 3 && __GNUC_MINOR__ <= 2 */
 #endif /* ifdef __GNUC__ */
-#endif /* defined(sun) && defined(__i386__) */
+#endif /* defined(__sun) && defined(__i386__) */
 
 #endif /* ifndef BASICS_H */
 

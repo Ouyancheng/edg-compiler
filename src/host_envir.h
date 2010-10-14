@@ -2286,9 +2286,9 @@ extern int mbc_to_wide_char(char          *mb,
    same and is the default code page in lots of Western nations. */
 #define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED ".1252"
 #else /* !EDG_WIN32 */
-#ifdef sun
+#ifdef __sun
 #define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED "iso_8859_1"
-#endif /* sun */
+#endif /* __sun */
 #endif /* EDG_WIN32 */
 #endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
 

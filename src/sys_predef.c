@@ -114,7 +114,7 @@ Linux using the gcc/g++ header files.
 
 #endif /* ifdef __linux__ */
 
-#if defined(sparc) || defined(__sparc)
+#ifdef __sparc
 
 static void enter_sparc_predefined_macros(void)
 /*
@@ -137,7 +137,7 @@ Enter the standard predefined macros for a SPARC system.
                            /*ref_suppresses_pch_file=*/FALSE);
 }  /* enter_sparc_predefined_macros */
 
-#endif /* if defined(sparc) || defined(__sparc) */
+#endif /* ifdef __sparc */
 
 #if defined(__APPLE__) && defined(__MACH__)
 
@@ -2245,20 +2245,20 @@ Define system-specific predefined macros and builtin #assert predicates
   /* For example:
   enter_assert_predicate("m68k ", "machine");
   */
-#ifdef sparc
+#ifdef __sparc
   enter_assert_predicate("sparc ", "machine");
-#endif /* ifdef sparc */
+#endif /* ifdef __sparc */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #ifdef __linux__
   enter_linux_predefined_macros();
 #else /* !defined(__linux__) */
-#if defined(sparc) || defined(__sparc)
+#ifdef __sparc
   enter_sparc_predefined_macros();
-#else /* !(defined(sparc) || defined(__sparc)) */
+#else /* ifndef __sparc */
 #if defined(__APPLE__) && defined(__MACH__)
   enter_macosx_predefined_macros();
 #endif /* defined(__APPLE__) && defined(__MACH__) */
-#endif /* defined(sparc) || defined(__sparc) */
+#endif /* ifdef __sparc */
 #endif /* ifdef __linux__ */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 

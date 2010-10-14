@@ -74,9 +74,9 @@ of the host system.
 Set the test version flags to FALSE for demo versions.
 */
 #ifdef DEMO_VERSION
-#ifdef sun
+#ifdef __sun
 #define SUN_TEST_VERSION 0
-#endif  /* ifdef sun */
+#endif  /* ifdef __sun */
 #ifdef __linux__
 #define LINUX_TEST_VERSION 0
 #endif /* ifdef __linux__ */
@@ -128,7 +128,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifdef SSI_VERSION */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
-#ifdef sun
+#ifdef __sun
 
 /* Default to SOLARIS unless SUNOS is defined. */
 #ifndef SUNOS
@@ -178,9 +178,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
-#if defined(sparc) || defined(__sparc)
+#ifdef __sparc
 #define CENTERLINE_CHECKING 1
-#endif /* defined(sparc) || defined(__sparc) */
+#endif /* ifdef __sparc */
 #ifndef UNICODE_SOURCE_SUPPORTED
 #define UNICODE_SOURCE_SUPPORTED 1
 #endif /* ifndef UNICODE_SOURCE_SUPPORTED */
@@ -286,7 +286,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define SUN_EXTENSIONS_ALLOWED 1
 #define DEFAULT_SUN_COMPATIBILITY 0
 
-#else /* !defined(sun) */
+#else /* !defined(__sun) */
 
 #ifdef _WIN32
 
@@ -723,7 +723,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifdef __hpux */
 #endif /* ifdef __linux__ */
 #endif /* defined(_WIN32) */
-#endif /* defined(sun) */
+#endif /* defined(__sun) */
 
 #if EDG_TEST_VERSION
 
@@ -998,7 +998,7 @@ If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 */
 #ifdef _lint
-#ifndef sun
+#ifndef __sun
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
@@ -1009,7 +1009,7 @@ SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 #define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
 #undef LOWER_VARIABLE_LENGTH_ARRAYS
 #define LOWER_VARIABLE_LENGTH_ARRAYS 1
-#endif /* ifndef sun */
+#endif /* ifndef __sun */
 #endif /* ifdef lint */
 
 #endif /* ifndef DEFINES_H */

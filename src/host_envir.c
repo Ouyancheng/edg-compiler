@@ -130,10 +130,10 @@ and SVID compliant signal handlers in particular, return int. */
 #ifdef __ANSIC__
 #define SIGNAL_HANDLER_RETURNS_VOID 1
 #else /* !defined(__ANSIC__) */
-#ifdef sun
+#ifdef __sun
 /* SunOS 4.1 switched to the ANSI form of signal. */
 #define SIGNAL_HANDLER_RETURNS_VOID 1
-#endif  /* sun */
+#endif  /* __sun */
 #ifdef __hpux
 #define SIGNAL_HANDLER_RETURNS_VOID 1
 #endif  /* __hpux */
@@ -179,12 +179,12 @@ CLOCK_FREQUENCY is defined properly below.
 #else /* !__ANSIC__ */
 #include <sys/types.h>
 #include <sys/times.h>
-#ifdef sun
+#ifdef __sun
 #include <sys/param.h>
 #define CLOCK_FREQUENCY HZ
-#else /* !defined(sun) */
+#else /* ifndef __sun */
 #define CLOCK_FREQUENCY 60
-#endif /* defined(sun) */
+#endif /* ifdef __sun */
 #endif /* __ANSIC__ */
 
 #if !__MICROSOFT_OS__

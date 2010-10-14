@@ -35,17 +35,17 @@ This version is for the Sun Solaris operating system.
 #define TARG_JMP_BUF_NUM_ELEMENTS 9
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE TRUE
 #else /* ifndef SUNOS */
-#if defined(sparc) || defined(__sparc)
+#ifdef __sparc
 /* SPARC Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN FALSE
 #define TARG_JMP_BUF_NUM_ELEMENTS 12
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE TRUE
-#else /* !(defined(sparc) || defined(__sparc)) */
+#else /* ifndef __sparc */
 /* Intel Solaris specific defines. */
 #define TARG_LITTLE_ENDIAN TRUE
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
 #define DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS 1
-#endif /* defined(sparc) || defined(__sparc) */
+#endif /* ifdef __sparc */
 #endif /* ifdef SUNOS */
 
 #define TARG_CHAR_BIT 8

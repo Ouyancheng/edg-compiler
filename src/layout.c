@@ -2019,14 +2019,13 @@ types).
        necessarily within the first N bytes of the complete object they
        belong to).  Within those N bytes, the fields are treated as if
        they appeared at offset zero. */
-#if (defined(__sun) || defined(sun)) && (defined(sparc) || defined(__sparc))
+#if defined(__sun) && defined(__sparc))
 /* N is 8 on SPARC Solaris. */
 #define offset_limit 8
 #else /* !((defined(__sun) ... )) */
 /* N is 16 on various other platforms. */
 #define offset_limit 16
-#endif /* (defined(__sun) || defined(sun)) &&
-          (defined(sparc) || defined(__sparc)) */
+#endif /* defined(__sun) && defined(__sparc) */
     if (field->offset < offset_limit && is_immediate_class_type(field_type)) {
       if (identical_types(field_type, eb_type) ||
           gnu_conflict_found(field_type, ebcp,

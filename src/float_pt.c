@@ -68,7 +68,7 @@ EXTERN_C double strtod(char *, char **);
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #endif /* ifdef __MWERKS__ */
 #else /* !EDG_WIN32 */
-#ifdef sun
+#ifdef __sun
 /* SunOS, Solaris, including Solaris on Intel X86. */
 #ifndef isnan
 /*
@@ -89,7 +89,7 @@ EXTERN_C int finite(double x);
 #define is_finite(x) (long_double_is_finite(x))
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#else /* !defined(sun) */
+#else /* !defined(__sun) */
 /* Not Windows, not Solaris, not SunOS. */
 #include <math.h>
 #ifdef isnan
@@ -122,7 +122,7 @@ EXTERN_C int finite(double x);
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* ifdef isfinite */
-#endif /* ifdef sun */
+#endif /* ifdef __sun */
 #endif /* EDG_WIN32 */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 

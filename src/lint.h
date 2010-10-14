@@ -285,13 +285,11 @@ Included from basic_hdrs.h in every compilation.
    ANSI/ISO C; it's in POSIX). */
 extern int fileno(FILE *);
 /*lint -esym(526,fileno)*/
-#endif /* ifdef __sun */
-#ifdef sun
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/
 /*lint -esym(752,finite)*/
 /*lint -esym(752,isnan)*/
-#endif /* ifdef sun */
+#endif /* ifdef __sun */
 #if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_noreturn_function_does_return)*/
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
