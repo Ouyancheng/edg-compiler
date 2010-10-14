@@ -11,7 +11,7 @@ __sparc, respectively.
 
 
 10/12/10 [EDGcpfe/11043]
-C++-generating back aborts on old-style member function specialization
+C++-generating back end aborts on old-style member function specialization
 
 In version 4.2, the C++-generating back end aborted in Microsoft mode with
 microsoft_version >= 1310 when attempting to render the definition of an
