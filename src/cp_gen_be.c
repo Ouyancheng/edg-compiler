@@ -5877,8 +5877,8 @@ is the one associated with the definition of the class.
   check_and_take_source_seq_entry_for_type(type);
   if (msvc_is_generated_code_target &&
       has_name_before_mangling(type) &&
-      /*lint --e(668)*/strcmp(unmangled_name_of(&type->source_corresp),
-                              "_GUID") == 0) {
+      strcmp(unmangled_or_fabricated_name_of(&type->source_corresp),
+             "_GUID") == 0) {
     /* When _GUID is defined, put out a #define for GUID_DEFINED.  This
        is needed because some attributes check for GUID_DEFINED as
        a way of knowing whether a definition of _GUID needs to be
