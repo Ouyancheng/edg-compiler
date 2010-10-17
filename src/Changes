@@ -1,5 +1,23 @@
 Version 4.3
 
+10/17/10 [EDGcpfe/11080]
+GNU C++ mode: volatile bitwise-copyable expression can be passed as argument
+
+g++ (since version 4.2) appears to allow an lvalue of a volatile bitwise-
+copyable class type to be passed as an argument to a call even though
+the generated copy constructor for the class would not be able to copy
+the value, and therefore according to the standard the argument should not
+be valid.  Other kinds of copies (e.g., in initialization) appear to get
+an error as expected.
+
+  struct A {};
+  bool operator==(A, A);
+  void f() {
+    A a;
+    if (*(volatile A *)&a == a);  // Nonstandard, but now accepted in g++ mode
+  }
+
+
 10/13/10 [EDGcpfe/11067]
 Conditional compilation should test __sun and __sparc
 

@@ -15562,6 +15562,18 @@ to be acceptable (as far as overload resolution checks that), and
                                   (a_conv_descr *)NULL,
                                   ec_bad_cast, &err);
       }  /* if */
+    } else if (gpp_mode && gnu_version >= 40200 &&
+               is_volatile_qualified_type(source_operand->type) &&
+               is_an_lvalue(source_operand) &&
+               is_class_struct_union_type(param_type) &&
+               symbol_supplement_for_class(param_type)->
+                                        construction_by_bitwise_copy_allowed &&
+               identical_types_ignoring_qualifiers(param_type,
+                                                   source_operand->type)) {
+      /* g++ allows a volatile lvalue of a bitwise-copyable class type to be
+         passed as an argument even though the notional copy constructor
+         can't copy a volatile value. */
+      adjust_lvalue_type(source_operand, param_type);
     }  /* if */
     if (!adjusted_for_ref_to_non_const) {
       /* Normal case. */
