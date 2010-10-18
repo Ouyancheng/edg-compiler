@@ -70,6 +70,12 @@ of the host system.
 
 */
 
+#ifdef __CENTERLINE__
+/* Centerline does not define the __sun macro. */
+#define __sun 1
+#endif /* __CENTERLINE__ */
+
+
 /*
 Set the test version flags to FALSE for demo versions.
 */
