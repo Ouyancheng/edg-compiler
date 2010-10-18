@@ -1414,7 +1414,7 @@ simply include that.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_cli_using_directive_ptr make_cli_using_directive(
+static a_cli_using_directive_ptr make_cli_using_directive(
                                  char                  *name,
                                  char                  *full_name,
                                  a_boolean             as_friend,
@@ -1507,11 +1507,11 @@ it is NULL.
 }  /* search_for_metadata_file */
 
 
-void import_metadata(char                  *name,
-                     a_boolean             as_friend,
-                     a_boolean             is_system_include,
-                     a_boolean             referenced_by_preusing,
-                     a_source_position_ptr pos)
+static void import_metadata(char                  *name,
+                            a_boolean             as_friend,
+                            a_boolean             is_system_include,
+                            a_boolean             referenced_by_preusing,
+                            a_source_position_ptr pos)
 /*
 Search for the metadata file "name" using the usual search, create a CLI
 using directive for the back end, and begin the process of importing the

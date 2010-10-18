@@ -4826,7 +4826,7 @@ must be used before the buffer (temp_text_buffer) is overwritten.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void init_assembly_search_path(void)
+static void init_assembly_search_path(void)
 /*
 Complete the initialization of the assembly search path.  Because this is
 called after the command line is processed, some directories may already
@@ -4872,7 +4872,7 @@ final search path will include, in this order:
     libpath_size = strlen(libpath) + 1;
     current_path = alloc_general(libpath_size);
     strcpy(current_path, libpath);
-    while (TRUE) {
+    for (;;) {
       /* LIBPATH is a semicolon separated list of paths, so we must split
          on the ';'.  */
       semicolon = strchr(current_path, ';');
@@ -4888,7 +4888,7 @@ final search path will include, in this order:
         break;
       }  /* if */
       current_path = semicolon + 1;
-    }  /* while */
+    }  /* for */
   }  /* if */
 }  /* init_assembly_search_path */
 
