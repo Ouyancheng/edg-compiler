@@ -1,5 +1,17 @@
 Version 4.3
 
+10/18/10 [EDGcpfe/11072]
+Microsoft compatibility: Redeclarations changing linkage
+
+In Microsoft mode, the front end now accepts a redeclaration with internal
+("static") linkage following a previous declaration for the same entity that
+resulted in external linkage (a warning is issued).  For example:
+
+  void f();  // External linkage
+  static void f() {}  // Internal linkage: Conflict is now accepted with
+                      // a warning.
+
+
 10/17/10 [EDGcpfe/11080]
 GNU C++ mode: volatile bitwise-copyable expression can be passed as argument
 

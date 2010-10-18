@@ -4691,7 +4691,6 @@ associated sk_external_variable or sk_external_routine symbol, if any.
   a_boolean                is_function =
                                    (sym->kind == (a_symbol_kind)sk_routine);
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-  a_boolean                err;
 
   if (idlbp->linkage != idl_none) {
     if (scp->name_linkage == (a_name_linkage_kind)nlk_none) {
@@ -4701,16 +4700,21 @@ associated sk_external_variable or sk_external_routine symbol, if any.
         ext_sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
       }  /* if */
     } else {
-      err = FALSE;
+      an_error_severity  sev = es_none;
       if (scp->name_linkage == idlbp->name_linkage) {
-        /* The linkage kinds (C or C++) are the same; however, the ARM states,
-           "A function declaration without a linkage specification may not
-           precede the first linkage specification for that function." */
+        /* The linkage kinds (C or C++) are the same. */
         if (idlbp->name_linkage_is_explicit) {
-          err = (scp->name_linkage !=
-                          (a_name_linkage_kind)nlk_cplusplus_external &&
-                 !sym->explicit_linkage_specifier &&
-                 !(ext_sym != NULL && ext_sym->explicit_linkage_specifier));
+          /* The standard says that with the exception of functions with C++
+             linkage, a function declaration without a linkage specification
+             cannot precede a declaration of that function with an explicit
+             linkage specification. */
+          if (is_function &&
+              scp->name_linkage !=
+                                (a_name_linkage_kind)nlk_cplusplus_external &&
+              !sym->explicit_linkage_specifier &&
+              !(ext_sym != NULL && ext_sym->explicit_linkage_specifier)) {
+            sev = es_error;
+          }  /* if */
           /* Mark the symbols as having an explicit linkage specifier to
              keep this error from occurring again later. */
           sym->explicit_linkage_specifier = TRUE;
@@ -4718,22 +4722,37 @@ associated sk_external_variable or sk_external_routine symbol, if any.
         }  /* if */
       } else {
         /* Linkage is not the same, but it's no error as long as the current
-           specification is implicit. */
-        err = ssep->name_linkage_is_explicit;
-        /* Reset the name linkage in certain cases: when the current
-           linkage was explicitly specified whereas the previous one was not,
-           or when one of the declarations specified internal linkage and the
-           other didn't (in which case the later declaration is favored,
-           except in Microsoft mode where the later name linkage is
-           ignored). */
-        if (err && is_function) {
-          /* This is an error (see below).  Resetting the name linkage could
+           specification is implicit.   In non-strict modes, we only warn in
+           the case of variables. */
+        if (ssep->name_linkage_is_explicit) {
+          if (is_function) {
+            sev = es_error;
+          } else if (strict_ansi_mode) {
+            sev = strict_ansi_error_severity;
+          } else {
+            sev = es_warning;
+          }  /* if */
+        }  /* if */
+        /* Reset the name linkage in certain cases: when the current linkage
+           was explicitly specified whereas the previous one was not, or when
+           one of the declarations specified internal linkage and the other
+           didn't (in which case the later declaration is favored, except in
+           Microsoft mode where the later name linkage is ignored). */
+        if (ssep->name_linkage_is_explicit && is_function &&
+            sym->decl_scope != scope_stack_top().number) {
+          /* This is an error (see above).  Resetting the name linkage could
              lead to problems downstream when e.g. trying to determine at
              what scope depth the routine is linked. */
         } else if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
-             !sym->explicit_linkage_specifier) ||
-            scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
-            idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+                    !sym->explicit_linkage_specifier) ||
+                   scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+                   idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+          if (microsoft_mode && !sym->defined &&
+              idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+            /* Microsoft compilers silently accept a change to internal
+               linkage. */
+            sev = es_warning;
+          }  /* if */
           scp->name_linkage = idlbp->name_linkage;
           sym->explicit_linkage_specifier = idlbp->name_linkage_is_explicit;
           if (ext_sym != NULL && idlbp->name_linkage_is_explicit) {
@@ -4741,15 +4760,8 @@ associated sk_external_variable or sk_external_routine symbol, if any.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (err) {
-        /* Neither functions nor variables are supposed to have inconsistent
-           linkage specifications, but it's more of a problem for functions.
-           Issue an error for functions, a warning for variables. */
-        pos_sy_diagnostic(is_function ? (an_error_severity)es_error :
-                                          (strict_ansi_mode ?
-                                              strict_ansi_error_severity :
-                                              (an_error_severity)es_warning),
-                          ec_incompatible_linkage_specifier, error_pos,
+      if (sev != es_none) {
+        pos_sy_diagnostic(sev, ec_incompatible_linkage_specifier, error_pos,
                           ext_sym == NULL ? idlbp->linked_symbol : ext_sym);
       }  /* if */
     }  /* if */
