@@ -6533,6 +6533,47 @@ use of).
   }  /* if */
 }  /* check_implicit_routine_alias */
 
+
+static a_boolean check_gnu_inline_attribute(a_decl_parse_state   *dps,
+                                            an_id_linkage_block  *idlbp,
+                                            a_boolean            redeclaration)
+/*
+Check whether the function being declared has the "gnu_inline" attribute
+(either in the current declaration or in a previous declaration) and return
+TRUE if that is the case.  The current declaration is described by *dps and
+*idlbp; it is a redeclaration if redeclaration is TRUE.
+*/
+{
+  a_boolean     result = TRUE;
+  a_symbol_ptr  linked_symbol = idlbp->linked_symbol;
+
+  if (redeclaration && linked_symbol->kind == (a_symbol_kind)sk_routine &&
+      linked_symbol->variant.routine.ptr->gnu_c89_inline) {
+    /* The routine was previously declared with the gnu_inline attribute. */
+    result = TRUE;
+  } else if ((dps->prefix_attributes != NULL || dps->id_attributes != NULL) &&
+             idlbp->func_info->is_inline) {
+    /* An inline function with attributes.  Check if "gnu_inline" is among
+       those attributes. */
+    an_attribute_ptr  ap;
+    ap = find_attribute(ak_gnu_inline, dps->prefix_attributes);
+    if (ap == NULL) ap = find_attribute(ak_gnu_inline, dps->id_attributes);
+    if (ap != NULL) {
+      if (redeclaration && linked_symbol->kind == (a_symbol_kind)sk_routine &&
+          linked_symbol->variant.routine.ptr->is_inline) {
+        /* The function was previously declared inline (but not gnu_inline):
+           Issue an error.  (This cannot easily be done when the attribute is
+           applied because the is_inline flag may have changed by then.) */
+        pos_error(ec_first_decl_not_gnu_inline, &ap->position);
+        make_attr_unrecognized(ap);
+      } else {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_gnu_inline_attribute */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
@@ -6819,30 +6860,17 @@ for use in generating cross-reference output describing this declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode && use_std_c99_inlining) {
-    /* In GNU C mode, we must decide whether the semantics of "inline" are the
-       standard C99 semantics, or the older C89 semantics.  Unfortunately,
-       that depends on whether the current declaration is the first declaration
-       with a "gnu_inline" attribute, or a redeclaration of a routine formerly
-       declared with that attribute.  So we must "look ahead" at the outcome
-       of any such attribute. */
-    if (redeclaration) {
-      if (linked_symbol->kind == (a_symbol_kind)sk_routine &&
-          linked_symbol->variant.routine.ptr->gnu_c89_inline) {
-        use_std_c99_inlining = FALSE;
-        use_gnu_c89_inlining = TRUE;
-      }  /* if */
-    } else if ((dps->prefix_attributes != NULL ||
-                dps->id_attributes != NULL) &&
-               func_info->is_inline) {
-      /* The first declaration: It is "inline" and it has attributes.  Check
-         whether the "gnu_inline" attribute was present. */
-      if (find_attribute(ak_gnu_inline, dps->prefix_attributes) != NULL ||
-          find_attribute(ak_gnu_inline, dps->id_attributes) != NULL) {
-        use_std_c99_inlining = FALSE;
-        use_gnu_c89_inlining = TRUE;
-      }  /* if */
-    }  /* if */
+  /* In GNU C mode, we must decide whether the semantics of "inline" are the
+     standard C99 semantics, or the older GNU C89 semantics.  Unfortunately,
+     that may depend on whether the current declaration has the "gnu_inline"
+     attribute.  So check_gnu_inline_attribute may have to look through the
+     list of attributes specified on the current declaration (before they are
+     applied to the function).  This also matters in GNU C++ mode, where the
+     "gnu_inline" attribute means that the definition can be displaced by a
+     subsequent definition. */
+  if (gnu_mode && check_gnu_inline_attribute(dps, &idlb, redeclaration)) {
+    use_std_c99_inlining = FALSE;
+    use_gnu_c89_inlining = TRUE;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (use_std_c99_inlining) {
@@ -6862,7 +6890,7 @@ for use in generating cross-reference output describing this declaration.
       suppress_inline_body = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (use_gnu_c89_inlining &&
+  } else if ((gcc_mode && use_gnu_c89_inlining) &&
              dps->declared_storage_class == (a_storage_class)sc_extern &&
              func_info->is_inline && func_info->is_definition) {
     /* In GNU C mode, if a function definition uses both the "extern" and
@@ -6915,18 +6943,25 @@ for use in generating cross-reference output describing this declaration.
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (use_gnu_c89_inlining && old_decl_has_body && is_function_def &&
-          routine_ptr->is_inline && routine_ptr->suppress_inline_body) {
-        /* We're in GNU C mode and this routine was previously defined with
-           "extern __inline__".  In GNU C mode, the new definition simply
-           replaces the previous one (but we keep the old one in the IL,
-           which allows us to render it with the C++-generating back end
-           for example). */
+          routine_ptr->is_inline &&
+          (routine_ptr->suppress_inline_body ||
+           (gpp_mode && !func_info->is_inline))) {
+        /* We are either
+             - in GNU C mode and this routine was previously defined with
+               "extern __inline__", or
+             - in GNU C++ mode and the routine was previously defined
+               with attribute "gnu_inline" but the current definition is
+               not inline,
+           The new definition simply replaces the previous one (but we keep
+           the old one in the IL, which allows us to render it with the
+           C++-generating back end for example). */
         a_routine_ptr  new_rp = make_routine(type_ptr, storage_class,
                                              decl_scope_level);
         pos_sy_warning(ec_already_defined, &locator->source_position, sym);
         *new_rp = *routine_ptr;
         new_rp->next = NULL;
         routine_ptr = new_rp;
+        routine_ptr->gnu_c89_inline = FALSE;
         old_decl_has_body = FALSE;
         set_inline_flag(routine_ptr, FALSE);
         sym->defined = FALSE;
@@ -7615,7 +7650,7 @@ skip_overloading:;
       routine_ptr->suppress_inline_body = suppress_inline_body;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (use_gnu_c89_inlining && suppress_inline_body) {
+  } else if (gcc_mode && use_gnu_c89_inlining && suppress_inline_body) {
     /* In GNU C mode only the keywords present at the point of
        definition matter. */
     routine_ptr->suppress_inline_body = TRUE;

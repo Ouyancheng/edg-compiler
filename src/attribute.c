@@ -4598,20 +4598,12 @@ The given entity must be a function.  Apply the GNU "gnu_inline" attribute to
 it and return the entity.
 */
 {
-  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-  a_routine_ptr        rp = (a_routine_ptr)entity;
+  a_routine_ptr  rp = (a_routine_ptr)entity;
 
   check_assertion(entity_kind == iek_routine);
   if (!rp->is_inline) {
     pos_warning(ec_gnu_inline_requires_inline, &ap->position);
     make_attr_unrecognized(ap);
-  } else if (dps != NULL && !dps->first_decl) {
-    if (!rp->gnu_c89_inline) {
-      /* A redeclaration and the attribute didn't appear on the first
-         declaration: Issue an error. */
-      pos_error(ec_first_decl_not_gnu_inline, &ap->position);
-      make_attr_unrecognized(ap);
-    }  /* if */
   } else {
     rp->gnu_c89_inline = TRUE;
   }  /* if */
