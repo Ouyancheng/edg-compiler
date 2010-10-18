@@ -7278,6 +7278,7 @@ dps->specifier_attributes list.
           report_bad_attribute_target(es_error, ap);
         }  /* if */
         *p_ap = ap->next;
+        ap->next = NULL;
         ap->syntactic_location = (a_byte_attribute_location)al_prefix;
         *end_to_prefix = ap;
         end_to_prefix = &ap->next;
@@ -7299,6 +7300,7 @@ dps->specifier_attributes list.
           report_bad_attribute_target(es_error, ap);
         }  /* if */
         *p_ap = ap->next;
+        ap->next = NULL;
         ap->syntactic_location = (a_byte_attribute_location)al_specifier;
         *end_to_specifier = ap;
         end_to_specifier = &ap->next;

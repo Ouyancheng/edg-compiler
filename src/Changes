@@ -1,5 +1,19 @@
 Version 4.3
 
+10/18/10 [EDGcpfe/11065]
+Spurious warnings on some GNU attribute specifiers
+
+In version 4.2, the front end sometimes issued a spurious warning when a
+type-transforming attribute (like vector_size) appeared in the same syntactic
+location as a non-type-transforming attribute (like noinline).  For example:
+
+  __attribute((vector_size(8), noinline)) int f();
+      // The 4.2 front end spuriously warned that "noinline" does not
+      // apply here.
+
+This is now fixed.
+
+
 10/18/10 [EDGcpfe/11072]
 Microsoft compatibility: Redeclarations changing linkage
 
