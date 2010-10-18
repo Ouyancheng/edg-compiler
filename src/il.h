@@ -1733,7 +1733,7 @@ mangling) name of an entity.
   ((scp)->name_has_been_mangled ?                                       \
    (scp)->unmangled_name_or_mangled_encoding : (scp)->name)
 #else /* !NEED_NAME_MANGLING */
-#define unmangled_or_fabricated_name_of(scp) (unmangled_name_of((scp))
+#define unmangled_or_fabricated_name_of(scp) (unmangled_name_of((scp)))
 #endif /* NEED_NAME_MANGLING */
 
 /*
