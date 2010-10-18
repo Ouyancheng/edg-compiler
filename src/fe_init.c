@@ -1170,6 +1170,13 @@ scan of a file to build the PCH prefix information.
     /* If there are preinclude files to be included at the beginning of
        the compilation, push the first file onto the stack.  The
        macro-only files must be scanned first. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled) {
+      /* If there were any preusing directives to implicitly #using one
+         or more assemblies, process them now. */
+      process_preusings();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     next_preinclude_file = macro_preinclude_file_list;
     processing_macro_preincludes = TRUE;
     push_next_preinclude_file();
@@ -1319,6 +1326,9 @@ when it is a secondary file.
   il_header.scope_orphaned_list_headers = NULL;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.nontag_types_used_in_exception_or_rtti = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  il_header.cli_using_directives = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode()) {
     a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
     int       i;

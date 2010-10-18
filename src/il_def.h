@@ -257,6 +257,42 @@ typedef a_seq_number a_stmt_source_position;
 #define clear_stmt_source_position(stmt_pos) ((stmt_pos) = 0)
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+typedef struct a_cli_using_directive *a_cli_using_directive_ptr;
+typedef struct a_cli_using_directive {
+  char          *name_as_written;
+                        /* The name as specified on the command line or in a
+                           #using directive, including a path (if any).
+                           Null-terminated.  Note that it is not necessarily
+                           the same as full_name with the directory path
+                           stripped off -- for instance, full_name may be
+                           "path/xxx/abc.h" when ``#using "xxx/abc.h"''
+                           appears in the source. */
+  char          *full_name;
+                        /* The actual file name of the file.
+                           Null-terminated. */
+  a_cli_using_directive_ptr
+                next;
+                        /* A list of CLI using directives is maintained
+                           in the il_header. */
+  a_source_position
+                position;
+                        /* The position of the end of the #using directive. */
+  a_bit_field   as_friend:1;
+                        /* TRUE if this file was referenced with the as_friend
+                           directive. */
+  a_bit_field   referenced_by_preusing:1;
+                        /* TRUE if this is a file that was included using the
+                           --preusing command-line option. */
+  a_bit_field   referenced_by_system_using:1;
+                        /* TRUE if this is a file that was included using
+                           the #using <file.h> notation.  FALSE for
+                           files included with the #using "file.h" notation
+                           or referenced with the --preusing command-line
+                           option. */
+} a_cli_using_directive;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Type of a scope nesting depth.  This is the depth within the scope_stack. */
 /* Defined here (instead of the more obvious symbol_tbl.h) to avoid mutual
@@ -552,6 +588,10 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_typeref_type_supplement */
   iek_integer_type_supplement,
 			/* an_integer_type_supplement */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  iek_cli_using_directive,
+                        /* a_cli_using_directive */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -690,6 +730,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_attribute_group */		"attribute-group",
 /* iek_typeref_type_supplement */	"typeref-type-supplement",
 /* iek_integer_type_supplement */	"integer-type-supplement",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* iek_cli_using_directive */		"#using-directive",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -14827,6 +14870,14 @@ typedef struct an_il_header {
                 source_language;
                         /* Code for the language in which the source program
                            is written. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_cli_using_directive_ptr
+                cli_using_directives;
+                        /* List of all metadata files directly referenced
+                           either from the command line option --preusing or
+                           in source via the #using directive or indirectly
+                           referenced as part of a multi-file assembly. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_byte_boolean
 		pcc_compatibility_mode;
 			/* TRUE if the source program was compiled as old-style
@@ -15224,6 +15275,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_attribute_group),
   sizeof(a_typeref_type_supplement),
   sizeof(an_integer_type_supplement),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sizeof(a_cli_using_directive),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

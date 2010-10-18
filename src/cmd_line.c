@@ -498,6 +498,26 @@ Initialize the option information table.
   add_option_description(optk_cppcli, "no_cppcli",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_preusing, "preusing",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_assembly_using_dir, "using_directory",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_using_framework_directory,
+                         "using_framework_directory",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_using_framework_directory,
+                         "no_using_framework_directory",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_mscorlib, "implicit_mscorlib",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_implicit_mscorlib, "no_implicit_mscorlib",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -1684,6 +1704,15 @@ Process a preinclude or preinclude_macros option (determined by
       macro_preinclude_file_tail->next = pfp;
     }  /* if */
     macro_preinclude_file_tail = pfp;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (kind == optk_preusing) {
+    if (preusing_file_list == NULL) {
+      preusing_file_list = pfp;
+    } else {
+      preusing_file_tail->next = pfp;
+    }  /* if */
+    preusing_file_tail = pfp;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     if (preinclude_file_list == NULL) {
       preinclude_file_list = pfp;
@@ -7339,6 +7368,9 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_preinclude:
       case optk_preinclude_macros:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case optk_preusing:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* File to include at the beginning of compilation. */
         process_preinclude_option(kind, file_name_from_opt_arg(opt_arg));
         break;
@@ -7564,6 +7596,22 @@ enable_microsoft_mode:
         if (opt_value && !option_kind_used[(int)optk_microsoft_mode]) {
           goto enable_microsoft_mode;
         }  /* if */
+        break;
+      case optk_implicit_mscorlib:
+        /* Enable or disable implicitly referencing mscorlib. */
+        implicit_mscorlib = opt_value;
+        break;
+      case optk_using_framework_directory:
+        /* Enable or disable searching for assemblies (#using) in the
+           installation directory for the CLR. */
+        using_framework_directory = opt_value;
+        break;
+      case optk_assembly_using_dir:
+        /* Add the directory to the search path when searching for assemblies
+           via #using. */
+        add_to_specified_include_search_path(opt_arg,  /*system_dir=*/FALSE,
+                                             &assembly_search_path,
+                                             &end_assembly_search_path);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
@@ -9206,11 +9254,17 @@ variables declared in cmd_line.h.
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
+  /* implicit_mscorlib and using_framework_directory default to TRUE,
+     but have no effect unless cppcli_enabled is TRUE. */
+  implicit_mscorlib = TRUE;  /*lint !e506*/
+  using_framework_directory = TRUE;  /*lint !e506*/
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;
   microsoft_bugs = FALSE;
   cppcli_enabled = FALSE;
+  implicit_mscorlib = FALSE;
+  using_framework_directory = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;

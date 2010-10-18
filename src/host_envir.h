@@ -2562,6 +2562,16 @@ EXTERN struct a_preinclude_file
 		*preinclude_file_tail,
 		*macro_preinclude_file_tail;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+If non-NULL, a list of entries that describe metadata files to be imported
+at the beginning of the compilation.
+*/
+EXTERN struct a_preinclude_file
+                *preusing_file_list,
+                *preusing_file_tail;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 Object file name, usually derived from the primary source file name.
 Really used only in generating makefile dependency information.
@@ -2599,6 +2609,17 @@ EXTERN a_directory_name_entry_ptr
 		end_incl_search_path;
 			/* Beginning and end pointers for the list.
 			   The name strings are in general storage. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Search path for #using files.
+*/
+EXTERN a_directory_name_entry_ptr
+                assembly_search_path,
+                end_assembly_search_path;
+                        /* Beginning and end pointers for the list.
+                           The name strings are in general storage. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Search path for <...> include files (the tail of incl_search_path).
@@ -3187,6 +3208,12 @@ extern "C".  This flag must not be TRUE when compiling in C mode.
 #if EDG_WIN32
 extern void open_mapped_input_file(char *file_name);
 extern void close_mapped_input_file(void);
+extern char *conv_wide_to_utf8(wchar_t   *wide_str,
+                               a_boolean temp_ok);
+#if !STANDALONE_UTILITY_PROGRAM
+extern char *com_error_to_str(void);
+extern char *win32_error_to_str(unsigned long error_code);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* EDG_WIN32 */
 
 /* Custom version of memcmp. */

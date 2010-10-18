@@ -3133,6 +3133,20 @@ after_entry_from_class:
         walk_ptr(ptr->base_type, a_type_ptr, iek_type);
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+    case iek_cli_using_directive:
+      {
+        a_cli_using_directive_ptr ptr =
+                                       (a_cli_using_directive_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_cli_using_directive_ptr,
+                       iek_cli_using_directive);
+        walk_string_ptr(ptr->name_as_written, iek_other_text, 0);
+        walk_string_ptr(ptr->full_name, iek_other_text, 0);
+      }
+      break;
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:

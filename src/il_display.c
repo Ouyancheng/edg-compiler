@@ -780,6 +780,30 @@ Display a_source_file entry.
   }  /* if */
 }  /* disp_source_file */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_cli_using_directive(a_cli_using_directive_ptr ptr)
+/*
+Display a #using directive.
+*/
+{
+  disp_string_ptr("full_name", ptr->full_name, iek_other_text, (sizeof_t)0);
+  disp_string_ptr("name_as_written", ptr->name_as_written, iek_other_text,
+                  (sizeof_t)0);
+  disp_ptr("next", (char *)ptr->next, iek_cli_using_directive);
+  disp_source_position("position", &ptr->position);
+  if (ptr->as_friend) {
+    disp_boolean("as_friend", TRUE);
+  }  /* if */
+  if (ptr->referenced_by_preusing) {
+    disp_boolean("referenced_by_preusing", TRUE);
+  }  /* if */
+  if (ptr->referenced_by_system_using) {
+    disp_boolean("referenced_by_system_using", TRUE);
+  }  /* if */
+}  /* disp_cli_using_directive */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void disp_template_param_coordinate(a_template_param_coordinate *ptr)
 /*
@@ -5796,6 +5820,11 @@ This routine is called during IL walking.
         case iek_source_file:
           disp_source_file((a_source_file_ptr)entry_ptr);
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case iek_cli_using_directive:
+          disp_cli_using_directive((a_cli_using_directive_ptr)entry_ptr);
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case iek_constant:
           disp_constant((a_constant_ptr)entry_ptr);
           break;

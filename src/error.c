@@ -5208,6 +5208,49 @@ indicated error_position, and then terminate the compilation.
 #endif /* __GNUC__ */
 }  /* pos_str2_catastrophe */
 
+#if EDG_WIN32
+#if !STANDALONE_UTILITY_PROGRAM
+
+DOES_NOT_RETURN win32_catastrophe(unsigned long error_code,
+                                  char          *error_string)
+/*
+When a WIN32 API fails, this diagnostic tries to give an indication
+of what failed.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_strings[2] = win32_error_to_str(error_code);
+  diag_message(ec_win32_api_error, &error_position,
+               es_catastrophe, dck_standalone);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  diag_message does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* win32_catastrophe */
+
+
+/*ARGSUSED*/ /* <-- because "hresult" is not currently used. */
+DOES_NOT_RETURN hresult_catastrophe(long hresult,
+                                    char *error_string)
+/*
+When a random COM API (or other API that hopefully uses ISetErrorInfo) fails,
+this diagnostic tries to give an indication of what failed.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_strings[2] = com_error_to_str();
+  diag_message(ec_win32_api_error, &error_position,
+               es_catastrophe, dck_standalone);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  diag_message does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* hresult_catastrophe */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* EDG_WIN32 */
 
 DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
                                       char          *error_string,

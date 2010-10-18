@@ -586,6 +586,30 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   return sfp;
 }  /* alloc_source_file */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_cli_using_directive_ptr alloc_cli_using_directive(void)
+/*
+Allocate a #using directive entry, clear it to default values, and return
+a pointer to it.
+*/
+{
+  a_cli_using_directive_ptr cudp;
+
+  cudp = alloc_il_of_type(a_cli_using_directive);
+  cudp->name_as_written = NULL;
+  cudp->full_name       = NULL;
+  cudp->next            = NULL;
+  cudp->position        = null_source_position;
+  cudp->as_friend       = FALSE;
+  cudp->referenced_by_preusing     = FALSE;
+  cudp->referenced_by_system_using = FALSE;
+
+  return cudp;
+}  /* alloc_cli_using_directive */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if ONE_INSTANTIATION_PER_OBJECT
 
 a_per_instantiation_needed_flags_entry_ptr

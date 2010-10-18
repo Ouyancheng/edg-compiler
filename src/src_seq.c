@@ -156,6 +156,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       msap = (an_ms_attribute_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu) ", msap->position.seq);
       fprintf(f_debug, "%s", msap->string);
+    } else if (kind == (an_il_entry_kind)iek_cli_using_directive) {
+      a_cli_using_directive_ptr cudp;
+      cudp = (a_cli_using_directive_ptr)ssep->entity.ptr;
+      fprintf(f_debug, " (at %lu) ", cudp->position.seq);
+      fprintf(f_debug, "#using <%s>", cudp->name_as_written);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (kind == (an_il_entry_kind)iek_lambda) {
       a_lambda_ptr  lambda = ss_entry_ptr(ssep, a_lambda_ptr);

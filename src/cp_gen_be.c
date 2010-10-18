@@ -10787,6 +10787,42 @@ the __if_exist appears between top-level declarations of the class.
 
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void gen_cli_using_directive(void)
+/*
+Generate a #using directive.  Rather than generate code for all of the
+constructs imported by a #using directive, we generate the directive.  Other
+tools can process the metadata themselves without too much trouble, and if
+we did generate code for the metadata, back ends would need additional
+information not easily represented in source (such as the assembly name
+and tokens.)
+*/
+{
+  a_cli_using_directive_ptr   cudp = ss_entry_ptr(curr_source_sequence_entry,
+                                                 a_cli_using_directive_ptr);
+
+  /* Advance past the source sequence entry for the #using directive. */
+  adv_curr_source_sequence_entry();
+  set_output_position(&cudp->position);
+  /* Write out the using directive */
+  begin_pp_directive("#using ");
+  write_tok_str((char *)(cudp->referenced_by_system_using ? "<" : "\""));
+  /* Write the full name so that subsequent compiles don't attempt to search
+     but instead use the file found from the original search. */
+  write_tok_str(cudp->full_name);
+  write_tok_str((char*)(cudp->referenced_by_system_using ? ">" : "\""));
+  if (cudp->as_friend) {
+    write_tok_str(" as_friend");
+  }  /* if */
+  end_pp_directive();
+  if (cudp->referenced_by_preusing) {
+    set_output_position(&cudp->position);
+  }  /* if */
+}  /* gen_cli_using_directive*/
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression)
 /*
@@ -13468,6 +13504,11 @@ parameter declarations).
         gen_ms_if_exists();
         break;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case iek_cli_using_directive:
+        gen_cli_using_directive();
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");

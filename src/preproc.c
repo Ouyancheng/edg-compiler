@@ -364,6 +364,11 @@ the "#" the current token (at least logically).
     } else if (microsoft_mode && curr_id_is("import")) {
       /* #import directive (a Microsoft extension). */
       kind = ppd_import;
+    } else if (curr_id_is("using")) {
+      /* #using directive (a C++/CLI directive).  It requires cppcli_enabled,
+         but scan it unconditionally and just issue a diagnostic when missing
+         an appropriate command line flag. */
+      kind = ppd_using;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (curr_id_is("include_next")) {
       /* #include_next directive. */
@@ -1404,6 +1409,204 @@ simply include that.
 				   /*continue_on_open_failure=*/FALSE);
   }  /* if */
 }  /* proc_import */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_cli_using_directive_ptr make_cli_using_directive(
+                                 char                  *name,
+                                 char                  *full_name,
+                                 a_boolean             as_friend,
+                                 a_boolean             is_system_include,
+                                 a_boolean             referenced_by_preusing,
+                                 a_source_position_ptr pos)
+/*
+Create a CLI using directive and initialize the fields using the arguments.
+The directive is saved on a list in the il_header and if source sequence lists
+are being generated, the directive is added to that list as well.
+*/
+{
+  a_cli_using_directive_ptr cudp;
+
+  /* Create and initialize the directive. */
+  cudp = alloc_cli_using_directive();
+  cudp->name_as_written = name;
+  cudp->full_name = full_name;
+  cudp->position = *pos;
+  cudp->as_friend = as_friend;
+  cudp->referenced_by_preusing = referenced_by_preusing;
+  cudp->referenced_by_system_using = is_system_include;
+  /* Append the directive to the list of directives in il_header. */
+  if (il_header.cli_using_directives == NULL) {
+    il_header.cli_using_directives = cudp;
+  } else {
+    a_cli_using_directive_ptr cli_using_directives_tail =
+                                         il_header.cli_using_directives;
+
+    while (cli_using_directives_tail->next != NULL) {
+      cli_using_directives_tail = cli_using_directives_tail->next;
+    }  /* while */
+    cli_using_directives_tail->next = cudp;
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* The symbols and il that gets created are considered compiler generated
+     and thus not added to the source sequence list.  So add the directive
+     itself to the source sequence list so back ends can find the types
+     imported if needed. */
+  add_to_source_sequence_list((char*)cudp, iek_cli_using_directive);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  return cudp;
+}  /* make_cli_using_directive */
+
+
+static char *search_for_metadata_file(char *file_name)
+/*
+Attempt to find the given file_name, searching, if necessary, in this order:
+  * Current directory
+  * .NET system directory (if we haven't seen --no_using_framework_directory)
+  * Directories specified from the --using_directory option
+  * Directories from the environment variable LIBPATH
+If a file is found, the return value is the full path to the file, otherwise
+it is NULL.
+*/
+{
+  a_directory_name_entry_ptr    curr_directory_name_entry;
+  a_text_buffer_ptr             buffer = NULL;
+  char                          *new_input_file = NULL;
+
+  if (is_absolute_file_name(file_name)) {
+    /* Searching isn't necessary since the name is fully specified.  We still
+       need to verify the file exists and is a regular file (as opposed to a
+       directory or a device something else. */
+    if (is_regular_file(file_name)) {
+      new_input_file = file_name;
+    }  /* if */
+  } else {
+    /* The search path is initialized properly before we get here. */
+    for (curr_directory_name_entry = assembly_search_path;
+         curr_directory_name_entry != NULL;
+         curr_directory_name_entry = curr_directory_name_entry->next) {
+      /* Join the directory and file name. */
+      buffer = combine_dir_and_file_name(curr_directory_name_entry->dir_name,
+                                         file_name, NULL);
+      /* Check if a file exists in the directory and is not a directory. */
+      if (is_regular_file(buffer->buffer)) {
+        /* A file has been found, so stop searching.  Copy the filename from
+           temporary memory to an IL region because we synthesized the name
+           here (this is not needed for absolute pathnames because the caller
+           is responsible for ensuring that the name is allocated in the
+           appropriate place). */
+        new_input_file = alloc_primary_file_scope_il(buffer->size);
+        strncpy(new_input_file, buffer->buffer, buffer->size);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return new_input_file;
+}  /* search_for_metadata_file */
+
+
+void import_metadata(char                  *name,
+                     a_boolean             as_friend,
+                     a_boolean             is_system_include,
+                     a_boolean             referenced_by_preusing,
+                     a_source_position_ptr pos)
+/*
+Search for the metadata file "name" using the usual search, create a CLI
+using directive for the back end, and begin the process of importing the
+types and symbols in the metadata file.
+*/
+{
+  char                      *full_name;
+  a_cli_using_directive_ptr cudp;
+
+  full_name = search_for_metadata_file(name);
+  if (full_name == NULL) {
+    pos_str2_catastrophe(ec_cannot_open_file, "metadata", name, pos);
+  } else {
+    cudp = make_cli_using_directive(name, full_name, as_friend, 
+                                    is_system_include, referenced_by_preusing,
+                                    pos);
+    /* TODO - add metadata reader code here. */
+  }  /* if */
+}  /* import_metadata */
+
+
+void process_preusings(void)
+/*
+Import mscorlib.dll if we haven't seen --no_implicit_mscorlib, then import
+any other metadata files specified via --preusing.
+*/
+{
+  char *name;
+
+  if (implicit_mscorlib) {
+    char *mscorlib;
+    
+    mscorlib = alloc_il(sizeof("mscorlib.dll"));
+    strcpy(mscorlib, "mscorlib.dll");
+    import_metadata(mscorlib, FALSE, TRUE, TRUE, &preinclude_source_position);
+  }  /* if */
+  while (preusing_file_list != NULL) {
+    name = alloc_il(strlen(preusing_file_list->file_name) + 1);
+    strcpy(name, preusing_file_list->file_name);
+    import_metadata(name, /*as_friend=*/FALSE, /*is_system_include=*/FALSE,
+                    /*referenced_by_preusing=*/TRUE,
+                    &preinclude_source_position);
+    preusing_file_list = preusing_file_list->next;
+  }  /* while */
+}  /* process_preusings */
+
+
+static void proc_using(a_source_position_ptr directive_start_pos)
+/*
+Scan and process a #using directive.  This directive creates symbols and il for
+the metadata in the referenced assembly.
+*/
+{
+  char                        *name;
+  a_boolean                   as_friend         = FALSE;
+  a_boolean                   is_system_include = FALSE;
+
+  /* We don't update the include file guard state because the file imported
+     is always imported just once. */
+  if (generate_pp_output) {
+    /* Generating preprocessing output for some other compiler.  Pass the
+       directive unchanged to output. */
+    pass_directive_to_output();
+  } else if (!get_header_name()) {
+    /* Missing include file name. */
+    catastrophe(ec_exp_file_name);
+  } else {
+    /* A header name was scanned. */
+    is_system_include = *start_of_curr_token == '<';
+    /* Allocate space for and copy the name. */
+    /* Escapes are not processed.  That is appropriate since "\" is used
+       in file names on Microsoft systems. */
+    name = copy_header_name(/*process_escapes=*/FALSE);
+    /* Move past the header name. */
+    (void)get_token();
+    /* Look for the optional 'as_friend' qualifier. */
+    if (curr_token == tok_identifier && curr_id_is("as_friend")) {
+      as_friend = TRUE;
+      /* Move past 'as_friend'. */
+      (void)get_token();
+    }  /* if */
+    /* Ignore trailing comments on the line. */
+    ignore_harmless_trailing_comment();
+    if (!cppcli_enabled) {
+      /* C++/CLI is not enabled.  Skip processing the #using. */
+      str_error(ec_cppcli_not_enabled, "#using");
+    } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+      /* #using must occur at file scope. */
+      error(ec_using_not_at_file_scope);
+    } else {
+      import_metadata(name, as_friend, is_system_include, FALSE,
+                      directive_start_pos);
+    }  /* if */
+  }  /* if */
+}  /* proc_using */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -3522,6 +3725,9 @@ execute the preprocessor directive.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case ppd_import:
         proc_import();
+        break;
+      case ppd_using:
+        proc_using(&start_of_dir_position);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case ppd_include_next:

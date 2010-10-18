@@ -279,7 +279,13 @@ typedef enum /*an_option_kind*/ {
   optk_token_separators_in_pp_output,
   optk_cpp0x_sfinae,
   optk_cpp0x_sfinae_ignore_access,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   optk_cppcli,
+  optk_preusing,
+  optk_assembly_using_dir,
+  optk_using_framework_directory,
+  optk_implicit_mscorlib,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1060,6 +1066,14 @@ EXTERN a_boolean
 			/* TRUE if 64-bit pointer extensions (__ptr32/__ptr64
 			   and __sptr/__uptr) should be accepted in Microsoft
 			   modes. */
+EXTERN a_boolean
+                implicit_mscorlib;
+                        /* TRUE if mscorlib is implicitly made available,
+			   as if by a #using directive. */
+EXTERN a_boolean
+                using_framework_directory;
+                        /* TRUE if assemblies should be searched for in the
+                           directory .NET is installed in. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

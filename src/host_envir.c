@@ -47,12 +47,10 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #define NODRAWTEXT
 #define NOGDI
 #define NOKERNEL
-#define NOUSER
 #define NOMB
 #define NOMEMMGR
 #define NOMETAFILE
 #define NOMINMAX
-#define NOMSG
 #define NOOPENFILE
 #define NOSCROLL
 #define NOSERVICE
@@ -69,6 +67,7 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #define NOCRYPT
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <metahost.h>
 #endif /* EDG_WIN32 */
 
 /*
@@ -4636,6 +4635,265 @@ return "Japanese_Japan.932".
 }  /* get_system_default_locale_name */
 
 #endif /* EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#if !STANDALONE_UTILITY_PROGRAM
+#if EDG_WIN32
+
+char *win32_error_to_str(unsigned long err_code)
+/*
+Use the system routine FormatMessageA to get the message for "err_code".  If
+the system routine fails for any reason, return the string "unknown error".
+In non-error cases, this routine returns a pointer to the temp_text_buffer,
+so the result must be used before the buffer is reused.
+*/
+{
+  unsigned long chars_written;
+  char          *result;
+
+  ensure_temp_text_buffer_space(256);
+  chars_written = FormatMessageA(
+                      FORMAT_MESSAGE_FROM_SYSTEM, /*lpSource=*/NULL, err_code,
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+                      temp_text_buffer, /*nSize=*/256, /*Arguments=*/NULL);
+
+  if (chars_written == 0) {
+    /* The err_code may not have an associated message.  Return "unknown
+       error", which is only slightly better than returning nothing. */
+    result = error_text(ec_no_error);
+  } else {
+    result = temp_text_buffer;
+  }  /* if */
+
+  return result;
+}  /* win32_error_to_str */
+
+
+static char *conv_wide_to_utf8(wchar_t   *wide_str,
+                               a_boolean temp_ok)
+/*
+Convert a wide character string to a utf8 encoded string.  If temp_ok is
+true, a process wide temporary buffer is used to hold the converted string,
+otherwise the converted string is returned in memory allocated from
+alloc_general.
+*/
+{
+  char          *result;
+  sizeof_t      length_wide;
+  sizeof_t      length_utf8;
+  unsigned long error_code;
+
+  length_wide = wcslen(wide_str) + 1;
+  if (temp_ok) {
+    /* Estimate the length, it's OK to waste some memory because this buffer
+       will be used repeatedly and the result is either thrown away or
+       copied into an appropriately sized buffer.  Furthermore, if this
+       still isn't enough memory, the buffer will be expanded below. */
+    length_utf8 = length_wide * 4;
+    ensure_temp_text_buffer_space(length_utf8);
+    result = temp_text_buffer;
+  } else {
+    /* Figure out the exact length needed.  Allocate a buffer large enough
+       to hold the converted string. */
+    length_utf8 = WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, 
+                                      wide_str, length_wide, 
+                                      /*lpMultiByteStr=*/NULL, 
+                                      /*cbMultiByte=*/0, 
+                                      /*lpDefaultChar=*/NULL, 
+                                      /*lpUsedDefaultChar=*/NULL);
+    result = alloc_general(length_utf8 * sizeof(char));
+  }  /* if */
+  /* Attempt to do the conversion.  This should usually succeed. */
+  if (WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, length_wide,
+                          result, length_utf8, /*lpDefaultChar=*/NULL, 
+                          /*lpUsedDefaultChar=*/NULL) == 0) {
+    error_code = GetLastError();
+    if (error_code == ERROR_INSUFFICIENT_BUFFER) {
+      /* This failure should be very rare.  Furthermore, it can only happen
+         when we estimate the size of the buffer.  In such a case, figure
+         out the exact length necessary. */
+      check_assertion(temp_ok);
+      length_utf8 = WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, 
+                                        length_wide, /*lpMultiByteStr=*/NULL, 
+                                        /*cbMultiByte=*/0,
+                                        /*lpDefaultChar=*/NULL, 
+                                        /*lpUsedDefaultChar=*/NULL);
+      ensure_temp_text_buffer_space(length_utf8);
+      result = temp_text_buffer;
+      /* Now that the temp buffer is big enough, this should succeed. */
+      if (WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, length_wide,
+                              result, length_utf8, /*lpDefaultChar=*/NULL, 
+                              /*lpUsedDefaultChar=*/NULL) == 0) {
+        win32_catastrophe(GetLastError(), "WideCharToMultiByte");
+      }  /* if */
+    } else {
+      win32_catastrophe(error_code, "WideCharToMultiByte");
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* conv_wide_to_utf8 */
+
+
+void get_clr_runtime_directory(wchar_t  *dir_name, 
+                               sizeof_t *dir_name_size)
+/*
+Gets the installation directory of the common language runtime (CLR). 
+*/
+{
+  ICLRMetaHostPolicy *cmhpp = NULL;
+  ICLRRuntimeInfo    *crip = NULL;
+  HRESULT            hr = E_FAIL;
+
+  hr = CLRCreateInstance(&CLSID_CLRMetaHostPolicy, &IID_ICLRMetaHostPolicy, 
+                         (LPVOID*)(&cmhpp));
+  if (FAILED(hr)) {
+    hresult_catastrophe(hr, "CLRCreateInstance");
+  }  /* if */
+  check_assertion(cmhpp != NULL);
+  /* First try to get the version of the runtime specified by the application
+     config file (app.exe.config). */
+  cmhpp->lpVtbl->GetRequestedRuntime(cmhpp, 
+                          METAHOST_POLICY_USE_PROCESS_IMAGE_PATH,
+                          /*pwzBinary=*/NULL, /*pCfgStream=*/NULL, 
+                          /*pwzVersion=*/NULL, /*pcchVersion=*/NULL, 
+                          /*pwzImageVersion=*/NULL, /*pcchImageVersion=*/NULL,
+                          /*pdwConfigFlags=*/NULL, &IID_ICLRRuntimeInfo, 
+                          (LPVOID*)(&crip));
+  if (FAILED(hr) || crip == NULL) {
+#define CLR_VERSION L"v4.0.0"
+#define CLR_VERSION_BUFFER_SIZE 128
+    wchar_t            version_buffer[CLR_VERSION_BUFFER_SIZE];
+    DWORD              version_size = CLR_VERSION_BUFFER_SIZE;
+    
+    wcscpy(version_buffer, CLR_VERSION);
+    /* Fall back on the version of the runtime specified by CLR_VERSION. */
+    cmhpp->lpVtbl->GetRequestedRuntime(cmhpp, 
+                          (METAHOST_POLICY_USE_PROCESS_IMAGE_PATH | 
+                           METAHOST_POLICY_APPLY_UPGRADE_POLICY),
+                          /*pwzBinary=*/NULL, /*pCfgStream=*/NULL, 
+                          version_buffer, &version_size, 
+                          /*pwzImageVersion=*/NULL, /*pcchImageVersion=*/NULL,
+                          /*pdwConfigFlags=*/NULL, &IID_ICLRRuntimeInfo, 
+                          (LPVOID*)(&crip));
+    if (FAILED(hr) || crip == NULL) {
+      hresult_catastrophe(hr, "ICLRMetaHostPolicy::GetRequestedRuntime");
+    }  /* if */
+  }  /* if */
+  check_assertion(crip != NULL);
+  hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, dir_name_size);
+  if (FAILED(hr)) {
+    hresult_catastrophe(hr, "ICLRRuntimeInfo::GetRuntimeDirectory");
+  }  /* if */
+  crip->lpVtbl->Release(crip);
+  cmhpp->lpVtbl->Release(cmhpp);
+}  /* get_clr_runtime_directory */
+
+
+char *com_error_to_str(void)
+/*
+Use the com facility GetErrorInfo to get a description of the last com failure,
+returning "unknown error" if no description is available.  In some cases
+this routine returns a pointer to a temporary buffer, in which case the result
+must be used before the buffer (temp_text_buffer) is overwritten.
+*/
+{
+  HRESULT    hr;
+  IErrorInfo *error_info = NULL;
+  char       *result = NULL;
+  BSTR       description = NULL;
+
+  hr = GetErrorInfo(0, &error_info);
+  /* According to MSDN, GetErrorInfo returns either S_OK or S_FALSE. */
+  check_assertion(hr == S_OK || hr == S_FALSE);
+  if (hr == S_OK) {
+    hr = (error_info->lpVtbl->GetDescription)(error_info, &description);
+    if (SUCCEEDED(hr)) {
+      /* "description" may contain embedded NULLs, but those are ignored
+         because we wouldn't know how to format the text anyway. */
+      result = conv_wide_to_utf8(description, /*temp_ok=*/TRUE);
+      SysFreeString(description);
+    }  /* if */
+    (error_info->lpVtbl->Release)(error_info);
+  }  /* if */
+  if (result == NULL) {
+    /* Either the API didn't set the error info, or some other error
+       occurred.  Return "unknown error", which is only slightly better than
+       returning nothing. */
+    result = error_text(ec_no_error);
+  }  /* if */
+  return result;
+}  /* com_error_to_str */
+
+#endif /* EDG_WIN32 */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void init_assembly_search_path(void)
+/*
+Complete the initialization of the assembly search path.  Because this is
+called after the command line is processed, some directories may already
+be on the assembly search path (via the option --using_directory.)  The
+final search path will include, in this order:
+  - Current directory
+  - .NET system directory (if we haven't seen --no_using_framework_directory)
+  - Directories specified from the --using_directory option
+  - Directories from the environment variable LIBPATH
+*/
+{
+  char       *libpath;
+  char       *current_path;
+  char       *semicolon;
+  size_t     libpath_size;
+
+#if EDG_WIN32
+  if (using_framework_directory) {
+    /* By default, the directory that the .NET runtime is installed in is
+       included in the search when looking for referenced assemblies.  A
+       (rarely used) command line switch disables including this directory
+       in the search path. */
+    wchar_t       clr_directory_wide[_MAX_DIR];
+    char          *clr_directory_utf8;
+    unsigned long length_wide = _MAX_DIR;
+
+    get_clr_runtime_directory(clr_directory_wide, &length_wide);
+    clr_directory_utf8 = conv_wide_to_utf8(clr_directory_wide, FALSE);
+    add_to_front_of_include_search_path(clr_directory_utf8,
+                                        &assembly_search_path,
+                                        &end_assembly_search_path);  
+  }  /* if */
+#endif /* EDG_WIN32 */
+  /* The current directory is the first place we search, so prepend it. */
+  add_to_front_of_include_search_path(current_directory_name,
+                                      &assembly_search_path,
+                                      &end_assembly_search_path);
+  /* LIBPATH is searched last.  Append it now because we have already added
+     everything else to the assembly search path. */
+  libpath = getenv("LIBPATH");
+  if (libpath != NULL) {
+    /* We will replace ';' with '\0' in the LIBPATH, so we must copy it. */
+    libpath_size = strlen(libpath) + 1;
+    current_path = alloc_general(libpath_size);
+    strcpy(current_path, libpath);
+    while (TRUE) {
+      /* LIBPATH is a semicolon separated list of paths, so we must split
+         on the ';'.  */
+      semicolon = strchr(current_path, ';');
+      if (semicolon != NULL) {
+        /* We modify the string in place because we have a local copy. */
+        *semicolon = '\0';
+      }  /* if */
+      add_to_specified_include_search_path(current_path, FALSE,
+                            &assembly_search_path, &end_assembly_search_path);
+      if (semicolon == NULL || (*(semicolon + 1) == '\0')) {
+        /* If there wasn't a semicolon, or if there isn't anything after the
+           semicolon, then we're done. */
+        break;
+      }  /* if */
+      current_path = semicolon + 1;
+    }  /* while */
+  }  /* if */
+}  /* init_assembly_search_path */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void host_envir_one_time_init(void)
 /*
@@ -4653,6 +4911,11 @@ is done after command line processing.
 #if MODULE_ID_NEEDED
   register_trans_unit_variable_with_field(module_id, module_id_ptr);
 #endif /* MODULE_ID_NEEDED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    init_assembly_search_path();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* host_envir_one_time_init */
 
@@ -4704,6 +4967,10 @@ This is done before command line processing.
   macro_preinclude_file_list = NULL;
   preinclude_file_tail = NULL;
   macro_preinclude_file_tail = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  preusing_file_list = NULL;
+  preusing_file_tail = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   template_search_path = NULL;
   template_search_path_tail = NULL;
   avail_directory_name_entries = NULL;
@@ -4786,6 +5053,10 @@ This is done before command line processing.
   sys_incl_search_path = NULL;
   put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
   stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  assembly_search_path = NULL;
+  end_assembly_search_path = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
   in_front_end = FALSE;
   pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;

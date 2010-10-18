@@ -30,6 +30,10 @@ a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
 
 extern a_source_file_ptr alloc_source_file(void);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_cli_using_directive_ptr alloc_cli_using_directive(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if ONE_INSTANTIATION_PER_OBJECT
 extern a_per_instantiation_needed_flags_entry_ptr
            alloc_per_instantiation_needed_flags_entry(a_boolean at_file_scope);

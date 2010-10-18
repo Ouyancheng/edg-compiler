@@ -49,6 +49,7 @@ typedef enum /*a_pp_directive_kind*/ {
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ppd_import,
+  ppd_using,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ppd_include_next,
   ppd_warning,
@@ -89,6 +90,7 @@ EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     "import",
+    "using",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     "include_next",
     "warning",
@@ -307,6 +309,8 @@ extern void microsoft_comment_pragma(a_pending_pragma_ptr  ppp);
 extern void microsoft_conform_pragma(a_pending_pragma_ptr  ppp);
 
 extern void microsoft_include_alias_pragma(a_pending_pragma_ptr ppp);
+
+extern void process_preusings(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void once_pragma(a_pending_pragma_ptr ppp);

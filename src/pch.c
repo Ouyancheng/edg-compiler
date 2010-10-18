@@ -670,6 +670,10 @@ information.
   /* If any preinclude files were specified, create an event for them. */
   if (preinclude_file_list != NULL || macro_preinclude_file_list) {
     create_preinclude_pch_event();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (preusing_file_list != NULL) {
+    create_preinclude_pch_event();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Simply do a get_token call.  This will return the first token
      of the file that is not a comment or a preprocessing directive.
