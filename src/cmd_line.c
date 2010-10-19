@@ -9254,9 +9254,9 @@ variables declared in cmd_line.h.
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
-  /* implicit_mscorlib and using_framework_directory default to TRUE,
+  /* implicit_mscorlib and using_framework_directory may default to TRUE,
      but have no effect unless cppcli_enabled is TRUE. */
-  implicit_mscorlib = TRUE;  /*lint !e506*/
+  implicit_mscorlib = DEFAULT_IMPLICIT_MSCORLIB;
   using_framework_directory = TRUE;  /*lint !e506*/
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint

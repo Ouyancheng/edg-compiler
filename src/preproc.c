@@ -1519,15 +1519,14 @@ types and symbols in the metadata file.
 */
 {
   char                      *full_name;
-  a_cli_using_directive_ptr cudp;
 
   full_name = search_for_metadata_file(name);
   if (full_name == NULL) {
     pos_str2_catastrophe(ec_cannot_open_file, "metadata", name, pos);
   } else {
-    cudp = make_cli_using_directive(name, full_name, as_friend, 
-                                    is_system_include, referenced_by_preusing,
-                                    pos);
+    (void)make_cli_using_directive(name, full_name, as_friend, 
+                                   is_system_include, referenced_by_preusing,
+                                   pos);
     /* TODO - add metadata reader code here. */
   }  /* if */
 }  /* import_metadata */
