@@ -4754,7 +4754,7 @@ associated sk_external_variable or sk_external_routine symbol, if any.
                                       DEPTH_OF_FILE_SCOPE);
             add_to_routines_list(sym->variant.routine.ptr, decl_scope_level);
           }  /* if */
-          if (microsoft_mode && !sym->defined &&
+          if (microsoft_mode && !sym->defined && sev == es_error &&
               idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
             /* Microsoft compilers silently accept a change to internal
                linkage. */
