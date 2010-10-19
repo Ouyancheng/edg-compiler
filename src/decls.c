@@ -4738,15 +4738,22 @@ associated sk_external_variable or sk_external_routine symbol, if any.
            one of the declarations specified internal linkage and the other
            didn't (in which case the later declaration is favored, except in
            Microsoft mode where the later name linkage is ignored). */
-        if (ssep->name_linkage_is_explicit && is_function &&
-            sym->decl_scope != scope_stack_top().number) {
-          /* This is an error (see above).  Resetting the name linkage could
-             lead to problems downstream when e.g. trying to determine at
-             what scope depth the routine is linked. */
-        } else if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
-                    !sym->explicit_linkage_specifier) ||
-                   scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
-                   idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+        if ((idlbp->name_linkage_is_explicit && !microsoft_mode &&
+             !sym->explicit_linkage_specifier) ||
+            scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+            idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
+          if (is_function &&
+              scp->name_linkage == (a_name_linkage_kind)nlk_external &&
+              decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+            /* Since this is an extern "C" function, its a_routine entry is
+               on the file scope's list.  Changing the name linkage to
+               something else requires us to move the entry to the appropriate
+               scope: Otherwise, schedule_move_to_current_end_of_routines_list
+               will operate on the wrong routines list. */
+            remove_from_routines_list(sym->variant.routine.ptr,
+                                      DEPTH_OF_FILE_SCOPE);
+            add_to_routines_list(sym->variant.routine.ptr, decl_scope_level);
+          }  /* if */
           if (microsoft_mode && !sym->defined &&
               idlbp->name_linkage == (a_name_linkage_kind)nlk_internal) {
             /* Microsoft compilers silently accept a change to internal
