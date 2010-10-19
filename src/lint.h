@@ -642,7 +642,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,an_expr_node_kind_tag::enk_runtime_sizeof)*/
 #if !EDG_WIN32
 /*lint -esym(552,using_framework_directory)*/
-/*lint -esym(552,ec_win32_api_error)*/
+/*lint -esym(769,ec_win32_api_error)*/
 #endif /* !EDG_WIN32 */
 
 #endif /* ifndef LINT_H */
