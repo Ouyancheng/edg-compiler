@@ -6551,7 +6551,7 @@ TRUE if that is the case.  The current declaration is described by *dps and
 *idlbp; it is a redeclaration if redeclaration is TRUE.
 */
 {
-  a_boolean     result = TRUE;
+  a_boolean     result = FALSE;
   a_symbol_ptr  linked_symbol = idlbp->linked_symbol;
 
   if (redeclaration && linked_symbol->kind == (a_symbol_kind)sk_routine &&
