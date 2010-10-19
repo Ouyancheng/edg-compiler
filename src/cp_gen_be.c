@@ -3164,13 +3164,17 @@ put out nothing.
     gen_name_qualifier_list(nqp->previous_qualifier);
     if (nqp->is_class) {
       /* A class qualifier. */
-      a_type_ptr class_type = nqp->qualifier.class_type;
+      a_type_ptr                  class_type = nqp->qualifier.class_type;
+      a_source_correspondence_ptr scp;
+      a_type_kind                 kind;
       /* Drop invisible typedefs. */
       while (class_type->kind == (a_type_kind)tk_typeref &&
              typeref_is_typedef(class_type) &&
              is_typedef_invisible_in_cp_gen_be(class_type)) {
         class_type = class_type->variant.typeref.type;
       }  /* while */
+      scp = &class_type->source_corresp;
+      kind = iek_type;
       if (is_immediate_class_type(class_type) &&
           class_type->variant.class_struct_union.is_nonreal_class &&
           template_arguments_for_name(
@@ -3183,8 +3187,20 @@ put out nothing.
         /* This qualifier is a dependent template-id and must be prefixed
            with the "template" keyword. */
         write_tok_str("template ");
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      } else if (class_type->kind == (a_type_kind)tk_template_param &&
+                 class_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+        /* This is the name of a template parameter, which may be different
+           in the current context from what was originally recorded.  Make
+           sure we use the correct name for this context. */
+        scp = source_corresp_for_template_param(&class_type->
+                               variant.template_param.extra_info->coordinates);
+        check_assertion(scp != NULL);
+        kind = iek_template_parameter;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
-      gen_unqualified_name(&class_type->source_corresp, iek_type);
+      gen_unqualified_name(scp, kind);
     } else {
       /* A namespace qualifier. */
       gen_unqualified_name(&nqp->qualifier.namespace_ptr->source_corresp,

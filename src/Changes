@@ -1,5 +1,20 @@
 Version 4.3
 
+10/19/10 [EDGcpfe/11046]
+C++-generating back end: Incorrect template parameter names
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE and in
+which name references are recorded, template parameters used as qualifiers
+in a template definition could reflect the spelling used in the original
+declaration of the template instead of the spelling in the definition.
+This is now fixed.  For example:
+
+  template<typename T> void f();
+  template<typename U> void f() {
+    int i = U::g();  // Previously generated as T::g();
+  }
+
+
 10/19/10 [EDGcpfe/11085]
 Microsoft C++ compatibility: disambiguation regression with declspec
 
