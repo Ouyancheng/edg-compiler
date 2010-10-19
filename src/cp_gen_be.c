@@ -10819,7 +10819,7 @@ and tokens.)
   if (cudp->referenced_by_preusing) {
     set_output_position(&cudp->position);
   }  /* if */
-}  /* gen_cli_using_directive*/
+}  /* gen_cli_using_directive */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

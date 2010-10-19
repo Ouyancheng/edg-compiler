@@ -9257,7 +9257,7 @@ variables declared in cmd_line.h.
   /* implicit_mscorlib and using_framework_directory may default to TRUE,
      but have no effect unless cppcli_enabled is TRUE. */
   implicit_mscorlib = DEFAULT_IMPLICIT_MSCORLIB;
-  using_framework_directory = TRUE;  /*lint !e506*/
+  using_framework_directory = TRUE;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;

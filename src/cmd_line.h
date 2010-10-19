@@ -1067,11 +1067,11 @@ EXTERN a_boolean
 			   and __sptr/__uptr) should be accepted in Microsoft
 			   modes. */
 EXTERN a_boolean
-                implicit_mscorlib;
+		implicit_mscorlib;
                         /* TRUE if mscorlib is implicitly made available,
 			   as if by a #using directive. */
 EXTERN a_boolean
-                using_framework_directory;
+		using_framework_directory;
                         /* TRUE if assemblies should be searched for in the
                            directory .NET is installed in. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

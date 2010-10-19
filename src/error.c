@@ -5214,8 +5214,7 @@ indicated error_position, and then terminate the compilation.
 DOES_NOT_RETURN win32_catastrophe(unsigned long error_code,
                                   char          *error_string)
 /*
-When a WIN32 API fails, this diagnostic tries to give an indication
-of what failed.
+When a WIN32 API fails, issue a diagnostic that describes the failure.
 */
 {
   init_error_params();
@@ -5235,7 +5234,7 @@ DOES_NOT_RETURN hresult_catastrophe(long hresult,
                                     char *error_string)
 /*
 When a random COM API (or other API that hopefully uses ISetErrorInfo) fails,
-this diagnostic tries to give an indication of what failed.
+this produces a diagnostic that describes the failure.
 */
 {
   init_error_params();

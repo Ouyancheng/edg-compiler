@@ -4670,10 +4670,9 @@ so the result must be used before the buffer is reused.
 static char *conv_wide_to_utf8(wchar_t   *wide_str,
                                a_boolean temp_ok)
 /*
-Convert a wide character string to a utf8 encoded string.  If temp_ok is
-true, a process wide temporary buffer is used to hold the converted string,
-otherwise the converted string is returned in memory allocated from
-alloc_general.
+Convert a wide character string to a UTF-8 encoded string.  If temp_ok is
+true, a temporary buffer is used to hold the converted string; otherwise
+the converted string is returned in memory allocated in general memory.
 */
 {
   char          *result;
@@ -4699,7 +4698,7 @@ alloc_general.
                                       /*cbMultiByte=*/0, 
                                       /*lpDefaultChar=*/NULL, 
                                       /*lpUsedDefaultChar=*/NULL);
-    result = alloc_general(length_utf8 * sizeof(char));
+    result = alloc_general(length_utf8);
   }  /* if */
   /* Attempt to do the conversion.  This should usually succeed. */
   if (WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, length_wide,
@@ -4735,7 +4734,10 @@ alloc_general.
 void get_clr_runtime_directory(wchar_t  *dir_name, 
                                sizeof_t *dir_name_size)
 /*
-Gets the installation directory of the common language runtime (CLR). 
+Gets the installation directory of the common language runtime (CLR).
+
+dir_name is the buffer in which the directory name is returned.  dir_name_size
+is the length of the dir_name buffer.
 */
 {
   ICLRMetaHostPolicy *cmhpp = NULL;
@@ -4830,7 +4832,7 @@ static void init_assembly_search_path(void)
 /*
 Complete the initialization of the assembly search path.  Because this is
 called after the command line is processed, some directories may already
-be on the assembly search path (via the option --using_directory.)  The
+be on the assembly search path (via the option --using_directory).  The
 final search path will include, in this order:
   - Current directory
   - .NET system directory (if we haven't seen --no_using_framework_directory)
