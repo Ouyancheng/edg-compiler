@@ -1,6 +1,6 @@
 Version 4.3
 
-10/18/10 [EDGcpfe/11074]
+10/18/10 [EDGcpfe/11041,EDGcpfe/11074,EDGcpfe/11083]
 GNU compatibility: Behavior of gnu_inline
 
 The primary purpose of the GNU gnu_inline attribute is to indicate that
