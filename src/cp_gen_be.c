@@ -3166,7 +3166,7 @@ put out nothing.
       /* A class qualifier. */
       a_type_ptr                  class_type = nqp->qualifier.class_type;
       a_source_correspondence_ptr scp;
-      a_type_kind                 kind;
+      an_il_entry_kind            kind;
       /* Drop invisible typedefs. */
       while (class_type->kind == (a_type_kind)tk_typeref &&
              typeref_is_typedef(class_type) &&
@@ -3174,7 +3174,7 @@ put out nothing.
         class_type = class_type->variant.typeref.type;
       }  /* while */
       scp = &class_type->source_corresp;
-      kind = iek_type;
+      kind = (an_il_entry_kind)iek_type;
       if (is_immediate_class_type(class_type) &&
           class_type->variant.class_struct_union.is_nonreal_class &&
           template_arguments_for_name(
@@ -3197,7 +3197,7 @@ put out nothing.
         scp = source_corresp_for_template_param(&class_type->
                                variant.template_param.extra_info->coordinates);
         check_assertion(scp != NULL);
-        kind = iek_template_parameter;
+        kind = (an_il_entry_kind)iek_template_parameter;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
       gen_unqualified_name(scp, kind);
