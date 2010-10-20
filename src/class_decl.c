@@ -17298,7 +17298,9 @@ classes.
       scope_stack[decl_scope_level].current_access = class_state.access;
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
         a_source_position    decl_start_pos;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         add_stop_token(tok_semicolon);
         /* This is a valid location for an __if_exists pragma to appear when
            creating source sequence entries for __if_exists. */
