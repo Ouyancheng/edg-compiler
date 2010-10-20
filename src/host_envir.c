@@ -4666,6 +4666,7 @@ so the result must be used before the buffer is reused.
   return result;
 }  /* win32_error_to_str */
 
+#if CPPCLI_ENABLING_POSSIBLE
 
 static char *conv_wide_to_utf8(wchar_t   *wide_str,
                                a_boolean temp_ok)
@@ -4824,6 +4825,8 @@ must be used before the buffer (temp_text_buffer) is overwritten.
   return result;
 }  /* com_error_to_str */
 
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+
 #endif /* EDG_WIN32 */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4845,7 +4848,7 @@ final search path will include, in this order:
   char       *semicolon;
   size_t     libpath_size;
 
-#if EDG_WIN32
+#if EDG_WIN32 && CPPCLI_ENABLING_POSSIBLE
   if (using_framework_directory) {
     /* By default, the directory that the .NET runtime is installed in is
        included in the search when looking for referenced assemblies.  A
@@ -4861,7 +4864,7 @@ final search path will include, in this order:
                                         &assembly_search_path,
                                         &end_assembly_search_path);  
   }  /* if */
-#endif /* EDG_WIN32 */
+#endif /* EDG_WIN32 && CPPCLI_ENABLING_POSSIBLE */
   /* The current directory is the first place we search, so prepend it. */
   add_to_front_of_include_search_path(current_directory_name,
                                       &assembly_search_path,

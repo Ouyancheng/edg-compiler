@@ -275,8 +275,8 @@ That is what the remap function does.
   walk_list(il_header.nontag_types_used_in_exception_or_rtti,
             a_type_ptr, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  walk_list(il_header.cli_using_directives, a_cli_using_directive_ptr,
-            iek_cli_using_directive);
+  walk_list(il_header.cli_metadata_files, a_cli_metadata_file_ptr,
+            iek_cli_metadata_file);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MACRO_INVOCATION_TREE_IN_IL
   if (il_header.root_macro_invocation_record_block != NULL) {

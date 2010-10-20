@@ -10848,25 +10848,25 @@ information not easily represented in source (such as the assembly name
 and tokens.)
 */
 {
-  a_cli_using_directive_ptr   cudp = ss_entry_ptr(curr_source_sequence_entry,
-                                                 a_cli_using_directive_ptr);
+  a_cli_metadata_file_ptr   cmfp = ss_entry_ptr(curr_source_sequence_entry,
+                                                a_cli_metadata_file_ptr);
 
   /* Advance past the source sequence entry for the #using directive. */
   adv_curr_source_sequence_entry();
-  set_output_position(&cudp->position);
+  set_output_position(&cmfp->position);
   /* Write out the using directive */
   begin_pp_directive("#using ");
-  write_tok_str((char *)(cudp->referenced_by_system_using ? "<" : "\""));
+  write_tok_str((char *)(cmfp->referenced_by_system_using ? "<" : "\""));
   /* Write the full name so that subsequent compiles don't attempt to search
      but instead use the file found from the original search. */
-  write_tok_str(cudp->full_name);
-  write_tok_str((char*)(cudp->referenced_by_system_using ? ">" : "\""));
-  if (cudp->as_friend) {
+  write_tok_str(cmfp->full_name);
+  write_tok_str((char*)(cmfp->referenced_by_system_using ? ">" : "\""));
+  if (cmfp->as_friend) {
     write_tok_str(" as_friend");
   }  /* if */
   end_pp_directive();
-  if (cudp->referenced_by_preusing) {
-    set_output_position(&cudp->position);
+  if (cmfp->referenced_by_preusing) {
+    set_output_position(&cmfp->position);
   }  /* if */
 }  /* gen_cli_using_directive */
 
@@ -13554,7 +13554,7 @@ parameter declarations).
         break;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      case iek_cli_using_directive:
+      case iek_cli_metadata_file:
         gen_cli_using_directive();
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

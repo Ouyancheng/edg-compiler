@@ -5209,6 +5209,7 @@ indicated error_position, and then terminate the compilation.
 }  /* pos_str2_catastrophe */
 
 #if EDG_WIN32
+#if CPPCLI_ENABLING_POSSIBLE
 #if !STANDALONE_UTILITY_PROGRAM
 
 DOES_NOT_RETURN win32_catastrophe(unsigned long error_code,
@@ -5249,6 +5250,7 @@ this produces a diagnostic that describes the failure.
 }  /* hresult_catastrophe */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* EDG_WIN32 */
 
 DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,

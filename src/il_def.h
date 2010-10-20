@@ -259,12 +259,13 @@ typedef a_seq_number a_stmt_source_position;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
-Entry used to represent a #using directive in C++/CLI.  This is used for
-actual #using directives that appear in the source as well as implicit
-directives (e.g., for mscorlib) and for preusings from the command-line.
+Entry used to represent a CLI metadata file.  This is used for metadata
+files made available by actual #using directives that appear in the source
+as well as implicit directives (e.g., for mscorlib) and for preusings from
+the command-line.
 */
-typedef struct a_cli_using_directive *a_cli_using_directive_ptr;
-typedef struct a_cli_using_directive {
+typedef struct a_cli_metadata_file *a_cli_metadata_file_ptr;
+typedef struct a_cli_metadata_file {
   char          *name_as_written;
                         /* The name as specified on the command line or in a
                            #using directive, including a path (if any).
@@ -275,8 +276,8 @@ typedef struct a_cli_using_directive {
                            appears in the source. */
   char          *full_name;
                         /* The actual file name of the file.
-                           Null-terminated. */
-  a_cli_using_directive_ptr
+			   Null-terminated. */
+  a_cli_metadata_file_ptr
                 next;
                         /* The next entry in a list of entries, or NULL for
 			   the last entry. */
@@ -284,19 +285,18 @@ typedef struct a_cli_using_directive {
                 position;
                         /* The position of the start of the directive. */
   a_bit_field   as_friend:1;
-                        /* TRUE if the #using included the as_friend
-                           keyword, making all types from that assembly
-			   visible. */
+                        /* TRUE if the #using that named this file included
+			   the as_friend keyword, making all types from
+			   that assembly visible. */
   a_bit_field   referenced_by_preusing:1;
-                        /* TRUE if this is directive that resulted from a
-			   preusing option. */
+                        /* TRUE if the file was named in a preusing option. */
   a_bit_field   referenced_by_system_using:1;
-                        /* TRUE if this is a directive that used the
-                           #using <file.h> notation and for an implicit
-			   #using of mscorlib.  FALSE for directives that
-			   used the #using "file.h" notation or referenced
+                        /* TRUE if the file was named with the
+			   "#using <file.h>" notation and for an implicit
+			    #using of mscorlib.  FALSE for files named
+			   with the '#using "file.h"' notation or referenced
 			   with the --preusing command-line option. */
-} a_cli_using_directive;
+} a_cli_metadata_file;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -598,8 +598,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_integer_type_supplement,
 			/* an_integer_type_supplement */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  iek_cli_using_directive,
-                        /* a_cli_using_directive */
+  iek_cli_metadata_file,
+                        /* a_cli_metadata_file */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
@@ -742,7 +742,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_typeref_type_supplement */	"typeref-type-supplement",
 /* iek_integer_type_supplement */	"integer-type-supplement",
 #if MICROSOFT_EXTENSIONS_ALLOWED
-/* iek_cli_using_directive */		"#using-directive",
+/* iek_cli_metadata_file */		"CLI metadata file",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
@@ -14958,14 +14958,15 @@ typedef struct an_il_header {
                         /* Code for the language in which the source program
                            is written. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_cli_using_directive_ptr
-                cli_using_directives;
-                        /* A list of all #using directives of metadata files.
-			   The #using can be explicit, as in a #using that
-			   appears in the source, or implicit as can be
-			   the case with mscorlib, a metadata file named
+  a_cli_metadata_file_ptr
+                cli_metadata_files;
+                        /* A list of all metadata files made available to the
+			   compilation.  These may have been made available by
+			   an explicit #using (as in a #using that
+			   appears in the source), or an implicit #using (as
+			   can be the case with mscorlib, a metadata file named
 			   with the preusing option, or referenced indirectly
-			   as part of a multi-file assembly. */
+			   as part of a multi-file assembly). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_byte_boolean
 		pcc_compatibility_mode;
@@ -15367,7 +15368,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_typeref_type_supplement),
   sizeof(an_integer_type_supplement),
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  sizeof(a_cli_using_directive),
+  sizeof(a_cli_metadata_file),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }

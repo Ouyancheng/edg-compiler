@@ -3163,12 +3163,11 @@ after_entry_from_class:
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-    case iek_cli_using_directive:
+    case iek_cli_metadata_file:
       {
-        a_cli_using_directive_ptr ptr =
-                                       (a_cli_using_directive_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_cli_using_directive_ptr,
-                       iek_cli_using_directive);
+        a_cli_metadata_file_ptr ptr = (a_cli_metadata_file_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_cli_metadata_file_ptr,
+                       iek_cli_metadata_file);
         walk_string_ptr(ptr->name_as_written, iek_other_text, 0);
         walk_string_ptr(ptr->full_name, iek_other_text, 0);
       }

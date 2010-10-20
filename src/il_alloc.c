@@ -590,25 +590,25 @@ Allocate a source file entry, initialize it, and return a pointer to it.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_cli_using_directive_ptr alloc_cli_using_directive(void)
+a_cli_metadata_file_ptr alloc_cli_metadata_file(void)
 /*
-Allocate a #using directive entry, clear it to default values, and return
+Allocate a CLI metadata file entry, clear it to default values, and return
 a pointer to it.
 */
 {
-  a_cli_using_directive_ptr cudp;
+  a_cli_metadata_file_ptr cmfp;
 
-  cudp = alloc_il_of_type(a_cli_using_directive);
-  cudp->name_as_written = NULL;
-  cudp->full_name       = NULL;
-  cudp->next            = NULL;
-  cudp->position        = null_source_position;
-  cudp->as_friend       = FALSE;
-  cudp->referenced_by_preusing     = FALSE;
-  cudp->referenced_by_system_using = FALSE;
+  cmfp = alloc_il_of_type(a_cli_metadata_file);
+  cmfp->name_as_written = NULL;
+  cmfp->full_name       = NULL;
+  cmfp->next            = NULL;
+  cmfp->position        = null_source_position;
+  cmfp->as_friend       = FALSE;
+  cmfp->referenced_by_preusing     = FALSE;
+  cmfp->referenced_by_system_using = FALSE;
 
-  return cudp;
-}  /* alloc_cli_using_directive */
+  return cmfp;
+}  /* alloc_cli_metadata_file */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

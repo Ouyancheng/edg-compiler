@@ -31,7 +31,7 @@ a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
 extern a_source_file_ptr alloc_source_file(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_cli_using_directive_ptr alloc_cli_using_directive(void);
+extern a_cli_metadata_file_ptr alloc_cli_metadata_file(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ONE_INSTANTIATION_PER_OBJECT

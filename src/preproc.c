@@ -1413,7 +1413,7 @@ simply include that.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_cli_using_directive_ptr make_cli_using_directive(
+static a_cli_metadata_file_ptr make_cli_metadata_file(
                                  char                  *name,
                                  char                  *full_name,
                                  a_boolean             as_friend,
@@ -1421,38 +1421,37 @@ static a_cli_using_directive_ptr make_cli_using_directive(
                                  a_boolean             referenced_by_preusing,
                                  a_source_position_ptr pos)
 /*
-Create a CLI using directive and initialize the fields using the arguments.
-The directive is saved on a list in the il_header and if source sequence lists
+Create a CLI metadata file entry and initialize the fields using the arguments.
+The entry is saved on a list in the il_header and if source sequence lists
 are being generated, the directive is added to that list as well.
 */
 {
-  a_cli_using_directive_ptr cudp;
+  a_cli_metadata_file_ptr cmfp;
 
   /* Create and initialize the directive. */
-  cudp = alloc_cli_using_directive();
-  cudp->name_as_written = name;
-  cudp->full_name = full_name;
-  cudp->position = *pos;
-  cudp->as_friend = as_friend;
-  cudp->referenced_by_preusing = referenced_by_preusing;
-  cudp->referenced_by_system_using = is_system_include;
-  /* Append the directive to the list of directives in il_header. */
-  if (il_header.cli_using_directives == NULL) {
-    il_header.cli_using_directives = cudp;
+  cmfp = alloc_cli_metadata_file();
+  cmfp->name_as_written = name;
+  cmfp->full_name = full_name;
+  cmfp->position = *pos;
+  cmfp->as_friend = as_friend;
+  cmfp->referenced_by_preusing = referenced_by_preusing;
+  cmfp->referenced_by_system_using = is_system_include;
+  /* Append the entry to the list of directives in il_header. */
+  if (il_header.cli_metadata_files == NULL) {
+    il_header.cli_metadata_files = cmfp;
   } else {
-    a_cli_using_directive_ptr cli_using_directives_tail =
-                                         il_header.cli_using_directives;
-
-    while (cli_using_directives_tail->next != NULL) {
-      cli_using_directives_tail = cli_using_directives_tail->next;
+    a_cli_metadata_file_ptr cli_metadata_files_tail =
+                                         il_header.cli_metadata_files;
+    while (cli_metadata_files_tail->next != NULL) {
+      cli_metadata_files_tail = cli_metadata_files_tail->next;
     }  /* while */
-    cli_using_directives_tail->next = cudp;
+    cli_metadata_files_tail->next = cmfp;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  add_to_source_sequence_list((char*)cudp, iek_cli_using_directive);
+  add_to_source_sequence_list((char*)cmfp, iek_cli_metadata_file);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  return cudp;
-}  /* make_cli_using_directive */
+  return cmfp;
+}  /* make_cli_metadata_file */
 
 
 static char *search_for_metadata_file(char *file_name)
@@ -1509,7 +1508,7 @@ static void import_metadata(char                  *name,
                             a_source_position_ptr pos)
 /*
 Search for the metadata file "name" using the usual search, create a CLI
-using directive, and begin the process of importing the types and symbols
+metadata file entry, and begin the process of importing the types and symbols
 in the metadata file.
 */
 {
@@ -1520,7 +1519,7 @@ in the metadata file.
     pos_str2_catastrophe(ec_cannot_open_file, error_text(ec_metadata),
                          name, pos);
   } else {
-    (void)make_cli_using_directive(name, full_name, as_friend, 
+    (void)make_cli_metadata_file(name, full_name, as_friend, 
                                    is_system_include, referenced_by_preusing,
                                    pos);
     /* FIXME - add metadata reader code here. */

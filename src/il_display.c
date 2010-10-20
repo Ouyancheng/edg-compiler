@@ -782,15 +782,16 @@ Display a_source_file entry.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void disp_cli_using_directive(a_cli_using_directive_ptr ptr)
+static void disp_cli_metadata_file(a_cli_metadata_file_ptr ptr)
 /*
-Display a #using directive.
+Display a CLI metadata file made available by an explicit or implicit
+#using directive.
 */
 {
   disp_string_ptr("full_name", ptr->full_name, iek_other_text, (sizeof_t)0);
   disp_string_ptr("name_as_written", ptr->name_as_written, iek_other_text,
                   (sizeof_t)0);
-  disp_ptr("next", (char *)ptr->next, iek_cli_using_directive);
+  disp_ptr("next", (char *)ptr->next, iek_cli_metadata_file);
   disp_source_position("position", &ptr->position);
   if (ptr->as_friend) {
     disp_boolean("as_friend", TRUE);
@@ -801,7 +802,7 @@ Display a #using directive.
   if (ptr->referenced_by_system_using) {
     disp_boolean("referenced_by_system_using", TRUE);
   }  /* if */
-}  /* disp_cli_using_directive */
+}  /* disp_cli_metadata_file */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -5868,8 +5869,8 @@ This routine is called during IL walking.
           disp_source_file((a_source_file_ptr)entry_ptr);
           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        case iek_cli_using_directive:
-          disp_cli_using_directive((a_cli_using_directive_ptr)entry_ptr);
+        case iek_cli_metadata_file:
+          disp_cli_metadata_file((a_cli_metadata_file_ptr)entry_ptr);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case iek_constant:

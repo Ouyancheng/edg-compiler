@@ -1327,7 +1327,7 @@ when it is a secondary file.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.nontag_types_used_in_exception_or_rtti = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  il_header.cli_using_directives = NULL;
+  il_header.cli_metadata_files = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode()) {
     a_boolean need_std = namespaces_enabled || type_info_in_namespace_std;
