@@ -258,6 +258,11 @@ typedef a_seq_number a_stmt_source_position;
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Entry used to represent a #using directive in C++/CLI.  This is used for
+actual #using directives that appear in the source as well as implicit
+directives (e.g., for mscorlib) and for preusings from the command-line.
+*/
 typedef struct a_cli_using_directive *a_cli_using_directive_ptr;
 typedef struct a_cli_using_directive {
   char          *name_as_written;
@@ -266,30 +271,31 @@ typedef struct a_cli_using_directive {
                            Null-terminated.  Note that it is not necessarily
                            the same as full_name with the directory path
                            stripped off -- for instance, full_name may be
-                           "path/xxx/abc.h" when ``#using "xxx/abc.h"''
+                           "path/xxx/abc.h" when '#using "xxx/abc.h"'
                            appears in the source. */
   char          *full_name;
                         /* The actual file name of the file.
                            Null-terminated. */
   a_cli_using_directive_ptr
                 next;
-                        /* A list of CLI using directives is maintained
-                           in the il_header. */
+                        /* The next entry in a list of entries, or NULL for
+			   the last entry. */
   a_source_position
                 position;
-                        /* The position of the end of the #using directive. */
+                        /* The position of the start of the directive. */
   a_bit_field   as_friend:1;
-                        /* TRUE if this file was referenced with the as_friend
-                           directive. */
+                        /* TRUE if the #using included the as_friend
+                           keyword, making all types from that assembly
+			   visible. */
   a_bit_field   referenced_by_preusing:1;
-                        /* TRUE if this is a file that was included using the
-                           --preusing command-line option. */
+                        /* TRUE if this is directive that resulted from a
+			   preusing option. */
   a_bit_field   referenced_by_system_using:1;
-                        /* TRUE if this is a file that was included using
-                           the #using <file.h> notation.  FALSE for
-                           files included with the #using "file.h" notation
-                           or referenced with the --preusing command-line
-                           option. */
+                        /* TRUE if this is a directive that used the
+                           #using <file.h> notation and for an implicit
+			   #using of mscorlib.  FALSE for directives that
+			   used the #using "file.h" notation or referenced
+			   with the --preusing command-line option. */
 } a_cli_using_directive;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14954,10 +14960,12 @@ typedef struct an_il_header {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_cli_using_directive_ptr
                 cli_using_directives;
-                        /* List of all metadata files directly referenced
-                           either from the command line option --preusing or
-                           in source via the #using directive or indirectly
-                           referenced as part of a multi-file assembly. */
+                        /* A list of all #using directives of metadata files.
+			   The #using can be explicit, as in a #using that
+			   appears in the source, or implicit as can be
+			   the case with mscorlib, a metadata file named
+			   with the preusing option, or referenced indirectly
+			   as part of a multi-file assembly. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_byte_boolean
 		pcc_compatibility_mode;

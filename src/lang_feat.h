@@ -744,7 +744,7 @@ extensions are enabled.
 #endif /* DEFAULT_CPPCLI_ENABLED && !CPPCLI_ENABLING_POSSIBLE */
 
 /*
-Flag that is TRUE if in C++/CLI mode, if mscorlib should be made available
+Flag that is TRUE if in C++/CLI mode, mscorlib should be made available
 by default as if by a #using directive.
 */
 #ifndef DEFAULT_IMPLICIT_MSCORLIB

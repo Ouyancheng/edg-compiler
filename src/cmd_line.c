@@ -9263,8 +9263,6 @@ variables declared in cmd_line.h.
   microsoft_mode = FALSE;
   microsoft_bugs = FALSE;
   cppcli_enabled = FALSE;
-  implicit_mscorlib = FALSE;
-  using_framework_directory = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   microsoft_version = DEFAULT_MICROSOFT_VERSION;

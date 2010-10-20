@@ -640,10 +640,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,an_attribute_location_tag::al_other)*/
 /*lint -esym(769,an_attribute_location_tag::al_last)*/
 /*lint -esym(769,an_expr_node_kind_tag::enk_runtime_sizeof)*/
-#if !EDG_WIN32
+#if !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED)
 /*lint -esym(552,using_framework_directory)*/
 /*lint -esym(769,ec_win32_api_error)*/
-#endif /* !EDG_WIN32 */
+#endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
 
 #endif /* ifndef LINT_H */
 

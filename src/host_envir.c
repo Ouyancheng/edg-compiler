@@ -4760,12 +4760,12 @@ is the length of the dir_name buffer.
                           /*pdwConfigFlags=*/NULL, &IID_ICLRRuntimeInfo, 
                           (LPVOID*)(&crip));
   if (FAILED(hr) || crip == NULL) {
-#define CLR_VERSION L"v4.0.0"
 #define CLR_VERSION_BUFFER_SIZE 128
     wchar_t            version_buffer[CLR_VERSION_BUFFER_SIZE];
     DWORD              version_size = CLR_VERSION_BUFFER_SIZE;
+#undef CLR_VERSION_BUFFER_SIZE
     
-    wcscpy(version_buffer, CLR_VERSION);
+    wcscpy(version_buffer, CLR_FALLBACK_VERSION);
     /* Fall back on the version of the runtime specified by CLR_VERSION. */
     cmhpp->lpVtbl->GetRequestedRuntime(cmhpp, 
                           (METAHOST_POLICY_USE_PROCESS_IMAGE_PATH | 

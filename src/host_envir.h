@@ -2619,6 +2619,16 @@ EXTERN a_directory_name_entry_ptr
                 end_assembly_search_path;
                         /* Beginning and end pointers for the list.
                            The name strings are in general storage. */
+
+#if EDG_WIN32
+/*
+The version of the CLR runtime to be used if no version is specified by the
+application configuration file.
+*/
+#ifndef CLR_FALLBACK_VERSION
+#define CLR_FALLBACK_VERSION L"v4.0.0"
+#endif /* ifndef CLR_FALLBACK_VERSION */
+#endif /* EDG_WIN32 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*

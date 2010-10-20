@@ -365,9 +365,8 @@ the "#" the current token (at least logically).
       /* #import directive (a Microsoft extension). */
       kind = ppd_import;
     } else if (curr_id_is("using")) {
-      /* #using directive (a C++/CLI directive).  It requires cppcli_enabled,
-         but scan it unconditionally and just issue a diagnostic when missing
-         an appropriate command line flag. */
+      /* #using directive (a C++/CLI directive).  A diagnostic will be issued
+         if C++/CLI is not enabled. */
       kind = ppd_using;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (curr_id_is("include_next")) {
@@ -1450,10 +1449,6 @@ are being generated, the directive is added to that list as well.
     cli_using_directives_tail->next = cudp;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* The symbols and il that gets created are considered compiler generated
-     and thus not added to the source sequence list.  So add the directive
-     itself to the source sequence list so back ends can find the types
-     imported if needed. */
   add_to_source_sequence_list((char*)cudp, iek_cli_using_directive);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return cudp;
@@ -1467,7 +1462,7 @@ Attempt to find the given file_name, searching, if necessary, in this order:
   * .NET system directory (if we haven't seen --no_using_framework_directory)
   * Directories specified from the --using_directory option
   * Directories from the environment variable LIBPATH
-If a file is found, the return value is the full path to the file, otherwise
+If a file is found, the return value is the full path to the file; otherwise,
 it is NULL.
 */
 {
@@ -1478,7 +1473,7 @@ it is NULL.
   if (is_absolute_file_name(file_name)) {
     /* Searching isn't necessary since the name is fully specified.  We still
        need to verify the file exists and is a regular file (as opposed to a
-       directory or a device something else. */
+       directory, a device, or something else). */
     if (is_regular_file(file_name)) {
       new_input_file = file_name;
     }  /* if */
@@ -1514,20 +1509,21 @@ static void import_metadata(char                  *name,
                             a_source_position_ptr pos)
 /*
 Search for the metadata file "name" using the usual search, create a CLI
-using directive for the back end, and begin the process of importing the
-types and symbols in the metadata file.
+using directive, and begin the process of importing the types and symbols
+in the metadata file.
 */
 {
   char                      *full_name;
 
   full_name = search_for_metadata_file(name);
   if (full_name == NULL) {
-    pos_str2_catastrophe(ec_cannot_open_file, "metadata", name, pos);
+    pos_str2_catastrophe(ec_cannot_open_file, error_text(ec_metadata),
+                         name, pos);
   } else {
     (void)make_cli_using_directive(name, full_name, as_friend, 
                                    is_system_include, referenced_by_preusing,
                                    pos);
-    /* TODO - add metadata reader code here. */
+    /* FIXME - add metadata reader code here. */
   }  /* if */
 }  /* import_metadata */
 
@@ -1545,7 +1541,9 @@ any other metadata files specified via --preusing.
     
     mscorlib = alloc_il(sizeof("mscorlib.dll"));
     strcpy(mscorlib, "mscorlib.dll");
-    import_metadata(mscorlib, FALSE, TRUE, TRUE, &preinclude_source_position);
+    import_metadata(mscorlib, /*as_friend=*/FALSE, /*is_system_include=*/TRUE,
+                    /*referenced_by_preusing=*/TRUE,
+                    &preinclude_source_position);
   }  /* if */
   while (preusing_file_list != NULL) {
     name = alloc_il(strlen(preusing_file_list->file_name) + 1);
@@ -1560,8 +1558,9 @@ any other metadata files specified via --preusing.
 
 static void proc_using(a_source_position_ptr directive_start_pos)
 /*
-Scan and process a #using directive.  This directive creates symbols and il for
-the metadata in the referenced assembly.
+Scan and process a #using directive.  This directive makes the entities
+from the indicated metadata file available to the compilation if they are
+referenced.
 */
 {
   char                        *name;
@@ -1571,8 +1570,7 @@ the metadata in the referenced assembly.
   /* We don't update the include file guard state because the file imported
      is always imported just once. */
   if (generate_pp_output) {
-    /* Generating preprocessing output for some other compiler.  Pass the
-       directive unchanged to output. */
+    /* Generating preprocessing output.  Pass the directive to the output. */
     pass_directive_to_output();
   } else if (!get_header_name()) {
     /* Missing include file name. */
@@ -1586,10 +1584,10 @@ the metadata in the referenced assembly.
     name = copy_header_name(/*process_escapes=*/FALSE);
     /* Move past the header name. */
     (void)get_token();
-    /* Look for the optional 'as_friend' qualifier. */
+    /* Look for the optional "as_friend" qualifier. */
     if (curr_token == tok_identifier && curr_id_is("as_friend")) {
       as_friend = TRUE;
-      /* Move past 'as_friend'. */
+      /* Move past "as_friend". */
       (void)get_token();
     }  /* if */
     /* Ignore trailing comments on the line. */

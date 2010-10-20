@@ -1972,6 +1972,7 @@ ec_vector_size_attribute_on_enum_type;;"vector_size attribute is not allowed wit
 ec_cppcli_not_enabled;;"%sq requires C++/CLI mode"
 ec_win32_api_error;;"error in Win32 API \"%s\": %s"
 ec_using_not_at_file_scope;;"#using may only be used at global-scope"
+ec_metadata;INTERNAL;"metadata"
 ec_virtual_static_property;;"a property cannot be both static and virtual"
 ec_no_indices_on_trivial_property;;"a trivial property cannot have indices"
 ec_invalid_property_accessor_decl;;"this declaration cannot appear in a property definition"
