@@ -560,6 +560,9 @@ typedef enum /*an_il_entry_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_ms_attribute,	/* an_ms_attribute */
   iek_ms_attribute_arg,	/* an_ms_attribute_arg */
+  iek_property_index_type,
+			/* a_property_index_type */
+  iek_property_descr,	/* a_property_descr */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_seq_number_lookup_entry,
 			/* a_seq_number_lookup_entry */
@@ -709,6 +712,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_ms_attribute */			"ms-attribute",
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
+/* iek_property_index_type */		"property-index-type",
+/* iek_property_descr */		"property-descr",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* iek_seq_number_lookup_entry */	"seq-number-lookup-entry",
 #if MACRO_INVOCATION_TREE_IN_IL
@@ -8073,6 +8078,69 @@ typedef struct a_variable {
 #endif /* MINIMAL_INLINING */
 } a_variable;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/* FIXME: Add EXTRA_SOURCE_POSITIONS_IN_IL fields. */
+typedef struct a_property_index_type *a_property_index_type_ptr;
+typedef struct a_property_index_type {
+  a_property_index_type_ptr
+		next;
+			/* Pointer to the next index type entry (or NULL if
+			   there is none). */
+  a_type_ptr	type;
+			/* The type declared for the index. */
+  a_source_position
+		position;
+			/* The position of the index type. */
+} a_property_index_type;
+
+
+typedef struct a_property_descr *a_property_descr_ptr;
+typedef struct a_property_descr {
+  a_bit_field	is_declspec_property:1;
+			/* TRUE if the property is declared with __declspec
+			   syntax ("old-style").  FALSE if the property is
+			   declared with the C++/CLI syntax. */
+  a_bit_field	is_trivial:1;
+			/* TRUE if the property is declared with the C++/CLI
+			   syntax but without explicit accessor functions. */
+  a_bit_field	is_default_indexed:1;
+			/* TRUE if this entry is for a default-indexed
+			   property (C++/CLI syntax only). */
+  a_bit_field	is_virtual:1;
+			/* TRUE if the property is declared with the "virtual"
+			   specifier. */
+  a_bit_field	is_static:1;
+			/* TRUE if the property is declared with the "static"
+			   specifier. */
+  a_property_index_type_ptr
+		indices;
+			/* Non-NULL only for an indexed property.  Points to a
+			   list of entries describing the types of the property
+			   indices. */
+  a_field_ptr
+		field;	/* Associated property field. */
+  union {
+    /* When is_declspec_property is TRUE: */
+    char	*name;	/* Name (null-terminated) specified by a Microsoft
+			   __declspec(property(get=...)) attribute.  NULL if
+			   the "get" name was not specified.  */
+    /* When is_declspec_property is TRUE: */
+    a_routine_ptr
+		ptr;	/* Accessor "get" routine. */
+  } get_routine;
+  union {
+    /* When is_declspec_property is TRUE: */
+    char	*name;	/* Name (null-terminated) specified by a Microsoft
+			   __declspec(property(put=...)) attribute.  NULL if
+			   the "put" name was not specified.  */
+    /* When is_declspec_property is TRUE: */
+    a_routine_ptr
+		ptr;	/* Accessor "set" routine. */
+  } set_routine;
+} a_property_descr;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Data structures related to fields (members) of structs and unions:
@@ -8166,13 +8234,12 @@ typedef struct a_field {
 			/* An IL constant representing the size of the bit
 			   field.  (NULL if this is not a bit field.) */ 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  char		*get_property_name,
-		*put_property_name;
-			/* When __declspec(property(get=gname,put=pname))
-			   is specified for a field, these fields point to
-			   the get and put routine names, null-terminated.
-			   NULL otherwise.  Non-NULL only in Microsoft C++
-			   mode. */
+  a_property_descr_ptr
+		property_descr;
+			/* Non-NULL only if this field represents a Microsoft
+			   property.  Such a property may have been declared
+			   using the __declspec(property(...)) attribute
+			   syntax or using C++/CLI syntax. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   unsigned long	declared_bit_size;
 			/* If is_bit_field is TRUE, the declared size of the
@@ -8205,6 +8272,10 @@ enum a_special_function_kind_tag {
   sfk_destructor,	/* A destructor. */
   sfk_conversion,	/* A conversion operator function. */
   sfk_operator,		/* Any other operator function. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
+  sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sfk_last		/* Must be last. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -8218,6 +8289,9 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 #if VAR_INITIALIZERS
 = {
    "none", "constructor", "destructor", "conversion", "operator",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+   "property getter", "property setter",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -10921,6 +10995,13 @@ typedef struct a_routine {
 			   points.) */
     } ctor_dtor;
 #endif /* IA64_ABI && DO_IL_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When special_kind == sfk_property_get or sfk_property_set. */
+    a_property_descr_ptr
+		property_descr;
+			/* Pointer to the description of the associated
+			   property. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
   a_bit_field	address_taken:1;
 			/* TRUE if the address of this routine has been
@@ -15254,6 +15335,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(an_ms_attribute),
   sizeof(an_ms_attribute_arg),
+  sizeof(a_property_index_type),
+  sizeof(a_property_descr),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sizeof(a_seq_number_lookup_entry),
 #if MACRO_INVOCATION_TREE_IN_IL

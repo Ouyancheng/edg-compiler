@@ -939,22 +939,14 @@ a type identical to base_class_type.  It must be found.
 
 
 /*
-Macro to test for a zero-length field.  This includes zero-length bit fields
-and (where allowed) incomplete array fields.
+Macro to test for a zero-length field.  This includes zero-length bit fields,
+incomplete array fields (where allowed), and nontrivial properties (in
+Microsoft mode).
 */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-/* The Microsoft version of this macro also eliminates fields declared with
-   __declspec(property(...)). */
 #define field_has_zero_length(field)                         \
   ((field)->is_bit_field ? (field)->bit_size == 0 :          \
                            (skip_typerefs((field)->type)->size == 0 || \
-                            field->get_property_name != NULL || \
-                            field->put_property_name != NULL))
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define field_has_zero_length(field)                         \
-  ((field)->is_bit_field ? (field)->bit_size == 0 :          \
-                           skip_typerefs((field)->type)->size == 0)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                            field_is_nontrivial_property(field)))
 
 
 static a_field_ptr add_field(char          *field_name,
@@ -7925,10 +7917,9 @@ added_to_list:;
          old_field != NULL;
          old_field = old_field->next) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (old_field->get_property_name != NULL ||
-          old_field->put_property_name != NULL) {
-        /* Do not copy fields declared __declspec(property(...)), since
-           they will be removed. */
+      if (field_is_nontrivial_property(old_field)) {
+        /* Do not copy fields representing nontrivial properties: They will be
+           removed. */
         continue;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9129,9 +9120,8 @@ Do IL lowering of the fields of the indicated class and everything under them.
        field = next_field) {
     next_field = field->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* Remove any fields declared __declspec(property(...)). */
-    if (field->get_property_name != NULL ||
-        field->put_property_name != NULL) {
+    /* Remove any fields representing a nontrivial property. */
+    if (field_is_nontrivial_property(field)) {
       check_assertion_str(!field->source_corresp.has_associated_pragma,
                           "property field has associated pragma");
       if (prev_field == NULL) {

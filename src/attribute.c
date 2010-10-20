@@ -5952,13 +5952,15 @@ stream.
       if (aap->kind != (an_attribute_arg_kind)aak_raw_token) {
         break;
       } else if (strcmp(aap->variant.token, "get") == 0) {
-        if (fp->get_property_name != NULL) {
+        if (fp->property_descr != NULL &&
+            fp->property_descr->get_routine.name != NULL) {
           errcode = ec_dupl_get_or_put;
           break;
         }  /* if */
         is_get = TRUE;
       } else if (strcmp(aap->variant.token, "put") == 0) {
-        if (fp->put_property_name != NULL) {
+        if (fp->property_descr != NULL &&
+            fp->property_descr->set_routine.name != NULL) {
           errcode = ec_dupl_get_or_put;
           break;
         }  /* if */
@@ -5980,12 +5982,18 @@ stream.
       if (aap->token_kind != (a_small_token_kind)tok_identifier) {
         errcode = ec_exp_identifier;
         break;
-      } else if (is_get) {
-        fp->get_property_name = aap->variant.token;
-      } else if (is_put) {
-        fp->put_property_name = aap->variant.token;
+      } else if (!is_get && !is_put) {
+          unexpected_condition();
       } else {
-        unexpected_condition();
+        if (fp->property_descr == NULL) {
+          fp->property_descr = alloc_property_descr();
+          fp->property_descr->is_declspec_property = TRUE;
+        }  /* if */
+        if (is_get) {
+          fp->property_descr->get_routine.name = aap->variant.token;
+        } else if (is_put) {
+          fp->property_descr->set_routine.name = aap->variant.token;
+        }  /* if */
       }  /* if */
       aap = aap->next;
       /* Check for a comma. */
@@ -6008,7 +6016,7 @@ stream.
     }  /* for */
     if (aap != NULL) {
       pos_error(errcode, &aap->position);
-      if (fp->get_property_name == NULL && fp->put_property_name == NULL) {
+      if (fp->property_descr == NULL) {
         a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
         /* The field isn't a property field after all, but the field type was
            checked assuming this would be a property field.  Avoid error

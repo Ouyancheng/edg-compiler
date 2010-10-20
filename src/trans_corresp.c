@@ -2386,6 +2386,37 @@ verify_attr_corresp_one_way should be made instead).
   (f_verify_attributes_correspondence((char*)(e1), (char*)(e2),              \
                                       (an_il_entry_kind)kind))
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean equivalent_property_descr(a_field_ptr  fp1,
+                                           a_field_ptr  fp2)
+/*
+Return whether fp1 and fp2 are either both not properties, or both equivalent
+properties.
+*/
+{
+  a_boolean             result;
+  a_property_descr_ptr  pdp1 = fp1->property_descr, pdp2 = fp2->property_descr;
+
+  if (pdp1 == NULL && pdp2 == NULL) {
+    result = TRUE;
+  } else if (pdp1 != NULL && pdp2 != NULL) {
+    if (pdp1->is_declspec_property != pdp2->is_declspec_property) {
+      result = FALSE;
+    } else if (pdp2->is_declspec_property) {
+      result = same_str(pdp1->get_routine.name, pdp2->get_routine.name) &&
+               same_str(pdp1->set_routine.name, pdp2->set_routine.name);
+    } else {
+      /* FIXME: C++/CLI properties */
+      unexpected_condition();
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* equivalent_property_descr */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean verify_field_correspondence(a_field_ptr  field)
 /*
@@ -2427,10 +2458,7 @@ is in fact valid.
                                    corresp_field->is_anonymous_parent_object ||
          field->is_mutable != corresp_field->is_mutable ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         !same_str(field->get_property_name,
-                                           corresp_field->get_property_name) ||
-         !same_str(field->put_property_name,
-                                           corresp_field->put_property_name) ||
+         !equivalent_property_descr(field, corresp_field) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {

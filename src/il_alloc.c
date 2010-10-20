@@ -78,6 +78,8 @@ static unsigned long
 		num_microsoft_try_supplements_allocated,
 		num_ms_attributes_allocated,
 		num_ms_attribute_args_allocated,
+		num_property_index_types_allocated,
+		num_property_descriptions_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 		num_ms_if_exists_allocated,
@@ -2156,8 +2158,7 @@ to it.
 #endif /* CENTERLINE_CHECKING */
   fp->bit_size_constant    = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  fp->get_property_name    = NULL;
-  fp->put_property_name    = NULL;
+  fp->property_descr       = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fp->declared_bit_size        = 0;
 #if BACK_END_IS_C_GEN_BE
@@ -4233,6 +4234,48 @@ values, and return a pointer to it.
   return msaap;
 }  /* alloc_ms_attribute_arg */
 
+
+a_property_index_type_ptr alloc_property_index_type(void)
+/*
+Allocate a property index type entry, clear it to default values, and return a
+pointer to it.
+*/
+{
+  a_property_index_type_ptr  pitp = (a_property_index_type_ptr)
+                                      alloc_il(sizeof(a_property_index_type));
+#if DEBUG
+  num_property_index_types_allocated++;
+#endif /* DEBUG */
+  pitp->next = NULL;
+  pitp->type = NULL;
+  pitp->position = null_source_position;
+  return pitp;
+}  /* alloc_property_index_type */
+
+
+a_property_descr_ptr alloc_property_descr(void)
+/*
+Allocate a property description, clear it to default values, and return a
+pointer to it.
+*/
+{
+  a_property_descr_ptr  pdp = (a_property_descr_ptr)
+                                           alloc_il(sizeof(a_property_descr));
+#if DEBUG
+  num_property_descriptions_allocated++;
+#endif /* DEBUG */
+  pdp->is_declspec_property = FALSE;
+  pdp->is_trivial = FALSE;
+  pdp->is_default_indexed = FALSE;
+  pdp->is_virtual = FALSE;
+  pdp->is_static = FALSE;
+  pdp->indices = NULL;
+  pdp->field = NULL;
+  pdp->get_routine.ptr = NULL;
+  pdp->set_routine.ptr = NULL;
+  return pdp;
+}  /* alloc_property_descr */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_lambda_ptr alloc_lambda(void)
@@ -4478,6 +4521,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("Microsoft attribute args",
                 num_ms_attribute_args_allocated,
                 an_ms_attribute_arg);
+  db_space_used("Microsoft property index types",
+                num_property_index_types_allocated,
+                a_property_descr);
+  db_space_used("Microsoft property descriptions",
+                num_property_descriptions_allocated,
+                a_property_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   db_space_used("Microsoft __if_exists",
@@ -4764,6 +4813,8 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_microsoft_try_supplements_allocated),
       pch_saved_var_array_elem(num_ms_attributes_allocated),
       pch_saved_var_array_elem(num_ms_attribute_args_allocated),
+      pch_saved_var_array_elem(num_property_index_types_allocated),
+      pch_saved_var_array_elem(num_property_descriptions_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
       pch_saved_var_array_elem(num_ms_if_exists_allocated),
@@ -4955,6 +5006,8 @@ initializations that are done for each compilation.
   num_microsoft_try_supplements_allocated= 0;
   num_ms_attributes_allocated            = 0;
   num_ms_attribute_args_allocated        = 0;
+  num_property_index_types_allocated     = 0;
+  num_property_descriptions_allocated    = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   num_ms_if_exists_allocated             = 0;

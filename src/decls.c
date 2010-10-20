@@ -135,6 +135,9 @@ reflected in start_secondary_declarator.
   ps->first_decl = FALSE;
   ps->first_decl_of_predeclared_entity = FALSE;
   ps->is_property_field = FALSE;
+  ps->has_cli_property_keyword = FALSE;
+  ps->has_cli_initonly_keyword = FALSE;
+  ps->has_cli_literal_keyword = FALSE;
   ps->override_okay = FALSE;
   ps->prefix_attributes = NULL;
   ps->id_attributes = NULL;
@@ -482,8 +485,8 @@ assembler code.
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan)
 /*
-The current token is an identifier or, in C++, the "::" at the start of a
-global qualified name.  If it is the name of a type (a typedef name or,
+If the current token is an identifier or, in C++, the "::" at the start of a
+global qualified name, and if it starts the name of a type (a typedef name or,
 in C++, the name of a class, struct, union, or enum), return a pointer to
 the symbol.  Otherwise, return NULL.  Ambiguity and access control checking
 is not done.  in_prescan is TRUE when we are called from the prescanning

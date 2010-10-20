@@ -2472,14 +2472,7 @@ Display the indicated field.
   }  /* if */
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->get_property_name != NULL) {
-    disp_string_ptr("get_property_name", ptr->get_property_name,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
-  if (ptr->put_property_name != NULL) {
-    disp_string_ptr("put_property_name", ptr->put_property_name,
-                    iek_other_text, (sizeof_t)0);
-  }  /* if */
+  disp_ptr("property_descr", (char*)ptr->property_descr, iek_property_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_field */
 
@@ -2708,6 +2701,12 @@ Display the indicated routine.
     disp_unsigned_long("base_name_offset",
                        ptr->variant.ctor_dtor.base_name_offset);
 #endif /* IA64_ABI && DO_IL_LOWERING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (ptr->special_kind == (a_special_function_kind)sfk_property_get ||
+             ptr->special_kind == (a_special_function_kind)sfk_property_set) {
+    disp_ptr("property_descr", (char*)ptr->variant.property_descr,
+             iek_property_descr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (ptr->special_kind == (a_special_function_kind)sfk_none &&
              ptr->variant.builtin_function_kind != 
@@ -4620,6 +4619,54 @@ Display the indicated Microsoft attribute entry.
 #undef ATTR_BUFFER_SIZE
 }  /* disp_ms_attribute */
 
+
+static void disp_property_index_type(a_property_index_type_ptr  ptr)
+/*
+Display the indicated property index type entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_property_index_type);
+  disp_ptr("type", (char *)ptr->type, iek_type);  
+  disp_source_position("position", &ptr->position);
+}  /* disp_property_index_type */
+
+
+static void disp_property_descr(a_property_descr_ptr  ptr)
+/*
+Display the indicated property description.
+*/
+{
+  if (ptr->is_declspec_property) {
+    disp_boolean("is_declspec_property", TRUE);
+  }  /* if */
+  if (ptr->is_trivial) {
+    disp_boolean("is_trivial", TRUE);
+  }  /* if */
+  if (ptr->is_default_indexed) {
+    disp_boolean("is_default_indexed", TRUE);
+  }  /* if */
+  if (ptr->is_virtual) {
+    disp_boolean("is_virtual", TRUE);
+  }  /* if */
+  if (ptr->is_static) {
+    disp_boolean("is_static", TRUE);
+  }  /* if */
+  if (ptr->is_default_indexed) {
+    disp_boolean("is_default_indexed", TRUE);
+  }  /* if */
+  disp_ptr("indices", (char*)ptr->indices, iek_property_index_type);
+  disp_ptr("field", (char*)ptr->field, iek_field);
+  if (ptr->is_declspec_property) {
+    disp_string_ptr("get_routine.name", ptr->get_routine.name,
+                    iek_other_text, (sizeof_t)0);
+    disp_string_ptr("set_routine.name", ptr->set_routine.name,
+                    iek_other_text, (sizeof_t)0);
+  } else {
+    disp_ptr("get_routine.ptr", (char*)ptr->get_routine.ptr, iek_routine);
+    disp_ptr("set_routine.ptr", (char*)ptr->set_routine.ptr, iek_routine);
+  }  /* if */
+}  /* disp_property_descr */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
@@ -5895,6 +5942,12 @@ This routine is called during IL walking.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case iek_ms_attribute:
           disp_ms_attribute((an_ms_attribute_ptr)entry_ptr);
+          break;
+        case iek_property_index_type:
+          disp_property_index_type((a_property_index_type_ptr)entry_ptr);
+          break;
+        case iek_property_descr:
+          disp_property_descr((a_property_descr_ptr)entry_ptr);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

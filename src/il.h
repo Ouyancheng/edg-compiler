@@ -1276,6 +1276,15 @@ extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
 
 extern a_field_ptr next_initializable_field(a_field_ptr field);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define field_is_property(fp)  ((fp)->property_descr != NULL)
+#define field_is_nontrivial_property(fp) \
+  ((fp)->property_descr != NULL && !(fp)->property_descr->is_trivial)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define field_is_property(fp)  (FALSE)
+#define field_is_nontrivial_property(fp)  (FALSE)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);
 
 extern a_type_ptr fixed_point_result_type(a_type_ptr  type_1,

@@ -472,6 +472,18 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_property_field:1;
 			/* TRUE if this is a field declaration with the
 			   Microsoft __declspec(property(...)) specifier. */
+  a_bit_field	has_cli_context_sensitive_keyword:1;
+			/* TRUE if a C++/CLI context-sensitive keyword was
+			   seen among the specifiers. */
+  a_bit_field	has_cli_property_keyword:1;
+			/* TRUE if a C++/CLI context-sensitive keyword
+			   "property" was seen in a member declaration. */
+  a_bit_field	has_cli_initonly_keyword:1;
+			/* TRUE if a C++/CLI context-sensitive keyword
+			   "initonly" was seen in a member declaration. */
+  a_bit_field	has_cli_literal_keyword:1;
+			/* TRUE if a C++/CLI context-sensitive keyword
+			   "literal" was seen in a member declaration. */
   a_bit_field	override_okay:1;
 			/* TRUE if this is a member function on which the
 			   "override" attribute (C++0x) attribute or modifier

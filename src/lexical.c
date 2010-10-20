@@ -16287,10 +16287,8 @@ Return TRUE if the current token is an identifier spelled like *tok_str.
 
   if (curr_token == tok_identifier) {
     a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
-    if (sym_hdr->identifier[0] == tok_str[0] &&
-        strncmp(sym_hdr->identifier, tok_str,
-                size_t_arg(sym_hdr->identifier_length)) == 0 &&
-        strlen(tok_str) == sym_hdr->identifier_length) {
+    if (symbol_header_is_for_identifier_string(
+                                locator_for_curr_id.symbol_header, tok_str)) {
       result = TRUE;
     }  /* if */
   }  /* if */

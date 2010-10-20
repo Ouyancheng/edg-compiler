@@ -7433,7 +7433,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   for (;;) {
     /* Some specifiers are discarded.  This flag indicates whether the
        current specifier should count toward any specifiers being seen. */
-    a_boolean count_as_specifier_seen = TRUE;
+    a_boolean  count_as_specifier_seen = TRUE;
     /* Most specifiers cannot be part of a vacuous class or enum declaration,
        so we start with that assumption.  The flag will be set to TRUE in the
        exceptional cases. */
@@ -8301,36 +8301,22 @@ process_class_specifier:
                      ec_invalid_typename_specifier);
         } else {
           a_symbol_ptr	type_sym;
-          if (basic_type == bt_none) {
-            typename_specifier(type_ptr, &type_sym,
-                               /*within_using_decl=*/FALSE,
-                               decl_pos_block);
-            if (*type_ptr == NULL) {
-              /* In Microsoft mode a NULL type is returned for a
-                 nonstandard typename specifier in which the typename
-                 keyword is followed by something other than a qualified
-                 name. */
-              check_assertion(microsoft_mode);
-              if (is_template_context()) {
-                /* The Microsoft compiler ignores certain typename specifiers
-                   in instantiations, so forget that we have seen a
-                   specifier. */
-                count_as_specifier_seen = FALSE;
-              }  /* if */
-              goto no_get_token;
+          typename_specifier(type_ptr, &type_sym, /*within_using_decl=*/FALSE,
+                             decl_pos_block);
+          if (*type_ptr == NULL) {
+            /* In Microsoft mode a NULL type is returned for a nonstandard
+               typename specifier in which the typename keyword is followed by
+               something other than a qualified name. */
+            check_assertion(microsoft_mode);
+            if (is_template_context()) {
+              /* The Microsoft compiler ignores certain typename specifiers in
+                 instantiations, so forget that we have seen a specifier. */
+              count_as_specifier_seen = FALSE;
             }  /* if */
-            basic_type = bt_typename;
-            is_elaborated_type_specifier = TRUE;
-          } else {
-            a_type_ptr dummy_type;
-            /* Basic type has already been specified in some way. */
-            bad_combination_of_type_specifiers = TRUE;
-            error(ec_bad_combination_of_type_specifiers);
-            /* Scan the specifier anyway, but throw it away. */
-            typename_specifier(&dummy_type, &type_sym,
-                               /*within_using_decl=*/FALSE,
-                               decl_pos_block);
+            goto no_get_token;
           }  /* if */
+          basic_type = bt_typename;
+          is_elaborated_type_specifier = TRUE;
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
         }  /* if */

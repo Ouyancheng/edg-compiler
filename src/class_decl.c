@@ -32,6 +32,7 @@ class_decl.c -- Scanning of class declarations.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#include "disambig.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -652,6 +653,13 @@ typedef struct a_class_def_state {
 			   an "interface-like" type (Microsoft mode only).
 			   Not set until after the opening brace of the
 			   definition is seen. */
+  a_bit_field   current_declaration_valid_in_property:1;
+			/* TRUE if a member declaration that was just processed
+			   is allowed within the braces of a C++/CLI property.
+			   (Currently, this is true only for member function
+			   declarations, empty declarations, and some error
+			   cases.  The latter only to inhibit additional
+			   diagnostics.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_fields_other_than_unnamed_bitfields:1;
 			/* TRUE if any fields other than unnamed bit-fields
@@ -711,6 +719,13 @@ typedef struct a_class_def_state {
 			/* A list keeping track of the virtual function
 			   overrides that involve a covariant return type. */
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_property_descr_ptr
+		property_descr;
+			/* While parsing C++/CLI property accessor functions,
+			   this points to the associated IL descriptor.
+			   Otherwise, NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_class_def_state;
 
 
@@ -727,6 +742,7 @@ class being defined.
   cdsp->POD_ruled_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
+  cdsp->current_declaration_valid_in_property = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_fields_other_than_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -747,7 +763,17 @@ class being defined.
   cdsp->covariant_overrides = NULL;
   cdsp->last_covariant_override = NULL;
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cdsp->property_descr = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_class_def_state */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define treat_declaration_as_okay_in_property(cdsp)                  \
+  ((cdsp)->current_declaration_valid_in_property = TRUE)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define treat_declaration_as_okay_in_property(cdsp)  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if IA64_ABI
 
@@ -8740,6 +8766,149 @@ functions.
 }  /* copy_class_gnu_properties_to_routine */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_property_accessor_type(a_routine_ptr       rp,
+                                         a_decl_parse_state  *dps)
+/*
+rp points to the entry of a property accessor function.  Check that its type
+is compatible with the declaration of the C++/CLI property it is associated
+with and issue diagnostics as needed.
+*/
+{
+  a_type_ptr            rtp = skip_typerefs(rp->type);
+  a_routine_type_supplement_ptr
+                        rtsp = rtp->variant.routine.extra_info;
+  a_param_type_ptr      ptp = function_type_params(rtp);
+  a_property_descr_ptr  pdp = rp->variant.property_descr;
+  a_boolean             is_setter, err = FALSE;
+
+  /* First check the return type. */
+  if (rp->special_kind == (a_special_function_kind)sfk_property_get) {
+    if (!identical_types(rtp->variant.routine.return_type, pdp->field->type)) {
+      pos_error(ec_bad_property_get_return, &dps->start_pos);
+      err = TRUE;
+    }  /* if */
+    is_setter = FALSE;
+  } else {
+    check_assertion(rp->special_kind ==
+                                   (a_special_function_kind)sfk_property_set);
+    if (!is_void_type(rtp->variant.routine.return_type)) {
+      pos_error(ec_bad_property_set_return, &dps->start_pos);
+      err = TRUE;
+    }  /* if */
+    is_setter = TRUE;
+  }  /* if */
+  if (!err && pdp->indices != NULL) {
+    /* Check that the accessor parameters match the index types.  ECMA-372
+       requires identical types, but MSVC++ 10 doesn't appear to compare the
+       types at all: So type mismatches are diagnosed as warnings only. */
+    a_property_index_type_ptr  pitp = pdp->indices;
+    while (!err && ptp != NULL && pitp != NULL) {
+      if (is_error_type(pitp->type)) {
+        /* Some error occurred while parsing the index types: Additional
+           diagnostics are unlikely helpful. */
+        err = TRUE;
+        break;
+      } else if (!identical_types(pitp->type, ptp->type)) {
+        /* FIXME: Compare types before or after decay? */
+        pos_warning(is_setter ? ec_property_set_index_type_mismatch
+                              : ec_property_get_index_type_mismatch,
+                    &pitp->position);
+      }  /* if */
+      ptp = ptp->next;
+      pitp = pitp->next;
+    }  /* while */
+    if (!err && pitp != NULL) {
+      pos_error(is_setter ? ec_property_set_index_type_missing
+                          : ec_property_get_index_type_missing,
+                &pitp->position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    if (is_setter) {
+      /* Check that the setter has exactly one more parameter that
+         corresponds to the property type. */
+      if (ptp == NULL) {
+        pos_error(ec_property_set_missing_value_parameter,
+                  &dps->declarator_pos);
+        err = TRUE;
+      } else if (ptp->next != NULL) {
+        pos_error(ec_extra_property_accessor_parameters, &dps->declarator_pos);
+        err = TRUE;
+      } else if (!identical_types(ptp->type, pdp->field->type)) {
+        pos_error(ec_property_set_value_parameter_mismatch,
+                  &dps->declarator_pos);
+        err = TRUE;
+      }  /* if */
+    } else if (ptp != NULL) {
+      /* The setter has extra parameters: Issue an error. */
+      pos_error(pdp->indices == NULL ? ec_property_get_cannot_have_parameter
+                                     : ec_extra_property_accessor_parameters,
+                &dps->declarator_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    if (rtsp->qualifiers != TQ_NONE) {
+      pos_error(ec_qualified_property_accessor, &dps->declarator_pos);
+      err = TRUE;
+    } else if (rtsp->has_ellipsis) {
+      pos_error(ec_ellipsis_property_accessor, &dps->declarator_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* check_property_accessor_type */
+
+
+static void check_property_accessor(a_symbol_ptr            sym,
+                                    a_member_decl_info_ptr  decl_info,
+                                    a_class_def_state_ptr   class_state)
+/*
+sym represents a member function declared in a property definition.  Check
+that it is a valid "get" or "set" accessor for the property and issue
+diagnostics as appropriate.  Update the associated IL entries to reflect that
+the member function is an accessor for the property (if the accessor is valid).
+*/
+{
+  a_routine_ptr         rp = sym->variant.routine.ptr;
+  a_property_descr_ptr  pdp = class_state->property_descr;
+  a_decl_parse_state    *dps = &decl_info->decl_state;
+
+  if (rp->special_kind != (a_special_function_kind)sfk_none) {
+    /* A special member (like a constructor) declared in a property definition.
+       Issue an error. */
+    pos_error(ec_invalid_property_accessor_decl, &dps->declarator_pos);
+  } else if (strcmp(rp->source_corresp.name, "get") == 0) {
+    if (pdp->get_routine.ptr != NULL) {
+      pos2_diagnostic(es_error, ec_property_get_already_declared,
+                      &dps->declarator_pos,
+                      &pdp->get_routine.ptr->source_corresp.decl_position);
+    } else {
+      rp->special_kind = (a_special_function_kind)sfk_property_get;
+      rp->variant.property_descr = pdp;
+      pdp->get_routine.ptr = rp;
+      check_property_accessor_type(rp, dps);
+    }  /* if */
+  } else if (strcmp(rp->source_corresp.name, "set") == 0) {
+    if (pdp->set_routine.ptr != NULL) {
+      pos2_diagnostic(es_error, ec_property_set_already_declared,
+                      &dps->declarator_pos,
+                      &pdp->set_routine.ptr->source_corresp.decl_position);
+    } else {
+      rp->special_kind = (a_special_function_kind)sfk_property_set;
+      rp->variant.property_descr = pdp;
+      pdp->set_routine.ptr = rp;
+      check_property_accessor_type(rp, dps);
+    }  /* if */
+  } else {
+    /* Neither "get" nor "set": Issue an error. */
+    pos_error(ec_invalid_property_accessor_decl, &dps->declarator_pos);
+  }  /* if */
+}  /* check_property_accessor */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
@@ -8772,6 +8941,15 @@ implicitly declared member functions.
   db_enter(3, "decl_member_function");
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_state->property_descr != NULL) {
+    /* The member function declaration appears as part of a property
+       declaration. */
+    if (class_state->property_descr->is_static) {
+      decl_state->storage_class = (a_storage_class)sc_static;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state->storage_class == (a_storage_class)sc_static) {
     /* A static member function. */
     /* Check if we are attempting to declare a static member function through a
@@ -8805,24 +8983,39 @@ implicitly declared member functions.
      creating the symbol, since an invalid conversion or operator should not
      be added to the overload list. */
   check_operator_function_params(member_type, class_type, locator);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && locator->is_qualified_name &&
-      !is_error_locator(*locator)) {
-    overridden_function = find_explicitly_overridden_member(
-                                           locator, class_state, member_type);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Look for a prior declaration or function overloading. */
-  sym = symbol_for_member_function(locator, class_type, overridden_function,
-                                   decl_info, &overload_sym);
-  if (sym->variant.routine.ptr != NULL) {
-    /* symbol_for_member_function has returned a symbol that has already been
-       declared.  Issue an error on trying to redeclare a member function. */
-    pos_sy_error(ec_member_function_redeclaration, &locator->source_position,
-                 sym);
-    set_to_named_error_locator(*locator);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_state->property_descr != NULL) {
+    /* Do not check for redeclarations or overloading here since any errors
+       would likely be spurious.  Instead, check_property_accessor will report
+       duplicates. */
     sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
+    /* Property accessors cannot be called directly: Make them invisible. */
+    sym->is_invisible = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && locator->is_qualified_name &&
+        !is_error_locator(*locator)) {
+      overridden_function = find_explicitly_overridden_member(
+                                           locator, class_state, member_type);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    sym = symbol_for_member_function(locator, class_type, overridden_function,
+                                     decl_info, &overload_sym);
+    if (sym->variant.routine.ptr != NULL) {
+      /* symbol_for_member_function has returned a symbol that has already been
+         declared.  Issue an error on trying to redeclare a member function. */
+      pos_sy_error(ec_member_function_redeclaration, &locator->source_position,
+                   sym);
+      set_to_named_error_locator(*locator);
+      sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                               decl_scope_level,
+                               /*suppress_redecl_error=*/TRUE);
+    }  /* if */
   }  /* if */
   decl_info->decl_state.sym = sym;
   /* Create the routine entry for the member function. */
@@ -8854,6 +9047,10 @@ implicitly declared member functions.
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (class_state->property_descr != NULL) {
+    check_property_accessor(sym, decl_info, class_state);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
                                       &locator->source_position);
@@ -9374,7 +9571,7 @@ implicitly declared member functions.
 #if DEBUG
   if (debug_level >= 3) db_symbol(sym, "", 4);
 #endif /* DEBUG */
-
+  treat_declaration_as_okay_in_property(class_state);
   db_exit();
 }  /* decl_member_function */
 
@@ -11730,6 +11927,9 @@ be entered.
   /* Create the field entry. */
   field = alloc_field();
   field->is_bit_field = decl_info->is_bit_field;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  field->property_descr = class_state->property_descr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_info->is_member_template) {
     /* Error -- suppress incomplete-type errors, etc.. */
     set_to_named_error_locator(*locator);
@@ -12530,13 +12730,9 @@ behavior of the MSVC++ version indicated by microsoft_version.
      fields are checked and to be sure that anonymous union fields are
      picked up. */
   for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_field
-#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (sym->kind == (a_symbol_kind)sk_field &&
         /* Property fields do not affect the special member functions. */
-        && sym->variant.field.ptr->get_property_name == NULL &&
-        sym->variant.field.ptr->put_property_name == NULL
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        ) {
+        !field_is_property(sym->variant.field.ptr)) {
       tp = sym->variant.field.ptr->type;
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
@@ -14528,12 +14724,9 @@ member.  Determine whether a diagnostic is actually required and put it out.
         an_error_code  error_code;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (microsoft_mode &&
-            (field->get_property_name != NULL ||
-             field->put_property_name != NULL)) {
-          /* A field declared with __declspec(property(...)) in Microsoft
-             C++ mode.  This is not a real field and therefore the check
-             does not apply. */
+        if (microsoft_mode && field_is_property(field)) {
+          /* A property field in Microsoft C++ mode.  This is not a real field
+             and therefore the check does not apply. */
           continue;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14745,6 +14938,521 @@ function definition and cache its tokens if appropriate.
   }  /* if */
 }  /* cache_in_class_function_definition */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void scan_microsoft_member_decl_prefix(
+                                          a_class_def_state    *class_state,
+                                          an_ms_attribute_ptr  *ms_attributes,
+                                          a_boolean            *complete_decl)
+/*
+Scan Microsoft-specific leading components of a member declaration.  Normally,
+these are the Microsoft attributes enclosed in square brackets: *ms_attributes
+is updated to point to any such attributes.  If attributes are scanned and if
+the are followed by a semicolon, *complete_decl is set to TRUE; otherwise,
+*complete_decl is to FALSE.  Some Microsoft compilers also have a bug that
+allows for a member declaration to start with a left parenthesis: We scan the
+parenthesis here (with a warning) and record its presence in *class_state.
+The "matching" right parenthesis (which Microsoft compilers accept almost
+anywhere in the member declaration) should be consumed using the macro
+consume_any_stray_microsoft_rparen.
+*/
+{
+  *complete_decl = FALSE;
+  if (curr_token == tok_lbracket) {
+    /* A Microsoft attribute of the form "[ ... ]". */
+    *ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    if (curr_token == tok_semicolon) {
+      /* This is a standalone attribute block.  Make sure all of the specified
+         attributes are standalone attributes.  This also sets ms_attributes
+         to NULL. */
+      if (!is_template_context()) {
+        verify_standalone_attributes(ms_attributes);
+      } else {
+        dispose_of_unapplied_attributes(ms_attributes, ec_ms_attr_not_allowed);
+      }  /* if */
+      cannot_bind_to_curr_construct();
+      (void)get_token();
+      *complete_decl = TRUE;
+    }  /* if */
+  }  /* if */
+  class_state->ms_parenthesized_member = FALSE;
+  if (microsoft_bugs && microsoft_version >= 1310 && !C_mode() &&
+      curr_token == tok_lparen) {
+    /* In some Microsoft versions a member declaration can start with a left
+       parenthesis that can be closed just about anywhere in the declaration
+       (or not at all). */
+    warning(ec_microsoft_parenthesized_member);
+    (void)get_token();
+    if (curr_token != tok_rparen) {
+      class_state->ms_parenthesized_member = TRUE;
+    } else {
+      /* The member declaration started with "()", which is accepted and
+         ignored by the Microsoft compiler. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+}  /* scan_microsoft_member_decl_prefix */
+
+
+void f_consume_any_stray_microsoft_rparen(void)
+/*
+Some Microsoft compilers accept a member declaration that starts with a left
+parenthesis.  The "matching" right parenthesis can appear almost anywhere in
+the declaration (or not at all).  This function consumes the right parenthesis
+token and clears the flag that was set when the left parenthesis was scanned.
+Call this function through the macro consume_any_stray_microsoft_rparen.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    /* The Microsoft bug only occurs in class scope. */
+    a_class_def_state  *class_state = ssep->class_def_state;
+    if (class_state->ms_parenthesized_member && curr_token == tok_rparen) {
+      /* We're in a member declaration that started with a left parenthesis. */
+      (void)get_token();
+      class_state->ms_parenthesized_member = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* f_consume_any_stray_microsoft_rparen */
+
+
+static a_boolean check_for_cli_field_modifier(a_decl_parse_state  *dps)
+/*
+This function must be called at the beginning of a class member declaration
+in C++/CLI mode and returns TRUE if the following tokens appear to form a
+C++/CLI property declaration, an initonly field declaration, or a literal
+field declaration.  Otherwise, FALSE is returned.  If TRUE is returned, flags
+in *dps are set to reflect which kind of declaration was encountered (i.e.,
+which kind of context-sensitive keyword appeared: "property", "initonly", or
+"literal").
+*/
+{
+  a_boolean      result = FALSE, type_seen = FALSE, property_only = FALSE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  while (curr_token == tok_static || curr_token == tok_virtual) {
+    /* "property" but not "initonly" or "literal" may be preceded by
+       "static" or "virtual". */
+    property_only = TRUE;
+    cache_curr_token(&cache);
+    (void)get_token();
+  }  /* if */
+  if (curr_token == tok_identifier) {
+    a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (curr_token == tok_colon_colon) {
+      /* None of "property", "initonly", and "literal" can be followed by a
+         "::" if they're keywords. */
+      goto done;
+    }  /* if */
+    if (symbol_header_is_for_identifier_string(sym_hdr, "property")) {
+      dps->has_cli_property_keyword = TRUE;
+    } else if (property_only) {
+      /* We already ruled out identifiers not spelled "property". */
+      goto done;
+    } else if (symbol_header_is_for_identifier_string(sym_hdr, "initonly")) {
+      dps->has_cli_initonly_keyword = TRUE;
+    } else if (symbol_header_is_for_identifier_string(sym_hdr, "literal")) {
+      dps->has_cli_literal_keyword = TRUE;
+    } else {
+      goto done;
+    }  /* if */
+    /* FIXME: Lookup symbol header as a common short circuit case. */
+  }  /* if */
+  /* For this to be a field-like declaration preceded by a context-sensitive
+     keyword, a sequence of decl-specifiers including a type must follow. */
+  for (;;) {
+    if (is_type_qualifier()) {
+      /* A type qualifier is always part of the sequence. */
+    } else if (is_type_specifier() || curr_token == tok_colon_colon) {
+      /* A keyword introducing a type specifier always denotes a type, which
+         implies that the previously-encountered identifier was indeed a
+         context-sensitive keyword.  Similarly, since a "::" cannot start a
+         member declarator, it must introduce a type name. */
+      result = TRUE;
+      goto done;
+    } else if (curr_token == tok_identifier) {
+      /* An identifier naming a type, on the other hand, could be
+         a declarator-id. */
+      if (type_seen) {
+        /* An identifier that can be resolved as a type was already seen.
+           This one must therefore be a declarator-id, and the potential
+           context-sensitive keyword is indeed a keyword. */
+        result = TRUE;
+        goto done;
+      } else if (curr_type_symbol(/*is_new_type_name=*/FALSE,
+                                  /*in_prescan=*/TRUE) == NULL) {
+        /* The current identifier is not a type.  So it must be a declarator-id
+           and the potential context-sensitive keyword must be a type name. */
+        break;
+      } else {
+        /* The current identifier can be resolved as a type.  It is not a type
+           but a declarator-id if it is followed by: a semicolon (end of member
+           declaration), a left bracket (array field or indexed property), a
+           left brace (property definition), an equal sign (in-class
+           initializer), or a colon (bit field).  It may also not be a type
+           name if it is followed by a left parenthesis (it could be a
+           function declarator).  */
+        cache_curr_token(&cache);
+        (void)get_token();
+        if (curr_token == tok_semicolon || curr_token == tok_lbracket ||
+            curr_token == tok_lbrace || curr_token == tok_assign ||
+            curr_token == tok_colon) {
+          break;
+        } else if (curr_token == tok_lparen) {
+          cache_curr_token(&cache);
+          (void)get_token();
+          if (curr_token == tok_rparen ||
+              is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
+                            IDS_MS_ATTRIB_NOT_ALLOWED) ||
+              curr_token == tok_ellipsis) {
+            /* Function declarator rather than a nested declarator. */
+            break;
+          }  /* if */
+        }  /* if */
+        result = TRUE;
+        goto done;
+      }  /* if */
+    } else if (is_declarator_start()) {
+      /* The start of a declarator.  Since we haven't seen a type name yet,
+         the potential context-sensitive keyword is presumably a type. */
+      break;
+    } else if (curr_token == tok_end_of_source ||
+               curr_token == tok_semicolon ||
+               curr_token == tok_lbrace || curr_token == tok_rbrace) {
+      /* We've scanned too far: The code contains a syntax error.  Assume a
+         context-sensitive keyword since collisions with user-declared
+         identifiers are presumably rare. */
+      result = TRUE;
+      goto done;
+    } else {
+      /* Presumably another specifier token. */
+    }  /* if */
+    cache_curr_token(&cache);
+    (void)get_token();
+  }  /* for */
+  dps->has_cli_property_keyword = FALSE;
+  dps->has_cli_initonly_keyword = FALSE;
+  dps->has_cli_literal_keyword = FALSE;
+done:
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* check_for_cli_field_modifier */
+
+
+static void scan_cli_property_indices(a_property_descr_ptr  pdp)
+/*
+Scan a list of C++/CLI property index types and record them in the pdp->indices
+list.
+*/
+{
+  /* Skip over the left bracket. */
+  check_assertion(curr_token == tok_lbracket);
+  (void)get_token();
+  if (curr_token == tok_rbracket) {
+    pos_error(ec_empty_property_indices, &pos_curr_token);
+  } else {
+    /* Scan the list of types. */
+    a_property_index_type_ptr  *p_pitp = &pdp->indices;
+    add_stop_token(tok_rbracket);
+    do {
+      add_stop_token(tok_comma);
+      *p_pitp = alloc_property_index_type();
+      (*p_pitp)->position = pos_curr_token;
+      if (!is_decl_start(IDS_NO_OPTIONS) ||
+          !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
+        /* This doesn't look like a type; don't attempt to parse it as such.
+           We do record an entry with an error type to improve error
+           recovery. */
+        pos_error(ec_exp_type_specifier, &pos_curr_token);
+        flush_tokens();
+        (*p_pitp)->type = error_type();
+      } else {
+        type_name(&(*p_pitp)->type);
+        if (is_void_type((*p_pitp)->type)) {
+          pos_error(ec_void_property_index_type, &(*p_pitp)->position);
+          (*p_pitp)->type = error_type();
+        }  /* if */
+      }  /* if */
+      remove_stop_token(tok_comma);
+    } while (loop_token(tok_comma));
+  }  /* if */
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+}  /* scan_cli_property_indices */
+
+
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void scan_cli_property_head(a_class_def_state   *class_state,
+                                   a_member_decl_info  *decl_info,
+                                   a_decl_pos_block    *decl_pos_block)
+/*
+A C++/CLI property declaration is next.  Scan its "head" and update the IL
+and symbol table accordingly.  The "head" of a property declaration has the
+following syntax:
+   property-modifier(opt) property type-specifier-seq declarator
+     property-indices(opt) {-or-;
+where the optional property-modifier is either the "static" or "virtual"
+keyword, and the final token is a left brace (introducing accessor member
+declarations) or a semicolon (in the case of a trivial scalar property).
+*class_state holds information of the enclosing class (whose definition is
+being parsed), *decl_info describes the current member declaration, and
+*decl_pos_block tracks extended position information.
+*/
+{
+  a_decl_parse_state    *dps = &decl_info->decl_state;
+  a_decl_flag_set       dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                                    DSI_NO_TAG_DEFINITION |
+                                    DSI_VACUOUS_TAG_DECL_ALLOWED |
+                                    DSI_IS_MEMBER_DECLARATION;
+  a_property_descr_ptr  pdp = alloc_property_descr();
+  a_boolean             ptr_to_member_scanned;
+  a_source_position     decl_pos, type_pos, indices_pos;
+
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_lbrace);
+  decl_pos = pos_curr_token;
+  /* First scan leading static/virtual keywords, and skip over the "property"
+     token. */
+  while (curr_token == tok_static || curr_token == tok_virtual) {
+    if (curr_token == tok_static) {
+      if (pdp->is_static) pos_error(ec_dupl_decl_specifier, &pos_curr_token);
+      pdp->is_static = TRUE;
+    } else {
+      if (pdp->is_virtual) pos_warning(ec_dupl_decl_specifier,
+                                       &pos_curr_token);
+      pdp->is_virtual = TRUE;
+    }  /* if */
+    (void)get_token();
+  }  /* if */
+  if (pdp->is_static && pdp->is_virtual) {
+    pos_error(ec_virtual_static_property, &decl_pos);
+    pdp->is_static = FALSE;
+  }  /* if */
+  check_assertion(curr_token_is_identifier_string("property"));
+  (void)get_token();
+  type_pos = pos_curr_token;
+  decl_specifiers(dsi_flags, dps, decl_pos_block);
+  pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
+                     (a_call_conv_descr_ptr)NULL,
+                     (a_call_conv_descr_ptr)NULL,
+                     (a_type_qualifier_set *)NULL,
+                     (a_type_qualifier_set *)NULL,
+                     &ptr_to_member_scanned, decl_pos_block);
+  if (is_array_type(dps->type) || is_function_type(dps->type)) {
+    pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
+                                       : ec_function_type_not_allowed,
+              &type_pos);
+    dps->type = error_type();
+  }  /* if */
+  /* An identifier should be next. */
+  if (!required_token_no_advance(tok_identifier, ec_exp_identifier)) {
+    discard_curr_construct_pragmas();
+    goto done;
+  } else if (!is_generalized_identifier_start(GID_ERROR_FLAGS)) {
+    /* Since we already checked that the next token is an identifier, this
+       can only be a pointer-to-member. */
+    check_assertion(curr_token == tok_ptr_to_member);
+    syntax_error(ec_exp_identifier);
+  }  /* if */
+  class_state->property_descr = pdp;
+  dps->is_property_field = TRUE;
+  pdp->field = decl_nonstatic_data_member(&locator_for_curr_id, class_state,
+                                          decl_info, depth_scope_stack);
+  (void)get_token();
+  if (curr_token == tok_lbracket) {
+    scan_cli_property_indices(pdp);
+  }  /* if */
+  if (curr_token == tok_semicolon) {
+    /* A trivial scalar property. */
+    pdp->is_trivial = TRUE;
+    if (pdp->indices != NULL) {
+      /* A trivial property cannot be an indexed property. */
+      pos_error(ec_no_indices_on_trivial_property, &indices_pos);
+    }  /* if */
+    (void)get_token();
+  } else {
+    /* A nontrivial property. */
+    (void)required_token(tok_lbrace, ec_exp_lbrace);
+    class_state->property_descr = pdp;
+    treat_declaration_as_okay_in_property(class_state);
+  }  /* if */
+done:
+  remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_semicolon);
+}  /* scan_cli_property_head */
+
+#if /*FIXME:delete*/0
+
+static a_boolean at_start_of_cli_property_declaration(void)
+/*
+This function must be called at the beginning of a class member declaration
+and returns TRUE if the following tokens appear to form a C++/CLI property
+declaration.  Otherwise, FALSE is returned.
+*/
+{
+  a_boolean      result = FALSE, type_seen = FALSE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  while (curr_token == tok_static || curr_token == tok_virtual) {
+    cache_curr_token(&cache);
+    (void)get_token();
+  }  /* if */
+  if (!curr_token_is_identifier_string("property")) {
+    /* Without an identifier spelled "property", this is certainly not a
+       property declaration. */
+    goto done;
+  }  /* if */
+  cache_curr_token(&cache);
+  (void)get_token();
+  /* For this to be a property declaration, a sequence of type specifiers
+     must follow. */
+  for (;;) {
+    if (is_type_qualifier()) {
+      /* A type qualifier is always part of the sequence. */
+    } else if (is_type_keyword(curr_token)) {
+      /* A type keyword is always part of the sequence: An identifier that
+         follows should not be treated as a type. */
+      type_seen = TRUE;
+    } else if (!type_seen &&
+               curr_type_symbol(/*is_new_type_name=*/FALSE,
+                                /*in_prescan=*/TRUE) != NULL) {
+      /* A named type that is the main type-specifier in the sequence. */
+      type_seen = TRUE;
+    } else {
+      break;
+    }  /* if */
+    cache_curr_token(&cache);
+    (void)get_token();
+  }  /* for */
+  if (!type_seen) goto done;
+  /* Finally, a non-nested real declarator is expected: */
+  result = (curr_token != tok_lparen && is_declarator_start());
+done:
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* at_start_of_cli_property_declaration */
+
+
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static a_boolean scan_cli_property_head_if_present(
+                                        a_class_def_state    *class_state,
+                                        an_ms_attribute_ptr  *ms_attributes,
+                                        a_decl_pos_block     *decl_pos_block)
+/*
+If a C++/CLI property declaration is next, scan its "head" (and update the IL
+and symbol table accordingly) and return TRUE; otherwise, return FALSE.
+The "head" of the property has the following syntax:
+   property-modifier(opt) property type-specifier-seq declarator
+     property-indices(opt) {-or-;
+where the optional property-modifier is either the "static" or "virtual"
+keyword, and the final token is a left brace (introducing accessor member
+declarations) or a semicolon (in the case of a trivial scalar property).
+*class_state holds information of the enclosing class (whose definition is
+being parsed), *ms_attributes points to any Microsoft [...] attributes that
+might have been scanned, *decl_pos_block track extended position information.
+*/
+{
+  a_boolean  property_parsed = FALSE;
+
+  if (at_start_of_cli_property_declaration()) {
+    a_member_decl_info    decl_info;
+    a_decl_parse_state    *dps = &decl_info.decl_state;
+    a_decl_flag_set       dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                                      DSI_NO_TAG_DEFINITION |
+                                      DSI_VACUOUS_TAG_DECL_ALLOWED |
+                                      DSI_IS_MEMBER_DECLARATION;
+    a_property_descr_ptr  pdp = alloc_property_descr();
+    a_boolean             ptr_to_member_scanned;
+    a_source_position     decl_pos, type_pos, indices_pos;
+    add_stop_token(tok_semicolon);
+    add_stop_token(tok_lbrace);
+    decl_pos = pos_curr_token;
+    initialize_member_decl_info(
+            &decl_info, (*ms_attributes != NULL) ? &(*ms_attributes)->position
+                                                 : &decl_pos);
+    /* First scan leading static/virtual keywords, and skip over the "property"
+       token. */
+    while (curr_token == tok_static || curr_token == tok_virtual) {
+      if (curr_token == tok_static) {
+        if (pdp->is_static) pos_error(ec_dupl_decl_specifier, &pos_curr_token);
+        pdp->is_static = TRUE;
+      } else {
+        if (pdp->is_virtual) pos_warning(ec_dupl_decl_specifier,
+                                         &pos_curr_token);
+        pdp->is_virtual = TRUE;
+      }  /* if */
+      (void)get_token();
+    }  /* if */
+    if (pdp->is_static && pdp->is_virtual) {
+      pos_error(ec_virtual_static_property, &decl_pos);
+      pdp->is_static = FALSE;
+    }  /* if */
+    check_assertion(curr_token_is_identifier_string("property"));
+    (void)get_token();
+    type_pos = pos_curr_token;
+    decl_specifiers(dsi_flags, dps, decl_pos_block);
+    pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
+                       (a_call_conv_descr_ptr)NULL,
+                       (a_call_conv_descr_ptr)NULL,
+                       (a_type_qualifier_set *)NULL,
+                       (a_type_qualifier_set *)NULL,
+                       &ptr_to_member_scanned, decl_pos_block);
+    if (is_array_type(dps->type) || is_function_type(dps->type)) {
+      pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
+                                         : ec_function_type_not_allowed,
+                &type_pos);
+      dps->type = error_type();
+    }  /* if */
+    /* An identifier should be next. */
+    if (!required_token_no_advance(tok_identifier, ec_exp_identifier)) {
+      discard_curr_construct_pragmas();
+      goto done;
+    } else if (!is_generalized_identifier_start(GID_ERROR_FLAGS)) {
+      /* Since we already checked that the next token is an identifier, this
+         can only be a pointer-to-member. */
+      check_assertion(curr_token == tok_ptr_to_member);
+      syntax_error(ec_exp_identifier);
+    }  /* if */
+    dps->is_property_field = TRUE;
+    pdp->field = decl_nonstatic_data_member(&locator_for_curr_id, class_state,
+                                            &decl_info, depth_scope_stack);
+    (void)get_token();
+    if (curr_token == tok_lbracket) {
+      scan_cli_property_indices(pdp);
+    }  /* if */
+    if (curr_token == tok_semicolon) {
+      /* A trivial scalar property. */
+      pdp->is_trivial = TRUE;
+      if (pdp->indices != NULL) {
+        /* A trivial property cannot be an indexed property. */
+        pos_error(ec_no_indices_on_trivial_property, &indices_pos);
+      }  /* if */
+      (void)get_token();
+    } else {
+      /* A nontrivial property. */
+      (void)required_token(tok_lbrace, ec_exp_lbrace);
+      class_state->property_descr = pdp;
+      treat_declaration_as_okay_in_property(class_state);
+    }  /* if */
+done:
+    remove_stop_token(tok_lbrace);
+    remove_stop_token(tok_semicolon);
+    property_parsed = TRUE;
+  }  /* if */
+  return property_parsed;
+}  /* scan_cli_property_head_if_present */
+
+#endif
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
@@ -14834,6 +15542,18 @@ passed via template_decl.
     /* Record any Microsoft attributes in *decl_state before calling
        decl_specifiers, because that call may append additional attributes. */
     decl_state->ms_attributes = ms_attributes;
+    if (cppcli_enabled) {
+      /* Look ahead to see if the current declaration is for a field or
+         property using a C++/CLI context-sensitive keyword "property",
+         "initonly", or "literal". */
+      check_for_cli_field_modifier(decl_state);
+      if (decl_state->has_cli_property_keyword) {
+        scan_cli_property_head(class_state, &decl_info,
+                               &decl_info.decl_pos_block);
+        *skip_semicolon_check = TRUE;
+        goto next_declaration;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* First scan the declaration specifiers.  In C++ the specifiers may be
@@ -16206,85 +16926,6 @@ bits of information that were acquired while parsing.
   error_position = saved_error_position;
 }  /* complete_class_definition */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void scan_microsoft_member_decl_prefix(
-                                          a_class_def_state    *class_state,
-                                          an_ms_attribute_ptr  *ms_attributes,
-                                          a_boolean            *complete_decl)
-/*
-Scan Microsoft-specific leading components of a member declaration.  Normally,
-these are the Microsoft attributes enclosed in square brackets: *ms_attributes
-is updated to point to any such attributes.  If attributes are scanned and if
-the are followed by a semicolon, *complete_decl is set to TRUE; otherwise,
-*complete_decl is to FALSE.  Some Microsoft compilers also have a bug that
-allows for a member declaration to start with a left parenthesis: We scan the
-parenthesis here (with a warning) and record its presence in *class_state.
-The "matching" right parenthesis (which Microsoft compilers accept almost
-anywhere in the member declaration) should be consumed using the macro
-consume_any_stray_microsoft_rparen.
-*/
-{
-  *complete_decl = FALSE;
-  if (curr_token == tok_lbracket) {
-    /* A Microsoft attribute of the form "[ ... ]". */
-    *ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
-    if (curr_token == tok_semicolon) {
-      /* This is a standalone attribute block.  Make sure all of the specified
-         attributes are standalone attributes.  This also sets ms_attributes
-         to NULL. */
-      if (!is_template_context()) {
-        verify_standalone_attributes(ms_attributes);
-      } else {
-        dispose_of_unapplied_attributes(ms_attributes, ec_ms_attr_not_allowed);
-      }  /* if */
-      cannot_bind_to_curr_construct();
-      (void)get_token();
-      *complete_decl = TRUE;
-    }  /* if */
-  }  /* if */
-  class_state->ms_parenthesized_member = FALSE;
-  if (microsoft_bugs && microsoft_version >= 1310 && !C_mode() &&
-      curr_token == tok_lparen) {
-    /* In some Microsoft versions a member declaration can start with a left
-       parenthesis that can be closed just about anywhere in the declaration
-       (or not at all). */
-    warning(ec_microsoft_parenthesized_member);
-    (void)get_token();
-    if (curr_token != tok_rparen) {
-      class_state->ms_parenthesized_member = TRUE;
-    } else {
-      /* The member declaration started with "()", which is accepted and
-         ignored by the Microsoft compiler. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-}  /* scan_microsoft_member_decl_prefix */
-
-
-void f_consume_any_stray_microsoft_rparen(void)
-/*
-Some Microsoft compilers accept a member declaration that starts with a left
-parenthesis.  The "matching" right parenthesis can appear almost anywhere in
-the declaration (or not at all).  This function consumes the right parenthesis
-token and clears the flag that was set when the left parenthesis was scanned.
-Call this function through the macro consume_any_stray_microsoft_rparen.
-*/
-{
-  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-
-  if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
-    /* The Microsoft bug only occurs in class scope. */
-    a_class_def_state  *class_state = ssep->class_def_state;
-    if (class_state->ms_parenthesized_member && curr_token == tok_rparen) {
-      /* We're in a member declaration that started with a left parenthesis. */
-      (void)get_token();
-      class_state->ms_parenthesized_member = FALSE;
-    }  /* if */
-  }  /* if */
-}  /* f_consume_any_stray_microsoft_rparen */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void check_for_file_with_unterminated_type_definition(
                                                   a_source_position  *end_pos)
@@ -16337,7 +16978,7 @@ be a syntax error showing up in the next file.  I.e., something like:
                 information is being recorded in the IL.
                 il_template_entry is not used unless source sequence entries
                 are being generated. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL !GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_boolean        is_local_class,
@@ -16655,6 +17296,7 @@ classes.
       scope_stack[decl_scope_level].current_access = class_state.access;
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
+        a_source_position    decl_start_pos;
         add_stop_token(tok_semicolon);
         /* This is a valid location for an __if_exists pragma to appear when
            creating source sequence entries for __if_exists. */
@@ -16700,6 +17342,7 @@ classes.
           cannot_bind_to_curr_construct();
           /* Bypass the superfluous semicolon and continue looping. */
           (void)get_token();
+          treat_declaration_as_okay_in_property(&class_state);
           goto next_declaration;
         }  /* if */
 #if !ASM_FUNCTION_ALLOWED
@@ -16713,6 +17356,7 @@ classes.
                                 &attributes);
           /* The semicolon will have been consumed by the subroutine.
              Continue looping through the members. */
+          treat_declaration_as_okay_in_property(&class_state);
           goto next_declaration;
         }  /* if */
 #endif /* !ASM_FUNCTION_ALLOWED */
@@ -16722,6 +17366,7 @@ classes.
             /* Scan any Microsoft attributes, and perhaps a leading
                parenthesis. */
             a_boolean  complete_decl;
+            decl_start_pos = pos_curr_token;
             scan_microsoft_member_decl_prefix(&class_state, &ms_attributes,
                                               &complete_decl);
             if (complete_decl) goto next_declaration;
@@ -16821,7 +17466,25 @@ classes.
 next_declaration:
         if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
-        /* Keep processing member declarations until the closing brace. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (class_state.property_descr != NULL) {
+          if (!class_state.current_declaration_valid_in_property) {
+            pos_error(ec_invalid_property_accessor_decl, &decl_start_pos);
+          } else {
+            /* Reset the flag for a possible subsequent declaration. */
+            class_state.current_declaration_valid_in_property = FALSE;
+          }  /* if */
+          if (curr_token == tok_rbrace) {
+            /* The closing brace of a nontrivial property definition.  Skip
+               over the token and update class_state to indicate we're no
+               longer in a property definition. */
+            (void)get_token();
+            class_state.property_descr = NULL;
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Keep processing member declarations until the closing brace or
+           the end-of-source marker is reached. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
       /* Check that a non-empty struct/union in C mode has at least one
          named field. */

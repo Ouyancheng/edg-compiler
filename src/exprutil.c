@@ -14350,9 +14350,16 @@ by pos.
 */
 {
   a_symbol_ptr getput_sym = NULL;
-  char         *getput_property_name = (put ? field->put_property_name :
-                                              field->get_property_name);
+  char         *getput_property_name;
 
+  check_assertion(field_is_property(field));
+  check_assertion_str(field->property_descr->is_declspec_property,
+                      "C++/CLI properties not implemented yet");
+  if (put) {
+    getput_property_name = field->property_descr->set_routine.name;
+  } else {
+    getput_property_name = field->property_descr->get_routine.name;
+  }  /* if */
   if (getput_property_name == NULL) {
     if (must_be_present) {
       expr_pos_error(put ? ec_no_put_property : ec_no_get_property, pos);

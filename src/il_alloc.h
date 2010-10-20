@@ -129,8 +129,13 @@ extern char *alloc_asm_function_body(sizeof_t  len);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_ms_attribute_ptr alloc_ms_attribute(void);
+
 extern
 an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
+
+extern a_property_index_type_ptr alloc_property_index_type(void);
+
+extern a_property_descr_ptr alloc_property_descr(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 extern an_ms_if_exists_ptr alloc_ms_if_exists(void);

@@ -1599,13 +1599,11 @@ bugs).
       a_targ_size_t elt, num_array_elts = 1, field_offset;
       /* Skip compiler generated fields. */
       if (field->compiler_generated) continue;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* Skip Microsoft-mode property fields. */
-      if (microsoft_mode && (field->get_property_name != NULL ||
-                             field->put_property_name != NULL)) {
+      /* Skip Microsoft-mode property fields (except trivial properties, which
+         do represent an allocated field). */
+      if (microsoft_mode && field_is_nontrivial_property(field)) {
         continue;
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       field_type = skip_typerefs(field->type);
 #if IA64_ABI || ABI_COMPATIBILITY_VERSION >= 300
       if (is_array_type(field_type)) {
@@ -2568,13 +2566,9 @@ there's no overflow TRUE is returned.
   class_type = parent_class_of(field);
   if (is_error_type(field_type)) {
     /* Do nothing if the field has an error type. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode &&
-             (field->get_property_name != NULL ||
-              field->put_property_name != NULL)) {
-    /* Fields declared with __declspec(property(...)) do not take any space. */
+  } else if (microsoft_mode && field_is_nontrivial_property(field)) {
+    /* Nontrivial property fields do not take any space. */
     field->offset = field->offset_bit_remainder = 0;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Ensure that the size of the field's type has been computed. */
     set_type_size(field_type);
@@ -3215,14 +3209,11 @@ Also, in Microsoft mode we must skip over property fields.
 {
 #if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
   a_field_ptr  result = class_type->variant.class_struct_union.field_list;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    while (result && (result->get_property_name != NULL ||
-                      result->put_property_name != NULL)) {
+    while (result && field_is_nontrivial_property(result)) {
       result = result->next;
     }  /* while */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #else /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
   /* Public fields are allocated first, then the protected ones and finally
      the private ones; so fetch the first allocated one. */
@@ -3231,15 +3222,10 @@ Also, in Microsoft mode we must skip over property fields.
                             class_type->variant.class_struct_union.field_list;
   a_field_ptr         result = field;
   while (field) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && (field->get_property_name != NULL ||
-                           field->put_property_name != NULL)) {
-      /* Fields declared with __declspec(property(...)) do not take any
-         space. */
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (field->source_corresp.access == (an_access_specifier)as_public) {
+    if (microsoft_mode && field_is_nontrivial_property(result)) {
+      /* Nontrivial property fields do not take any space. */
+    } else if (field->source_corresp.access ==
+                                             (an_access_specifier)as_public) {
       break;
     } else if (field->source_corresp.access < access) {
       access = field->source_corresp.access;

@@ -2249,13 +2249,10 @@ operator routine or do bitwise assignment.
         /* A field. */
         fp = sym->variant.field.ptr;
         tp = skip_typerefs(fp->type);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (fp->get_property_name != NULL ||
-            fp->put_property_name != NULL) {
+        if (field_is_nontrivial_property(fp)) {
           /* Property fields aren't really fields and thus are not copied. */
           continue;
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (is_const_qualified_type(tp) || is_reference_type(tp)) {
           /* The error has already been issued for const and ref members.
              Don't bother trying to do the copy. */
@@ -2449,15 +2446,10 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
       if (sym->kind == (a_symbol_kind)sk_field) {
         tp = sym->variant.field.ptr->type;
         is_ref = is_const = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (sym->variant.field.ptr->get_property_name != NULL ||
-            sym->variant.field.ptr->put_property_name != NULL) {
+        if (field_is_nontrivial_property(sym->variant.field.ptr)) {
           /* Property fields are not copied by the default assignment
              operator. */
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        if (is_reference_type(tp)) {
+        } else if (is_reference_type(tp)) {
           /* An assignment operator should not be generated if a member has a
              ref type. */
           is_ref = TRUE;

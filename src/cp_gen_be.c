@@ -5714,6 +5714,17 @@ declaration following this one is such a continuation.
   /* Advance past the source sequence entry for the field. */
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (field_is_property(field) &&
+      !field->property_descr->is_declspec_property) {
+    /* The field represents a C++/CLI property declaration.  Render any
+       appropriate prefix specifiers. */
+    check_assertion(!suppress_specifiers);
+    if (field->property_descr->is_static) write_tok_str("static ");
+    if (field->property_descr->is_virtual) write_tok_str("virtual ");
+    write_tok_str("property ");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!suppress_specifiers) {
     /* This is the first (or only) field in the list: put out the
        per-declaration specifiers and attributes. */
@@ -5751,7 +5762,29 @@ declaration following this one is such a continuation.
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                                (a_name_linkage_kind)nlk_none);
-  write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (field_is_nontrivial_property(field) &&
+      !field->property_descr->is_declspec_property) {
+    /* The property field declaration is followed by the accessor declarations
+       enclosed in braces. */
+    write_tok_str(" {");
+    /* Render one or two accessor declarations.  If there are two, the one
+       rendered by the call to gen_declaration may not correspond to the
+       pointer (get_routine.ptr or set_routine.ptr) that was just tested,
+       but that is not a problem. */
+    if (field->property_descr->get_routine.ptr != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+    if (field->property_descr->set_routine.ptr != NULL) {
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+    write_tok_str("}");
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+  }  /* if */
 }  /* gen_field_decl */
 
 

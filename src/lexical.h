@@ -1986,6 +1986,16 @@ extern unsigned long scan_universal_character(
 extern a_boolean is_valid_GUID_string(char          *str,
                                       a_targ_size_t length);
 
+/*
+Macro that returns TRUE when a given symbol header is for a given identifier
+string.
+*/
+#define symbol_header_is_for_identifier_string(sym_hdr, tok_str)             \
+  (sym_hdr->identifier[0] == tok_str[0] &&                                   \
+   strncmp((sym_hdr)->identifier, (tok_str),                                 \
+           size_t_arg((sym_hdr)->identifier_length)) == 0 &&                 \
+   strlen((tok_str)) == (sym_hdr)->identifier_length)
+
 extern a_boolean curr_token_is_identifier_string(char  *tok_str);
 
 extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
