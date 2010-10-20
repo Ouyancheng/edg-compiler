@@ -1984,7 +1984,6 @@ ec_property_get_cannot_have_parameter;;"a \"get\" accessor cannot have a paramet
 ec_bad_property_get_return;;"return type of \"get\" accessor does not match property type"
 ec_bad_property_set_return;;"return type of \"set\" accessor must be void"
 ec_empty_property_indices;;"a property cannot declare an empty list of indices"
-ec_property_accessor_index_mismatch;;"the parameter types of the accessor do not match the types of the property indices"
 ec_void_property_index_type;;"a property index cannot have type void"
 ec_property_set_index_type_mismatch;;"index type does not match the corresponding parameter in the \"set\" accessor"
 ec_property_get_index_type_mismatch;;"index type does not match the corresponding parameter in the \"get\" accessor"
