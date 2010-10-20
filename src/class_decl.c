@@ -15138,6 +15138,7 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
   dps->has_cli_initonly_keyword = FALSE;
   dps->has_cli_literal_keyword = FALSE;
 done:
+  dps->has_cli_context_sensitive_keyword = result;
   rescan_cached_tokens(&cache);
   return result;
 }  /* check_for_cli_field_modifier */
@@ -15237,12 +15238,12 @@ being parsed), *decl_info describes the current member declaration, and
   (void)get_token();
   type_pos = pos_curr_token;
   decl_specifiers(dsi_flags, dps, decl_pos_block);
-  pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
-                     (a_call_conv_descr_ptr)NULL,
-                     (a_call_conv_descr_ptr)NULL,
-                     (a_type_qualifier_set *)NULL,
-                     (a_type_qualifier_set *)NULL,
-                     &ptr_to_member_scanned, decl_pos_block);
+  dps->type = pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
+                                 (a_call_conv_descr_ptr)NULL,
+                                 (a_call_conv_descr_ptr)NULL,
+                                 (a_type_qualifier_set *)NULL,
+                                 (a_type_qualifier_set *)NULL,
+                                 &ptr_to_member_scanned, decl_pos_block);
   if (is_array_type(dps->type) || is_function_type(dps->type)) {
     pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
                                        : ec_function_type_not_allowed,
@@ -15546,12 +15547,13 @@ passed via template_decl.
       /* Look ahead to see if the current declaration is for a field or
          property using a C++/CLI context-sensitive keyword "property",
          "initonly", or "literal". */
-      check_for_cli_field_modifier(decl_state);
-      if (decl_state->has_cli_property_keyword) {
-        scan_cli_property_head(class_state, &decl_info,
-                               &decl_info.decl_pos_block);
-        *skip_semicolon_check = TRUE;
-        goto next_declaration;
+      if (check_for_cli_field_modifier(decl_state)) {
+        if (decl_state->has_cli_property_keyword) {
+          scan_cli_property_head(class_state, &decl_info,
+                                 &decl_info.decl_pos_block);
+          *skip_semicolon_check = TRUE;
+          goto next_declaration;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
