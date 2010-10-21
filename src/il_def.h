@@ -599,7 +599,7 @@ typedef enum /*an_il_entry_kind*/ {
 			/* an_integer_type_supplement */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_cli_metadata_file,
-                        /* a_cli_metadata_file */
+			/* a_cli_metadata_file */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
