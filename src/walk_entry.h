@@ -1119,6 +1119,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_initializer(ptr->init_kind, ptr->initializer);
         walk_list(ptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_ptr(ptr->property_descr, a_property_descr_ptr,
+                 iek_property_descr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->section, iek_other_text, 0);
@@ -2109,7 +2113,11 @@ do_set_proper_definition_needed_flag:
       { a_property_descr_ptr  ptr = (a_property_descr_ptr)entry_ptr;
         walk_list(ptr->indices, a_property_index_type_ptr,
                   iek_property_index_type);
-        remap_ptr(ptr->field, a_field_ptr, iek_field);
+        if (ptr->is_static) {
+          remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
+        } else {
+          remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
+        }  /* if */
         if (ptr->is_declspec_property) {
           walk_string_ptr(ptr->get_routine.name, iek_other_text, 0);
           walk_string_ptr(ptr->set_routine.name, iek_other_text, 0);

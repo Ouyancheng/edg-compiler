@@ -5720,7 +5720,6 @@ declaration following this one is such a continuation.
     /* The field represents a C++/CLI property declaration.  Render any
        appropriate prefix specifiers. */
     check_assertion(!suppress_specifiers);
-    if (field->property_descr->is_static) write_tok_str("static ");
     if (field->property_descr->is_virtual) write_tok_str("virtual ");
     write_tok_str("property ");
   }  /* if */
@@ -12161,9 +12160,10 @@ declaration following this one is such a continuation.
   } else if (curr_name_context_is_a_class()) {
     /* We're currently inside a class definition.  The storage class doesn't
        have the usual meaning: for example, "static" means a static member.
-       The only case that comes here, however, is declarations of static data
-       members.  It's not possible to declare or define a nonmember variable
-       or a static data member of another class inside a class, */
+       The only cases that comes here, however, are declarations of static
+       data members and C++/CLI properties.  (It's not possible to declare or
+       define a nonmember variable or a static data member of another class
+       inside a class.) */
     storage_class = (a_storage_class)sc_static;
   } else {
     /* A declaration or definition outside of a class (at file scope or
@@ -12279,6 +12279,9 @@ declaration following this one is such a continuation.
     } else {
       /* Put out the storage class determined above. */
       gen_storage_class(storage_class);
+    }  /* if */
+    if (var_is_property(var)) {
+      write_tok_str("property ");
     }  /* if */
 #if NAMED_REGISTERS_ALLOWED
     if (var->has_named_register_storage_class) {

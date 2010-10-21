@@ -7619,6 +7619,76 @@ typedef struct a_vla_dimension {
 #endif /* DO_IL_LOWERING */
 } a_vla_dimension;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/* FIXME: Add EXTRA_SOURCE_POSITIONS_IN_IL fields. */
+typedef struct a_property_index_type *a_property_index_type_ptr;
+typedef struct a_property_index_type {
+  a_property_index_type_ptr
+		next;
+			/* Pointer to the next index type entry (or NULL if
+			   there is none). */
+  a_type_ptr	type;
+			/* The type declared for the index. */
+  a_source_position
+		position;
+			/* The position of the index type. */
+} a_property_index_type;
+
+
+typedef struct a_property_descr *a_property_descr_ptr;
+typedef struct a_property_descr {
+  a_bit_field	is_declspec_property:1;
+			/* TRUE if the property is declared with __declspec
+			   syntax ("old-style").  FALSE if the property is
+			   declared with the C++/CLI syntax. */
+  a_bit_field	is_trivial:1;
+			/* TRUE if the property is declared with the C++/CLI
+			   syntax but without explicit accessor functions. */
+  a_bit_field	is_default_indexed:1;
+			/* TRUE if this entry is for a default-indexed
+			   property (C++/CLI syntax only). */
+  a_bit_field	is_virtual:1;
+			/* TRUE if the property is declared with the "virtual"
+			   specifier. */
+  a_bit_field	is_static:1;
+			/* TRUE if the property is declared with the "static"
+			   specifier. */
+  a_property_index_type_ptr
+		indices;
+			/* Non-NULL only for an indexed property.  Points to a
+			   list of entries describing the types of the property
+			   indices. */
+  union {
+    /* When is_static is FALSE: */
+    a_field_ptr
+		field;	/* Associated property field. */
+    /* When is_static is TRUE: */
+    a_variable_ptr
+		variable;
+			/* Associated property static data member. */
+  } variant;
+  union {
+    /* When is_declspec_property is TRUE: */
+    char	*name;	/* Name (null-terminated) specified by a Microsoft
+			   __declspec(property(get=...)) attribute.  NULL if
+			   the "get" name was not specified.  */
+    /* When is_declspec_property is FALSE: */
+    a_routine_ptr
+		ptr;	/* Accessor "get" routine. */
+  } get_routine;
+  union {
+    /* When is_declspec_property is TRUE: */
+    char	*name;	/* Name (null-terminated) specified by a Microsoft
+			   __declspec(property(put=...)) attribute.  NULL if
+			   the "put" name was not specified.  */
+    /* When is_declspec_property is FALSE: */
+    a_routine_ptr
+		ptr;	/* Accessor "set" routine. */
+  } set_routine;
+} a_property_descr;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
@@ -8020,6 +8090,13 @@ typedef struct a_variable {
 			   associated with this variable, if this is a static
 			   data member.  Currently, this list only has C++0x
 			   closure types. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_property_descr_ptr
+		property_descr;
+			/* Pointer to the description of the associated
+			   property (only non-NULL for static C++/CLI
+			   properties). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
@@ -8084,69 +8161,6 @@ typedef struct a_variable {
 #endif /* MINIMAL_INLINING */
 } a_variable;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-/* FIXME: Add EXTRA_SOURCE_POSITIONS_IN_IL fields. */
-typedef struct a_property_index_type *a_property_index_type_ptr;
-typedef struct a_property_index_type {
-  a_property_index_type_ptr
-		next;
-			/* Pointer to the next index type entry (or NULL if
-			   there is none). */
-  a_type_ptr	type;
-			/* The type declared for the index. */
-  a_source_position
-		position;
-			/* The position of the index type. */
-} a_property_index_type;
-
-
-typedef struct a_property_descr *a_property_descr_ptr;
-typedef struct a_property_descr {
-  a_bit_field	is_declspec_property:1;
-			/* TRUE if the property is declared with __declspec
-			   syntax ("old-style").  FALSE if the property is
-			   declared with the C++/CLI syntax. */
-  a_bit_field	is_trivial:1;
-			/* TRUE if the property is declared with the C++/CLI
-			   syntax but without explicit accessor functions. */
-  a_bit_field	is_default_indexed:1;
-			/* TRUE if this entry is for a default-indexed
-			   property (C++/CLI syntax only). */
-  a_bit_field	is_virtual:1;
-			/* TRUE if the property is declared with the "virtual"
-			   specifier. */
-  a_bit_field	is_static:1;
-			/* TRUE if the property is declared with the "static"
-			   specifier. */
-  a_property_index_type_ptr
-		indices;
-			/* Non-NULL only for an indexed property.  Points to a
-			   list of entries describing the types of the property
-			   indices. */
-  a_field_ptr
-		field;	/* Associated property field. */
-  union {
-    /* When is_declspec_property is TRUE: */
-    char	*name;	/* Name (null-terminated) specified by a Microsoft
-			   __declspec(property(get=...)) attribute.  NULL if
-			   the "get" name was not specified.  */
-    /* When is_declspec_property is TRUE: */
-    a_routine_ptr
-		ptr;	/* Accessor "get" routine. */
-  } get_routine;
-  union {
-    /* When is_declspec_property is TRUE: */
-    char	*name;	/* Name (null-terminated) specified by a Microsoft
-			   __declspec(property(put=...)) attribute.  NULL if
-			   the "put" name was not specified.  */
-    /* When is_declspec_property is TRUE: */
-    a_routine_ptr
-		ptr;	/* Accessor "set" routine. */
-  } set_routine;
-} a_property_descr;
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Data structures related to fields (members) of structs and unions:

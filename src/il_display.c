@@ -2302,6 +2302,9 @@ Display the indicated variable.
     disp_entity_list("entities_defined_in_initializer",
                      ptr->entities_defined_in_initializer);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_ptr("property_descr", (char*)ptr->property_descr, iek_property_descr);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */
@@ -4656,7 +4659,11 @@ Display the indicated property description.
     disp_boolean("is_default_indexed", TRUE);
   }  /* if */
   disp_ptr("indices", (char*)ptr->indices, iek_property_index_type);
-  disp_ptr("field", (char*)ptr->field, iek_field);
+  if (ptr->is_static) {
+    disp_ptr("variable", (char*)ptr->variant.variable, iek_variable);
+  } else {
+    disp_ptr("field", (char*)ptr->variant.field, iek_field);
+  }  /* if */
   if (ptr->is_declspec_property) {
     disp_string_ptr("get_routine.name", ptr->get_routine.name,
                     iek_other_text, (sizeof_t)0);

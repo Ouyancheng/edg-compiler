@@ -2017,6 +2017,9 @@ Clear the fields of the given variable to default values.
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   vp->entities_defined_in_initializer = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  vp->property_descr              = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   vp->assoc_template              = NULL;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   vp->section                     = NULL;
@@ -4270,7 +4273,7 @@ pointer to it.
   pdp->is_virtual = FALSE;
   pdp->is_static = FALSE;
   pdp->indices = NULL;
-  pdp->field = NULL;
+  pdp->variant.field = NULL;
   pdp->get_routine.ptr = NULL;
   pdp->set_routine.ptr = NULL;
   return pdp;

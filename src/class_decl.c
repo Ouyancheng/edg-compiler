@@ -660,6 +660,9 @@ typedef struct a_class_def_state {
 			   declarations, empty declarations, and some error
 			   cases.  The latter only to inhibit additional
 			   diagnostics.) */
+  a_bit_field   has_cli_property_member:1;
+			/* TRUE if the class definition contains a C++/CLI
+			   property declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_fields_other_than_unnamed_bitfields:1;
 			/* TRUE if any fields other than unnamed bit-fields
@@ -743,6 +746,7 @@ class being defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_declaration_valid_in_property = FALSE;
+  cdsp->has_cli_property_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_fields_other_than_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -8776,16 +8780,21 @@ is compatible with the declaration of the C++/CLI property it is associated
 with and issue diagnostics as needed.
 */
 {
-  a_type_ptr            rtp = skip_typerefs(rp->type);
+  a_type_ptr            rtp = skip_typerefs(rp->type), prop_type;
   a_routine_type_supplement_ptr
                         rtsp = rtp->variant.routine.extra_info;
   a_param_type_ptr      ptp = function_type_params(rtp);
   a_property_descr_ptr  pdp = rp->variant.property_descr;
   a_boolean             is_setter, err = FALSE;
 
+  if (pdp->is_static) {
+    prop_type = pdp->variant.variable->type;
+  } else {
+    prop_type = pdp->variant.field->type;
+  }  /* if */
   /* First check the return type. */
   if (rp->special_kind == (a_special_function_kind)sfk_property_get) {
-    if (!identical_types(rtp->variant.routine.return_type, pdp->field->type)) {
+    if (!identical_types(rtp->variant.routine.return_type, prop_type)) {
       pos_error(ec_bad_property_get_return, &dps->start_pos);
       err = TRUE;
     }  /* if */
@@ -8837,7 +8846,7 @@ with and issue diagnostics as needed.
       } else if (ptp->next != NULL) {
         pos_error(ec_extra_property_accessor_parameters, &dps->declarator_pos);
         err = TRUE;
-      } else if (!identical_types(ptp->type, pdp->field->type)) {
+      } else if (!identical_types(ptp->type, prop_type)) {
         pos_error(ec_property_set_value_parameter_mismatch,
                   &dps->declarator_pos);
         err = TRUE;
@@ -10153,6 +10162,9 @@ specific information about the member declaration, respectively.
      region and put on the variables list for the current class.  The storage
      class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  var->property_descr = class_state->property_descr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
   if (!decl_info->is_member_template || prototype_instantiations_in_il) {
@@ -15262,8 +15274,17 @@ being parsed), *decl_info describes the current member declaration, and
   }  /* if */
   class_state->property_descr = pdp;
   dps->is_property_field = TRUE;
-  pdp->field = decl_nonstatic_data_member(&locator_for_curr_id, class_state,
-                                          decl_info, depth_scope_stack);
+  if (pdp->is_static) {
+    decl_static_data_member(&locator_for_curr_id, class_state, decl_info);
+    check_assertion(dps->sym != NULL &&
+                    dps->sym->kind == (a_symbol_kind)sk_static_data_member);
+    pdp->variant.variable = dps->sym->variant.static_data_member.variable;
+  } else {
+    pdp->variant.field = decl_nonstatic_data_member(&locator_for_curr_id,
+                                                    class_state, decl_info,
+                                                    depth_scope_stack);
+  }  /* if */
+  class_state->has_cli_property_member = TRUE;
   (void)get_token();
   if (curr_token == tok_lbracket) {
     scan_cli_property_indices(pdp);
@@ -15276,6 +15297,7 @@ being parsed), *decl_info describes the current member declaration, and
       pos_error(ec_no_indices_on_trivial_property, &indices_pos);
     }  /* if */
     (void)get_token();
+    class_state->property_descr = NULL;
   } else {
     /* A nontrivial property. */
     (void)required_token(tok_lbrace, ec_exp_lbrace);
@@ -15286,172 +15308,6 @@ done:
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
 }  /* scan_cli_property_head */
-
-#if /*FIXME:delete*/0
-
-static a_boolean at_start_of_cli_property_declaration(void)
-/*
-This function must be called at the beginning of a class member declaration
-and returns TRUE if the following tokens appear to form a C++/CLI property
-declaration.  Otherwise, FALSE is returned.
-*/
-{
-  a_boolean      result = FALSE, type_seen = FALSE;
-  a_token_cache  cache;
-
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  while (curr_token == tok_static || curr_token == tok_virtual) {
-    cache_curr_token(&cache);
-    (void)get_token();
-  }  /* if */
-  if (!curr_token_is_identifier_string("property")) {
-    /* Without an identifier spelled "property", this is certainly not a
-       property declaration. */
-    goto done;
-  }  /* if */
-  cache_curr_token(&cache);
-  (void)get_token();
-  /* For this to be a property declaration, a sequence of type specifiers
-     must follow. */
-  for (;;) {
-    if (is_type_qualifier()) {
-      /* A type qualifier is always part of the sequence. */
-    } else if (is_type_keyword(curr_token)) {
-      /* A type keyword is always part of the sequence: An identifier that
-         follows should not be treated as a type. */
-      type_seen = TRUE;
-    } else if (!type_seen &&
-               curr_type_symbol(/*is_new_type_name=*/FALSE,
-                                /*in_prescan=*/TRUE) != NULL) {
-      /* A named type that is the main type-specifier in the sequence. */
-      type_seen = TRUE;
-    } else {
-      break;
-    }  /* if */
-    cache_curr_token(&cache);
-    (void)get_token();
-  }  /* for */
-  if (!type_seen) goto done;
-  /* Finally, a non-nested real declarator is expected: */
-  result = (curr_token != tok_lparen && is_declarator_start());
-done:
-  rescan_cached_tokens(&cache);
-  return result;
-}  /* at_start_of_cli_property_declaration */
-
-
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static a_boolean scan_cli_property_head_if_present(
-                                        a_class_def_state    *class_state,
-                                        an_ms_attribute_ptr  *ms_attributes,
-                                        a_decl_pos_block     *decl_pos_block)
-/*
-If a C++/CLI property declaration is next, scan its "head" (and update the IL
-and symbol table accordingly) and return TRUE; otherwise, return FALSE.
-The "head" of the property has the following syntax:
-   property-modifier(opt) property type-specifier-seq declarator
-     property-indices(opt) {-or-;
-where the optional property-modifier is either the "static" or "virtual"
-keyword, and the final token is a left brace (introducing accessor member
-declarations) or a semicolon (in the case of a trivial scalar property).
-*class_state holds information of the enclosing class (whose definition is
-being parsed), *ms_attributes points to any Microsoft [...] attributes that
-might have been scanned, *decl_pos_block track extended position information.
-*/
-{
-  a_boolean  property_parsed = FALSE;
-
-  if (at_start_of_cli_property_declaration()) {
-    a_member_decl_info    decl_info;
-    a_decl_parse_state    *dps = &decl_info.decl_state;
-    a_decl_flag_set       dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-                                      DSI_NO_TAG_DEFINITION |
-                                      DSI_VACUOUS_TAG_DECL_ALLOWED |
-                                      DSI_IS_MEMBER_DECLARATION;
-    a_property_descr_ptr  pdp = alloc_property_descr();
-    a_boolean             ptr_to_member_scanned;
-    a_source_position     decl_pos, type_pos, indices_pos;
-    add_stop_token(tok_semicolon);
-    add_stop_token(tok_lbrace);
-    decl_pos = pos_curr_token;
-    initialize_member_decl_info(
-            &decl_info, (*ms_attributes != NULL) ? &(*ms_attributes)->position
-                                                 : &decl_pos);
-    /* First scan leading static/virtual keywords, and skip over the "property"
-       token. */
-    while (curr_token == tok_static || curr_token == tok_virtual) {
-      if (curr_token == tok_static) {
-        if (pdp->is_static) pos_error(ec_dupl_decl_specifier, &pos_curr_token);
-        pdp->is_static = TRUE;
-      } else {
-        if (pdp->is_virtual) pos_warning(ec_dupl_decl_specifier,
-                                         &pos_curr_token);
-        pdp->is_virtual = TRUE;
-      }  /* if */
-      (void)get_token();
-    }  /* if */
-    if (pdp->is_static && pdp->is_virtual) {
-      pos_error(ec_virtual_static_property, &decl_pos);
-      pdp->is_static = FALSE;
-    }  /* if */
-    check_assertion(curr_token_is_identifier_string("property"));
-    (void)get_token();
-    type_pos = pos_curr_token;
-    decl_specifiers(dsi_flags, dps, decl_pos_block);
-    pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
-                       (a_call_conv_descr_ptr)NULL,
-                       (a_call_conv_descr_ptr)NULL,
-                       (a_type_qualifier_set *)NULL,
-                       (a_type_qualifier_set *)NULL,
-                       &ptr_to_member_scanned, decl_pos_block);
-    if (is_array_type(dps->type) || is_function_type(dps->type)) {
-      pos_error(is_array_type(dps->type) ? ec_array_type_not_allowed
-                                         : ec_function_type_not_allowed,
-                &type_pos);
-      dps->type = error_type();
-    }  /* if */
-    /* An identifier should be next. */
-    if (!required_token_no_advance(tok_identifier, ec_exp_identifier)) {
-      discard_curr_construct_pragmas();
-      goto done;
-    } else if (!is_generalized_identifier_start(GID_ERROR_FLAGS)) {
-      /* Since we already checked that the next token is an identifier, this
-         can only be a pointer-to-member. */
-      check_assertion(curr_token == tok_ptr_to_member);
-      syntax_error(ec_exp_identifier);
-    }  /* if */
-    dps->is_property_field = TRUE;
-    pdp->field = decl_nonstatic_data_member(&locator_for_curr_id, class_state,
-                                            &decl_info, depth_scope_stack);
-    (void)get_token();
-    if (curr_token == tok_lbracket) {
-      scan_cli_property_indices(pdp);
-    }  /* if */
-    if (curr_token == tok_semicolon) {
-      /* A trivial scalar property. */
-      pdp->is_trivial = TRUE;
-      if (pdp->indices != NULL) {
-        /* A trivial property cannot be an indexed property. */
-        pos_error(ec_no_indices_on_trivial_property, &indices_pos);
-      }  /* if */
-      (void)get_token();
-    } else {
-      /* A nontrivial property. */
-      (void)required_token(tok_lbrace, ec_exp_lbrace);
-      class_state->property_descr = pdp;
-      treat_declaration_as_okay_in_property(class_state);
-    }  /* if */
-done:
-    remove_stop_token(tok_lbrace);
-    remove_stop_token(tok_semicolon);
-    property_parsed = TRUE;
-  }  /* if */
-  return property_parsed;
-}  /* scan_cli_property_head_if_present */
-
-#endif
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
