@@ -1068,12 +1068,12 @@ EXTERN a_boolean
 			   modes. */
 EXTERN a_boolean
 		implicit_mscorlib;
-                        /* TRUE if mscorlib is implicitly made available,
+			/* TRUE if mscorlib is implicitly made available,
 			   as if by a #using directive. */
 EXTERN a_boolean
 		using_framework_directory;
-                        /* TRUE if assemblies should be searched for in the
-                           directory .NET is installed in. */
+			/* TRUE if assemblies should be searched for in the
+			   directory .NET is installed in. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS

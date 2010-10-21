@@ -267,31 +267,31 @@ the command-line.
 typedef struct a_cli_metadata_file *a_cli_metadata_file_ptr;
 typedef struct a_cli_metadata_file {
   char          *name_as_written;
-                        /* The name as specified on the command line or in a
-                           #using directive, including a path (if any).
-                           Null-terminated.  Note that it is not necessarily
-                           the same as full_name with the directory path
-                           stripped off -- for instance, full_name may be
-                           "path/xxx/abc.h" when '#using "xxx/abc.h"'
-                           appears in the source. */
+			/* The name as specified on the command line or in a
+			   #using directive, including a path (if any).
+			   Null-terminated.  Note that it is not necessarily
+			   the same as full_name with the directory path
+			   stripped off -- for instance, full_name may be
+			   "path/xxx/abc.h" when '#using "xxx/abc.h"'
+			   appears in the source. */
   char          *full_name;
-                        /* The actual file name of the file.
+			/* The actual file name of the file.
 			   Null-terminated. */
   a_cli_metadata_file_ptr
-                next;
-                        /* The next entry in a list of entries, or NULL for
+		next;
+			/* The next entry in a list of entries, or NULL for
 			   the last entry. */
   a_source_position
-                position;
-                        /* The position of the start of the directive. */
+		position;
+			/* The position of the start of the directive. */
   a_bit_field   as_friend:1;
-                        /* TRUE if the #using that named this file included
+			/* TRUE if the #using that named this file included
 			   the as_friend keyword, making all types from
 			   that assembly visible. */
   a_bit_field   referenced_by_preusing:1;
-                        /* TRUE if the file was named in a preusing option. */
+			/* TRUE if the file was named in a preusing option. */
   a_bit_field   referenced_by_system_using:1;
-                        /* TRUE if the file was named with the
+			/* TRUE if the file was named with the
 			   "#using <file.h>" notation and for an implicit
 			    #using of mscorlib.  FALSE for files named
 			   with the '#using "file.h"' notation or referenced
@@ -14959,8 +14959,8 @@ typedef struct an_il_header {
                            is written. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_cli_metadata_file_ptr
-                cli_metadata_files;
-                        /* A list of all metadata files made available to the
+		cli_metadata_files;
+			/* A list of all metadata files made available to the
 			   compilation.  These may have been made available by
 			   an explicit #using (as in a #using that
 			   appears in the source), or an implicit #using (as
