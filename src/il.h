@@ -1281,13 +1281,10 @@ extern a_field_ptr next_initializable_field(a_field_ptr field);
 #define field_is_nontrivial_property(fp) \
   ((fp)->property_descr != NULL && !(fp)->property_descr->is_trivial)
 #define var_is_property(vp)  ((vp)->property_descr != NULL)
-#define var_is_nontrivial_property(vp) \
-  ((vp)->property_descr != NULL && !(vp)->property_descr->is_trivial)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property(fp)  (FALSE)
 #define field_is_nontrivial_property(fp)  (FALSE)
 #define var_is_property(vp)  (FALSE)
-#define var_is_nontrivial_property(vp)  (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);
