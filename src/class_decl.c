@@ -3410,7 +3410,6 @@ overridden, the corresponding entry is removed from the registry.
          called. */
       a_symbol_ptr  sym = overridden_sym->variant.overloaded_function.symbols;
       unsigned int  count = 0;
-
       for (; sym != NULL; sym = sym->next) {
         if (sym->kind == (a_symbol_kind)sk_member_function &&
             sym->variant.routine.ptr->is_virtual) {
@@ -3437,7 +3436,6 @@ overridden, the corresponding entry is removed from the registry.
      which case the override count should be bumped. */
   if (nonoverriding_sym != NULL) {
     a_symbol_list_entry_ptr  new_slep, slep;
-
     new_slep = alloc_symbol_list_entry();
     new_slep->symbol = nonoverriding_sym;
     if (orep->override_failures == NULL) {
@@ -3839,6 +3837,42 @@ extension.  For example:
   return result;
 }  /* may_selectively_override */
 
+
+static a_boolean matching_property_accessors(a_routine_ptr  overrider,
+                                             a_routine_ptr  candidate)
+/*
+Overrider is a function that might override virtual function "candidate".
+If either function is a property accessor return FALSE if the properties do
+not match for overriding purposes.  Otherwise, return TRUE.
+*/
+{
+  a_boolean             mismatch = FALSE;
+  a_property_descr_ptr  pdp1 = NULL, pdp2 = NULL;
+
+  if (rout_is_property_accessor(overrider)) {
+    pdp1 = overrider->variant.property_descr;
+  }  /* if */
+  if (rout_is_property_accessor(candidate)) {
+    pdp2 = candidate->variant.property_descr;
+  }  /* if */
+  if (pdp1 == NULL && pdp2 == NULL) {
+    /* No accessors involved.  Return TRUE. */
+  } else if (pdp1 == NULL || pdp2 == NULL) {
+    /* One is an accessor and the other not: Mismatch. */
+    mismatch = TRUE;
+  } else if (pdp1->is_static || pdp2->is_static) {
+    /* If one property is static, it cannot participate in overriding. */
+    mismatch = TRUE;
+  } else {
+    a_field_ptr  fp1 = pdp1->variant.field, fp2 = pdp2->variant.field;
+    if (strcmp(fp1->source_corresp.name, fp2->source_corresp.name) != 0) {
+      /* Properties with different names don't match. */
+      mismatch = TRUE;
+    }  /* if */
+  }  /* if */
+  return !mismatch;
+}  /* matching_property_accessors */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean base_is_final(a_base_class_ptr  bcp)
@@ -4043,6 +4077,14 @@ Any diagnostics are issued at the given position.
                  an overload set) keep looking. */
               continue;
             }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (cppcli_enabled && !matching_property_accessors(rout, rp)) {
+              /* One or both routines is a property accessor and the other one
+                 doesn't match (either because it is not an accessor, or
+                 because it is an accessor for a non-matching property). */
+              continue;
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             any_override_candidates = TRUE;
             /* We are only interested in virtual functions with the same
                type signature.  Check first whether the parameter types are
@@ -8892,9 +8934,6 @@ the member function is an accessor for the property (if the accessor is valid).
                       &pdp->get_routine.ptr->source_corresp.decl_position);
     } else {
       rp->special_kind = (a_special_function_kind)sfk_property_get;
-      rp->variant.property_descr = pdp;
-      pdp->get_routine.ptr = rp;
-      check_property_accessor_type(rp, dps);
     }  /* if */
   } else if (strcmp(rp->source_corresp.name, "set") == 0) {
     if (pdp->set_routine.ptr != NULL) {
@@ -8903,13 +8942,21 @@ the member function is an accessor for the property (if the accessor is valid).
                       &pdp->set_routine.ptr->source_corresp.decl_position);
     } else {
       rp->special_kind = (a_special_function_kind)sfk_property_set;
-      rp->variant.property_descr = pdp;
-      pdp->set_routine.ptr = rp;
-      check_property_accessor_type(rp, dps);
     }  /* if */
   } else {
     /* Neither "get" nor "set": Issue an error. */
     pos_error(ec_invalid_property_accessor_decl, &dps->declarator_pos);
+  }  /* if */
+  if (rout_is_property_accessor(rp)) {
+    rp->variant.property_descr = pdp;
+    pdp->set_routine.ptr = rp;
+    check_property_accessor_type(rp, dps);
+    if ((pdp->is_virtual &&
+         dps->declared_storage_class == (a_storage_class)sc_static) ||
+        (pdp->is_static && (dps->dso_flags & DSO_VIRTUAL))) {
+      pos_error(ec_virtual_static_property_accessor, &dps->specifiers_pos);
+      decl_info->invalid_virtual_specifier = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_property_accessor */
 
@@ -8934,7 +8981,7 @@ implicitly declared member functions.
   a_decl_parse_state            *decl_state = &decl_info->decl_state;
   a_type_ptr                    class_type = class_state->class_type;
   a_type_ptr                    member_type = decl_state->type;
-  a_symbol_ptr                  sym, overload_sym;
+  a_symbol_ptr                  sym, overload_sym = NULL;
   a_routine_ptr                 rtn;
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
   a_type_ptr                    tp;
@@ -15036,14 +15083,14 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
 "literal").
 */
 {
-  a_boolean      result = FALSE, type_seen = FALSE, property_only = FALSE;
+  a_boolean      result = FALSE, property_or_event_only = FALSE;
   a_token_cache  cache;
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
   while (curr_token == tok_static || curr_token == tok_virtual) {
     /* "property" but not "initonly" or "literal" may be preceded by
        "static" or "virtual". */
-    property_only = TRUE;
+    property_or_event_only = TRUE;
     cache_curr_token(&cache);
     (void)get_token();
   }  /* if */
@@ -15058,7 +15105,9 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
     }  /* if */
     if (symbol_header_is_for_identifier_string(sym_hdr, "property")) {
       dps->has_cli_property_keyword = TRUE;
-    } else if (property_only) {
+    } else if (symbol_header_is_for_identifier_string(sym_hdr, "event")) {
+      dps->has_cli_event_keyword = TRUE;
+    } else if (property_or_event_only) {
       /* We already ruled out identifiers not spelled "property". */
       goto done;
     } else if (symbol_header_is_for_identifier_string(sym_hdr, "initonly")) {
@@ -15085,14 +15134,8 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
     } else if (curr_token == tok_identifier) {
       /* An identifier naming a type, on the other hand, could be
          a declarator-id. */
-      if (type_seen) {
-        /* An identifier that can be resolved as a type was already seen.
-           This one must therefore be a declarator-id, and the potential
-           context-sensitive keyword is indeed a keyword. */
-        result = TRUE;
-        goto done;
-      } else if (curr_type_symbol(/*is_new_type_name=*/FALSE,
-                                  /*in_prescan=*/TRUE) == NULL) {
+      if (curr_type_symbol(/*is_new_type_name=*/FALSE,
+                           /*in_prescan=*/TRUE) == NULL) {
         /* The current identifier is not a type.  So it must be a declarator-id
            and the potential context-sensitive keyword must be a type name. */
         break;
@@ -15136,6 +15179,13 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
          identifiers are presumably rare. */
       result = TRUE;
       goto done;
+    } else if (curr_token == tok_typedef || curr_token == tok_extern ||
+               curr_token == tok_friend || curr_token == tok_asm ||
+               curr_token == tok_explicit) {
+      /* These specifiers cannot appear in a property declaration and are
+         unlikely to accidentally appear in a malformed property declaration:
+         Don't attempt to parse this as a property. */
+      break;
     } else {
       /* Presumably another specifier token. */
     }  /* if */
@@ -15186,8 +15236,10 @@ list.
           (*p_pitp)->type = error_type();
         }  /* if */
       }  /* if */
+      p_pitp = &(*p_pitp)->next;
       remove_stop_token(tok_comma);
     } while (loop_token(tok_comma));
+    remove_stop_token(tok_rbracket);
   }  /* if */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
 }  /* scan_cli_property_indices */
@@ -15220,7 +15272,7 @@ being parsed), *decl_info describes the current member declaration, and
                                     DSI_IS_MEMBER_DECLARATION;
   a_property_descr_ptr  pdp = alloc_property_descr();
   a_boolean             ptr_to_member_scanned;
-  a_source_position     decl_pos, type_pos, indices_pos;
+  a_source_position     decl_pos, type_pos;
 
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
@@ -15246,6 +15298,13 @@ being parsed), *decl_info describes the current member declaration, and
   (void)get_token();
   type_pos = pos_curr_token;
   decl_specifiers(dsi_flags, dps, decl_pos_block);
+  /* Most nontype specifiers will have been diagnosed by decl_specifiers
+     (or caused check_for_cli_field_modifier not to treat "property" as a
+     keyword): */
+  if (dps->dso_flags & DSO_VIRTUAL) {
+    pos_error(ec_virtual_not_allowed, &dps->virtual_pos);
+    if (!pdp->is_static) pdp->is_virtual = TRUE;
+  }  /* if */            
   dps->type = pointer_declarator(dps->type, dps, /*reference_allowed=*/TRUE,
                                  (a_call_conv_descr_ptr)NULL,
                                  (a_call_conv_descr_ptr)NULL,
@@ -15258,7 +15317,7 @@ being parsed), *decl_info describes the current member declaration, and
               &type_pos);
     dps->type = error_type();
   }  /* if */
-  /* An identifier should be next. */
+  /* An identifier or "default" should be next. */
   if (!required_token_no_advance(tok_identifier, ec_exp_identifier)) {
     discard_curr_construct_pragmas();
     goto done;
@@ -15267,6 +15326,12 @@ being parsed), *decl_info describes the current member declaration, and
        can only be a pointer-to-member. */
     check_assertion(curr_token == tok_ptr_to_member);
     syntax_error(ec_exp_identifier);
+  } else if (curr_token_is_identifier_string("default")) {
+    if (pdp->is_static) {
+      pos_error(ec_static_default_indexed_property, &pos_curr_token);
+    } else {
+      pdp->is_default_indexed = TRUE;
+    }  /* if */
   }  /* if */
   class_state->property_descr = pdp;
   dps->is_property_field = TRUE;
@@ -15284,13 +15349,15 @@ being parsed), *decl_info describes the current member declaration, and
   (void)get_token();
   if (curr_token == tok_lbracket) {
     scan_cli_property_indices(pdp);
+  } else if (pdp->is_default_indexed) {
+    pos_error(ec_exp_lbracket, &pos_curr_token);
   }  /* if */
   if (curr_token == tok_semicolon) {
     /* A trivial scalar property. */
     pdp->is_trivial = TRUE;
     if (pdp->indices != NULL) {
       /* A trivial property cannot be an indexed property. */
-      pos_error(ec_no_indices_on_trivial_property, &indices_pos);
+      pos_error(ec_trivial_indexed_property, &pos_curr_token);
     }  /* if */
     (void)get_token();
     class_state->property_descr = NULL;

@@ -478,6 +478,9 @@ typedef struct a_decl_parse_state {
   a_bit_field	has_cli_property_keyword:1;
 			/* TRUE if a C++/CLI context-sensitive keyword
 			   "property" was seen in a member declaration. */
+  a_bit_field	has_cli_event_keyword:1;
+			/* TRUE if a C++/CLI context-sensitive keyword "event"
+			   was seen in a member declaration. */
   a_bit_field	has_cli_initonly_keyword:1;
 			/* TRUE if a C++/CLI context-sensitive keyword
 			   "initonly" was seen in a member declaration. */

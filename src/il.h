@@ -1278,13 +1278,17 @@ extern a_field_ptr next_initializable_field(a_field_ptr field);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define field_is_property(fp)  ((fp)->property_descr != NULL)
-#define field_is_nontrivial_property(fp) \
+#define field_is_nontrivial_property(fp)                                     \
   ((fp)->property_descr != NULL && !(fp)->property_descr->is_trivial)
 #define var_is_property(vp)  ((vp)->property_descr != NULL)
+#define rout_is_property_accessor(rp)                                        \
+  ((rp)->special_kind == (a_special_function_kind)sfk_property_get ||        \
+   (rp)->special_kind == (a_special_function_kind)sfk_property_set)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define field_is_property(fp)  (FALSE)
 #define field_is_nontrivial_property(fp)  (FALSE)
 #define var_is_property(vp)  (FALSE)
+#define rout_is_property_accessor(rp)  (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);
