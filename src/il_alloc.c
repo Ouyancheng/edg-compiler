@@ -1349,6 +1349,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->orig_type_kind                    = (a_type_kind)tk_error;
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
+  ctsp->has_direct_property_member        = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

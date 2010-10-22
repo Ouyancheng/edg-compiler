@@ -6088,6 +6088,9 @@ typedef struct a_class_type_supplement {
 			/* TRUE if the inheritance_kind field was set as the
 			   result of an explicit specification on the class
 			   declaration. */
+  a_bit_field	has_direct_property_member:1;
+			/* TRUE if this class contains a direct (i.e., not
+			   inherited) property member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

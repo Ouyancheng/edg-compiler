@@ -5433,6 +5433,9 @@ Display the indicated class type supplement entry.
     disp_boolean("inheritance_kind_is_explicit",
                  (a_boolean)ptr->inheritance_kind_is_explicit);
   }  /* if */
+  if (ptr->has_direct_property_member) {
+    disp_boolean("has_direct_property_member", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -5456,7 +5459,7 @@ Display the indicated class type supplement entry.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if DO_IL_LOWERING
   if (ptr->compiler_generated) {
-    disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+    disp_boolean("compiler_generated", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
   if (ptr->is_lambda_closure_class) {

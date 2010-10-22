@@ -660,9 +660,6 @@ typedef struct a_class_def_state {
 			   declarations, empty declarations, and some error
 			   cases.  The latter only to inhibit additional
 			   diagnostics.) */
-  a_bit_field   has_cli_property_member:1;
-			/* TRUE if the class definition contains a C++/CLI
-			   property declaration. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_fields_other_than_unnamed_bitfields:1;
 			/* TRUE if any fields other than unnamed bit-fields
@@ -746,7 +743,6 @@ class being defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
   cdsp->current_declaration_valid_in_property = FALSE;
-  cdsp->has_cli_property_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_fields_other_than_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -15284,7 +15280,7 @@ being parsed), *decl_info describes the current member declaration, and
                                                     class_state, decl_info,
                                                     depth_scope_stack);
   }  /* if */
-  class_state->has_cli_property_member = TRUE;
+  class_type_supp(class_state->class_type)->has_direct_property_member = TRUE;
   (void)get_token();
   if (curr_token == tok_lbracket) {
     scan_cli_property_indices(pdp);
@@ -16631,6 +16627,82 @@ not actually hide a base class member.
   }  /* if */
 }  /* check_base_member_hiding */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean check_conflict_with_direct_property(
+                                                a_symbol_locator  *ploc,
+                                                a_type_ptr        class_type,
+                                                a_symbol_ptr      diag_sym)
+/*
+A member set_X or get_X (represented by diag_sym) is declared in class_type or
+a type derived from class_type.  ploc is a locator for X.  Issue a diagnostic
+if class_type contains a direct (i.e., not inherited) property named X.
+*/
+{
+  a_boolean     result = FALSE;
+  a_symbol_ptr  sym;
+
+  sym = class_qualified_id_lookup(ploc, class_type,
+                                  IDL_DIRECT_CLASS_MEMBERS_ONLY);
+  if (sym != NULL &&
+      ((symbol_is(sym, sk_field) &&
+        field_is_property(sym->variant.field.ptr)) ||
+       (symbol_is(sym, sk_static_data_member) &&
+        var_is_property(sym->variant.static_data_member.variable)))) {
+    pos_stsy_error(ec_member_name_reserved_by_property,
+                   &diag_sym->decl_position, diag_sym->header->identifier,
+                   sym);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* check_cli_get_set_names */
+
+                                    
+static void check_names_reserved_by_cli_properties(a_type_ptr  class_type)
+/*
+Check every direct member of class_type to see if it is of the form get_XYZ
+or set_XYZ.  If it is, issue an error if it also contains a (possibly
+inherited) property named XYZ.
+*/
+{
+  a_symbol_ptr  sym = symbol_supplement_for_class(class_type)->symbols;
+
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    char  *mem_id = sym->header->identifier;
+    if (symbol_is(sym, sk_type) && sym->variant.type.is_injected_class_name) {
+      /* The injected class name is not considered. */
+      continue;
+    } else if (sym->decl_position.seq == 0) {
+      /* Ignore compiler-generated declarations. */
+      continue;
+    }  /* if */
+    if ((mem_id[0] == 'g' || mem_id[0] == 's') &&
+        mem_id[1] == 'e' && mem_id[2] == 't' && mem_id[3] == '_' &&
+        mem_id[4] != '\0') {
+      char              *pname = mem_id+4;
+      a_symbol_locator  ploc;
+      a_base_class_ptr  bcp;
+      clear_locator(&ploc, &null_source_position);
+      (void)find_symbol(pname, strlen(pname), &ploc);
+      if (class_type_supp(class_type)->has_direct_property_member &&
+          check_conflict_with_direct_property(&ploc, class_type, sym)) {
+        /* A diagnostic has been issued: Additional ones for this symbol
+           would not be helpful. */
+        continue;
+      }  /* if */
+      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+        if (class_type_supp(bcp->type)->has_direct_property_member &&
+            check_conflict_with_direct_property(&ploc, bcp->type, sym)) {
+          /* A diagnostic has been issued: Additional ones for this symbol
+             would not be helpful. */
+          continue;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
+}  /* check_names_reserved_by_cli_properties */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -16776,6 +16848,9 @@ bits of information that were acquired while parsing.
        type that is a valid base for an __interface type). */
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
+    if (cppcli_enabled) {
+      check_names_reserved_by_cli_properties(class_type);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
        for incomplete overriding of virtual functions. */
