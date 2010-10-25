@@ -63,7 +63,9 @@ EXTERN a_token_sequence_number
 A type used to represent a token from a reusable cache.
 */
 typedef a_cached_token_ptr a_cached_token_handle;
+#if 0
 typedef a_cached_token_handle *a_cached_token_handle_ptr;
+#endif
 
 EXTERN a_cached_token_handle
 		curr_cached_token_handle;
