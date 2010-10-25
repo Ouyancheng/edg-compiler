@@ -644,6 +644,9 @@ extern int fileno(FILE *);
 /*lint -esym(552,using_framework_directory)*/
 /*lint -esym(769,ec_win32_api_error)*/
 #endif /* !(EDG_WIN32 && MICROSOFT_EXTENSIONS_ALLOWED) */
+/* FIXME */
+/*lint -esym(759,record_pack_expansion_ellipsis)*/
+
 
 #endif /* ifndef LINT_H */
 
