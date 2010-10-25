@@ -4673,6 +4673,11 @@ Display the indicated property description.
     disp_ptr("get_routine.ptr", (char*)ptr->get_routine.ptr, iek_routine);
     disp_ptr("set_routine.ptr", (char*)ptr->set_routine.ptr, iek_routine);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("property_position", &ptr->property_position);
+  disp_source_range("indices_range", &ptr->indices_range);
+  disp_source_range("definition_range", &ptr->definition_range);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_property_descr */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

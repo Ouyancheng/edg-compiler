@@ -7689,6 +7689,23 @@ typedef struct a_property_descr {
     a_routine_ptr
 		ptr;	/* Accessor "set" routine. */
   } set_routine;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		property_position;
+			/* The position o the "property" keyword. */
+  a_source_range
+		indices_range;
+			/* The source position range delimited by the "["
+			   and "]" tokens of the property indices, or
+			   null_source_range if there are no indices. */
+  a_source_range
+		definition_range;
+			/* The source position range delimited by the "{"
+			   and "}" tokens enclosing the property accessor
+			   declarations, or, in the case of a trivial
+			   property, the range consisting solely of the ";"
+			   token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_property_descr;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

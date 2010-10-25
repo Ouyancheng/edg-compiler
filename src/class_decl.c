@@ -15210,6 +15210,9 @@ list.
 {
   /* Skip over the left bracket. */
   check_assertion(curr_token == tok_lbracket);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  pdp->indices_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   if (curr_token == tok_rbracket) {
     pos_error(ec_empty_property_indices, &pos_curr_token);
@@ -15241,13 +15244,13 @@ list.
     } while (loop_token(tok_comma));
     remove_stop_token(tok_rbracket);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  pdp->indices_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
 }  /* scan_cli_property_indices */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void scan_cli_property_head(a_class_def_state   *class_state,
                                    a_member_decl_info  *decl_info,
                                    a_decl_pos_block    *decl_pos_block)
@@ -15295,6 +15298,9 @@ being parsed), *decl_info describes the current member declaration, and
     pdp->is_static = FALSE;
   }  /* if */
   check_assertion(curr_token_is_identifier_string("property"));
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  pdp->property_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   type_pos = pos_curr_token;
   decl_specifiers(dsi_flags, dps, decl_pos_block);
@@ -15352,6 +15358,9 @@ being parsed), *decl_info describes the current member declaration, and
   } else if (pdp->is_default_indexed) {
     pos_error(ec_exp_lbracket, &pos_curr_token);
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  pdp->definition_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (curr_token == tok_semicolon) {
     /* A trivial scalar property. */
     pdp->is_trivial = TRUE;
@@ -15359,6 +15368,9 @@ being parsed), *decl_info describes the current member declaration, and
       /* A trivial property cannot be an indexed property. */
       pos_error(ec_trivial_indexed_property, &pos_curr_token);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    pdp->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
     class_state->property_descr = NULL;
   } else {
@@ -17480,6 +17492,10 @@ next_declaration:
             /* The closing brace of a nontrivial property definition.  Skip
                over the token and update class_state to indicate we're no
                longer in a property definition. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            class_state.property_descr->definition_range.end =
+                                                           end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             (void)get_token();
             class_state.property_descr = NULL;
           }  /* if */

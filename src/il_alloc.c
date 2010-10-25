@@ -4277,6 +4277,11 @@ pointer to it.
   pdp->variant.field = NULL;
   pdp->get_routine.ptr = NULL;
   pdp->set_routine.ptr = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  pdp->property_position = null_source_position;
+  pdp->indices_range = null_source_range;
+  pdp->definition_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return pdp;
 }  /* alloc_property_descr */
 
