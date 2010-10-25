@@ -1,5 +1,13 @@
 Version 4.3
 
+10/25/10 [EDGcpfe/11089]
+MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD missing in configuration output
+
+The configuration macro MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD was missing
+from the output produced for the command-line option --dump_configuration.
+This is now fixed.
+
+
 10/25/10 [EDGcpfe/11086]
 Microsoft compatibility: Zero array bounds
 

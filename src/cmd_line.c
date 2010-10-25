@@ -5678,6 +5678,11 @@ file.
 #else /* !defined(MICROSOFT_EXTENSIONS_ALLOWED) */
   comment_undefined_macro_name(MICROSOFT_EXTENSIONS_ALLOWED);
 #endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) */
+#if defined(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD)
+  define_numeric_valued_macro(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD);
+#else /* !defined(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD) */
+  comment_undefined_macro_name(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD);
+#endif /* defined(MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD) */
 #if defined(MINIMAL_INLINING)
   define_numeric_valued_macro(MINIMAL_INLINING);
 #else /* !defined(MINIMAL_INLINING) */
