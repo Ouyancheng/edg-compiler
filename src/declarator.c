@@ -2771,6 +2771,19 @@ created, the original expression pointer is set to NULL.
 }  /* make_bound_expr_referenceable_from_file_scope */
 
 
+static a_boolean in_class_definition(void)
+/*
+Return TRUE if the current scope is a class scope of a function prototype
+scope in a class scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+
+  while (ssep->kind == (a_scope_kind)sck_func_prototype) ssep -= 1;
+  return ssep->kind == (a_scope_kind)sck_class_struct_union;
+}  /* in_class_definition */
+
+
 #if !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* threads_dimension_allowed is only used in configurations
                  supporting UPC extensions. */
@@ -2951,7 +2964,7 @@ constant.
             num_of_elements =
                         unsigned_value_of_integer_constant(&constant, &err);
             if (err) error(ec_array_size_too_large);
-          } else if (((microsoft_mode && top_level_field_decl) || gnu_mode) &&
+          } else if (((microsoft_mode && in_class_definition()) || gnu_mode) &&
                      sign_of_integer_constant(&constant) == 0) {
             /* In Microsoft C mode a field may be a zero-sized array type if
                it is the last field of the struct.  Thus

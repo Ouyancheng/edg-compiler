@@ -1,5 +1,18 @@
 Version 4.3
 
+10/25/10 [EDGcpfe/11086]
+Microsoft compatibility: Zero array bounds
+
+Previously, in Microsoft modes, a zero array bound ([0]) was allowed for a
+field declaration and was treated exactly like an unspecified bound ([]); see
+the Changes entry of 4/30/95.  Now this has been extended to all declarators
+that appear in a class definition.  E.g.:
+
+  struct S {
+    typedef int A[0];  // Now accepted in Microsoft C++ mode, and treated
+  };                   // as "typedef int A[];".
+
+
 10/25/10 [EDGcpfe/11092]
 Pointers to incompletely-defined types as operands to built-in operators
 in overload resolution
