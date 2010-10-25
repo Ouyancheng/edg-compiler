@@ -8989,17 +8989,18 @@ implicitly declared member functions.
   a_name_linkage_kind           def_name_linkage;
   a_routine_type_supplement_ptr rtsp;
   a_symbol_ptr                  overridden_function = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_property_descr_ptr          pdp = class_state->property_descr;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_member_function");
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_state->property_descr != NULL) {
-    /* The member function declaration appears as part of a property
+  if (pdp != NULL && pdp->is_static) {
+    /* The member function declaration appears as part of a static property
        declaration. */
-    if (class_state->property_descr->is_static) {
-      decl_state->storage_class = (a_storage_class)sc_static;
-    }  /* if */
+    decl_state->storage_class = (a_storage_class)sc_static;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state->storage_class == (a_storage_class)sc_static) {
@@ -9037,7 +9038,7 @@ implicitly declared member functions.
   check_operator_function_params(member_type, class_type, locator);
   /* Look for a prior declaration or function overloading. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_state->property_descr != NULL) {
+  if (pdp != NULL) {
     /* Do not check for redeclarations or overloading here since any errors
        would likely be spurious.  Instead, check_property_accessor will report
        duplicates. */
@@ -9100,7 +9101,7 @@ implicitly declared member functions.
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (class_state->property_descr != NULL) {
+  } else if (pdp != NULL) {
     check_property_accessor(sym, decl_info, class_state);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -9509,15 +9510,17 @@ implicitly declared member functions.
       a_boolean  is_virtual = ((decl_state->dso_flags & DSO_VIRTUAL) &&
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode &&
-          check_virtual_interface_member(class_state, rtn, locator)) {
-        /* This member is implicitly pure virtual by virtue of being
-           declared in an interface class type.  Interfaces with virtual
-           members cannot be PODs (in particular, they need generated
-           copy-constructors to set virtual function table pointers.) */
-        make_virtual_function_pure(rtn, class_type);
-        is_virtual = TRUE;
-        class_state->POD_ruled_out = TRUE;
+      if (microsoft_mode) {
+        if (check_virtual_interface_member(class_state, rtn, locator)) {
+          /* This member is implicitly pure virtual by virtue of being
+             declared in an interface class type.  Interfaces with virtual
+             members cannot be PODs (in particular, they need generated
+             copy-constructors to set virtual function table pointers.) */
+          make_virtual_function_pure(rtn, class_type);
+          is_virtual = TRUE;
+          class_state->POD_ruled_out = TRUE;
+        }  /* if */
+        if (pdp != NULL && pdp->is_virtual) is_virtual = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (rtn->compiler_generated && rtn->is_prototype_instantiation) {
