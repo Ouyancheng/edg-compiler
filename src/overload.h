@@ -154,9 +154,10 @@ conversion_from_class_possible.
 			/* Any floating type. */
 #define BTK_POINTER 0x4
 			/* Any pointer. */
-#define BTK_OBJECT_POINTER 0x8
-			/* Any pointer to (complete) object type. */
-#define BTK_FUNCTION_POINTER 0x10
+#define BTK_POINTER_TO_OBJECT 0x8
+			/* Any pointer to object type.  Note that the C++
+			   standard allows incomplete object types. */
+#define BTK_POINTER_TO_FUNCTION 0x10
 			/* Any pointer to function. */
 #define BTK_PTR_TO_MEMBER 0x20
 			/* Any pointer to member. */

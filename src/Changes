@@ -1,5 +1,28 @@
 Version 4.3
 
+10/25/10 [EDGcpfe/11092]
+Pointers to incompletely-defined types as operands to built-in operators
+in overload resolution
+
+The pseudo-prototypes to be used to represent built-in operators in
+overload resolution (described in [over.built] of the C++ standard)
+specify "pointer to object type" in several cases (e.g., for the "*"
+indirection operator).  The front end implemented those as "pointer to
+complete object type", which was wrong and caused a spurious error
+on cases like the following:
+
+  template <class T> struct A {
+    operator T*();
+  };
+  class B;
+  void foo() {
+    A<B> ab;
+    *ab;
+  }
+
+Now fixed.
+
+
 10/19/10 [EDGcpfe/11046]
 C++-generating back end: Incorrect template parameter names
 

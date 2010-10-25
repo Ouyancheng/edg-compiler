@@ -1269,9 +1269,9 @@ for overload resolution.
 			/* Arithmetic type. */
 #define POINTER_TYPE_CODE 'P'
 			/* Any pointer type. */
-#define OBJECT_POINTER_TYPE_CODE 'O'
+#define POINTER_TO_OBJECT_TYPE_CODE 'O'
 			/* Pointer to object type. */
-#define FUNCTION_POINTER_TYPE_CODE 'F'
+#define POINTER_TO_FUNCTION_TYPE_CODE 'F'
 			/* Pointer to function. */
 #define PTR_TO_MEMBER_TYPE_CODE 'M'
 			/* Pointer to member. */
@@ -1312,10 +1312,10 @@ Return a printable string describing a type code.
     case POINTER_TYPE_CODE:
       str = "pointer";
       break;
-    case OBJECT_POINTER_TYPE_CODE:
+    case POINTER_TO_OBJECT_TYPE_CODE:
       str = "pointer-to-object";
       break;
-    case FUNCTION_POINTER_TYPE_CODE:
+    case POINTER_TO_FUNCTION_TYPE_CODE:
       str = "pointer-to-function";
       break;
     case PTR_TO_MEMBER_TYPE_CODE:
@@ -9261,21 +9261,20 @@ routine.
 }  /* select_and_prepare_to_call_overloaded_function */
 
 
-static a_boolean is_object_pointer_type(a_type_ptr tp)
+static a_boolean is_pointer_to_object_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a pointer to a complete object type.
-Instantiate the underlying type if necessary to make it a complete type.
+Return TRUE if the given type is a pointer to an object type.  Note that
+object types can be incomplete in some cases.
 */
 {
   a_boolean result = FALSE;
 
   if (is_pointer_type(tp)) {
     a_type_ptr underlying_type = type_pointed_to(tp);
-    complete_type_is_needed(underlying_type);
-    result = is_complete_object_type(underlying_type);
+    result = is_object_type(underlying_type);
   }  /* if */
   return result;
-}  /* is_object_pointer_type */
+}  /* is_pointer_to_object_type */
 
 
 static void try_conversion_function_match(
@@ -9628,9 +9627,9 @@ This routine is only used in C++ mode.
                                               is_floating_type(return_type)) ||
           ((builtin_types_allowed & BTK_POINTER) != 0 &&
                                               is_pointer_type(return_type)) ||
-          ((builtin_types_allowed & BTK_OBJECT_POINTER) != 0 &&
-                                        is_object_pointer_type(return_type)) ||
-          ((builtin_types_allowed & BTK_FUNCTION_POINTER) != 0 &&
+          ((builtin_types_allowed & BTK_POINTER_TO_OBJECT) != 0 &&
+                                     is_pointer_to_object_type(return_type)) ||
+          ((builtin_types_allowed & BTK_POINTER_TO_FUNCTION) != 0 &&
                              is_pointer_type(return_type) &&
                              is_function_type(type_pointed_to(return_type))) ||
           ((builtin_types_allowed & BTK_PTR_TO_MEMBER) != 0 &&
@@ -10013,10 +10012,10 @@ it fits that type description or can be converted to it.
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
       break;
-    case OBJECT_POINTER_TYPE_CODE:
-      matches = is_object_pointer_type(type);
+    case POINTER_TO_OBJECT_TYPE_CODE:
+      matches = is_pointer_to_object_type(type);
       break;
-    case FUNCTION_POINTER_TYPE_CODE:
+    case POINTER_TO_FUNCTION_TYPE_CODE:
       matches = is_pointer_type(type) &&
                 is_function_type(type_pointed_to(type));
       break;
@@ -10067,11 +10066,11 @@ type_code.
     case POINTER_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER;
       break;
-    case OBJECT_POINTER_TYPE_CODE:
-      builtin_types_allowed = BTK_OBJECT_POINTER;
+    case POINTER_TO_OBJECT_TYPE_CODE:
+      builtin_types_allowed = BTK_POINTER_TO_OBJECT;
       break;
-    case FUNCTION_POINTER_TYPE_CODE:
-      builtin_types_allowed = BTK_FUNCTION_POINTER;
+    case POINTER_TO_FUNCTION_TYPE_CODE:
+      builtin_types_allowed = BTK_POINTER_TO_FUNCTION;
       break;
     case PTR_TO_MEMBER_TYPE_CODE:
       builtin_types_allowed = BTK_PTR_TO_MEMBER;
@@ -10342,7 +10341,7 @@ the target type to be used).
       /* A specific type is required.  Check that the operand can be
          converted to the type passed in. */
       a_type_ptr eff_specific_type = specific_type;
-      if (*type_pattern_position == OBJECT_POINTER_TYPE_CODE &&
+      if (*type_pattern_position == POINTER_TO_OBJECT_TYPE_CODE &&
           operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
         /* For "->*", the first operand is a pointer to class, and the
            second is a pointer to member of the same class.  The
@@ -10783,7 +10782,7 @@ in some way, e.g., two pointers that must have the same type.
        arg_operand != NULL;
        type_pattern_position++, arg_operand = arg_operand->next) {
     operand_type = arg_operand->operand.type;
-    if (*type_pattern_position == OBJECT_POINTER_TYPE_CODE &&
+    if (*type_pattern_position == POINTER_TO_OBJECT_TYPE_CODE &&
         operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
       /* For "->*", the first operand is a pointer to class, and the
          second is a pointer to member of the same class.  Don't
@@ -11252,7 +11251,7 @@ Adjust the operand type to match the type requirement.
     } else {
       /* A specific type is wanted.  Convert to the type indicated in
          candidate_function. */
-      if (type_code == OBJECT_POINTER_TYPE_CODE &&
+      if (type_code == POINTER_TO_OBJECT_TYPE_CODE &&
           operand_type_pattern[1] == PTR_TO_MEMBER_TYPE_CODE) {
         /* For "->*", the first operand is a pointer to class, and the
            second is a pointer to member of the same class.  The
