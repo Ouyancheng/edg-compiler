@@ -5874,6 +5874,7 @@ This routine is called during IL walking.
     case iek_macro_invocation_record_block:
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
     case iek_il_entity_list_entry:
+    case iek_integer_type_supplement:
       break;
     default:
       (void)printf("\n");
