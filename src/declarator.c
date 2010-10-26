@@ -2773,7 +2773,7 @@ created, the original expression pointer is set to NULL.
 
 static a_boolean in_class_definition(void)
 /*
-Return TRUE if the current scope is a class scope of a function prototype
+Return TRUE if the current scope is a class scope or a function prototype
 scope in a class scope.
 */
 {
