@@ -1,5 +1,20 @@
 Version 4.3
 
+10/26/10 [EDGcpfe/11095]
+Invalid orphan entry structure for attributes
+
+The front end sometimes must place attribute entries (an_attribute) on an
+"orphaned entries list".  However, when writing the IL to a file, the front
+end failed to correctly remap the pointers to that list.  The resulting
+invalid IL file could easily trigger internal errors later on (e.g., in the
+stand-alone IL display utility).  The following GNU-mode example suffered
+from this problem:
+
+  void f(int p __attribute((unused))) { return; }
+
+This is now fixed.
+
+
 10/25/10 [EDGcpfe/11089]
 MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD missing in configuration output
 
