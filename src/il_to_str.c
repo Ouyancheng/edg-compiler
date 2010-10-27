@@ -2843,7 +2843,8 @@ Do the output in the way described by octl.
                    !(octl->output_name_reference != NULL &&
                      octl->output_name_reference(
                                 constant->variant.ptr_to_member.name_reference,
-                                scp, iek_constant, /*is_declaration=*/FALSE));
+                                scp, iek_constant, /*is_declaration=*/FALSE,
+                                /*need_parens=*/FALSE));
       }
     } else {
       /* There's no name reference available; use a qualified name. */

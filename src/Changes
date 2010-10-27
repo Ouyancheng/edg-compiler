@@ -1,5 +1,25 @@
 Version 4.3
 
+10/27/10 [EDGcpfe/11097]
+C++-generating back end, Microsoft compatibility: < operator in non-type
+template arguments
+
+The Microsoft C++ compiler has a bug in which it sometimes mistakes a <
+operator appearing in a non-type template argument as the beginning of a
+nested template argument list, resulting in spurious errors.  For example:
+
+  template<bool B> struct A;
+  template<typename T> struct B;
+  template<typename T> struct C {
+    typedef typename A<B<T>::m < 5>::type type; // error in MSVC++
+  };
+
+When msvc_is_generated_code_target is TRUE, the C++-generating back end
+now avoids triggering this bug by unconditionally enclosing the operands
+of a < operator in parentheses when they appear inside a template argument
+list.
+
+
 10/26/10 [EDGcpfe/11095]
 Invalid orphan entry structure for attributes
 

@@ -403,8 +403,8 @@ static void gen_statement_full(a_statement_ptr statement,
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
-static a_boolean parens_may_be_needed(a_byte           operator_precedence,
-                                      an_expr_node_ptr operand);
+static a_boolean parens_may_be_needed(an_expr_operator_kind op,
+                                      an_expr_node_ptr      operand);
 static a_boolean entity_name_is_accessible(
                                    a_source_correspondence_ptr scp,
                                    an_il_entry_kind            kind,
@@ -3218,7 +3218,8 @@ static a_boolean gen_name_from_name_reference(
                                         a_name_reference_ptr    nrp,
                                         a_source_correspondence *scp,
                                         an_il_entry_kind        entry_kind,
-                                        a_boolean               is_declaration)
+                                        a_boolean               is_declaration,
+                                        a_boolean               need_parens)
 /*
 Generate a name reference for the entity with source correspondence
 scp and kind entry_kind using the name-reference information in *nrp.  If
@@ -3269,6 +3270,9 @@ to indicate that the name reference was successfully emitted.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (use_name_reference) {
       name_generated = TRUE;
+      if (need_parens) {
+        write_tok_ch('(');
+      }  /* if */
       if (nrp->is_global_qualified_name) {
         /* The name starts with a leading "::". */
         write_tok_str("::");
@@ -3289,6 +3293,9 @@ to indicate that the name reference was successfully emitted.
         /* Not a routine name. */
         gen_unqualified_name(scp, entry_kind);
       }  /* if */
+      if (need_parens) {
+        write_tok_ch(')');
+      }  /* if */
     }  /* if */
   }  /* if */
   return name_generated;
@@ -3308,7 +3315,8 @@ force the generation of a qualified name.
 
   check_assertion(rout != NULL);
   if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
-                                   iek_routine, /*is_declaration=*/FALSE)) {
+                                   iek_routine, /*is_declaration=*/FALSE,
+                                   /*need_parens=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else if (unqualified) {
@@ -3685,7 +3693,8 @@ Output the name of the indicated variable, qualified if necessary.
 }  /* gen_variable_name */
 
 
-static void gen_name_from_variable_node(an_expr_node_ptr node)
+static void gen_name_from_variable_node(an_expr_node_ptr node,
+                                        a_boolean        need_parens)
 /*
 Generate the name of a variable from an enk_variable node.
 */
@@ -3695,11 +3704,18 @@ Generate the name of a variable from an enk_variable node.
   check_assertion(is_variable_node(node));
   var = node->variant.variable;
   if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
-                                   iek_variable, /*is_declaration=*/FALSE)) {
+                                   iek_variable, /*is_declaration=*/FALSE,
+                                   need_parens)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else {
+    if (need_parens) {
+      write_tok_ch('(');
+    }  /* if */
     gen_variable_name(var);
+    if (need_parens) {
+      write_tok_ch(')');
+    }  /* if */
   }  /* if */
 }  /* gen_name_from_variable_node */
 
@@ -5184,7 +5200,8 @@ recorded).
     }  /* if */
     /* Write the name. */
     if (gen_name_from_name_reference(name_ref, scp, entry_kind,
-                                     /*is_declaration=*/TRUE)) {
+                                     /*is_declaration=*/TRUE,
+                                     /*need_parens=*/FALSE)) {
       /* We generated the name reference in its source form. */
     } else if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration (using typedef type).  The rules for using
@@ -6896,8 +6913,7 @@ the expression reflects an implicit member access ("this->y"), so the
       }  /* if */
     } else {
       /* Normal member selection. */
-      gen_expr(object_expr,
-               parens_may_be_needed(generated_precedence[op], object_expr),
+      gen_expr(object_expr, parens_may_be_needed(op, object_expr),
                /*obj_expr_of_mfunc_operator=*/FALSE);
       write_tok_str("->");
     }  /* if */
@@ -8003,7 +8019,8 @@ function reference.
   } else {
     if (gen_name_from_name_reference(func_expr->name_reference,
                                      &rout->source_corresp, iek_routine,
-                                     /*is_declaration=*/FALSE)) {
+                                     /*is_declaration=*/FALSE,
+                                     /*need_parens=*/FALSE)) {
       /* We have the form of the name reference in the original source and
          used it to generate the name. */
     } else {
@@ -8178,7 +8195,7 @@ return FALSE and let the caller generate the code normally.
     a_param_type_ptr              param;
     an_expr_node_ptr              arg;
     an_opname_kind                op;
-    a_byte                        operator_precedence;
+    an_expr_operator_kind         expr_op;
     a_boolean                     outer_parens_needed;
     a_boolean                     operand_parens_needed;
     char                          *op_name;
@@ -8195,22 +8212,7 @@ return FALSE and let the caller generate the code normally.
     param = rtsp->param_type_list;
     arg = func_expr->next;
     op = rp->variant.opname_kind;
-    if (arg->next == NULL &&
-        (op == (an_opname_kind)onk_plus_plus ||
-         op == (an_opname_kind)onk_minus_minus ||
-         op == (an_opname_kind)onk_ampersand ||
-         op == (an_opname_kind)onk_star ||
-         op == (an_opname_kind)onk_plus ||
-         op == (an_opname_kind)onk_minus)) {
-      /* These opname kinds are used for both prefix and infix/postfix
-         operators.  If there is no second operand, this call represents
-         the prefix variant. */
-      operator_precedence = PREC_PREFIX;
-    } else {
-      /* In all other cases, the precedence is given by the
-         overloadable_operator_precedence table. */
-      operator_precedence = overloadable_operator_precedence[op];
-    }  /* if */
+    expr_op = operator_for_opname_kind(op, arg->next == NULL);
 
     /* For postfix operators, there's no need to enclose the generated
        expression in parentheses because the precedence is already higher
@@ -8253,7 +8255,7 @@ return FALSE and let the caller generate the code normally.
       write_tok_str(op_name);
     }  /* if */
 
-    operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
+    operand_parens_needed = parens_may_be_needed(expr_op, arg);
     if (operand_parens_needed) {
       write_tok_ch('(');
     }  /* if */
@@ -8307,8 +8309,7 @@ return FALSE and let the caller generate the code normally.
                are needed. */
             operand_parens_needed = FALSE;
           } else {
-            operand_parens_needed = parens_may_be_needed(operator_precedence,
-                                                         arg);
+            operand_parens_needed = parens_may_be_needed(expr_op, arg);
           }  /* if */
           if (operand_parens_needed) {
             write_tok_ch('(');
@@ -8649,16 +8650,16 @@ Render code for the given expression node, which represents a lambda.
 }  /* gen_lambda */
 
 
-static a_boolean parens_may_be_needed(a_byte           operator_precedence,
-                                      an_expr_node_ptr operand)
+static a_boolean parens_may_be_needed(an_expr_operator_kind op,
+                                      an_expr_node_ptr      operand)
 /*
 Return TRUE if parentheses may be needed around the generated code for
-operand when appearing under an operator having operator_precedence.  This
-is a conservative determination; parens_may_be_needed will return FALSE
-only if it can be easily determined that there will be no precedence
-problems.
+operand when appearing under op.  This is a conservative determination;
+parens_may_be_needed will return FALSE only if it can be easily determined
+that there will be no precedence problems.
 */
 {
+  int       operator_precedence = generated_precedence[op];
   a_boolean parens_needed = TRUE;
   a_boolean operand_changed;
 
@@ -8704,9 +8705,14 @@ problems.
       }  /* if */
     }  /* if */
   } while (operand_changed);
-  if (operand->kind == (an_expr_node_kind)enk_variable ||
-      operand->kind == (an_expr_node_kind)enk_param_ref ||
-      operand->kind == (an_expr_node_kind)enk_temp_init) {
+  if (in_template_argument_list && msvc_is_generated_code_target &&
+      op == (an_expr_operator_kind)eok_lt) {
+    /* The Microsoft compiler has a bug in which it sometimes mistakes a
+       less-than operator for the beginning of a nested template argument
+       list; leave parens_needed TRUE to avoid this problem. */
+  } else if (operand->kind == (an_expr_node_kind)enk_variable ||
+             operand->kind == (an_expr_node_kind)enk_param_ref ||
+             operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;
   } else if (is_operation_node(operand) &&
@@ -9462,8 +9468,7 @@ gen_expr that might end up generating this expr as a temporary.
            operator. */
         need_op1_parens = TRUE;
       } else {
-        need_op1_parens = parens_may_be_needed(generated_precedence[op],
-                                               operand_1);
+        need_op1_parens = parens_may_be_needed(op, operand_1);
       }  /* if */
       gen_expr(operand_1, need_op1_parens,
                /*obj_expr_of_mfunc_operator=*/FALSE);
@@ -9472,8 +9477,7 @@ gen_expr that might end up generating this expr as a temporary.
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
-        gen_expr(operand_2, parens_may_be_needed(generated_precedence[op],
-                                                 operand_2),
+        gen_expr(operand_2, parens_may_be_needed(op, operand_2),
                  /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */
 done_with_operation:
@@ -9490,7 +9494,8 @@ done_with_operation_after_parens:
             gen_name_from_name_reference(expr->name_reference,
                                          &constant->source_corresp,
                                          iek_constant,
-                                         /*is_declaration=*/FALSE)) {
+                                         /*is_declaration=*/FALSE,
+                                         need_parens)) {
           /* We generated the name in its source form. */
         } else { 
           if ((expr->is_lvalue ||
@@ -9506,7 +9511,7 @@ done_with_operation_after_parens:
       }
       break;
     case enk_variable:
-      gen_name_from_variable_node(expr);
+      gen_name_from_variable_node(expr, need_parens);
       break;
     case enk_routine:
       gen_name_from_routine_node(expr, /*unqualified=*/FALSE,
@@ -10818,7 +10823,8 @@ the __if_exist appears between top-level declarations of the class.
     if (gen_name_from_name_reference(msiep->name_reference,
                                      (a_source_correspondence*)entity,
                                      (an_il_entry_kind)msiep->entity.kind,
-                                     /*is_declaration=*/FALSE)) {
+                                     /*is_declaration=*/FALSE,
+                                     /*need_parens=*/FALSE)) {
       /* We have information on the exact form of reference and used that
          to generate the name. */
     } else {
@@ -12675,7 +12681,8 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     /* Write the routine name. */
     if (gen_name_from_name_reference(name_ref, scp, iek_routine,
-                                     /*is_declaration=*/TRUE)) {
+                                     /*is_declaration=*/TRUE,
+                                     /*need_parens=*/FALSE)) {
       /* We generated the name in source form. */
     } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
