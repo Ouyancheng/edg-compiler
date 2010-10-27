@@ -234,7 +234,7 @@ Display an int32_t value along with a name.
 {
   disp_name(name);
   (void)printf("%ld\n", (long)value);
-}  /* disp_long */
+}  /* disp_int32 */
 
 
 static void disp_long(char *name,
