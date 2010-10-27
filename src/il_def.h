@@ -7624,7 +7624,6 @@ typedef struct a_vla_dimension {
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-/* FIXME: Add EXTRA_SOURCE_POSITIONS_IN_IL fields. */
 typedef struct a_property_index_type *a_property_index_type_ptr;
 typedef struct a_property_index_type {
   a_property_index_type_ptr
