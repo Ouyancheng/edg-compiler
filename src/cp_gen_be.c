@@ -7150,12 +7150,13 @@ eok_points_to_static operator.  Put out the operation, with the operator
 indicated by opstr.
 */
 {
-  a_boolean        unknown_function_case = FALSE;
-  a_constant_ptr   con;
-  a_type_ptr       operand_1_type;
-  a_boolean        need_context_pop = FALSE;
-  a_boolean        use_comma = FALSE;
-  a_boolean        removed_nodes;
+  a_boolean             unknown_function_case = FALSE;
+  a_constant_ptr        con;
+  a_type_ptr            operand_1_type;
+  a_boolean             need_context_pop = FALSE;
+  a_boolean             use_comma = FALSE;
+  a_boolean             removed_nodes;
+  an_expr_operator_kind op;
 
   /* Put out the first operand. */
   /* Also determine the class type underlying the first operand. */
@@ -7167,7 +7168,10 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  gen_expr_with_parens(operand_1);
+  op = (an_expr_operator_kind)((*opstr == '-') ? eok_points_to_static
+                                               : eok_dot_static);
+  gen_expr(operand_1, parens_may_be_needed(op, operand_1),
+           /*obj_expr_of_mfunc_operator=*/FALSE);
   if (operand_1->is_lvalue &&
       is_template_param_or_nonreal_class_type(operand_1_type)) {
     /* Watch out for prototype instantiations. */
