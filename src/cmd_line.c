@@ -4956,6 +4956,11 @@ file.
 #else /* !defined(DIRECT_ERROR_OUTPUT_TO_STDOUT) */
   comment_undefined_macro_name(DIRECT_ERROR_OUTPUT_TO_STDOUT);
 #endif /* defined(DIRECT_ERROR_OUTPUT_TO_STDOUT) */
+#if defined(DOING_SOURCE_ANALYSIS)
+  define_numeric_valued_macro(DOING_SOURCE_ANALYSIS);
+#else /* !defined(DOING_SOURCE_ANALYSIS) */
+  comment_undefined_macro_name(DOING_SOURCE_ANALYSIS);
+#endif /* defined(DOING_SOURCE_ANALYSIS) */
 #if defined(DO_C99_IL_LOWERING)
   define_numeric_valued_macro(DO_C99_IL_LOWERING);
 #else /* !defined(DO_C99_IL_LOWERING) */
@@ -5906,6 +5911,13 @@ file.
 #else /* !defined(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED) */
   comment_undefined_macro_name(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED);
 #endif /* defined(PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED) */
+#if defined(PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE)
+  define_numeric_valued_macro(
+                           PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE);
+#else /* !defined(PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE) */
+  comment_undefined_macro_name(
+                           PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE);
+#endif /* defined(PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE) */
 #if defined(QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR)
   define_numeric_valued_macro(
                             QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR);

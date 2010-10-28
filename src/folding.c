@@ -1446,7 +1446,9 @@ the diagnostic, or set it to ec_no_error if there was no error.
                     bcp->type);
     }  /* if */
     set_error_constant(result);
-  } else if (any_virtual_steps_in_derivation(bcp)) {
+  } else if (!(microsoft_mode &&
+          PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE) && /*lint !e506*/
+             any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class. */
     if (error_detected != NULL) {
       *error_detected = ec_pm_derived_class_from_virtual_base;

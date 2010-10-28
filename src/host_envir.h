@@ -1018,7 +1018,11 @@ with a C back end.
 #if BACK_END_IS_CP_GEN_BE
 #define DO_IL_LOWERING FALSE
 #else /* !BACK_END_IS_CP_GEN_BE */
+#if defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS
+#define DO_IL_LOWERING FALSE
+#else /* !(defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS) */
 #define DO_IL_LOWERING TRUE
+#endif /* defined(DOING_SOURCE_ANALYSIS) && DOING_SOURCE_ANALYSIS */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef DO_IL_LOWERING */
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
@@ -1056,6 +1060,22 @@ handling.
 #define IL_LOWERING_INIT_ROUTINE_PREFIX "__sti__"
 #endif /* ifndef IL_LOWERING_INIT_ROUTINE_PREFIX */
 #endif /* DO_IL_LOWERING */
+
+/*
+DOING_SOURCE_ANALYSIS can be set to TRUE for configurations that are primarily
+doing source analysis rather than compiling to object code.  That allows
+relaxation of certain checks dependent on the capabilities of the target ABI.
+*/
+#ifndef DOING_SOURCE_ANALYSIS
+#if DO_IL_LOWERING
+#define DOING_SOURCE_ANALYSIS FALSE
+#else /* !DO_IL_LOWERING */
+#define DOING_SOURCE_ANALYSIS TRUE
+#endif /* DO_IL_LOWERING */
+#endif /* ifndef DOING_SOURCE_ANALYSIS */
+#if DOING_SOURCE_ANALYSIS && DO_IL_LOWERING
+ #error -- DOING_SOURCE_ANALYSIS cannot be TRUE when DO_IL_LOWERING is TRUE
+#endif /* DOING_SOURCE_ANALYSIS && DO_IL_LOWERING */
 
 /*
 Flag that is TRUE to indicate that backing expressions for constants

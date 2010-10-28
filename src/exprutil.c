@@ -4612,7 +4612,9 @@ source position to be used for errors.  This routine is only used in C++ mode.
                     new_class_pointed_to, bcp->type);
     }  /* if */
     *p_node = error_node();
-  } else if (any_virtual_steps_in_derivation(bcp)) {
+  } else if (!(microsoft_mode &&
+          PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE) && /*lint !e506*/
+             any_virtual_steps_in_derivation(bcp)) {
     /* The base class is a virtual base of the derived class, or there's a
        virtual step on the derivation path. */
     if (expr_error_should_be_issued()) {

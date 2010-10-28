@@ -2054,6 +2054,22 @@ integer the same size as a pointer.
 #endif /* !defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) */
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
+/*
+The standard disallows a cast of a pointer to member from a virtual base to
+a derived base.  That is because such a cast requires extra information
+in the runtime representation that's not present in some ABIs.  When this
+flag is TRUE, we are told the runtime representation supports such casts
+(or we're doing source analysis, and we don't care about the runtime
+representation) and we allow the casts in Microsoft mode (the Microsoft
+compiler allows these casts).
+*/
+#ifndef PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE
+#if DOING_SOURCE_ANALYSIS && MICROSOFT_EXTENSIONS_ALLOWED
+#define PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE TRUE
+#else /* !(DOING_SOURCE_ANALYSIS && MICROSOFT_EXTENSIONS_ALLOWED) */
+#define PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE FALSE
+#endif /* DOING_SOURCE_ANALYSIS && MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE */
 
 /* 
 In C++ classes with virtual functions provide a special mechanism for

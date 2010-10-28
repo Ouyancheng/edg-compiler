@@ -1,5 +1,36 @@
 Version 4.3
 
+10/28/10 [EDGcpfe/11099]
+Cast of pointer to member from virtual base to derived in Microsoft C++ mode
+
+The Microsoft compiler allows a nonstandard cast of a pointer to member
+from a virtual base class to a derived class.  That's possible because
+the Microsoft ABI representation for pointers to members includes extra
+information that's not available in most other ABIs.  We now allow
+such casts in Microsoft mode if
+PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE is TRUE.
+
+  class A {
+  public:
+    virtual void m() const;
+  };  
+  class B : virtual public A {};
+  typedef void (B::*ptm)() const;
+  void f(ptm) {}
+  void g() {
+    f(&B::m);
+  }
+
+As part of this change, we have added a new macro DOING_SOURCE_ANALYSIS
+that can be set to TRUE to indicate a configuration that is primarily
+doing source analysis rather than compilation to object code.  That
+allows relaxation of some checks (like the above) that are dependent
+on the target ABI.  It's set by default in versions that do not
+do IL lowering, e.g., C++-generating back end versions, and having it
+set to TRUE will get PTR_TO_MEMBER_REPR_SUPPORTS_CAST_FROM_VIRTUAL_BASE
+set to TRUE by default if Microsoft extensions are supported.
+
+
 10/28/10 [EDGcpfe/11100]
 Dropping cv-qualifiers on reinterpret_cast to pointer-to-function type
 
