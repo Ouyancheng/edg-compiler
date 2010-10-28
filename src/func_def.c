@@ -383,7 +383,7 @@ the routine that is being defined or called; may be NULL.
       /* Declaration case. */
       if ((is_complete_object_type(return_type) &&
            !is_array_type(return_type)) ||
-          is_reference_type(return_type)) {
+          is_any_reference_type(return_type)) {
         /* err = FALSE; */
         if (gpp_mode && is_immediate_class_type(return_type) &&
             return_type->variant.class_struct_union.abstract) {
@@ -2128,7 +2128,7 @@ object, including for the case where the parameter has a reference type.
   /* A compiler-generated operator= function always has a reference-typed
      source parameter, but that is not necessarily the case for a defaulted
      operator=. */
-  if (is_reference_type(source_var->type)) {
+  if (is_any_reference_type(source_var->type)) {
     source_expr = var_rvalue_expr(source_var);
     source_expr = add_ref_indirection_to_node(source_expr);
   } else {
@@ -2253,7 +2253,7 @@ operator routine or do bitwise assignment.
           /* Property fields aren't really fields and thus are not copied. */
           continue;
         }  /* if */
-        if (is_const_qualified_type(tp) || is_reference_type(tp)) {
+        if (is_const_qualified_type(tp) || is_any_reference_type(tp)) {
           /* The error has already been issued for const and ref members.
              Don't bother trying to do the copy. */
           check_assertion(total_errors > 0);
@@ -2449,7 +2449,7 @@ member or a base class with a nonpublic operator=() is handled elsewhere.
         if (field_is_nontrivial_property(sym->variant.field.ptr)) {
           /* Property fields are not copied by the default assignment
              operator. */
-        } else if (is_reference_type(tp)) {
+        } else if (is_any_reference_type(tp)) {
           /* An assignment operator should not be generated if a member has a
              ref type. */
           is_ref = TRUE;

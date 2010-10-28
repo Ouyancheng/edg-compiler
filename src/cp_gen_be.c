@@ -460,12 +460,12 @@ static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 Macro that returns TRUE for a cast (eok_cast, eok_base_class_cast, etc.) if
 the type being cast to and the type of the operand are pointer types that
 are not the same and the operand is a user-defined conversion (UDC).
+Also handles C++/CLI handle types.
 */
 #define is_cast_of_UDC_to_different_pointer_type(dest_type, operand)          \
   (is_operation_node(operand) &&                                              \
    (operand)->variant.operation.is_conversion_call &&                         \
-   is_pointer_type(dest_type) &&                                              \
-   is_pointer_type((operand)->type) &&                                        \
+   are_both_pointer_or_both_handle_types(dest_type, (operand)->type) &&       \
    skip_typerefs(dest_type) != skip_typerefs((operand)->type))
 
 
@@ -2645,7 +2645,7 @@ reference, pointer, or array of pointers to such a type.
 {
   a_boolean non_cplusplus_function = FALSE;
 
-  while (is_ptr_or_ref_type(type) || is_array_type(type)) {
+  while (is_any_ptr_or_ref_type(type) || is_array_type(type)) {
     type = underlying_type_of_derived_type(type);
   }  /* while */
   if (type->kind == (a_type_kind)tk_routine &&
@@ -6768,7 +6768,7 @@ C++.
     if (naming_node == NULL) naming_node = node;
     /* Fetch the class type to be used to name the member. */
     *naming_class = skip_typerefs(naming_node->type);
-    if (is_pointer_type(*naming_class)) {
+    if (is_pointer_or_handle_type(*naming_class)) {
       *naming_class = f_skip_typerefs(type_pointed_to(*naming_class));
     }  /* if */
   }  /* if */
@@ -6875,7 +6875,7 @@ the expression reflects an implicit member access ("this->y"), so the
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-    if (is_pointer_type(object_expr->type)) {
+    if (is_pointer_or_handle_type(object_expr->type)) {
       selection_class = type_pointed_to(object_expr->type);
     } else {
       selection_class = object_expr->type;
@@ -7445,7 +7445,7 @@ obscure Microsoft bug).
 */
 {
   /* When initializing a reference, remove one level of indirection. */
-  if (type != NULL && is_reference_type(type)) {
+  if (type != NULL && is_any_reference_type(type)) {
     a_boolean close_paren_needed = FALSE;
     /* Remove any type-qualifier and base-class casts; they're implied by
        the context. */

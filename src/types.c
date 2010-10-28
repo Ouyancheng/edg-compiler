@@ -138,20 +138,39 @@ predicates.
   (is_integer_or_unscoped_enum(tp) || is_floating(tp)                 \
    or_is_fixed_point_type(tp))
 
-#define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer &&      \
-                        !(tp)->variant.pointer.is_reference)
+#define is_pointer_or_handle(tp) ((tp)->kind == (a_type_kind)tk_pointer && \
+                                  !(tp)->variant.pointer.is_reference)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_pointer(tp) (is_pointer_or_handle_type(tp) && \
+                        !(tp)->variant.pointer.is_handle)
+/* This is called is_handle_ptr because there is a field called
+   is_handle in il_def.h and old preprocessors have problems with
+   that. */
+#define is_handle_ptr(tp) (is_pointer_or_handle_type(tp) && \
+                           (tp)->variant.pointer.is_handle)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_pointer(tp) (is_pointer_or_handle_type(tp))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* The reference type is a tk_pointer with the is_reference flag set.
-   That includes both lvalue and rvalue references. */
+   That includes both lvalue and rvalue references, and C++/CLI
+   tracking references in some cases. */
+#define is_any_reference(tp) ((tp)->kind == (a_type_kind)tk_pointer && \
+                              (tp)->variant.pointer.is_reference)
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* This is called is_reference_ptr because there is a field called
    is_reference in il_def.h and old preprocessors have problems with
    that. */
-#define is_reference_ptr(tp) ((tp)->kind == (a_type_kind)tk_pointer &&\
-                              (tp)->variant.pointer.is_reference)
-
-/* Scalar types are the arithmetic and enum types and plus the pointer
-   types. */
-#define is_scalar(tp) (is_arithmetic_or_enum(tp) || is_pointer(tp))
+#define is_reference_ptr(tp) (is_any_reference(tp) && \
+                              !(tp)->variant.pointer.is_handle)
+#define is_tracking_reference(tp) (is_any_reference(tp) && \
+                                   (tp)->variant.pointer.is_handle)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_reference_ptr(tp) (is_any_reference(tp))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+/* Scalar types are the arithmetic and enum types plus the pointer
+   types.  C++/CLI handle types are also scalar (ECMA-372, 12). */
+#define is_scalar(tp) (is_arithmetic_or_enum(tp) || is_pointer_or_handle(tp))
 
 /* Array types are simply array types. */
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
@@ -398,11 +417,12 @@ for an alternative.
        standard, 6.2.5p1: incomplete types are not object types. */
     result = !is_function(tp) && !is_incomplete(tp);
   } else {
-    /* In C++ mode, object types include incompletely-defined object
-       types (incomplete class types, arrays of unknown size, etc.).
-       See C++ standard, [basic.types], definition of incompletely-
-       defined object types. */
-    result = !is_function(tp) && !is_reference_ptr(tp) && !is_void(tp);
+    /* In C++ mode, an object type is one that is not a function type,
+       not a reference type, and not a void type.  C++ object types do include
+       incompletely-defined object types (incomplete class types, arrays of
+       unknown size, etc.).  See C++ standard, [basic.types]. */
+    result = !is_function(tp) && !is_any_reference(tp) &&
+             !is_void(tp);
   }  /* if */
   return result;
 }  /* is_object_type */
@@ -662,6 +682,37 @@ Return TRUE if the given type is a pointer type (3.1.2.5).
 }  /* is_pointer_type */
 
 
+a_boolean is_pointer_or_handle_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a pointer type or a C++/CLI handle type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_pointer_or_handle(tp);
+}  /* is_pointer_or_handle_type */
+
+
+a_boolean are_both_pointer_or_both_handle_types(a_type_ptr tp1, 
+                                                a_type_ptr tp2)
+/*
+Return TRUE if tp1 and tp2 are both pointers or both C++/CLI handles.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp1 = skip_typerefs(tp1);
+  tp2 = skip_typerefs(tp2);
+  if (is_pointer(tp1) && is_pointer(tp2)) {
+    result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_handle_ptr(tp1) && is_handle_ptr(tp2)) {
+    result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  return result;
+}  /* are_both_pointer_or_both_handle_types */
+
+
 a_boolean is_reference_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a reference type.
@@ -675,11 +726,23 @@ Return TRUE if the given type is a reference type.
 a_boolean is_lvalue_reference_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an ordinary "lvalue" reference type.
+C++/CLI tracking references are excluded.
 */
 {
   tp = skip_typerefs(tp);
   return is_reference_ptr(tp) && !tp->variant.pointer.is_rvalue_reference;
 }  /* is_lvalue_reference_type */
+
+
+a_boolean is_any_lvalue_reference_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an ordinary "lvalue" reference type,
+including a C++/CLI tracking reference.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_any_reference(tp) && !tp->variant.pointer.is_rvalue_reference;
+}  /* is_any_lvalue_reference_type */
 
 
 a_boolean is_rvalue_reference_type(a_type_ptr tp)
@@ -688,20 +751,90 @@ Return TRUE if the given type is a C++0x rvalue reference type.
 */
 {
   tp = skip_typerefs(tp);
+  /* Note that C++/CLI tracking references are never rvalue references. */
   return is_reference_ptr(tp) && tp->variant.pointer.is_rvalue_reference;
 }  /* is_rvalue_reference_type */
+
+
+a_boolean are_both_ref_or_both_tracking_ref_types(a_type_ptr tp1, 
+                                                  a_type_ptr tp2)
+/*
+Return TRUE if tp1 and tp2 are both references or both C++/CLI tracking
+references.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp1 = skip_typerefs(tp1);
+  tp2 = skip_typerefs(tp2);
+  if (is_reference_ptr(tp1) && is_reference_ptr(tp2)) {
+    result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_tracking_reference(tp1) && is_tracking_reference(tp2)) {
+    result = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  return result;
+}  /* are_both_ref_or_both_tracking_ref_types */
 
 
 a_boolean is_ptr_or_ref_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an IL pointer type (i.e., a pointer or
-reference).
+reference).  Excludes C++/CLI handles and tracking references.
 */
 {
   tp = skip_typerefs(tp);
-  return ((tp)->kind == (a_type_kind)tk_pointer);
+  return (tp->kind == (a_type_kind)tk_pointer
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !tp->variant.pointer.is_handle
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         );
 }  /* is_ptr_or_ref_type */
 
+
+a_boolean is_any_reference_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a reference or C++/CLI tracking reference.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_any_reference(tp);
+}  /* is_any_reference_type */
+
+
+a_boolean is_any_ptr_or_ref_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an IL pointer type (i.e., a pointer or
+reference), including C++/CLI handles and tracking references.
+*/
+{
+  tp = skip_typerefs(tp);
+  return (tp->kind == (a_type_kind)tk_pointer);
+}  /* is_any_ptr_or_ref_type */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_handle_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI handle type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_handle_ptr(tp);
+}  /* is_handle_type */
+
+
+a_boolean is_tracking_reference_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI tracking reference type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_tracking_reference(tp);
+}  /* is_tracking_reference_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean is_scalar_type(a_type_ptr tp)
 /*
@@ -1155,7 +1288,7 @@ Find the bottom type of a derived type.
 a_type_ptr type_pointed_to(a_type_ptr pointer_type)
 /*
 Return the type pointed to by the given tk_pointer type entry.  This can be
-a pointer or a reference type.
+a pointer or a reference type, or a C++/CLI handle or tracking reference.
 */
 {
   a_type_ptr tp = skip_typerefs(pointer_type);
@@ -2323,7 +2456,7 @@ because any exception it can handle would be caught by type_1's handler.
 
   db_enter(5, "type_masks_handler_param_type");
   /* "Reference" on top of a type is ignored for handlers as are type
-      qualifiers. */
+      qualifiers.  C++/CLI tracking references are not allowed. */
   if (is_reference_type(type_1)) type_1 = type_pointed_to(type_1);
   type_1 = skip_typerefs(type_1);
   if (is_reference_type(type_2)) type_2 = type_pointed_to(type_2);
@@ -2334,9 +2467,9 @@ because any exception it can handle would be caught by type_1's handler.
   } else {
     /* A handler for a derived class is masked by a handler for a base
        class, and a handler for a pointer-to-derived-class is masked by a
-       handler for a pointer-to-base-class. */
-    if (is_pointer_type(type_1) &&
-        is_pointer_type(type_2)) {
+       handler for a pointer-to-base-class.  C++/CLI handles are allowed
+       in place of pointers. */
+    if (are_both_pointer_or_both_handle_types(type_1, type_2)) {
       a_type_ptr  type_1_pointed_to = type_pointed_to(type_1);
       a_type_ptr  type_2_pointed_to = type_pointed_to(type_2);
 
@@ -3563,13 +3696,13 @@ Return TRUE if such an adjustment was made.
   /* If one is a decltype for a non-reference type and the other is
      a reference type, strip the reference. */
   if (type_1->kind == (a_type_kind)tk_typeref &&
-      !is_reference_type(type_1) &&
-      is_reference_type(type_2)) {
+      !is_any_reference_type(type_1) &&
+      is_any_reference_type(type_2)) {
     type_2 = type_pointed_to(type_2);
     adjustment_made = TRUE;
   } else if (type_2->kind == (a_type_kind)tk_typeref &&
-             !is_reference_type(type_2) &&
-             is_reference_type(type_1)) {
+             !is_any_reference_type(type_2) &&
+             is_any_reference_type(type_1)) {
     type_1 = type_pointed_to(type_1);
     adjustment_made = TRUE;
   }  /* if */
@@ -3963,6 +4096,10 @@ check_typerefs:
         if (il_identical ||
             (type_1->variant.pointer.is_reference ==
                                 type_2->variant.pointer.is_reference &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             type_1->variant.pointer.is_handle ==
+                                type_2->variant.pointer.is_handle &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              type_1->variant.pointer.is_rvalue_reference ==
                                 type_2->variant.pointer.is_rvalue_reference)) {
           identical = f_identical_types(type_1->variant.pointer.type,
@@ -4581,7 +4718,8 @@ check_typerefs:
           break;
         case tk_pointer:
           /* For pointers and references, they must be both pointers or both
-             references and must point to compatible types. */
+             references and must point to compatible types.  Same for
+             C++/CLI handles and tracking references. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
               (!equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
@@ -4596,6 +4734,10 @@ check_typerefs:
           /* Do not insert code here. */
           if (type_1->variant.pointer.is_reference ==
                                  type_2->variant.pointer.is_reference &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              type_1->variant.pointer.is_handle ==
+                                 type_2->variant.pointer.is_handle &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               type_1->variant.pointer.is_rvalue_reference ==
                                  type_2->variant.pointer.is_rvalue_reference) {
             compat = f_types_are_compatible(type_1->variant.pointer.type,
@@ -4887,7 +5029,7 @@ that is not required to be checked by the ANSI C standard.
              && pointer_types_have_same_repr(type_1, type_2)
 #endif /* ifdef pointer_types_have_same_repr */
                                                             ) {
-    /* Pointer types.  Get the underlying types. */
+    /* Pointer or C++/CLI handle types.  Get the underlying types. */
     a_type_ptr und_type_1 = type_pointed_to(type_1);
     a_type_ptr und_type_2 = type_pointed_to(type_2);
     a_type_ptr ptr_type_1 = skip_typerefs(und_type_1);
@@ -5042,6 +5184,8 @@ that are not present in standalone back ends and utilities.
                                           type_2->variant.pointer.modifiers) &&
                    type_1->variant.pointer.base_variable ==
                                        type_2->variant.pointer.base_variable &&
+                   type_1->variant.pointer.is_handle ==
+                                       type_2->variant.pointer.is_handle &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                    standalone_identical_types(type_1->variant.pointer.type,
                                               type_2->variant.pointer.type));
@@ -5226,7 +5370,7 @@ value of the expression they are equivalent.
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (is_pointer(dest_type) && is_pointer(source_type)) {
+      if (are_both_pointer_or_both_handle_types(dest_type, source_type)) {
 #ifdef pointer_types_have_same_repr
         if (!pointer_types_have_same_repr(dest_type, source_type)) {
           same = FALSE;
@@ -5296,10 +5440,10 @@ handler-parameter is of type "other_type".
   /* Return TRUE if the types are identical. */
   match = identical_types(type, other_type);
   if (!match) {
-    /* if type is an unambiguous and public base class of other_type,
+    /* If type is an unambiguous and public base class of other_type,
        a handler for other_type will catch type. */
-    if (is_pointer_type(type) && is_pointer_type(other_type)) {
-      /* The same goes if both are pointer types. */
+    if (are_both_pointer_or_both_handle_types(type, other_type)) {
+      /* The same goes if both are pointer or C++/CLI handle types. */
       type = type_pointed_to(type);
       other_type = type_pointed_to(other_type);
     }  /* if */
@@ -5700,8 +5844,8 @@ the __unaligned and __restrict qualifiers).
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-	/* Continue at the next level for pointers. */
+      if (are_both_pointer_or_both_handle_types(dest_type, source_type)) {
+        /* Continue at the next level for pointers and handles. */
         dest_type = type_pointed_to(dest_type);
 	source_type = type_pointed_to(source_type);
       } else if (is_ptr_to_member_type(dest_type) &&
@@ -5788,14 +5932,14 @@ cast away const, and this routine returns FALSE) but is suspect, return
   a_boolean	check_further = TRUE;
 
   if (warning_suggested != NULL) *warning_suggested = ec_no_error;
-  if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+  if (are_both_pointer_or_both_handle_types(dest_type, source_type)) {
     dest_type = type_pointed_to(dest_type);
     source_type = type_pointed_to(source_type);
   } else if (is_ptr_to_member_type(dest_type) &&
              is_ptr_to_member_type(source_type)) {
     dest_type = pm_member_type(dest_type);
     source_type = pm_member_type(source_type);
-  } else if (is_reference_type(dest_type) && is_reference_type(source_type) &&
+  } else if (are_both_ref_or_both_tracking_ref_types(dest_type, source_type) &&
              is_rvalue_reference_type(dest_type) ==
                                        is_rvalue_reference_type(source_type)) {
     dest_type = type_pointed_to(dest_type);
@@ -6724,7 +6868,8 @@ See conversion_possible.
   } else if (is_bool(dest_type)) {
     /* Conversion to the bool type.  This is possible only in C++.
        Conversion is allowed from arithmetic, unscoped enumeration, pointer,
-       and pointer to member. */
+       and pointer to member.   C++/CLI allows conversion from a handle
+       as well. */
     if (is_bool(source_type)) {
       /* bool --> bool is no conversion. */
       okay = TRUE;
@@ -6732,6 +6877,9 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               is_handle_ptr(source_type) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                is_nullptr(source_type)) {
       okay = TRUE;
       /* This conversion is worse than others in overload resolution.
@@ -7424,12 +7572,14 @@ well as C++ mode.
     /* No normal conversion.  Look for error and template matches. */
     if (is_error(dest_type) || is_template_param_type(dest_type)) {
       if (is_error(source_type) || is_template_param_type(source_type) ||
-          is_integral_or_enum(source_type) || is_pointer(source_type) ||
+          is_integral_or_enum(source_type) ||
+          is_pointer_or_handle(source_type) ||
           is_ptr_to_member(source_type)) {
         okay = TRUE;
       }  /* if */
     } else if (is_error(source_type) || is_template_param_type(source_type)) {
-      if (is_integral_or_enum(dest_type) || is_pointer(dest_type) ||
+      if (is_integral_or_enum(dest_type) ||
+          is_pointer_or_handle(dest_type) ||
           is_ptr_to_member(dest_type)) {
         okay = TRUE;
       }  /* if */

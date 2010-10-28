@@ -321,7 +321,7 @@ Output the indicated template argument in the way described by octl.
           octl->output_str("<expression>", octl);
         } else {
           check_assertion(con != NULL);
-          if (is_reference_type(con->type)) {
+          if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
             form_lvalue_address_constant(con, /*need_parens=*/FALSE, octl);
@@ -1814,12 +1814,21 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE, options, octl);
     /* Output "*" or "&" for pointer or reference. */
+    /* Or, "^" or "%" for C++/CLI handles and references. */
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       if (type->variant.pointer.is_rvalue_reference) {
         octl->output_str("&&", octl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (type->variant.pointer.is_handle) {
+        octl->output_str("%", octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         octl->output_str("&", octl);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (type->variant.pointer.is_handle) {
+      octl->output_str("^", octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->variant.pointer.base_variable != NULL) {
@@ -2887,7 +2896,13 @@ and standalone utility programs.
 #ifdef pointer_types_have_same_repr
              && pointer_types_have_same_repr(type_1, type_2)
 #endif /* ifdef pointer_types_have_same_repr */
-                                                            ) {
+             && type_1->variant.pointer.is_reference ==
+                type_2->variant.pointer.is_reference
+#if MICROSOFT_EXTENSIONS_ALLOWED
+             && type_1->variant.pointer.is_handle == 
+                type_2->variant.pointer.is_handle
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            ) {
     /* Continue at the next level for pointers. */
     types_match = types_match_ignoring_qualifiers(type_pointed_to(type_1),
                                                   type_pointed_to(type_2));
@@ -3683,8 +3698,6 @@ precedence confusion.  Do the output in the way described by octl.
   }  /* if */
   if (!form_lvalue) {
     /* Forming an address, not an lvalue. */
-    /* Use array --> pointer or function --> pointer decay to get an address,
-       if that's appropriate.  Otherwise a "&" must be put out. */
     if (is_reference_type(con_type) && !octl->gen_compilable_code) {
       /* Explicitly identify a reference type instead of using "&". */
       if (is_rvalue_reference_type(con_type)) {
@@ -3692,6 +3705,11 @@ precedence confusion.  Do the output in the way described by octl.
       } else {
         octl->output_str("reference to ", octl);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_tracking_reference_type(con_type) &&
+               !octl->gen_compilable_code) {
+        octl->output_str("tracking reference to ", octl);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (type_decay_used) {
       /* Using type decay to get a pointer. */
     } else {
@@ -4698,7 +4716,7 @@ precedence confusion.  Do the output in the way described by octl.
                              constant->variant.template_param.variant.constant;
             a_boolean      need_local_close_paren = FALSE;
             if (!cast_already_put_out &&
-                ((is_pointer_type(con_type) &&
+                ((is_pointer_or_handle_type(con_type) &&
                   op_con->kind == (a_constant_repr_kind)ck_integer &&
                   cmplit_integer_constant(op_con,
                                           (a_host_large_integer)0) == 0)

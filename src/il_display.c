@@ -1369,10 +1369,16 @@ Display the indicated based type list.
     for (; ptr != NULL; ptr = ptr->next) {
       switch (ptr->kind) {
         case btk_qualified:      kind_str = "  qualified";               break;
+        case btk_rvalue_reference:
+                                 kind_str = "  rvalue reference";        break;
         case btk_reference:      kind_str = "  reference";               break;
         case btk_ptr_to_member:  kind_str = "  ptr_to_member";           break;
         case btk_unqualified_array_type:
                                  kind_str = "  unqualified_array_type";  break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case btk_handle:         kind_str = "  handle";                  break;
+        case btk_tracking_ref:   kind_str = "  tracking reference";      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
       }  /* switch */
@@ -1679,10 +1685,12 @@ Display the indicated type entry.
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
       if (ptr->variant.pointer.is_rvalue_reference) {
-        disp_boolean("is_rvalue_reference",
-                     (a_boolean)ptr->variant.pointer.is_rvalue_reference);
+        disp_boolean("is_rvalue_reference", TRUE);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.pointer.is_handle) {
+        disp_boolean("is_handle", TRUE);
+      }  /* if */
       if (ptr->variant.pointer.modifiers != PM_NONE) {
         disp_name("modifiers");
         form_pointer_modifiers(ptr->variant.pointer.modifiers, &octl);

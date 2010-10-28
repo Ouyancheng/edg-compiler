@@ -5716,7 +5716,7 @@ handle_field_selection:
             /* Reference "*" operation.  If the operand is a constant
                address, we can use it as the address of the lvalue. */
             if (is_constant_node(op1) &&
-                is_reference_type(op1->type)) {
+                is_any_reference_type(op1->type)) {
               is_constant_addr = TRUE;
               copy_constant(op1->variant.constant, con);
               con->type = make_pointer_type(type_pointed_to(op1->type));
@@ -6405,7 +6405,7 @@ constant will be set as well.
        in some cases. */
     if (microsoft_mode) {
       from_rvalue = TRUE;
-      if (is_reference_type(type1)) {
+      if (is_any_reference_type(type1)) {
         /* A reference on the source type is always ignored by the Microsoft
            compiler, except that without it conversions from rvalues are
            sometimes considered (instead of from lvalues as specified in
@@ -6419,7 +6419,7 @@ constant will be set as well.
       } else if (is_class_struct_union_type(type1)) {
         from_rvalue = FALSE;
       }  /* if */
-      if (is_reference_type(type2)) {
+      if (is_any_reference_type(type2)) {
         a_type_ptr  under_type2 = type_pointed_to(type2);
         if (is_class_struct_union_type(under_type2) ||
             is_function_type(under_type2) || is_array_type(under_type2)) {

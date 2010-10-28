@@ -1210,7 +1210,7 @@ do_variable:
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
     if (!space_left(20) ||
         (!space_left(30) && is_array_type(type)) || is_function_type(type) ||
-        ((is_pointer_type(type) || is_reference_type(type)) &&
+        (is_any_ptr_or_ref_type(type) &&
 	 ((is_array_type(type_pointed_to(type)) && !space_left(35)) ||
 	  is_function_type(type_pointed_to(type)))) ||
         (!space_left(55) && is_template_class_type(type))) {
@@ -1613,7 +1613,7 @@ return NULL.
      type (if at all): */
   while (result != NULL && !is_function_type(result)) {
     result = skip_typerefs(result);
-    if (is_ptr_or_ref_type(result)) {
+    if (is_any_ptr_or_ref_type(result)) {
       result = type_pointed_to(result);
     } else if (is_ptr_to_member_type(result)) {
       result = pm_member_type(result);

@@ -95,10 +95,22 @@ extern a_boolean vector_type_is_template_dependent(a_type_ptr  tp);
 extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
+extern a_boolean is_pointer_or_handle_type(a_type_ptr tp);
+extern a_boolean are_both_pointer_or_both_handle_types(a_type_ptr tp1, 
+                                                       a_type_ptr tp2);
 extern a_boolean is_reference_type(a_type_ptr tp);
 extern a_boolean is_lvalue_reference_type(a_type_ptr tp);
+extern a_boolean is_any_lvalue_reference_type(a_type_ptr tp);
 extern a_boolean is_rvalue_reference_type(a_type_ptr tp);
+extern a_boolean are_both_ref_or_both_tracking_ref_types(a_type_ptr tp1, 
+                                                         a_type_ptr tp2);
 extern a_boolean is_ptr_or_ref_type(a_type_ptr tp);
+extern a_boolean is_any_reference_type(a_type_ptr tp);
+extern a_boolean is_any_ptr_or_ref_type(a_type_ptr tp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_handle_type(a_type_ptr tp);
+extern a_boolean is_tracking_reference_type(a_type_ptr tp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_vla_type(a_type_ptr tp);

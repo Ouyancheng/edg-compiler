@@ -6480,6 +6480,10 @@ enum a_based_type_kind_tag {
 			   resulted.  (For example, qualifying (int)[3] with
 			   const creates (const int)[3], and the original is
 			   recorded as a based type of the new type.) */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  btk_handle,		/* C++/CLI handle. */
+  btk_tracking_ref,	/* C++/CLI tracking reference. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_pointer		/* Pointer to the type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -6880,16 +6884,21 @@ typedef struct a_type {
 			   pointer"; the variable must itself be of pointer
 			   type.  Used only when microsoft_mode is TRUE. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      a_byte_boolean
-		is_reference;
+      a_bit_field
+		is_reference:1;
 			/* If TRUE, this type is a C++ reference type.  (This
 			   includes both ordinary ("lvalue") references, and
 			   C++0x rvalue references.) */
-      a_byte_boolean
-		is_rvalue_reference;
+      a_bit_field
+		is_rvalue_reference:1;
 			/* If TRUE, this type is a C++0x rvalue reference
 			   type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_handle:1;
+			/* If TRUE, this type is a C++/CLI handle (is_reference
+			   FALSE) or tracking reference (is_reference TRUE)
+			   type. */
       a_pointer_modifier_set
 		modifiers;
 			/* Bit set with bits to indicate the presence of one

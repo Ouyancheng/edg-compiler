@@ -1256,7 +1256,7 @@ the file scope, do not process it (but record an orphan in the latter case).
              the front end. */
           a_type_ptr return_type =
                          skip_typerefs(ptr->type)->variant.routine.return_type;
-          if (is_pointer_type(return_type)) {
+          if (is_pointer_or_handle_type(return_type)) {
             return_type = type_pointed_to(return_type);
             if (is_class_struct_union_type(return_type)) {
               return_type = skip_typerefs(return_type);
@@ -1374,18 +1374,15 @@ the file scope, do not process it (but record an orphan in the latter case).
                 case eok_psubtract_assign:
                 case eok_points_to_vacuous_destructor_call:
                   /* First operand may be a pointer. */
-                  if (!is_pointer_type(op1_type)) break;
+                  if (!is_pointer_or_handle_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
                   goto do_definition_needed_if_class;
                 case eok_subscript:
                 case eok_padd:
-                  optype = op1_type;
-                  if (!is_pointer_type(optype)) {
-                    /* The pointer operand might be second, but watch out for
-                       prototype instantiations. */
-                    optype = ptr->variant.operation.operands->next->type;
-                    if (!is_pointer_type(optype)) break;
-                  }  /* if */
+                  optype = ptr->variant.operation.pointer_operand_is_second ?
+                             ptr->variant.operation.operands->next->type :
+                             op1_type;
+                  if (!is_pointer_or_handle_type(optype)) break;
                   optype = type_pointed_to(optype);
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
@@ -1395,14 +1392,14 @@ do_definition_needed_if_class:
                      complete.  Watch out for the case where the result type
                      is "void *", and watch out for prototype instantiation
                      cases. */
-                  if (is_ptr_or_ref_type(ptr->type)) {
+                  if (is_any_ptr_or_ref_type(ptr->type)) {
                     optype = type_pointed_to(ptr->type);
                     definition_needed_if_class(optype);
                   }  /* if */
                   /* Source type must also be complete, but watch out for
                      prototype instantiation cases where the first operand
                      isn't a pointer to class. */
-                  if (!is_pointer_type(op1_type) ||
+                  if (!is_pointer_or_handle_type(op1_type) ||
                       !is_class_struct_union_type(type_pointed_to(op1_type))) {
                     break;
                   }  /* if */
@@ -1429,7 +1426,7 @@ do_definition_needed_if_class:
                      to complete class). */
                   optype = ptr->type;
 do_related_class_cast_set_definition_needed:
-                  if (is_pointer_type(optype)) {
+                  if (is_pointer_or_handle_type(optype)) {
                     optype = type_pointed_to(optype);
                   }  /* if */
                   optype = skip_typerefs(optype);
@@ -1687,7 +1684,7 @@ do_set_proper_definition_needed_flag:
         { a_variable_ptr parameter = ptr->parameter;
           if (parameter != NULL) {
             a_type_ptr param_type = parameter->type;
-            if (is_ptr_or_ref_type(param_type)) {
+            if (is_any_ptr_or_ref_type(param_type)) {
               param_type = type_pointed_to(param_type);
               definition_needed_if_class(param_type);
             }  /* if */

@@ -1980,7 +1980,7 @@ projection symbol.
               }  /* if */
             } else if (is_array_type(tp)) {
               tp = array_element_type(tp);
-            } else if (is_ptr_or_ref_type(tp)) {
+            } else if (is_any_ptr_or_ref_type(tp)) {
               tp = type_pointed_to(tp);
             } else {
               break;

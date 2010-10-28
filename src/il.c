@@ -1149,9 +1149,17 @@ Dump the contents of the indicated type entry, for debug purposes.
         if (tp->variant.pointer.is_reference) {
           if (tp->variant.pointer.is_rvalue_reference) {
             fputs("rvalue ref to ", f_debug);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (tp->variant.pointer.is_handle) {
+            fputs("tracking ref to ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             fputs("ref to ", f_debug);
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (tp->variant.pointer.is_handle) {
+          fputs("handle to ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (tp->variant.pointer.base_variable != NULL) {
@@ -5301,7 +5309,11 @@ to refine the hash value developed in hash_constant.
     case tk_pointer:
       hash_value = hash_type(type->variant.pointer.type) + 107
                      + type->variant.pointer.is_reference
-                     + type->variant.pointer.is_rvalue_reference;
+                     + type->variant.pointer.is_rvalue_reference*2
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                     + type->variant.pointer.is_handle*4
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                     ;
       break;
     case tk_array:
       hash_value = hash_type(type->variant.array.element_type) + 307;
@@ -8970,6 +8982,70 @@ and reuse an existing entry if possible.
   return ptr;
 }  /* make_rvalue_reference_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_type_ptr make_handle_type(a_type_ptr pointed_to_type)
+/*
+Allocate a C++/CLI handle type and initialize it.  Attempt to find and reuse
+an existing entry if possible.
+*/
+{
+  a_type_ptr ptr;
+
+  /* See if a handle type for the type pointed to has already been
+     allocated.  If one was allocated, a pointer to it is stored in the
+     based_types list for the base type, and the handle type can be
+     reused. */
+  ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_handle,
+                       TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (ptr == NULL) {
+    /* No allocated entry, need to allocate one. */
+    ptr = alloc_type((a_type_kind)tk_pointer);
+    ptr->variant.pointer.type = pointed_to_type;
+    ptr->variant.pointer.is_reference = FALSE;
+    ptr->variant.pointer.is_handle = TRUE;
+    set_type_size(ptr);
+    /* Remember the existence of this handle type by putting a pointer
+       to it in the based_types list. */
+    add_based_type_list_member(pointed_to_type,
+                               (a_based_type_kind)btk_handle, ptr);
+  }  /* if */
+  return ptr;
+}  /* make_handle_type */
+
+
+a_type_ptr make_tracking_reference_type(a_type_ptr pointed_to_type)
+/*
+Allocate a C++/CLI tracking reference type and initialize it.  Attempt to
+find and reuse an existing entry if possible.
+*/
+{
+  a_type_ptr ptr;
+
+  /* See if a tracking reference type for the type pointed to has already 
+     been allocated.  If one was allocated, a pointer to it is stored in 
+     the based_types list for the base type, and the tracking reference 
+     type can be reused. */
+  ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_tracking_ref,
+                       TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (ptr == NULL) {
+    /* No allocated entry, need to allocate one. */
+    ptr = alloc_type((a_type_kind)tk_pointer);
+    ptr->variant.pointer.type = pointed_to_type;
+    ptr->variant.pointer.is_reference = TRUE;
+    ptr->variant.pointer.is_handle = TRUE;
+    set_type_size(ptr);
+    /* Remember the existence of this tracking reference type by putting 
+       a pointer to it in the based_types list. */
+    add_based_type_list_member(pointed_to_type,
+                               (a_based_type_kind)btk_tracking_ref, ptr);
+  }  /* if */
+  return ptr;
+}  /* make_tracking_reference_type */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !NEAR_AND_FAR_ALLOWED
 /* ARGSUSED */  /* <- is_error is not used in some configurations. */
@@ -9035,7 +9111,7 @@ qual_pos must be non-NULL.
         pos_warning(ec_type_qualifiers_ignored_on_reference, qual_pos);
       }  /* if */
     }  /* if */
-    if (rvalue_ref || is_lvalue_reference_type(base_ref_type)) {
+    if (rvalue_ref || is_any_lvalue_reference_type(base_ref_type)) {
       /* The result should be base_ref_type, but without any top-level
          qualifiers (i.e., nonstandard qualifiers like "restrict").  Try to
          preserve a top-level typedef for nicer output in the C++-generating
@@ -9213,7 +9289,7 @@ are not already present.
      block size. */
   qualifiers_to_add |= (qualifiers & TQ_UPC_SHARED);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  if (qualifiers_to_add != TQ_NONE && is_reference_type(base_type)) {
+  if (qualifiers_to_add != TQ_NONE && is_any_reference_type(base_type)) {
     /* cv-qualifiers are ignored when applied to a reference type.
        However, the "restrict" qualifier should be retained. */
     qualifiers_to_add &= TQ_RESTRICT;
@@ -9418,7 +9494,7 @@ returned.  Otherwise, it is the type of the rvalue returned.
 
   routine_type = skip_typerefs(routine_type);
   return_type = routine_type->variant.routine.return_type;
-  if (!is_reference_type(return_type)) {
+  if (!is_any_reference_type(return_type)) {
     /* The function returns a non-reference type, i.e., an rvalue.  Drop
        cv-qualifiers as appropriate. */
     return_type = rvalue_type(return_type);
@@ -9448,7 +9524,7 @@ the function returns a reference, the reference type is returned.
 
   routine_type = skip_typerefs(routine_type);
   return_type = routine_type->variant.routine.return_type;
-  if (is_reference_type(return_type)) {
+  if (is_any_reference_type(return_type)) {
     /* If the function returns a reference type, leave the type alone. */
   } else {
     /* The function returns a non-reference type, so the result is an
@@ -10460,8 +10536,8 @@ no value is returned for that.
   /* An ellipsis is also allowed by virtue of the fact that it is not checked
      for. */
   if (ptp != NULL &&
-      (include_move_ctors ? is_reference_type(ptp->type)
-                          : is_lvalue_reference_type(ptp->type)) &&
+      (include_move_ctors ? is_any_reference_type(ptp->type)
+                          : is_any_lvalue_reference_type(ptp->type)) &&
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     a_type_ptr  tp = type_pointed_to(ptp->type);
     a_type_ptr  unqualified_tp = skip_typerefs(tp);
@@ -13248,12 +13324,12 @@ and pointer-to-member types directly.
   check_assertion(is_nullptr_type(type_1) || is_nullptr_type(type_2));
   if (is_nullptr_type(type_1)) {
     compatible_types = (is_nullptr_type(type_2) ||
-                        is_pointer_type(type_2) ||
+                        is_pointer_or_handle_type(type_2) ||
                         is_ptr_to_member_type(type_2) ||
                         (con_2 != NULL &&
                          is_null_pointer_constant(con_2)));
   } else {
-    compatible_types = (is_pointer_type(type_1) ||
+    compatible_types = (is_pointer_or_handle_type(type_1) ||
                         is_ptr_to_member_type(type_1) ||
                         (con_1 != NULL &&
                          is_null_pointer_constant(con_1)));
@@ -13348,7 +13424,7 @@ TRUE.
      not important, and may in fact be correct for compatibility with older
      code. */
   *reinterpret_cast_needed = FALSE;
-  if (is_reference_type(new_type) || is_void_type(new_type)) {
+  if (is_any_reference_type(new_type) || is_void_type(new_type)) {
     valid = FALSE;
   } else if (is_explicit_cast ?
                        expl_conversion_possible(src_con->type,
@@ -14271,7 +14347,7 @@ name lookup options.
                                                    source_pos,
                                                    options,
                                                    copy_error);
-            if (is_reference_type(new_type)) {
+            if (is_any_reference_type(new_type)) {
               new_type = type_pointed_to(new_type);
             }  /* if */
           }  /* if */
@@ -14444,10 +14520,10 @@ lookup options.
        now. */
     an_expr_node_ptr expr = con->variant.template_param.variant.expr;
     an_expr_node_ptr expr_copy;
-    if (is_reference_type(template_param_type)) {
+    if (is_any_reference_type(template_param_type)) {
       /* The template parameter type is a reference.  Copy the expression
          as an lvalue and then see if it has a constant address. */
-      check_assertion(is_lvalue_reference_type(template_param_type));
+      check_assertion(is_any_lvalue_reference_type(template_param_type));
       expr_copy = copy_template_param_expr_as_lvalue(expr,
                                                      template_arg_list,
                                                      template_param_list,
@@ -15450,7 +15526,7 @@ a pointer to the new expression.  The returned node is designated an lvalue.
   if (!is_error_node(node)) {
     a_type_ptr new_type;
     check_assertion(!node->is_lvalue);
-    if (is_reference_type(node->type)) {
+    if (is_any_reference_type(node->type)) {
       new_type = type_pointed_to(node->type);
     } else {
       check_assertion(is_error_type(node->type));

@@ -2905,14 +2905,14 @@ Tips for proper use of the follow_addressing_path mode:
          il_header.il_has_C_semantics, respectively). */
 #if DO_IL_LOWERING
 #if STANDALONE_UTILITY_PROGRAM
-      check_assertion((is_ptr_or_ref_type(expr->type) ||
+      check_assertion((is_any_ptr_or_ref_type(expr->type) ||
                        is_template_param_type(expr->type) ||
                        is_error_type(expr->type)) ||
                       is_error_node(expr));
 #else /* !STANDALONE_UTILITY_PROGRAM */
       check_assertion((((il_lowering_underway ||
                          il_header.il_has_C_semantics) ?
-                          is_ptr_or_ref_type(expr->type) :
+                          is_any_ptr_or_ref_type(expr->type) :
                           (is_pointer_type(expr->type) ||
                            is_template_param_type(expr->type))) ||
                        is_error_type(expr->type)) ||
@@ -2954,8 +2954,8 @@ Tips for proper use of the follow_addressing_path mode:
           if ((is_pointer_type(expr->type) &&
                is_pointer_type(operand1->type))
 #if DO_IL_LOWERING
-              || (is_ptr_or_ref_type(expr->type) &&
-                  is_ptr_or_ref_type(operand1->type))
+              || (is_any_ptr_or_ref_type(expr->type) &&
+                  is_any_ptr_or_ref_type(operand1->type))
 #endif /* DO_IL_LOWERING */
                                                      ) {
             /* Allow only an identity cast or a cv-qualification change. */
