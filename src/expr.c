@@ -14859,6 +14859,12 @@ indication in *rcblock).
           if (is_const_string_literal_in_microsoft_mode) {
             /* MSVC++ allows a cast of a string literal that removes
                const (presumably because formerly strings were not const). */
+          } else if ((gpp_mode || microsoft_mode) &&
+                     is_pointer_type(adj_type_cast_to) &&
+                     is_function_type(type_pointed_to(adj_type_cast_to))) {
+            /* Both g++ and VC seem to allow dropping cv-qualifiers when
+               casting to a pointer-to-function type, e.g., "const void *" to a
+               pointer-to-function type. */
           } else {
             if (expr_error_should_be_issued()) {
               pos_st_error(ec_cannot_cast_away_const, &start_position,

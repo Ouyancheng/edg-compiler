@@ -1,5 +1,17 @@
 Version 4.3
 
+10/28/10 [EDGcpfe/11100]
+Dropping cv-qualifiers on reinterpret_cast to pointer-to-function type
+
+In GNU C++ and Microsoft C++ modes, reinterpret_cast now allows dropping
+cv-qualifiers on a cast to a pointer-to-function type.  This is nonstandard.
+For example:
+
+  void foo(const void* handler) {
+    reinterpret_cast<void (*)(int)>(handler);
+  }
+
+
 10/27/10 [EDGcpfe/11097]
 C++-generating back end, Microsoft compatibility: < operator in non-type
 template arguments
