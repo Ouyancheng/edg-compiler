@@ -3014,6 +3014,10 @@ loading of classes.
         if (proto_type->variant.class_struct_union.final) {
           class_type->variant.class_struct_union.final = TRUE;
         }  /* if */
+        if (cppcli_enabled) {
+          ctsp->assembly_visibility =
+                             class_type_supp(proto_type)->assembly_visibility;
+        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
@@ -5403,6 +5407,7 @@ is returned.
 #endif /* EXPENSIVE_CHECKING */
   /* Now create a new type entry. */
   class_type = alloc_type(tssp->variant.class_template.type_kind);
+  ctsp = class_type->variant.class_struct_union.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   class_type->variant.class_struct_union.is_interface =
                                     tssp->variant.class_template.is_interface;
@@ -5422,8 +5427,7 @@ is returned.
   } else if (sym->is_class_member) {
     /* If the enclosing class is nonreal, then any instances of member
        classes must also be nonreal. */
-    a_type_ptr			parent_class;
-    parent_class = sym_parent_class(sym);
+    a_type_ptr  parent_class = sym_parent_class(sym);
     if (parent_class->variant.class_struct_union.is_nonreal_class) {
       class_type->variant.class_struct_union.is_nonreal_class = TRUE;
     }  /* if */
@@ -5454,7 +5458,6 @@ is returned.
      however, that the type itself is not added to the scope types list
      until a full instantiation takes place -- or, if there is none, in
      pop_scope, as with ordinary classes. */
-  ctsp = class_type->variant.class_struct_union.extra_info;
   ctsp->template_arg_list = template_arg_list;
   {
     /* For certain classes (like X<int>::Y<T>) the prototype instantiation
@@ -13179,6 +13182,8 @@ declaration of a partial specialization declared outside of its class.
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
+  an_assembly_visibility            cli_visibility;
+  a_source_position                 cli_visibility_pos; 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_attribute_ptr                  attributes = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -13207,6 +13212,10 @@ declaration of a partial specialization declared outside of its class.
     friend_pos = pos_curr_token;
     friend_token_seen = TRUE;
     (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled) {
+    cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13818,13 +13827,19 @@ friend_template_checks_done:
        is never done. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           decl_state->is_partial_specialization);
-    
   }  /* if */
   if (tssp->attributes == NULL || is_definition) {
     tssp->attributes = attributes;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    if (cppcli_enabled) {
+      a_type_ptr  class_type = 
+                          tssp->variant.class_template.prototype_instantiation
+                              ->variant.type.ptr;
+      set_cli_visibility(class_type, cli_visibility, &cli_visibility_pos,
+                         is_definition);
+    }  /* if */
     if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
       /* Update any decl modifiers that may have been specified.  Don't
          do this for subordinate templates -- the prototype of the prototype
@@ -17050,6 +17065,12 @@ the declaration token cache.
 
   rescan_reusable_cache(token_cache);
   if (curr_token == tok_friend) (void)get_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && is_cli_assembly_visibility_specifier(curr_token)) {
+    /* Skip any top-level visibility specifier. */
+    (void)get_token();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
   if (is_class_type_keyword(curr_token)) {
     a_token_kind  next_tok;

@@ -331,6 +331,18 @@ enum an_access_specifier_tag {
 typedef a_byte an_access_specifier;
 #define is_more_accessible(access1, access2) ((int)(access1) < (int)(access2))
 
+/*
+C++/CLI assembly visibility kinds.
+*/
+enum an_assembly_visibility_tag {
+  av_none,		/* No assembly visibility applicable. */
+  av_public,		/* Assembly member publicly visible. */
+  av_private,		/* Assembly member not publicly visible. */
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_assembly_visibility;
+
 /* Kind of name linkage (e.g., external name visibility).  Note that
    "name linkage" applies to names (in some implementations it controls
    whether the external name for an entity will be mangled) and also applies
@@ -6091,6 +6103,9 @@ typedef struct a_class_type_supplement {
   a_bit_field	has_direct_property_member:1;
 			/* TRUE if this class contains a direct (i.e., not
 			   inherited) property member. */
+  a_bit_field   assembly_visibility:2;
+                        /* Visibility of this type at the assembly level.
+			   (C++/CLI only.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -6438,6 +6453,9 @@ Entry containing additional information about an integral type.
 typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
 typedef struct an_integer_type_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field   assembly_visibility:2;
+                        /* Visibility of this type at the assembly level.
+			   (C++/CLI only.) */
   char
 		*uuid_string;
 			/* Pointer to a character string representing the

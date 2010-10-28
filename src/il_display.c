@@ -445,6 +445,27 @@ Display the indicated access specifier with a name.
   (void)printf(s);
 }  /* disp_access */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_assembly_visibility(char                    *name,
+                                     an_assembly_visibility  vis)
+/*
+Display the indicated assembly visibility with a name.
+*/
+{
+  char  *s;
+
+  disp_name(name);
+  switch (vis) {
+    case av_none:           s = "av_none\n";           break;
+    case av_public:         s = "av_public\n";         break;
+    case av_private:        s = "av_private\n";        break;
+    default:                s = "**BAD ASSEMBLY VISIBILITY**\n";
+  }  /* switch */  
+  (void)printf("%s", s);
+}  /* disp_assembly_visibility */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void disp_name_linkage(char                 *name,
                               a_name_linkage_kind  nlk)
@@ -1431,6 +1452,7 @@ Display the indicated integer type supplement.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
   if (ptr->uuid_string != NULL) {
     disp_string_ptr("uuid_string", ptr->uuid_string,
                     iek_other_text, (sizeof_t)0);
@@ -5382,6 +5404,8 @@ Display the indicated base class entry.
 }  /* disp_base_class */
 
 
+
+
 static void disp_class_type_supplement(a_class_type_supplement_ptr ptr)
 /*
 Display the indicated class type supplement entry.
@@ -5449,6 +5473,7 @@ Display the indicated class type supplement entry.
   if (ptr->has_direct_property_member) {
     disp_boolean("has_direct_property_member", TRUE);
   }  /* if */
+  disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

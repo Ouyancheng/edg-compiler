@@ -154,13 +154,26 @@ If you change this, see also type_keyword.
    or_is_extension_type_keyword(tok)) 
 
 /*
+Macro that is TRUE if the given token is a top level visibility specifier for
+C++/CLI.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_assembly_visibility_specifier(tok)                        \
+  ((tok) == tok_public || (tok) == tok_private)
+#define or_is_cli_assembly_visibility_specifier(tok)                     \
+  || (cppcli_enabled && is_cli_assembly_visibility_specifier(tok))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_is_cli_assembly_visibility_specifier(tok) /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Macro to be used in conjunction with is_class_type_keyword to check for
 Microsoft __interface specifiers.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_is_interface_keyword(tok) || ((tok) == tok_interface)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define or_is_interface_keyword(tok) /* nothing */
+#define or_is_interface_keyword(tok) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -179,7 +192,8 @@ specifier (except for the typedef and friend cases).  (3.5.2)
  (is_type_keyword(curr_token) || is_class_type_keyword(curr_token) || \
   curr_token == tok_enum      || curr_token == tok_typename        || \
   curr_token == tok_typeof    || curr_token == tok_decltype        || \
-  (auto_type_specifier_enabled && curr_token == tok_auto))
+  (auto_type_specifier_enabled && curr_token == tok_auto)             \
+  or_is_cli_assembly_visibility_specifier(curr_token))
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 extern a_boolean curr_id_is_named_address_space(void);

@@ -1156,6 +1156,7 @@ a pointer to it.
   num_integer_type_supplements_allocated++;
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  itsp->assembly_visibility = (an_assembly_visibility)av_none;
   itsp->uuid_string = NULL;
 #if DO_IL_LOWERING
   itsp->uuid_variable = NULL;
@@ -1350,6 +1351,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->inheritance_kind                  = (an_inheritance_kind)ihk_none;
   ctsp->inheritance_kind_is_explicit      = FALSE;
   ctsp->has_direct_property_member        = FALSE;
+  ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

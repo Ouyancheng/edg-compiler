@@ -552,7 +552,27 @@ Dump an access control specifier.
   }  /* switch */
 }  /* db_access_control */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
+void db_assembly_visibility_of_type(a_type_ptr  type)
+/*
+Dump the assembly visibility specifier of the given type.
+*/
+{
+  if (cppcli_enabled) {
+    switch (get_assembly_visibility_of(type)) {
+      case av_none:    /* Nothing to output. */                     break;
+      case av_public:  fputs("public", f_debug);                    break;
+      case av_private: fputs("private", f_debug);                   break;
+      default:         fputs("<bad assembly visibility>", f_debug); break;
+    }  /* switch */
+  }  /* if */
+}  /* db_assembly_visibility_of_type */
+
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define db_assembly_visibility_of_type(type)  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+ 
 static void db_field(a_field *fp,
                      int     depth)
 /*
@@ -1202,12 +1222,15 @@ Dump the contents of the indicated type entry, for debug purposes.
         db_abbreviated_type(tp->variant.array.element_type);
         break;
       case tk_struct:
+        db_assembly_visibility_of_type(tp);
         fputs("struct", f_debug);
         goto class_struct_union;
       case tk_union:
+        db_assembly_visibility_of_type(tp);
         fputs("union", f_debug);
         goto class_struct_union;
       case tk_class:
+        db_assembly_visibility_of_type(tp);
         fputs("class", f_debug);
   class_struct_union:
         fputs(" ", f_debug);
@@ -18927,6 +18950,24 @@ Selective overriding is a Microsoft extension.  For example:
   }  /* if */
   return result;
 }  /* selectively_overridden_function */
+
+
+an_assembly_visibility get_assembly_visibility_of(a_type_ptr  type)
+/*
+Return the top-level C++/CLI visibility of the given type (if any).
+*/
+{
+  an_assembly_visibility  result;
+
+  if (is_immediate_class_type(type)) {
+    result = class_type_supp(type)->assembly_visibility;
+  } else if (type->kind == (a_type_kind)tk_integer) {
+    result = integer_type_supp(type)->assembly_visibility;
+  } else {
+    result = (an_assembly_visibility)av_none;
+  }  /* if */
+  return result;
+}  /* an_assembly_visibility */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

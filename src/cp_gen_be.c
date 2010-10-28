@@ -5328,6 +5328,24 @@ pragmas and macros.  Return TRUE if anything was processed.
 }  /* process_preprocessing_directives */
 
 
+static void gen_assembly_visibility_for_type(a_type_ptr  type)
+/*
+If the given type has a C++/CLI assembly visibility, generate "public " or
+"private " accordingly.  (Since the IL does not record whether a visibility
+was explicitly specified, the visibility is always rendered.)
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  switch (get_assembly_visibility_of(type)) {
+    case av_none:     /* Nothing to do. */        break;
+    case av_public:   write_tok_str("public ");   break;
+    case av_private:  write_tok_str("private ");  break;
+    default:          unexpected_condition();
+  }  /* switch */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* gen_assembly_visibility_for_type */
+
+
 static void gen_enum_definition(a_type_ptr type)
 /*
 Output the definition of the indicated enum type.  This is in the form of
@@ -5349,6 +5367,7 @@ is the one associated with the definition of the enum.
                                    type->source_corresp.source_sequence_entry);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
+  gen_assembly_visibility_for_type(type);
   /* Generate "enum <name>" or "enum class <name>". */
   if (integer_type_is_scoped_enum(type)) {
     write_tok_str("enum class");
@@ -5954,6 +5973,7 @@ is the one associated with the definition of the class.
   }  /* if */
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
+  gen_assembly_visibility_for_type(type);
   /* Put out the tag kind, e.g., "class". */
   write_tok_str(tag_keyword(type));
   gen_attributes(type->source_corresp.attributes, al_tag_name,

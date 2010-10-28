@@ -2205,6 +2205,74 @@ it returns FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+an_assembly_visibility scan_cli_visibility_specifier_if_any(
+                                                       a_source_position  *pos)
+/*
+If the current token is "public" or "private" scan past it, set *pos to its
+position, and return av_public or av_private accordingly.  Otherwise, return
+av_none and leave *pos unchanged.  (Called in C++/CLI mode only.)
+*/
+{
+  an_assembly_visibility  result = av_none;
+
+  if (is_cli_assembly_visibility_specifier(curr_token)) {
+    *pos = pos_curr_token;
+    switch (curr_token) {
+      case tok_public:   result = (an_assembly_visibility)av_public;   break;
+      case tok_private:  result = (an_assembly_visibility)av_private;  break;
+      default:           unexpected_condition();
+    }  /* switch */
+    *pos = pos_curr_token;
+    /* Scan past the visibility specifier token. */
+    (void)get_token();
+  }  /* if */
+  return result;
+}  /* scan_cli_visibility_specifier_if_any */
+
+
+void set_cli_visibility(a_type_ptr              type,
+                        an_assembly_visibility  declared_visibility,
+                        a_source_position_ptr   diag_pos,
+                        a_boolean               is_definition)
+/*
+type represents a class or enum type whose specifier was just scanned.
+Determine the C++/CLI assembly visibility of this type.  If a C++/CLI
+visibility was explicitly specified, declared_visibility indicates whether it
+was "public" or "private".  Otherwise, declared_visibility is av_none.  If the
+type declaration is a definition, is_definition is TRUE.  Issue diagnostics as
+appropriate at the position indicated by diag_pos.  (Called in C++/CLI mode
+only.)
+*/
+{
+  an_assembly_visibility  vis = (an_assembly_visibility)av_private;
+
+  check_assertion(cppcli_enabled);
+  if (declared_visibility != (an_assembly_visibility)av_none) {
+    /* An explicitly specified visibility: Ensure this is a top-level
+       definition. */
+    if (type->source_corresp.is_class_member) {
+      pos_error(ec_visibility_specifier_on_nested_type, diag_pos);
+    } else if (!is_definition) {
+      pos_error(ec_visibility_specifier_requires_definition, diag_pos);
+    } else {
+      vis = declared_visibility;
+    }  /* if */
+  }  /* if */
+  if (is_definition) {
+    /* Set the visibility in the IL entry. */
+    if (type->source_corresp.is_class_member) {
+      vis = get_assembly_visibility_of(parent_class_of(type));
+    }  /* if */
+    if (is_immediate_class_type(type)) {
+      class_type_supp(type)->assembly_visibility = vis;
+    } else {
+      check_assertion(type->kind == (a_type_kind)tk_integer);
+      integer_type_supp(type)->assembly_visibility = vis;
+    }  /* if */
+  }  /* if */
+}  /* set_cli_visibility */
+
+
 static void check_interface_redeclaration(a_symbol_ptr       prev_decl,
                                           a_symbol_kind      tag_kind,
                                           a_boolean          *is_interface,
@@ -2754,6 +2822,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
   a_boolean               is_abstract = FALSE, is_sealed = FALSE;
+  an_assembly_visibility  cli_visibility;
+  a_source_position       cli_visibility_pos;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean               is_template_class_instantiation = FALSE;
   a_boolean               tag_resolution = FALSE;
@@ -2815,6 +2885,11 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                               ->contains_local_class_type = TRUE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_class_type_keyword(curr_token)) {
     /* Skip over "class", "struct", or "union", remembering which appears.
        In Microsoft mode, we may also encounter "__interface", which is a
@@ -3644,6 +3719,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       add_to_types_list(class_type, effective_decl_level);
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    set_cli_visibility(class_type, cli_visibility, &cli_visibility_pos,
+                       is_class_definition || definition_removed);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (err ||
       (depth_template_declaration_scope != NO_SCOPE_DEPTH &&
        scope_stack[depth_scope_stack].kind ==
@@ -4230,6 +4311,7 @@ static void enum_specifier(a_decl_parse_state   *dps,
                            a_boolean            *defines_something,
                            a_decl_pos_block     *decl_pos_block)
 /*
+FIXME: Update this description to avoid grammar.
 Scan an enumeration specifier (3.5.2.2).  The syntax is
 
 3.5.2.2
@@ -4286,6 +4368,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    is_predeclared_type_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block  extended_decl_info;
+  an_assembly_visibility       cli_visibility;
+  a_source_position            cli_visibility_pos;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
@@ -4312,6 +4396,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip over "enum". */
   check_assertion(curr_token == tok_enum);
   (void)get_token();
@@ -4610,6 +4699,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    set_cli_visibility(enum_type, cli_visibility, &cli_visibility_pos,
+                       is_definition);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (explicit_enum_base_enabled && is_definition) {
     explicit_base_kind = scan_explicit_enum_base_type(enum_type,
                                                       &pos_explicit_base);
@@ -8244,6 +8339,9 @@ process_class_specifier:
         }  /* if */
         break;
       case tok_enum:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+process_enum_specifier:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* An enumeration specifier (3.5.2.2). */
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
@@ -8764,6 +8862,17 @@ operator_or_conversion_name:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_public:
       case tok_private:
+        if (cppcli_enabled) {
+          /* C++/CLI allows something like "public class X {};" or
+             "private enum E: int {};". */
+          a_token_kind  next_tok = next_token();
+          if (is_class_type_keyword(next_tok)) {
+            goto process_class_specifier;
+          } else if (next_tok == tok_enum) {
+            goto process_enum_specifier;
+          }  /* if */
+        }  /* if */
+        /*FALLTHROUGH*/
       case tok_protected:
         if (microsoft_bugs && microsoft_version >= 1300 &&
             *storage_class == (a_storage_class)sc_typedef) {

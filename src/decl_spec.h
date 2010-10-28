@@ -60,6 +60,14 @@ extern void scan_and_discard_extended_decl_modifiers(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern an_assembly_visibility scan_cli_visibility_specifier_if_any(
+                                                       a_source_position  *pos);
+
+extern void set_cli_visibility(a_type_ptr              type,
+                               an_assembly_visibility  declared_visibility,
+                               a_source_position_ptr   diag_pos,
+                               a_boolean               is_definition);
+
 extern void scan_microsoft_class_modifiers(a_type_kind  type_kind,
                                            a_boolean    *is_abstract,
                                            a_boolean    *is_sealed);

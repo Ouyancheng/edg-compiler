@@ -1569,6 +1569,8 @@ extern void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
                                       a_scope_depth		scope_depth);
 
 extern a_routine_ptr selectively_overridden_function(a_routine_ptr  rp);
+
+extern an_assembly_visibility get_assembly_visibility_of(a_type_ptr  type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
