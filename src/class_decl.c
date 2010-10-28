@@ -14192,6 +14192,15 @@ one is found return TRUE and update state->access accordingly.
      specifications are permitted. */
   while (curr_token == tok_public || curr_token == tok_private ||
          curr_token == tok_protected) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && curr_token != tok_protected) {
+      /* A C++/CLI top-level visibility specifier is not handled here. */
+      a_token_kind  next_tok = next_token();
+      if (is_class_type_keyword(next_tok) || next_tok == tok_enum) {
+        break;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     found = TRUE;
     if (curr_token == tok_public) {
       state->access = (an_access_specifier)as_public;
