@@ -8686,6 +8686,12 @@ The operation is a unary operation if unary_operator is TRUE.
         /* Note that postfix -- comes in as a non-unary operation. */
         op = (an_expr_operator_kind)eok_pre_decr;
         break;
+      case onk_arrow:
+        op = (an_expr_operator_kind)eok_points_to_field;
+        break;
+      case onk_function_call:
+        op = (an_expr_operator_kind)eok_call;
+        break;
       default:
         unexpected_condition_str("bad unary opname kind");
     }  /* switch */
@@ -8800,9 +8806,6 @@ The operation is a unary operation if unary_operator is TRUE.
         break;
       case onk_arrow_star:
         op = (an_expr_operator_kind)eok_pm_points_to_field;
-        break;
-      case onk_arrow:
-        op = (an_expr_operator_kind)eok_points_to_field;
         break;
       case onk_function_call:
         op = (an_expr_operator_kind)eok_call;
