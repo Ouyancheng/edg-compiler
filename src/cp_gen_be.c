@@ -8115,64 +8115,6 @@ normal way.
 }  /* handle_conversion_function_call */
 
 
-/*
-Precedence of the overloadable operators, used to determine whether
-parentheses are needed around a given expression operand.  If you add
-operators to this list and are uncertain about the precedence to use, it is
-always safe to use PREC_LOWEST, which effectively results in use of
-gen_expr_with_parens to generate the expression containing the operator.
-*/
-static a_byte overloadable_operator_precedence[] = {
-  PREC_LOWEST,		/* onk_none */
-  PREC_LOWEST,		/* onk_new */
-  PREC_LOWEST,		/* onk_delete */
-  PREC_LOWEST,		/* onk_array_new */
-  PREC_LOWEST,		/* onk_array_delete */
-  PREC_PLUS_MINUS,	/* onk_plus */
-  PREC_PLUS_MINUS,	/* onk_minus */
-  PREC_MULT_DIV,	/* onk_star */
-  PREC_MULT_DIV,	/* onk_divide */
-  PREC_MULT_DIV,	/* onk_remainder */
-  PREC_EXCL_OR,		/* onk_excl_or */
-  PREC_AND,		/* onk_ampersand */
-  PREC_OR,		/* onk_or */
-  PREC_PREFIX,		/* onk_compl */
-  PREC_PREFIX,		/* onk_not */
-  PREC_ASSIGNMENT,	/* onk_assign */
-  PREC_RELATIONAL,	/* onk_lt */
-  PREC_RELATIONAL,	/* onk_gt */
-  PREC_ASSIGNMENT,	/* onk_plus_assign */
-  PREC_ASSIGNMENT,	/* onk_minus_assign */
-  PREC_ASSIGNMENT,	/* onk_times_assign */
-  PREC_ASSIGNMENT,	/* onk_divide_assign */
-  PREC_ASSIGNMENT,	/* onk_remainder_assign */
-  PREC_ASSIGNMENT,	/* onk_excl_or_assign */
-  PREC_ASSIGNMENT,	/* onk_and_assign */
-  PREC_ASSIGNMENT,	/* onk_or_assign */
-  PREC_SHIFT,		/* onk_shift_left */
-  PREC_SHIFT,		/* onk_shift_right */
-  PREC_ASSIGNMENT,	/* onk_shift_right_assign */
-  PREC_ASSIGNMENT,	/* onk_shift_left_assign */
-  PREC_EQ_NE,		/* onk_eq */
-  PREC_EQ_NE,		/* onk_ne */
-  PREC_RELATIONAL,	/* onk_le */
-  PREC_RELATIONAL,	/* onk_ge */
-  PREC_AND_AND,		/* onk_and_and */
-  PREC_OR_OR,		/* onk_or_or */
-  PREC_POSTFIX,		/* onk_plus_plus */
-  PREC_POSTFIX,		/* onk_minus_minus */
-  PREC_COMMA,		/* onk_comma */
-  PREC_PTR_TO_MEMBER,	/* onk_arrow_star */
-  PREC_POSTFIX,		/* onk_arrow */
-  PREC_POSTFIX,		/* onk_function_call */
-  PREC_POSTFIX,		/* onk_subscript */
-  PREC_QUEST_MARK,	/* onk_question */
-  PREC_GNU_MIN_MAX,	/* onk_gnu_min */
-  PREC_GNU_MIN_MAX,	/* onk_gnu_max */
-  PREC_LOWEST		/* onk_last */
-};  /* overloadable_operator_precedence */
-
-
 static a_boolean handle_operator_call(an_expr_node_ptr expr)
 /*
 expr is a call expression.  If it is the result of operator syntax ("a+b")
@@ -13712,17 +13654,10 @@ Initialize for the C++/C-generating back end.
 {
   sizeof_t num_generated_prec_table_elems = 
                 sizeof(generated_precedence) / sizeof(generated_precedence[0]);
-  sizeof_t num_overloadable_operator_prec_table_elems =
-                                   sizeof(overloadable_operator_precedence) /
-                                   sizeof(overloadable_operator_precedence[0]);
 
   check_assertion_str(num_generated_prec_table_elems ==
                                                       ((sizeof_t)eok_last + 1),
           "init_cp_gen_be: size of generated_precedence table is not correct");
-  check_assertion_str(num_overloadable_operator_prec_table_elems ==
-                                                      ((sizeof_t)onk_last + 1),
-              "init_cp_gen_be: size of overloadable_operator_precedence table "
-                                                             "is not correct");
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
