@@ -2663,7 +2663,9 @@ Return a pointer to the character position following what was demangled.
       ch = get_char(p, dctl);
       if ((ch == 'T' && isdigit((unsigned char)get_char(p+1, dctl))) ||
           ch == 'N') {
-        /* Tn means repeat the type of parameter "n". */
+        /* Tn means repeat the type of parameter "n".  Note that a type can
+           begin with "Tr" (i.e., a C++/CLI tracking reference), so check for
+           a digit following the "T" to differentiate the two cases. */
         /* Nmn means "m" repetitions of the type of parameter "n".  "m"
            is a one-digit number. */
         /* "n" is also treated as a single-digit number; the front end enforces
@@ -4096,6 +4098,10 @@ static char *get_cv_qualifiers(char               *ptr,
 Advance over any cv-qualifiers (const/volatile) at the indicated location
 and return in *cv_quals a bit set indicating the qualifiers encountered.
 Return a pointer to the character position following what was demangled.
+Note that the IA-64 ABI defines a general-purpose "vendor extended type 
+qualifier" that is not implemented (as yet).  Certain vendor extended type
+qualifiers are however used by the front end to represent C++/CLI declarators;
+those are handled in the declarator processing rather than here.
 */
 {
   *cv_quals = 0;
@@ -4535,9 +4541,14 @@ to be on top of the type.  If parse_template_args is TRUE then any
        */
     p++;
     if (kind == 'U') {
-      /* The front end emits vendor extended type qualifiers for certain
-         C++/CLI constructs (i.e., handles and tracking references).  Handle
-         these specially; otherwise simply emit the <source-name>. */
+      /* Strictly speaking, the "vendor extended type qualifier" is used to
+         provide a mangling for qualifiers, not declarators.  However, this
+         mangling is used by the front end to encode the C++/CLI handle and
+         tracking reference declarators (to avoid adding EDG-specific manglings
+         for these entities that might be used in subsequent IA-64 ABI
+         revisions).  Note that for "real" vendor extended type qualifiers
+         a substitution would be created both for the entire type and the
+         unqualified type, but we don't do that in this case. */
       if (strncmp(p, "8__handle", 9) == 0) {
         vendor_ext = "^";
         p += 9;
@@ -4545,27 +4556,29 @@ to be on top of the type.  If parse_template_args is TRUE then any
         vendor_ext = "%";
         p += 9;
       } else {
-        p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
-        write_id_ch(' ', dctl);
+        /* For now, other extensions are not supported. */
+        bad_mangled_name(dctl);
       }  /* if */
     }  /* if */
-    if (kind == 'C') {
-      write_id_str("_Complex ", dctl);
+    if (!dctl->err_in_id) {
+      if (kind == 'C') {
+        write_id_str("_Complex ", dctl);
+      }  /* if */
+      p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
+                                   /*need_trailing_space=*/TRUE,
+                                   parse_template_args, dctl);
+      if (kind == 'P') {
+        write_id_ch('*', dctl);
+      } else if (kind == 'R') {
+        write_id_ch('&', dctl);
+      } else if (kind == 'O') {
+        write_id_str("&&", dctl);
+      } else if (vendor_ext != NULL) {
+        write_id_str(vendor_ext, dctl);
+      }  /* if */
+      /* Output the cv-qualifiers on the pointer, if any. */
+      output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
     }  /* if */
-    p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE,
-                                 parse_template_args, dctl);
-    if (kind == 'P') {
-      write_id_ch('*', dctl);
-    } else if (kind == 'R') {
-      write_id_ch('&', dctl);
-    } else if (kind == 'O') {
-      write_id_str("&&", dctl);
-    } else if (vendor_ext != NULL) {
-      write_id_str(vendor_ext, dctl);
-    }  /* if */
-    /* Output the cv-qualifiers on the pointer, if any. */
-    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */
     char *classp = p+1;
@@ -4703,7 +4716,8 @@ to be on top of the type.
        */
     p++;
     if (kind == 'U') {
-      /* Skip over any vendor extended type qualifier here. */
+      /* Assume this is a vendor extended type qualifier that is being used
+         by the front end as a declarator and skip over it. */
       dctl->suppress_id_output++;
       p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
       dctl->suppress_id_output--;

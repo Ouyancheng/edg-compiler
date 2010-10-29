@@ -8,9 +8,10 @@ handles ("H" is used in the Cfront ABI and "U8__handle" in the IA-64 ABI) and
 tracking references ("Tr" is used in the Cfront ABI and "U8__trkref" in the
 IA-64 ABI).  A change has been made to demangle these mangled names.  Note that
 the IA-64 ABI mangled encodings use a vendor extended type qualifier as
-specified in the IA-64 ABI and that the demangler now demangles such vendor
-extensions (though these are currently the only two uses of this extension by
-the front end).
+specified in the IA-64 ABI.  Using a vendor extension for type qualifiers to
+represent these declarators avoids having to introduce an EDG-specific
+modification to the IA-64 ABI (which may cause a conflict in future IA-64 ABI
+revisions).
 
 
 8/26/10  [EDGcpfe/10967]
