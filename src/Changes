@@ -57,9 +57,9 @@ nested template argument list, resulting in spurious errors.  For example:
     typedef typename A<B<T>::m < 5>::type type; // error in MSVC++
   };
 
-When msvc_is_generated_code_target is TRUE, the C++-generating back end
-now avoids triggering this bug by unconditionally enclosing the operands
-of a < operator in parentheses when they appear inside a template argument
+When msvc_is_generated_code_target is TRUE, the C++-generating back end now
+avoids triggering this bug by unconditionally enclosing the left operand of
+a < operator in parentheses when it appears inside a template argument
 list.
 
 

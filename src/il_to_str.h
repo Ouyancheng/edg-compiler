@@ -45,8 +45,7 @@ typedef a_boolean an_output_name_reference_function(
                                      a_name_reference_ptr      name_ref,
                                      a_source_correspondence*  scp,
                                      an_il_entry_kind          kind,
-                                     a_boolean                 is_declaration,
-                                     a_boolean                 need_parens);
+                                     a_boolean                 is_declaration);
 typedef an_output_name_reference_function
                                         *an_output_name_reference_function_ptr;
 typedef void an_output_temp_name_function(char *entry);

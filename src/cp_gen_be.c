@@ -403,8 +403,8 @@ static void gen_statement_full(a_statement_ptr statement,
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
-static a_boolean parens_may_be_needed(an_expr_operator_kind op,
-                                      an_expr_node_ptr      operand);
+static a_boolean parens_may_be_needed(a_byte           operator_precedence,
+                                      an_expr_node_ptr operand);
 static a_boolean entity_name_is_accessible(
                                    a_source_correspondence_ptr scp,
                                    an_il_entry_kind            kind,
@@ -3218,8 +3218,7 @@ static a_boolean gen_name_from_name_reference(
                                         a_name_reference_ptr    nrp,
                                         a_source_correspondence *scp,
                                         an_il_entry_kind        entry_kind,
-                                        a_boolean               is_declaration,
-                                        a_boolean               need_parens)
+                                        a_boolean               is_declaration)
 /*
 Generate a name reference for the entity with source correspondence
 scp and kind entry_kind using the name-reference information in *nrp.  If
@@ -3270,9 +3269,6 @@ to indicate that the name reference was successfully emitted.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (use_name_reference) {
       name_generated = TRUE;
-      if (need_parens) {
-        write_tok_ch('(');
-      }  /* if */
       if (nrp->is_global_qualified_name) {
         /* The name starts with a leading "::". */
         write_tok_str("::");
@@ -3293,9 +3289,6 @@ to indicate that the name reference was successfully emitted.
         /* Not a routine name. */
         gen_unqualified_name(scp, entry_kind);
       }  /* if */
-      if (need_parens) {
-        write_tok_ch(')');
-      }  /* if */
     }  /* if */
   }  /* if */
   return name_generated;
@@ -3315,8 +3308,7 @@ force the generation of a qualified name.
 
   check_assertion(rout != NULL);
   if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
-                                   iek_routine, /*is_declaration=*/FALSE,
-                                   /*need_parens=*/FALSE)) {
+                                   iek_routine, /*is_declaration=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else if (unqualified) {
@@ -3693,8 +3685,7 @@ Output the name of the indicated variable, qualified if necessary.
 }  /* gen_variable_name */
 
 
-static void gen_name_from_variable_node(an_expr_node_ptr node,
-                                        a_boolean        need_parens)
+static void gen_name_from_variable_node(an_expr_node_ptr node)
 /*
 Generate the name of a variable from an enk_variable node.
 */
@@ -3704,18 +3695,11 @@ Generate the name of a variable from an enk_variable node.
   check_assertion(is_variable_node(node));
   var = node->variant.variable;
   if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
-                                   iek_variable, /*is_declaration=*/FALSE,
-                                   need_parens)) {
+                                   iek_variable, /*is_declaration=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else {
-    if (need_parens) {
-      write_tok_ch('(');
-    }  /* if */
     gen_variable_name(var);
-    if (need_parens) {
-      write_tok_ch(')');
-    }  /* if */
   }  /* if */
 }  /* gen_name_from_variable_node */
 
@@ -5200,8 +5184,7 @@ recorded).
     }  /* if */
     /* Write the name. */
     if (gen_name_from_name_reference(name_ref, scp, entry_kind,
-                                     /*is_declaration=*/TRUE,
-                                     /*need_parens=*/FALSE)) {
+                                     /*is_declaration=*/TRUE)) {
       /* We generated the name reference in its source form. */
     } else if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration (using typedef type).  The rules for using
@@ -6933,7 +6916,8 @@ the expression reflects an implicit member access ("this->y"), so the
       }  /* if */
     } else {
       /* Normal member selection. */
-      gen_expr(object_expr, parens_may_be_needed(op, object_expr),
+      gen_expr(object_expr,
+               parens_may_be_needed(generated_precedence[op], object_expr),
                /*obj_expr_of_mfunc_operator=*/FALSE);
       write_tok_str("->");
     }  /* if */
@@ -7170,13 +7154,12 @@ eok_points_to_static operator.  Put out the operation, with the operator
 indicated by opstr.
 */
 {
-  a_boolean             unknown_function_case = FALSE;
-  a_constant_ptr        con;
-  a_type_ptr            operand_1_type;
-  a_boolean             need_context_pop = FALSE;
-  a_boolean             use_comma = FALSE;
-  a_boolean             removed_nodes;
-  an_expr_operator_kind op;
+  a_boolean        unknown_function_case = FALSE;
+  a_constant_ptr   con;
+  a_type_ptr       operand_1_type;
+  a_boolean        need_context_pop = FALSE;
+  a_boolean        use_comma = FALSE;
+  a_boolean        removed_nodes;
 
   /* Put out the first operand. */
   /* Also determine the class type underlying the first operand. */
@@ -7188,10 +7171,7 @@ indicated by opstr.
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  op = (an_expr_operator_kind)((*opstr == '-') ? eok_points_to_static
-                                               : eok_dot_static);
-  gen_expr(operand_1, parens_may_be_needed(op, operand_1),
-           /*obj_expr_of_mfunc_operator=*/FALSE);
+  gen_expr_with_parens(operand_1);
   if (operand_1->is_lvalue &&
       is_template_param_or_nonreal_class_type(operand_1_type)) {
     /* Watch out for prototype instantiations. */
@@ -8043,8 +8023,7 @@ function reference.
   } else {
     if (gen_name_from_name_reference(func_expr->name_reference,
                                      &rout->source_corresp, iek_routine,
-                                     /*is_declaration=*/FALSE,
-                                     /*need_parens=*/FALSE)) {
+                                     /*is_declaration=*/FALSE)) {
       /* We have the form of the name reference in the original source and
          used it to generate the name. */
     } else {
@@ -8139,6 +8118,64 @@ normal way.
 }  /* handle_conversion_function_call */
 
 
+/*
+Precedence of the overloadable operators, used to determine whether
+parentheses are needed around a given expression operand.  If you add
+operators to this list and are uncertain about the precedence to use, it is
+always safe to use PREC_LOWEST, which effectively results in use of
+gen_expr_with_parens to generate the expression containing the operator.
+*/
+static a_byte overloadable_operator_precedence[] = {
+  PREC_LOWEST,		/* onk_none */
+  PREC_LOWEST,		/* onk_new */
+  PREC_LOWEST,		/* onk_delete */
+  PREC_LOWEST,		/* onk_array_new */
+  PREC_LOWEST,		/* onk_array_delete */
+  PREC_PLUS_MINUS,	/* onk_plus */
+  PREC_PLUS_MINUS,	/* onk_minus */
+  PREC_MULT_DIV,	/* onk_star */
+  PREC_MULT_DIV,	/* onk_divide */
+  PREC_MULT_DIV,	/* onk_remainder */
+  PREC_EXCL_OR,		/* onk_excl_or */
+  PREC_AND,		/* onk_ampersand */
+  PREC_OR,		/* onk_or */
+  PREC_PREFIX,		/* onk_compl */
+  PREC_PREFIX,		/* onk_not */
+  PREC_ASSIGNMENT,	/* onk_assign */
+  PREC_RELATIONAL,	/* onk_lt */
+  PREC_RELATIONAL,	/* onk_gt */
+  PREC_ASSIGNMENT,	/* onk_plus_assign */
+  PREC_ASSIGNMENT,	/* onk_minus_assign */
+  PREC_ASSIGNMENT,	/* onk_times_assign */
+  PREC_ASSIGNMENT,	/* onk_divide_assign */
+  PREC_ASSIGNMENT,	/* onk_remainder_assign */
+  PREC_ASSIGNMENT,	/* onk_excl_or_assign */
+  PREC_ASSIGNMENT,	/* onk_and_assign */
+  PREC_ASSIGNMENT,	/* onk_or_assign */
+  PREC_SHIFT,		/* onk_shift_left */
+  PREC_SHIFT,		/* onk_shift_right */
+  PREC_ASSIGNMENT,	/* onk_shift_right_assign */
+  PREC_ASSIGNMENT,	/* onk_shift_left_assign */
+  PREC_EQ_NE,		/* onk_eq */
+  PREC_EQ_NE,		/* onk_ne */
+  PREC_RELATIONAL,	/* onk_le */
+  PREC_RELATIONAL,	/* onk_ge */
+  PREC_AND_AND,		/* onk_and_and */
+  PREC_OR_OR,		/* onk_or_or */
+  PREC_POSTFIX,		/* onk_plus_plus */
+  PREC_POSTFIX,		/* onk_minus_minus */
+  PREC_COMMA,		/* onk_comma */
+  PREC_PTR_TO_MEMBER,	/* onk_arrow_star */
+  PREC_POSTFIX,		/* onk_arrow */
+  PREC_POSTFIX,		/* onk_function_call */
+  PREC_POSTFIX,		/* onk_subscript */
+  PREC_QUEST_MARK,	/* onk_question */
+  PREC_GNU_MIN_MAX,	/* onk_gnu_min */
+  PREC_GNU_MIN_MAX,	/* onk_gnu_max */
+  PREC_LOWEST		/* onk_last */
+};  /* overloadable_operator_precedence */
+
+
 static a_boolean handle_operator_call(an_expr_node_ptr expr)
 /*
 expr is a call expression.  If it is the result of operator syntax ("a+b")
@@ -8161,7 +8198,7 @@ return FALSE and let the caller generate the code normally.
     a_param_type_ptr              param;
     an_expr_node_ptr              arg;
     an_opname_kind                op;
-    an_expr_operator_kind         expr_op;
+    a_byte                        operator_precedence;
     a_boolean                     outer_parens_needed;
     a_boolean                     operand_parens_needed;
     char                          *op_name;
@@ -8178,7 +8215,22 @@ return FALSE and let the caller generate the code normally.
     param = rtsp->param_type_list;
     arg = func_expr->next;
     op = rp->variant.opname_kind;
-    expr_op = operator_for_opname_kind(op, arg->next == NULL);
+    if (arg->next == NULL &&
+        (op == (an_opname_kind)onk_plus_plus ||
+         op == (an_opname_kind)onk_minus_minus ||
+         op == (an_opname_kind)onk_ampersand ||
+         op == (an_opname_kind)onk_star ||
+         op == (an_opname_kind)onk_plus ||
+         op == (an_opname_kind)onk_minus)) {
+      /* These opname kinds are used for both prefix and infix/postfix
+         operators.  If there is no second operand, this call represents
+         the prefix variant. */
+      operator_precedence = PREC_PREFIX;
+    } else {
+      /* In all other cases, the precedence is given by the
+         overloadable_operator_precedence table. */
+      operator_precedence = overloadable_operator_precedence[op];
+    }  /* if */
 
     /* For postfix operators, there's no need to enclose the generated
        expression in parentheses because the precedence is already higher
@@ -8221,7 +8273,7 @@ return FALSE and let the caller generate the code normally.
       write_tok_str(op_name);
     }  /* if */
 
-    operand_parens_needed = parens_may_be_needed(expr_op, arg);
+    operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
     if (operand_parens_needed) {
       write_tok_ch('(');
     }  /* if */
@@ -8275,7 +8327,8 @@ return FALSE and let the caller generate the code normally.
                are needed. */
             operand_parens_needed = FALSE;
           } else {
-            operand_parens_needed = parens_may_be_needed(expr_op, arg);
+            operand_parens_needed = parens_may_be_needed(operator_precedence,
+                                                         arg);
           }  /* if */
           if (operand_parens_needed) {
             write_tok_ch('(');
@@ -8616,16 +8669,16 @@ Render code for the given expression node, which represents a lambda.
 }  /* gen_lambda */
 
 
-static a_boolean parens_may_be_needed(an_expr_operator_kind op,
-                                      an_expr_node_ptr      operand)
+static a_boolean parens_may_be_needed(a_byte           operator_precedence,
+                                      an_expr_node_ptr operand)
 /*
 Return TRUE if parentheses may be needed around the generated code for
-operand when appearing under op.  This is a conservative determination;
-parens_may_be_needed will return FALSE only if it can be easily determined
-that there will be no precedence problems.
+operand when appearing under an operator having operator_precedence.  This
+is a conservative determination; parens_may_be_needed will return FALSE
+only if it can be easily determined that there will be no precedence
+problems.
 */
 {
-  int       operator_precedence = generated_precedence[op];
   a_boolean parens_needed = TRUE;
   a_boolean operand_changed;
 
@@ -8671,14 +8724,9 @@ that there will be no precedence problems.
       }  /* if */
     }  /* if */
   } while (operand_changed);
-  if (in_template_argument_list && msvc_is_generated_code_target &&
-      op == (an_expr_operator_kind)eok_lt) {
-    /* The Microsoft compiler has a bug in which it sometimes mistakes a
-       less-than operator for the beginning of a nested template argument
-       list; leave parens_needed TRUE to avoid this problem. */
-  } else if (operand->kind == (an_expr_node_kind)enk_variable ||
-             operand->kind == (an_expr_node_kind)enk_param_ref ||
-             operand->kind == (an_expr_node_kind)enk_temp_init) {
+  if (operand->kind == (an_expr_node_kind)enk_variable ||
+      operand->kind == (an_expr_node_kind)enk_param_ref ||
+      operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;
   } else if (is_operation_node(operand) &&
@@ -8810,6 +8858,7 @@ gen_expr that might end up generating this expr as a temporary.
   an_expr_node_ptr      operand_1, operand_2;
   a_boolean             need_op1_parens;
   a_boolean             need_reference_close_paren = FALSE;
+  a_boolean             force_parens_for_op1 = FALSE;
   an_expr_operator_kind op;
   a_dynamic_init_ptr    dip;
 
@@ -9133,6 +9182,13 @@ gen_expr that might end up generating this expr as a temporary.
           break;
         case eok_lt:
           opstr = "<";
+          if (msvc_is_generated_code_target && in_template_argument_list) {
+            /* The Microsoft compiler has a bug in which it sometimes
+               mistakes a less-than operator for the beginning of a nested
+               template argument list.  Force parentheses around the left
+               operand to avoid the problem. */
+            force_parens_for_op1 = TRUE;
+          }  /* if */
           break;
         case eok_ge:
           opstr = ">=";
@@ -9434,16 +9490,30 @@ gen_expr that might end up generating this expr as a temporary.
            operator. */
         need_op1_parens = TRUE;
       } else {
-        need_op1_parens = parens_may_be_needed(op, operand_1);
+        need_op1_parens = parens_may_be_needed(generated_precedence[op],
+                                               operand_1);
+      }  /* if */
+      if (force_parens_for_op1) {
+        /* We can't count on passing parens_needed as TRUE to put
+           parentheses in all the places we need them in this case; for
+           example, names are not parenthesized regardless of the value of
+           parens_needed.  Put out the parentheses explicitly here
+           instead. */
+        write_tok_ch('(');
+        need_op1_parens = FALSE;
       }  /* if */
       gen_expr(operand_1, need_op1_parens,
                /*obj_expr_of_mfunc_operator=*/FALSE);
+      if (force_parens_for_op1) {
+        write_tok_ch(')');
+      }  /* if */
       if (operand_2 != NULL) {
         /* Binary operator. */
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
-        gen_expr(operand_2, parens_may_be_needed(op, operand_2),
+        gen_expr(operand_2, parens_may_be_needed(generated_precedence[op],
+                                                 operand_2),
                  /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */
 done_with_operation:
@@ -9460,8 +9530,7 @@ done_with_operation_after_parens:
             gen_name_from_name_reference(expr->name_reference,
                                          &constant->source_corresp,
                                          iek_constant,
-                                         /*is_declaration=*/FALSE,
-                                         need_parens)) {
+                                         /*is_declaration=*/FALSE)) {
           /* We generated the name in its source form. */
         } else { 
           if ((expr->is_lvalue ||
@@ -9477,7 +9546,7 @@ done_with_operation_after_parens:
       }
       break;
     case enk_variable:
-      gen_name_from_variable_node(expr, need_parens);
+      gen_name_from_variable_node(expr);
       break;
     case enk_routine:
       gen_name_from_routine_node(expr, /*unqualified=*/FALSE,
@@ -10789,8 +10858,7 @@ the __if_exist appears between top-level declarations of the class.
     if (gen_name_from_name_reference(msiep->name_reference,
                                      (a_source_correspondence*)entity,
                                      (an_il_entry_kind)msiep->entity.kind,
-                                     /*is_declaration=*/FALSE,
-                                     /*need_parens=*/FALSE)) {
+                                     /*is_declaration=*/FALSE)) {
       /* We have information on the exact form of reference and used that
          to generate the name. */
     } else {
@@ -12647,8 +12715,7 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     /* Write the routine name. */
     if (gen_name_from_name_reference(name_ref, scp, iek_routine,
-                                     /*is_declaration=*/TRUE,
-                                     /*need_parens=*/FALSE)) {
+                                     /*is_declaration=*/TRUE)) {
       /* We generated the name in source form. */
     } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are
@@ -13678,10 +13745,17 @@ Initialize for the C++/C-generating back end.
 {
   sizeof_t num_generated_prec_table_elems = 
                 sizeof(generated_precedence) / sizeof(generated_precedence[0]);
+  sizeof_t num_overloadable_operator_prec_table_elems =
+                                   sizeof(overloadable_operator_precedence) /
+                                   sizeof(overloadable_operator_precedence[0]);
 
   check_assertion_str(num_generated_prec_table_elems ==
                                                       ((sizeof_t)eok_last + 1),
           "init_cp_gen_be: size of generated_precedence table is not correct");
+  check_assertion_str(num_overloadable_operator_prec_table_elems ==
+                                                      ((sizeof_t)onk_last + 1),
+              "init_cp_gen_be: size of overloadable_operator_precedence table "
+                                                             "is not correct");
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
