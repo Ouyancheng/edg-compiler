@@ -148,6 +148,18 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "v18__imag__"
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Note that these C++/CLI extensions use the IA-64 ABI "vendor extended type
+qualifier" encoding (even though they are declarators).  The decoder has
+special knowledge of these cases and makes an appropriate adjustment.  Note
+that if these were indeed qualifiers, they would affect the substitutions
+(i.e., a substitution would be created for both the "qualified" type and
+the unqualified type), but that's not the case here (a substitution is
+created only for the entire type).  This may cause these mangled names to
+be improperly decoded by other decoders, but it makes it likely that there
+won't be a conflict with future IA-64 ABI modifications (i.e., if an
+EDG-specific modification had been used instead).
+*/
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2477,7 +2489,7 @@ template classes.
 #else /* IA64_ABI */
   /* IA-64 encoding.  Indicate that we're taking the address of the literal
      by adding the encoding for unary "&" (unless it's a reference type). */
-  if (!is_reference_type(con->type)) {
+  if (!is_any_reference_type(con->type)) {
     add_str_to_mangled_name("ad", mctl);
   }  /* if */
   add_to_mangled_name('L', mctl);
@@ -4274,10 +4286,7 @@ details any qualification that applies to the destructor.
   } else {
     /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
        passed in is a pointer to a class. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    check_assertion(!is_handle_type(type));
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (is_pointer_type(type)) type = type_pointed_to(type);
+    if (is_pointer_or_handle_type(type)) type = type_pointed_to(type);
     destructor_type = type;
   }  /* if */
 #if IA64_ABI
