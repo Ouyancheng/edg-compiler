@@ -554,7 +554,7 @@ Dump an access control specifier.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void db_assembly_visibility_of_type(a_type_ptr  type)
+static void db_assembly_visibility_of_type(a_type_ptr  type)
 /*
 Dump the assembly visibility specifier of the given type.
 */

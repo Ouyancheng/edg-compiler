@@ -2213,7 +2213,7 @@ position, and return av_public or av_private accordingly.  Otherwise, return
 av_none and leave *pos unchanged.  (Called in C++/CLI mode only.)
 */
 {
-  an_assembly_visibility  result = av_none;
+  an_assembly_visibility  result = (an_assembly_visibility)av_none;
 
   if (is_cli_assembly_visibility_specifier(curr_token)) {
     *pos = pos_curr_token;

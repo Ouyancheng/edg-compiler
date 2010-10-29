@@ -337,7 +337,7 @@ C++/CLI assembly visibility kinds.
 enum an_assembly_visibility_tag {
   av_none,		/* No assembly visibility applicable. */
   av_public,		/* Assembly member publicly visible. */
-  av_private,		/* Assembly member not publicly visible. */
+  av_private		/* Assembly member not publicly visible. */
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
