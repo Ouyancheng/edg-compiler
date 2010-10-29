@@ -8884,7 +8884,12 @@ constructors and conversion functions.
   a_boolean add_leading_underscores = FALSE;
 #endif /* !IA64_ABI */
 
-  if (special_kind == (a_special_function_kind)sfk_none) {
+  if (special_kind == (a_special_function_kind)sfk_none
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || special_kind == (a_special_function_kind)sfk_property_get
+      || special_kind == (a_special_function_kind)sfk_property_set
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                  ) {
     /* Normal name. */
     name = unmangled_or_fabricated_name_of(scp);
     check_assertion_str(name != NULL,
