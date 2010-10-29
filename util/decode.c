@@ -4556,29 +4556,29 @@ to be on top of the type.  If parse_template_args is TRUE then any
         vendor_ext = "%";
         p += 9;
       } else {
-        /* For now, other extensions are not supported. */
-        bad_mangled_name(dctl);
+        /* For now, other extensions are ignored. */
+        dctl->suppress_id_output++;
+        p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
+        dctl->suppress_id_output--;
       }  /* if */
     }  /* if */
-    if (!dctl->err_in_id) {
-      if (kind == 'C') {
-        write_id_str("_Complex ", dctl);
-      }  /* if */
-      p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
-                                   /*need_trailing_space=*/TRUE,
-                                   parse_template_args, dctl);
-      if (kind == 'P') {
-        write_id_ch('*', dctl);
-      } else if (kind == 'R') {
-        write_id_ch('&', dctl);
-      } else if (kind == 'O') {
-        write_id_str("&&", dctl);
-      } else if (vendor_ext != NULL) {
-        write_id_str(vendor_ext, dctl);
-      }  /* if */
-      /* Output the cv-qualifiers on the pointer, if any. */
-      output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
+    if (kind == 'C') {
+      write_id_str("_Complex ", dctl);
     }  /* if */
+    p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
+                                 /*need_trailing_space=*/TRUE,
+                                 parse_template_args, dctl);
+    if (kind == 'P') {
+      write_id_ch('*', dctl);
+    } else if (kind == 'R') {
+      write_id_ch('&', dctl);
+    } else if (kind == 'O') {
+      write_id_str("&&", dctl);
+    } else if (vendor_ext != NULL) {
+      write_id_str(vendor_ext, dctl);
+    }  /* if */
+    /* Output the cv-qualifiers on the pointer, if any. */
+    output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */
     char *classp = p+1;
