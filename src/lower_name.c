@@ -147,6 +147,10 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "v18__imag__"
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
+#define MANGLING_STRING_FOR_HANDLE "U8__handle"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
@@ -263,6 +267,10 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_PLUS_PLUS_PREFIX "ppe"
 #define MANGLING_STRING_FOR_OPERATOR_MINUS_MINUS_PREFIX "mme"
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define MANGLING_STRING_FOR_TRACKING_REFERENCE "Tr"
+#define MANGLING_STRING_FOR_HANDLE "H"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
 
@@ -2467,7 +2475,8 @@ template classes.
      This is compatible with cfront 3.0.1. */
   reserve_space_for_length(&length_reservation, mctl);
 #else /* IA64_ABI */
-  /* IA-64 encoding.  Unary "&" Operator "ad" followed by literal "L". */
+  /* IA-64 encoding.  Indicate that we're taking the address of the literal
+     by adding the encoding for unary "&" (unless it's a reference type). */
   if (!is_reference_type(con->type)) {
     add_str_to_mangled_name("ad", mctl);
   }  /* if */
@@ -4265,6 +4274,9 @@ details any qualification that applies to the destructor.
   } else {
     /* In some cases (i.e., eok_points_to_vacuous_destructor_call), the type
        passed in is a pointer to a class. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_assertion(!is_handle_type(type));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_pointer_type(type)) type = type_pointed_to(type);
     destructor_type = type;
   }  /* if */
@@ -8081,9 +8093,17 @@ top_of_loop:
         if (type->variant.pointer.is_reference) {
           if (type->variant.pointer.is_rvalue_reference) {
             s = MANGLING_STRING_FOR_RVALUE_REFERENCE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (type->variant.pointer.is_handle) {
+            s = MANGLING_STRING_FOR_TRACKING_REFERENCE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             s = MANGLING_STRING_FOR_REFERENCE;
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (type->variant.pointer.is_handle) {
+          s = MANGLING_STRING_FOR_HANDLE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           s = MANGLING_STRING_FOR_POINTER;
         }  /* if */
