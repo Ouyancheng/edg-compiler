@@ -2661,7 +2661,8 @@ Return a pointer to the character position following what was demangled.
       char ch;
       if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
       ch = get_char(p, dctl);
-      if (ch == 'T' || ch == 'N') {
+      if ((ch == 'T' && isdigit((unsigned char)get_char(p+1, dctl))) ||
+          ch == 'N') {
         /* Tn means repeat the type of parameter "n". */
         /* Nmn means "m" repetitions of the type of parameter "n".  "m"
            is a one-digit number. */
@@ -2752,16 +2753,23 @@ not empty, because it contains a name or a derived type).
   /* Remove type qualifiers. */
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
-  if (kind == 'P' || kind == 'R' || kind == 'E') {
-    /* Pointer, reference, or rvalue reference type, e.g., "Pc" is
-       pointer to char. */
+  if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H' ||
+      (kind == 'T' && get_char(p+1, dctl) == 'r')) {
+    /* Pointer, reference, rvalue reference, handle, or tracking reference
+       type, e.g., "Pc" is pointer to char. */
+    if (kind == 'T') p++;
     p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
-    /* Output "*" (pointer), "&" (reference), or "&&" (rvalue reference). */
+    /* Output "*" (pointer), "&" (reference), "&&" (rvalue reference),
+       "^" (handle), or "%" (tracking reference). */
     if (kind == 'R') {
       write_id_ch('&', dctl);
     } else if (kind == 'E') {
       write_id_str("&&", dctl);
+    } else if (kind == 'H') {
+      write_id_ch('^', dctl);
+    } else if (kind == 'T') {
+      write_id_ch('%', dctl);
     } else {
       write_id_ch('*', dctl);
     }  /* if */
@@ -2852,9 +2860,11 @@ use of parentheses around parts of the declarator.)
   /* Remove type qualifiers. */
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
-  if (kind == 'P' || kind == 'R' || kind == 'E') {
-    /* Pointer, reference, or rvalue reference type, e.g., "Pc" is
-       pointer to char. */
+  if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H' ||
+      (kind == 'T' && get_char(p+1, dctl) == 'r')) {
+    /* Pointer, reference, rvalue reference, handle, or tracking reference
+       type, e.g., "Pc" is pointer to char. */
+    if (kind == 'T') p++;
     demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
@@ -4512,18 +4522,37 @@ to be on top of the type.  If parse_template_args is TRUE then any
       p = demangle_template_args(p, dctl);
       record_substitution = TRUE;
     }  /* if */
-  } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C') {
+  } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
+             kind == 'U') {
+    char *vendor_ext = NULL;
     /* Look for type qualifiers:
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to
                ::= R <type> # reference-to
                ::= O <type> # rvalue reference-to (C++0x)
                ::= C <type> # complex pair (C 2000)
+               ::= U <source-name> <type> # vendor extended type qualifier
        */
+    p++;
+    if (kind == 'U') {
+      /* The front end emits vendor extended type qualifiers for certain
+         C++/CLI constructs (i.e., handles and tracking references).  Handle
+         these specially; otherwise simply emit the <source-name>. */
+      if (strncmp(p, "8__handle", 9) == 0) {
+        vendor_ext = "^";
+        p += 9;
+      } else if (strncmp(p, "8__trkref", 9) == 0) {
+        vendor_ext = "%";
+        p += 9;
+      } else {
+        p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
+        write_id_ch(' ', dctl);
+      }  /* if */
+    }  /* if */
     if (kind == 'C') {
       write_id_str("_Complex ", dctl);
     }  /* if */
-    p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
+    p = demangle_type_first_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE,
                                  parse_template_args, dctl);
     if (kind == 'P') {
@@ -4532,6 +4561,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
       write_id_ch('&', dctl);
     } else if (kind == 'O') {
       write_id_str("&&", dctl);
+    } else if (vendor_ext != NULL) {
+      write_id_str(vendor_ext, dctl);
     }  /* if */
     /* Output the cv-qualifiers on the pointer, if any. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
@@ -4660,15 +4691,24 @@ to be on top of the type.
                               dctl);
     /* No need to scan the <template-args> list if there is one -- 
        that was done by demangle_type_first_part. */
-  } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C') {
+  } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
+             kind == 'U') {
     /* Look for type qualifiers:
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to
                ::= R <type> # reference-to
                ::= O <type> # rvalue reference-to (C++0x)
                ::= C <type> # complex pair (C 2000)
+               ::= U <source-name> <type> # vendor extended type qualifier
        */
-    demangle_type_second_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
+    p++;
+    if (kind == 'U') {
+      /* Skip over any vendor extended type qualifier here. */
+      dctl->suppress_id_output++;
+      p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
+      dctl->suppress_id_output--;
+    }  /* if */
+    demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */

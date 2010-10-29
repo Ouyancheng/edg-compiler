@@ -1,5 +1,18 @@
 Version 4.3
 
+10/29/10 [EDGcpfe/11063]
+Demangle encodings for C++/CLI handles and tracking references
+
+The front end has introduced new mangled encodings for the C++/CLI concepts of
+handles ("H" is used in the Cfront ABI and "U8__handle" in the IA-64 ABI) and
+tracking references ("Tr" is used in the Cfront ABI and "U8__trkref" in the
+IA-64 ABI).  A change has been made to demangle these mangled names.  Note that
+the IA-64 ABI mangled encodings use a vendor extended type qualifier as
+specified in the IA-64 ABI and that the demangler now demangles such vendor
+extensions (though these are currently the only two uses of this extension by
+the front end).
+
+
 8/26/10  [EDGcpfe/10967]
 Compilation error in decode.c when compiling lib_src on Mac OS X
 
