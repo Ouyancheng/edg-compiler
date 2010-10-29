@@ -15430,7 +15430,7 @@ passed via template_decl.
   a_boolean            missing_declarator = FALSE;
   a_source_position    decl_start_pos;
   a_decl_flag_set      dsi_flags;
-  a_decl_flag_set      dso_flags;
+  a_decl_flag_set      dso_flags = DSO_NO_OUTPUT_FLAGS;
   a_type_ptr           specifiers_type;
   a_boolean            is_typedef;
   a_boolean            no_decl_specifiers;
