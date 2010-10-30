@@ -3124,14 +3124,18 @@ after_entry_from_class:
         remap_next_ptr(ptr->next, an_attribute_ptr, iek_attribute);
         walk_string_ptr(ptr->name, iek_id_name, 0);
         walk_string_ptr(ptr->namespace_name, iek_id_name, 0);
-        walk_list(ptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
+        /* Argument entries may be shared between copies of an attribute (e.g.,
+           the attribute entries associated with a_routine and their copies
+           recorded in a secondary source sequence entry for that routine).
+           As a consequence, walk_list cannot be used here. */
+        walk_ptr(ptr->arguments, an_attribute_arg_ptr, iek_attribute_arg);
         walk_ptr(ptr->group, an_attribute_group_ptr, iek_attribute_group);
         conditionally_clear_fe_pointer(ptr->assoc_info);
       }
       break;
     case iek_attribute_arg:
       { an_attribute_arg_ptr  ptr = (an_attribute_arg_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
+        walk_ptr(ptr->next, an_attribute_arg_ptr, iek_attribute_arg);
         switch (ptr->kind) {
           case aak_empty:
             /* Nothing to do. */

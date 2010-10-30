@@ -1,5 +1,20 @@
 Version 4.3
 
+10/29/10 [EDGcpfe/11111]
+Abort on GNU attributes with multiple arguments in some configurations
+
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE and
+ALTERNATE_IL_FILE_FORMAT set to FALSE, the front end sometimes aborted
+with an internal error ("ptr_remap_function: address not in any mem block").
+This was especially likely when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE.
+For example:
+
+  void f(char *p, char *q) __attribute((nonnull(1,2)));
+    // Previously caused the front end to abort in some configurations.
+
+This is now fixed.
+
+
 10/28/10 [EDGcpfe/11099]
 Cast of pointer to member from virtual base to derived in Microsoft C++ mode
 
