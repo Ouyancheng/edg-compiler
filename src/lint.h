@@ -647,7 +647,19 @@ extern int fileno(FILE *);
 /* FIXME */
 /*lint -esym(759,record_pack_expansion_ellipsis)*/
 /*lint -esym(765,record_pack_expansion_ellipsis)*/
-
+/*lint -esym(759,is_handle_type)*/
+/*lint -esym(765,is_handle_type)*/
+/*lint -esym(714,is_handle_type)*/
+/*lint -esym(759,make_handle_type)*/
+/*lint -esym(765,make_handle_type)*/
+/*lint -esym(714,make_handle_type)*/
+/*lint -esym(759,make_tracking_reference_type)*/
+/*lint -esym(765,make_tracking_reference_type)*/
+/*lint -esym(714,make_tracking_reference_type)*/
+/*lint -esym(759,are_both_pointer_or_both_handle_types)*/
+/*lint -esym(765,are_both_pointer_or_both_handle_types)*/
+/*lint -esym(759,are_both_ref_or_both_tracking_ref_types)*/
+/*lint -esym(765,are_both_ref_or_both_tracking_ref_types)*/
 
 #endif /* ifndef LINT_H */
 
