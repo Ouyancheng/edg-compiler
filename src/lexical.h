@@ -416,6 +416,18 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_microsoft_lprefix */
    (an_opname_kind)onk_none,          /* tok_microsoft_identifier */
    (an_opname_kind)onk_none,          /* tok_uuid */
+   (an_opname_kind)onk_none,          /* tok_for_each */
+   (an_opname_kind)onk_none,          /* tok_ref_class */
+   (an_opname_kind)onk_none,          /* tok_ref_struct */
+   (an_opname_kind)onk_none,          /* tok_value_class */
+   (an_opname_kind)onk_none,          /* tok_value_struct */
+   (an_opname_kind)onk_none,          /* tok_enum_class */
+   (an_opname_kind)onk_none,          /* tok_enum_struct */
+   (an_opname_kind)onk_none,          /* tok_interface_class */
+   (an_opname_kind)onk_none,          /* tok_interface_struct */
+   (an_opname_kind)onk_none,          /* tok_ref */
+   (an_opname_kind)onk_none,          /* tok_value */
+   (an_opname_kind)onk_none,          /* tok_cli_interface */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
    (an_opname_kind)onk_none,          /* tok_func_name */
@@ -1186,6 +1198,9 @@ typedef struct a_source_line_modif {
 			   for a macro argument, and therefore should not be
 			   freed automatically when the next source line is
 			   read. */
+  a_bit_field	is_whitespace_kwd:1;
+			/* TRUE if this modification represents the canonical
+			   form of a whitespace keyword. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -2399,6 +2414,10 @@ extern void if_exists_pragma(a_pending_pragma_ptr	ppp);
 extern void f_check_for_if_exists_pragmas(void);
 extern void check_for_unclosed_if_exists_blocks(void);
 #endif /* !GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void init_whitespace_keywords(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifndef LEXICAL_H */
 

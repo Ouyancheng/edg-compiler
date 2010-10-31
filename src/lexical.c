@@ -683,6 +683,31 @@ static a_file_suffix_ptr
 			   searching for includes specified with the <...>
 			   syntax. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Entry used to store the canonical form of a whitespace keyword (i.e., the
+first word followed by a single space followed by the second word).  An
+array of these entries is used to create source line modifications to
+replace the actual spelling of the keyword in the source, which may have
+varying amounts and kinds of white space separating the words.
+*/
+typedef struct a_whitespace_keyword *a_whitespace_keyword_ptr;
+typedef struct a_whitespace_keyword {
+  char		*text;	/* Pointer to the spelling of the keyword. */
+  char		*end_of_insertion;
+			/* Pointer to the LE_END_OF_INSERTION lexical escape
+			   that terminates the spelling of the keyword. */
+} a_whitespace_keyword;
+
+/*
+Pointer to a table of the canonical spellings of whitespace keywords,
+indexed by the token kind (offset by tok_first_white_space_token).  It is
+initialized by init_whitespace_keywords.
+*/
+static a_whitespace_keyword_ptr
+		whitespace_keywords;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
@@ -2490,6 +2515,7 @@ invocations.
   slmp->locked              = FALSE;
   slmp->contains_saved_macro_argument_text
                             = FALSE;
+  slmp->is_whitespace_kwd   = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_macro_def_ptr)NULL;
@@ -5534,13 +5560,37 @@ macro_line_loc_to_source_pos should be used when speed is critical.
   adj_loc_in_line = loc_in_line;
   orig_slmp = NULL;
   if (!within_curr_source_line(adj_loc_in_line)) {
-    /* If loc_in_line is not in curr_source_line, it must be in a macro
+    orig_slmp = assoc_source_line_modif(adj_loc_in_line);
+    if (orig_slmp->is_whitespace_kwd) {
+      /* This source line modification is for the canonical representation
+         of a whitespace keyword, not a macro expansion.  Use the
+         respective start or end positions of the original spelling of the
+         keyword instead.  This prevents mapping the ending position to the
+         beginning, as it would with a macro expansion, and it is
+         especially important with FULLY_RESOLVED_MACRO_POSITIONS because
+         such modifications do not have an associated macro text map and
+         thus must not be passed to get_source_pos_from_macro_text_map. */
+      if (adj_loc_in_line == orig_slmp->inserted_text) {
+        adj_loc_in_line = loc_of_insert(orig_slmp);
+      } else if (adj_loc_in_line == orig_slmp->end_inserted_text - 1) {
+        adj_loc_in_line = loc_of_insert(orig_slmp) +
+                                            orig_slmp->num_chars_to_delete - 1;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!within_curr_source_line(adj_loc_in_line)) {
+    /* If loc_in_line is now not in curr_source_line, it must be in a macro
        expansion or macro argument.  Find the location in curr_source_line
        that begins the macro expansion that ultimately generates
        adj_loc_in_line.  This gives us a source line position we can
        convert.  Remember the innermost modification entry in orig_slmp
        so the position can be put into it once determined. */
-    orig_slmp = slmp = assoc_source_line_modif(adj_loc_in_line);
+    slmp = assoc_source_line_modif(adj_loc_in_line);
+    if (orig_slmp == NULL) {
+      orig_slmp = slmp;
+    }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
     get_source_pos_from_macro_text_map(orig_slmp, loc_in_line, &orig_seq,
                                        &orig_column, &macro_context);
@@ -9996,6 +10046,237 @@ alternative_tokens_allowed is only TRUE in C++ mode.
 #define digraphs_allowed() (alternative_tokens_allowed)
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+void init_whitespace_keywords(void)
+/*
+Populate the table of canonical spellings for whitespace keywords.
+*/
+{
+  sizeof_t     spelling_buffer_size = 0;
+  char         *ptr;
+  a_token_kind tok;
+
+  /* Allocate the table of whitespace keyword spellings. */
+  whitespace_keywords = (a_whitespace_keyword_ptr)alloc_fe(
+                 sizeof(a_whitespace_keyword) *
+                 (tok_last_whitespace_token - tok_first_whitespace_token + 1));
+  /* Determine out how large a buffer is needed. */
+  for (tok = tok_first_whitespace_token; tok <= tok_last_whitespace_token;
+       ++tok) {
+    spelling_buffer_size += strlen(token_names[tok]) + LE_ESCAPE_LEN;
+  }  /* for */
+  /* Allocate the buffer */
+  ptr = alloc_fe(spelling_buffer_size);
+  /* Copy the spellings and populate the whitespace_keyword array. */
+  for (tok = tok_first_whitespace_token; tok <= tok_last_whitespace_token;
+       ++tok) {
+    sizeof_t len = strlen(token_names[tok]);
+    (void)memcpy(ptr, token_names[tok], size_t_arg(len));
+    whitespace_keywords[tok - tok_first_whitespace_token].text = ptr;
+    ptr += len;
+    whitespace_keywords[tok - tok_first_whitespace_token].end_of_insertion =
+                                                                           ptr;
+    *ptr++ = LE_ESCAPE;
+    *ptr++ = LE_END_OF_INSERTION;
+  }  /* for */
+}  /* init_whitespace_keywords */
+
+
+/*
+Some constants for the "class", "struct" and "each" keyword lengths.
+*/
+#define len_of_class (sizeof("class")-1)
+#define len_of_struct (sizeof("struct")-1)
+#define len_of_each (sizeof("each")-1)
+
+static a_token_kind scan_whitespace_keyword(a_token_kind first_word)
+/*
+Check to see if first_word (corresponding to the token beginning at
+start_of_curr_token) together with the next token on the current line
+form a whitespace token.  If so, add a source line modification replacing
+the actual spelling with the canonical spelling and return the
+corresponding token kind; otherwise, return the appropriate token kind
+considering the current token as a standalone token (i.e., either tok_for
+or tok_identifier).  Note that the current implementation does not accept
+newline as white space between the words, so the second word of the token
+must be within the current source line.
+*/
+{
+  a_token_kind return_token = first_word;
+  a_token_kind next_word = tok_identifier;
+  char         *ptr;
+  char         *end_of_word;
+  sizeof_t     next_word_len;
+
+  ptr = curr_char_loc;
+  /* Skip over white space. */
+  while (*ptr == ' ' || *ptr == '\t' || *ptr == LE_ESCAPE) {
+    if (*ptr == LE_ESCAPE) {
+      if (*(ptr+1) == LE_END_OF_TOKEN) {
+        /* Marker put into text by preprocessing of macros, to force the same
+           interpretation of token boundaries as during the macro definition.
+           At this level, should be ignored. */
+        ptr += LE_ESCAPE_LEN;
+      } else {
+        /* This is a marker for something other than a token, do not skip
+           over it. */
+        break;
+      }  /* if */
+    } else {
+      ++ptr;
+    }  /* if */
+  }  /* while */
+  /* Get the length of the next word. */
+  end_of_word = ptr;
+  while (is_id_char[(*end_of_word)-CHAR_MIN]) ++end_of_word;
+  next_word_len = end_of_word - ptr;
+  /* Determine if first_word and next_word together make a whitespace
+     keyword. */
+  if (first_word == tok_for) {
+    if (next_word_len == len_of_each &&
+        memcmp(ptr, "each", size_t_arg(len_of_each)) == 0) {
+      check_assertion(microsoft_mode || cppcli_enabled);
+      return_token = tok_for_each;
+    }  /* if */
+  } else if (cppcli_enabled) {
+    if (next_word_len == len_of_class && 
+        memcmp(ptr, "class", size_t_arg(len_of_class)) == 0) {
+      next_word = tok_class;
+    } else if (next_word_len == len_of_struct && 
+               memcmp(ptr, "struct", size_t_arg(len_of_struct)) == 0) {
+      next_word = tok_struct;
+    }  /* if */
+    switch (first_word) {
+      case tok_enum:
+        switch (next_word) {
+          case tok_class:  return_token = tok_enum_class;         break;
+          case tok_struct: return_token = tok_enum_struct;        break;
+          default:         /* "enum" is a token.  Return it. */   break;
+        }  /* switch */
+        break;
+      case tok_cli_interface:
+        switch (next_word) {
+          case tok_class:  return_token = tok_interface_class;    break;
+          case tok_struct: return_token = tok_interface_struct;   break;
+          default:         return_token = tok_identifier;         break;
+        }  /* switch */
+        break;
+      case tok_ref:
+        switch (next_word) {
+          case tok_class:  return_token = tok_ref_class;          break;
+          case tok_struct: return_token = tok_ref_struct;         break;
+          default:         return_token = tok_identifier;         break;
+        }  /* switch */
+        break;
+      case tok_value:
+        switch (next_word) {
+          case tok_class:  return_token = tok_value_class;        break;
+          case tok_struct: return_token = tok_value_struct;       break;
+          default:         return_token = tok_identifier;         break;
+        }  /* switch */
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
+  if (return_token != first_word && return_token != tok_identifier) {
+    /* A whitespace keyword was detected.  Add a source line modification
+       to reduce the whitespace keyword into its canonical form. */
+    a_whitespace_keyword_ptr kwd;
+    a_source_line_modif_ptr  slmp;
+    check_assertion(return_token >= tok_first_whitespace_token &&
+                    return_token <= tok_last_whitespace_token);
+    kwd = &whitespace_keywords[(int)(return_token -
+                                     tok_first_whitespace_token)];
+    slmp = add_source_line_modif(start_of_curr_token,
+                                 (sizeof_t)(end_of_word - start_of_curr_token),
+                                 kwd->text, kwd->end_of_insertion);
+    slmp->is_whitespace_kwd = TRUE;
+    start_of_curr_token = kwd->text;
+    curr_char_loc = kwd->end_of_insertion;
+    len_of_curr_token = start_of_curr_token - curr_char_loc;
+    end_of_curr_token = curr_char_loc - 1;
+  }  /* if */
+  return return_token;
+}  /* scan_whitespace_keyword */
+
+
+static a_boolean is_potential_start_of_whitespace_keyword(a_token_kind token)
+/*
+Returns TRUE if token is the beginning of a whitespace keyword.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (token == tok_for) {
+    result = TRUE;
+  } else if (cppcli_enabled) {
+    switch (token) {
+      case tok_cli_interface:
+      case tok_enum:
+      case tok_ref:
+      case tok_value:
+        result = TRUE;
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_potential_start_of_whitespace_keyword */
+
+
+static a_boolean check_for_whitespace_keyword(a_symbol_ptr assoc_symbol,
+                                              a_token_kind *token_kind)
+/*
+This function checks if the next two tokens constitute a whitespace keyword,
+in which case it sets *token_kind to the kind of the whitespace keyword and
+returns TRUE.
+
+On input assoc_symbol points to the symbol for the first token.  assoc_symbol
+cannot be NULL.
+*/
+{
+  a_boolean    is_whitespace_keyword = FALSE;
+  a_token_kind current_token;
+  a_symbol_ptr symbol = NULL;
+
+  /* If the current token could begin a whitespace keyword, scan ahead and
+     determine if the next token on the line completes the keyword. */
+  if ((cppcli_enabled || (microsoft_mode && !C_mode())) &&
+      !suppress_keyword_recognition) {
+    /* Because whitespace keywords should be detected before macro
+       expansion, if assoc_symbol is a macro we still have to look if it is
+       also a keyword for "ref", "value", "interface" or "enum".  For
+       example "interface" is often a macro and can be the start of a
+       whitespace keyword. */
+    if (assoc_symbol->kind == (a_symbol_kind)sk_keyword) {
+      symbol = assoc_symbol;
+    } else if (assoc_symbol->kind == (a_symbol_kind)sk_macro) {
+      symbol = assoc_symbol->next;
+      while (symbol != NULL && symbol->kind != (a_symbol_kind)sk_keyword) {
+        symbol = symbol->next;
+      }  /* while */
+    }  /* if */
+    if (symbol != NULL) {
+      current_token = (a_token_kind)symbol->variant.keyword.token;
+      if (is_potential_start_of_whitespace_keyword(current_token)) {
+        /* The current token is a valid starting word for a whitespace
+           keyword. */
+        current_token = scan_whitespace_keyword(current_token);
+        if (current_token != tok_identifier &&
+            current_token != (a_token_kind)symbol->variant.keyword.token) {
+          /* A whitespace keyword has been found. */
+          is_whitespace_keyword = TRUE;
+          *token_kind = current_token;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_whitespace_keyword;
+} /* check_for_whitespace_keyword */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 a_token_kind get_token(void)
 /*
 Scan the next token of input, and return its kind.  The kind of token is
@@ -10066,6 +10347,9 @@ to speed in some cases.
   a_boolean		rescan, is_inert_macro = FALSE;
   a_boolean             is_temporarily_inert_macro = FALSE;
   a_boolean		continue_scan;
+#if MICROSOFT_EXTENSIONS_ALLOWED 
+  a_token_kind          token_kind;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean             gotten_from_cache = FALSE;
   a_boolean		contains_ucn_or_multibyte_char;
 
@@ -10714,6 +10998,15 @@ id_scan:
         sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);
         assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* We must check for white-space keywords before any macro expansion
+           is performed on the current symbol. */
+        if (assoc_symbol != NULL &&
+            check_for_whitespace_keyword(assoc_symbol, &token_kind)) {
+          ctoken = token_kind;
+          goto end_id_scan;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* See if the identifier is a macro or keyword.  "Macro" should
            take precedence over "keyword", but it will naturally, since
            keywords are entered first and therefore appear at the end of the
@@ -10791,6 +11084,15 @@ id_scan:
                 goto end_id_scan;
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+                /* The words that can potentially start a white-space keyword
+                   are defined as keywords but if we got here they are
+                   identifiers in the current context. */
+                if (cppcli_enabled &&
+                    (ctoken == tok_cli_interface ||
+                     ctoken == tok_ref ||
+                     ctoken == tok_value)) {
+                  ctoken = tok_identifier;
+                }  /* if */
                 if (microsoft_mode) {
                   if (ctoken == tok_microsoft_asm && !scanning_microsoft_asm) {
                     /* Build a string representation of a Microsoft asm
@@ -17708,6 +18010,9 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(name_linkage_constants),
       pch_saved_var_array_elem(curr_stop_token_stack_entry),
       pch_saved_var_array_elem(curr_lexical_state_stack_entry),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(whitespace_keywords),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),

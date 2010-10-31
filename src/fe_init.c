@@ -524,6 +524,16 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_nullptr, "__nullptr");
     }  /* if */
   }  /* if */
+  init_whitespace_keywords();
+  if (cppcli_enabled) {
+    /* Keywords that can be the first word of a whitespace keyword.  They
+       are never returned by get_token() but are transformed either into
+       the associated whitespace keyword or are treated as ordinary
+       identifiers. */
+    enter_keyword((a_token_kind)tok_cli_interface, "interface");
+    enter_keyword((a_token_kind)tok_ref, "ref");
+    enter_keyword((a_token_kind)tok_value, "value");
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (type_traits_helpers_enabled ||
       (microsoft_mode && microsoft_version >= 1400)) {

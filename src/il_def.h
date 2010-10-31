@@ -944,6 +944,26 @@ typedef enum /*a_token_kind*/ {
   tok_microsoft_lprefix,
   tok_microsoft_identifier,
   tok_uuid,
+  /* Keywords with embedded white space.  All except tok_for_each are only
+     in C++/CLI.  These must be in the contiguous range defined by
+     tok_first_whitespace_token through tok_last_whitespace_token, as the
+     token kinds are used to index the whitespace_keywords array. */
+  tok_for_each,
+  tok_first_whitespace_token = tok_for_each,
+  tok_ref_class,
+  tok_ref_struct,
+  tok_value_class,
+  tok_value_struct,
+  tok_enum_class,
+  tok_enum_struct,
+  tok_interface_class,
+  tok_interface_struct,
+  tok_last_whitespace_token = tok_interface_struct,
+  /* Tokens for the first words of whitespace tokens (never returned by
+     get_token()). */
+  tok_ref,
+  tok_value,
+  tok_cli_interface,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
   /* Special constants for various versions of the name of the current
@@ -1103,6 +1123,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
    "__LPREFIX", "__identifier", "uuid",
+   "for each", "ref class", "ref struct", "value class", "value struct",
+   "enum class", "enum struct", "interface class", "interface struct",
+   "interface", "ref", "value",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
