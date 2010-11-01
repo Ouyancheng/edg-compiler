@@ -4091,9 +4091,16 @@ what portion(s) of it were emitted).
 #undef end_of_param_list
 }  /* demangle_bare_function_type */
 
+/* Forward reference. */
+static char *demangle_source_name(
+                                 char                       *ptr,
+                                 a_boolean                  is_module_id,
+                                 a_decode_control_block_ptr dctl);
 
-static char *get_cv_qualifiers(char               *ptr,
-                               a_cv_qualifier_set *cv_quals)
+
+static char *get_cv_qualifiers(char			  *ptr,
+                               a_cv_qualifier_set	  *cv_quals,
+                               a_decode_control_block_ptr dctl)
 /*
 Advance over any cv-qualifiers (const/volatile) at the indicated location
 and return in *cv_quals a bit set indicating the qualifiers encountered.
@@ -4112,28 +4119,26 @@ those are handled in the declarator processing rather than here.
       *cv_quals |= CVQ_VOLATILE;
     } else if (*ptr == 'r') {
       *cv_quals |= CVQ_RESTRICT;
+    } else if (*ptr == 'U') {
+      /* A vendor extended type qualifier. */
+      if (start_of_id_is("8__vector", ptr+1) ||
+          start_of_id_is("8__handle", ptr+1) ||
+          start_of_id_is("8__trkref", ptr+1)) {
+        /* These order-sensitive vendor extended type qualifiers are handled
+           elsewhere. */
+        break;
+      } else {
+        /* For now, other vendor extensions are ignored. */
+        dctl->suppress_id_output++;
+        ptr = demangle_source_name(ptr+1, /*is_module_id=*/FALSE, dctl);
+        dctl->suppress_id_output--;
+      }  /* if */
     } else {
       break;
     }  /* if */
   }  /* for */
   return ptr;
 }  /* get_cv_qualifiers */
-
-
-static char *demangle_vector_size_qualifier(char                       *ptr,
-                                            a_decode_control_block_ptr dctl)
-/*
-Demangle the GNU vector_size qualifier if it appears at the indicated
-location.  Return a pointer to the character position following what was
-demangled.
-*/
-{
-  if (start_of_id_is("U8__vector", ptr)) {
-    ptr += 10;
-    write_id_str("__attribute__((vector_size(?))) ", dctl);
-  }  /* for */
-  return ptr;
-}  /* demangle_vector_size_qualifier */
 
 
 static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
@@ -4247,7 +4252,7 @@ The syntax is:
   ptr++;
   if (*ptr != '_' && !isdigit((unsigned char)*ptr)) {
     /* Optional cv-qualifiers. */
-    ptr = get_cv_qualifiers(ptr, &cv_quals);
+    ptr = get_cv_qualifiers(ptr, &cv_quals, dctl);
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   }  /* if */
   if (*ptr != '_') {
@@ -4273,12 +4278,6 @@ end_of_routine:
   return ptr;
 }  /* demangle_parameter_reference */
 
-
-/* Forward reference. */
-static char *demangle_source_name(
-                                 char                       *ptr,
-                                 a_boolean                  is_module_id,
-                                 a_decode_control_block_ptr dctl);
 
 
 /*
@@ -4508,7 +4507,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
   a_boolean          record_substitution = TRUE;
 
   /* Accumulate cv-qualifiers. */
-  p = get_cv_qualifiers(p, &local_cv_quals);
+  p = get_cv_qualifiers(p, &local_cv_quals, dctl);
   cv_quals |= local_cv_quals;
   unqualp = p;
   kind = *p;
@@ -4541,25 +4540,25 @@ to be on top of the type.  If parse_template_args is TRUE then any
        */
     p++;
     if (kind == 'U') {
-      /* Strictly speaking, the "vendor extended type qualifier" is used to
-         provide a mangling for qualifiers, not declarators.  However, this
-         mangling is used by the front end to encode the C++/CLI handle and
-         tracking reference declarators (to avoid adding EDG-specific manglings
-         for these entities that might be used in subsequent IA-64 ABI
-         revisions).  Note that for "real" vendor extended type qualifiers
-         a substitution would be created both for the entire type and the
-         unqualified type, but we don't do that in this case. */
-      if (strncmp(p, "8__handle", 9) == 0) {
+      /* A "vendor extended type qualifier" is either order-sensitive
+         (like a declarator) or order-insensitive (like a CV-qualifier).  The
+         order-sensitive vendor extensions used here are used by the front end
+	 to encode the C++/CLI handle and tracking reference declarators as
+	 well as GNU vector attributes Note that substitutions are handled
+	 differently for order-sensitive and order-insensitive vendor
+	 extensions. */
+      if (start_of_id_is("8__handle", p)) {
         vendor_ext = "^";
         p += 9;
-      } else if (strncmp(p, "8__trkref", 9) == 0) {
+      } else if (start_of_id_is("8__trkref", p)) {
         vendor_ext = "%";
         p += 9;
+      } else if (start_of_id_is("8__vector", p)) {
+        vendor_ext = "__attribute__((vector_size(?))) ";
+        p += 9;
       } else {
-        /* For now, other extensions are ignored. */
-        dctl->suppress_id_output++;
-        p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
-        dctl->suppress_id_output--;
+        /* These should have been weeded out previously. */
+        bad_mangled_name(dctl);
       }  /* if */
     }  /* if */
     if (kind == 'C') {
@@ -4644,7 +4643,6 @@ to be on top of the type.  If parse_template_args is TRUE then any
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
-    p = demangle_vector_size_qualifier(p, dctl);
     p = demangle_type_specifier(p, parse_template_args, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
     if (!record_substitution_for_type(unqualp)) {
@@ -4689,7 +4687,7 @@ to be on top of the type.
   a_cv_qualifier_set local_cv_quals;
 
   /* Accumulate cv-qualifiers. */
-  p = get_cv_qualifiers(p, &local_cv_quals);
+  p = get_cv_qualifiers(p, &local_cv_quals, dctl);
   cv_quals |= local_cv_quals;
   kind = *p;
   if (kind == 'S' &&
@@ -6197,7 +6195,7 @@ For function names, additional information is returned in *func_block.
   /* Skip the initial "N". */
   ptr++;
   /* Accumulate <CV-qualifiers> if present. */
-  ptr = get_cv_qualifiers(ptr, &func_block->cv_quals);
+  ptr = get_cv_qualifiers(ptr, &func_block->cv_quals, dctl);
   /* Get all the components of the nested name. */
   ptr = demangle_nested_name_components(ptr,
                                         /*num_levels=*/0,

@@ -149,16 +149,10 @@ lower_name.c -- Do name mangling for IL lowering.
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
-Note that these C++/CLI extensions use the IA-64 ABI "vendor extended type
-qualifier" encoding (even though they are declarators).  The decoder has
-special knowledge of these cases and makes an appropriate adjustment.  Note
-that if these were indeed qualifiers, they would affect the substitutions
-(i.e., a substitution would be created for both the "qualified" type and
-the unqualified type), but that's not the case here (a substitution is
-created only for the entire type).  This may cause these mangled names to
-be improperly decoded by other decoders, but it makes it likely that there
-won't be a conflict with future IA-64 ABI modifications (i.e., if an
-EDG-specific modification had been used instead).
+Note that these C++/CLI extensions use the IA-64 ABI order-sensitive
+"vendor extended type qualifier" encoding.  The substitution handling for
+order-sensitive and order-insensitive vendor extended type qualifiers
+differs (see the IA-64 ABI spec for details).
 */
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
