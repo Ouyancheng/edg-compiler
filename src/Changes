@@ -1,5 +1,24 @@
 Version 4.3
 
+11/1/10  [EDGcpfe/11098]
+C++-generating back end, GNU compatibility: multiple declarations of gnu_inline
+functions
+
+The GNU compilers accept a non-inline declaration of a function followed by
+an inline definition with the gnu_inline attribute, but versions beginning
+with 4.3 issue an error if the original declaration is inline but without
+the gnu_inline attribute.  The C++-generating back end previously
+transformed the acceptable form of such declarations into the unacceptable
+form by adding the inline specifier to every declaration of a function
+whose definition is inline.  This has now been fixed by unconditionally
+putting out the gnu_inline attribute along with the inline specifier.  For
+example:
+
+  void f();    // Previously generated as "inline void f();"
+               // Now generated as "__attribute((gnu_inline)) inline f();"
+  __attribute((gnu_inline)) inline void f() { }
+
+
 10/29/10 [EDGcpfe/11111]
 Abort on GNU attributes with multiple arguments in some configurations
 

@@ -13296,16 +13296,35 @@ handle_as_definition:
            constructor definitions. */
         !(decl_within_class &&
           (is_definition || rout->is_defaulted || rout->is_deleted))) {
-      if (gcc_is_generated_code_target && il_header.source_language == sl_C) {
-        if (rout->suppress_inline_body &&
-            storage_class == (a_storage_class)sc_unspecified) {
-          /* GNU C will never spill an "extern __inline__" function.
-             (If storage_class was anything but sc_unspecified, a storage
-              class would already have been generated and adding another
-              "extern" could only be an error.) */
-          write_tok_str("extern ");
+      if (gcc_is_generated_code_target) {
+        if (rout->gnu_c89_inline) {
+          /* The GNU compilers complain if a function is declared as inline
+             without the gnu_inline attribute but defined with the
+             attribute, so make sure we put out the attribute whether it
+             was explicitly specified in the source or not. */
+          an_attribute_ptr ap;
+          for (ap = attributes; ap != NULL; ap = ap->next) {
+            if (ap->kind == (an_attribute_kind)ak_gnu_inline) {
+              break;
+            }  /* if */
+          }  /* for */
+          if (ap == NULL) {
+            write_tok_str("__attribute((gnu_inline)) ");
+          }  /* if */
         }  /* if */
-        write_tok_str("__inline__ ");
+        if (il_header.source_language == sl_C) {
+          if (rout->suppress_inline_body &&
+              storage_class == (a_storage_class)sc_unspecified) {
+            /* GNU C will never spill an "extern __inline__" function.
+               (If storage_class was anything but sc_unspecified, a storage
+               class would already have been generated and adding another
+               "extern" could only be an error.) */
+            write_tok_str("extern ");
+          }  /* if */
+          write_tok_str("__inline__ ");
+        } else {
+          write_tok_str("inline ");
+        }  /* if */
       } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target &&
