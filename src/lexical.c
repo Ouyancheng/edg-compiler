@@ -10059,7 +10059,8 @@ Populate the table of canonical spellings for whitespace keywords.
   /* Allocate the table of whitespace keyword spellings. */
   whitespace_keywords = (a_whitespace_keyword_ptr)alloc_fe(
                  sizeof(a_whitespace_keyword) *
-                 (tok_last_whitespace_token - tok_first_whitespace_token + 1));
+                 ((int)tok_last_whitespace_token -
+                  (int)tok_first_whitespace_token + 1));
   /* Determine out how large a buffer is needed. */
   for (tok = tok_first_whitespace_token; tok <= tok_last_whitespace_token;
        ++tok) {
@@ -10070,12 +10071,12 @@ Populate the table of canonical spellings for whitespace keywords.
   /* Copy the spellings and populate the whitespace_keyword array. */
   for (tok = tok_first_whitespace_token; tok <= tok_last_whitespace_token;
        ++tok) {
-    sizeof_t len = strlen(token_names[tok]);
+    sizeof_t len = strlen(token_names[(int)tok]);
     (void)memcpy(ptr, token_names[tok], size_t_arg(len));
-    whitespace_keywords[tok - tok_first_whitespace_token].text = ptr;
+    whitespace_keywords[(int)tok - (int)tok_first_whitespace_token].text = ptr;
     ptr += len;
-    whitespace_keywords[tok - tok_first_whitespace_token].end_of_insertion =
-                                                                           ptr;
+    whitespace_keywords[(int)tok - (int)tok_first_whitespace_token].
+                                                        end_of_insertion = ptr;
     *ptr++ = LE_ESCAPE;
     *ptr++ = LE_END_OF_INSERTION;
   }  /* for */
@@ -10187,8 +10188,8 @@ must be within the current source line.
     a_source_line_modif_ptr  slmp;
     check_assertion(return_token >= tok_first_whitespace_token &&
                     return_token <= tok_last_whitespace_token);
-    kwd = &whitespace_keywords[(int)(return_token -
-                                     tok_first_whitespace_token)];
+    kwd = &whitespace_keywords[((int)return_token -
+                                (int)tok_first_whitespace_token)];
     slmp = add_source_line_modif(start_of_curr_token,
                                  (sizeof_t)(end_of_word - start_of_curr_token),
                                  kwd->text, kwd->end_of_insertion);
@@ -10207,20 +10208,25 @@ static a_boolean is_potential_start_of_whitespace_keyword(a_token_kind token)
 Returns TRUE if token is the beginning of a whitespace keyword.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean result;
 
-  if (token == tok_for) {
-    result = TRUE;
-  } else if (cppcli_enabled) {
-    switch (token) {
-      case tok_cli_interface:
-      case tok_enum:
-      case tok_ref:
-      case tok_value:
-        result = TRUE;
-        break;
-    }  /* switch */
-  }  /* if */
+  switch(token) {
+    case tok_for:
+      /* "for each" is recognized both in regular Microsoft mode and in
+         C++/CLI. */
+      result = TRUE;
+      break;
+    case tok_cli_interface:
+    case tok_enum:
+    case tok_ref:
+    case tok_value:
+      /* These can introduce a whitespace keyword only in C++/CLI. */
+      result = cppcli_enabled;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
   return result;
 }  /* is_potential_start_of_whitespace_keyword */
 
