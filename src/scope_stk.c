@@ -1824,6 +1824,44 @@ template with no current instantiation or definition, we return FALSE.
 }  /* current_class_symbol_if_class_template */
 
 
+static void update_template_param_symbol(a_symbol_ptr		param_symbol,
+                                         a_template_arg_ptr	tap)
+/*
+Update param_symbol to reflect the value specified by tap.
+*/
+{
+  switch (tap->kind) {
+    case tak_type:
+      check_assertion(param_symbol->kind == (a_symbol_kind)sk_type);
+      param_symbol->variant.type.ptr = tap->variant.type;
+      break;
+    case tak_template:
+      /* A template template argument. */
+      { a_template_symbol_supplement_ptr	param_tssp;
+        check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
+        /* Unlike the type and nontype cases, the symbol for a template
+         template parameter is not updated directly.  Instead, the
+         argument_template field of the template supplement is updated
+         to point to the template that is to be used as the actual
+         argument. */
+        param_tssp = param_symbol->variant.template_info;
+        param_tssp->variant.class_template.argument_template =
+                                           symbol_for(tap->variant.templ.ptr);
+        param_tssp->variant.class_template.substituted_param_template =
+                                 tap->variant.templ.substituted_param_template;
+      }
+      break;
+    case tak_nontype:
+      check_assertion(param_symbol->kind == (a_symbol_kind)sk_constant);
+      param_symbol->variant.constant = tap->variant.constant;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* update_template_param_symbol */
+
+
 static void update_template_param_symbols(a_template_param_ptr  tpp,
                                           a_template_arg_ptr    arg_list)
 /*
@@ -1844,28 +1882,7 @@ values needed for the previous call.
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (tap != NULL) {
       /* A template argument exists for this parameter. */
-      if (is_type_templ_arg(tap)) {
-        check_assertion(param_symbol->kind == (a_symbol_kind)sk_type);
-        param_symbol->variant.type.ptr = tap->variant.type;
-      } else if (is_template_templ_arg(tap)) {
-        /* A template template argument. */
-        a_template_symbol_supplement_ptr	param_tssp;
-        check_assertion(param_symbol->kind ==
-                                           (a_symbol_kind)sk_class_template);
-        /* Unlike the type and nontype cases, the symbol for a template
-           template parameter is not updated directly.  Instead, the
-           argument_template field of the template supplement is updated
-           to point to the template that is to be used as the actual
-           argument. */
-        param_tssp = param_symbol->variant.template_info;
-        param_tssp->variant.class_template.argument_template =
-                                           symbol_for(tap->variant.templ.ptr);
-        param_tssp->variant.class_template.substituted_param_template =
-                                 tap->variant.templ.substituted_param_template;
-      } else {
-        check_assertion(param_symbol->kind == (a_symbol_kind)sk_constant);
-        param_symbol->variant.constant = tap->variant.constant;
-      }  /* if */
+      update_template_param_symbol(tpp->param_symbol, tap);
       param_symbol->template_param_not_visible = FALSE;
       tap = tap->next;
     } else {
@@ -8342,10 +8359,13 @@ Note that such a scope is required to exist when this routine is called.
 }  /* get_current_template_decl_info */
 
 
-static a_pack_reference_ptr alloc_pack_reference(void)
+static a_pack_reference_ptr alloc_pack_reference(a_symbol_kind	is_variable)
 /*
 Allocate a new pack reference entry, initialize it, and return a pointer
-to it.
+to it.  is_variable is TRUE if this entry is being used to represent
+a parameter pack that is a parameter variable.  This is really only
+meaningful for entries created for actual instantiations because it
+controls the initialization of fields used only in such cases.
 */
 {
   a_pack_reference_ptr	prp;
@@ -8364,12 +8384,14 @@ to it.
   prp->next = NULL;
   prp->symbol = NULL;
   prp->position = null_source_position;
+  if (is_variable) {
+    prp->curr_argument.param_type = NULL;
+  } else {
+    prp->curr_argument.template_arg = NULL;
+  }  /* if */
   return prp;
 }  /* alloc_pack_reference */
 
-#if 0
-
-/* FIXME: Is this routine needed? */
 
 static void free_list_of_pack_references(a_pack_reference_ptr prp)
 /*
@@ -8388,8 +8410,6 @@ be NULL, in which case nothing is done.
     avail_pack_references = prp;
   }  /* if */
 }  /* free_list_of_pack_references */
-
-#endif /* 0 */
 
 static a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
 /*
@@ -8429,7 +8449,6 @@ Return the pack expansion descriptor pedp to the available list.
   avail_pack_expansion_descrs = pedp;
 }  /* free_pack_expansion_descr */
 
-#if 0
 
 static a_pack_instantiation_descr_ptr alloc_pack_instantiation_descr(void)
 /*
@@ -8451,10 +8470,23 @@ pointer to it.
 #endif /* DEBUG */
   }  /* if */
   pidp->next = NULL;
+  pidp->pack_status = NULL;
   return pidp;
 }  /* alloc_pack_instantiation_descr */
 
-#endif /* 0 */
+
+static
+void free_pack_instantiation_descr(a_pack_instantiation_descr_ptr	pidp)
+/*
+Return the pack instantiation descriptor pidp to the available list.
+*/
+{
+  /* If the entry points to any pack references, free those. */
+  free_list_of_pack_references(pidp->pack_status);
+  pidp->next = avail_pack_instantiation_descrs;
+  avail_pack_instantiation_descrs = pidp;
+}  /* free_pack_instantiation_descr */
+
 
 static a_pack_expansion_stack_entry_ptr alloc_pack_expansion_stack_entry(void)
 /*
@@ -8508,6 +8540,10 @@ Pop the current entry off of the pack expansion stack.
   pesep = pack_expansion_stack;
   /* Unlink this entry from the stack. */
   pack_expansion_stack = pesep->next;
+  /* If there is an instantiation entry, free it now. */
+  if (pesep->instantiation_descr != NULL) {
+    free_pack_instantiation_descr(pesep->instantiation_descr);
+  }  /* if */
   /* Add the old entry to the list of available stack entries. */
   pesep->next = avail_pack_expansion_stack_entries;
   avail_pack_expansion_stack_entries = pesep;
@@ -8521,7 +8557,8 @@ This is used during the actual instantiation of a variadic template to
 determine whether we are entering a pack expansion context.
 */
 {
-  a_pack_expansion_descr_ptr	pedp = NULL;
+  a_pack_expansion_descr_ptr	result_pedp = NULL;
+  a_pack_expansion_descr_ptr	pedp;
   a_scope_stack_entry_ptr	ssep;
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
@@ -8529,6 +8566,7 @@ determine whether we are entering a pack expansion context.
   if (pedp != NULL && pedp->first_token == curr_cached_token_handle) {
     /* Advance the pointer to the next pack expansion. */
     ssep->next_pack_expansion = pedp->next;
+    result_pedp = pedp;
 #if DEBUG
     if (db_flag_is_set("packs")) {
       fprintf(f_debug, "Found pack expansion from %ld to %ld\n",
@@ -8537,8 +8575,283 @@ determine whether we are entering a pack expansion context.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-  return pedp;
+  return result_pedp;
 }  /* get_pack_expansion_for_curr_context */
+
+
+void skip_start_of_pack_placeholders(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap,
+				a_boolean		is_first_arg)
+/*
+If *tap points to a start of pack expansion placeholder, advance to the
+first real argument.  Note that there may be no actual arguments for
+a pack, and there may be several pack expansion placeholders in a row.
+Because of this, even if *tap points to a pack expansion placeholder, the
+argument returned may not be associated with a pack.  *tpp is advanced to
+the corresponding template parameter.  *tap will be set to NULL when the
+end of the argument list is reached.  If *tpp is NULL, there is no
+parameter list available and only *tap is manipulated.  is_first_arg is
+TRUE if this is called to skip any pack expansions at the very start of
+the parameter list.  In this case, *tpp already points to the correct
+parameter and so should not be advanced.
+*/
+{
+  check_assertion(tap != NULL);
+  for (; *tap != NULL && (*tap)->kind == tak_start_of_pack_expansion;
+       is_first_arg = FALSE) {
+    *tap = (*tap)->next;
+    if (!is_first_arg && *tpp != NULL) *tpp = (*tpp)->next;
+  }  /* for */
+}  /* skip_start_of_pack_placeholders */
+
+void begin_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+This routine is used to traverse a template argument list and optionally
+an associated template parameter list.  If there is only an argument list
+and no parameter list, then templ_param_list must be NULL and tpp will not
+be modified by this routine.
+
+This routine is used as follows:
+
+  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                    &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    ...
+  } 
+
+Normally there is a one-to-one correspondence between template parameters
+and template arguments, but in the presence of variadic templates there
+can be zero, one, or multiple template arguments for any given parameter.
+
+When this routine is called, the first "real" template argument (i.e.,
+not a variadic placeholder) is returned in *tap, along with the corresponding
+template parameter in *tpp (when templ_param_list is not NULL).
+*/
+{
+  *tpp = templ_param_list;
+  *tap = templ_arg_list;
+  /* Skip to the first real argument. */
+  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/TRUE);
+}  /* begin_template_arg_list_traversal */
+
+
+void advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap)
+/*
+Advance the template parameter and template argument pointers specified by
+*tpp and *tap to the next element in the list.  Set them to NULL when the
+last argument is encountered.  If *tpp is NULL, there is no parameter list
+available and only *tap is manipulated.
+*/
+{
+  check_assertion(tap != NULL);
+  *tap = (*tap)->next;
+  /* If *tap points to a placeholder, skip to the first real argument. */
+  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
+  if (*tap == NULL || !(*tap)->is_pack_element) {
+    if (*tpp != NULL) {
+      *tpp = (*tpp)->next;
+    }  /* if */
+  }  /* if */
+}  /* advance_to_next_template_arg */
+
+
+static void get_curr_template_params_and_args(
+				a_template_param_ptr	*templ_param_list,
+				a_template_arg_ptr	*templ_arg_list)
+/*
+This routine can be called within a template instantiation context to
+return the template parameter list and template argument list of the
+template that is being instantiated.
+*/
+{
+  a_template_decl_info_ptr	tdip;
+  a_scope_stack_entry_ptr	ssep;
+
+  check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
+  ssep = &scope_stack[depth_innermost_instantiation_scope];
+  tdip = ssep->template_decl_info;
+  *templ_param_list = tdip->parameters;
+  check_assertion(*templ_param_list != NULL);
+  *templ_arg_list = ssep->template_arg_list;
+  check_assertion(*templ_arg_list != NULL);
+}  /* get_curr_template_params_and_args */
+
+
+static a_template_arg_ptr find_template_arg_for_pack(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_symbol_ptr		sym,
+				uint32_t		*elements)
+/*
+Find the initial template argument (from templ_arg_list) associated
+with the pack specified by sym, which is a template parameter symbol
+from templ_param_list.  If there are no actual arguments for the pack,
+return NULL.  Return the number of actual arguments in *elements.
+*/
+{
+  a_template_arg_ptr	result_tap = NULL;
+  a_template_arg_ptr	tap;
+  a_template_param_ptr	tpp;
+
+  *elements = 0;
+  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                    &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    if (tpp->param_symbol == sym) {
+      result_tap = tap;
+      /* Compute the number of pack elements. */
+      while ((tap++)->is_pack_element) (*elements)++;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion_str2(tap != NULL, "find_template_arg_for_pack:",
+                       "symbol not found");
+  return result_tap;
+}  /* find_template_arg_for_pack */
+
+
+static a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp)
+/*
+Make a copy of prp, which is a pack reference from a prototype instantiation.
+Return a pointer to the copy.
+*/
+{
+  a_pack_reference_ptr	new_prp;
+
+   new_prp = alloc_pack_reference(prp->symbol->kind ==
+                                                   (a_symbol_kind)sk_variable);
+   /* Copy the entire entry then clear the fields that should not be
+      inherited. */
+   *new_prp = *prp;
+   new_prp->next = NULL;
+   return new_prp;
+}  /* copy_pack_reference */
+
+
+static a_pack_instantiation_descr_ptr create_pack_instantiation_descr(
+				a_pack_expansion_descr_ptr	pedp)
+/*
+We are beginning a real instantiation of the pack expansion specified
+by "pedp".  Determine whether this is a non-empty expansion context and
+whether all of the packs being expanded have the same number of elements.
+
+If this is a valid non-empty expansion, establish the initial values of
+the parameter pack symbols and return a pack expansion instantiation
+descriptor that can be used later to advance to the next pack element
+for each symbol.
+
+If this is an invalid expansion or an empty expansion, skip to the token
+following the pack expansion and return NULL.
+*/
+{
+  a_pack_reference_ptr			prp;
+  a_pack_reference_ptr			new_pack_list = NULL;
+  a_template_param_ptr			templ_param_list;
+  a_template_arg_ptr			templ_arg_list;
+  uint32_t				elements;
+  a_boolean				is_first_pack = TRUE;
+  a_boolean				any_errors = FALSE;
+  a_pack_instantiation_descr_ptr	result_pidp = NULL;
+
+  /* Get the template parameter list and template argument associated with
+     the current instantiation. */
+  get_curr_template_params_and_args(&templ_param_list, &templ_arg_list);
+  /* Go through the pack expansion references and determine the number
+     of arguments for each.  Create a copy of the list to record information
+     about the instantiation. */
+  for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+    uint32_t			elements_for_pack;
+    a_pack_reference_ptr	new_prp;
+    /* Create a copy of the pack reference entry and add it to the list of
+       entries for this instantiation. */
+    new_prp = copy_pack_reference(prp);
+    if (new_pack_list != NULL) {
+      new_pack_list->next = new_prp;
+    }  /* if */
+    new_pack_list = new_prp;
+    if (prp->symbol->kind == (a_symbol_kind)sk_variable) {
+      /* FIXME: variables not implemented yet. */
+    } else {
+      a_template_arg_ptr	tap;
+      tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
+                                       prp->symbol, &elements_for_pack);
+      new_prp->curr_argument.template_arg = tap;
+    }  /* if */
+    /* Make sure the number of pack elements is consistent. */
+    if (is_first_pack) {
+      elements = elements_for_pack;
+      is_first_pack = FALSE;
+    } else if (elements != elements_for_pack) {
+      pos_sy2_error(ec_pack_length_mismatch, &prp->position, prp->symbol,
+                    pedp->packs_referenced->symbol);
+      any_errors = TRUE;
+    }  /* if */
+  }  /* for */
+  if (!any_errors && elements > 0) {
+    /* There were no errors and there are pack elements to be expanded.
+       Create an instantiation entry to be returned. */
+    result_pidp = alloc_pack_instantiation_descr();
+    result_pidp->pack_status = new_pack_list;
+  } else {
+    /* There is no expansion to be done.  Free any pack references that may
+       have been allocated. */
+    free_list_of_pack_references(new_pack_list);
+  }  /* if */
+  return result_pidp;
+}  /* create_pack_instantiation_descr */
+
+
+static void skip_pack_expansion_tokens(a_pack_expansion_descr_ptr	pedp)
+/*
+We have reached a pack expansion for which there are no elements to be
+expanded.  Advance to the token after the end of the pack expansion.
+*/
+{
+  a_cached_token_handle	last_token = pedp->last_token;
+
+  /* Advance to the last token of the expansion. */
+  while (curr_cached_token_handle != last_token &&
+         curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE) {
+    (void)get_token();
+  }  /* while */
+  /* Now go to the token after the expansion. */
+  if (curr_cached_token_handle != last_token) {
+    (void)get_token();
+  }  /* if */
+}  /* skip_pack_expansion_tokens */
+
+
+static void update_parameter_pack_symbol_values(
+			a_pack_expansion_stack_entry_ptr	pesep)
+/*
+Update the symbols of any packs referenced to refer to the current
+values specified by the instantiation arguments.  pesep points to the
+pack expansion stack entry for which the symbols are to be updated.
+*/
+{
+  a_pack_reference_ptr	param_prp;
+  a_pack_reference_ptr	arg_prp;
+
+  for (param_prp = pesep->expansion_descr->packs_referenced,
+         arg_prp = pesep->instantiation_descr->pack_status;
+       param_prp != NULL;
+       param_prp = param_prp->next, arg_prp = arg_prp->next) {
+    a_symbol_ptr	sym = param_prp->symbol;
+    if (sym->kind == sk_variable) {
+      /* FIXME: variable case not implemented yet. */
+    } else {
+      /* A template argument. */
+      update_template_param_symbol(sym, arg_prp->curr_argument.template_arg);
+    }  /* if */
+  }  /* for */
+}  /* update_parameter_pack_symbol_values */
 
 
 a_boolean begin_potential_pack_expansion_context(
@@ -8615,16 +8928,26 @@ will be set to NULL.
     a_pack_expansion_descr_ptr	pedp;
     pedp = get_pack_expansion_for_curr_context();
     if (pedp != NULL) {
-#if 0
       a_pack_instantiation_descr_ptr	pidp;
       /* Construct the pack instantiation information based on the pack
-         expansion information and the current context. */
+         expansion information and the current context.  If the instantiation
+         is invalid, or if there are no pack elements, a NULL instantiation
+         entry will be returned. */
       pidp = create_pack_instantiation_descr(pedp);
-#endif
-      pesep = push_pack_expansion_stack();
-      pesep->expansion_descr = pedp;
+      if (pidp != NULL) {
+        pesep = push_pack_expansion_stack();
+        pesep->expansion_descr = pedp;
+        pesep->instantiation_descr = pidp;
+        /* Set the parameter pack symbols to the first element of each
+           pack. */
+        update_parameter_pack_symbol_values(pesep);
+      } else {
+        /* There are no arguments to be expanded.  Advance to the token
+           after the end of the expansion. */
+        skip_pack_expansion_tokens(pedp);
+      }  /* if */
     }  /* if */
-    any_args = TRUE;
+    any_args = pedp == NULL || pesep != NULL;
   } else {
     /* Some other context -- assumed to have a single nonvariadic argument. */
     any_args = TRUE;
@@ -8747,14 +9070,49 @@ did not turn out to be variadic.
 TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
 */
 {
-  /* FIXME: stub version. */
-  if (pesep != NULL) {
+  a_boolean			done = FALSE;
+
+  if (pesep == NULL || is_template_dependent_context()) {
+    /* We are not in a pack expansion, or we are in a prototype instantiation.
+       In either case, indicate that there are no further elements. */
+    done = TRUE;
+  } else {
+     a_pack_reference_ptr	param_prp;
+     a_pack_reference_ptr	arg_prp;
+
     /* The pack expansion descriptor passed in should be on top of the
        stack. */
     check_assertion(pesep == pack_expansion_stack);
-    pop_pack_expansion_stack();
+    for (param_prp = pesep->expansion_descr->packs_referenced,
+           arg_prp = pesep->instantiation_descr->pack_status;
+         param_prp != NULL;
+         param_prp = param_prp->next, arg_prp = arg_prp->next) {
+      a_symbol_ptr	sym = param_prp->symbol;
+      if (sym->kind == sk_variable) {
+        /* FIXME: variable case not implemented yet. */
+      } else {
+        /* A template argument. */
+        a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
+        /* Advance to the next argument, if any.  If the argument is not
+           part of the pack, we are done with this expansion. */
+        tap = tap->next;
+        arg_prp->curr_argument.template_arg = tap;
+        if (tap == NULL || !tap->is_pack_element) {
+          done = TRUE;
+        } else {
+          update_template_param_symbol(sym, tap);
+        }  /* if */
+      }  /* if */
+    }  /* for */
   }  /* if */
-  return FALSE;
+  if (!done) {
+    update_reusable_cache_rescan_location(pesep->expansion_descr->first_token);
+  } else {
+    /* If we have advanced past the last element, pop the pack expansion
+       stack. */
+    if (pesep != NULL) pop_pack_expansion_stack();
+  }  /* if */
+  return !done;
 }  /* advance_to_next_pack_element */
 
 
@@ -8779,7 +9137,8 @@ source position of the use of the symbols is indicated by position.
       a_pack_expansion_descr_ptr	pedp;
       a_pack_reference_ptr		prp;
       pedp = pack_expansion_stack->expansion_descr;
-      prp = alloc_pack_reference();
+      prp = alloc_pack_reference(pack_symbol->kind ==
+                                                   (a_symbol_kind)sk_variable);
       prp->symbol = pack_symbol;
       prp->position = *position;
       prp->next = pedp->packs_referenced;

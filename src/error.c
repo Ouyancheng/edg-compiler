@@ -877,7 +877,9 @@ level.
       /* Display the argument list for this entity. */
       check_assertion(decl_info != NULL);
       tpp = decl_info->parameters;
-      for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
+      begin_template_arg_list_traversal(tpp, tap,
+                                        &tpp, &tap);
+      for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
         /* Display "parameter=value". */
         if (!*any_args) {
           /* This is the first argument displayed -- add the introduction

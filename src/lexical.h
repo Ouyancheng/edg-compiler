@@ -65,7 +65,7 @@ A type used to represent a token from a reusable cache.
 typedef a_cached_token_ptr a_cached_token_handle;
 #if 0
 typedef a_cached_token_handle *a_cached_token_handle_ptr;
-#endif
+#endif /* 0 */
 
 EXTERN a_cached_token_handle
 		curr_cached_token_handle;
@@ -1815,6 +1815,9 @@ void move_cached_tokens(a_cached_token_ptr	first_token,
 			a_token_cache		*from_cache,
                         a_token_cache		*to_cache);
 
+
+extern void update_reusable_cache_rescan_location(
+					a_cached_token_handle	token_handle);
 
 extern a_boolean same_string_ignoring_underscores(char  *s1, 
                                                   char  *s2);

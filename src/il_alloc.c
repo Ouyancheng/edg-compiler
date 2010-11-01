@@ -910,6 +910,7 @@ at file scope.
   ptp->type_involves_deduced_template_param = FALSE;
   ptp->type_involves_template_param = FALSE;
   ptp->is_parameter_pack = FALSE;
+  ptp->is_pack_element = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;
@@ -919,6 +920,7 @@ at file scope.
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
+  ptp->param_number = 0;
   ptp->default_arg_expr = NULL;
   ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
   ptp->entities_defined_in_default_arg = NULL;
@@ -1055,6 +1057,7 @@ allocated.
   tap->is_array_bound_of_unknown_type = FALSE;
   tap->explicitly_specified = FALSE;
   tap->template_template_param_checked = FALSE;
+  tap->is_pack_element = FALSE;
 #if CENTERLINE_CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -1071,6 +1074,8 @@ allocated.
          this can be important in certain debugging modes. */
       tap->variant.integer_value = 0;
       tap->variant.constant = NULL;
+      break;
+    case tak_start_of_pack_expansion:
       break;
     default:
       unexpected_condition_str2("alloc_template_arg:", "bad kind");

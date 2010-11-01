@@ -2092,6 +2092,20 @@ an equivalent change.
 }  /* get_token_from_cached_token_rescan_list */
 
 
+void update_reusable_cache_rescan_location(
+					a_cached_token_handle	token_handle)
+/*
+Update the current reusable token cache information to begin rescanning
+tokens from the token specified by token_handle.
+*/
+{
+  /* Discard any tokens on the non-reusable rescan list. */
+  while (cached_token_rescan_list != NULL) (void)get_token();
+  reusable_cache_stack->next_cached_token = token_handle;
+  (void)get_token();
+}  /* update_reusable_cache_rescan_location */
+
+
 static a_token_kind get_token_from_reusable_cache_stack(void)
 /*
 Return a token from the current entry on the reusable cache stack,
@@ -13068,6 +13082,14 @@ all arguments were explicit.
   arg_number = 0;
   do {
     a_source_position  arg_pos;
+    if (param_ptr != NULL && param_ptr->is_pack) {
+      /* Create a start of parameter pack placeholder. */
+      arg_ptr = alloc_template_arg(tak_start_of_pack_expansion);
+      /* Link this entry on to the argument list. */
+      if (arg_list == NULL) arg_list = arg_ptr;
+      if (last_arg != NULL) last_arg->next = arg_ptr;
+      last_arg = arg_ptr;
+    }  /* if */
     if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
       /* Check for the case where a "right shift" could be interpreted as two
          consecutive closing angle brackets. */
@@ -13155,11 +13177,21 @@ all arguments were explicit.
     if (last_arg != NULL) last_arg->next = arg_ptr;
     last_arg = arg_ptr;
     remove_stop_token(tok_comma);
-    param_ptr = param_ptr->next;
+    if (param_ptr->is_pack) {
+      /* Record that this argument was associated with a pack. */
+      arg_ptr->is_pack_element = TRUE;
+    } else {
+      /* Don't advance to the next parameter if this is a pack. */
+      param_ptr = param_ptr->next;
+    }  /* if */
     orig_param_ptr = orig_param_ptr->next;
     ++arg_number;
   } while (param_ptr != NULL && loop_token(tok_comma));
 
+  /* If we were processing arguments associated with a parameter pack,
+     advance past the parameter pack now that we have reached the end
+     of the explicitly supplied arguments. */
+  if (param_ptr != NULL && param_ptr->is_pack) param_ptr = param_ptr->next;
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
   if (param_ptr != NULL) {

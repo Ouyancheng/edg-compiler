@@ -237,6 +237,17 @@ Display an int32_t value along with a name.
 }  /* disp_int32 */
 
 
+static void disp_uint32(char    *name,
+                        uint32_t value)
+/*
+Display an uint32_t value along with a name.
+*/
+{
+  disp_name(name);
+  (void)printf("%lu\n", (unsigned long)value);
+}  /* disp_uint32 */
+
+
 static void disp_long(char *name,
                       long value)
 /*
@@ -1214,6 +1225,10 @@ Display a_param_type entry.
   if (ptr->is_parameter_pack) {
     disp_boolean("is_parameter_pack", TRUE);
   }  /* if */
+  if (ptr->is_pack_element) {
+    disp_boolean("is_pack_element", TRUE);
+  }  /* if */
+  disp_uint32("param_number", ptr->param_number);
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */
@@ -2673,13 +2688,19 @@ Display the indicated name and template arg list.
         } else {
           disp_ptr("  constant", (char *)ptr->variant.constant, iek_constant);
         }  /* if */
-      } else {
+      } else if (is_template_templ_arg(ptr)) {
         /* A template template argument. */
         disp_ptr("  template", (char *)ptr->variant.templ.ptr, iek_template);
+      } else {
+        /* A start of pack expansion placeholder. */
       }  /* if */
       if (ptr->explicitly_specified) {
         disp_boolean("  explicitly_specified",
                      (a_boolean)ptr->explicitly_specified);
+      }  /* if */
+      if (ptr->is_pack_element) {
+        disp_boolean("  is_pack_element",
+                     (a_boolean)ptr->is_pack_element);
       }  /* if */
     }  /* for */
   }  /* if */

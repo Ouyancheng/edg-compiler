@@ -6065,7 +6065,8 @@ another template parameter.
        tests to see if this template is a viable match for the specific
        arguments. */
     for (tpp = templ_param_list, tap = partial_arg_list;
-         tpp != NULL && tap != NULL; tpp = tpp->next, tap = tap->next) {
+         tpp != NULL && tap != NULL;
+         tpp = tpp->is_pack ? tpp : tpp->next, tap = tap->next) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       if (templ_arg_kind_for_symbol_kind(sym_kind) != tap->kind) {
         arg_kind_mismatch = TRUE;
@@ -6081,21 +6082,41 @@ another template parameter.
   if (!arg_kind_mismatch) {
     a_template_arg_ptr		prev_tap = NULL;
     a_template_arg_ptr		specified_tap;
+    a_boolean			is_parameter_pack = FALSE;
     /* Loop through the template parameter list and create a template
-       argument entry of the appropriate type for each parameter. */
+       argument entry of the appropriate type for each parameter.
+       The is_parameter_pack flag is used to suppress the normal
+       advancement to the next parameter.  But when we run out of
+       supplied arguments we need to continue creating empty arguments
+       for the remainder of the list. */
     for (tpp = templ_param_list, specified_tap = partial_arg_list;
          tpp != NULL;
-         tpp = tpp->next,
-           specified_tap = specified_tap == NULL
-                                              ? NULL : specified_tap->next) {
+         specified_tap = specified_tap == NULL ? NULL : specified_tap->next,
+           tpp = is_parameter_pack && specified_tap != NULL ? tpp
+                                                            : tpp->next) {
       a_symbol_kind		sym_kind = tpp->param_symbol->kind;
       a_templ_arg_kind		arg_kind;
+      if (tpp->is_pack) {
+        /* There was no parameter list available when the specified template
+           argument list was created.  As a result, we need to add the
+           pack expansion placeholder here. */
+        tap = alloc_template_arg(tak_start_of_pack_expansion);
+        /* Link this entry on to the argument list. */
+        if (new_list == NULL) {
+          new_list = tap;
+        } else {
+          /* Add to the end of the list. */
+          prev_tap->next = tap;
+        }  /* if */
+      }  /* if */
+      is_parameter_pack = tpp->is_pack;
       arg_kind = templ_arg_kind_for_symbol_kind(sym_kind);
       tap = alloc_template_arg(arg_kind);
       if (specified_tap != NULL) {
         /* An argument value was supplied.  Copy it to the newly created
            template argument. */
         tap->explicitly_specified = specified_tap->explicitly_specified;
+        tap->is_pack_element = is_parameter_pack;
         if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
@@ -8809,8 +8830,9 @@ do not match, copy_error is set to TRUE.
   a_template_arg_ptr	tap;
   a_template_param_ptr	tpp;
 
-  for (tap = templ_arg_list, tpp = templ_param_list;
-       tap != NULL; tap = tap->next, tpp = tpp->next) {
+  begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
+                                    &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
     /* Any previous template arguments could potentially be used in the
        parameter list of the template template parameter.  Don't attempt
        to check a template template argument if any of the earlier
@@ -9003,7 +9025,9 @@ Do some simple consistency checking on a function template argument list.
     tssp = templ_sym->variant.template_info;
   }  /* if */
   tpp = tssp->variant.function.decl_cache.decl_info->parameters;
-  for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
+  begin_template_arg_list_traversal(tpp, templ_arg_list,
+                                    &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
     check_assertion_str2((is_type_templ_arg(tap) &&
                           tap->variant.type != NULL) ||
                          (is_nontype_templ_arg(tap) &&
@@ -9015,9 +9039,8 @@ Do some simple consistency checking on a function template argument list.
     if (tpp == NULL) {
       internal_error("check_template_arg_list: too many template args");
     }  /* if */
-    tpp = tpp->next;
   }  /* for */
-  if (tpp != NULL) {
+  if (tpp != NULL && !tpp->is_pack) {
     internal_error("check_template_arg_list: too few template args");
   }  /* if */
 }  /* check_template_arg_list */

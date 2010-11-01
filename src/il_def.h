@@ -4399,7 +4399,14 @@ typedef struct a_param_type {
 			   context. */
   a_bit_field	is_parameter_pack:1;
 			/* TRUE if this entry represent a C++0x function
-			   parameter pack of a variadic template. */
+			   parameter pack of a variadic template.  This is
+			   set for the prototype instantiation of
+			   variadic templates. */
+  a_bit_field	is_pack_element:1;
+			/* TRUE for parameters of an actual instantiation of
+			   a variadic template for those parameters that are
+			   associated with a parameter pack of the original
+			   variadic template. */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers that have been removed
 			   from the parameter type; always TQ_NONE except in
@@ -4421,6 +4428,14 @@ typedef struct a_param_type {
 			   some GNU modes. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
+  uint32_t	param_number;
+			/* The ordinal position of the parameter (0, 1,
+			   2, ...).  In the instantiation of a variadic
+			   template, this is the position of the corresponding
+			   parameter from the original template.  In other
+			   words, there can be missing or repeated values in
+			   the parameter list of the instantiation of a
+			   variadic template. */
   an_expr_node_ptr
 		default_arg_expr;
 			/* Expression node representing the default value
@@ -5372,7 +5387,8 @@ entry is being used.
 enum a_templ_arg_kind_tag {
   tak_type,
   tak_nontype,
-  tak_template
+  tak_template,
+  tak_start_of_pack_expansion
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -5406,6 +5422,14 @@ typedef struct a_template_arg {
 			   parameter list of the argument template has already
 			   been compared with that of the parameter
                            template.  Used only in the front end. */
+  a_bit_field	is_pack_element:1;
+			/* TRUE if this is an argument for which the
+			   associated parameter is a template parameter pack.
+			   Before a group of such an arguments is seen, a
+			   tak_start_of_pack_expansion placeholder argument
+			   will have been encountered.  Note that the set of
+			   elements associated with a pack expansion may be
+			   empty. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */
@@ -5449,6 +5473,7 @@ typedef struct a_template_arg {
 			   the template template parameter.  Used only in
 			   the front end. */
     } templ;
+    /* There is no variant when kind == tak_start_of_pack_expansion. */
   } variant;
   an_arg_operand_ptr
 		arg_operand;

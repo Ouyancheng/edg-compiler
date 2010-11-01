@@ -237,7 +237,11 @@ typedef struct a_scope_pointers_block {
 
 /*
 Entry used to construct a list of pack symbols that have been referenced
-in a variadic pack expansion context.
+in a variadic pack expansion context.  This entry is used both during
+the prototype instantiation and during a real instantiation.  During
+a real instantiation, a copy of the entry from the prototype instantiation
+is made and additional information about the current values of the parameter
+packs is maintained.
 */
 typedef struct a_pack_reference *a_pack_reference_ptr;
 typedef struct a_pack_reference {
@@ -250,6 +254,19 @@ typedef struct a_pack_reference {
   a_source_position
 		position;
 			/* The source position of the pack reference. */
+  /* This field is only used for real instantiations. */
+  union {
+    a_param_type_ptr
+		param_type;
+			/* When symbol is a variable, this points to the
+			   param type entry for the variable to be used for
+			   the current expansion. */
+    a_template_arg_ptr
+		template_arg;
+			/* When symbol is not a variable, this points to the
+			   template argument entry to be used for the current
+			   expansion. */
+  } curr_argument;
 } a_pack_reference;
 
 
@@ -298,6 +315,11 @@ typedef struct a_pack_instantiation_descr {
 		next;
 			/* The next entry on a list of pack instantiation
 			   entries, or NULL for the last entry on the list. */
+  a_pack_reference_ptr
+		pack_status;
+			/* A list of the parameter packs used within the pack
+			   expansion including information about the current
+			   element to which each pack refers. */
 } a_pack_instantiation_descr;
 
 
@@ -1582,6 +1604,16 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_boolean 	                is_namespace_wrapup);
 
 extern a_template_decl_info_ptr get_current_template_decl_info(void);
+
+extern void begin_template_arg_list_traversal(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap);
+
+extern void advance_to_next_template_arg(
+				a_template_param_ptr	*tpp,
+				a_template_arg_ptr	*tap);
 
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);
