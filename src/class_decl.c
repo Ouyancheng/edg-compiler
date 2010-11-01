@@ -8810,6 +8810,17 @@ functions.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+a_boolean in_cli_property_definition(void)
+/*
+Return TRUE if we currently parsing the brace-enclosed definition of a
+non-trivial C++/CLI property.
+*/
+{
+  return (scope_stack_top().class_def_state != NULL &&
+          scope_stack_top().class_def_state->property_descr != NULL);
+}  /* in_cli_property_definition */
+
+
 static void check_property_accessor_type(a_routine_ptr       rp,
                                          a_decl_parse_state  *dps)
 /*
@@ -8825,6 +8836,7 @@ with and issue diagnostics as needed.
   a_property_descr_ptr  pdp = rp->variant.property_descr;
   a_boolean             is_setter, err = FALSE;
 
+  check_assertion(!pdp->is_declspec_property);
   if (pdp->is_static) {
     prop_type = pdp->variant.variable->type;
   } else {
@@ -8832,7 +8844,7 @@ with and issue diagnostics as needed.
   }  /* if */
   /* First check the return type. */
   if (rp->special_kind == (a_special_function_kind)sfk_property_get) {
-    if (!identical_types(rtp->variant.routine.return_type, prop_type)) {
+    if (!types_are_compatible(rtp->variant.routine.return_type, prop_type)) {
       pos_error(ec_bad_property_get_return, &dps->start_pos);
       err = TRUE;
     }  /* if */
@@ -8840,7 +8852,10 @@ with and issue diagnostics as needed.
   } else {
     check_assertion(rp->special_kind ==
                                    (a_special_function_kind)sfk_property_set);
-    if (!is_void_type(rtp->variant.routine.return_type)) {
+    if (!is_void_type(rtp->variant.routine.return_type) ||
+        is_qualified_type(rtp->variant.routine.return_type)) {
+      /* The return type of a property "set" accessor must be void; "void
+         const" is not acceptable. */
       pos_error(ec_bad_property_set_return, &dps->start_pos);
       err = TRUE;
     }  /* if */
@@ -8857,7 +8872,7 @@ with and issue diagnostics as needed.
            diagnostics are unlikely helpful. */
         err = TRUE;
         break;
-      } else if (!identical_types(pitp->type, ptp->type)) {
+      } else if (!types_are_compatible(pitp->type, ptp->type)) {
         /* FIXME: Compare types before or after decay? */
         pos_warning(is_setter ? ec_property_set_index_type_mismatch
                               : ec_property_get_index_type_mismatch,
@@ -8884,7 +8899,7 @@ with and issue diagnostics as needed.
       } else if (ptp->next != NULL) {
         pos_error(ec_extra_property_accessor_parameters, &dps->declarator_pos);
         err = TRUE;
-      } else if (!identical_types(ptp->type, prop_type)) {
+      } else if (!types_are_compatible(ptp->type, prop_type)) {
         pos_error(ec_property_set_value_parameter_mismatch,
                   &dps->declarator_pos);
         err = TRUE;
@@ -8949,7 +8964,11 @@ the member function is an accessor for the property (if the accessor is valid).
   }  /* if */
   if (rout_is_property_accessor(rp)) {
     rp->variant.property_descr = pdp;
-    pdp->set_routine.ptr = rp;
+    if (rp->special_kind == (a_special_function_kind)sfk_property_get) {
+      pdp->get_routine.ptr = rp;
+    } else {
+      pdp->set_routine.ptr = rp;
+    }  /* if */
     check_property_accessor_type(rp, dps);
     if ((pdp->is_virtual &&
          dps->declared_storage_class == (a_storage_class)sc_static) ||
@@ -15015,7 +15034,7 @@ static void scan_microsoft_member_decl_prefix(
 Scan Microsoft-specific leading components of a member declaration.  Normally,
 these are the Microsoft attributes enclosed in square brackets: *ms_attributes
 is updated to point to any such attributes.  If attributes are scanned and if
-the are followed by a semicolon, *complete_decl is set to TRUE; otherwise,
+they are followed by a semicolon, *complete_decl is set to TRUE; otherwise,
 *complete_decl is to FALSE.  Some Microsoft compilers also have a bug that
 allows for a member declaration to start with a left parenthesis: We scan the
 parenthesis here (with a warning) and record its presence in *class_state.
@@ -15088,11 +15107,11 @@ static a_boolean check_for_cli_field_modifier(a_decl_parse_state  *dps)
 /*
 This function must be called at the beginning of a class member declaration
 in C++/CLI mode and returns TRUE if the following tokens appear to form a
-C++/CLI property declaration, an initonly field declaration, or a literal
-field declaration.  Otherwise, FALSE is returned.  If TRUE is returned, flags
-in *dps are set to reflect which kind of declaration was encountered (i.e.,
-which kind of context-sensitive keyword appeared: "property", "initonly", or
-"literal").
+C++/CLI property or event declaration, an initonly field declaration, or a
+literal field declaration.  Otherwise, FALSE is returned.  If TRUE is
+returned, flags in *dps are set to reflect which kind of declaration was
+encountered (i.e., which kind of context-sensitive keyword appeared:
+"property", "event", "initonly", or "literal").
 */
 {
   a_boolean      result = FALSE, property_or_event_only = FALSE;
@@ -15100,8 +15119,8 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
   while (curr_token == tok_static || curr_token == tok_virtual) {
-    /* "property" but not "initonly" or "literal" may be preceded by
-       "static" or "virtual". */
+    /* Only "property" and "event" (i.e., not "initonly" or "literal") may be
+       preceded by "static" or "virtual". */
     property_or_event_only = TRUE;
     cache_curr_token(&cache);
     (void)get_token();
@@ -15111,8 +15130,8 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
     cache_curr_token(&cache);
     (void)get_token();
     if (curr_token == tok_colon_colon) {
-      /* None of "property", "initonly", and "literal" can be followed by a
-         "::" if they're keywords. */
+      /* None of "property", "event", "initonly", and "literal" can be
+         followed by a "::" if they're keywords. */
       goto done;
     }  /* if */
     if (symbol_header_is_for_identifier_string(sym_hdr, "property")) {
@@ -15120,7 +15139,7 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
     } else if (symbol_header_is_for_identifier_string(sym_hdr, "event")) {
       dps->has_cli_event_keyword = TRUE;
     } else if (property_or_event_only) {
-      /* We already ruled out identifiers not spelled "property". */
+      /* We already ruled out identifiers not spelled "property" or "event". */
       goto done;
     } else if (symbol_header_is_for_identifier_string(sym_hdr, "initonly")) {
       dps->has_cli_initonly_keyword = TRUE;
@@ -15195,8 +15214,8 @@ which kind of context-sensitive keyword appeared: "property", "initonly", or
                curr_token == tok_friend || curr_token == tok_asm ||
                curr_token == tok_explicit) {
       /* These specifiers cannot appear in a property declaration and are
-         unlikely to accidentally appear in a malformed property declaration:
-         Don't attempt to parse this as a property. */
+         unlikely to accidentally appear in a malformed field declaration:
+         Don't attempt to parse this as a field-like declaration. */
       break;
     } else {
       /* Presumably another specifier token. */
@@ -15299,12 +15318,13 @@ being parsed), *decl_info describes the current member declaration, and
       if (pdp->is_static) pos_error(ec_dupl_decl_specifier, &pos_curr_token);
       pdp->is_static = TRUE;
     } else {
+      /* Microsoft compilers only warn about duplicate "virtual" keywords. */
       if (pdp->is_virtual) pos_warning(ec_dupl_decl_specifier,
                                        &pos_curr_token);
       pdp->is_virtual = TRUE;
     }  /* if */
     (void)get_token();
-  }  /* if */
+  }  /* while */
   if (pdp->is_static && pdp->is_virtual) {
     pos_error(ec_virtual_static_property, &decl_pos);
     pdp->is_static = FALSE;
@@ -15379,6 +15399,12 @@ being parsed), *decl_info describes the current member declaration, and
     if (pdp->indices != NULL) {
       /* A trivial property cannot be an indexed property. */
       pos_error(ec_trivial_indexed_property, &pos_curr_token);
+    } else if (is_any_reference_type(dps->type)) {
+      /* A trivial property cannot have a reference type. */
+      pos_error(ec_trivial_reference_property, &type_pos);
+    } else if (get_type_qualifiers(dps->type) & (TQ_CONST | TQ_VOLATILE)) {
+      /* A trivial property cannot have a const or volatile type. */
+      pos_error(ec_trivial_const_or_volatile_property, &type_pos);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     pdp->definition_range.end = end_pos_curr_token;
@@ -15489,7 +15515,7 @@ passed via template_decl.
     if (cppcli_enabled) {
       /* Look ahead to see if the current declaration is for a field or
          property using a C++/CLI context-sensitive keyword "property",
-         "initonly", or "literal". */
+         "event", "initonly", or "literal". */
       if (check_for_cli_field_modifier(decl_state)) {
         if (decl_state->has_cli_property_keyword) {
           scan_cli_property_head(class_state, &decl_info,
@@ -16746,13 +16772,13 @@ if class_type contains a direct (i.e., not inherited) property named X.
     result = TRUE;
   }  /* if */
   return result;
-}  /* check_cli_get_set_names */
+}  /* check_conflict_with_direct_property */
 
                                     
 static void check_names_reserved_by_cli_properties(a_type_ptr  class_type)
 /*
 Check every direct member of class_type to see if it is of the form get_XYZ
-or set_XYZ.  If it is, issue an error if it also contains a (possibly
+or set_XYZ.  If it is, issue an error if class_type also contains a (possibly
 inherited) property named XYZ.
 */
 {

@@ -6150,7 +6150,7 @@ typedef struct a_class_type_supplement {
 			   declaration. */
   a_bit_field	has_direct_property_member:1;
 			/* TRUE if this class contains a direct (i.e., not
-			   inherited) property member. */
+			   inherited) C++/CLI property member. */
   a_bit_field   assembly_visibility:2;
                         /* Visibility of this type at the assembly level.
 			   (C++/CLI only.) */
@@ -7701,6 +7701,11 @@ typedef struct a_vla_dimension {
 
 typedef struct a_property_index_type *a_property_index_type_ptr;
 typedef struct a_property_index_type {
+  /* Description of a "property index type" for a C++/CLI indexed property.
+     E.g., for 
+       ref struct S { property int p[int, char] { ... } };
+     two entries are generated to record the property index types "int" and
+     "char". */
   a_property_index_type_ptr
 		next;
 			/* Pointer to the next index type entry (or NULL if
@@ -7715,6 +7720,23 @@ typedef struct a_property_index_type {
 
 typedef struct a_property_descr *a_property_descr_ptr;
 typedef struct a_property_descr {
+  /* Description of a Microsoft property.  Microsoft compilers support two
+     kinds of property constructs.  One kind is obtained by modifying an
+     ordinary field declaration with a __declspec(property(...)) attribute: The
+     modified field will point to an entry of type a_property_descr (recording
+     the names of the names of the "get" and "put" functions).  The other kind
+     is obtained using C++/CLI syntax involving a context-sensitive keyword
+     "property".  For example:
+         ref struct S {
+           property int p1 { int get(); };
+           static property char p2 { void set(char); };
+         };
+     The property's a_field or a_variable entry (the latter is used for static
+     properties) will point to an entry of type a_property_descr that in turn
+     points to the accessor functions (get and/or set).  These accessor
+     functions (which have special_kind sfk_property_get or sfk_property_set)
+     also point to the associated a_property_descr. */
+
   a_bit_field	is_declspec_property:1;
 			/* TRUE if the property is declared with __declspec
 			   syntax ("old-style").  FALSE if the property is
@@ -7727,15 +7749,15 @@ typedef struct a_property_descr {
 			   property (C++/CLI syntax only). */
   a_bit_field	is_virtual:1;
 			/* TRUE if the property is declared with the "virtual"
-			   specifier. */
+			   specifier (C++/CLI syntax only). */
   a_bit_field	is_static:1;
 			/* TRUE if the property is declared with the "static"
-			   specifier. */
+			   specifier (C++/CLI syntax only). */
   a_property_index_type_ptr
 		indices;
 			/* Non-NULL only for an indexed property.  Points to a
 			   list of entries describing the types of the property
-			   indices. */
+			   indices.  (C++/CLI syntax only.) */
   union {
     /* When is_static is FALSE: */
     a_field_ptr
@@ -7743,7 +7765,8 @@ typedef struct a_property_descr {
     /* When is_static is TRUE: */
     a_variable_ptr
 		variable;
-			/* Associated property static data member. */
+			/* Associated property static data member.  (C++/CLI
+			   syntax only.) */
   } variant;
   union {
     /* When is_declspec_property is TRUE: */
@@ -7766,7 +7789,7 @@ typedef struct a_property_descr {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		property_position;
-			/* The position o the "property" keyword. */
+			/* The position of the "property" keyword. */
   a_source_range
 		indices_range;
 			/* The source position range delimited by the "["

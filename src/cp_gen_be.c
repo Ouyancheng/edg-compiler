@@ -12200,7 +12200,7 @@ declaration following this one is such a continuation.
   } else if (curr_name_context_is_a_class()) {
     /* We're currently inside a class definition.  The storage class doesn't
        have the usual meaning: for example, "static" means a static member.
-       The only cases that comes here, however, are declarations of static
+       The only cases that come here, however, are declarations of static
        data members and C++/CLI properties.  (It's not possible to declare or
        define a nonmember variable or a static data member of another class
        inside a class.) */

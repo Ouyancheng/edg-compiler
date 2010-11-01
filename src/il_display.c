@@ -2539,6 +2539,10 @@ Print the name of a special function kind.
     case sfk_destructor:      s = "sfk_destructor";    break;
     case sfk_conversion:      s = "sfk_conversion";    break;
     case sfk_operator:        s = "sfk_operator";      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sfk_property_get:    s = "sfk_property_get";  break;
+    case sfk_property_set:    s = "sfk_property_set";  break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:                  s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
   (void)printf(s);
@@ -4705,9 +4709,6 @@ Display the indicated property description.
   }  /* if */
   if (ptr->is_static) {
     disp_boolean("is_static", TRUE);
-  }  /* if */
-  if (ptr->is_default_indexed) {
-    disp_boolean("is_default_indexed", TRUE);
   }  /* if */
   disp_ptr("indices", (char*)ptr->indices, iek_property_index_type);
   if (ptr->is_static) {

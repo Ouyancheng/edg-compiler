@@ -551,6 +551,13 @@ by *diag_pos or at a position recorded in *dps (depending on the diagnostic).
       /* Issue just a remark for "volatile void" -- gcc uses that to
          indicate a function (like exit()) that does not return. */
       severity = es_remark;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && dps->in_class_scope &&
+               in_cli_property_definition() && is_void_type(type)) {
+      /* Presumably a property accessor: Any diagnostics will be issued by the
+         code that checks the accessor type. */
+      severity = es_none;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_nonspecialized_instantiation_context() &&
                !scope_stack[decl_scope_level].in_prototype_instantiation) {
       /* Inside a template instantiation it is sometimes the case

@@ -2000,6 +2000,8 @@ ec_static_default_indexed_property;;"a default-indexed property cannot be static
 ec_virtual_static_property_accessor;;"a property accessor cannot be both static and virtual"
 ec_visibility_specifier_on_nested_type;;"a top-level visibility specifier cannot appear on a nested type declaration"
 ec_visibility_specifier_requires_definition;;"a top-level visibility specifier requires a type definition"
+ec_trivial_reference_property;;"a trivial property cannot have a reference type"
+ec_trivial_const_or_volatile_property;;"a trivial property cannot have a const or volatile type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

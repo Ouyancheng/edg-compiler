@@ -4538,11 +4538,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("Microsoft attribute args",
                 num_ms_attribute_args_allocated,
                 an_ms_attribute_arg);
-  db_space_used("Microsoft property index types",
-                num_property_index_types_allocated,
+  db_space_used("property index types", num_property_index_types_allocated,
                 a_property_descr);
-  db_space_used("Microsoft property descriptions",
-                num_property_descriptions_allocated,
+  db_space_used("property descriptions", num_property_descriptions_allocated,
                 a_property_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

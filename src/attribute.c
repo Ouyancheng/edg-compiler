@@ -5946,6 +5946,8 @@ stream.
     /* The raw token sequence should correspond to one of the following forms:
        "get = <id>", "put = <id>", "get = <id> , put = <id>", or
        "put = <id> , get = <id>". */
+    check_assertion(fp->property_descr == NULL ||
+                    fp->property_descr->is_declspec_property);
     for (;;) {
       a_boolean  is_get = FALSE, is_put = FALSE;
       /* Check for "get" or "put". */
@@ -5984,15 +5986,16 @@ stream.
         errcode = ec_exp_identifier;
         break;
       } else if (!is_get && !is_put) {
-          unexpected_condition();
+        unexpected_condition();
       } else {
         if (fp->property_descr == NULL) {
           fp->property_descr = alloc_property_descr();
           fp->property_descr->is_declspec_property = TRUE;
+          fp->property_descr->variant.field = fp;
         }  /* if */
         if (is_get) {
           fp->property_descr->get_routine.name = aap->variant.token;
-        } else if (is_put) {
+        } else {
           fp->property_descr->set_routine.name = aap->variant.token;
         }  /* if */
       }  /* if */
