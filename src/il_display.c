@@ -464,16 +464,17 @@ static void disp_assembly_visibility(char                    *name,
 Display the indicated assembly visibility with a name.
 */
 {
-  char  *s;
 
-  disp_name(name);
-  switch (vis) {
-    case av_none:           s = "av_none\n";           break;
-    case av_public:         s = "av_public\n";         break;
-    case av_private:        s = "av_private\n";        break;
-    default:                s = "**BAD ASSEMBLY VISIBILITY**\n";
-  }  /* switch */  
-  (void)printf("%s", s);
+  if (vis != (an_assembly_visibility)av_none) {
+    char  *s;
+    disp_name(name);
+    switch (vis) {
+      case av_public:         s = "av_public\n";         break;
+      case av_private:        s = "av_private\n";        break;
+      default:                s = "**BAD ASSEMBLY VISIBILITY**\n";
+    }  /* switch */  
+    (void)printf("%s", s);
+  }  /* if */
 }  /* disp_assembly_visibility */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5424,8 +5425,6 @@ Display the indicated base class entry.
 #endif /* IA64_ABI */
 #endif /* DO_IL_LOWERING */
 }  /* disp_base_class */
-
-
 
 
 static void disp_class_type_supplement(a_class_type_supplement_ptr ptr)

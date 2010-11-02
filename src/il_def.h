@@ -6502,8 +6502,8 @@ typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
 typedef struct an_integer_type_supplement {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   assembly_visibility:2;
-                        /* Visibility of this type at the assembly level.
-			   (C++/CLI only.) */
+			/* Visibility of this type at the assembly level.
+			   (Enumeration types in C++/CLI mode only.) */
   char
 		*uuid_string;
 			/* Pointer to a character string representing the

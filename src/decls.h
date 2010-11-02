@@ -159,9 +159,9 @@ C++/CLI.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_assembly_visibility_specifier(tok)                        \
-  ((tok) == tok_public || (tok) == tok_private)
+  (cppcli_enabled && ((tok) == tok_public || (tok) == tok_private))
 #define or_is_cli_assembly_visibility_specifier(tok)                     \
-  || (cppcli_enabled && is_cli_assembly_visibility_specifier(tok))
+  || is_cli_assembly_visibility_specifier(tok)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_cli_assembly_visibility_specifier(tok) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

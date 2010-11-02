@@ -561,10 +561,10 @@ Dump the assembly visibility specifier of the given type.
 {
   if (cppcli_enabled) {
     switch (get_assembly_visibility_of(type)) {
-      case av_none:    /* Nothing to output. */                     break;
-      case av_public:  fputs("public", f_debug);                    break;
-      case av_private: fputs("private", f_debug);                   break;
-      default:         fputs("<bad assembly visibility>", f_debug); break;
+      case av_none:    /* Nothing to output. */                      break;
+      case av_public:  fputs("public ", f_debug);                    break;
+      case av_private: fputs("private ", f_debug);                   break;
+      default:         fputs("<bad assembly visibility> ", f_debug); break;
     }  /* switch */
   }  /* if */
 }  /* db_assembly_visibility_of_type */
@@ -1134,7 +1134,11 @@ Dump the contents of the indicated type entry, for debug purposes.
           fputs("bool", f_debug);
         } else {
           fprintf(f_debug, "%s", int_type_name(tp));
-          if (tp->variant.integer.enum_type) fputs(" enum", f_debug);
+          if (tp->variant.integer.enum_type) {
+            fputs(" ", f_debug);
+            db_assembly_visibility_of_type(tp);
+            fputs("enum", f_debug);
+          }  /* if */
         }  /* if */
         break;
 #if FIXED_POINT_ALLOWED
@@ -18951,24 +18955,6 @@ Selective overriding is a Microsoft extension.  For example:
   return result;
 }  /* selectively_overridden_function */
 
-
-an_assembly_visibility get_assembly_visibility_of(a_type_ptr  type)
-/*
-Return the top-level C++/CLI visibility of the given type (if any).
-*/
-{
-  an_assembly_visibility  result;
-
-  if (is_immediate_class_type(type)) {
-    result = class_type_supp(type)->assembly_visibility;
-  } else if (type->kind == (a_type_kind)tk_integer) {
-    result = integer_type_supp(type)->assembly_visibility;
-  } else {
-    result = (an_assembly_visibility)av_none;
-  }  /* if */
-  return result;
-}  /* an_assembly_visibility */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
@@ -20415,7 +20401,26 @@ includes removing any initialization.
 }  /* clear_variable_definition */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
+an_assembly_visibility get_assembly_visibility_of(a_type_ptr  type)
+/*
+Return the top-level C++/CLI visibility of the given type (if any).
+*/
+{
+  an_assembly_visibility  result;
+
+  if (is_immediate_class_type(type)) {
+    result = class_type_supp(type)->assembly_visibility;
+  } else if (type->kind == (a_type_kind)tk_integer) {
+    result = integer_type_supp(type)->assembly_visibility;
+  } else {
+    result = (an_assembly_visibility)av_none;
+  }  /* if */
+  return result;
+}  /* an_assembly_visibility */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
 
 unsigned long assign_instantiation_needed_bit_number(void)
