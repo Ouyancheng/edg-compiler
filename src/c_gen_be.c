@@ -2718,7 +2718,12 @@ Return the byte offset following the end of the indicated field.
   a_targ_size_t offset_after;
 
   if (!field->is_bit_field) {
-    offset_after = field->offset + skip_typerefs(field->type)->size;
+    a_type_ptr field_type = skip_typerefs(field->type);
+    if (field_type->generated_as_empty_struct) {
+      offset_after = field->offset;
+    } else {
+      offset_after = field->offset + skip_typerefs(field->type)->size;
+    }  /* if */
   } else {
     /* Bit field. */
     offset_after = field->offset + (targ_char_bit - 1 + 
@@ -2778,7 +2783,9 @@ These two fields are normally consecutive members of the given "type", but
       field_type = underlying_array_element_type(field_type);
     }  /* if */
     field_type = skip_typerefs(field_type);
-    if (is_immediate_class_type(field_type) || effective_field != field) {
+    if (is_immediate_class_type(field_type) || effective_field != field ||
+        (prev_field != NULL &&
+         skip_typerefs(prev_field->type)->generated_as_empty_struct)) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
       a_targ_alignment  alignment = field_alignment_for(effective_field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -3299,7 +3306,13 @@ final semicolon if output_final_semi is TRUE.
            struct types and gives them size zero (and it also gives size
            zero to "struct { int:0; }").  Note that the test here must
            match one in dump_initializer_part. */
-        write_tok_str("char __dummy;");
+        if (use_empty_struct_in_generated_c) {
+          /* Mark this type as having zero size in the generated code so
+             offset and initialization logic can compensate. */
+          type->generated_as_empty_struct = TRUE;
+        } else {
+          write_tok_str("char __dummy;");
+        }  /* if */
       }  /* if */
     }
     indent -= 2;
@@ -6549,7 +6562,9 @@ block with state information for the processing.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          write_tok_ch('0');
+          if (!type->generated_as_empty_struct) {
+            write_tok_ch('0');
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (elem_con == NULL &&

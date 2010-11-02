@@ -555,6 +555,7 @@ This is done before command line processing.
 #if !IA64_ABI
   targ_runtime_elem_count_int_kind = TARG_RUNTIME_ELEM_COUNT_INT_KIND;
 #endif /* !IA64_ABI */
+  use_empty_struct_in_generated_c = USE_EMPTY_STRUCT_IN_GENERATED_C;
   init_character_sizes();
 }  /* target_early_init */
 

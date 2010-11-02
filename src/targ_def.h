@@ -4555,6 +4555,29 @@ should be so treated.
 #define FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT (!BACK_END_IS_CP_GEN_BE)
 #endif /* ifndef FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT */
 
+/*
+This switch controls how the C-generating back represents an empty C++
+class.  The C++ Standard requires that the size of an empty class object
+that is not a base class subobject be one byte, so the natural
+representation of such a class in C is a struct with one byte of padding.
+However, when passing an empty class object by value, g++ on 64-bit
+architectures uses the calling sequence gcc uses for an empty struct, which
+is different from that used for a one-byte struct; in such cases, an empty
+struct should be generated (and padding and initialization modified
+accordingly).  (On 32-bit architectures it uses the calling sequence for a
+one-byte struct, so the natural representation presents no problems in this
+regard.)  This is the initial value of the use_empty_struct_in_generated_c
+global variable.
+*/
+#ifndef USE_EMPTY_STRUCT_IN_GENERATED_C
+#if BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET && \
+    TARG_SIZEOF_POINTER == 8
+#define USE_EMPTY_STRUCT_IN_GENERATED_C TRUE
+#else /* !(BACK_END_IS_C_GEN_BE && ...) */
+#define USE_EMPTY_STRUCT_IN_GENERATED_C FALSE
+#endif /* BACK_END_IS_C_GEN_BE && ... */
+#endif /* USE_EMPTY_STRUCT_IN_GENERATED_C */
+
 #endif /* !defined(TARG_DEF_H) */
 
 

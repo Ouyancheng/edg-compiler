@@ -1,5 +1,28 @@
 Version 4.3
 
+11/2/10  [EDGcpfe/11105]
+C-generating back end, GNU compatibility: passing empty class objects by value
+
+Because the C++ Standard requires that an empty class object have size
+1, the C-generating back end generated the corresponding struct with a
+one-byte padding field.  However, on 64-bit architectures, g++ passes
+empty class objects in function calls using the distinctive calling
+sequence that gcc uses for an empty struct (which is not permitted in
+Standard C but is accepted as an extension by gcc).  If code generated
+by the C-generating back end is compiled with gcc and linked with code
+compiled by g++ on a 64-bit platform, the resulting mismatched calling
+sequences can lead to crashes and other errors.
+
+To accommodate this usage, a new configuration macro,
+USE_EMPTY_STRUCT_IN_GENERATED_C, has been added; its default value is TRUE
+when BACK_END_IS_C_GEN_BE and GCC_IS_GENERATED_CODE_TARGET are TRUE and
+TARG_SIZEOF_POINTER is 8, and FALSE otherwise.  This is the initial value for
+the global variable use_empty_struct_in_generated_c.  When that is TRUE, an
+empty class will be represented in the generated C code as an empty struct,
+and appropriate accommodations will be made to preserve the assumed layout
+and initialization in the generated code.
+
+
 11/2/10  [EDGcpfe/11103]
 Spurious error in class template with explicit "override" (Microsoft mode)
 

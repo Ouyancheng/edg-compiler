@@ -1731,6 +1731,7 @@ variant fields to default values.
   pte->prototype_scope_types_if_any_promoted = FALSE;
   pte->has_been_defined = FALSE;
   pte->typedef_pending = FALSE;
+  pte->generated_as_empty_struct = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
   pte->has_been_declared = FALSE;

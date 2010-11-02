@@ -6706,6 +6706,11 @@ typedef struct a_type {
 			   that there are one or more deferred typedefs
 			   whose definition should be emitted after this
 			   type's definition. */
+  a_bit_field	generated_as_empty_struct:1;
+			/* Initially FALSE; set to TRUE for an empty
+			   class/struct/union if the C-generating back end
+			   generates the corresponding struct as empty.  See
+			   USE_EMPTY_STRUCT_IN_GENERATED_C for details. */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	has_been_declared:1;
