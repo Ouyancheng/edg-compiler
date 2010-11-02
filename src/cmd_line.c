@@ -6935,6 +6935,11 @@ file.
 #else /* !defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS) */
   comment_undefined_macro_name(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS);
 #endif /* defined(USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS) */
+#if defined(USE_EMPTY_STRUCT_IN_GENERATED_C)
+  define_numeric_valued_macro(USE_EMPTY_STRUCT_IN_GENERATED_C);
+#else /* !defined(USE_EMPTY_STRUCT_IN_GENERATED_C) */
+  comment_undefined_macro_name(USE_EMPTY_STRUCT_IN_GENERATED_C);
+#endif /* defined(USE_EMPTY_STRUCT_IN_GENERATED_C) */
 #if defined(USE_FIXED_ADDRESS_FOR_MMAP)
   define_numeric_valued_macro(USE_FIXED_ADDRESS_FOR_MMAP);
 #else /* !defined(USE_FIXED_ADDRESS_FOR_MMAP) */
