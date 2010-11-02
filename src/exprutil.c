@@ -5843,6 +5843,10 @@ desired.
   type = node->type;
   if (!node->is_lvalue) type = rvalue_type(type);
   promoted_type = skip_typerefs(type);
+  if (is_template_param_type(promoted_type) ||
+      is_error_type(promoted_type)) {
+    goto end_of_routine;
+  }  /* if */
 #if CHECKING
   /* The type of a bit-field should be integral. */
   if (promoted_type->kind != (a_type_kind)tk_integer) {
@@ -5911,6 +5915,7 @@ desired.
   }  /* if */
   if (ikind != orig_ikind) promoted_type = integer_type(ikind);
   db_exit();
+end_of_routine:
   return promoted_type;
 }  /* type_after_bit_field_integral_promotion */
 
