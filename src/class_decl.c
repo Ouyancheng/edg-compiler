@@ -4030,9 +4030,9 @@ Any diagnostics are issued at the given position.
     } else {
       /* Not a destructor, so do normal processing. */
       /* Pull out the unique scope identifier for this base class. */
-      base_class_scope = bcp->type->
-                          variant.class_struct_union.extra_info->assoc_scope;
-      if (base_class_scope == NULL) {
+      base_class_scope = class_type_supp(bcp->type)->assoc_scope;
+      if (base_class_scope == NULL ||
+          bcp->type->variant.class_struct_union.is_nonreal_class) {
         /* This is probably a nonreal base class in a prototype instantiation.
            Don't attempt a lookup in this case. */
         dps->override_okay = TRUE;
