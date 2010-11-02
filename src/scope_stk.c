@@ -8579,7 +8579,7 @@ determine whether we are entering a pack expansion context.
 }  /* get_pack_expansion_for_curr_context */
 
 
-void skip_start_of_pack_placeholders(
+static void skip_start_of_pack_placeholders(
 				a_template_param_ptr	*tpp,
 				a_template_arg_ptr	*tap,
 				a_boolean		is_first_arg)
@@ -8598,10 +8598,11 @@ parameter and so should not be advanced.
 */
 {
   check_assertion(tap != NULL);
-  for (; *tap != NULL && (*tap)->kind == tak_start_of_pack_expansion;
-       is_first_arg = FALSE) {
+  for (; *tap != NULL &&
+         (*tap)->kind == (a_templ_arg_kind)tak_start_of_pack_expansion;) {
     *tap = (*tap)->next;
     if (!is_first_arg && *tpp != NULL) *tpp = (*tpp)->next;
+    is_first_arg = FALSE;
   }  /* for */
 }  /* skip_start_of_pack_placeholders */
 
@@ -8844,7 +8845,7 @@ pack expansion stack entry for which the symbols are to be updated.
        param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
     a_symbol_ptr	sym = param_prp->symbol;
-    if (sym->kind == sk_variable) {
+    if (sym->kind == (a_symbol_kind)sk_variable) {
       /* FIXME: variable case not implemented yet. */
     } else {
       /* A template argument. */
@@ -9088,7 +9089,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
          param_prp != NULL;
          param_prp = param_prp->next, arg_prp = arg_prp->next) {
       a_symbol_ptr	sym = param_prp->symbol;
-      if (sym->kind == sk_variable) {
+      if (sym->kind == (a_symbol_kind)sk_variable) {
         /* FIXME: variable case not implemented yet. */
       } else {
         /* A template argument. */

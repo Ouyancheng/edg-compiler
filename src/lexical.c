@@ -13084,7 +13084,8 @@ all arguments were explicit.
     a_source_position  arg_pos;
     if (param_ptr != NULL && param_ptr->is_pack) {
       /* Create a start of parameter pack placeholder. */
-      arg_ptr = alloc_template_arg(tak_start_of_pack_expansion);
+      arg_ptr =
+             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
       /* Link this entry on to the argument list. */
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;

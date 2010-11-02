@@ -6100,7 +6100,8 @@ another template parameter.
         /* There was no parameter list available when the specified template
            argument list was created.  As a result, we need to add the
            pack expansion placeholder here. */
-        tap = alloc_template_arg(tak_start_of_pack_expansion);
+        tap =
+             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
         /* Link this entry on to the argument list. */
         if (new_list == NULL) {
           new_list = tap;
