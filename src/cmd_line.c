@@ -4143,6 +4143,11 @@ file.
   comment_undefined_macro_name(
                        CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);
 #endif /* defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS) */
+#if defined(CLR_FALLBACK_VERSION)
+  define_string_valued_macro(CLR_FALLBACK_VERSION);
+#else /* !defined(CLR_FALLBACK_VERSION) */
+  comment_undefined_macro_name(CLR_FALLBACK_VERSION);
+#endif /* defined(CLR_FALLBACK_VERSION) */
 #if defined(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS)
   define_numeric_valued_macro(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS);
 #else /* !defined(COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS) */
@@ -4178,6 +4183,11 @@ file.
 #else /* !defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
   comment_undefined_macro_name(CPP0X_IL_EXTENSIONS_SUPPORTED);
 #endif /* defined(CPP0X_IL_EXTENSIONS_SUPPORTED) */
+#if defined(CTORS_RETURN_THIS)
+  define_numeric_valued_macro(CTORS_RETURN_THIS);
+#else /* !defined(CTORS_RETURN_THIS) */
+  comment_undefined_macro_name(CTORS_RETURN_THIS);
+#endif /* defined(CTORS_RETURN_THIS) */
 #if defined(CUSTOM_NAME_LINKAGE_KINDS)
   /* We cannot conveniently display the value of CUSTOM_NAME_LINKAGE_KINDS
      because it contains embedded commas (it's inserted into the middle of
@@ -4531,6 +4541,11 @@ file.
 #else /* !defined(DEFAULT_GUIDING_DECLS_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_GUIDING_DECLS_ALLOWED);
 #endif /* defined(DEFAULT_GUIDING_DECLS_ALLOWED) */
+#if defined(DEFAULT_IMPLICIT_MSCORLIB)
+  define_numeric_valued_macro(DEFAULT_IMPLICIT_MSCORLIB);
+#else /* !defined(DEFAULT_IMPLICIT_MSCORLIB) */
+  comment_undefined_macro_name(DEFAULT_IMPLICIT_MSCORLIB);
+#endif /* defined(DEFAULT_IMPLICIT_MSCORLIB) */
 #if defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE)
   define_numeric_valued_macro(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE);
 #else /* !defined(DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE) */
@@ -4839,8 +4854,11 @@ file.
 #else /* !defined(DEFAULT_ULITERALS_ENABLED) */
   comment_undefined_macro_name(DEFAULT_ULITERALS_ENABLED);
 #endif /* defined(DEFAULT_ULITERALS_ENABLED) */
-/* DEFAULT_UNICODE_SOURCE_KIND has an enumeration value, which is not
-   easily displayed. */
+#if defined(DEFAULT_UNICODE_SOURCE_KIND)
+  define_string_valued_macro(DEFAULT_UNICODE_SOURCE_KIND);
+#else /* !defined(DEFAULT_UNICODE_SOURCE_KIND) */
+  comment_undefined_macro_name(DEFAULT_UNICODE_SOURCE_KIND);
+#endif /* defined(DEFAULT_UNICODE_SOURCE_KIND) */
 #if defined(DEFAULT_UPC_MODE)
   define_numeric_valued_macro(DEFAULT_UPC_MODE);
 #else /* !defined(DEFAULT_UPC_MODE) */
@@ -4991,6 +5009,11 @@ file.
 #else /* !defined(DRIVER_COMPATIBILITY_VERSION) */
   comment_undefined_macro_name(DRIVER_COMPATIBILITY_VERSION);
 #endif /* defined(DRIVER_COMPATIBILITY_VERSION) */
+#if defined(DTORS_RETURN_THIS)
+  define_numeric_valued_macro(DTORS_RETURN_THIS);
+#else /* !defined(DTORS_RETURN_THIS) */
+  comment_undefined_macro_name(DTORS_RETURN_THIS);
+#endif /* defined(DTORS_RETURN_THIS) */
 #if defined(DUMP_CONFIG_ENABLED)
   define_numeric_valued_macro(DUMP_CONFIG_ENABLED);
 #else /* !defined(DUMP_CONFIG_ENABLED) */
@@ -5187,6 +5210,11 @@ file.
 #else /* !defined(GEN_EXTRA_LINE_ID_INFO) */
   comment_undefined_macro_name(GEN_EXTRA_LINE_ID_INFO);
 #endif /* defined(GEN_EXTRA_LINE_ID_INFO) */
+#if defined(GET_DEFINITION_OF_CLASS_NEEDED)
+  define_numeric_valued_macro(GET_DEFINITION_OF_CLASS_NEEDED);
+#else /* !defined(GET_DEFINITION_OF_CLASS_NEEDED) */
+  comment_undefined_macro_name(GET_DEFINITION_OF_CLASS_NEEDED);
+#endif /* defined(GET_DEFINITION_OF_CLASS_NEEDED) */
 #if defined(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED)
   define_numeric_valued_macro(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED);
 #else /* !defined(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED) */
@@ -5861,6 +5889,12 @@ file.
 #else /* !defined(PREDEFINED_MACRO_FILE_NAME) */
   comment_undefined_macro_name(PREDEFINED_MACRO_FILE_NAME);
 #endif /* defined(PREDEFINED_MACRO_FILE_NAME) */
+#if defined(PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING)
+  define_numeric_valued_macro(PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING);
+#else /* !defined(PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING) */
+  comment_undefined_macro_name(
+                              PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING);
+#endif /* defined(PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING) */
 #if defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL)
   define_numeric_valued_macro(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL);
 #else /* !defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL) */
@@ -6806,6 +6840,13 @@ file.
   comment_undefined_macro_name(
                               TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT);
 #endif /* defined(TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT) */
+#if defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES)
+  define_numeric_valued_macro(
+                     TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES);
+#else /* !defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES) */
+  comment_undefined_macro_name(
+                     TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES);
+#endif /* defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES) */
 #if defined(TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS)
   define_numeric_valued_macro(
                        TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS);
