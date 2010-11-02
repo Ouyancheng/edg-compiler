@@ -6216,6 +6216,7 @@ Display the IL for the file scope in human-readable form.
 #endif /* RECORD_MACROS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_boolean("microsoft_mode", (a_boolean)il_header.microsoft_mode);
+  disp_boolean("cppcli_enabled", (a_boolean)il_header.cppcli_enabled);
   disp_unsigned_long("microsoft_version", il_header.microsoft_version);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

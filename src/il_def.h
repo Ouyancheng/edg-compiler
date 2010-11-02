@@ -15136,6 +15136,10 @@ typedef struct an_il_header {
 		microsoft_mode;
 			/* TRUE if Microsoft extensions are accepted;
 			   corresponds to global variable microsoft_mode. */
+  a_byte_boolean
+		cppcli_enabled;
+			/* TRUE if C++/CLI extensions are accepted;
+			   corresponds to global variable cppcli_enabled. */
   unsigned long
 		microsoft_version;
 			/* When microsoft_mode is TRUE, the version of the

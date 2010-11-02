@@ -1092,6 +1092,7 @@ source file's compilation.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;
+  il_header.cppcli_enabled = cppcli_enabled;
   il_header.microsoft_version = microsoft_version;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
