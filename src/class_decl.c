@@ -5209,6 +5209,9 @@ duplicate paths.  The copy will be a base class of new_class.
   /* Create a new base class entry. */
   new_bcp = alloc_base_class();
   new_bcp->type = base_class_to_copy->type;
+  /* base_class_to_copy->orig_type is not copied because an indirect base
+     class could have multiple derivation paths with different names used
+     to express the base class type. */
   new_bcp->derived_class = new_class;
   new_bcp->decl_position = directly_derived_bcp->decl_position;
   new_bcp->direct = FALSE;

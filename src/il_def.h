@@ -5688,8 +5688,10 @@ typedef struct a_base_class {
 			   class.  (Unions may not be used as base classes.) */
   a_type_ptr	orig_type;
 			/* Pointer to the type specified in the base specifier
-			   list, which might be the same as type or might be
-			   a typedef. */
+			   list, which might be the same as type or might be a
+			   typedef.  (NULL for indirect base classes because
+			   different derivation paths can specify the type in
+			   different ways.) */
   a_type_ptr	derived_class;
 			/* The class derived (directly or indirectly) from
 			   this base class on whose base_classes list it
