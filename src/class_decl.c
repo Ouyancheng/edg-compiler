@@ -8839,7 +8839,6 @@ with and issue diagnostics as needed.
   a_property_descr_ptr  pdp = rp->variant.property_descr;
   a_boolean             is_setter, err = FALSE;
 
-  check_assertion(!pdp->is_declspec_property);
   if (pdp->is_static) {
     prop_type = pdp->variant.variable->type;
   } else {
@@ -8941,6 +8940,7 @@ the member function is an accessor for the property (if the accessor is valid).
   a_property_descr_ptr  pdp = class_state->property_descr;
   a_decl_parse_state    *dps = &decl_info->decl_state;
 
+  check_assertion(!pdp->is_declspec_property);
   if (rp->special_kind != (a_special_function_kind)sfk_none) {
     /* A special member (like a constructor) declared in a property definition.
        Issue an error. */
@@ -15258,20 +15258,10 @@ list.
       add_stop_token(tok_comma);
       *p_pitp = alloc_property_index_type();
       (*p_pitp)->position = pos_curr_token;
-      if (!is_decl_start(IDS_NO_OPTIONS) ||
-          !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
-        /* This doesn't look like a type; don't attempt to parse it as such.
-           We do record an entry with an error type to improve error
-           recovery. */
-        pos_error(ec_exp_type_specifier, &pos_curr_token);
-        flush_tokens();
+      type_name(&(*p_pitp)->type);
+      if (is_void_type((*p_pitp)->type)) {
+        pos_error(ec_void_property_index_type, &(*p_pitp)->position);
         (*p_pitp)->type = error_type();
-      } else {
-        type_name(&(*p_pitp)->type);
-        if (is_void_type((*p_pitp)->type)) {
-          pos_error(ec_void_property_index_type, &(*p_pitp)->position);
-          (*p_pitp)->type = error_type();
-        }  /* if */
       }  /* if */
       p_pitp = &(*p_pitp)->next;
       remove_stop_token(tok_comma);

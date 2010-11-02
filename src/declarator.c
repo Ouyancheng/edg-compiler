@@ -1198,17 +1198,8 @@ specification is handled later (see check_exception_specification).
     estp->source_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     type_pos = pos_curr_token;
-    if (!is_decl_start(IDS_NO_OPTIONS) ||
-        !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
-      /* Error. */
-      pos_error(ec_exp_type_specifier, &type_pos);
-      /* Flush tokens to the comma or right paren. */
-      flush_tokens();
-      estp->type = error_type();
-    } else {
-      scan_eh_spec_type(estp, func_info, ignoring_exception_spec,
-                        is_top_level_declarator, &type_pos);
-    }  /* if */
+    scan_eh_spec_type(estp, func_info, ignoring_exception_spec,
+                      is_top_level_declarator, &type_pos);
     if (esp != NULL) {
       /* Add estp to the list. */
       if (end_of_list == NULL) {

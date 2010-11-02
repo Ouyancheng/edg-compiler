@@ -10052,6 +10052,15 @@ common cases.
   dps->is_type_name = TRUE;
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   copy_source_position(pos_curr_token, dps->start_pos);
+  if (curr_token != tok_identifier && !is_decl_start(IDS_NO_OPTIONS)) {
+    /* This doesn't look like a type; don't attempt to parse it as such.
+       (The identifier case is let through with the assumption that it could
+       be a misspelled type name.) */
+    pos_error(ec_exp_type_specifier, &pos_curr_token);
+    dps->type = dps->specifiers_type = dps->declared_type = error_type();
+    flush_tokens();
+    goto done;
+  }  /* if */
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
   if (dps->is_trailing_return_type) {
     /* When scanning a C++0x trailing return type, top-level class definitions
@@ -10117,6 +10126,7 @@ common cases.
     }  /* if */
   }
   copy_source_position(dps->start_pos, error_position);
+done:
   db_exit();
 }  /* type_name_full */
 
