@@ -453,7 +453,7 @@ Display the indicated access specifier with a name.
     case as_inaccessible:   s = "as_inaccessible\n";   break;
     default:                s = "**BAD ACCESS SPECIFIER**\n";
   }  /* switch */  
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_access */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2546,7 +2546,7 @@ Print the name of a special function kind.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:                  s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_special_function_kind_name */
 
 
@@ -2605,7 +2605,7 @@ Print the name of the C++ operator kind.
     case onk_gnu_max:             s = "onk_gnu_max";               break;
     default:                      s = "**BAD OPERATOR NAME KIND**";
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_opname_kind_name */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -2727,7 +2727,7 @@ Display the name of the indicated constructor or destructor kind.
     case cdk_deleting:  s = "deleting";                  break;
     default:            s = "**BAD CTOR OR DTOR KIND**"; break;
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_ctor_or_dtor_kind_name */
 
 #endif /* DO_IL_LOWERING && IA64_ABI */
@@ -3299,7 +3299,7 @@ Display the name of an expression operator.
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_expr_operator_name */
 
 
@@ -6157,7 +6157,7 @@ Display the name for the indicated source language name.
     case sl_C:            s = "sl_C";                    break;
     default:              s = "**BAD SOURCE LANGUAGE**"; break;
   }  /* switch */
-  (void)printf(s);
+  (void)printf("%s", s);
 }  /* disp_source_language_name */
 
 
