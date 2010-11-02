@@ -4119,7 +4119,7 @@ those are handled in the declarator processing rather than here.
       *cv_quals |= CVQ_VOLATILE;
     } else if (*ptr == 'r') {
       *cv_quals |= CVQ_RESTRICT;
-    } else if (*ptr == 'U') {
+    } else if (*ptr == 'U' && isdigit((unsigned char)ptr[1])) {
       /* A vendor extended type qualifier. */
       if (start_of_id_is("8__vector", ptr+1) ||
           start_of_id_is("8__handle", ptr+1) ||
