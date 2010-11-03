@@ -13304,7 +13304,7 @@ handle_as_definition:
              was explicitly specified in the source or not. */
           an_attribute_ptr ap;
           for (ap = attributes; ap != NULL; ap = ap->next) {
-            if (ap->kind == (an_attribute_kind)ak_gnu_inline) {
+            if (ap->kind == (a_byte_attribute_kind)ak_gnu_inline) {
               break;
             }  /* if */
           }  /* for */
