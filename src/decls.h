@@ -54,6 +54,7 @@ Flags used to specify options to is_decl_start.
 typedef int an_is_decl_start_options_set;
 
 #define IDS_NO_OPTIONS		0x0
+			/*lint -esym(755,IDS_NO_OPTIONS)*/
 #define IDS_EXPR_CONTEXT	0x1
 			/* TRUE if we are in an expression context. */
 #define IDS_REAL_DECLARATOR_ALLOWED \

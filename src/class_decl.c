@@ -32,7 +32,6 @@ class_decl.c -- Scanning of class declarations.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#include "disambig.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
