@@ -6728,16 +6728,27 @@ block with state information for the processing.
     }  /* if */
     /* If generating initializer constants, output a "}". */
     if (need_close_brace) {
+      a_boolean need_scalar_dummy_init = FALSE;
+      a_boolean need_array_dummy_init = FALSE;
       initializer_close_brace(icbp);
       /* dump_field_list adds a padding member after a member whose base
          type is an empty struct, and we need to initialize it, too. */
       if (type->generated_as_empty_struct && ipdp->prev != NULL &&
           !is_array_type(ipdp->prev->type)) {
-        write_tok_str(",0");
+        need_scalar_dummy_init = TRUE;
       } else if (is_array_type(type) && ipdp->prev != NULL &&
                  !is_array_type(ipdp->prev->type) &&
                  skip_typerefs(underlying_array_element_type(type))->
                                                    generated_as_empty_struct) {
+        if (skip_typerefs(type)->size > 1) {
+          need_array_dummy_init = TRUE;
+        } else {
+          need_scalar_dummy_init = TRUE;
+        }  /* if */
+      }  /* if */
+      if (need_scalar_dummy_init) {
+        write_tok_str(",0");
+      } else if (need_array_dummy_init) {
         write_tok_str(",{0}");
       }  /* if */
     } else  if (suppress_brace_for_base_class_subobject &&
