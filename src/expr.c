@@ -6959,11 +6959,12 @@ previously-scanned sizeof expression, and return the result in *result
     operator_position = pos_curr_token;
   }  /* if */
   start_position = operator_position;
-  check_assertion(operator_token == tok_sizeof
 #if UPC_EXTENSIONS_ALLOWED
-                  || operator_token == tok_upc_blocksizeof
+  check_assertion(operator_token == tok_sizeof ||
+                  operator_token == tok_upc_blocksizeof);
+#else /* !UPC_EXTENSIONS_ALLOWED */
+  check_assertion(operator_token == tok_sizeof);
 #endif /* UPC_EXTENSIONS_ALLOWED */
-                                                          );
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
     /* Sizeof not possible for preprocessing expressions. */
