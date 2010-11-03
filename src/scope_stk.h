@@ -356,7 +356,15 @@ typedef struct a_pack_expansion_stack_entry {
 			/* During a real instantiation, this is the token
 			   handle of the start of the pack expansion.  This
 			   is used to reset the token position to scan the
-			   non-initial pack elements. */
+			   non-initial pack elements.  This is not used
+			   (has the value NO_CACHED_TOKEN_HANDLE) when
+			   is_rescan is TRUE. */
+  a_byte_boolean
+		is_rescan;
+			/* TRUE when the expansion is being done in an
+			   expression rescan context.  In such contexts the
+			   current values of the packs are maintained, but
+			   not token manipulation or checking is done. */
 } a_pack_expansion_stack_entry;
 
 

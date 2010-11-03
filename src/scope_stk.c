@@ -8517,6 +8517,7 @@ to it.
   pesep->expansion_descr = NULL;
   pesep->instantiation_descr = NULL;
   pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
+  pesep->is_rescan = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -8884,6 +8885,35 @@ pack expansion stack entry for which the symbols are to be updated.
 }  /* update_parameter_pack_symbol_values */
 
 
+static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
+					a_pack_expansion_descr_ptr	pedp)
+/*
+Create a pack instantiation description entry based on the expansion described
+by pedp and push it on the pack expansion stack.  Return a pointer to the
+pack expansion stack entry.  If this is an invalid expansion or there are
+no arguments to be expanded, return NULL.
+*/
+{
+  a_pack_expansion_stack_entry_ptr	pesep = NULL;
+  a_pack_instantiation_descr_ptr	pidp;
+
+  /* Construct the pack instantiation information based on the pack
+     expansion information and the current context.  If the instantiation
+     is invalid, or if there are no pack elements, a NULL instantiation
+     entry will be returned. */
+  pidp = create_pack_instantiation_descr(pedp);
+  if (pidp != NULL) {
+    pesep = push_pack_expansion_stack();
+    pesep->expansion_descr = pedp;
+    pesep->instantiation_descr = pidp;
+    /* Set the parameter pack symbols to the first element of each
+       pack. */
+    update_parameter_pack_symbol_values(pesep);
+  }  /* if */
+  return pesep;
+}  /* push_pack_instantiation */
+
+
 a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep)
 /*
@@ -8957,21 +8987,10 @@ will be set to NULL.
     a_pack_expansion_descr_ptr	pedp;
     pedp = get_pack_expansion_for_curr_context();
     if (pedp != NULL) {
-      a_pack_instantiation_descr_ptr	pidp;
-      /* Construct the pack instantiation information based on the pack
-         expansion information and the current context.  If the instantiation
-         is invalid, or if there are no pack elements, a NULL instantiation
-         entry will be returned. */
-      pidp = create_pack_instantiation_descr(pedp);
-      if (pidp != NULL) {
-        pesep = push_pack_expansion_stack();
-        pesep->expansion_descr = pedp;
-        pesep->instantiation_descr = pidp;
+      pesep = push_pack_instantiation(pedp);
+      if (pesep != NULL) {
         pesep->first_token_handle = curr_cached_token_handle;
         check_assertion(curr_token_sequence_number == pedp->first_token);
-        /* Set the parameter pack symbols to the first element of each
-           pack. */
-        update_parameter_pack_symbol_values(pesep);
       } else {
         /* There are no arguments to be expanded.  Advance to the token
            after the end of the expansion. */
@@ -9007,8 +9026,14 @@ return value and the setting of *p_pese (note that this routine is
 never called in prototype instantiation contexts).
 */
 {
-  /* FIXME: stub version. */
-  return TRUE;
+  a_pack_expansion_stack_entry_ptr	pesep;
+
+  pesep = push_pack_instantiation(pedp);
+  if (pesep != NULL) {
+    pesep->is_rescan = TRUE;
+  }  /* if */
+  *p_pesep = pesep;
+  return pesep != NULL;
 }  /* begin_rescan_pack_expansion_context */
 
 
@@ -9070,10 +9095,16 @@ pack expansion, this routine returns a pointer to the pack expansion
 descriptor.  In most contexts this can be ignored, but in expression
 rescan contexts it must be saved so that the pack expansion can be
 rescanned.
+
+When this routine is called in an expression rescan context, it has no
+effect and returns NULL.
 */
 {
   a_pack_expansion_descr_ptr	result_pedp = NULL;
 
+  /* This routine should do nothing when called in an expression rescan
+     context. */
+  if (pesep != NULL && pesep->is_rescan) pesep = NULL;
   if (pesep == NULL) {
     /* A non-variadic context.  There is nothing to be done. */
   } else {
@@ -9165,7 +9196,8 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       pesep->instantiation_descr->after_first_element = TRUE;
     }  /* for */
   }  /* if */
-  if (!done) {
+  if (!done && !pesep->is_rescan) {
+    /* Reset the token position to the start of the pack expansion. */
     update_reusable_cache_rescan_location(pesep->first_token_handle);
   } else {
     /* If we have advanced past the last element, pop the pack expansion
