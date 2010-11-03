@@ -879,13 +879,14 @@ EXTERN a_boolean
 			   a (one time) warning is issued when a try statement
 			   is encountered. */
 
+#if BACK_END_IS_C_GEN_BE
 EXTERN a_boolean
 		use_empty_struct_in_generated_c;
 			/* When TRUE, the C-generating back end will use an
 			   empty struct as the representation of an empty
 			   class.  Otherwise, the generated struct will have
 			   a one-byte padding field. */
-
+#endif /* BACK_END_IS_C_GEN_BE */
 
 #ifndef DO_NOT_UNDEF_TARGET_MACROS
 /* Aside from occasional references in targ_def.h, the following values
@@ -983,7 +984,9 @@ EXTERN a_boolean
 #if !IA64_ABI
 #undef TARG_RUNTIME_ELEM_COUNT_INT_KIND
 #endif /* !IA64_ABI */
+#if BACK_END_IS_C_GEN_BE
 #undef USE_EMPTY_STRUCT_IN_GENERATED_C
+#endif /* BACK_END_IS_C_GEN_BE */
 /* MAKE_TARG_NAMES_REFER_TO_VARIABLES cannot be set when this file is included
    by target.c.  If it was previously defined, undefine it and set it to the
    value required by target.c. */
@@ -1106,7 +1109,9 @@ EXTERN a_boolean
 #if !IA64_ABI
 #define TARG_RUNTIME_ELEM_COUNT_INT_KIND targ_runtime_elem_count_int_kind
 #endif /* !IA64_ABI */
+#if BACK_END_IS_C_GEN_BE
 #define USE_EMPTY_STRUCT_IN_GENERATED_C use_empty_struct_in_generated_c
+#endif /* BACK_END_IS_C_GEN_BE */
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
