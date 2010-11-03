@@ -58,6 +58,7 @@ Return the type of a virtual function table entry.
   a_type_ptr vtbl_entry_type;
 
 #if IA64_ABI
+  intentional_error;    /* Introduce an intentional error. */
   /* The IA-64 virtual function table contains offsets and pointers.
      The element type must be an integral type large enough to accommodate both
      of these types.  Typically, this is ptrdiff_t, but on some systems it may
