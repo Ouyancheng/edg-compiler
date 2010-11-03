@@ -279,11 +279,11 @@ typedef struct a_pack_expansion_descr {
 		next;
 			/* The next entry on a list of pack expansion entries,
 			   or NULL for the last entry on the list. */
-  a_cached_token_handle
+  a_token_sequence_number
 		first_token;
 			/* Identifies the first token of the range of tokens
 			   to be rescanned for an expansion of the pack. */
-  a_cached_token_handle
+  a_token_sequence_number
 		last_token;
 			/* Identifies the last token of the range of tokens
 			   to be rescanned for an expansion of the pack. */
@@ -320,6 +320,10 @@ typedef struct a_pack_instantiation_descr {
 			/* A list of the parameter packs used within the pack
 			   expansion including information about the current
 			   element to which each pack refers. */
+  a_byte_boolean
+		after_first_element;
+			/* TRUE if the current element is the 2nd through
+			   Nth element of the instantiation. */
 } a_pack_instantiation_descr;
 
 
@@ -347,6 +351,12 @@ typedef struct a_pack_expansion_stack_entry {
 			   information about the actual parameter packs being
 			   used for the instantiation.  NULL during prototype
 			   instantiations. */
+  a_cached_token_handle
+		first_token_handle;
+			/* During a real instantiation, this is the token
+			   handle of the start of the pack expansion.  This
+			   is used to reset the token position to scan the
+			   non-initial pack elements. */
 } a_pack_expansion_stack_entry;
 
 
@@ -1615,12 +1625,18 @@ extern void advance_to_next_template_arg(
 				a_template_param_ptr	*tpp,
 				a_template_arg_ptr	*tap);
 
+extern a_boolean begin_rescan_pack_expansion_context(
+			a_pack_expansion_descr_ptr		pedp,
+			a_pack_expansion_stack_entry_ptr	*p_pesep);
+
 extern a_boolean begin_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	*p_pesep);
 
-extern void end_potential_pack_expansion_context(
+extern a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
 			a_boolean				is_declarator);
+
+extern a_boolean is_non_initial_variadic_param(void);
 
 extern
 a_boolean advance_to_next_pack_element(a_pack_expansion_stack_entry_ptr	pesep);

@@ -13035,6 +13035,7 @@ all arguments were explicit.
   a_template_symbol_supplement_ptr tssp;
   a_boolean			   template_in_prototype_instantiation = FALSE;
   long                             arg_number;
+  a_boolean			   in_pack = FALSE;
   a_boolean                        saved_in_template_arg_list =
                                        scope_stack_top().in_template_arg_list;
 
@@ -13082,7 +13083,7 @@ all arguments were explicit.
   arg_number = 0;
   do {
     a_source_position  arg_pos;
-    if (param_ptr != NULL && param_ptr->is_pack) {
+    if (!in_pack && param_ptr != NULL && param_ptr->is_pack) {
       /* Create a start of parameter pack placeholder. */
       arg_ptr =
              alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
@@ -13090,6 +13091,9 @@ all arguments were explicit.
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
+      in_pack = TRUE;
+    } else {
+      in_pack = FALSE;
     }  /* if */
     if (curr_token == tok_shift_right && right_shift_can_be_angle_brackets) {
       /* Check for the case where a "right shift" could be interpreted as two
@@ -13184,15 +13188,18 @@ all arguments were explicit.
     } else {
       /* Don't advance to the next parameter if this is a pack. */
       param_ptr = param_ptr->next;
+      orig_param_ptr = orig_param_ptr->next;
     }  /* if */
-    orig_param_ptr = orig_param_ptr->next;
     ++arg_number;
   } while (param_ptr != NULL && loop_token(tok_comma));
 
   /* If we were processing arguments associated with a parameter pack,
      advance past the parameter pack now that we have reached the end
      of the explicitly supplied arguments. */
-  if (param_ptr != NULL && param_ptr->is_pack) param_ptr = param_ptr->next;
+  if (param_ptr != NULL && param_ptr->is_pack) {
+    param_ptr = param_ptr->next;
+    orig_param_ptr = orig_param_ptr->next;
+  }  /* if */
   /* All arguments should have been processed and the current token should
      be the closing angle bracket. */
   if (param_ptr != NULL) {

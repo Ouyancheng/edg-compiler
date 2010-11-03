@@ -532,6 +532,10 @@ might result from class template names that are missing argument lists.
            biasing subsequent lookup of this identifier. */
         clear_specific_symbol(locator_for_curr_id);
       }  /* if */
+      /* Check to see if this is a pack reference. */
+      if (assoc_symbol != NULL) {
+        record_potential_pack_reference(assoc_symbol, &pos_curr_token);
+      }  /* if */
     }  /* if */
   }  /* if */
   return assoc_symbol;

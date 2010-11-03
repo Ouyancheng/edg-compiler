@@ -5039,50 +5039,61 @@ Return TRUE if the template argument entry pointed to by tap is
 instantiation-dependent.
 */
 {
-  a_boolean  template_param_found;
+  a_boolean  template_param_found = FALSE;
 
-  if (is_type_templ_arg(tap)) {
-    template_param_found = is_instantiation_dependent_type(tap->variant.type);
-  } else if (is_nontype_templ_arg(tap)) {
-    if (tap->arg_operand != NULL) {
-      /* The constant is still in arg_operand form. */
-      template_param_found = arg_operand_is_instantiation_dependent(
-                                                             tap->arg_operand);
-    } else if (tap->is_array_bound_of_unknown_type) {
-      /* An array bound specified as a integral constant. */
-      template_param_found = FALSE;
-    } else {
-      /* A normal nontype parameter represented as a constant. */
-      a_constant_ptr	cp = tap->variant.constant;
-      check_assertion(cp != NULL);
-      template_param_found = (cp->kind ==
-                                      (a_constant_repr_kind)ck_template_param);
-      if (!template_param_found) {
-        /* Check if the type depends on a template parameter. */
-        template_param_found = is_instantiation_dependent_type(cp->type);
+  switch (tap->kind) {
+    case tak_type:
+      template_param_found = is_instantiation_dependent_type(
+                                                            tap->variant.type);
+      break;
+    case tak_nontype:
+      if (tap->arg_operand != NULL) {
+        /* The constant is still in arg_operand form. */
+        template_param_found = arg_operand_is_instantiation_dependent(
+                                                            tap->arg_operand);
+      } else if (tap->is_array_bound_of_unknown_type) {
+        /* An array bound specified as a integral constant. */
+        template_param_found = FALSE;
+      } else {
+        /* A normal nontype parameter represented as a constant. */
+        a_constant_ptr	cp = tap->variant.constant;
+        check_assertion(cp != NULL);
+        template_param_found = (cp->kind ==
+                                     (a_constant_repr_kind)ck_template_param);
+        if (!template_param_found) {
+          /* Check if the type depends on a template parameter. */
+          template_param_found = is_instantiation_dependent_type(cp->type);
+        }  /* if */
       }  /* if */
-    }  /* if */
-  } else {
-    /* A template template parameter.  The argument involves a template
-       parameter if it is itself a template parameter, or if it is
-       is a nonreal class member. */
-    a_template_symbol_supplement_ptr	tssp;
-    a_template_ptr			templ_ptr;
-    a_symbol_ptr			templ_sym;
-    templ_ptr = tap->variant.templ.ptr;
-    /* Look at the argument template, not the original symbol (which,
-       unlike other template parameters, always points to the prototype
-       argument symbol). */
-    templ_sym = symbol_for(templ_ptr);
-    tssp = templ_sym->variant.template_info;
-    template_param_found = tssp->is_nonreal_member ||
-                         tssp->variant.class_template.template_template_param;
-    if (!template_param_found && templ_sym->is_class_member) {
-      /* Check whether the parent type depends on a template parameter. */
-      template_param_found =
+      break;
+    case tak_template:
+      /* A template template parameter.  The argument involves a template
+         parameter if it is itself a template parameter, or if it is
+         is a nonreal class member. */
+      { a_template_symbol_supplement_ptr	tssp;
+        a_template_ptr				templ_ptr;
+        a_symbol_ptr				templ_sym;
+        templ_ptr = tap->variant.templ.ptr;
+        /* Look at the argument template, not the original symbol (which,
+           unlike other template parameters, always points to the prototype
+          argument symbol). */
+        templ_sym = symbol_for(templ_ptr);
+        tssp = templ_sym->variant.template_info;
+        template_param_found = tssp->is_nonreal_member ||
+                          tssp->variant.class_template.template_template_param;
+        if (!template_param_found && templ_sym->is_class_member) {
+          /* Check whether the parent type depends on a template parameter. */
+          template_param_found =
                   is_instantiation_dependent_type(sym_parent_class(templ_sym));
-    }  /* if */
-  }  /* if */
+        }  /* if */
+      }
+      break;
+    case tak_start_of_pack_expansion:
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
   return template_param_found;
 }  /* template_arg_is_dependent */
 
@@ -9485,10 +9496,18 @@ declared and before the partial instantiation of the function was done.
       pos_ty2_error(ec_bad_type_from_instantiation, &pos_curr_token,
                     type, templ_rout->type);
     }  /* if */
+#if 0
+#else /* !0 */
+    if (!is_variadic_template_context()) {
+#endif /* if */
     type = create_error_routine_type(templ_rout, parent_class);
     rout->type = type;
     tip->suppress_instantiation = TRUE;
   }  /* if */
+#if 0
+#else /* !0 */
+    }  /* if */
+#endif /* if */
 }  /* verify_routine_type_matches_template */
 
 
@@ -10055,7 +10074,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     }  /* if */
     (void)push_template_instantiation_scope(tcp->decl_info,
 				            (a_type_ptr)NULL,
-				            (a_routine_ptr)NULL,
+				            templ_rout,
 				            (a_symbol_ptr)NULL, templ_sym,
 				            templ_arg_list,
                                             /*push_lex_state=*/TRUE,
@@ -14595,6 +14614,20 @@ when prototype instantiations are included in the IL.
 }  /* parent_scope_should_be_set_for_template_param */
 
 
+static void template_param_is_variadic(
+				a_template_param_ptr	tpp,
+				a_tmpl_decl_state_ptr	decl_state)
+/*
+Record that we have encountered a variadic template parameter in a
+template parameter list.
+*/
+{
+  tpp->is_pack = TRUE;
+  decl_state->is_variadic = TRUE;
+  scope_stack[depth_scope_stack].in_variadic_template = TRUE;
+}  /* template_param_is_variadic */
+
+
 static a_template_param_ptr scan_type_template_param(
 		a_tmpl_decl_state_ptr decl_state,
 		a_template_param_list_pos	template_param_list_pos)
@@ -14667,8 +14700,7 @@ parameter entry for the parameter.
   record_template_param_symbol(sym);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
-  template_param->is_pack = is_pack;
-  if (is_pack) decl_state->is_variadic = TRUE;
+  if (is_pack) template_param_is_variadic(template_param, decl_state);
   if (curr_token == tok_assign) {
     a_token_cache  def_arg_cache;
     a_boolean	   def_arg_involves_template_param = FALSE;

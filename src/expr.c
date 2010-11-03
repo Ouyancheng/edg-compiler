@@ -942,7 +942,8 @@ A pointer to the resulting operand list is returned.
         p_arg = &(*p_arg)->next;
         /* If this is a pack expansion, swallow the trailing "..." and
            loop for the next iteration of the expansion. */
-        end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
         any_more = advance_to_next_pack_element(pesep);
       }  /* while */
     } while (loop_token(tok_comma));

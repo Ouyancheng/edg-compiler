@@ -77,13 +77,6 @@ EXTERN a_cached_token_handle
 
 #define NO_CACHED_TOKEN_HANDLE ((a_cached_token_handle)NULL)
 
-/*
-Return the token sequence number for a given cached token handle.
-*/
-#define token_sequence_for_handle(handle)				\
-  ((handle)->token_sequence_number)
-
-
 /* These declarations are placed here so that they will be defined before
    symbol_tbl.h is included. */
 

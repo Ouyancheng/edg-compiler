@@ -4428,7 +4428,7 @@ typedef struct a_param_type {
 			   some GNU modes. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
-  uint32_t	param_number;
+  uint32_t	param_num;
 			/* The ordinal position of the parameter (0, 1,
 			   2, ...).  In the instantiation of a variadic
 			   template, this is the position of the corresponding

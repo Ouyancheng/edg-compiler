@@ -1855,6 +1855,8 @@ Update param_symbol to reflect the value specified by tap.
       check_assertion(param_symbol->kind == (a_symbol_kind)sk_constant);
       param_symbol->variant.constant = tap->variant.constant;
       break;
+    case tak_start_of_pack_expansion:
+      break;
     default:
       unexpected_condition();
       break;
@@ -1862,7 +1864,7 @@ Update param_symbol to reflect the value specified by tap.
 }  /* update_template_param_symbol */
 
 
-static void update_template_param_symbols(a_template_param_ptr  tpp,
+static void update_template_param_symbols(a_template_param_ptr  param_list,
                                           a_template_arg_ptr    arg_list)
 /*
 Update the symbol entries for template formal parameters to reflect the
@@ -1873,25 +1875,26 @@ values needed for the previous call.
 */
 {
   a_template_arg_ptr    tap = arg_list;
+  a_template_param_ptr	tpp;
 
   db_enter(4, "update_template_param_symbols");
+
+  /* Initially mark all of the parameters as not visible. */
+  for (tpp = param_list; tpp != NULL; tpp = tpp->next) {
+    tpp->param_symbol->template_param_not_visible = TRUE;
+  }  /* for */
   /* Loop through the parameters and arguments.  There may be fewer
      template arguments than parameters when push_scope is done while
      scanning the template argument list of a template class reference. */
-  while (tpp != NULL) {
-    register a_symbol_ptr  param_symbol = tpp->param_symbol;
+  begin_template_arg_list_traversal(param_list, arg_list, &tpp, &tap);
+  for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
+    a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (tap != NULL) {
       /* A template argument exists for this parameter. */
       update_template_param_symbol(tpp->param_symbol, tap);
       param_symbol->template_param_not_visible = FALSE;
-      tap = tap->next;
-    } else {
-      /* No template parameter exists for this parameter.  Set the "not
-         visible field in the symbol. */
-      param_symbol->template_param_not_visible = TRUE;
     }  /* if */
-    tpp = tpp->next;
-  }  /* while */
+  }  /* for */
   db_exit();
 }  /* update_template_param_symbols */
 
@@ -2813,7 +2816,8 @@ the scope being pushed.
            template. */
         a_template_symbol_supplement_ptr	tssp;
         tssp = template_supplement_for_symbol(template_sym);
-        ssep->in_variadic_template = tssp->is_variadic;
+        ssep->in_variadic_template = tssp->is_variadic ||
+                                     (ssep-1)->in_variadic_template;
       }  /* if */
       if ((template_sym != NULL &&
            template_sym->kind == (a_symbol_kind)sk_static_data_member) ||
@@ -8431,8 +8435,8 @@ to it.
 #endif /* DEBUG */
   }  /* if */
   pedp->next = NULL;
-  pedp->first_token = NO_CACHED_TOKEN_HANDLE;
-  pedp->last_token = NO_CACHED_TOKEN_HANDLE;
+  pedp->first_token = NO_TOKEN_SEQUENCE_NUMBER;
+  pedp->last_token = NO_TOKEN_SEQUENCE_NUMBER;
   pedp->packs_referenced = NULL;
   pedp->ellipsis_seen = FALSE;
   pedp->ellipsis_position = null_source_position;
@@ -8471,6 +8475,7 @@ pointer to it.
   }  /* if */
   pidp->next = NULL;
   pidp->pack_status = NULL;
+  pidp->after_first_element = FALSE;
   return pidp;
 }  /* alloc_pack_instantiation_descr */
 
@@ -8511,6 +8516,7 @@ to it.
   pesep->next = NULL;
   pesep->expansion_descr = NULL;
   pesep->instantiation_descr = NULL;
+  pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -8563,20 +8569,43 @@ determine whether we are entering a pack expansion context.
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
   pedp = ssep->next_pack_expansion;
-  if (pedp != NULL && pedp->first_token == curr_cached_token_handle) {
+  /* If there are any pack expansions that precede this one, discard them
+     now.  This can occur in the instantiation of member functions of a class
+     template. */
+  for (; pedp != NULL && pedp->first_token < curr_token_sequence_number;
+       pedp = pedp->next) {}
+  if (pedp != NULL && pedp->first_token == curr_token_sequence_number) {
     /* Advance the pointer to the next pack expansion. */
     ssep->next_pack_expansion = pedp->next;
     result_pedp = pedp;
 #if DEBUG
     if (db_flag_is_set("packs")) {
       fprintf(f_debug, "Found pack expansion from %ld to %ld\n",
-              (long)token_sequence_for_handle(pedp->first_token),
-              (long)token_sequence_for_handle(pedp->last_token));
+              (long)pedp->first_token, (long)pedp->last_token);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
   return result_pedp;
 }  /* get_pack_expansion_for_curr_context */
+
+
+a_boolean is_non_initial_variadic_param(void)
+/*
+Return TRUE if we are currently in the 2nd through Nth expansion of
+the current pack.
+*/
+{
+  a_boolean				result = FALSE;
+  a_pack_expansion_stack_entry_ptr	pesep;
+
+  pesep = pack_expansion_stack;
+  if (pesep != NULL) {
+    if (pesep->instantiation_descr != NULL) {
+      result = pesep->instantiation_descr->after_first_element;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_non_initial_variadic_param */
 
 
 static void skip_start_of_pack_placeholders(
@@ -8815,15 +8844,15 @@ We have reached a pack expansion for which there are no elements to be
 expanded.  Advance to the token after the end of the pack expansion.
 */
 {
-  a_cached_token_handle	last_token = pedp->last_token;
+  a_token_sequence_number	last_token = pedp->last_token;
 
   /* Advance to the last token of the expansion. */
-  while (curr_cached_token_handle != last_token &&
-         curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE) {
+  while (curr_token_sequence_number != last_token &&
+         curr_token_sequence_number != NO_TOKEN_SEQUENCE_NUMBER) {
     (void)get_token();
   }  /* while */
   /* Now go to the token after the expansion. */
-  if (curr_cached_token_handle != last_token) {
+  if (curr_token_sequence_number != last_token) {
     (void)get_token();
   }  /* if */
 }  /* skip_pack_expansion_tokens */
@@ -8920,9 +8949,8 @@ will be set to NULL.
     pesep = push_pack_expansion_stack();
     /* Allocate an expansion descriptor for this stack entry. */
     pesep->expansion_descr = alloc_pack_expansion_descr();
-    /* Save a handle to the start of the token range for the pack. */
-    check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
-    pesep->expansion_descr->first_token = curr_cached_token_handle;
+    /* Save the start of the token range for the pack. */
+    pesep->expansion_descr->first_token = curr_token_sequence_number;
   } else if (is_real_instantiation_context()) {
     /* This is a real instantiation.  See if there is a corresponding
        parameter pack from the template definition. */
@@ -8939,6 +8967,8 @@ will be set to NULL.
         pesep = push_pack_expansion_stack();
         pesep->expansion_descr = pedp;
         pesep->instantiation_descr = pidp;
+        pesep->first_token_handle = curr_cached_token_handle;
+        check_assertion(curr_token_sequence_number == pedp->first_token);
         /* Set the parameter pack symbols to the first element of each
            pack. */
         update_parameter_pack_symbol_values(pesep);
@@ -8959,6 +8989,29 @@ will be set to NULL.
 }  /* begin_potential_pack_expansion_context */
 
 
+a_boolean begin_rescan_pack_expansion_context(
+			a_pack_expansion_descr_ptr		pedp,
+			a_pack_expansion_stack_entry_ptr	*p_pesep)
+
+/*
+This routine is similar to begin_potential_pack_expansion_context (see
+that routine for more details about how pack expansions are handled
+in general), but is called in expression rescan contexts to do pack
+expansions during actual instantiations rescans.  This is known to
+be an actual pack expansion (unlike begin_potential_pack_expansion_context).
+pedp is the pack expansion descriptor created when the pack expansion
+was initially scanned.
+
+See begin_potential_pack_expansion_context for a description of the
+return value and the setting of *p_pese (note that this routine is
+never called in prototype instantiation contexts).
+*/
+{
+  /* FIXME: stub version. */
+  return TRUE;
+}  /* begin_rescan_pack_expansion_context */
+
+
 static void record_pack_expansion(a_pack_expansion_descr_ptr	pedp)
 /*
 We have reached the end of a potential pack expansion context and
@@ -8968,9 +9021,8 @@ to expand the pack in real instantiation.
 {
   a_template_decl_info_ptr	tdip;
 
-  /* Save a handle to the start of the token range for the pack. */
-  check_assertion(curr_cached_token_handle != NO_CACHED_TOKEN_HANDLE);
-  pedp->last_token = curr_cached_token_handle;
+  /* Save the end of the token range for the pack. */
+  pedp->last_token = curr_token_sequence_number;
   /* Get the template declaration information entry associated with the
      current context. */
   tdip = get_current_template_decl_info();
@@ -8981,22 +9033,20 @@ to expand the pack in real instantiation.
     a_pack_expansion_descr_ptr	last_pedp = tdip->last_pack_expansion; 
     /* Verify that the list is being constructed in ascending token sequence
        order. */
-    check_assertion(token_sequence_for_handle(last_pedp->last_token) <
-                    token_sequence_for_handle(pedp->last_token));
+    check_assertion(last_pedp->last_token < pedp->last_token);
     last_pedp->next = pedp;
   }  /* if */
   tdip->last_pack_expansion = pedp;
 #if DEBUG
   if (db_flag_is_set("packs")) {
     fprintf(f_debug, "Recording pack expansion from %ld to %ld\n",
-            (long)token_sequence_for_handle(pedp->first_token),
-            (long)token_sequence_for_handle(pedp->last_token));
+            (long)pedp->first_token, (long)pedp->last_token);
   }  /* if */
 #endif /* DEBUG */
 }  /* record_pack_expansion */
 
 
-void end_potential_pack_expansion_context(
+a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
 			a_boolean				is_declarator)
 /*
@@ -9014,8 +9064,16 @@ is the current token, and that token is bypassed.  This is not done when
 is_declarator is TRUE (in which case the caller is expected to call
 record_pack_expansion_ellipsis when the "..." is encountered in the middle
 of the declaration).
+
+In a prototype instantiation context for something that is an actual
+pack expansion, this routine returns a pointer to the pack expansion
+descriptor.  In most contexts this can be ignored, but in expression
+rescan contexts it must be saved so that the pack expansion can be
+rescanned.
 */
 {
+  a_pack_expansion_descr_ptr	result_pedp = NULL;
+
   if (pesep == NULL) {
     /* A non-variadic context.  There is nothing to be done. */
   } else {
@@ -9031,6 +9089,7 @@ of the declaration).
       if (pedp->packs_referenced != NULL) {
         /* There were packs referenced.  This is a pack expansion. */
         record_pack_expansion(pedp);
+        result_pedp = pedp;
       } else {
         /* There were no packs referenced.  This is not a pack expansion.
            If a pack expansion ("...") has been seen, issue an error that no
@@ -9047,16 +9106,15 @@ of the declaration).
   }  /* if */
   if (pesep != NULL) {
     /* Except in the declarator case, the current token must be "...". */
-    if (!is_declarator) {
-      a_pack_expansion_descr_ptr	pedp = pesep->expansion_descr;
-      if (!pedp->ellipsis_seen) {
-        a_pack_reference_ptr	prp;
-        for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
-          pos_sy_error(ec_pack_not_expanded, &prp->position, prp->symbol);
-        }  /* for */
-      }  /* if */
+    a_pack_expansion_descr_ptr	pedp = pesep->expansion_descr;
+    if (!pedp->ellipsis_seen) {
+      a_pack_reference_ptr	prp;
+      for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+        pos_sy_error(ec_pack_not_expanded, &prp->position, prp->symbol);
+      }  /* for */
     }  /* if */
   }  /* if */
+  return result_pedp;
 }  /* end_potential_pack_expansion_context */
 
 
@@ -9104,10 +9162,11 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           update_template_param_symbol(sym, tap);
         }  /* if */
       }  /* if */
+      pesep->instantiation_descr->after_first_element = TRUE;
     }  /* for */
   }  /* if */
   if (!done) {
-    update_reusable_cache_rescan_location(pesep->expansion_descr->first_token);
+    update_reusable_cache_rescan_location(pesep->first_token_handle);
   } else {
     /* If we have advanced past the last element, pop the pack expansion
        stack. */
@@ -9137,6 +9196,7 @@ source position of the use of the symbols is indicated by position.
          pack expansion on top of the stack. */
       a_pack_expansion_descr_ptr	pedp;
       a_pack_reference_ptr		prp;
+      check_assertion(pack_expansion_stack != NULL);
       pedp = pack_expansion_stack->expansion_descr;
       prp = alloc_pack_reference(pack_symbol->kind ==
                                                    (a_symbol_kind)sk_variable);

@@ -920,7 +920,7 @@ at file scope.
 #if CENTERLINE_CHECKING
   ptp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
-  ptp->param_number = 0;
+  ptp->param_num = 0;
   ptp->default_arg_expr = NULL;
   ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
   ptp->entities_defined_in_default_arg = NULL;

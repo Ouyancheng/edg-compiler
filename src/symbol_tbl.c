@@ -10916,7 +10916,11 @@ storage_class are the type and storage class for the parameter.
      only diagnosed in function definitions).  Create a param_id entry if this
      is a prototype parameter list, but not otherwise. */
   if (!is_error_locator(*locator)) {
-    if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
+    if (is_non_initial_variadic_param()) {
+      /* Only the first copy of a element of a variadic parameter is entered
+         into the symbol table. */
+      unnamed_param = TRUE;
+    } else if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
       if ((gpp_mode && gnu_version < 40300) ||
           (gcc_mode && !is_prototype_param_decl)) {
         ambiguous = TRUE;

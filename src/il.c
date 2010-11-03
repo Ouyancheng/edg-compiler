@@ -236,11 +236,13 @@ Dump a list of template arguments, enclosed by angle brackets.
       } else if (tap->is_array_bound_of_unknown_type) {
         fprintf(f_debug, "array-bound=%lu",
                 (unsigned long)tap->variant.integer_value);
-      } else {
+      } else if (is_nontype_templ_arg(tap)) {
         if (tap->arg_operand != NULL) {
           fprintf(f_debug, "<arg-operand> ");
         }  /* if */
         db_constant(tap->variant.constant);
+      } else {
+        fprintf(f_debug, "[... placeholder] ");
       }  /* if */
       tap = tap->next;
       if (tap != NULL) fputs(",", f_debug);
@@ -5249,6 +5251,8 @@ Return a hash value for the indicated template argument list.
         break;
       case tak_template:
         hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
+        break;
+      case tak_start_of_pack_expansion:
         break;
       default: unexpected_condition(); break;
     }  /* switch */

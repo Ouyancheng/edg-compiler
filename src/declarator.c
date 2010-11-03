@@ -1721,6 +1721,27 @@ this is a helper function.
 }  /* cplusplus_function_declarator_trailer */
 
 
+static a_param_type_ptr get_param_types_for_variadic_template(void)
+/*
+We are scanning the function template of an instantiation of a variadic
+template.  Get the parameter type list from the template that is being
+instantiated.
+*/
+{
+  a_routine_ptr		rp;
+  a_param_type_ptr	ptp;
+  a_type_ptr		rout_type;
+
+  rp = scope_stack[depth_innermost_instantiation_scope].assoc_routine;
+  if (rp != NULL) {
+    rout_type = skip_typerefs(rp->type);
+    ptp = rout_type->variant.routine.extra_info->param_type_list;
+    check_assertion(ptp != NULL);
+  }  /* if */
+  return ptp;
+}  /* get_param_types_for_variadic_template */
+
+
 static void function_declarator(a_decl_parse_state  *state,
                                 a_type_ptr          *new_type_ptr,
                                 a_func_info_block   *func_info,
@@ -1781,6 +1802,7 @@ if this is the function declarator in a friend function declaration.
   a_boolean               is_top_level_declarator = TRUE;
   a_boolean               microsoft_C_leading_ellipsis = FALSE;
   a_boolean               must_pop_function_prototype_scope = FALSE;
+  a_param_type_ptr        variadic_param_types = NULL;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1790,7 +1812,12 @@ if this is the function declarator in a friend function declaration.
      a "top-level" function declaration.  Use the storage passed in by the
      caller.  But if func_info is NULL, use a local func info block.  This
      is mainly useful for managing param_id entries properly. */
-  if (func_info == NULL) {
+  if (func_info != NULL) {
+    if (is_variadic_template_context() && !is_template_dependent_context()) {
+      /* FIXME: is this needed? */
+      variadic_param_types = get_param_types_for_variadic_template();
+    }  /* if */
+  } else {
     clear_func_info(&local_func_info_block);
     func_info = &local_func_info_block;
     is_top_level_declarator = FALSE;
@@ -1929,6 +1956,7 @@ if this is the function declarator in a friend function declaration.
     func_info->scope_number = scope_stack[depth_scope_stack].number;
     if (any_params) {
       unsigned long	param_number = 0;
+      a_boolean         any_variadic_params;
       last_param_type = NULL;
       do {
         a_decl_parse_state   param_state;
@@ -1938,11 +1966,19 @@ if this is the function declarator in a friend function declaration.
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
         a_type_qualifier_set param_qualifiers = TQ_NONE;
+        a_pack_expansion_stack_entry_ptr
+                             pesep;
+        /* Mark the start of the parameter declaration as the start of a
+           potential variadic pack expansion. */
+        any_variadic_params = begin_potential_pack_expansion_context(&pesep);
+        /* Count the number of parameters encountered. */
+        if (!is_non_initial_variadic_param()) param_number++;
+        /* In a real instantiation, the tokens of the parameter will have been
+           skipped. */
+        if (!any_variadic_params) continue;
         if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
         if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
         if (microsoft_mode) dsi_flags |= DSI_MICROSOFT_ATTRIBUTES_ALLOWED;
-        /* Count the number of parameters encountered. */
-        param_number++;
         add_stop_token(tok_comma);
         init_decl_parse_state(&param_state);
         param_state.assoc_func_decl_state = state;
@@ -2141,7 +2177,7 @@ if this is the function declarator in a friend function declaration.
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
         ptp->qualifiers = param_qualifiers;
-        if (param_state.has_pack_ellipsis) {
+        if (param_state.has_pack_ellipsis && is_template_dependent_context()) {
           /* This looks like the declaration of a function parameter pack.
              Verify that the parameter type is a "pattern type". */
           if (is_variadic_pattern_type(param_state.declared_type)) {
@@ -2516,7 +2552,10 @@ if this is the function declarator in a friend function declaration.
           }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
-      } while (!done);
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/TRUE);
+        any_variadic_params = advance_to_next_pack_element(pesep);
+      } while (!done || any_variadic_params);
     }  /* if */
     /* Save the list of symbols for the prototype scope (usually NULL, but
        can have symbols for named types declared within the prototype). */
@@ -5207,10 +5246,11 @@ The syntax is:
       /* An ellipsis at this point can indicate a parameter pack. */
       if (state->pack_ellipsis_allowed) {
         state->has_pack_ellipsis = TRUE;
+        record_pack_expansion_ellipsis();
       } else {
         pos_error(ec_parameter_pack_decl_not_allowed, &pos_curr_token);
+        (void)get_token();
       }  /* if */
-      (void)get_token();
     }  /* if */
     /* An identifier is expected next, but is omitted in the 
        abstract declarator. */

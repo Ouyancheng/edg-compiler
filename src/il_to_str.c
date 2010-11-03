@@ -345,6 +345,8 @@ Output the indicated template argument in the way described by octl.
       /* A template template argument. */
       form_template(tap->variant.templ.ptr, octl);
       break;
+    case tak_start_of_pack_expansion:
+      break;
     default:
       unexpected_condition();
       break;
