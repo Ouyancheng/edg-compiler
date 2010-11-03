@@ -21616,6 +21616,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       deferred_instantiations_tail->next = slep;
     }  /* if */
     deferred_instantiations_tail = slep;
+    check_assertion(!defer_instantiation); /* Suppress set-but-never-used. */
     defer_instantiation = TRUE;
   } else {
     a_boolean	flag_already_set;
@@ -21683,6 +21684,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
        required flag is FALSE because certain entries for which instantiation
        is not required need to be processed for automatic instantiation
        processing. */
+    check_assertion(!added_to_list); /* Suppress set-but-never-used. */
     added_to_list = add_to_instantiations_required_list(tip);
   }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
