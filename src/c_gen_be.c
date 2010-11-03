@@ -3010,20 +3010,29 @@ padding in the generated code.
       (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
-      if (skip_typerefs(field_type)->generated_as_empty_struct) {
+      if (skip_typerefs(field_type)->generated_as_empty_struct ||
+          (is_array_type(field_type) &&
+           skip_typerefs(underlying_array_element_type(field_type))->
+                                                  generated_as_empty_struct)) {
         /* The layout of the containing struct was calculated assuming that
-           this member was a one-byte struct.  Since it was actually
-           generated with zero length, we need to add a one-byte padding
-           member to compensate.  (We can't use the normal field padding
-           mechanism because that only adds padding before members of
-           struct type and this padding must be added unconditionally.)
+           the base type this member was a one-byte struct.  Since that
+           type was actually generated with zero length, we need to add a
+           padding member to compensate.  (We can't use the normal field
+           padding mechanism because that only adds padding before members
+           of struct type and this padding must be added unconditionally.)
            Note that this test must be matched with a similar one in
            dump_initializer_part. */
+        a_targ_size_t field_size = skip_typerefs(field_type)->size;
         write_tok_str("char ");
         disable_line_wrapping();
         dump_field_name_with_prefix("__dummy_empty", (a_field_ptr)NULL);
         write_unsigned_num(offset_after_field(field));
         enable_line_wrapping();
+        if (field_size > 1) {
+          write_tok_ch('[');
+          write_unsigned_num((a_host_large_unsigned)field_size);
+          write_tok_ch(']');
+        }  /* if */
         write_tok_ch(';');
       }  /* if */
     } else {
@@ -6720,11 +6729,16 @@ block with state information for the processing.
     /* If generating initializer constants, output a "}". */
     if (need_close_brace) {
       initializer_close_brace(icbp);
-      if (type->generated_as_empty_struct && ipdp->prev != NULL) {
-        /* dump_field_list adds a one-byte padding member after a member
-           whose type is an empty struct, and we need to initialize it,
-           too. */
+      /* dump_field_list adds a padding member after a member whose base
+         type is an empty struct, and we need to initialize it, too. */
+      if (type->generated_as_empty_struct && ipdp->prev != NULL &&
+          !is_array_type(ipdp->prev->type)) {
         write_tok_str(",0");
+      } else if (is_array_type(type) && ipdp->prev != NULL &&
+                 !is_array_type(ipdp->prev->type) &&
+                 skip_typerefs(underlying_array_element_type(type))->
+                                                   generated_as_empty_struct) {
+        write_tok_str(",{0}");
       }  /* if */
     } else  if (suppress_brace_for_base_class_subobject &&
                 ipdp->curr_field != NULL) {
