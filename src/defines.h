@@ -1002,11 +1002,12 @@ If EXPENSIVE_CHECKING has been requested, also enable checking pragmas.
 /*
 Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 */
-#if defined(MICROSOFT_EXTENSIONS_ALLOWED)
+#if defined(MICROSOFT_EXTENSIONS_ALLOWED) && MICROSOFT_EXTENSIONS_ALLOWED
 #ifndef CPPCLI_ENABLING_POSSIBLE
 #define CPPCLI_ENABLING_POSSIBLE 1
 #endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
-#endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) */
+#endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) &&
+          MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 If using lint on a non-Sun platform, define some features that are in the
