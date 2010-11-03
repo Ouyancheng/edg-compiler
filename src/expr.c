@@ -6960,9 +6960,9 @@ previously-scanned sizeof expression, and return the result in *result
   }  /* if */
   start_position = operator_position;
   check_assertion(operator_token == tok_sizeof
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+#if UPC_EXTENSIONS_ALLOWED
                   || operator_token == tok_upc_blocksizeof
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* UPC_EXTENSIONS_ALLOWED */
                                                           );
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
