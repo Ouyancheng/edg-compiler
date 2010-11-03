@@ -6961,6 +6961,8 @@ previously-scanned sizeof expression, and return the result in *result
   start_position = operator_position;
 #if UPC_EXTENSIONS_ALLOWED
   check_assertion(operator_token == tok_sizeof ||
+                  operator_token == tok_upc_localsizeof ||
+                  operator_token == tok_upc_elemsizeof ||
                   operator_token == tok_upc_blocksizeof);
 #else /* !UPC_EXTENSIONS_ALLOWED */
   check_assertion(operator_token == tok_sizeof);
