@@ -75,7 +75,9 @@ platform.
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
+#ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 #define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED 1
+#endif /* ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #else /* USE_X86_64 */
 #ifdef __x86_64
 /* Building a 32 bit target configuration on a 64 bit host. */
