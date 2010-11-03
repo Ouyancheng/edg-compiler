@@ -10049,6 +10049,9 @@ common cases.
 
   db_enter(3, "type_name_full");
   set_err_pos_to_curr_token();
+  dps->is_type_name = TRUE;
+  dps->trailing_return_type_allowed = trailing_return_types_enabled;
+  copy_source_position(pos_curr_token, dps->start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
   if (dps->is_trailing_return_type) {
     /* When scanning a C++0x trailing return type, top-level class definitions
