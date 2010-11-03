@@ -9500,14 +9500,14 @@ declared and before the partial instantiation of the function was done.
 #else /* !0 */
     if (!is_variadic_template_context()) {
 #endif /* if */
-    type = create_error_routine_type(templ_rout, parent_class);
-    rout->type = type;
-    tip->suppress_instantiation = TRUE;
-  }  /* if */
+      type = create_error_routine_type(templ_rout, parent_class);
+      rout->type = type;
+      tip->suppress_instantiation = TRUE;
 #if 0
 #else /* !0 */
     }  /* if */
 #endif /* if */
+  }  /* if */
 }  /* verify_routine_type_matches_template */
 
 
