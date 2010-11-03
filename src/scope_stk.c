@@ -1838,7 +1838,8 @@ Update param_symbol to reflect the value specified by tap.
     case tak_template:
       /* A template template argument. */
       { a_template_symbol_supplement_ptr	param_tssp;
-        check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
+        check_assertion(param_symbol->kind ==
+                                            (a_symbol_kind)sk_class_template);
         /* Unlike the type and nontype cases, the symbol for a template
          template parameter is not updated directly.  Instead, the
          argument_template field of the template supplement is updated
