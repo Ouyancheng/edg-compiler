@@ -17849,6 +17849,7 @@ caller has already moved past the '[', and this routine leaves the trailing
           a_boolean             no_impl_capture;
           lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
                                    &capture_pos, &no_impl_capture);
+          check_assertion(lcp != NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           lcp->end_position = capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
