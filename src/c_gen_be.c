@@ -2718,12 +2718,7 @@ Return the byte offset following the end of the indicated field.
   a_targ_size_t offset_after;
 
   if (!field->is_bit_field) {
-    a_type_ptr field_type = skip_typerefs(field->type);
-    if (field_type->generated_as_empty_struct) {
-      offset_after = field->offset;
-    } else {
-      offset_after = field->offset + skip_typerefs(field->type)->size;
-    }  /* if */
+    offset_after = field->offset + skip_typerefs(field->type)->size;
   } else {
     /* Bit field. */
     offset_after = field->offset + (targ_char_bit - 1 + 
@@ -2783,9 +2778,7 @@ These two fields are normally consecutive members of the given "type", but
       field_type = underlying_array_element_type(field_type);
     }  /* if */
     field_type = skip_typerefs(field_type);
-    if (is_immediate_class_type(field_type) || effective_field != field ||
-        (prev_field != NULL &&
-         skip_typerefs(prev_field->type)->generated_as_empty_struct)) {
+    if (is_immediate_class_type(field_type) || effective_field != field) {
       a_targ_size_t     after_field, excess_bytes, rounded_after_field;
       a_targ_alignment  alignment = field_alignment_for(effective_field->type);
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -3017,6 +3010,22 @@ padding in the generated code.
       (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
+      if (skip_typerefs(field_type)->generated_as_empty_struct) {
+        /* The layout of the containing struct was calculated assuming that
+           this member was a one-byte struct.  Since it was actually
+           generated with zero length, we need to add a one-byte padding
+           member to compensate.  (We can't use the normal field padding
+           mechanism because that only adds padding before members of
+           struct type and this padding must be added unconditionally.)
+           Note that this test must be matched with a similar one in
+           dump_initializer_part. */
+        write_tok_str("char ");
+        disable_line_wrapping();
+        dump_field_name_with_prefix("__dummy_empty", (a_field_ptr)NULL);
+        write_unsigned_num(offset_after_field(field));
+        enable_line_wrapping();
+        write_tok_ch(';');
+      }  /* if */
     } else {
       /* Bit field. */
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -6711,6 +6720,12 @@ block with state information for the processing.
     /* If generating initializer constants, output a "}". */
     if (need_close_brace) {
       initializer_close_brace(icbp);
+      if (type->generated_as_empty_struct && ipdp->prev != NULL) {
+        /* dump_field_list adds a one-byte padding member after a member
+           whose type is an empty struct, and we need to initialize it,
+           too. */
+        write_tok_str(",0");
+      }  /* if */
     } else  if (suppress_brace_for_base_class_subobject &&
                 ipdp->curr_field != NULL) {
       /* We're at the end of the fields that were promoted from a base
