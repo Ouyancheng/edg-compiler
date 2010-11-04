@@ -8121,7 +8121,7 @@ array case in strict ANSI mode.
          combined with the pointer) is a constant zero, issue a remark
          (that's a case like p[0]); otherwise, issue a warning. */
       if (op_is_zero_constant(otherop) && !strict_ansi_mode) {
-        if (expr_diagnostic_should_be_issued(es_remark, err_code) {
+        if (expr_diagnostic_should_be_issued(es_remark, err_code)) {
           pos_remark(err_code, &operand->position);
         }  /* if */
       } else {
