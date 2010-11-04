@@ -13297,6 +13297,7 @@ handle_as_definition:
         !(decl_within_class &&
           (is_definition || rout->is_defaulted || rout->is_deleted))) {
       if (gcc_is_generated_code_target) {
+#if GNU_EXTENSIONS_ALLOWED
         if (rout->gnu_c89_inline) {
           /* The GNU compilers complain if a function is declared as inline
              without the gnu_inline attribute but defined with the
@@ -13312,6 +13313,7 @@ handle_as_definition:
             write_tok_str("__attribute((gnu_inline)) ");
           }  /* if */
         }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         if (il_header.source_language == sl_C) {
           if (rout->suppress_inline_body &&
               storage_class == (a_storage_class)sc_unspecified) {
