@@ -721,6 +721,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_typename:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
+      case tok_enum_class:
+      case tok_enum_struct:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* This could be an elaborated type specifier or the start of
            a enum or class specifier.  The prescanning routines can't

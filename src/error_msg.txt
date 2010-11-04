@@ -2002,6 +2002,7 @@ ec_visibility_specifier_on_nested_type;;"a top-level visibility specifier cannot
 ec_visibility_specifier_requires_definition;;"a top-level visibility specifier requires a type definition"
 ec_trivial_reference_property;;"a trivial property cannot have a reference type"
 ec_trivial_const_or_volatile_property;;"a trivial property cannot have a const or volatile type"
+ec_incompatible_enum_kinds;;"%nd was previously declared as a different kind of enumeration type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

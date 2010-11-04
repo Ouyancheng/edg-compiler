@@ -4311,28 +4311,9 @@ static void enum_specifier(a_decl_parse_state   *dps,
                            a_boolean            *defines_something,
                            a_decl_pos_block     *decl_pos_block)
 /*
-FIXME: Update this description to avoid grammar.
-Scan an enumeration specifier (3.5.2.2).  The syntax is
-
-3.5.2.2
-       enum-specifier:
-		enum identifier    enum-base    { enumerator-list }
-		               opt          opt
-		enum identifier
-
-       enumerator-list:
-		enumerator
-		enumerator-list , enumerator
-
-       enumerator:
-		enumeration-constant
-		enumeration-constant = constant-expression
-
-       enum-base:
-		: type-specifier-seq
-
-An enumeration-constant is an identifier.  enum-base is a Microsoft C++
-extension specifying the underlying integer type of the enumeration.
+Scan an enumeration specifier (i.e., the definition of an enumeration type) or
+an elaborated name for an enumeration type (e.g., "enum E").  C++0x scoped
+enumerations and similar Microsoft extensions are also scanned here.
 
 The type is returned in *type_ptr.  *declares_something is set to indicate
 whether or not this specifier declares something.  If defines_something is
@@ -4400,12 +4381,18 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   if (cppcli_enabled) {
     cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
   }  /* if */
+  if (curr_token == tok_enum_class || curr_token == tok_enum_struct) {
+    /* In C++/CLI mode, "enum struct" and "enum class" is scanned as a single
+       token with embedded white space. */
+    check_assertion(cppcli_enabled);
+    is_scoped_enum = TRUE;
+  } else {
+    check_assertion(curr_token == tok_enum);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Skip over "enum". */
-  check_assertion(curr_token == tok_enum);
   (void)get_token();
-  if ((cpp0x_mode || cppcli_enabled) &&
-      (curr_token == tok_class || curr_token == tok_struct)) {
+  if ((cpp0x_mode) && (curr_token == tok_class || curr_token == tok_struct)) {
     is_scoped_enum = TRUE;
     (void)get_token();
   }  /* if */
@@ -4667,6 +4654,17 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
     enum_type = type_symbol_type(tag_sym);
     is_redeclaration = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_immediate_enum_type(enum_type)) {
+      /* C++/CLI does not permit a type first declared with "enum class" or
+         "enum struct" to later be referred to with just "enum", nor vice
+         versa. */
+      if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
+        pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
+                     tag_sym);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Record cross-reference information. */
     if (is_definition) {
       if (tag_sym->defined) {
@@ -8340,6 +8338,8 @@ process_class_specifier:
         break;
       case tok_enum:
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_enum_class:
+      case tok_enum_struct:
 process_enum_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* An enumeration specifier (3.5.2.2). */
@@ -8868,7 +8868,7 @@ operator_or_conversion_name:
           a_token_kind  next_tok = next_token();
           if (is_class_type_keyword(next_tok)) {
             goto process_class_specifier;
-          } else if (next_tok == tok_enum) {
+          } else if (is_enum_type_keyword(next_tok)) {
             goto process_enum_specifier;
           }  /* if */
         }  /* if */
