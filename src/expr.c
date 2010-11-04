@@ -19751,7 +19751,7 @@ expression, and return the result in *result (or an error indication in
       if (C_dialect == C_dialect_cplusplus) {
         eliminate_unusual_operand_kinds(&operand_2);
         result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
-      } else if (gcc_mode) {
+      } else if (gcc_mode && gnu_version < 40000) {
         /* gcc leaves an lvalue, but converts a function or array to a
            pointer. */
         do_operand_transformations(&operand_2,

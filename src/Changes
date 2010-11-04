@@ -1,5 +1,18 @@
 Version 4.3
 
+11/4/10  [EDGcpfe/11125]
+Comma expression is not an lvalue in GNU C mode with gnu_version >= 40000
+
+gcc used to consider a comma expression like "(x, y)" as an lvalue, and
+we have emulated that.  It appears that in gcc 4.0 that quirk was eliminated,
+so we have turned the emulation off for corresponding values of gnu_version.
+
+  int i, j;
+  int main() {
+    (i, j) = 1;  // Now an error in gcc mode with gnu_version >= 40000
+  }
+
+
 11/2/10  [EDGcpfe/11105]
 C-generating back end, GNU compatibility: passing empty class objects by value
 
