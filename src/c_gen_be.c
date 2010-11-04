@@ -3012,7 +3012,7 @@ padding in the generated code.
       write_tok_ch(';');
       if (skip_typerefs(field_type)->generated_as_empty_struct ||
           (is_array_type(field_type) &&
-           skip_typerefs(underlying_array_element_type(field_type))->
+           f_skip_typerefs(underlying_array_element_type(field_type))->
                                                   generated_as_empty_struct)) {
         /* The layout of the containing struct was calculated assuming that
            the base type this member was a one-byte struct.  Since that
@@ -6738,7 +6738,7 @@ block with state information for the processing.
         need_scalar_dummy_init = TRUE;
       } else if (is_array_type(type) && ipdp->prev != NULL &&
                  !is_array_type(ipdp->prev->type) &&
-                 skip_typerefs(underlying_array_element_type(type))->
+                 f_skip_typerefs(underlying_array_element_type(type))->
                                                    generated_as_empty_struct) {
         if (skip_typerefs(type)->size > 1) {
           need_array_dummy_init = TRUE;
