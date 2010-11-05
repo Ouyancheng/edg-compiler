@@ -15605,43 +15605,49 @@ value.  template_sym is the template with which the parameter is associated,
 and tpp is the parameter whose default is to be scanned.
 */
 {
-  a_template_arg_ptr	arg_list;
+  a_template_arg_ptr	arg_list = NULL;
 
   /* Get the prototype instantiation argument list for the template. */
   if (is_class_template_symbol(template_sym)) {
     a_symbol_ptr	prototype_sym;
     prototype_sym = template_sym->variant.template_info->
                                variant.class_template.prototype_instantiation;
-    arg_list = template_arg_list_for_symbol(prototype_sym);
+    if (prototype_sym != NULL) {
+      /* Don't try to inspect the prototype instantiation if it has not been
+         completed. */
+      arg_list = template_arg_list_for_symbol(prototype_sym);
+    }  /* if */
   } else {
     arg_list = template_sym->variant.template_info->
                                    variant.function.routine->template_arg_list;
   }  /* if */
-  switch (tpp->param_symbol->kind) {
-    case sk_type:
-      tpp->default_arg.type = rescan_template_type_default_arg(
+  if (arg_list != NULL) {
+    switch (tpp->param_symbol->kind) {
+      case sk_type:
+        tpp->default_arg.type = rescan_template_type_default_arg(
                                                   template_sym, tpp, arg_list);
-      /* Determine whether the default depends on a template parameter. */
-      tpp->def_arg_involves_template_param =
-                        is_instantiation_dependent_type(tpp->default_arg.type);
-      break;
-    case sk_constant:
-      { a_constant_ptr	cp;
-        (void)rescan_template_constant_parameter(
-                                     template_sym, tpp->param_symbol,
-                                     tpp, arg_list,
-                                     /*do_default_arg=*/TRUE, &cp);
-        tpp->default_arg.constant = cp;
+        /* Determine whether the default depends on a template parameter. */
         tpp->def_arg_involves_template_param =
+                        is_instantiation_dependent_type(tpp->default_arg.type);
+        break;
+      case sk_constant:
+        { a_constant_ptr	cp;
+          (void)rescan_template_constant_parameter(
+                                       template_sym, tpp->param_symbol,
+                                       tpp, arg_list,
+                                       /*do_default_arg=*/TRUE, &cp);
+          tpp->default_arg.constant = cp;
+          tpp->def_arg_involves_template_param =
                            is_instantiation_dependent_type(cp->type) ||
                            cp->kind == (a_constant_repr_kind)ck_template_param;
-      }
-      break;
-    case sk_class_template:
-    default:
-      unexpected_condition();
-      break;
-  }  /* switch */
+        }
+        break;
+      case sk_class_template:
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
 }  /* delayed_scan_of_template_param_default_arg */
 
 

@@ -1,5 +1,20 @@
 Version 4.3
 
+11/5/10  [EDGcpfe/11142]
+Microsoft compatibility: abort on use of own templates default argument
+
+A change in version 4.2 introduced an abort in Microsoft mode on certain
+cases in which a class template made use of own of its own default template
+argument.  Now fixed.
+
+  template<class U> class B {
+    template <class T,
+	     template <class T1, class B = ::B<T1> > class C> struct D {
+      typedef typename C<T>::iterator iter;
+    };
+  };
+
+
 11/4/10  [EDGcpfe/11130]
 Build problem with PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
 
