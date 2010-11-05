@@ -12719,6 +12719,9 @@ typedef struct an_expr_node {
 			/* TRUE if this node represents a reference to a
 			   nonstatic data member without an object, as is
 			   permitted in unevaluated operands. */
+  a_bit_field	is_pack_expansion:1;
+			/* TRUE if this is a variadic template pack expansion,
+			   i.e., an expression followed by "...". */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

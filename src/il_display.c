@@ -3454,6 +3454,9 @@ Display the indicated expression node.
   if (ptr->is_objectless_nonstatic_data_mem_ref) {
     disp_boolean("is_objectless_nonstatic_data_mem_ref", TRUE);
   }  /* if */
+  if (ptr->is_pack_expansion) {
+    disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -3733,6 +3736,9 @@ cleanup_state_common:
   disp_source_range("expr_range", &ptr->expr_range);
   disp_source_position("operator_position", &ptr->operator_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (ptr->name_reference != NULL) {
+    disp_name_reference(ptr->name_reference);
+  }  /* if */
 }  /* disp_expr_node */
 
 

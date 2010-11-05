@@ -1611,6 +1611,7 @@ values.
   operand->template_arg_list = NULL;
   operand->id_position = null_source_position;
   operand->ampersand_position = null_source_position;
+  operand->pack_expansion_descr = NULL;
   operand->symbol = NULL;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
@@ -3304,6 +3305,7 @@ instead.
 	("extract_node_from_operand: converting unexpected operand kind");
 #endif /* CHECKING */
   }  /* switch */
+  if (operand->pack_expansion_descr != NULL) node->is_pack_expansion = TRUE;
   return node;
 }  /* extract_node_from_operand */
 
@@ -3564,6 +3566,7 @@ destroyed its source position, etc.  Restore such things from
   }  /* if */
   operand->caused_template_instantiation =
                                    orig_operand->caused_template_instantiation;
+  operand->pack_expansion_descr = orig_operand->pack_expansion_descr;
 }  /* restore_operand_details */
 
 

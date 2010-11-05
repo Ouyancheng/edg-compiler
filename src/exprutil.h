@@ -424,6 +424,11 @@ typedef struct an_operand {
 		ampersand_position;
 			/* When is_operand_of_address_of is TRUE, this gives
 			   the position of the "&" operator. */
+  a_pack_expansion_descr_ptr
+		pack_expansion_descr;
+			/* If non-NULL, this operand is a pack expansion
+			   (it is followed by "...", as in "T()..."), and this
+			   points to the expansion description. */
   /* When kind == ok_indefinite_function, ok_sym_for_member, or
      ok_undefined_symbol, and also ok_expression for the enk_field case: */
   a_symbol_ptr
