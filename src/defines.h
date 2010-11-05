@@ -71,8 +71,9 @@ of the host system.
 */
 
 #ifdef __CENTERLINE__
-/* Centerline does not define the __sun macro. */
+/* Centerline does not define the __sun or __sparc macros. */
 #define __sun 1
+#define __sparc 1
 #endif /* __CENTERLINE__ */
 
 
