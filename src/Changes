@@ -1,5 +1,13 @@
 Version 4.3
 
+11/4/10  [EDGcpfe/11130]
+Build problem with PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
+
+The function check_object_or_incomp_pointer_operand in exprutil.c had a
+typographical error that caused a build error when
+PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED is TRUE.  This is now fixed.
+
+
 11/4/10  [EDGcpfe/11125]
 Comma expression is not an lvalue in GNU C mode with gnu_version >= 40000
 
