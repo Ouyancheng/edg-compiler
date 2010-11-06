@@ -10896,9 +10896,7 @@ and tokens.)
   /* Write out the using directive */
   begin_pp_directive("#using ");
   write_tok_str((char *)(cmfp->referenced_by_system_using ? "<" : "\""));
-  /* Write the full name so that subsequent compiles don't attempt to search
-     but instead use the file found from the original search. */
-  write_tok_str(cmfp->full_name);
+  write_tok_str(cmfp->name_as_written);
   write_tok_str((char*)(cmfp->referenced_by_system_using ? ">" : "\""));
   if (cmfp->as_friend) {
     write_tok_str(" as_friend");

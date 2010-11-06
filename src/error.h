@@ -482,12 +482,11 @@ extern DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
     				            a_source_position *error_pos);
 #if EDG_WIN32
 /*lint -sem(win32_catastrophe, r_no)*/
-extern DOES_NOT_RETURN win32_catastrophe(unsigned long error_code,
+extern DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
                                          char          *error_string);
 
 /*lint -sem(hresult_catastrophe, r_no)*/
-extern DOES_NOT_RETURN hresult_catastrophe(long hresult,
-                                           char *error_string1);
+extern DOES_NOT_RETURN hresult_catastrophe(char *error_string);
 #endif /* EDG_WIN32 */
 
 /*lint -sem(str_errno_catastrophe, r_no)*/

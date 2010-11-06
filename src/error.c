@@ -5214,7 +5214,7 @@ indicated error_position, and then terminate the compilation.
 #if CPPCLI_ENABLING_POSSIBLE
 #if !STANDALONE_UTILITY_PROGRAM
 
-DOES_NOT_RETURN win32_catastrophe(unsigned long error_code,
+DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
                                   char          *error_string)
 /*
 When a WIN32 API fails, issue a diagnostic that describes the failure.
@@ -5232,9 +5232,7 @@ When a WIN32 API fails, issue a diagnostic that describes the failure.
 }  /* win32_catastrophe */
 
 
-/*ARGSUSED*/ /* <-- because "hresult" is not currently used. */
-DOES_NOT_RETURN hresult_catastrophe(long hresult,
-                                    char *error_string)
+DOES_NOT_RETURN hresult_catastrophe(char *error_string)
 /*
 When a random COM API (or other API that hopefully uses ISetErrorInfo) fails,
 this produces a diagnostic that describes the failure.

@@ -1178,16 +1178,18 @@ scan of a file to build the PCH prefix information.
   /* Save the source file pointer for this translation unit. */
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
   if (!pch_prefix_scan && !using_a_pch_file) {
-    /* If there are preinclude files to be included at the beginning of
-       the compilation, push the first file onto the stack.  The
-       macro-only files must be scanned first. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cppcli_enabled) {
       /* If there were any preusing directives to implicitly #using one
-         or more assemblies, process them now. */
+         or more assemblies, process them now.  Note, #using do not
+         depend on macro states.  Thus, they can be processed before the
+         macro preinclude files. */
       process_preusings();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* If there are preinclude files to be included at the beginning of
+       the compilation, push the first file onto the stack.  The
+       macro-only files must be scanned first. */
     next_preinclude_file = macro_preinclude_file_list;
     processing_macro_preincludes = TRUE;
     push_next_preinclude_file();

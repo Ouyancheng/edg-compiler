@@ -1474,7 +1474,9 @@ it is NULL.
        need to verify the file exists and is a regular file (as opposed to a
        directory, a device, or something else). */
     if (is_regular_file(file_name)) {
-      new_input_file = file_name;
+      /* Copy the filename from temporary memory to an IL region. */
+      new_input_file = alloc_primary_file_scope_il(strlen(file_name) + 1);
+      strcpy(new_input_file, file_name);
     }  /* if */
   } else {
     /* The search path is initialized properly before we get here. */
@@ -1488,9 +1490,7 @@ it is NULL.
       if (is_regular_file(buffer->buffer)) {
         /* A file has been found, so stop searching.  Copy the filename from
            temporary memory to an IL region because we synthesized the name
-           here (this is not needed for absolute pathnames because the caller
-           is responsible for ensuring that the name is allocated in the
-           appropriate place). */
+           here. */
         new_input_file = alloc_primary_file_scope_il(buffer->size);
         strncpy(new_input_file, buffer->buffer, buffer->size);
         break;

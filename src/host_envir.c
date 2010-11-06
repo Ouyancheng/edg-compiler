@@ -449,6 +449,17 @@ static _locale_t
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
+#if !STANDALONE_UTILITY_PROGRAM
+#if EDG_WIN32
+#if CPPCLI_ENABLING_POSSIBLE
+static a_text_buffer_ptr
+		conv_utf8_buffer;
+			/* A text buffer used by conv_wide_to_utf8. */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* EDG_WIN32 */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
 static a_directory_name_entry_ptr
 		dir_name_list_general;
 			/* List of all directory name strings used that have
@@ -4638,7 +4649,7 @@ return "Japanese_Japan.932".
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
 
-char *win32_error_to_str(unsigned long err_code)
+char *win32_error_to_str(an_ms_dword err_code)
 /*
 Use the system routine FormatMessageA to get the message for "err_code".  If
 the system routine fails for any reason, return the string "unknown error".
@@ -4668,67 +4679,47 @@ so the result must be used before the buffer is reused.
 
 #if CPPCLI_ENABLING_POSSIBLE
 
-static char *conv_wide_to_utf8(wchar_t   *wide_str,
-                               a_boolean temp_ok)
+static char *conv_wide_to_utf8(wchar_t *wide_str)
 /*
-Convert a wide character string to a UTF-8 encoded string.  If temp_ok is
-true, a temporary buffer is used to hold the converted string; otherwise
-the converted string is returned in memory allocated in general memory.
+Convert a wide character string to a UTF-8 encoded string and return it
+in a temporary buffer.
 */
 {
-  char          *result;
-  sizeof_t      length_wide;
-  sizeof_t      length_utf8;
-  unsigned long error_code;
+  wchar_t       *ptr = wide_str;
 
-  length_wide = wcslen(wide_str) + 1;
-  if (temp_ok) {
+  check_assertion(wide_str);
+  /* Allocate the buffer if it does not exist yet. */
+  if (conv_utf8_buffer == NULL) {
     /* Estimate the length, it's OK to waste some memory because this buffer
        will be used repeatedly and the result is either thrown away or
        copied into an appropriately sized buffer.  Furthermore, if this
        still isn't enough memory, the buffer will be expanded below. */
-    length_utf8 = length_wide * 4;
-    ensure_temp_text_buffer_space(length_utf8);
-    result = temp_text_buffer;
+    sizeof_t      wide_buffer_size = wcslen(wide_str) + 1;
+    sizeof_t      utf8_buffer_size = wide_buffer_size * 4;
+
+    conv_utf8_buffer = alloc_text_buffer(utf8_buffer_size > 1024 ? 
+                                                      utf8_buffer_size : 1024);
   } else {
-    /* Figure out the exact length needed.  Allocate a buffer large enough
-       to hold the converted string. */
-    length_utf8 = WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, 
-                                      wide_str, length_wide, 
-                                      /*lpMultiByteStr=*/NULL, 
-                                      /*cbMultiByte=*/0, 
-                                      /*lpDefaultChar=*/NULL, 
-                                      /*lpUsedDefaultChar=*/NULL);
-    result = alloc_general(length_utf8);
-  }  /* if */
-  /* Attempt to do the conversion.  This should usually succeed. */
-  if (WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, length_wide,
-                          result, length_utf8, /*lpDefaultChar=*/NULL, 
-                          /*lpUsedDefaultChar=*/NULL) == 0) {
-    error_code = GetLastError();
-    if (error_code == ERROR_INSUFFICIENT_BUFFER) {
-      /* This failure should be very rare.  Furthermore, it can only happen
-         when we estimate the size of the buffer.  In such a case, figure
-         out the exact length necessary. */
-      check_assertion(temp_ok);
-      length_utf8 = WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, 
-                                        length_wide, /*lpMultiByteStr=*/NULL, 
-                                        /*cbMultiByte=*/0,
-                                        /*lpDefaultChar=*/NULL, 
-                                        /*lpUsedDefaultChar=*/NULL);
-      ensure_temp_text_buffer_space(length_utf8);
-      result = temp_text_buffer;
-      /* Now that the temp buffer is big enough, this should succeed. */
-      if (WideCharToMultiByte(CP_UTF8, /*dwFlags=*/0, wide_str, length_wide,
-                              result, length_utf8, /*lpDefaultChar=*/NULL, 
-                              /*lpUsedDefaultChar=*/NULL) == 0) {
-        win32_catastrophe(GetLastError(), "WideCharToMultiByte");
+    reset_text_buffer(conv_utf8_buffer);
       }  /* if */
+  while (*ptr) {
+    /* Convert the Unicode value to UTF-8. */
+    if (*ptr <= 0x7f) {
+      add_char_to_text_buffer(conv_utf8_buffer, (char)*ptr);
     } else {
-      win32_catastrophe(error_code, "WideCharToMultiByte");
-    }  /* if */
+      sizeof_t      utflen, i;
+      char          arr[4];
+
+      utflen = unicode_to_utf8(*ptr, arr);
+      for (i = 0; i < utflen; i++) {
+        add_char_to_text_buffer(conv_utf8_buffer, arr[i]);
+      }  /* for */
   }  /* if */
-  return result;
+    ++ptr;
+  }  /* while */
+  /* Add a null terminator. */
+  add_char_to_text_buffer(conv_utf8_buffer, '\0');
+  return conv_utf8_buffer->buffer;
 }  /* conv_wide_to_utf8 */
 
 
@@ -4745,10 +4736,13 @@ is the length of the dir_name buffer.
   ICLRRuntimeInfo    *crip = NULL;
   HRESULT            hr = E_FAIL;
 
+  /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
+     runtime version based on the available versions that are installed or
+     loaded. */
   hr = CLRCreateInstance(&CLSID_CLRMetaHostPolicy, &IID_ICLRMetaHostPolicy, 
                          (LPVOID*)(&cmhpp));
   if (FAILED(hr)) {
-    hresult_catastrophe(hr, "CLRCreateInstance");
+    hresult_catastrophe("CLRCreateInstance");
   }  /* if */
   check_assertion(cmhpp != NULL);
   /* First try to get the version of the runtime specified by the application
@@ -4777,13 +4771,13 @@ is the length of the dir_name buffer.
                           /*pdwConfigFlags=*/NULL, &IID_ICLRRuntimeInfo, 
                           (LPVOID*)(&crip));
     if (FAILED(hr) || crip == NULL) {
-      hresult_catastrophe(hr, "ICLRMetaHostPolicy::GetRequestedRuntime");
+      hresult_catastrophe("ICLRMetaHostPolicy::GetRequestedRuntime");
     }  /* if */
   }  /* if */
   check_assertion(crip != NULL);
   hr = crip->lpVtbl->GetRuntimeDirectory(crip, dir_name, dir_name_size);
   if (FAILED(hr)) {
-    hresult_catastrophe(hr, "ICLRRuntimeInfo::GetRuntimeDirectory");
+    hresult_catastrophe("ICLRRuntimeInfo::GetRuntimeDirectory");
   }  /* if */
   crip->lpVtbl->Release(crip);
   cmhpp->lpVtbl->Release(cmhpp);
@@ -4811,7 +4805,7 @@ must be used before the buffer (temp_text_buffer) is overwritten.
     if (SUCCEEDED(hr)) {
       /* "description" may contain embedded NULLs, but those are ignored
          because we wouldn't know how to format the text anyway. */
-      result = conv_wide_to_utf8(description, /*temp_ok=*/TRUE);
+      result = conv_wide_to_utf8(description);
       SysFreeString(description);
     }  /* if */
     (error_info->lpVtbl->Release)(error_info);
@@ -4855,11 +4849,17 @@ final search path will include, in this order:
        (rarely used) command line switch disables including this directory
        in the search path. */
     wchar_t       clr_directory_wide[_MAX_DIR];
+    char          *temp_buffer;
     char          *clr_directory_utf8;
+    size_t        clr_directory_utf8_size;
     unsigned long length_wide = _MAX_DIR;
 
     get_clr_runtime_directory(clr_directory_wide, &length_wide);
-    clr_directory_utf8 = conv_wide_to_utf8(clr_directory_wide, FALSE);
+    temp_buffer = conv_wide_to_utf8(clr_directory_wide);
+    /* Copy the directory name to general memory. */
+    clr_directory_utf8_size = strlen(temp_buffer) + 1;
+    clr_directory_utf8 = alloc_general(clr_directory_utf8_size);
+    strcpy(clr_directory_utf8, temp_buffer);
     add_to_front_of_include_search_path(clr_directory_utf8,
                                         &assembly_search_path,
                                         &end_assembly_search_path);  
@@ -5032,6 +5032,13 @@ This is done before command line processing.
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   wchar_filename_buffer = NULL;
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+#if !STANDALONE_UTILITY_PROGRAM
+#if EDG_WIN32
+#if CPPCLI_ENABLING_POSSIBLE
+  conv_utf8_buffer = NULL;
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* EDG_WIN32 */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if __MICROSOFT_OS__
   open_temp_files = NULL;
 #endif /* __MICROSOFT_OS__ */
