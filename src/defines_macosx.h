@@ -78,7 +78,7 @@ This version is for the Apple MacOS X operating system.
 #ifndef _lint
 /* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif
+#endif /* ifndef _lint */
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
@@ -102,7 +102,9 @@ This version is for the Apple MacOS X operating system.
 /* ABI selection. */
 #define IA64_ABI 1
 #define DEFAULT_EMULATE_GNU_ABI_BUGS 0
+#ifndef GCC_IS_GENERATED_CODE_TARGET
 #define GCC_IS_GENERATED_CODE_TARGET 1
+#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 1
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
