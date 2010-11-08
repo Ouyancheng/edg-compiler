@@ -885,6 +885,7 @@ extern a_type_ptr make_tracking_reference_type(a_type_ptr type_pointed_to);
 extern a_type_ptr make_reference_to_reference(
                                           a_type_ptr            base_ref_type,
                                           a_boolean             rvalue_ref,
+                                          a_boolean             tracking_ref,
                                           a_type_qualifier_set  qualifiers,
                                           a_source_position     *qual_pos,
                                           a_boolean             *is_error);

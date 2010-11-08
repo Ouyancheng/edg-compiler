@@ -4029,13 +4029,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(pending_ptr_mods.based_var,
                                  pending_ptr_mods.based_pos);
-          if (is_reference_type(temp_type)) {
+          if (is_any_reference_type(temp_type)) {
             if (ref_to_ref_allowed) {
+              a_boolean              tracking_ref = FALSE;
               a_source_position_ptr  qual_pos =
                    (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
                                                       : &state->qualifiers_pos;
               complete_type = make_reference_to_reference(
-                                complete_type, rvalue_ref_case,
+                                complete_type, rvalue_ref_case, tracking_ref,
                                 state->qualifiers, qual_pos, (a_boolean*)NULL);
               state->unused_qualifiers = FALSE;
             } else {
@@ -4084,18 +4085,24 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           } else {
             check_assertion(curr_token == tok_remainder);
             /* "%" for tracking reference. */
-            if (is_any_reference_type(temp_type)) {
-              /* Type "reference to reference" is invalid. */
-              pos_error(ec_reference_to_reference, &pos_curr_token);
-              err = TRUE;
-            } else if (is_void_type(temp_type)) {
+            if (is_void_type(temp_type)) {
               /* Type "reference to void" is invalid. */
               pos_error(ec_reference_to_void, &pos_curr_token);
               err = TRUE;
             }  /* if */
-            /* Make the tracking reference type. */
-            complete_type = err ? error_type() :
-                                  make_tracking_reference_type(complete_type);
+            if (err) {
+              complete_type = error_type();
+            } else if (is_any_reference_type(temp_type)) {
+              /* A "reference to reference" case. */
+              complete_type = 
+                  make_reference_to_reference(
+                                    complete_type, /*is_rvalue_ref=*/FALSE,
+                                    /*tracking_ref=*/TRUE, state->qualifiers,
+                                    &state->qualifiers_pos, (a_boolean*)NULL);
+            } else {
+              /* Make the tracking reference type. */
+              complete_type = make_tracking_reference_type(complete_type);
+            }  /* if */
           }  /* if */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
           unexpected_condition();
@@ -5897,20 +5904,15 @@ function_lparen:
       if (specifiers_type == NULL || !is_any_reference_type(specifiers_type)) {
         error(ec_reference_to_reference);
         derived_type = error_type();
-#if MICROSOFT_EXTENSIONS_ALLWOED
-      } else if (cppcli_enabled &&
-                 skip_typerefs(complete_type)->variant.pointer.is_handle !=
-                             bottom_derived_type->variant.pointer.is_handle) {
-        /* Mixing references and tracking references is not allowed.  (Some
-           Microsoft compilers accept this, but the semantics are unclear.) */
-        error(ec_invalid_ref_tracking_ref_combination);
-        derived_type = error_type();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
+        a_boolean  tracking_ref = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLWOED
+        tracking_ref = bottom_derived_type->variant.pointer.is_handle;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         derived_type =
-                     make_reference_to_reference(complete_type, is_rvalue_ref,
-                                                 state->qualifiers, qual_pos,
-                                                 (a_boolean*)NULL);
+                  make_reference_to_reference(complete_type, is_rvalue_ref,
+                                              tracking_ref, state->qualifiers,
+                                              qual_pos, (a_boolean*)NULL);
       }  /* if */
       state->unused_qualifiers = FALSE;
       /* The second reference component is essentially ignored.  We do not

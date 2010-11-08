@@ -8438,21 +8438,15 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
           } else if (is_any_reference_type(tp)) {
             /* A reference to reference.  We may have to merge qualifiers. */
+            a_boolean  tracking_ref = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled &&
-                skip_typerefs(type)->variant.pointer.is_handle !=
-                                              tp->variant.pointer.is_handle) {
-              /* Mixing references and tracking references is not allowed. */
-              *copy_error = TRUE;
-            } else
+            tracking_ref = type->variant.pointer.is_handle;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            /* Do not insert code here. */
-            {
-              new_type = make_reference_to_reference(
+            new_type = make_reference_to_reference(
                            tp, type->variant.pointer.is_rvalue_reference,
+                           tracking_ref,
                            get_type_qualifiers(type->variant.pointer.type),
                            /*qual_pos=*/(a_source_position*)NULL, copy_error);
-            }  /* if */
           } else if (type->variant.pointer.is_rvalue_reference) {
             new_type = make_rvalue_reference_type(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -9078,19 +9078,22 @@ find and reuse an existing entry if possible.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !NEAR_AND_FAR_ALLOWED
-/* ARGSUSED */  /* <- is_error is not used in some configurations. */
-#endif /* !NEAR_AND_FAR_ALLOWED */
+#if !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED
+/* ARGSUSED */  /* <- is_error and tracking_ref are not used in some
+                      configurations. */
+#endif /* !NEAR_AND_FAR_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
                                        a_boolean             rvalue_ref,
+                                       a_boolean             tracking_ref,
                                        a_type_qualifier_set  qualifiers,
                                        a_source_position     *qual_pos,
                                        a_boolean             *is_error)
 /*
-Make a type "T cv1 &" (if rvalue_ref is FALSE) or "T cv1 &&" (if rvalue_ref is
-TRUE) where T is a reference type given by base_ref_type (after qualifiers --
-like "restrict" -- on top of that type have been dropped) and cv1 are the given
-type qualifiers.  The resulting type is:
+Make a type "T cv1 &" (if rvalue_ref is FALSE), "T cv1 &&" (if rvalue_ref is
+TRUE), or "T cv1 %" (when tracking_ref is TRUE) where T is a reference type
+given by base_ref_type (after qualifiers -- like "restrict" -- on top of that
+type have been dropped) and cv1 are the given type qualifiers.  (tracking_ref
+can be TRUE only in C++/CLI mode.)  The resulting type is:
 	- T if T is an lvalue reference or rvalue_ref is TRUE,
 	- "X cv2&" where T is "X cv2&&", otherwise.
 If the cv1 and cv2 qualifiers represent conflicting "__near" and "__far"
@@ -9098,6 +9101,8 @@ qualifications, an error type is returned *is_error is set to TRUE if is_error
 is non-NULL, and an error is issued if qual_pos is non-NULL.
 Otherwise, if qualifiers (i.e., cv1) is not TQ_NONE and qual_pos is non-NULL,
 a warning is issued (because cv1 is dropped from the result).
+An error case similarly occurs when tracking_ref is TRUE and the base_ref_type
+represents a standard (i.e., non-tracking) reference, or vice versa.
 All diagnostics are issued at the given source position.  If is_error is NULL,
 qual_pos must be non-NULL.
 */
@@ -9121,6 +9126,20 @@ qual_pos must be non-NULL.
     result = error_type();
   } else
 #endif /* NEAR_AND_FAR_ALLOWED */
+  /* Do not insert code here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      skip_typerefs(base_ref_type)->variant.pointer.is_handle !=
+                                                               tracking_ref) {
+    /* Mixing tracking and non-tracking references is not allowed. */
+    if (is_error == NULL) {
+      pos_error(ec_invalid_ref_tracking_ref_combination, &error_position);
+    } else {
+      *is_error = TRUE;
+    }  /* if */
+    result = error_type();
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
     if (qualifiers != TQ_NONE) {
