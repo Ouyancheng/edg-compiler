@@ -9156,6 +9156,11 @@ qual_pos must be non-NULL.
          be returned. */
       check_assertion(is_rvalue_reference_type(base_ref_type));
       result = make_reference_type(under_ref);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && is_tracking_reference_type(base_ref_type)) {
+        result->variant.pointer.is_handle = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ref_to_ref")) {

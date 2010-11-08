@@ -692,13 +692,13 @@ Return TRUE if the given type is a pointer type or a C++/CLI handle type.
 }  /* is_pointer_or_handle_type */
 
 
-a_boolean are_both_pointer_or_both_handle_types(a_type_ptr tp1, 
-                                                a_type_ptr tp2)
+a_boolean types_are_both_pointers_or_both_handles(a_type_ptr  tp1, 
+                                                  a_type_ptr  tp2)
 /*
 Return TRUE if tp1 and tp2 are both pointers or both C++/CLI handles.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean  result = FALSE;
 
   tp1 = skip_typerefs(tp1);
   tp2 = skip_typerefs(tp2);
@@ -710,7 +710,7 @@ Return TRUE if tp1 and tp2 are both pointers or both C++/CLI handles.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
-}  /* are_both_pointer_or_both_handle_types */
+}  /* types_are_both_pointers_or_both_handles */
 
 
 a_boolean is_reference_type(a_type_ptr tp)
@@ -756,14 +756,14 @@ Return TRUE if the given type is a C++0x rvalue reference type.
 }  /* is_rvalue_reference_type */
 
 
-a_boolean are_both_ref_or_both_tracking_ref_types(a_type_ptr tp1, 
-                                                  a_type_ptr tp2)
+a_boolean types_are_references_of_the_same_kind(a_type_ptr  tp1, 
+                                                a_type_ptr  tp2)
 /*
 Return TRUE if tp1 and tp2 are both references or both C++/CLI tracking
 references.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean  result = FALSE;
 
   tp1 = skip_typerefs(tp1);
   tp2 = skip_typerefs(tp2);
@@ -775,7 +775,7 @@ references.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return result;
-}  /* are_both_ref_or_both_tracking_ref_types */
+}  /* types_are_references_of_the_same_kind */
 
 
 a_boolean is_ptr_or_ref_type(a_type_ptr tp)
@@ -833,6 +833,31 @@ Return TRUE if the given type is a C++/CLI tracking reference type.
   tp = skip_typerefs(tp);
   return is_tracking_reference(tp);
 }  /* is_tracking_reference_type */
+
+
+a_boolean is_cli_managed_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI managed type.
+*/
+{
+  a_boolean  result;
+
+  tp = skip_typerefs(tp);
+  switch (tp->kind) {
+    case tk_pointer:
+      result = is_handle_ptr(tp) || is_tracking_reference(tp);
+      break;
+    case tk_class:
+    case tk_struct:
+      /* FIXME: Update when managed classes are added. */
+      result = FALSE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_cli_managed_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -2469,7 +2494,7 @@ because any exception it can handle would be caught by type_1's handler.
        class, and a handler for a pointer-to-derived-class is masked by a
        handler for a pointer-to-base-class.  C++/CLI handles are allowed
        in place of pointers. */
-    if (are_both_pointer_or_both_handle_types(type_1, type_2)) {
+    if (types_are_both_pointers_or_both_handles(type_1, type_2)) {
       a_type_ptr  type_1_pointed_to = type_pointed_to(type_1);
       a_type_ptr  type_2_pointed_to = type_pointed_to(type_2);
 
@@ -5370,7 +5395,7 @@ value of the expression they are equivalent.
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (are_both_pointer_or_both_handle_types(dest_type, source_type)) {
+      if (types_are_both_pointers_or_both_handles(dest_type, source_type)) {
 #ifdef pointer_types_have_same_repr
         if (!pointer_types_have_same_repr(dest_type, source_type)) {
           same = FALSE;
@@ -5442,7 +5467,7 @@ handler-parameter is of type "other_type".
   if (!match) {
     /* If type is an unambiguous and public base class of other_type,
        a handler for other_type will catch type. */
-    if (are_both_pointer_or_both_handle_types(type, other_type)) {
+    if (types_are_both_pointers_or_both_handles(type, other_type)) {
       /* The same goes if both are pointer or C++/CLI handle types. */
       type = type_pointed_to(type);
       other_type = type_pointed_to(other_type);
@@ -5844,7 +5869,7 @@ the __unaligned and __restrict qualifiers).
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (are_both_pointer_or_both_handle_types(dest_type, source_type)) {
+      if (types_are_both_pointers_or_both_handles(dest_type, source_type)) {
         /* Continue at the next level for pointers and handles. */
         dest_type = type_pointed_to(dest_type);
 	source_type = type_pointed_to(source_type);
@@ -5932,14 +5957,14 @@ cast away const, and this routine returns FALSE) but is suspect, return
   a_boolean	check_further = TRUE;
 
   if (warning_suggested != NULL) *warning_suggested = ec_no_error;
-  if (are_both_pointer_or_both_handle_types(dest_type, source_type)) {
+  if (types_are_both_pointers_or_both_handles(dest_type, source_type)) {
     dest_type = type_pointed_to(dest_type);
     source_type = type_pointed_to(source_type);
   } else if (is_ptr_to_member_type(dest_type) &&
              is_ptr_to_member_type(source_type)) {
     dest_type = pm_member_type(dest_type);
     source_type = pm_member_type(source_type);
-  } else if (are_both_ref_or_both_tracking_ref_types(dest_type, source_type) &&
+  } else if (types_are_references_of_the_same_kind(dest_type, source_type) &&
              is_rvalue_reference_type(dest_type) ==
                                        is_rvalue_reference_type(source_type)) {
     dest_type = type_pointed_to(dest_type);

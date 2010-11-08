@@ -20205,6 +20205,10 @@ an appropriate error code.
     *diag = ec_auto_variable_in_own_initializer;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_cli_managed_type(var->type)) {
+    *diag = ec_lambda_captures_managed_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (capture_is_inside_default_arg_expression(var)) {
     /* Lambdas inside default argument expressions can't refer to local
        variables at all. */

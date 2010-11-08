@@ -27,15 +27,15 @@ Macro that is TRUE if the current token is the start of a Microsoft
 calling convention.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_microsoft_calling_convention()                             \
+#define is_microsoft_calling_convention(tok)                          \
   (microsoft_mode &&                                                  \
-   (curr_token == tok_cdecl ||                                        \
-    curr_token == tok_fastcall ||                                     \
-    curr_token == tok_stdcall ||                                      \
-    curr_token == tok_thiscall))
+   ((tok) == tok_cdecl ||                                             \
+    (tok) == tok_fastcall ||                                          \
+    (tok) == tok_stdcall ||                                           \
+    (tok) == tok_thiscall))
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft keywords are not allowed simply return FALSE. */
-#define is_microsoft_calling_convention() FALSE
+#define is_microsoft_calling_convention(tok) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -59,29 +59,36 @@ at the beginning.
 
 
 /*
-Macro to test whether the current token is one of the extension keywords
-that can appear in a declarator in Microsoft mode.  Includes an "||"
-at the beginning.
+Macros to test whether the current token is one of the extension keywords that
+can appear in a declarator in Microsoft mode and whether the current token is
+a declarator operator for a C++/CLI handle ("^") or tracking reference ("%").
+Includes a logical or ("||") at the beginning for convenient use in the macros
+is_declarator_start and is_abstract_declarator_start.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define or_is_microsoft_declarator_keyword() ||                       \
-  (is_microsoft_calling_convention() || curr_token == tok_based)
+#define or_is_microsoft_declarator_keyword(tok) ||                     \
+  (is_microsoft_calling_convention(tok) || (tok) == tok_based)
+#define or_is_cli_declarator_operator(tok)                             \
+  || (cppcli_enabled &&                                                \
+      ((tok) == tok_excl_or || (tok) == tok_remainder))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define or_is_microsoft_declarator_keyword() /* Nothing */
+#define or_is_microsoft_declarator_keyword(tok) /* Nothing */
+#define or_is_cli_declarator_operator(tok) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Macro that is TRUE if the current token is the start of a declarator
-(3.5.4 -- real, not abstract).
+Macro that is TRUE if the current token is the start of a real (as opposed
+to "abstract") declarator.
 */
-#define is_declarator_start()                                        \
-  (curr_token == tok_identifier ?                                    \
-     (C_mode() || !identifier_is_template_id()) :                    \
-     (curr_token == tok_star || curr_token == tok_lparen             \
-      or_is_microsoft_declarator_keyword() or_is_near_or_far() ||    \
-      (C_dialect == C_dialect_cplusplus &&                           \
-       (curr_token == tok_ampersand ||                               \
-        (rvalue_references_enabled && curr_token == tok_and_and ) || \
+#define is_declarator_start()                                               \
+  (curr_token == tok_identifier ?                                           \
+     (C_mode() || !identifier_is_template_id()) :                           \
+     (curr_token == tok_star || curr_token == tok_lparen                    \
+      or_is_microsoft_declarator_keyword(curr_token) or_is_near_or_far() || \
+      (C_dialect == C_dialect_cplusplus &&                                  \
+       (curr_token == tok_ampersand ||                                      \
+        (rvalue_references_enabled && curr_token == tok_and_and)            \
+        or_is_cli_declarator_operator(curr_token)                 ||        \
         curr_token == tok_operator))))
 
 
@@ -96,25 +103,26 @@ tok_ptr_to_member and returns FALSE if a pointer to member is found.
 
 /*
 Macro that is TRUE if the current token is the start of an abstract
-declarator (3.5.5).
+declarator.
 */
-#define is_abstract_declarator_start()                                \
-  (curr_token == tok_star || curr_token == tok_lbracket ||            \
-   curr_token == tok_lparen                                           \
-   or_is_microsoft_declarator_keyword() or_is_near_or_far() ||        \
-   (C_dialect == C_dialect_cplusplus &&                               \
-    (is_ptr_to_member_declarator_start() ||                           \
-     curr_token == tok_ampersand ||                                   \
-     (rvalue_references_enabled && curr_token == tok_and_and))))
+#define is_abstract_declarator_start()                                   \
+  (curr_token == tok_star || curr_token == tok_lbracket ||               \
+   curr_token == tok_lparen                                              \
+   or_is_microsoft_declarator_keyword(curr_token) or_is_near_or_far() || \
+   (C_dialect == C_dialect_cplusplus &&                                  \
+    (is_ptr_to_member_declarator_start() ||                              \
+     curr_token == tok_ampersand ||                                      \
+     (rvalue_references_enabled && curr_token == tok_and_and)            \
+     or_is_cli_declarator_operator(curr_token))))
 
 /*
 Macro that is TRUE if the current token is the start of either an
 abstract or real declarator.
 */
-#define is_abstract_or_real_declarator_start()                        \
-  (is_declarator_start() || curr_token == tok_lbracket                \
-   or_is_microsoft_declarator_keyword() or_is_near_or_far() ||        \
-   (C_dialect == C_dialect_cplusplus &&                               \
+#define is_abstract_or_real_declarator_start()                           \
+  (is_declarator_start() || curr_token == tok_lbracket                   \
+   or_is_microsoft_declarator_keyword(curr_token) or_is_near_or_far() || \
+   (C_dialect == C_dialect_cplusplus &&                                  \
     is_ptr_to_member_declarator_start()))
 
 /* Constants defining bits in the input bit vector used in calls to

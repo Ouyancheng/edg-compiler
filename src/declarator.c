@@ -153,7 +153,11 @@ and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
 {
   a_boolean  err = FALSE;
 
-  if (is_void_type(member_type) || is_reference_type(member_type)) {
+  if (is_void_type(member_type) || is_any_reference_type(member_type) 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      || (cppcli_enabled && is_handle_type(member_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                     ) {
     type_error(ec_bad_member_type_in_ptr_to_member, member_type);
     err = TRUE;
   }  /* if */
@@ -267,7 +271,9 @@ allowed, issue a diagnostic and return FALSE.
   if (!is_error_type(type)) {
     if (is_ptr_or_ref_type(type)) {
       /* Pointer types and references may be restrict qualified unless they
-         point to function types. */
+         point to function types.  (Microsoft compiler do not support the
+         "restrict" qualifiers; we therefore do not accept the qualifier on
+         C++/CLI handles or tracking references.) */
       tp = type_pointed_to(type);
       if (tp != NULL && is_function_type(tp)) {
         error_code = ec_restrict_pointer_to_function;
@@ -538,7 +544,7 @@ by *diag_pos or at a position recorded in *dps (depending on the diagnostic).
     pos_error(ec_function_returning_shared, diag_pos);
     *err = TRUE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  } else if (is_reference_type(type)) {
+  } else if (is_any_reference_type(type)) {
     /* A diagnostic will already have been issued. */
     expect_error();
   } else if (dps != NULL && dps->qualifiers != TQ_NONE) {
@@ -701,6 +707,14 @@ the specifiers and declarator that formed the new type.
            a partial array or pointer type (see comment above), let it
            by as long as it looks okay otherwise. */
         temp_type = skip_typerefs(new_type_ptr);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && is_handle_type(temp_type)) {
+          /* A native array of handles is invalid. */
+          pos_error(ec_array_of_handle, &error_position);
+          err = TRUE;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (is_complete_object_type(temp_type) &&
             !is_partial_type(temp_type)) {
           /* Usually okay. */
@@ -809,9 +823,9 @@ the specifiers and declarator that formed the new type.
           } else if (is_void_type(temp_type)) {
             error(ec_array_of_void);
             err = TRUE;
-          } else if (is_reference_type(temp_type)) {
-	    error(ec_array_of_reference);
-	    err = TRUE;
+          } else if (is_any_reference_type(temp_type)) {
+            error(ec_array_of_reference);
+            err = TRUE;
           } else if (temp_type->kind == (a_type_kind)tk_error) {
             /* Error already put out. */
             err = TRUE;
@@ -832,9 +846,13 @@ the specifiers and declarator that formed the new type.
 #endif /* UPC_EXTENSIONS_ALLOWED */
         if (err) new_type_ptr = error_type();
         (*bottom_derived_type)->variant.array.element_type = new_type_ptr;
-      } else if (is_pointer_type(*bottom_derived_type)) {
-        /* Pointer type. */
-        if (is_member_function_typedef) {
+      } else if (is_pointer_or_handle_type(*bottom_derived_type)) {
+        /* Pointer or handle (C++/CLI) type. */
+        if (is_member_function_typedef
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            && !(cppcli_enabled && is_handle_type(*bottom_derived_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                      ) {
           /* The code contains "T*" where "T" names a member function typedef.
              It points to a routine type in which the implicit this-param
              type pointer identifies the parent class, say "S".  Then "T*" is
@@ -851,23 +869,44 @@ the specifiers and declarator that formed the new type.
           new_type_ptr = mft_rout_type;
           tkind = (a_type_kind)tk_ptr_to_member;
         } else {
-          if (is_reference_type(skip_typerefs(new_type_ptr))) {
+          if (is_any_reference_type(skip_typerefs(new_type_ptr))) {
             /* Pointer to reference is illegal. */
             error(ec_pointer_to_reference);
             new_type_ptr = error_type();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (cppcli_enabled && is_handle_type(*bottom_derived_type)) {
+            if (is_function_type(new_type_ptr)) {
+              /* A handle-to-function type is invalid. */
+              pos_error(ec_handle_to_function, &error_position);
+              new_type_ptr = error_type();
+            } else if (is_array_type(new_type_ptr)) {
+              /* A handle-to-array type is invalid. */
+              pos_error(ec_handle_to_array, &error_position);
+              new_type_ptr = error_type();
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
           check_for_restrict_qualifier_on_derived_type(new_type_ptr,
                                                        derived_type,
                                                        bottom_derived_type);
           (*bottom_derived_type)->variant.pointer.type = new_type_ptr;
         }  /* if */
-      } else if (is_reference_type(*bottom_derived_type)) {
+      } else if (is_any_reference_type(*bottom_derived_type)) {
         /* Reference type. */
         temp_type = skip_typerefs(new_type_ptr);
         if (is_void_type(temp_type)) {
 	  /* Reference to void is illegal. */
           error(ec_reference_to_void);
 	  err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled &&
+                   is_tracking_reference_type(*bottom_derived_type)) {
+          if (is_function_type(new_type_ptr)) {
+            /* A tracking-reference-to-function type is invalid. */
+            pos_error(ec_tracking_reference_to_function, &error_position);
+            new_type_ptr = error_type();
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (is_member_function_typedef) {
           /* A cfront member function typedef type can only be used in
              forming a pointer-to-member type. */
@@ -1050,7 +1089,7 @@ given position.
     if (is_incomplete_type(tp) && !in_definition_of_class(tp)) {
       /* Incomplete type (including possibly void type). */
       error_code = ec_incomplete_type_not_allowed;
-    } else if (is_ptr_or_ref_type(tp)) {
+    } else if (is_any_ptr_or_ref_type(tp)) {
       tp = type_pointed_to(tp);
       if (is_void_type(tp)) {
         /* Pointer to cv-qualified void is okay. */
@@ -2482,6 +2521,9 @@ if this is the function declarator in a friend function declaration.
                A::A(A, T=x);           // case 2
                A::A(A&, A=y);          // case 3
                A::A(A&, T=x, A=y);     // case 4
+             In C++/CLI mode, additional variants are of interest; e.g.
+               A::A(A%);               // case 5
+               A::A(A%, T=x, A=y);     // case 6
              It's not actually possible to know whether a constructor is a
              (legal or illegal) copy constructor without looking past the
              first parameter.  That's part of what makes this check a little
@@ -2512,8 +2554,8 @@ if this is the function declarator in a friend function declaration.
               }  /* if */
             } else if (!done) {
               /* We're looking at the first parameter.  See if this may be a
-                 copy constructor.  This will help find cases 3 and 4. */
-              if (is_lvalue_reference_type(param_state.type)) {
+                 copy constructor.  This will help find cases 3 through 6. */
+              if (is_any_lvalue_reference_type(param_state.type)) {
                 tp = type_pointed_to(param_state.type);
                 tp = skip_typerefs(tp);
                 if (identical_types(parent_type, tp)) {
@@ -3281,7 +3323,7 @@ convention scanned on this call.
     }  /* if */
     *call_conv = new_call_conv;
     (void)get_token();
-  } while (is_microsoft_calling_convention());
+  } while (is_microsoft_calling_convention(curr_token));
 }  /* scan_microsoft_calling_convention */
 
 
@@ -3525,7 +3567,7 @@ Additional position information is recorded in *decl_pos_block.
       ptr_mods->qualifiers |= new_qualifiers;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
-      if (is_microsoft_calling_convention()) {
+      if (is_microsoft_calling_convention(curr_token)) {
         /* Calling conventions like __cdecl. */
         ptr_mods->cc_descr.position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -3730,7 +3772,9 @@ a_type_ptr pointer_declarator(
 Scan the pointer component of a declarator.  This is "*", "&", "&&", or "C::*"
 (where C is a class type) optionally followed by "const" and/or "volatile".
 "&" (lvalue reference) and "C::*" (pointer-to-member) are C++ features; "&&"
-is a C++0x extension to declare "rvalue references".
+is a C++0x extension to declare "rvalue references".  In C++/CLI mode the
+declarator operators "^" (handle) and "%" (tracking reference) are also
+possible.
 
 This routine actually scans a sequence of pointer declarators.
 The pointer type modifiers are placed on top of the type passed in as
@@ -3835,9 +3879,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   /* Loop while there are pointer declarators. */
   for (;;) {
     /* See if there is a pointer declarator. */
-    a_boolean          another_pointer_declarator = FALSE;
-    a_boolean          ptr_to_member_case = FALSE, rvalue_ref_case = FALSE;
-    a_boolean          plain_ptr = (curr_token == tok_star);
+    a_boolean  another_pointer_declarator = FALSE;
+    a_boolean  ptr_to_member_case = FALSE, rvalue_ref_case = FALSE;
+    a_boolean  plain_ptr = (curr_token == tok_star), managed_type = FALSE;
     if ((plain_ptr ||
          (reference_allowed && (curr_token == tok_ampersand ||
                                 (rvalue_references_enabled &&
@@ -3846,12 +3890,20 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          reference "&&". */
       another_pointer_declarator = TRUE;
       rvalue_ref_case = curr_token == tok_and_and;
-    } else if (C_dialect == C_dialect_cplusplus &&
-               is_ptr_to_member_declarator_start()) {
+    } else if (!C_mode() && is_ptr_to_member_declarator_start()) {
       /* A pointer-to-member "Name::*". */
       another_pointer_declarator = TRUE;
       ptr_to_member_case = TRUE;
       *ptr_to_member_scanned = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled &&
+               (curr_token == tok_excl_or || 
+                (reference_allowed && curr_token == tok_remainder))) {
+      /* C++/CLI declarator operators "^" (handle) or "%" (tracking
+         reference). */
+      another_pointer_declarator = TRUE;
+      managed_type = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Exit the loop if there is not another pointer declarator. */
     if (!another_pointer_declarator) break;
@@ -3916,7 +3968,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     if (!ptr_to_member_case) {
-      /* Pointer ("*") or reference ("&") case. */
+      /* Pointer ("*"), reference ("&" or "&&"), handle ("^"), or tracking
+         reference ("%"). */
       /* Add a pointer type to the top of the existing type.  Note that this
          works out right.  For example, if one has
 
@@ -3933,7 +3986,6 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         a_type_ptr    temp_type;
         a_symbol_ptr  sym;
         a_boolean     is_member_function_typedef = FALSE;
-
         temp_type = skip_typerefs(complete_type);
         if (!same_entities(temp_type, complete_type)) {
           if (any_cfront_mode()) {
@@ -3963,7 +4015,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                -- to form a pointer-to-member type.  Do the transformation. */
             complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
-            if (is_reference_type(temp_type)) {
+            if (is_any_reference_type(temp_type)) {
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
@@ -3972,7 +4024,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             complete_type = make_pointer_type(err ? error_type()
                                                   : complete_type);
           }  /* if */
-        } else {
+        } else if (!managed_type) {
           /* "&" or "&&" for reference. */
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(pending_ptr_mods.based_var,
@@ -4009,6 +4061,45 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           if (err) {
             complete_type = error_type();
           }  /* if */
+        } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* A handle ("^") or tracking-reference ("%") type. */
+          /* Make sure this was not preceded by __based. */
+          based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
+          if (curr_token == tok_excl_or) { 
+            /* "^" for handle. */
+            if (temp_type->kind == tk_pointer) {
+              /* A handle cannot point to any kind of pointer/handle or
+                 reference type. */
+              pos_error(ec_handle_to_address_type, &pos_curr_token);
+              err = TRUE;
+            } else if (is_void_type(temp_type)) {
+              /* A handle-to-void type is invalid. */
+              pos_error(ec_handle_to_void, &pos_curr_token);
+              err = TRUE;
+            }  /* if */
+            /* Make the handle type. */
+            complete_type = err ? error_type() :
+                                  make_handle_type(complete_type);
+          } else {
+            check_assertion(curr_token == tok_remainder);
+            /* "%" for tracking reference. */
+            if (is_any_reference_type(temp_type)) {
+              /* Type "reference to reference" is invalid. */
+              pos_error(ec_reference_to_reference, &pos_curr_token);
+              err = TRUE;
+            } else if (is_void_type(temp_type)) {
+              /* Type "reference to void" is invalid. */
+              pos_error(ec_reference_to_void, &pos_curr_token);
+              err = TRUE;
+            }  /* if */
+            /* Make the tracking reference type. */
+            complete_type = err ? error_type() :
+                                  make_tracking_reference_type(complete_type);
+          }  /* if */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+          unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       } else {
         /* The specifiers type is not known, so the bottom-most pointer type
@@ -4019,6 +4110,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            types have different sizes. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
         new_type_ptr->variant.pointer.type = complete_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (managed_type) {
+          new_type_ptr->variant.pointer.is_handle = TRUE;
+          new_type_ptr->variant.pointer.is_reference =
+                                                (curr_token == tok_remainder);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (!plain_ptr) {
           new_type_ptr->variant.pointer.is_reference = TRUE;
           new_type_ptr->variant.pointer.is_rvalue_reference = rvalue_ref_case;
@@ -4119,7 +4218,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Check for using qualifiers on a reference type.  The restrict
          bit has been removed if it was set, which is good because it is okay
          to put restrict on a reference. */
-      if (ptr_mods.qualifiers != TQ_NONE && is_reference_type(complete_type)) {
+      if (ptr_mods.qualifiers != TQ_NONE &&
+          is_any_reference_type(complete_type)) {
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
         ptr_mods.qualifiers = TQ_NONE;
@@ -5526,14 +5626,16 @@ function_lparen:
           /* Top level function declaration, or return type of function
              type. */
           disallow_exception_spec = FALSE;
-        } else if (is_ptr_or_ref_type(derived_type)) {
+        } else if (is_any_ptr_or_ref_type(derived_type)) {
           /* If derived_type is a pointer or reference type that currently
              points to NULL, this can be assumed to be a top-level pointer
              or reference declaration, and an exception specification is
              permitted:
                void (*pf)() throw();    // Okay
                void (**ppf)() throw();  // Error
-          */
+             (Handle and tracking-reference types cannot refer to function
+             types, but there is no need to produce an additional diagnostic
+             for the exception specification.) */
           disallow_exception_spec = (type_pointed_to(derived_type) != NULL);
         } else if (is_ptr_to_member_type(derived_type)) {
           /* Similarly if derived_type is a pointer-to-member type whose
@@ -5632,7 +5734,9 @@ function_lparen:
     }  /* if */
 #endif  /* NEAR_AND_FAR_ALLOWED */
     /* Check that we do not create a typedef for a pointer or reference to a
-       qualified function type. */
+       qualified function type.  (We don't check C++/CLI handles and tracking
+       references here because they cannot refer to function types; additional
+       diagnostics would not be helpful.) */
     if (new_type_ptr->kind == (a_type_kind)tk_routine &&
         derived_type != NULL && is_ptr_or_ref_type(derived_type)) {
       a_routine_type_supplement_ptr  rtsp =
@@ -5779,7 +5883,7 @@ function_lparen:
       bottom_derived_type != NULL) {
     if (bottom_derived_type->kind == (a_type_kind)tk_pointer &&
         bottom_derived_type->variant.pointer.is_reference &&
-        is_reference_type(complete_type)) {
+        is_any_reference_type(complete_type)) {
       /* If we are creating a reference (bottom_derived_type) to a reference
          (complete_type), complete_type must be a reference as a consequence
          of specifiers_type being a reference (i.e., the specifiers contained
@@ -5790,9 +5894,18 @@ function_lparen:
       a_source_position_ptr
                  qual_pos = (state->qualifiers == TQ_RESTRICT) ?
                                  &state->restrict_pos : &state->qualifiers_pos;
-      if (specifiers_type == NULL || !is_reference_type(specifiers_type)) {
+      if (specifiers_type == NULL || !is_any_reference_type(specifiers_type)) {
         error(ec_reference_to_reference);
         derived_type = error_type();
+#if MICROSOFT_EXTENSIONS_ALLWOED
+      } else if (cppcli_enabled &&
+                 skip_typerefs(complete_type)->variant.pointer.is_handle !=
+                             bottom_derived_type->variant.pointer.is_handle) {
+        /* Mixing references and tracking references is not allowed.  (Some
+           Microsoft compilers accept this, but the semantics are unclear.) */
+        error(ec_invalid_ref_tracking_ref_combination);
+        derived_type = error_type();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         derived_type =
                      make_reference_to_reference(complete_type, is_rvalue_ref,

@@ -1900,7 +1900,7 @@ function).
   param_type1 = skip_typerefs(param_type1);
   param_type2 = skip_typerefs(param_type2);
   /* Remove any top level references. */
-  type_1_is_reference = is_reference_type(param_type1);
+  type_1_is_reference = is_any_reference_type(param_type1);
   if (type_1_is_reference) {
     param_type1 = type_pointed_to(param_type1);
     /* The "ref. vs. ptr check" below needs to know if we have a reference
@@ -1909,7 +1909,7 @@ function).
       type_under_ref_is_function = TRUE;
     }  /* if */
   }  /* if */
-  type_2_is_reference = is_reference_type(param_type2);
+  type_2_is_reference = is_any_reference_type(param_type2);
   if (type_2_is_reference) {
     param_type2 = type_pointed_to(param_type2);
     /* The "ref. vs. ptr check" below needs to know if we have a reference
@@ -7391,14 +7391,20 @@ points to the template parameter list.
           break;
         case tk_pointer:
           /* Pointer matches pointer and reference matches reference, but
-             they can't be mixed. */
+             they can't be mixed.  Similarly, C++/CLI handles and tracking
+             references cannot be mixed with their non-managed counterparts. */
           if (type->variant.pointer.is_reference !=
                          templ_type->variant.pointer.is_reference) {
             /* Not a match. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (type->variant.pointer.is_handle !=
+                         templ_type->variant.pointer.is_handle) {
+            /* Not a match. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else if (rvalue_references_enabled &&
                      type->variant.pointer.is_reference &&
-                     is_lvalue_reference_type(type) !=
-                                        is_lvalue_reference_type(templ_type)) {
+                     is_any_lvalue_reference_type(type) !=
+                                   is_any_lvalue_reference_type(templ_type)) {
             /* One is an rvalue-reference and the other is an lvalue-reference.
                Not a match. */
           } else {
@@ -8061,8 +8067,10 @@ on the ck_template_param constant pointed to by the expression.
   } else {
     if (is_function_type(tp) ||
         is_void_type(tp) ||
-        is_reference_type(tp) ||
+        is_any_reference_type(tp) ||
         is_abstract_class_type(tp) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         is_incomplete_array_type(tp)) {
       /* The element type is invalid. */
       *copy_error = TRUE;
@@ -8428,23 +8436,42 @@ a pointer over a reference type or creating an array of references.
           if (is_void_type(tp)) {
             /* A reference to void would be invalid. */
             *copy_error = TRUE;
-          } else if (is_reference_type(tp)) {
+          } else if (is_any_reference_type(tp)) {
             /* A reference to reference.  We may have to merge qualifiers. */
-            new_type = make_reference_to_reference(
-                         tp, type->variant.pointer.is_rvalue_reference,
-                         get_type_qualifiers(type->variant.pointer.type),
-                         /*qual_pos=*/(a_source_position*)NULL, copy_error);
-          } else if (!type->variant.pointer.is_rvalue_reference) {
-            new_type = make_reference_type(tp);
-          } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (cppcli_enabled &&
+                skip_typerefs(type)->variant.pointer.is_handle !=
+                                              tp->variant.pointer.is_handle) {
+              /* Mixing references and tracking references is not allowed. */
+              *copy_error = TRUE;
+            } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              new_type = make_reference_to_reference(
+                           tp, type->variant.pointer.is_rvalue_reference,
+                           get_type_qualifiers(type->variant.pointer.type),
+                           /*qual_pos=*/(a_source_position*)NULL, copy_error);
+            }  /* if */
+          } else if (type->variant.pointer.is_rvalue_reference) {
             new_type = make_rvalue_reference_type(tp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (type->variant.pointer.is_handle) {
+            new_type = make_tracking_reference_type(tp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else {
+            new_type = make_reference_type(tp);
           }  /* if */
         } else {
-          if (!is_reference_type(tp)) {
-            new_type = make_pointer_type(tp);
-          } else {
-            /* A pointer to reference would be invalid. */
+          if (is_any_reference_type(tp)) {
+            /* A pointer (or C++/CLI handle) to reference would be invalid. */
             *copy_error = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (type->variant.pointer.is_handle) {
+            new_type = make_handle_type(tp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else {
+            new_type = make_pointer_type(tp);
           }  /* if */
         }  /* if */
         break;
@@ -8518,7 +8545,7 @@ a pointer over a reference type or creating an array of references.
              be a class type or a template parameter type. */
           if ((!is_class_struct_union_type(tp2) &&
                !is_template_param_type(tp2)) ||
-              is_void_type(tp) || is_reference_type(tp)) {
+              is_void_type(tp) || is_any_reference_type(tp)) {
             /* The new type would be invalid. */
             *copy_error = TRUE;
             new_type = NULL;

@@ -680,7 +680,8 @@ of declarations that are permitted.
           is_start = TRUE;
         } else if (!expr_context &&
                    (next_tok == tok_star || next_tok == tok_ampersand ||
-                    (rvalue_references_enabled && next_tok == tok_and_and))) {
+                    (rvalue_references_enabled && next_tok == tok_and_and)
+                    or_is_cli_declarator_operator(next_tok))) {
           /* Pattern "x *..." or x &..." -- looks like a declaration as long as
              the context rules out expressions. */
           is_start = TRUE;
@@ -1009,14 +1010,14 @@ new fields are set properly.
     for (; ptp != NULL; ptp = ptp->next) {
       param_count++;
       tp = ptp->type;
-      if (is_reference_type(tp)) tp = type_pointed_to(tp);
+      if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_class_struct_union_type(tp) ||
           (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
         any_class_or_enum_type_params = TRUE;
       } else if (is_template_param_type(tp)) {
         any_template_param_type_params = TRUE;
       }  /* if */
-    }  /* if */
+    }  /* for */
     if (is_new_operator(opname) ||
         is_delete_operator(opname) ||
         opname == (an_opname_kind)onk_function_call) {
@@ -1367,7 +1368,8 @@ consistent with that of the previous declaration.
   }  /* if */
   if (rp == NULL) {
     /* Not a routine type, but a pointer-to, reference-to or pointer-to-member
-       function. */
+       function.  (C++/CLI handles and tracking references cannot refer to
+       functions and are therefore not handled here.) */
     if (is_ptr_to_member_type(prev_type) &&
         is_ptr_to_member_type(new_rout_type)) {
       prev_type = pm_member_type(skip_typerefs(prev_type));
@@ -8732,8 +8734,7 @@ the reconciliation process.
              (is_ptr_to_member_type(type_ptr) &&
               is_function_type(pm_member_type(type_ptr)))) {
     /* Check for mismatches in exception specifications. */
-    check_exception_specification(type_ptr, sym, err_pos,
-                                  /*is_redecl=*/TRUE);
+    check_exception_specification(type_ptr, sym, err_pos, /*is_redecl=*/TRUE);
   }  /* if */
   if (!err) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -10955,7 +10956,7 @@ pos is used to mark the location that carries any diagnostic.
        therefore treat such cases like lvalue references. */
     pos_error(ec_rvalue_reference_catch_type, pos);
     result = TRUE;
-  } else if (is_ptr_or_ref_type(type)) {
+  } else if (is_any_ptr_or_ref_type(type)) {
     type = type_pointed_to(type);
     /* Force instantiation of template class. */
     complete_type_is_needed(type);
@@ -14080,15 +14081,14 @@ if one is present.
     /* Issue a warning on something like "extern void const x;": The qualifier
        is useless in such cases. */
     report_qualifiers_as_useless(&type, &state->declarator_pos);
-  }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
-  if (upc_mode && (state->dso_flags & DSO_UPC_SHARED_LAYOUT) &&
+  } else if (upc_mode && (state->dso_flags & DSO_UPC_SHARED_LAYOUT) &&
       is_pointer_type(type) && is_void_type(state->specifiers_type)) {
   /* A layout qualifier cannot be used to qualify the target type of a
      pointer to shared void. */
     error(ec_bad_upc_shared_void_pointer_layout_qualifier);
-  } /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  }  /* if */
 #if ASM_FUNCTION_ALLOWED
   if (state->declared_storage_class == (a_storage_class)sc_asm) {
     /* This use of "asm" is reserved for function declarations.  Issue an
@@ -14298,6 +14298,16 @@ if one is present.
     /* Abstract class objects are prohibited (ARM 10.3). */
     abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                               state->type, &locator->source_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && 
+             has_static_storage_duration(var_ptr->storage_class) &&
+             is_cli_managed_type(var_ptr->type)) {
+    /* Variables with static storage duration cannot have a managed type.
+       (An exception are static data members of managed class types, but those
+       are not handled here since they must be defined inside a class.) */
+    pos_error(ec_static_storage_variable_with_managed_type,
+              &locator->source_position);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Set the error position to the start of the initializer (that is, to
      the "=" if there is one) or to where the initializer should be in

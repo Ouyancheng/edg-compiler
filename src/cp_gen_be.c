@@ -465,7 +465,7 @@ Also handles C++/CLI handle types.
 #define is_cast_of_UDC_to_different_pointer_type(dest_type, operand)          \
   (is_operation_node(operand) &&                                              \
    (operand)->variant.operation.is_conversion_call &&                         \
-   are_both_pointer_or_both_handle_types(dest_type, (operand)->type) &&       \
+   types_are_both_pointers_or_both_handles(dest_type, (operand)->type) &&     \
    skip_typerefs(dest_type) != skip_typerefs((operand)->type))
 
 

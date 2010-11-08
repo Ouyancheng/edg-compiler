@@ -96,26 +96,27 @@ extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
 extern a_boolean is_pointer_or_handle_type(a_type_ptr tp);
-extern a_boolean are_both_pointer_or_both_handle_types(a_type_ptr tp1, 
-                                                       a_type_ptr tp2);
+extern a_boolean types_are_both_pointers_or_both_handles(a_type_ptr tp1, 
+                                                         a_type_ptr tp2);
 extern a_boolean is_reference_type(a_type_ptr tp);
 extern a_boolean is_lvalue_reference_type(a_type_ptr tp);
 extern a_boolean is_any_lvalue_reference_type(a_type_ptr tp);
 extern a_boolean is_rvalue_reference_type(a_type_ptr tp);
-extern a_boolean are_both_ref_or_both_tracking_ref_types(a_type_ptr tp1, 
-                                                         a_type_ptr tp2);
+extern a_boolean types_are_references_of_the_same_kind(a_type_ptr tp1, 
+                                                       a_type_ptr tp2);
 extern a_boolean is_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_any_reference_type(a_type_ptr tp);
 extern a_boolean is_any_ptr_or_ref_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
+extern a_boolean is_cli_managed_type(a_type_ptr tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);
 extern a_boolean is_vla_type(a_type_ptr tp);
 extern a_boolean is_char_array_type(a_type_ptr tp);
-#if !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM 
 extern a_boolean is_wchar_t_array_type(a_type_ptr tp);
 extern a_boolean is_string_type(a_type_ptr tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */

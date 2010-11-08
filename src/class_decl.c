@@ -985,7 +985,7 @@ the field.
   a_type_ptr               field_type;
   a_type_ptr               orig_field_type;
   a_symbol_ptr             var_sym = NULL;
-  a_boolean                is_this = FALSE;
+  a_boolean                is_this = FALSE, is_ref = FALSE;
   a_class_def_state_ptr    class_state;
   a_scope_stack_entry_ptr  ssep;
   a_symbol_locator         locator;
@@ -1021,7 +1021,11 @@ the field.
   }  /* if */
   orig_field_type = field_type = vp->type;
   /* If the variable is a reference, drop the reference. */
-  if (is_reference_type(field_type)) {
+  if (is_any_reference_type(field_type)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_assertion(!skip_typerefs(field_type)->variant.pointer.is_handle);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    is_ref = TRUE;
     field_type = type_pointed_to(field_type);
   }  /* if */
   if (is_this) {
@@ -1031,8 +1035,7 @@ the field.
     /* The variable is being captured by reference.  Create a reference
        type based on the variable's type. */
     field_type = make_reference_type(field_type);
-  } else if (is_reference_type(orig_field_type) &&
-             is_function_type(field_type)) {
+  } else if (is_ref && is_function_type(field_type)) {
     /* A variable with reference-to-function type is captured with its
        original type. */
     field_type = orig_field_type;
@@ -3139,7 +3142,7 @@ static a_boolean return_types_are_override_compatible(
                                  a_type_ptr        type_of_overriding_routine,
                                  a_type_ptr        type_of_overridden_routine,
                                  a_base_class_ptr  *return_adjustment_bcp,
-                                 a_symbol_ptr      diag_sym,
+                                 a_symbol_ptr      overridden_sym,
                                  a_source_position *diag_pos)
 /*
 Given the routine types of overriding and overridden virtual functions,
@@ -3174,9 +3177,9 @@ the overridden symbol.
     compatible = TRUE;
   } else {
     /* They're not "simply" compatible.  Do the other checking. */
-    if ((is_reference_type(tp1) && is_reference_type(tp2) &&
+    if ((types_are_references_of_the_same_kind(tp1, tp2) &&
          is_rvalue_reference_type(tp1) == is_rvalue_reference_type(tp2)) ||
-        (is_pointer_type(tp1) && is_pointer_type(tp2) &&
+        (types_are_both_pointers_or_both_handles(tp1, tp2) &&
          type_qualifiers_match(tp1, tp2))
 #ifdef pointer_types_have_same_repr
         && pointer_types_have_same_repr(tp1, tp2)
@@ -3216,7 +3219,7 @@ the overridden symbol.
               check_assertion(gpp_mode);
               pos_syty_warning(
                         ec_different_return_type_on_virtual_function_override,
-                        diag_pos, diag_sym,
+                        diag_pos, overridden_sym,
                         skip_typerefs(type_of_overridden_routine)
                                                ->variant.routine.return_type);
             }  /* if */
@@ -3253,7 +3256,7 @@ the overridden symbol.
 #else /* !ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
                         ec_different_return_type_on_virtual_function_override;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-    pos_syty_error(error_code, diag_pos, diag_sym,
+    pos_syty_error(error_code, diag_pos, overridden_sym,
                    skip_typerefs(type_of_overridden_routine)
                                                ->variant.routine.return_type);
   }  /* if */
@@ -3945,6 +3948,11 @@ return_types_are_override_compatible.
          Set a flag, since some extra processing may be needed
          later. */
       rout->covariant_return_virtual_override = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && is_cli_managed_type(class_type)) {
+        pos_error(ec_covariant_override_in_managed_class, source_pos);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if IA64_ABI
       /* If the adjustment will always be trivial, we can reuse the
          virtual function slot from the base class.  However, we
@@ -7785,12 +7793,13 @@ function, set *ambiguous to TRUE.
          of reference type, the qualifier underneath the reference is
          significant. */
       a_type_ptr  tp = first_param->type;
-      if (is_reference_type(tp)) {
+      if (is_any_reference_type(tp)) {
         /* Reference argument. */
         tp = type_pointed_to(tp);
         qualifiers = get_type_qualifiers(tp);
       }  /* if */
     }  /* if */
+    /* FIXME REFCLASS detect ambiguities when overloading on & and %.*/
     switch (sfkind) {
       case sfk_constructor:
         if (first_param == NULL) {
@@ -10484,6 +10493,7 @@ cfront compatibility case.
   ptp = rtsp->param_type_list;
   check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
+  /* FIXME : use "any_reference" variants? */
   if (move_assign_okay ? is_reference_type(tp)
                        : is_lvalue_reference_type(tp)) {
     /* Reference argument. */
@@ -11855,11 +11865,21 @@ declarations.
     }  /* if */
   }  /* if */
   if (!is_error_type(field_type)) {
-    a_boolean  is_ref = is_reference_type(field_type);
+    a_boolean  is_ref = is_any_reference_type(field_type);
     if (is_abstract_class_type(field_type)) {
       /* Abstract class objects are prohibited (ARM 10.3). */
       abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                                 field_type, &locator->source_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_tracking_reference_type(field_type)) {
+      pos_error(ec_tracking_reference_not_allowed,
+                &decl_state->declarator_pos);
+      field_type = error_type();
+    } else if (cppcli_enabled && is_handle_type(field_type) &&
+               !is_cli_managed_type(class_type)) {
+      pos_error(ec_handle_not_allowed, &decl_state->declarator_pos);
+      field_type = error_type();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
@@ -12166,7 +12186,7 @@ be entered.
     /* In C++ we need to keep track of whether any members have reference
        type. */
     cssp = symbol_supplement_for_class(class_type);
-    if (is_reference_type(member_type)) {
+    if (is_any_reference_type(member_type)) {
       cssp->any_ref_member = TRUE;
       /* Assignment by bitwise copy is not allowed when a class has reference
          type members. */
@@ -12291,7 +12311,7 @@ be entered.
       class_type->variant.class_struct_union.has_zero_init_component = TRUE;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus && !class_state->POD_ruled_out) {
-      if (is_reference_type(member_type)) {
+      if (is_any_reference_type(member_type)) {
         /* A POD may not have a field with a reference type. */
         class_state->POD_ruled_out = TRUE;
       }  /* if */
@@ -12331,7 +12351,7 @@ be entered.
       }  /* if */
     } else if (decl_info->is_unnamed_field && decl_info->is_bit_field) {
       /* Ignore unnamed bit-fields. */
-    } else if (is_reference_type(member_type) ||
+    } else if (is_any_reference_type(member_type) ||
                is_const_qualified_type(member_type)) {
       class_state->any_const_or_ref_fields = TRUE;
     }  /* if */
@@ -12827,7 +12847,7 @@ behavior of the MSVC++ version indicated by microsoft_version.
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
         }  /* if */
-      } else if (is_reference_type(tp)) {
+      } else if (is_any_reference_type(tp)) {
         /* A nonstatic data member with reference type prevents the copy
            assignment operator from being generated. */
         *suppress_copy_asgn_op = TRUE;
@@ -14659,7 +14679,7 @@ tracks information about the current declaration.
                     &decl_state->start_pos);
           decl_info->return_type_def_err = TRUE;
           break;
-        } else if (is_ptr_or_ref_type(tp)) {
+        } else if (is_any_ptr_or_ref_type(tp)) {
           /* Get type pointed to and continue. */
           tp = type_pointed_to(tp);
         } else if (is_ptr_to_member_type(tp)) {
@@ -14818,7 +14838,7 @@ member.  Determine whether a diagnostic is actually required and put it out.
           continue;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (is_reference_type(tp)) {
+        if (is_any_reference_type(tp)) {
           /* Member of reference type must be explicitly initialized. */
           error_code = ec_reference_member;
         } else if (is_const_qualified_type(tp)) {

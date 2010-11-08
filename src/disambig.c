@@ -919,15 +919,21 @@ part of a declarator is found, may_be_decl is set to FALSE.
      to ptr-operator.  Syntax:
          * cv-qualifier-list
          & cv-qualifier-list
+         && cv-qualifier-list
          complete-class-name :: * cv-qualifier-list
          microsoft-qualifier-list
+     In C++/CLI mode, the following are also possible:
+         ^ cv-qualifier-list
+         % cv-qualifier-list
      Note that neither pointer declarators nor qualifiers are allowed
      in expressions, so their presence means this is a declaration.
      When rvalue references are enabled, "&&" is also allowed. */
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand ||
-        (rvalue_references_enabled && curr_token == tok_and_and)) {
-      /* Cache and bypass the "*" or "&" or "&&". */
+        (rvalue_references_enabled && curr_token == tok_and_and)
+        or_is_cli_declarator_operator(curr_token)) {
+      /* Cache and bypass the "*" or "&" or "&&" (or, in C++/CLI mode, the
+         "^" or "%"). */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;
@@ -948,7 +954,8 @@ part of a declarator is found, may_be_decl is set to FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_type_qualifier() ||
                curr_token == tok_ptr_to_member
-               or_is_microsoft_declarator_keyword() or_is_near_or_far()) {
+               or_is_microsoft_declarator_keyword(curr_token)
+               or_is_near_or_far()) {
       /* Cache and bypass any cv-qualifiers (including near or far in
          certain modes). */
       /* Cache and bypass any pointer to member operators. */

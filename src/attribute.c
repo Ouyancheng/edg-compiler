@@ -93,6 +93,13 @@ since attributes usually do not create new entries).
 
 #include "templates.h"
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define assert_not_handle_or_tracking_reference(tp)                         \
+  check_assertion(!cppcli_enabled ||                                        \
+                  (!is_handle_type(tp) && !is_tracking_reference_type(tp)))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define assert_not_handle_or_tracking_reference(tp)  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #define MAX_ATTRIBUTE_NAME_LENGTH 100
 
@@ -3365,6 +3372,9 @@ Otherwise, return NULL and issue a diagnostic if appropriate.
       unexpected_condition();
   }  /* switch */
   type = *p_type;
+  /* There are currently no attributes that apply to handles or tracked
+     references to functions. */
+  assert_not_handle_or_tracking_reference(type);
   if (is_function_type(type) ||
       (is_pointer_type(type) && is_function_type(type_pointed_to(type)))) {
     /* The normal case. */
@@ -3425,7 +3435,7 @@ return that entity.
       a_type_ptr  tp = aap->variant.type;
       check_assertion(ap->family == (a_byte_attribute_family)af_std);
       /* For references and/or arrays, use the underlying type. */
-      if (is_reference_type(tp)) tp = type_pointed_to(tp);
+      if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       if (is_function_type(tp)) {
         pos_error(ec_function_type_not_allowed, &aap->position);
@@ -4498,6 +4508,7 @@ described by the format string.
       for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
         ++count;
         if (count == val[FMT_ARG]) {
+          assert_not_handle_or_tracking_reference(ptp->type);
           if (!(is_pointer_type(ptp->type) &&
                 is_character_type(type_pointed_to(ptp->type)))) {
             pos_error(ec_fmt_arg_is_not_string,
@@ -4568,6 +4579,7 @@ it and return the entity.
         }  /* if */
         for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
           ++count;
+          assert_not_handle_or_tracking_reference(ptp->type);
           if (count == arg_num &&
               !(is_pointer_type(ptp->type) &&
                 is_character_type(type_pointed_to(ptp->type)))) {
@@ -4978,6 +4990,7 @@ parameter has a nonpointer type).
 
   for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next, ++p) {
     a_boolean  is_ptr = is_pointer_type(ptp->type);
+    assert_not_handle_or_tracking_reference(ptp->type);
     if (p == param_num || (param_num == 0 && is_ptr)) {
       /* We have have found the specific indicated parameter, or this is a
          parameter of pointer type and all such parameters should be marked
@@ -6052,7 +6065,7 @@ return that entity).
   a_routine_ptr  rp = (a_routine*)entity;
 
   check_assertion(entity_kind == iek_routine);
-  if (is_pointer_type(return_type_of(rp->type))) {
+  if (is_pointer_or_handle_type(return_type_of(rp->type))) {
     rp->decl_modifiers |= DM_RESTRICT;
   } else {
     pos_error(ec_bad_declspec_restrict_return, &ap->position);

@@ -2003,6 +2003,18 @@ ec_visibility_specifier_requires_definition;;"a top-level visibility specifier r
 ec_trivial_reference_property;;"a trivial property cannot have a reference type"
 ec_trivial_const_or_volatile_property;;"a trivial property cannot have a const or volatile type"
 ec_incompatible_enum_kinds;;"%nd was previously declared as a different kind of enumeration type"
+ec_lambda_captures_managed_type;;"a variable captured by a lambda cannot have a managed type"
+ec_covariant_override_in_managed_class;;"virtual function overriding with a covariant return type is not allowed in a managed class type"
+ec_array_of_handle;;"array of handles is not allowed"
+ec_handle_to_array;;"handle to array is not allowed"
+ec_handle_to_function;;"handle to function is not allowed"
+ec_handle_to_void;;"handle to void is not allowed"
+ec_handle_to_address_type;;"handle to handle, pointer, or reference is not allowed"
+ec_tracking_reference_to_function;;"tracking reference to function is not allowed"
+ec_handle_not_allowed;;"a handle is not allowed here"
+ec_tracking_reference_not_allowed;;"a tracking reference is not allowed here"
+ec_invalid_ref_tracking_ref_combination;;"a tracking reference cannot be combined with an ordinary reference in this way"
+ec_static_storage_variable_with_managed_type;;"a variable with static storage duration cannot have a managed type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

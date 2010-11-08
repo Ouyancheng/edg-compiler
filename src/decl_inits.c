@@ -691,7 +691,7 @@ initialization.
   /* Make a pass over the remaining fields. */
   for (; fp != NULL; fp = fp->next) {
     tp = fp->type;
-    if (is_reference_type(tp)) {
+    if (is_any_reference_type(tp)) {
       /* Field is a reference -- an error should be put out. */
       init_info->any_uninitialized_const_or_ref_member = TRUE;
     } else if (C_mode() && is_const_qualified_type(tp)) {
@@ -3449,8 +3449,8 @@ returned set to TRUE.
       vp_type = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
     } else {
-      /* Only object types (except for VLAs) and incomplete arrays are
-         allowed to be initialized. */
+      /* Only object types (except for VLAs), incomplete arrays, and reference
+         types are allowed to be initialized. */
       if (is_complete_object_type(vp_type)) {
         /* Object type -- okay. */
       } else if (is_array_type(vp_type) &&
@@ -3458,7 +3458,7 @@ returned set to TRUE.
         /* Array type.  The is_incomplete_type test disallows arrays of
            incomplete struct/unions (which in C are possible as an
            extension). */
-      } else if (is_reference_type(vp_type)) {
+      } else if (is_any_reference_type(vp_type)) {
         /* Reference type -- okay. */
       } else {
         if (is_incomplete_type(vp_type)) {
@@ -4498,9 +4498,9 @@ initialized.  These are addressed in the course of the processing.
         /* This is not a copy constructor.  See if this is a field that
            requires an initializer. */
         tp = field->type;
-        if (is_reference_type(tp) || is_const_qualified_type(tp)) {
-          /* Ref-type fields and const and array-of-const fields require an
-             initializer. */
+        if (is_any_reference_type(tp) || is_const_qualified_type(tp)) {
+          /* Reference-type fields and const and array-of-const fields require
+             an initializer. */
         } else {
           tp = skip_typerefs(tp);
           if (is_array_type(tp)) {
@@ -5090,13 +5090,14 @@ scan_paren:
           } else {
             /* A field whose initialization does not involve a constructor. */
             if (curr_token == tok_rparen) {
-              if (is_reference_type(init_type)) {
-                /* Error.  A reference type may not be default-initialized
-                   (8.5 [dcl.init], which says it's a no-op, and 8.5.3
-                   [dcl.init.ref], which says that the initializer must
-                   be an object. */
+              if (is_any_reference_type(init_type)) {
+                /* Error.  A reference type may not be default-initialized. */
                 a_constant_ptr  cp;
-
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                /* Fields cannot be tracking references. */
+                check_assertion(!cppcli_enabled ||
+                                !is_tracking_reference_type(tp));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 error(ec_default_init_of_reference);
                 /* Create a fake initializer to represent the error. */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
@@ -5363,7 +5364,7 @@ scan_paren:
         /* No copy constructor is required.  If any constructor exists, the
            default constructor should be called. */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
-            (is_reference_type(tp) || is_const_qualified)) {
+            (is_any_reference_type(tp) || is_const_qualified)) {
           /* Ref-type field or const-qualified field but no initializer. */
           if (is_union_type(class_type)) {
             /* We don't issue diagnostics on initializing union members,
@@ -5394,7 +5395,9 @@ scan_paren:
               end_of_uninit_list->next = cip;
             }  /* if */
             end_of_uninit_list = cip;
-            if (is_reference_type(tp)) any_ref_member_on_uninit_list = TRUE;
+            if (is_any_reference_type(tp)) {
+              any_ref_member_on_uninit_list = TRUE;
+            }  /* if */
             continue;
           }  /* if */
         }  /* if */
@@ -5544,9 +5547,12 @@ scan_paren:
                                                    source_corresp.assoc_info);
     }  /* if */
     for (cip = uninit_list; cip != NULL; cip = cip->next) {
-      a_symbol_ptr field_sym = (a_symbol_ptr)cip->variant.field->
-                                                   source_corresp.assoc_info;
-      if (is_reference_type(cip->variant.field->type)) {
+      a_symbol_ptr field_sym = symbol_for(cip->variant.field);
+      if (is_any_reference_type(cip->variant.field->type)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* Fields cannot be tracking references. */
+        check_assertion(!cppcli_enabled || !is_tracking_reference_type(tp));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         sym_add_diag_info(ec_reference_member, field_sym);
       } else {
         /* Must be a const member. */
@@ -5858,7 +5864,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
     /* This must be a "new" expression. */
     vp = NULL;
   }  /* if */
-  if (is_reference_type(type)) {
+  if (is_any_reference_type(type)) {
     /* Note that a reference type object cannot be produced by new. */
     /* coverity[var_deref_op] */
     if (vp->storage_class != (a_storage_class)sc_extern) {
