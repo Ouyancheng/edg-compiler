@@ -4069,7 +4069,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
           if (curr_token == tok_excl_or) { 
             /* "^" for handle. */
-            if (temp_type->kind == tk_pointer) {
+            if (temp_type->kind == (a_type_kind)tk_pointer) {
               /* A handle cannot point to any kind of pointer/handle or
                  reference type. */
               pos_error(ec_handle_to_address_type, &pos_curr_token);
@@ -5906,7 +5906,7 @@ function_lparen:
         derived_type = error_type();
       } else {
         a_boolean  tracking_ref = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLWOED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         tracking_ref = bottom_derived_type->variant.pointer.is_handle;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         derived_type =
