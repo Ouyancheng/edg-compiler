@@ -16733,6 +16733,37 @@ Do IL lowering of the indicated "for" statement and everything under it.
   }  /* if */
 }  /* lower_for_statement */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void lower_asm_expr(an_expr_node_ptr expr)
+/*
+Lower an expression that appears as part of a GNU asm statement.  Such
+expressions are somewhat unique in that they aren't quite top-level expressions
+(their values are used), but they can be (when gnu_version < 40000)
+C++-style lvalues.  A top-level C++-style lvalue needs to be rewritten as
+a C-style lvalue, but neither lower_full_expr (which assumes the value is
+not needed) nor lower_expr (which won't re-write a top-most C++-style lvalue)
+fit the bill.
+*/
+{
+  an_expr_node_ptr orig_expr = NULL;
+
+  lower_expr(expr);
+  if (is_operation_node(expr) &&
+      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+    /* Add an operation on top of this C++-style lvalue so that it will be
+       properly changed to a C-style lvalue during the lowering post pass. */
+    orig_expr = expr;
+    expr = add_address_of_to_node(expr);
+  }  /* if */
+  perform_post_pass_on_lowered_expression(expr);
+  if (orig_expr != NULL) {
+    /* Undo the address_of operation by performing an indirection. */
+    overwrite_node(orig_expr, add_indirection_to_node(copy_node(expr)));
+  }  /* if */
+}  /* lower_asm_expr */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- statement is not used in that case. */
@@ -16749,17 +16780,7 @@ under it.  Used in both C++ and C mode.
     an_asm_entry_ptr   aep = statement->variant.asm_entry;
     an_asm_operand_ptr aop;
     for (aop = aep->operands; aop != NULL; aop = aop->next) {
-      lower_expr(aop->expression);
-      if (is_operation_node(aop->expression) &&
-          aop->expression->variant.operation.
-                                      returns_lvalue_instead_of_usual_rvalue) {
-        /* Early versions of gcc allowed lvalue operations in asm statements;
-           convert these to a rvalues. */
-        overwrite_node(aop->expression,
-                       rvalue_expr_for_lvalue(aop->expression));
-      }  /* if */
-      /* Perform a lowering post pass on this expression. */
-      perform_post_pass_on_lowered_expression(aop->expression);
+      lower_asm_expr(aop->expression);
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

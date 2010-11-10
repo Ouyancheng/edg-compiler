@@ -36,19 +36,16 @@ so we have turned the emulation off for corresponding values of gnu_version.
     (i, j) = 1;  // Now an error in gcc mode with gnu_version >= 40000
   }
 
-Additionally, a change has been made when lowering asm statements that
-contain lvalue producing expressions (e.g., when gnu_version < 40000) to
-convert these lvalue expressions to rvalue expressions.  For example:
+Additionally, a change has been made when lowering asm statements that contain
+C++-style lvalue producing expressions (e.g., when gnu_version < 40000) to
+convert these lvalue expressions to C-style lvalue expressions.  For example,
+this case had caused an "lvalue-returning operation" assertion failure, but now
+compiles without error:
 
   void f() {
     int b = 10, i = 0, q;
     asm("mov %1,%0":"=r"(i,q) : "r"(b));
   }
-
-In this case, the resulting output now matches the input (it had caused
-an "lvalue-returning operation" assertion failure), but note that
-later versions of gcc (i.e., 3.4 and later) will refuse to compile the
-generated intermediate C code.
 
 
 11/2/10  [EDGcpfe/11105]
