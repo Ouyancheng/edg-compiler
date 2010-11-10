@@ -8306,6 +8306,14 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled) {
+    /* Define a macro that indicates that C++/CLI is enabled. */
+    (void)enter_predef_macro("200509L", "__cplusplus_cli",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Enter system specific macros and assertions. */
   enter_system_specific_predefined_macros_and_assertions();
   /* Look for a file containing predefined macro definitions. */
