@@ -16750,6 +16750,16 @@ under it.  Used in both C++ and C mode.
     an_asm_operand_ptr aop;
     for (aop = aep->operands; aop != NULL; aop = aop->next) {
       lower_expr(aop->expression);
+      if (is_operation_node(aop->expression) &&
+          aop->expression->variant.operation.
+                                      returns_lvalue_instead_of_usual_rvalue) {
+        /* Early versions of gcc allowed lvalue operations in asm statements;
+           convert these to a rvalues. */
+        overwrite_node(aop->expression,
+                       rvalue_expr_for_lvalue(aop->expression));
+      }  /* if */
+      /* Perform a lowering post pass on this expression. */
+      perform_post_pass_on_lowered_expression(aop->expression);
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
