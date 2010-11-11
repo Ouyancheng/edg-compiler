@@ -3184,7 +3184,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     if (cli_type_kind != (a_cli_class_type_kind)cctk_standard &&
         is_local_class) {
       /* A C++/CLI managed class type must have a name. */
-      pos_error(ec_unnamed_cli_managed_class_type, &pos_curr_token);
+      pos_error(ec_local_cli_managed_class_type, &pos_curr_token);
       err = TRUE;
     }  /* if */
     /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++
