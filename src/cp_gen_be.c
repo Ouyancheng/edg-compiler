@@ -4321,8 +4321,7 @@ al_tag_name attributes (if any).
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    char                         *tag_kind_str = tag_keyword(type);
-    a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+    char  *tag_kind_str = tag_keyword(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The Microsoft compiler mangles standard class and struct types
        differently (but does not make that distinction for C++/CLI managed
@@ -4334,9 +4333,9 @@ al_tag_name attributes (if any).
         !is_managed_class_type_entry(type) &&
         /* Part of the point of the following test is to preserve
            __interface. */
-        type->kind != ctsp->orig_type_kind &&
+        type->kind != class_type_supp(type)->orig_type_kind &&
         !type->has_been_declared) {
-      tag_kind_str = tag_kind(ctsp->orig_type_kind);
+      tag_kind_str = tag_kind(class_type_supp(type)->orig_type_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     write_tok_str(tag_kind_str);
