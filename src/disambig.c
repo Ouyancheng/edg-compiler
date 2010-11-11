@@ -721,6 +721,12 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_typename:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
+      case tok_value_struct:
+      case tok_value_class:
+      case tok_ref_struct:
+      case tok_ref_class:
+      case tok_interface_struct:
+      case tok_interface_class:
       case tok_enum_class:
       case tok_enum_struct:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

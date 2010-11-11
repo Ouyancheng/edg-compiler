@@ -882,6 +882,9 @@ extern a_type_ptr make_handle_type(a_type_ptr type_pointed_to);
 extern a_type_ptr make_tracking_reference_type(a_type_ptr type_pointed_to);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_type_ptr make_type_of_this(a_type_ptr            class_type,
+                                    a_type_qualifier_set  qualifiers);
+
 extern a_type_ptr make_reference_to_reference(
                                           a_type_ptr            base_ref_type,
                                           a_boolean             rvalue_ref,

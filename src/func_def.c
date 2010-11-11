@@ -460,8 +460,7 @@ routine type, and return a pointer to it.
   /* The implicit this parameter is a pointer type that is not const
      qualified as far as the interface is concerned.  The variable, however,
      does get a const qualifier. */
-  this_type = make_qualified_type(rtsp->this_class, rtsp->qualifiers);
-  this_type = make_pointer_type(this_type);
+  this_type = make_type_of_this(rtsp->this_class, rtsp->qualifiers);
   this_type = make_qualified_type(this_type, TQ_CONST | rtsp->this_qualifiers);
   vp = make_param_variable(this_type, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;

@@ -5990,6 +5990,20 @@ EXTERN an_inheritance_kind
 			   class is set, in the absence of an explicit
 			   specification, if the class is used in a
 			   pointer-to-member declaration. */
+
+/*
+Class type kinds to distinguish the various kinds of C++/CLI class types.
+*/
+enum a_cli_class_type_kind_tag {
+  cctk_standard,	/* Standard classes, structs, and unions. */
+  cctk_value,		/* C++/CLI value classes and structs. */
+  cctk_ref,		/* C++/CLI ref classes and structs. */
+  cctk_interface	/* C++/CLI interface classes and structs. */
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_cli_class_type_kind;
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if DO_IL_LOWERING && IA64_ABI
@@ -6156,6 +6170,11 @@ typedef struct a_class_type_supplement {
   a_bit_field   assembly_visibility:2;
                         /* Visibility of this type at the assembly level.
 			   (C++/CLI only.) */
+  a_bit_field   cli_class_type_kind:2;
+                        /* The class type kind of this class.  In non-C++/CLI
+			   modes, it is always cctk_standard.  In C++/CLI mode,
+			   other kinds of classes (e.g., "ref classes") are
+			   possible: See a_cli_class_type_kind. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

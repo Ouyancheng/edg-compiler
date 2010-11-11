@@ -2613,6 +2613,41 @@ interface types from struct types: Use tag_keyword to do so.
   return str;
 }  /* tag_kind */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static char *cli_managed_class_tag_keyword(a_type_ptr type)
+/*
+Return a string that describes the tag kind for the indicated CLI class type.
+The caller should have already determined that type is a CLI class type.
+*/
+{
+  char                         *result;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+
+  switch (type->kind) {
+    case tk_class:
+      switch (ctsp->cli_class_type_kind) {
+        case cctk_ref:       result = "ref class";       break;
+        case cctk_value:     result = "value class";     break;
+        case cctk_interface: result = "interface class"; break;
+        default:             unexpected_condition();
+      }  /* switch */
+      break;
+    case tk_struct:
+      switch (ctsp->cli_class_type_kind) {
+        case cctk_ref:       result = "ref struct";        break;
+        case cctk_value:     result = "value struct";      break;
+        case cctk_interface: result = "interface struct";  break;
+        default:             unexpected_condition();
+      }  /* switch */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* cli_managed_class_tag_keyword */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static char *tag_keyword(a_type_ptr type)
 /*
@@ -2627,6 +2662,9 @@ Return a string that describes the tag kind for the indicated type (i.e.,
       type->variant.class_struct_union.is_interface) {
     check_assertion(type->kind == (a_type_kind)tk_struct);
     result = "__interface";
+  } else if (type->kind != (a_type_kind)tk_enum &&
+             is_managed_class_type_entry(type)) {
+    result = cli_managed_class_tag_keyword(type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -4283,20 +4321,22 @@ al_tag_name attributes (if any).
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    char *tag_kind_str = tag_keyword(type);
+    char                         *tag_kind_str = tag_keyword(type);
+    a_class_type_supplement_ptr  ctsp = class_type_supp(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* The Microsoft compiler mangles class and struct types differently,
-       and the kind used on the initial declaration is the important one.
-       If this is the initial declaration, put out the proper original kind. */
+    /* The Microsoft compiler mangles standard class and struct types
+       differently (but does not make that distinction for C++/CLI managed
+       class types), and the kind used on the initial declaration is the
+       important one.  If this is the initial declaration, put out the proper
+       original kind. */
     if (il_header.source_language == sl_Cplusplus &&
         type->kind != (a_type_kind)tk_enum &&
-        /* Part of the point of the following test is to
-           preserve __interface. */
-        type->kind != type->variant.class_struct_union.extra_info->
-                                                              orig_type_kind &&
+        !is_managed_class_type_entry(type) &&
+        /* Part of the point of the following test is to preserve
+           __interface. */
+        type->kind != ctsp->orig_type_kind &&
         !type->has_been_declared) {
-      tag_kind_str =
-         tag_kind(type->variant.class_struct_union.extra_info->orig_type_kind);
+      tag_kind_str = tag_kind(ctsp->orig_type_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     write_tok_str(tag_kind_str);

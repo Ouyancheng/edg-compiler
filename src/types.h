@@ -111,6 +111,10 @@ extern a_boolean is_any_ptr_or_ref_type(a_type_ptr tp);
 extern a_boolean is_handle_type(a_type_ptr tp);
 extern a_boolean is_tracking_reference_type(a_type_ptr tp);
 extern a_boolean is_cli_managed_type(a_type_ptr tp);
+#define cli_class_type_kind_is(tp, cctk)                                     \
+  (class_type_supp(tp)->cli_class_type_kind == (a_cli_class_type_kind)(cctk))
+#define is_managed_class_type_entry(tp)                                      \
+  (cppcli_enabled && !cli_class_type_kind_is((tp), cctk_standard))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
 extern a_boolean is_array_type(a_type_ptr tp);

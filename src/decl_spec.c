@@ -2811,18 +2811,19 @@ set to indicate whether or not this specifier declares something, and
 defined.  Detailed position information is recorded in *decl_pos_block.
 */
 {
-  a_symbol_kind           tag_kind;
+  a_symbol_kind           tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
   a_type_kind             type_kind;
   a_symbol_locator        locator;
   a_symbol_ptr            tag_sym, error_tag_sym = NULL;
   a_symbol_ptr            parent_sym;
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
-  a_boolean               is_local_class = FALSE;
+  a_boolean               is_local_class = FALSE, class_key_is_missing = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
   a_boolean               is_abstract = FALSE, is_sealed = FALSE;
   an_assembly_visibility  cli_visibility;
+  a_cli_class_type_kind   cli_type_kind = (a_cli_class_type_kind)cctk_standard;
   a_source_position       cli_visibility_pos;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean               is_template_class_instantiation = FALSE;
@@ -2890,21 +2891,69 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_class_type_keyword(curr_token)) {
-    /* Skip over "class", "struct", or "union", remembering which appears.
-       In Microsoft mode, we may also encounter "__interface", which is a
-       special kind of "struct". */
-    if (curr_token == tok_union) {
+  /* Skip over "class", "struct", or "union", remembering which appears.
+     In Microsoft modes, other possibilities exist (e.g., "__interface" or,
+     in C++/CLI, "ref class"). */
+  switch (curr_token) {
+    case tok_struct:
+      type_kind = (a_type_kind)tk_struct;
+      break;
+    case tok_class:
+      type_kind = (a_type_kind)tk_class;
+      break;
+    case tok_union:
       tag_kind = (a_symbol_kind)sk_union_tag;
       type_kind = (a_type_kind)tk_union;
-    } else {
-      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-      type_kind = (a_type_kind)(curr_token == tok_class ?
-                                                    tk_class : tk_struct);
+      break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      is_interface = (curr_token == tok_interface);
+    case tok_interface:
+      /* The Microsoft C++ "__interface" keyword (not to be confused with the
+         C++/CLI "interface class" and "interface struct" keywords. */
+      type_kind = (a_type_kind)tk_struct;
+      is_interface = TRUE;
+      break;
+    case tok_value_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_value;
+      break;
+    case tok_value_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_value;
+      break;
+    case tok_ref_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      break;
+    case tok_ref_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      break;
+    case tok_interface_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_interface;
+      break;        
+    case tok_interface_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_interface;
+      break;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
+    default:
+      /* No "class", "struct", "union", or similar keyword.  This only occurs
+         with a friend class declaration like "friend A;". */
+      /* class_specifier is called with is_friend_decl TRUE only when the name
+         has not yet been declared; this happens in cfront compatibility mode
+         only.  Default kind is "class" when a class is introduced by a friend
+         declaration.   (In fact, there is a slight incompatibility here, since
+         in cfront 2.1 this can also be turned into a union declaration.) */
+      class_key_is_missing = TRUE;
+      check_assertion(is_friend_decl &&
+                      curr_token == tok_identifier &&
+                      locator_for_curr_id.has_been_coalesced);
+      tag_id_present = TRUE;
+      tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
+      type_kind = (a_type_kind)tk_class;
+  }  /* switch */
+  if (!class_key_is_missing) {
     (void)get_token();
     dps->tag_attributes = scan_attributes(al_tag_name);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
@@ -2934,18 +2983,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                      (curr_token == tok_colon_colon &&
                       next_token() == tok_identifier) ||
                      curr_token == tok_operator;        /* Error case. */
-  } else {
-    /* class_specifier is called with is_friend_decl TRUE only when the name
-       has not yet been declared; this happens in cfront compatibility mode
-       only.  Default kind is "class" when a class is introduced by a friend
-       declaration.   (In fact, there is a slight incompatibility here, since
-       in cfront 2.1 this can also be turned into a union declaration.) */
-    check_assertion(is_friend_decl &&
-                    curr_token == tok_identifier &&
-                    locator_for_curr_id.has_been_coalesced);
-    tag_id_present = TRUE;
-    tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-    type_kind = (a_type_kind)tk_class;
   }  /* if */
   if (tag_id_present) {
     /* It seems that appearance of a tag name is a declaration of the
@@ -3118,6 +3155,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         type_kind = (a_type_kind)tk_struct;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cli_type_kind != (a_cli_class_type_kind)cctk_standard) {
+        /* A C++/CLI managed class type must have a name. */
+        pos_error(ec_unnamed_cli_managed_class_type, &pos_curr_token);
+        err = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Neither the tag id nor the {...} is present.  This is an error. */
       if (scope_stack[depth_scope_stack].kind ==
@@ -3136,10 +3180,18 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++ by
-     recent Microsoft C++ compilers). */
-  if (microsoft_mode && microsoft_version >= 1400) {
-    scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
+  if (microsoft_mode) {
+    if (cli_type_kind != (a_cli_class_type_kind)cctk_standard &&
+        is_local_class) {
+      /* A C++/CLI managed class type must have a name. */
+      pos_error(ec_unnamed_cli_managed_class_type, &pos_curr_token);
+      err = TRUE;
+    }  /* if */
+    /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++
+       by recent Microsoft C++ compilers). */
+    if (microsoft_version >= 1400) {
+      scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_removed_template_body) {
@@ -3470,6 +3522,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
        added to the function scope's types list. */
     class_type = alloc_type(type_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Indicate special Microsoft variations as appropriate (including C++/CLI
+       managed class types). */
     if (is_interface) {
       if (is_local_class) {
         pos_error(ec_interface_cannot_be_local, &decl_start_pos);
@@ -3477,6 +3531,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         class_type->variant.class_struct_union.is_interface = TRUE;
         class_type->variant.class_struct_union.abstract = TRUE;
       }  /* if */
+    } else if (cli_type_kind != (a_cli_class_type_kind)cctk_standard) {
+      class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (scope_stack[effective_decl_level].kind ==
@@ -3590,11 +3646,20 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     a_class_type_supplement_ptr  ctsp;
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;
+    ctsp = class_type_supp(class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_interface != class_type->variant.class_struct_union.is_interface) {
-      /* Diagnose inconsistent use of the "__interface" keyword. */
-      check_interface_redeclaration(tag_sym, tag_kind, &is_interface,
-                                    is_class_definition, &tag_position);
+    if (microsoft_mode) {
+      if (is_interface !=
+                        class_type->variant.class_struct_union.is_interface) {
+        /* Diagnose inconsistent use of the "__interface" keyword. */
+        check_interface_redeclaration(tag_sym, tag_kind, &is_interface,
+                                      is_class_definition, &tag_position);
+      }  /* if */
+      if (cli_type_kind != ctsp->cli_class_type_kind) {
+        /* Diagnose inconsistent C++/CLI class type kinds. */
+        pos_sy_error(ec_conflicting_cli_class_type_kinds, &tag_position,
+                     tag_sym);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (!is_template_specific_decl || !(*declares_something)) {
@@ -3626,7 +3691,6 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
     }  /* if */
     /* Record cross-reference information. */
-    ctsp = class_type_supp(class_type);
     if (!is_friend_decl && !locator.is_template_id &&
         is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
         class_type->variant.class_struct_union.is_prototype_instantiation &&
@@ -8281,10 +8345,16 @@ storage_class_specifier:
         break;
       case tok_class:
       case tok_struct:
+      case tok_union:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
+      case tok_value_struct:
+      case tok_value_class:
+      case tok_ref_struct:
+      case tok_ref_class:
+      case tok_interface_struct:
+      case tok_interface_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case tok_union:
 process_class_specifier:
         /* A struct or union specifier (3.5.2.1). */
         if (!type_specifier_allowed) {

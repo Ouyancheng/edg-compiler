@@ -178,12 +178,28 @@ Microsoft __interface specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Macro to be used in conjunction with is_class_type_keyword to check for
+C++/CLI keywords that start a class type (these keywords are unusual because
+they contain white space).
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define or_is_cli_class_type_keyword(tok)                                 \
+  || (cppcli_enabled &&                                                   \
+      ((tok) == tok_interface_class  || (tok) == tok_interface_struct ||  \
+       (tok) == tok_ref_class        || (tok) == tok_ref_struct       ||  \
+       (tok) == tok_value_class      || (tok) == tok_value_struct))
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_is_cli_class_type_keyword(tok) /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Macro that is TRUE if the given token can introduce an elaborated class type
 specifier.
 */
 #define is_class_type_keyword(tok)                                    \
   ((tok) == tok_struct || (tok) == tok_union ||                       \
-   (tok) == tok_class  or_is_interface_keyword(tok))
+   (tok) == tok_class  or_is_interface_keyword(tok)                   \
+   or_is_cli_class_type_keyword(tok))
 
 /*
 Macro that is TRUE if the given token can introduce an elaborated enum type

@@ -3017,6 +3017,8 @@ loading of classes.
         if (cppcli_enabled) {
           ctsp->assembly_visibility =
                              class_type_supp(proto_type)->assembly_visibility;
+          ctsp->cli_class_type_kind =
+                             class_type_supp(proto_type)->cli_class_type_kind;
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12969,6 +12971,12 @@ diagnostics can be inhibited by setting diagnose to FALSE.
       case tok_union:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
+      case tok_value_struct:
+      case tok_value_class:
+      case tok_ref_struct:
+      case tok_ref_class:
+      case tok_interface_struct:
+      case tok_interface_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* These are the possible valid tokens: continue normal parsing. */
         goto done;
@@ -13247,6 +13255,7 @@ declaration of a partial specialization declared outside of its class.
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
   a_boolean                         is_interface = FALSE;
+  a_cli_class_type_kind             cli_type_kind;
   an_assembly_visibility            cli_visibility;
   a_source_position                 cli_visibility_pos; 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13283,22 +13292,54 @@ declaration of a partial specialization declared outside of its class.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (curr_token == tok_interface) {
-    if (decl_state->is_member_decl) {
-      error(ec_interface_cannot_be_nested_class);
-    } else {
-      is_interface = TRUE;
-    }  /* if */
-    /* Proceed as if this were a struct. */
-    curr_token = tok_struct;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   switch (curr_token) {
-    case tok_class:  type_kind = (a_type_kind)tk_class;  break;
-    case tok_struct: type_kind = (a_type_kind)tk_struct; break;
-    case tok_union:  type_kind = (a_type_kind)tk_union;  break;
-    default:         unexpected_condition();
+    case tok_struct:
+      type_kind = (a_type_kind)tk_struct;
+      break;
+    case tok_class:
+      type_kind = (a_type_kind)tk_class;
+      break;
+    case tok_union:
+      type_kind = (a_type_kind)tk_union;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_interface:
+      /* The Microsoft C++ "__interface" keyword (not to be confused with the
+         C++/CLI "interface class" and "interface struct" keywords. */
+      type_kind = (a_type_kind)tk_struct;
+      if (decl_state->is_member_decl) {
+        pos_error(ec_interface_cannot_be_nested_class, &pos_curr_token);
+      } else {
+        is_interface = TRUE;
+      }  /* if */
+      break;
+    case tok_value_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_value;
+      break;
+    case tok_value_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_value;
+      break;
+    case tok_ref_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      break;
+    case tok_ref_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      break;
+    case tok_interface_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_interface;
+      break;        
+    case tok_interface_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_interface;
+      break;        
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Set the specifiers end position here; it will be overwritten later unless
@@ -13684,6 +13725,18 @@ friend_template_checks_done:
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
         err = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled && !err) {
+        a_type_ptr  class_type = 
+                          tssp->variant.class_template.prototype_instantiation
+                              ->variant.type.ptr;
+        if (class_type_supp(class_type)->cli_class_type_kind !=
+                                                              cli_type_kind) {
+          pos_sy_error(ec_conflicting_cli_class_template_kinds,
+                       &locator.source_position, sym);
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (decl_state->decl_scope_err) err = TRUE;
       if ((is_definition || is_redecl) && sym != NULL) {
         /* Either a definition or a redeclaration.  Make sure the template
@@ -13902,6 +13955,7 @@ friend_template_checks_done:
       a_type_ptr  class_type = 
                           tssp->variant.class_template.prototype_instantiation
                               ->variant.type.ptr;
+      class_type_supp(class_type)->cli_class_type_kind = cli_type_kind;
       set_cli_visibility(class_type, cli_visibility, &cli_visibility_pos,
                          is_definition);
     }  /* if */

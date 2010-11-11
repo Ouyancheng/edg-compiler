@@ -477,6 +477,28 @@ Display the indicated assembly visibility with a name.
   }  /* if */
 }  /* disp_assembly_visibility */
 
+
+static void disp_cli_class_type_kind(char                   *name,
+                                     a_cli_class_type_kind  cctk)
+/*
+Display the indicated C++/CLI class kind with a name.
+*/
+{
+
+  if (il_header.cppcli_enabled) {
+    char  *s;
+    disp_name(name);
+    switch (cctk) {
+      case cctk_standard:     s = "cctk_standard\n";         break;
+      case cctk_value:        s = "cctk_value\n";            break;
+      case cctk_ref:          s = "cctk_ref\n";              break;
+      case cctk_interface:    s = "cctk_interface\n";        break;
+      default:                s = "**BAD C++/CLI CLASS TYPE KIND**\n";
+    }  /* switch */  
+    (void)printf("%s", s);
+  }  /* if */
+}  /* disp_cli_class_type_kind */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void disp_name_linkage(char                 *name,
@@ -5501,6 +5523,7 @@ Display the indicated class type supplement entry.
     disp_boolean("has_direct_property_member", TRUE);
   }  /* if */
   disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
+  disp_cli_class_type_kind("cli_class_type_kind", ptr->cli_class_type_kind);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

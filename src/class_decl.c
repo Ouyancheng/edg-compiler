@@ -5723,6 +5723,7 @@ diagnostics that can be emitted based on this information.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (type_ptr->variant.class_struct_union.is_interface) {
             error(ec_interface_cannot_have_private_or_protected);
+            *access = (an_access_specifier)as_public;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
@@ -14251,12 +14252,17 @@ one is found return TRUE and update state->access accordingly.
       state->access = (an_access_specifier)as_private;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode &&
-        (curr_token == tok_protected || curr_token == tok_private)) {
-      if (state->class_type->variant.class_struct_union.is_interface) {
-        error(ec_interface_cannot_have_private_or_protected);
-      } else {
-        state->potentially_interface_like = FALSE;
+    if (microsoft_mode) {
+      a_type_ptr  class_type = state->class_type;
+      if (curr_token == tok_protected || curr_token == tok_private) {
+        if (class_type->variant.class_struct_union.is_interface ||
+            (cppcli_enabled &&
+             cli_class_type_kind_is(class_type, cctk_interface))) {
+          error(ec_interface_cannot_have_private_or_protected);
+          state->access = (an_access_specifier)as_public;
+        } else {
+          state->potentially_interface_like = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14951,15 +14957,15 @@ function definition and cache its tokens if appropriate.
     /* The inline flag is set for friend functions in decl_friend_function,
        which also handles cases in which it should be left unset despite the
        presence of a function body. */
+  } else if (rout_sym->variant.routine.ptr->is_inline) {
+    /* The usual case: In-class member function definitions are
+       inline. */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rout_sym->variant.routine.ptr->never_inline) {
     /* An in-class definition may have been declared with the "noinline"
        attribute.  (Note: The Microsoft __declspec(noinline) attribute does
        not make a function non-inline.) */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  } else if (rout_sym->variant.routine.ptr->is_inline) {
-    /* The usual case: In-class member function definitions are
-       inline. */
   } else if (func_info->is_deleted || func_info->is_defaulted) {
     /* "= delete;" or "= default;" was encountered, but the routine entry is
        not marked as inline.  This can happen in error cases (the "= delete;"

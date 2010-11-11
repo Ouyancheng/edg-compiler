@@ -1357,6 +1357,8 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->inheritance_kind_is_explicit      = FALSE;
   ctsp->has_direct_property_member        = FALSE;
   ctsp->assembly_visibility               = (an_assembly_visibility)av_none;
+  ctsp->cli_class_type_kind               =
+                                         (a_cli_class_type_kind)cctk_standard;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

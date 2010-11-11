@@ -2015,6 +2015,10 @@ ec_handle_not_allowed;;"a handle is not allowed here"
 ec_tracking_reference_not_allowed;;"a tracking reference is not allowed here"
 ec_invalid_ref_tracking_ref_combination;;"a tracking reference cannot be combined with an ordinary reference in this way"
 ec_static_storage_variable_with_managed_type;;"a variable with static storage duration cannot have a managed type"
+ec_unnamed_cli_managed_class_type;;"a managed C++/CLI class type cannot be unnamed"
+ec_local_cli_managed_class_type;;"a managed C++/CLI class type cannot be local"
+ec_conflicting_cli_class_type_kinds;;"%nd was previously declared as a different kind of class"
+ec_conflicting_cli_class_template_kinds;;"%nd was previously declared as a different kind of class template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

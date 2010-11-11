@@ -849,8 +849,7 @@ Return TRUE if the given type is a C++/CLI managed type.
       break;
     case tk_class:
     case tk_struct:
-      /* FIXME: Update when managed classes are added. */
-      result = FALSE;
+      result = is_managed_class_type_entry(tp);
       break;
     default:
       result = FALSE;
