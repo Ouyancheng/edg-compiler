@@ -12166,8 +12166,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (namespace_ssep != NULL &&
         ss_entry_kind(namespace_ssep) == iek_src_seq_secondary_decl) {
-      ss_entry_ptr(namespace_ssep, a_src_seq_secondary_decl_ptr)
-                                                    ->attributes = attributes;
+      ss_entry_ptr(namespace_ssep, a_src_seq_secondary_decl_ptr)->attributes =
+                                           copy_of_attributes_list(attributes);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     attach_attributes(attributes, (char*)nsp, iek_namespace);

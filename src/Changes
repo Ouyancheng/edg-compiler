@@ -1,5 +1,24 @@
 Version 4.3
 
+11/11/10 [EDGcpfe/11143]
+Abort on namespace extension definition with GNU attributes
+
+In GNU C++ mode, version 4.2 introduced a bug when processing a namespace
+extension definition with a namespace attribute specification.  This bug
+could result in an internal error ("address not in any mem block") in
+pre_remap_function (il_read.c) in some configurations.  For most namespaces
+the abort occurred on the third definition of the namespace (but for
+predeclared namespaces, like std, it would occur on the second explicit
+definition).  For example:
+
+  namespace N __attribute(()) {}
+  namespace N __attribute(()) {}
+  namespace N __attribute(()) {}  // This definition triggered an abort in
+                                  // some configurations.
+
+This is now fixed.
+
+
 11/5/10  [EDGcpfe/11142]
 Microsoft compatibility: abort on class template that uses its own default
 argument
