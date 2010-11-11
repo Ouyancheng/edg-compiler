@@ -428,7 +428,7 @@ Display the indicated entity list and name.
       } else {
         (void)printf("%*c", Label_indent, ' ');
       }  /* if */
-      disp_ptr_value(ptr->entity.ptr, ptr->entity.kind);
+      disp_ptr_value(ptr->entity.ptr, (an_il_entry_kind)ptr->entity.kind);
       (void)printf("\n");
       /* Only display the list name for the first entry. */
       name = NULL;
