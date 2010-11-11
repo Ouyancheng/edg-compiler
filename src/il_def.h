@@ -1125,7 +1125,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__LPREFIX", "__identifier", "uuid",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
-   "interface", "ref", "value",
+   "ref", "value", "interface",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
