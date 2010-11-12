@@ -1746,7 +1746,7 @@ this is a helper function.
     state->return_type_pos = state->specifiers_pos;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && microsoft_version >= 1400 && 
+  if (microsoft_mode && (cppcli_enabled || microsoft_version >= 1400) && 
       parent_type != NULL && is_nonstatic_member) {
     scan_microsoft_function_modifiers(state, func_info);
   }  /* if */

@@ -6036,12 +6036,14 @@ is the one associated with the definition of the class.
              (a_boolean *)NULL);
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (type->variant.class_struct_union
+    if (microsoft_dialect_is_generated_code_target) {
+      if (type->variant.class_struct_union
                                      .defined_with_abstract_class_modifier) {
-      write_tok_str("abstract ");
-    }  /* if */
-    if (type->variant.class_struct_union.final) {
-      write_tok_str("sealed ");
+        write_tok_str("abstract ");
+      }  /* if */
+      if (type->variant.class_struct_union.final) {
+        write_tok_str("sealed ");
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

@@ -9224,7 +9224,7 @@ implicitly declared member functions.
         apply_microsoft_attributes(&decl_state->ms_attributes, (char*)rtn,
                                    (an_il_entry_kind)iek_routine, MSAT_METHOD);
       }  /* if */
-      if (microsoft_version >= 1400) {
+      if (microsoft_version >= 1400 || cppcli_enabled) {
         /* Record any function modifiers (they can only appear in the class-
            scope declaration). */
         rtn->final = func_info->sealed;

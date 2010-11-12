@@ -1033,7 +1033,8 @@ caution when modifying this routine.
       if (token_after_next == tok_semicolon) next_tok = tok_semicolon;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!C_mode() && microsoft_mode && microsoft_version >= 1400 &&
+    if (!C_mode() && microsoft_mode &&
+        (microsoft_version >= 1400 || cppcli_enabled) &&
         next_tok == tok_identifier && tag_kind != (a_symbol_kind)sk_enum_tag &&
         !is_ref_within_new_expr) {
       /* The next token is an identifier: It could be a declarator-id, or it
@@ -3189,7 +3190,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
     /* Record any class modifiers (a C++/CLI feature accepted in "normal" C++
        by recent Microsoft C++ compilers). */
-    if (microsoft_version >= 1400) {
+    if (microsoft_version >= 1400 || cppcli_enabled) {
       scan_microsoft_class_modifiers(type_kind, &is_abstract, &is_sealed);
     }  /* if */
   }  /* if */
