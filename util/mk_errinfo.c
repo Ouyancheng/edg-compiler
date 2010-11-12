@@ -125,7 +125,7 @@ to the number of characters read not including the trailing null character.
   a_boolean         result;
 
   while ((ch = getc(input_file)), ch != EOF && ch != '\n') {
-    if (++size > ME_INPUT_LINE_SIZE) {
+    if (++size > ME_INPUT_LINE_SIZE-1) {
       me_internal_error("me_read_input_line: input line too long.");
     }  /* if */
     *buffer_pos++ = ch;

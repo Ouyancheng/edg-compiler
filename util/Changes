@@ -1,5 +1,13 @@
 Version 4.3
 
+11/12/10 [EDGcpfe/11157]
+Potential buffer overrun issue in mk_errinfo
+
+An input buffer of exactly 32767 characters (not including the newline) had
+resulted in a buffer overrun.  This has now been fixed (resulting in an
+error message that the line is too long).
+
+
 10/29/10 [EDGcpfe/11063]
 Demangle encodings for C++/CLI handles and tracking references
 
