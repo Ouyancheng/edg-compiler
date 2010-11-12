@@ -4014,11 +4014,13 @@ Any diagnostics are issued at the given position.
   rout = rout_sym->variant.routine.ptr;
   rout->is_virtual = virtual_specified;
   registry_ptr = &class_state->override_registry;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && func_info->new_member) {
     /* Don't establish overriding of a base class member if the member
        function was declared "new". */
     goto done;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
   symbol_list = rout_sym->header->inactive_symbols;
