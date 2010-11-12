@@ -6500,11 +6500,14 @@ current token on entry.
 }  /* scan_address_of_label_expression */
 
 
-an_expr_node_ptr scan_asm_operand_expression(a_boolean output)
+/*ARGSUSED*/ /* FIXME: <- input is currently unused (EDGcpfe/11128). */
+an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
+                                             a_boolean input)
 /*
 Scan and return the expression associated with an asm operand.  This is similar
 to scan_integer_expression with slightly different checks.  output is TRUE for
-output operands.
+output operands; input is TRUE for input operands.  If both input and output
+are TRUE, the operand is first read from and then written to.
 */
 {
   an_expr_node_ptr    expression;

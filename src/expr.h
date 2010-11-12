@@ -205,7 +205,8 @@ void rescan_selector_of_call(a_rescan_control_block *rcblock,
                              an_operand_ptr         bound_function_selector);
 
 #if GNU_EXTENSIONS_ALLOWED
-an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
+an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
+                                             a_boolean input);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !STANDALONE_UTILITY_PROGRAM

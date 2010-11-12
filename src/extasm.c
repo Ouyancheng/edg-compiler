@@ -843,8 +843,15 @@ if we're scanning an output operand.
     /* Advance past string literal. */
     (void)get_token();
     if (required_token(tok_lparen, ec_exp_lparen)) {
+      a_boolean  input = !output;
+      if (output && constraint_string != NULL) {
+        /* A '+' in the constraint string of an output operand indicates a
+           read-modify-write instruction; i.e., the operand is first an input
+           operand and then an output operand. */
+        input = (strchr(constraint_string, '+') != NULL);
+      }  /* if */
       add_stop_token(tok_rparen);
-      expr = scan_asm_operand_expression(output);
+      expr = scan_asm_operand_expression(output, input);
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_stop_token(tok_rparen);
     }  /* if */
