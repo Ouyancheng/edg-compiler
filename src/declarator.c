@@ -1424,10 +1424,11 @@ class template scope.
 static void scan_microsoft_function_modifiers(a_decl_parse_state  *state,
                                               a_func_info_block   *func_info)
 /*
-Scan for function modifiers (like "sealed" or "abstract"; these are an ECMA
-C++/CLI extension also accepted by some Microsoft compilers in their non-CLI
-modes) and record their presence in *func_info.  *state describes some
-syntactic properties of the current declaration.
+Scan for function modifiers and record their presence in *func_info.  *state
+describes some syntactic properties of the current declaration.  ("sealed",
+"abstract", and "override" are an ECMA C++/CLI extension also accepted by some
+Microsoft compilers in their non-CLI modes; "new" is only accepted in C++/CLI
+mode.)
 */
 {
   for (;;) {
@@ -1452,6 +1453,12 @@ syntactic properties of the current declaration.
         error(ec_function_modifiers_abstract_and_sealed);
       } else {
         func_info->sealed = TRUE;
+      }  /* if */
+    } else if (cppcli_enabled && curr_token == tok_new) {
+      if (func_info->new_member) {
+        error(ec_duplicate_function_modifier);
+      } else {
+        func_info->new_member = TRUE;
       }  /* if */
     } else {
       break;

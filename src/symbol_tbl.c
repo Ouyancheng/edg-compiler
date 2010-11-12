@@ -11087,6 +11087,7 @@ Clear the fields of a function information block to default values.
   func_info->abstract                    = FALSE;
   func_info->override                    = FALSE;
   func_info->sealed                      = FALSE;
+  func_info->new_member                  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   func_info->is_asm_function             = FALSE;

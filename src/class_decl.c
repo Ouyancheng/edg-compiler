@@ -4014,6 +4014,11 @@ Any diagnostics are issued at the given position.
   rout = rout_sym->variant.routine.ptr;
   rout->is_virtual = virtual_specified;
   registry_ptr = &class_state->override_registry;
+  if (cppcli_enabled && func_info->new_member) {
+    /* Don't establish overriding of a base class member if the member
+       function was declared "new". */
+    goto done;
+  }  /* if */
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
   symbol_list = rout_sym->header->inactive_symbols;
@@ -9231,6 +9236,7 @@ implicitly declared member functions.
 #if BACK_END_IS_CP_GEN_BE
         rtn->abstract = func_info->abstract;
         rtn->override = func_info->override;
+        rtn->new_member = func_info->new_member;
 #endif /* BACK_END_IS_CP_GEN_BE */
       }  /* if */
     }  /* if */

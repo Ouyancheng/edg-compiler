@@ -1266,6 +1266,11 @@ typedef struct a_func_info_block {
 			/* TRUE if the function was declared with the C++/CLI
 			   "sealed" modifier (a context-sensitive keyword).
 			   Only set in some Microsoft C++ modes. */
+  a_bit_field	new_member:1;
+			/* TRUE if the function was declared with the C++/CLI
+			   "new" modifier, indicating that a member function
+			   does not override a virtual function from a base
+			   class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   a_bit_field	is_asm_function:1;

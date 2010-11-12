@@ -11506,6 +11506,9 @@ typedef struct a_routine {
   a_bit_field	override:1;
 			/* TRUE for a virtual member function that was
 			   declared with the function-modifier "override". */
+  a_bit_field	new_member:1;
+			/* TRUE for a member function that was declared with
+			   the function-modifier "new". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_bit_field	has_been_defined:1;

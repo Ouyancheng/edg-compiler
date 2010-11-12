@@ -10739,6 +10739,9 @@ is generated.
   if (rout->final) {
     write_tok_str(" sealed");
   }  /* if */
+  if (rout->new_member) {
+    write_tok_str(" new");
+  }  /* if */
 }  /* gen_microsoft_function_modifiers */
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */

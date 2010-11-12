@@ -2377,6 +2377,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->abstract                    = FALSE;
   rp->override                    = FALSE;
+  rp->new_member                  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rp->has_been_defined            = FALSE;

@@ -2978,6 +2978,9 @@ Display the indicated routine.
   if (ptr->override) {
     disp_boolean("override", TRUE);
   }  /* if */
+  if (ptr->new_member) {
+    disp_boolean("new_member", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->suppress_inline_body) {
