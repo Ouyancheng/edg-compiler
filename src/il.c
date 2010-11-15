@@ -1555,7 +1555,9 @@ Dump the contents of the indicated constant, for debug purposes.
   } else {
     an_il_to_str_output_control_block octl;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (cp->is_literal_field) fputs("literal ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Set up for use of form_constant. */
     clear_il_to_str_output_control_block(&octl);
     octl.output_str = put_str_to_f_debug;
