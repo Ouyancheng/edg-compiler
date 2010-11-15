@@ -6,7 +6,7 @@ Abort on namespace extension definition with GNU attributes
 In GNU C++ mode, version 4.2 introduced a bug when processing a namespace
 extension definition with a namespace attribute specification.  This bug
 could result in an internal error ("address not in any mem block") in
-pre_remap_function (il_read.c) in some configurations.  For most namespaces
+ptr_remap_function (il_read.c) in some configurations.  For most namespaces
 the abort occurred on the third definition of the namespace (but for
 predeclared namespaces, like std, it would occur on the second explicit
 definition).  For example:
