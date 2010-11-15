@@ -1019,6 +1019,11 @@ Display the indicated constant entry.
   if (ptr->uses_designated_initializers) {
     disp_boolean("uses_designated_initializers", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_literal_field) {
+    disp_boolean("is_literal_field", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
@@ -2357,6 +2362,11 @@ Display the indicated variable.
   if (ptr->is_parameter_pack) {
     disp_boolean("is_parameter_pack", TRUE);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_initonly) {
+    disp_boolean("is_initonly", TRUE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->embedded_source_sequence_entries) {
     disp_boolean("embedded_source_sequence_entries", TRUE);

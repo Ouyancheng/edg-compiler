@@ -10144,6 +10144,82 @@ respectively.
   db_exit();
 }  /* decl_nonstd_member_constant */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void decl_literal_field(a_symbol_locator        *locator,
+                               a_class_def_state_ptr   class_state,
+                               a_member_decl_info_ptr  decl_info)
+/*
+Do processing for a C++/CLI literal field, including scanning the initializer
+constant and entering the name in the symbol table.
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_decl_parse_state  *dps = &decl_info->decl_state;
+  a_type_ptr          member_type = dps->type;
+
+  db_enter(3, "decl_literal_field");
+  if (cli_class_type_kind_is(class_type, cctk_standard)) {
+    pos_error(ec_literal_requires_managed_class, &dps->declarator_pos);
+  }  /* if */
+  if (curr_token != tok_assign) {
+    syntax_error(ec_literal_without_initializer);
+  } else {
+    a_constant_ptr     constant;
+    a_source_position  init_pos = pos_curr_token;
+    dps->has_initializer = TRUE;
+    /* Record the starting position of the initialization */
+    decl_info->decl_pos_block.var_init_range.start = pos_curr_token;
+    /* Advance past the "=". */
+    (void)get_token();
+    if (dps->auto_type_specifier_seen && !is_error_type(member_type)) {
+      prescan_initializer_for_auto_type_deduction(dps);
+      member_type = dps->type;
+    }  /* if */
+    if (is_scalar_type(member_type) || is_template_param_type(member_type)) {
+      if (is_const_qualified_type(member_type)) {
+        /* "const" is useless on a C++/CLI literal field declaration. */
+        a_source_position  *diag_pos = &dps->qualifiers_pos;
+        if (!(dps->qualifiers & TQ_CONST)) diag_pos = &dps->start_pos;
+        pos_warning(ec_literal_const_has_no_effect, diag_pos);
+      }  /* if */
+      /* Scan the constant expression. */
+      constant = alloc_constant((a_constant_repr_kind)ck_error);
+      scan_member_constant_initializer_expression(dps, constant);
+      constant->is_literal_field = TRUE;
+      /* Enter the constant name in the symbol table.  Do this after scanning
+         the expression to avoid problems with a recursive reference. */
+      dps->sym = enter_local_symbol((a_symbol_kind)sk_constant, locator,
+                                    decl_scope_level,
+                                    /*suppress_redecl_error=*/FALSE);
+      /* Update the symbol and the constant entry. */
+      dps->sym->variant.constant = constant;
+      set_source_corresp(&(constant->source_corresp), dps->sym);
+      set_class_membership(dps->sym, &constant->source_corresp, class_type);
+      constant->source_corresp.access = class_state->access;
+      record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, dps->sym,
+                                &locator->source_position,
+                                dps->source_sequence_entry);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_info->decl_pos_block.var_init_range.end =
+                                                  curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Do processing required for any pragmas that are bound to the current
+      declaration. */
+      process_curr_construct_pragmas(dps->sym, (a_statement_ptr)NULL);
+      add_to_constants_list(constant, /*at_file_scope=*/FALSE);
+    } else {
+      /* Issue a diagnostic for an invalid literal type. */
+      if (!is_error_type(member_type)) {
+        pos_ty_error(ec_invalid_literal_type, &init_pos, member_type);
+      }  /* if */
+      scan_and_discard_initializer_expression(dps);
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* decl_literal_field */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_or_is_nested_within_unnamed_class(a_type_ptr  tp)
 /*
@@ -10248,7 +10324,14 @@ specific information about the member declaration, respectively.
      class will usually be set to extern (except sometimes in cfront mode). */
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  var->property_descr = class_state->property_descr;
+  if (cppcli_enabled) {
+    if (decl_state->has_cli_initonly_keyword) {
+      var->is_initonly = TRUE;
+    } else if (decl_state->has_cli_property_keyword) {
+      /* A static property is represented via a static data member. */
+      var->property_descr = class_state->property_descr;
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If this is a member template declaration, don't add it to the variables
      list (in part to avoid problems caused by an invalid scope). */
@@ -10307,6 +10390,9 @@ specific information about the member declaration, respectively.
           (gpp_mode &&
            (is_floating_type(member_type) ||
             (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        var->is_initonly ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         (class_state->is_nonreal_instantiation &&
          is_template_param_type(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
@@ -10314,7 +10400,8 @@ specific information about the member declaration, respectively.
          usable as a member constant.  Note that the variable entry will have
          an initializer but it is not yet considered defined.  GNU compilers
          allow floating-point in-class initializers, and some versions even
-         allow pointers to be initialized in this way. */
+         allow pointers to be initialized in this way.  C++/CLI also allows
+         in-class initializers for initonly static data members. */
       decl_info->decl_pos_block.var_init_range.start = init_pos;
       /* Scan the constant expression. */
       scan_member_constant_initializer_expression(decl_state, &constant);
@@ -12035,8 +12122,19 @@ be entered.
   /* Create the field entry. */
   field = alloc_field();
   field->is_bit_field = decl_info->is_bit_field;
+  cssp = symbol_supplement_for_class(class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  field->property_descr = class_state->property_descr;
+  if (cppcli_enabled) {
+    if (decl_state->has_cli_initonly_keyword) {
+      /* A C++/CLI initonly field: The enclosing class cannot be bitwise
+         copied. */
+      field->is_initonly = TRUE;
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    } else if (decl_state->has_cli_property_keyword) {
+      /* A nonstatic property is represented via a nonstatic data member. */
+      field->property_descr = class_state->property_descr;
+    }  /* if */
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_info->is_member_template) {
     /* Error -- suppress incomplete-type errors, etc.. */
@@ -12194,7 +12292,6 @@ be entered.
     }  /* if */
     /* In C++ we need to keep track of whether any members have reference
        type. */
-    cssp = symbol_supplement_for_class(class_type);
     if (is_any_reference_type(member_type)) {
       cssp->any_ref_member = TRUE;
       /* Assignment by bitwise copy is not allowed when a class has reference
@@ -15548,6 +15645,11 @@ passed via template_decl.
                                  &decl_info.decl_pos_block);
           *skip_semicolon_check = TRUE;
           goto next_declaration;
+        } else if (decl_state->has_cli_event_keyword) {
+          /* FIXME: Not yet implemented. */
+        } else {
+          /* Just skip the "literal" or "initonly" token that is next. */
+          (void)get_token();
         }  /* if */
       }  /* if */
     }  /* if */
@@ -16210,7 +16312,8 @@ passed via template_decl.
                ((is_scalar_type(decl_state->type) && !mutable_specified &&
                  (get_type_qualifiers(decl_state->type) == TQ_CONST)) ||
                 is_or_contains_template_param(decl_state->type)) &&
-               decl_state->storage_class == (a_storage_class)sc_unspecified) {
+               decl_state->storage_class == (a_storage_class)sc_unspecified &&
+               !decl_state->has_cli_literal_keyword) {
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       if (in_expression_context()) {
@@ -16231,6 +16334,20 @@ passed via template_decl.
                                       /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (decl_state->has_cli_initonly_keyword) {
+        if (cli_class_type_kind_is(class_type, cctk_standard)) {
+          pos_error(ec_initonly_requires_managed_class,
+                    &decl_state->declarator_pos);
+        } else if (is_const_qualified_type(decl_state->type)) {
+          /* "const" is useless on a C++/CLI initonly declaration. */
+          a_source_position  *diag_pos = &decl_state->qualifiers_pos;
+          if (!(decl_state->qualifiers & TQ_CONST)) {
+            diag_pos = &decl_start_pos;
+          }  /* if */
+          pos_warning(ec_initonly_const_has_no_effect, diag_pos);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (!(missing_declarator || decl_info.is_unnamed_field) &&
           !(do_flags & DO_REAL_DECLARATOR_SCANNED) &&
@@ -16245,6 +16362,11 @@ passed via template_decl.
       } else if (decl_state->storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
         decl_static_data_member(&locator, class_state, &decl_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (decl_state->has_cli_literal_keyword) {
+        /* C++/CLI literal field */
+        decl_literal_field(&locator, class_state, &decl_info);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Non-static data member (= field). */
         scan_nonstatic_data_member(&locator, class_state, &decl_info);

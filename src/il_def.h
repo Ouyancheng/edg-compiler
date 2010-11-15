@@ -3373,6 +3373,12 @@ typedef struct a_constant {
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the initializer contains designated
 			   initializers. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_literal_field:1;
+			/* TRUE if this entry represents a C++/CLI literal
+			   field (i.e., a member declared with the context-
+			   sensitive keyword "literal"). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   a_constant_repr_kind
                 kind;
@@ -8207,6 +8213,13 @@ typedef struct a_variable {
   a_bit_field	is_parameter_pack:1;
 			/* TRUE for the parameter variable for a function
 			   parameter pack of a variadic template. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_initonly:1;
+			/* TRUE if the "initonly" context-sensitive keyword
+			   appeared on the declaration of this static data
+			   member (C++/CLI only).  (Always FALSE for entries
+			   that do not represent a static data member.) */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -8384,6 +8397,12 @@ typedef struct a_field {
 			/* TRUE for fields that are created by the compiler
 			   and have not been declared in the source,
 			   e.g., the virtual function table pointer. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field	is_initonly:1;
+			/* TRUE if the "initonly" context-sensitive keyword
+			   appeared on the declaration of this nonstatic data
+			   member (C++/CLI only). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   a_bit_field	base_class_subobject_with_tail_padding:1;
 			/* TRUE if this field was added by IL lowering to

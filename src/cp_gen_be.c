@@ -5712,28 +5712,38 @@ a semicolon otherwise.
 static void gen_member_constant_decl(a_boolean suppress_specifiers,
                                      a_boolean *another_decl_in_comma_list)
 /*
-Generate a declaration for a member constant (an extension).  The current
-source sequence entry is the one associated with the constant.
-suppress_specifiers and another_decl_in_comma_list deal with comma lists:
-suppress_specifiers is TRUE if the current declaration is a continuation
-of a comma list, and *another_decl_in_comma_list is returned TRUE if the
-declaration following this one is such a continuation.
+Generate a declaration for a member constant (an extension) or for a C++/CLI
+literal field.  The current source sequence entry is the one associated with
+the constant.  suppress_specifiers and another_decl_in_comma_list deal with
+comma lists: suppress_specifiers is TRUE if the current declaration is a
+continuation of a comma list, and *another_decl_in_comma_list is returned TRUE
+if the declaration following this one is such a continuation.
 */
 {
-  a_constant_ptr constant =
-                      ss_entry_ptr(curr_source_sequence_entry, a_constant_ptr);
+  a_constant_ptr        constant = ss_entry_ptr(curr_source_sequence_entry,
+                                                a_constant_ptr);
+  a_type_qualifier_set  explicit_qualifiers = TQ_NONE;
 
   /* Advance past the source sequence entry for the constant. */
   adv_curr_source_sequence_entry();
   set_output_position(&constant->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&constant->source_corresp);
-  /* Generate the constant type and name.  The type must be generated specially
-     with an extra "const" on top, since the const is removed in the
-     constant type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (constant->is_literal_field && cppcli_enabled) {
+    if (!suppress_specifiers) write_tok_str("literal ");
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* A member constant must be declared with an explicit "const"
+       qualifier. */
+    explicit_qualifiers = TQ_CONST;
+  }  /* if */
+  /* Generate the constant type and name. */
   form_type_first_part(constant->type,
                        /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/TRUE,
-                       TQ_CONST,
+                       explicit_qualifiers,
                        suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                              FTO_NO_OPTIONS,
                        &octl);
@@ -5780,6 +5790,8 @@ declaration following this one is such a continuation.
     check_assertion(!suppress_specifiers);
     if (field->property_descr->is_virtual) write_tok_str("virtual ");
     write_tok_str("property ");
+  } else if (field->is_initonly) {
+    write_tok_str("initonly ");
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!suppress_specifiers) {
@@ -12227,6 +12239,9 @@ declaration following this one is such a continuation.
                                        /*is_in_class_specialization=*/FALSE,
                                        (a_template_arg_ptr)NULL);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (var->is_initonly) write_tok_str("initonly ");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Determine the proper storage class to display. */
   storage_class = var->storage_class;
   if (is_specialization) {

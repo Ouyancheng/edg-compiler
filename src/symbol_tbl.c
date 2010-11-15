@@ -826,6 +826,11 @@ and indentation is the indentation desired.
         if (fp->is_mutable) {
           put_string("mutable");
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (fp->is_initonly) {
+          put_string("initonly");
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         (void)sprintf(buffer, "offset");
         apo_sym = sym->variant.field.anonymous_parent_object;
         if (apo_sym != NULL) {
@@ -859,6 +864,11 @@ do_variable:
       if (var == NULL) {
         put_string("<null>");
       } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (var->is_initonly) {
+          put_string("initonly ");
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
           put_access(var->source_corresp.access);
         }  /* if */

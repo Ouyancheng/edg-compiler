@@ -839,6 +839,9 @@ associated variant fields to default values.
   cp->flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   cp->uses_designated_initializers = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cp->is_literal_field = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -2022,6 +2025,9 @@ Clear the fields of the given variable to default values.
   vp->declared_using_type_without_linkage
                                   = FALSE;
   vp->is_parameter_pack           = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  vp->is_initonly                 = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
@@ -2165,6 +2171,9 @@ to it.
   fp->is_anonymous_parent_object = FALSE;
   fp->is_mutable           = FALSE;
   fp->compiler_generated   = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  fp->is_initonly          = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   fp->base_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */

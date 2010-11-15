@@ -593,6 +593,9 @@ Dump a field entry, for debug purposes.
   db_name_full(&fp->source_corresp, iek_field);
   fputs("\"", f_debug);
   if (fp->is_mutable) fputs(", mutable", f_debug);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (fp->is_initonly) fputs(" initonly", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fputs(", type = ", f_debug);
   db_abbreviated_type(fp->type);
   fprintf(f_debug, ", offset = %lu", (unsigned long)fp->offset);
@@ -1552,6 +1555,7 @@ Dump the contents of the indicated constant, for debug purposes.
   } else {
     an_il_to_str_output_control_block octl;
 
+    if (cp->is_literal_field) fputs("literal ", f_debug);
     /* Set up for use of form_constant. */
     clear_il_to_str_output_control_block(&octl);
     octl.output_str = put_str_to_f_debug;
