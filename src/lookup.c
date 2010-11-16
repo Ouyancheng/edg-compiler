@@ -154,8 +154,7 @@ a_symbol_ptr find_synthesized_projection_symbol(
                               a_symbol_locator          *locator,
                               an_id_lookup_options_set	options,
                               a_boolean			qualified_lookup,
-			      a_namespace_ptr		qualifier_namespace,
-			      a_decl_sequence_number	*starting_decl_seq)
+			      a_namespace_ptr		qualifier_namespace)
 /*
 Look for a synthesized projection symbol from a previous lookup that
 can be reused to capture the results of this lookup.  locator
@@ -166,9 +165,6 @@ a namespace or file scope qualified lookup.  For qualified lookups
 qualifier_namespace points to the namespace in which the lookup is
 being done, or is NULL for a file scope lookup.  options specifies
 the options being used for the lookup.
-
-Set starting_decl_seq to the declaration sequence number of the symbol
-found, or to NO_DECL_SEQUENCE_NUMBER if no prior symbol was found.
 */
 {
   a_symbol_ptr		sym = NULL;
@@ -224,7 +220,6 @@ found, or to NO_DECL_SEQUENCE_NUMBER if no prior symbol was found.
       }  /* if */
     }  /* for */
   }  /* if */
-  *starting_decl_seq = sym != NULL ? sym->decl_seq : NO_DECL_SEQUENCE_NUMBER;
   if (sym != NULL) {
    /* Reset the declaration sequence number of the symbol.  The symbol will
       be assigned a new declaration sequence number later. */
@@ -1466,7 +1461,6 @@ static a_symbol_ptr add_symbol_to_lookup_set(
                                a_boolean		qualified_lookup,
                                a_namespace_ptr		qualifier_namespace,
                                an_id_lookup_options_set	options,
-			       a_decl_sequence_number	starting_decl_seq,
                                a_boolean		*any_errors);
 
 
@@ -1478,7 +1472,6 @@ static a_boolean check_for_tag_hiding(
 			a_namespace_ptr			qualifier_namespace,
 			a_boolean			qualified_lookup,
 			an_id_lookup_options_set	options,
-			a_decl_sequence_number		starting_decl_seq,
                         a_boolean			*any_errors)
 /*
 This routine is used by add_symbol_to_lookup_set to detect the case
@@ -1528,8 +1521,7 @@ In Sun compatibility mode, the symbols need not be from the same scope.
         (*curr_sym)->variant.namespace_projection.fundamental_symbol = NULL;
         *curr_sym = add_symbol_to_lookup_set(
                              *curr_sym, new_sym, locator, qualified_lookup,
-                             qualifier_namespace, options,
-                             starting_decl_seq, any_errors);
+                             qualifier_namespace, options, any_errors);
       } else {
         /* The current symbol is a nontag and the new one is a tag.
            Simply ignore the new one. */
@@ -1569,7 +1561,6 @@ a_symbol_ptr add_symbol_to_lookup_set(
                                a_boolean		qualified_lookup,
                                a_namespace_ptr		qualifier_namespace,
                                an_id_lookup_options_set	options,
-			       a_decl_sequence_number	starting_decl_seq,
                                a_boolean		*any_errors)
 /*
 Reconcile the results of a lookup in which more than one symbol is found
@@ -1588,11 +1579,6 @@ qualified_lookup is TRUE for a namespace or file scope qualified
 lookup.  For qualified lookups qualifier_namespace points to the
 namespace in which the lookup is being done, or is NULL for a file
 scope lookup.  options specifies the options being used for the lookup.
-
-starting_decl_seq is the declaration sequence number of the synthesized
-projection symbol at the start of this lookup operation.  Any symbols that
-have a declaration sequence number lower than that value are assumed to already
-be in the set.
 */
 {
   a_boolean	err = FALSE;
@@ -1615,15 +1601,10 @@ be in the set.
             "add_symbol_to_lookup_set: symbols at start - curr=%lu, new=%lu\n",
             functions_represented_by_symbol(curr_sym),
             functions_represented_by_symbol(new_sym));
-    fprintf(f_debug, "  decl_seq_of_symbol=%lu, starting_decl_seq=%lu\n",
-            decl_seq_of_symbol, starting_decl_seq);
+    fprintf(f_debug, "  decl_seq_of_symbol=%lu\n", decl_seq_of_symbol);
   }  /* if */
 #endif  /* DEBUG */
-  if (decl_seq_of_symbol < starting_decl_seq &&
-      is_function_or_template_symbol(new_sym)) {
-    /* The symbol was created before the synthesized projection symbol that
-       is being used.  We don't have to do anything with this symbol. */
-  } else if (curr_sym == NULL) {
+  if (curr_sym == NULL) {
     if (is_function_or_template_symbol(new_sym)) {
       curr_sym = merge_function_into_lookup_set((a_symbol_ptr)NULL,
                                                 new_sym, locator,
@@ -1668,7 +1649,7 @@ be in the set.
       err = TRUE;
       if (check_for_tag_hiding(&curr_sym, fund_curr_sym, new_sym, locator,
                                qualifier_namespace, qualified_lookup,
-                               options, starting_decl_seq, any_errors)) {
+                               options, any_errors)) {
         /* curr_sym is set to the appropriate symbol by
            check_for_tag_hiding. */
         err = FALSE;
@@ -1693,7 +1674,6 @@ be in the set.
         curr_sym = add_symbol_to_lookup_set(curr_sym, new_sym, locator,
                                             qualified_lookup,
                                             qualifier_namespace, options,
-					    starting_decl_seq,
                                             &err);
       } else {
         /* An ambiguous symbol. */
@@ -2124,8 +2104,6 @@ of the lookup is returned to the caller.
   a_symbol_ptr		synth_sym = NULL;
   a_symbol_ptr		new_sym;
   a_symbol_ptr		sym = sym_from_scope;
-  a_decl_sequence_number
-			starting_decl_seq = NO_DECL_SEQUENCE_NUMBER;
 
   db_enter(4, "do_using_directive_lookup");
   if (microsoft_bugs && sym_from_scope != NULL) {
@@ -2193,8 +2171,7 @@ of the lookup is returned to the caller.
         synth_sym = find_synthesized_projection_symbol
                                             (locator, lookup_state->options,
                                              /*qualified_lookup=*/FALSE,
-                                             (a_namespace_ptr)NULL,
-                                             &starting_decl_seq);
+                                             (a_namespace_ptr)NULL);
         if (sym != NULL) {
           /* The lookup from this scope did find a symbol.  Put it in
              the lookup set. */
@@ -2203,7 +2180,6 @@ of the lookup is returned to the caller.
                                                /*qualified_lookup=*/FALSE,
                                                (a_namespace_ptr)NULL,
                                                lookup_state->options,
-					       starting_decl_seq,
                                                &any_errors);
         }  /* if */
         sym = synth_sym;
@@ -2215,7 +2191,6 @@ of the lookup is returned to the caller.
                                      /*qualified_lookup=*/FALSE,
                                      (a_namespace_ptr)NULL,
                                      lookup_state->options,
-				     starting_decl_seq,
                                      &any_errors);
       /* Set synth_sym in case it was not set earlier.  This
          suppresses subsequent attempts to look up synth_sym. */
@@ -3066,7 +3041,6 @@ that do normal id lookup processing.
   a_symbol_ptr			sym = NULL;
   an_id_lookup_options_set	options;
   a_boolean			any_errors = FALSE;
-  a_decl_sequence_number	starting_decl_seq = NO_DECL_SEQUENCE_NUMBER;
 
   /* Add a bit to the options set that indicates that the synthesized
      namespace projection symbol being created is for a template
@@ -3076,21 +3050,18 @@ that do normal id lookup processing.
      from a previous lookup that can be reused. */
   sym = find_synthesized_projection_symbol(locator, options,
                                           /*qualified_lookup=*/FALSE,
-                                          (a_namespace_ptr)NULL,
-					  &starting_decl_seq);
+                                          (a_namespace_ptr)NULL);
   /* Add the first symbol to an existing lookup set.  Note that
      sym may be NULL at this point. */
   sym = add_symbol_to_lookup_set(sym, ref_sym, locator,
                                  /*qualified_lookup=*/FALSE,
                                  (a_namespace_ptr)NULL, options,
-				 starting_decl_seq,
                                  &any_errors);
   /* Add the second symbol to the set.  This is done even if an error was
      returned from the previous lookup. */
   sym = add_symbol_to_lookup_set(sym, def_sym, locator,
                                  /*qualified_lookup=*/FALSE,
                                  (a_namespace_ptr)NULL, options,
-				 starting_decl_seq,
                                  &any_errors);
   return sym;
 }  /* merge_instantiation_lookup_symbols */
@@ -4598,7 +4569,6 @@ a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
                                  an_id_lookup_options_set options,
                                  a_namespace_ptr	  orig_ns_ptr,
 				 a_symbol_ptr		  *synth_sym,
-				 a_decl_sequence_number	  *starting_decl_seq,
                                  a_boolean                *any_errors);
 
 
@@ -4610,7 +4580,6 @@ a_symbol_ptr qualified_using_directive_lookup(
                                  an_id_lookup_options_set options,
                                  a_namespace_ptr	  orig_ns_ptr,
 				 a_symbol_ptr		  *synth_sym,
-				 a_decl_sequence_number	  *starting_decl_seq,
                                  a_boolean                *any_errors,
 				 a_boolean		  strong_only)
 /*
@@ -4701,7 +4670,7 @@ If no symbol is found in the specified namespace, NULL is returned.
       /* Skip this namespace if we have already looked in it. */
       if (next_nssp->visited_by_qualified_lookup) continue;
       sym = lookup_in_namespace(locator, assoc_namespace, options,
-                                orig_ns_ptr, synth_sym, starting_decl_seq,
+                                orig_ns_ptr, synth_sym,
                                 any_errors);
       if (sym != NULL && !sym->synthesized_namespace_projection) {
         /* If this lookup found a symbol, add it to the lookup set.
@@ -4712,15 +4681,13 @@ If no symbol is found in the specified namespace, NULL is returned.
              from a previous lookup that can be reused. */
           *synth_sym = find_synthesized_projection_symbol
                                     (locator, options,
-                                     /*qualified_lookup=*/TRUE, orig_ns_ptr,
-				     starting_decl_seq);
+                                     /*qualified_lookup=*/TRUE, orig_ns_ptr);
         }  /* if */
         /* Add the new symbol to an existing lookup set.  Note that
            *synth_sym may be NULL at this point. */
         *synth_sym = add_symbol_to_lookup_set(*synth_sym, sym, locator,
                                               /*qualified_lookup=*/TRUE,
                                               orig_ns_ptr, options,
-					      *starting_decl_seq,
                                               any_errors);
       }  /* if */
       result_sym = *synth_sym;
@@ -4738,7 +4705,6 @@ a_symbol_ptr lookup_in_namespace(a_symbol_locator         *locator,
                                  an_id_lookup_options_set options,
                                  a_namespace_ptr	  orig_ns_ptr,
 				 a_symbol_ptr		  *synth_sym,
-				 a_decl_sequence_number	  *starting_decl_seq,
                                  a_boolean                *any_errors)
 /*
 Look up the identifier indicated by *locator in the namespace indicated by
@@ -4902,8 +4868,7 @@ namespace_qualified_id_lookup.
     new_sym = qualified_using_directive_lookup(
                                   locator, ns_ptr, ns_ptr->variant.assoc_scope,
                                   options, orig_ns_ptr, synth_sym,
-                                  starting_decl_seq,  any_errors,
-                                  /*strong_only=*/sym != NULL);
+                                  any_errors, /*strong_only=*/sym != NULL);
     /* In g++ mode we may have to merge the result of the using-directive
        lookup and the lookup in the current namespace. */
     if (new_sym != NULL) {
@@ -4913,7 +4878,6 @@ namespace_qualified_id_lookup.
         sym = add_symbol_to_lookup_set(new_sym, sym, locator,
                                        /*qualified_lookup=*/TRUE,
                                        orig_ns_ptr, options,
-				       *starting_decl_seq,
                                        any_errors);
       }  /* if */
     }  /* if */
@@ -4940,8 +4904,6 @@ namespace.  This routine is used only in C++ mode.
   a_symbol_ptr	sym;
   a_symbol_ptr	synth_sym = NULL;
   a_boolean	any_errors = FALSE;
-  a_decl_sequence_number
-		starting_decl_seq = NO_DECL_SEQUENCE_NUMBER;
 
   db_enter(4, "namespace_qualified_id_lookup");
   if ((sym = locator->specific_symbol) != NULL) {
@@ -4954,7 +4916,7 @@ namespace.  This routine is used only in C++ mode.
   } else {
     /* Search for a symbol in the right scope. */
     sym = lookup_in_namespace(locator, ns_ptr, options, ns_ptr, &synth_sym,
-                              &starting_decl_seq, &any_errors);
+                              &any_errors);
     locator->specific_symbol = sym;
   }  /* if */
   /* If the symbol is a projection symbol, reduce it to the fundamental
@@ -5001,8 +4963,6 @@ file scope.
   a_boolean     must_be_tag = (options & IDL_MUST_BE_TAG);
   a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS);
   a_symbol_ptr	synth_sym = NULL;
-  a_decl_sequence_number
-		starting_decl_seq = NO_DECL_SEQUENCE_NUMBER;
   a_boolean	any_errors = FALSE;
   a_boolean	is_linkage_or_friend_lookup =
                          (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP));
@@ -5135,7 +5095,6 @@ file scope.
       new_sym = qualified_using_directive_lookup(
                              locator, (a_namespace_ptr)NULL, file_scope_to_use,
                              options, (a_namespace_ptr)NULL, &synth_sym,
-                             &starting_decl_seq,
                              &any_errors, /*strong_only=*/sym != NULL);
       /* In g++ mode we may have to merge the result of the using-directive
          lookup and the lookup in the current namespace. */
@@ -5146,7 +5105,6 @@ file scope.
           sym = add_symbol_to_lookup_set(new_sym, sym, locator,
                                          /*qualified_lookup=*/TRUE,
                                          (a_namespace_ptr)NULL, options,
-					 starting_decl_seq,
                                          &any_errors);
         }  /* if */
       }  /* if*/

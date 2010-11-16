@@ -1,5 +1,29 @@
 Version 4.3
 
+11/16/10 [EDGcpfe/11164]
+Incorrect using-directive lookup
+
+A using-directive lookup could produce incorrect results if an initial
+using-directive lookup was done (creating a synthesized projection symbol)
+followed by a declaration of a new using-directive that refers to a symbol
+that was declared before the original using-directive lookup.  Now fixed.
+
+  namespace A {
+    void f(){}
+  }
+  using namespace A;
+  namespace B {
+    void f(int){}  // symbol made visible by using-directive here
+  }
+  void g() {
+    f();  // synthesized projection symbol created here
+  }
+  using namespace B;  // using-directive here
+  void g2() {
+    f(1);  // failed to find f(int)
+  }
+
+
 11/16/10 [EDGcpfe/11151]
 Comma operator allowed in unevaluated constant expression in C99 mode
 
