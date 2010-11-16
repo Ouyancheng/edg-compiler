@@ -19769,6 +19769,7 @@ expression, and return the result in *result (or an error indication in
   a_type_ptr        result_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
+  a_boolean         comma_allowed_in_constant_expr = FALSE;
   an_expr_node_ptr  node;
 
   db_enter(4, "scan_comma_operator");
@@ -19790,7 +19791,15 @@ expression, and return the result in *result (or an error indication in
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
-  if (curr_expr_kind_is_const()) {
+  if (c99_mode && !curr_expr_is_evaluated()) {
+    /* C99 allows a comma expression in a constant expression if it's
+       not evaluated (6.6p3).  Even if the current expression kind is not
+       constant, we still need to track whether it contains any operators
+       that are not valid in constant expressions, for use, e.g., in
+       determining whether an expression is a null pointer constant. */
+    comma_allowed_in_constant_expr = TRUE;
+  }  /* if */
+  if (curr_expr_kind_is_const() && !comma_allowed_in_constant_expr) {
     /* Comma operator not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
@@ -19843,20 +19852,42 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
       /* The result type is the type of the second operand. */
       result_type = operand_2.type;
-      /* Make a comma operator expression. */
-      node = make_node_from_void_expression_operand(operand_1);
-      node->next = make_node_from_operand(&operand_2);
-      node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                result_type, node);
-      make_expression_operand(node, result);
-      /* In C++ mode, the result is an lvalue if the second operation
-         is an lvalue. */
-      if (result_is_an_lvalue) {
-        set_lvalue_operand_state(result);
-        result->variant.expression->variant.operation.
+      if (comma_allowed_in_constant_expr &&
+          !result_is_an_lvalue &&
+          is_constant_operand(operand_1) &&
+          is_constant_operand(&operand_2)) {
+        /* Some modes allow a comma operator in a constant expression and
+           fold it to the second operand. */
+        copy_operand(&operand_2, result);
+        preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1,
+                                                             result);
+      } else if (curr_expr_kind_is_const()) {
+        /* We allowed the comma operator in case it could be folded, but
+           it turned out its operands aren't constant, so we have to issue
+           an error now that the expression is not constant. */
+        if (!is_error_operand(operand_1) && !is_error_operand(&operand_2)) {
+          expr_pos_error(ec_expr_not_constant, &operator_position);
+        }  /* if */
+        make_error_operand(result);
+        operand_will_not_be_used_because_of_error(operand_1);
+        operand_will_not_be_used_because_of_error(&operand_2);
+        err = TRUE;
+      } else {
+        /* Make a comma operator expression. */
+        node = make_node_from_void_expression_operand(operand_1);
+        node->next = make_node_from_operand(&operand_2);
+        node = make_operator_node((an_expr_operator_kind)eok_comma,
+                                  result_type, node);
+        make_expression_operand(node, result);
+        /* In C++ mode, the result is an lvalue if the second operation
+           is an lvalue. */
+        if (result_is_an_lvalue) {
+          set_lvalue_operand_state(result);
+          result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
-        result->variant.expression->is_lvalue = TRUE;
-        result->ref_entries_list = operand_2.ref_entries_list;
+          result->variant.expression->is_lvalue = TRUE;
+          result->ref_entries_list = operand_2.ref_entries_list;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -19867,7 +19898,9 @@ expression, and return the result in *result (or an error indication in
                                           &operator_position,
                                           operator_tok_seq_number,
                                           (a_source_position *)NULL);
-  rule_out_expr_kinds(ROEK_CONSTANT, result);
+  if (!comma_allowed_in_constant_expr) {
+    rule_out_expr_kinds(ROEK_CONSTANT, result);
+  }  /* if */
   db_exit();
 }  /* scan_comma_operator */
 

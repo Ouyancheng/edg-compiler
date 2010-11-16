@@ -3616,6 +3616,28 @@ modification.
 }  /* restore_operand_form_of_name_reference */
 
 
+void preserve_ruled_out_expr_kinds_from_discarded_operand(
+                                                 an_operand *discarded_operand,
+                                                 an_operand *result_operand)
+/*
+The operand discarded_operand is being discarded in an operation whose
+result (result_operand) can be determined without evaluating that operand.
+Transfer any appropriate information about expression kinds ruled out
+by operations in the discarded operand, so the result properly reflects
+those.
+*/
+{
+  result_operand->ruled_out_expr_kinds |=
+                                       discarded_operand->ruled_out_expr_kinds;
+  if (is_constant_operand(result_operand) &&
+      (!is_constant_operand(discarded_operand) ||
+       discarded_operand->variant.constant.null_pointer_constant_ruled_out)) {
+    /* The result is not a null pointer constant. */
+    result_operand->variant.constant.null_pointer_constant_ruled_out = TRUE;
+  }  /* if */
+}  /* preserve_ruled_out_expr_kinds_from_discarded_operand */
+  
+
 void record_suppressed_error(void)
 /*
 Record that an error has been detected in a context in which we're suppressing
@@ -9745,6 +9767,7 @@ question_position and colon_position give the position of the "?" and ":".
   a_boolean  optimizable = FALSE;
   a_dynamic_init_ptr
              dip_2, dip_3;
+  an_operand *preserved_operand = NULL, *discarded_operand = NULL;
 
   operation_type = result_type;
   if (!result_is_an_lvalue) {
@@ -9776,6 +9799,15 @@ question_position and colon_position give the position of the "?" and ":".
        cases we don't.  In some of those other cases we don't fold because we
        can't easily do so (for example, if there were destructible objects
        attached to the second or third operand). */
+    if (op_is_false_constant(operand_1)) {
+      /* The first operand is false; the third operand is the result. */
+      preserved_operand = operand_3;
+      discarded_operand = operand_2;
+    } else {
+      /* The first operand is true; the second operand is the result. */
+      preserved_operand = operand_2;
+      discarded_operand = operand_3;
+    }  /* if */
     if (template_case) {
       /* Don't fold template-dependent cases.  If the operation is constant
          the expression will be placed under a ck_template_param constant
@@ -9783,6 +9815,10 @@ question_position and colon_position give the position of the "?" and ":".
       do_folding = FALSE;
     } else if (result_is_an_lvalue) {
       /* Don't fold when the result is an lvalue. */
+      do_folding = FALSE;
+    } else if (!identical_types(operand_2->type, operand_3->type)) {
+      /* Can't fold cases where the operand types do not match (e.g.,
+         because one is a throw and the other is not). */
       do_folding = FALSE;
     } else if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
@@ -9792,27 +9828,22 @@ question_position and colon_position give the position of the "?" and ":".
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
     } else if (gnu_mode &&
-               ((is_expression_operand(operand_2) &&
-                 has_statement_expression(operand_2->variant.expression)) ||
-                (is_expression_operand(operand_3) &&
-                 has_statement_expression(operand_3->variant.expression)))) {
+               is_expression_operand(discarded_operand) &&
+               has_statement_expression(
+                                      discarded_operand->variant.expression)) {
       /* GNU statement expressions may give rise to scopes, which are too
          expensive to eliminate. */
-      /* do_folding = FALSE; -- already set. */
+      do_folding = FALSE;
     } else if (!(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT) &&
                !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
-    } else if (!identical_types(operand_2->type, operand_3->type)) {
-      /* Can't fold cases where the operand types do not match (e.g.,
-         because one is a throw and the other is not). */
-      /* do_folding = FALSE; -- already set. */
     } else if (class_rvalue_case) {
       /* Don't fold when the result is a class rvalue, because a copy
          is required. */
-      /* do_folding = FALSE; -- already set. */
+      do_folding = FALSE;
     } else if (!strict_ansi_mode && expr_stack->favor_constant_result) {
       /* If we'd prefer a constant result, fold. */
       do_folding = TRUE;
@@ -9821,29 +9852,16 @@ question_position and colon_position give the position of the "?" and ":".
   if (do_folding) {
     /* The first operand is a constant.  Fold the operation to the
        second or third operand. */
-    an_operand *other_operand;
-    if (op_is_false_constant(operand_1)) {
-      /* The first operand is false; return the third operand as the result. */
-      copy_operand(operand_3, result);
-      other_operand = operand_2;
-    } else {
-      /* The first operand is true; return the second operand as the result. */
-      copy_operand(operand_2, result);
-      other_operand = operand_3;
-    }  /* if */
+    copy_operand(preserved_operand, result);
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
     result->is_id_expression = FALSE;
+    preserve_ruled_out_expr_kinds_from_discarded_operand(discarded_operand,
+                                                         result);
+    /* operand_1 is also discarded. */
+    preserve_ruled_out_expr_kinds_from_discarded_operand(operand_1, result);
     if (is_constant_operand(result)) {
       break_source_corresp(&result->variant.constant.source_corresp);
-      if ((other_operand != NULL &&
-           (!is_constant_operand(other_operand) ||
-            other_operand->
-                         variant.constant.null_pointer_constant_ruled_out)) ||
-          operand_1->variant.constant.null_pointer_constant_ruled_out) {
-        /* The result is not a null pointer constant. */
-        result->variant.constant.null_pointer_constant_ruled_out = TRUE;
-      }  /* if */
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* Create an expression to be recorded in the constant. */
         an_operand result_expr;

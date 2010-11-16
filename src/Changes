@@ -1,5 +1,15 @@
 Version 4.3
 
+11/16/10 [EDGcpfe/11151]
+Comma operator allowed in unevaluated constant expression in C99 mode
+
+The C99 standard says (6.6p3) that a comma operator is allowed in a constant
+expression if the expression is unevaluated.  We now allow that in
+C99 mode.
+
+  int *p = (1 ? 0 : (0, 0));  // Okay now in C99 mode (null pointer constant)
+
+
 11/11/10 [EDGcpfe/11143]
 Abort on namespace extension definition with GNU attributes
 
