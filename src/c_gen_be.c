@@ -3324,7 +3324,7 @@ final semicolon if output_final_semi is TRUE.
            struct types and gives them size zero (and it also gives size
            zero to "struct { int:0; }").  Note that the test here must
            match one in dump_initializer_part. */
-        if (use_empty_struct_in_generated_c) {
+        if (type->size <= 1 && use_empty_struct_in_generated_c) {
           /* Mark this type as having zero size in the generated code so
              offset and initialization logic can compensate. */
           type->generated_as_empty_struct = TRUE;
