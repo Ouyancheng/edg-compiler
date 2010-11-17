@@ -6500,7 +6500,6 @@ current token on entry.
 }  /* scan_address_of_label_expression */
 
 
-/*ARGSUSED*/ /* FIXME: <- input is currently unused (EDGcpfe/11128). */
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
                                              a_boolean input)
 /*
@@ -6578,7 +6577,7 @@ are TRUE, the operand is first read from and then written to.
                           &result.position);
     }  /* if */
     if ((int)sev <= (int)es_warning) {
-      modifying_lvalue(&result, /*value_used=*/FALSE);
+      modifying_lvalue(&result, /*value_used=*/input);
     }  /* if */
   }  /* if */
   expression = make_node_from_operand(&result);
