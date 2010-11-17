@@ -15282,6 +15282,10 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
       goto done;
     }  /* if */
     /* FIXME: Lookup symbol header as a common short circuit case. */
+  } else {
+    /* Since this is not an identifier, it cannot be a context-dependent
+       keyword. */
+    goto done;
   }  /* if */
   /* For this to be a field-like declaration preceded by a context-sensitive
      keyword, a sequence of decl-specifiers including a type must follow. */
