@@ -12214,9 +12214,8 @@ enum an_expr_operator_kind_tag {
   eok_unary_plus,	/* Unary "+" (arithmetic or pointer). */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_not,              /* Logical complement ("!" operator).  Operand is
-			   standardized to integer/boolean when
-			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
-			   is TRUE. */
+			   standardized to integer/boolean in some
+			   configurations. */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
   eok_xconj,            /* Complex conjugation ("~") operator. */
   eok_real_part,        /* Produce the real part of a complex number.  The
@@ -12313,13 +12312,11 @@ enum an_expr_operator_kind_tag {
 			   source and destination are lvalues; does a memcpy
 			   equivalent.  The result is void. */
   eok_land,             /* Logical intersection ("&&" operator).  Operands are
-			   standardized to integer/boolean when
-			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
-			   is TRUE. */
+			   standardized to integer/boolean in some
+			   configurations. */
   eok_lor,              /* Logical union ("||" operator).  Operands are
-			   standardized to integer/boolean when
-			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
-			   is TRUE. */
+			   standardized to integer/boolean in some
+			   configurations. */
   eok_comma,            /* The comma operator (","). */
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
@@ -12369,11 +12366,11 @@ enum an_expr_operator_kind_tag {
 			   is a pointer to the selected function. */
   /* The following have 3 operands: */
   eok_question,         /* Conditional expression ("?" operator).  The first
-			   operand is standardized to integer/boolean when
-			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
-			   is TRUE.  Also used for the GNU two-operand form,
-			   when is_gnu_two_operand_question_mark is TRUE (but
-			   three operands are still provided in that case). */
+			   operand is standardized to integer/boolean in some
+			   configurations.  Also used for the GNU two-operand
+			   form, when is_gnu_two_operand_question_mark is TRUE
+			   (but three operands are still provided in that
+			   case). */
   /* The following have n operands: */
   eok_call,             /* A call of a non-member function or static member
 			   function.  Also any call in C.  The first operand
@@ -12986,9 +12983,8 @@ typedef struct an_expr_node {
 		expr;	/* The full expression with which the object lifetime
 			   is associated.  This expression is standardized
 			   to integer/boolean when it appears in the context
-			   of a boolean controlling expression and
-			   LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
-			   is TRUE. */
+			   of a boolean controlling expression in some
+			   configurations. */
       an_object_lifetime_ptr
 		ptr;	/* The object lifetime itself. */
     } object_lifetime;
