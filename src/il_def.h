@@ -12214,8 +12214,8 @@ enum an_expr_operator_kind_tag {
   eok_unary_plus,	/* Unary "+" (arithmetic or pointer). */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_not,              /* Logical complement ("!" operator).  Operand is
-			   standardized to integer/boolean in some
-			   configurations. */
+                           standardized to integer/boolean in some
+                           configurations. */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
   eok_xconj,            /* Complex conjugation ("~") operator. */
   eok_real_part,        /* Produce the real part of a complex number.  The
