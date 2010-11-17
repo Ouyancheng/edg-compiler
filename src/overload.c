@@ -7792,7 +7792,7 @@ static a_type_ptr next_printf_scanf_arg_type(
                                  a_boolean           *weak_pointer_to_integral,
                                  a_type_ptr          *alt_type,
                                  int                 *value_pos,
-                                 int                 *next_value_pos)
+                                 int                 *init_value_pos)
 /*
 Return the type that the next argument to a printf or scanf call should have,
 by finding the next thing in the format string that consumes an argument.
@@ -7817,12 +7817,15 @@ If check_printf_scanf_positional_args is TRUE, positional arguments are
 recognized and returned through *value_pos (a value of zero indicates that
 no positional argument indicator was seen, -1 indicates that the position
 was too large to check, and -2 indicates that the position was zero).
-A single format specifier may contain two positional indicators: One for the
-value to format and one for the field width value (e.g., "%1$*2$s" to output
-the first following argument as a string with the width determined by the
-second argument).  In such cases, *value_pos will indicate the field width
-argument position and *next_value_pos will indicate the position of the value
-to format (whose type will be returned by a subsequent call to this routine).
+A single format specifier may contain up to three positional indicators:
+One for the value to format, one for the field width value, and one for the
+precision.  In such cases, *value_pos will indicate the argument number
+for the argument to be checked on this iteration, and *init_value_pos
+is used to save the initial position (the one indicating the argument to
+be formatted) when the current return is to check one of the others,
+so it can be retrieved and returned on a subsequent call.  The caller
+just needs to provide a variable for that, but doesn't need to do anything
+to manage that variable.
 */
 {
   a_type_ptr          required_type;
@@ -7843,14 +7846,22 @@ to format (whose type will be returned by a subsequent call to this routine).
   *weak_pointer_to_integral = FALSE;
   *indirect = FALSE;
   *alt_type = NULL;
-  *value_pos = *next_value_pos = 0;
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
-  if (pss == pss_after_field_width) goto after_field_width;
-  if (pss == pss_after_precision) goto after_precision;
+  if (pss == pss_after_field_width) {
+    *value_pos = *init_value_pos;
+    *init_value_pos = 0;
+    goto after_field_width;
+  }  /* if */
+  if (pss == pss_after_precision) {
+    *value_pos = *init_value_pos;
+    *init_value_pos = 0;
+    goto after_precision;
+  }  /* if */
 
   /* Look for the next "%" in the string, or the null that terminates it. */
 another_specifier:;
+  *value_pos = *init_value_pos = 0;
   suppress_assignment = FALSE;
   while (*fmt_string != '%' && *fmt_string != '\0') fmt_string++;
   /* If the null was found, there is no next argument. */
@@ -7885,7 +7896,7 @@ another_specifier:;
          int.  Return that, and pick up next time after the field width. */
       required_type = integer_type((an_integer_kind)ik_int);
       fmt_string++;
-      *next_value_pos = *value_pos;
+      *init_value_pos = *value_pos;
       *value_pos = printf_scanf_arg_pos(&fmt_string);
       pss = pss_after_field_width;
       goto end_of_scan;
@@ -7903,6 +7914,8 @@ after_field_width:;
            int.  Return that, and pick up next time after the precision. */
         required_type = integer_type((an_integer_kind)ik_int);
         fmt_string++;
+        *init_value_pos = *value_pos;
+        *value_pos = printf_scanf_arg_pos(&fmt_string);
         pss = pss_after_precision;
         goto end_of_scan;
       }  /* if */
@@ -8149,6 +8162,7 @@ default_case:;
            to NULL to notify the caller. */
         required_type = NULL;
         fmt_string = NULL;
+        *value_pos = 0;
         goto end_of_scan;
     }  /* switch */
     /* Add a "pointer to" to the required type if necessary. */
@@ -8621,7 +8635,7 @@ arguments).
   a_printf_scan_state  pss = pss_new_specifier;
   a_boolean            is_scanf = (arg_block->arg_list_kind ==
                                                  (a_pragma_kind)pk_scanf_args);
-  int                  value_pos = 0, next_value_pos = 0, saved_value_pos = 0;
+  int                  value_pos = 0, init_value_pos = 0;
   a_boolean            explicit_position_seen = FALSE;
 
   while (fmt_string != NULL) {
@@ -8630,16 +8644,7 @@ arguments).
     type = next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss,
                                       &indirect, &weakly_typed,
                                       &weak_pointer_to_integral, &alt_type,
-                                      &value_pos, &next_value_pos);
-    if (saved_value_pos != 0) {
-      /* A previous call to next_printf_scanf_arg_type yielded positional
-         information for both a field width argument and a normal value
-         argument.  The current call produced the type of the normal value
-         argument, which should be associated with the previously-saved
-         position. */
-      check_assertion(value_pos == 0 && next_value_pos == 0);
-      value_pos = saved_value_pos;
-    }  /* if */
+                                      &value_pos, &init_value_pos);
     if (value_pos != 0) {
       /* The format specifier contained a positional field indicating which
          argument it formats. */
@@ -8664,10 +8669,6 @@ arguments).
       } else {
         arg = nth_printf_scanf_arg(value_pos, arg_block);
       }  /* if */
-      /* If two positional fields were encountered (one for the field width
-         and one for the actual value to format), prepare to pick up the
-         argument for the actual value to format on the next iteration. */
-      saved_value_pos = next_value_pos;
     }  /* if */
     if (arg == NULL) {
       /* There is no argument at the given position: Issue a warning if one

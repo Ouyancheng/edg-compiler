@@ -1,5 +1,22 @@
 Version 4.3
 
+11/17/10 [EDGcpfe/11162]
+POSIX-style positional specifier for precision in printf formatting string
+
+The front end now recognizes a POSIX-style positional specifier on the
+precision specification in a printf formatting string.  (Such specifiers
+were already recognized right after the "%" and on the field width
+specification.  See DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS.)
+The previous failure to recognize such a specifier resulted in spurious
+warnings in some cases, as in this example:
+
+  int main() {
+    char buf[1024];
+    sprintf(buf,"%1$*2$.*2$s","abcd", 2 );
+    //                  ^^^ This is now handled properly
+  }
+
+
 11/16/10 [EDGcpfe/11164]
 Incorrect using-directive lookup
 
