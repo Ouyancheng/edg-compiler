@@ -6177,7 +6177,7 @@ typedef struct a_class_type_supplement {
                         /* Visibility of this type at the assembly level.
 			   (C++/CLI only.) */
   a_bit_field   cli_class_type_kind:2;
-                        /* The class type kind of this class.  In non-C++/CLI
+			/* The class type kind of this class.  In non-C++/CLI
 			   modes, it is always cctk_standard.  In C++/CLI mode,
 			   other kinds of classes (e.g., "ref classes") are
 			   possible: See a_cli_class_type_kind. */
