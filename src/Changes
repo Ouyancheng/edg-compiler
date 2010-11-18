@@ -1,5 +1,25 @@
 Version 4.3
 
+11/17/10 [EDGcpfe/11128]
+asm operand marked with "+" now treated as both used and modified
+
+In GNU mode, an asm operand marked with "+", which indicates the operand is
+both read and written, is now handled that way by the front end with
+regard to tracking uses of variables.  For example, the following
+case no longer gets a spurious "set but never used" warning on data_p:
+
+  int foo(const float *data) {
+    const float *data_p = data;
+    int result = 0;
+    for (int i = 0; i < 10; i++) {
+      asm (" ld.global %0, [%1]; "
+           " add.u32 %1, %1, 4; "
+           : "=r"(result), "+r"(data_p));
+    }
+    return result;
+  }
+
+
 11/17/10 [EDGcpfe/11162]
 POSIX-style positional specifier for precision in printf formatting string
 
