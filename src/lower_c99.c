@@ -156,7 +156,8 @@ Lower the expression in a VLA dimension entry.
       lower_c99_full_expr(expr);
 #endif /* DO_C99_IL_LOWERING */
     } else {
-      lower_full_expr(expr, (a_statement_ptr)NULL);
+      lower_full_expr(expr, (a_statement_ptr)NULL,
+                      /*lvalue_expr_is_discarded=*/TRUE);
     }  /* if */
     if (vdp->in_prototype_scope) {
       pop_context();

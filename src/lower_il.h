@@ -1105,7 +1105,8 @@ extern void release_reusable_temporaries(void);
 extern void perform_post_pass_on_lowered_expression(an_expr_node_ptr expr);
 
 extern void lower_full_expr(an_expr_node_ptr expr,
-                            a_statement_ptr  statement);
+                            a_statement_ptr  statement,
+                            a_boolean        lvalue_expr_is_discarded);
 
 extern void normalize_boolean_controlling_expr_if_needed(
                                                        an_expr_node_ptr expr);
