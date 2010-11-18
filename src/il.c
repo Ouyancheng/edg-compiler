@@ -594,7 +594,7 @@ Dump a field entry, for debug purposes.
   fputs("\"", f_debug);
   if (fp->is_mutable) fputs(", mutable", f_debug);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (fp->is_initonly) fputs(" initonly", f_debug);
+  if (fp->is_initonly) fputs(", initonly", f_debug);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   fputs(", type = ", f_debug);
   db_abbreviated_type(fp->type);

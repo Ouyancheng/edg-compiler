@@ -2548,6 +2548,9 @@ Display the indicated field.
   }  /* if */
   if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_initonly) disp_boolean("is_initonly", TRUE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   if (ptr->base_class_subobject_with_tail_padding) {
     disp_boolean("base_class_subobject_with_tail_padding", TRUE);
