@@ -9121,7 +9121,7 @@ a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
                                        a_boolean             *is_error)
 /*
 Make a type "T cv1 &" (if rvalue_ref is FALSE), "T cv1 &&" (if rvalue_ref is
-TRUE), or "T cv1 %" (when tracking_ref is TRUE) where T is a reference type
+TRUE), or "T cv1 %" (if tracking_ref is TRUE) where T is a reference type
 given by base_ref_type (after qualifiers -- like "restrict" -- on top of that
 type have been dropped) and cv1 are the given type qualifiers.  (tracking_ref
 can be TRUE only in C++/CLI mode.)  The resulting type is:

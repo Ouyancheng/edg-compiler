@@ -8072,6 +8072,7 @@ on the ck_template_param constant pointed to by the expression.
         is_any_reference_type(tp) ||
         is_abstract_class_type(tp) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
+        (cppcli_enabled && is_cli_managed_type(tp)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         is_incomplete_array_type(tp)) {
       /* The element type is invalid. */

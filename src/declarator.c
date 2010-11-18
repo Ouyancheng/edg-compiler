@@ -271,7 +271,7 @@ allowed, issue a diagnostic and return FALSE.
   if (!is_error_type(type)) {
     if (is_ptr_or_ref_type(type)) {
       /* Pointer types and references may be restrict qualified unless they
-         point to function types.  (Microsoft compiler do not support the
+         point to function types.  (Microsoft compilers do not support the
          "restrict" qualifiers; we therefore do not accept the qualifier on
          C++/CLI handles or tracking references.) */
       tp = type_pointed_to(type);
@@ -4038,12 +4038,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                  pending_ptr_mods.based_pos);
           if (is_any_reference_type(temp_type)) {
             if (ref_to_ref_allowed) {
-              a_boolean              tracking_ref = FALSE;
               a_source_position_ptr  qual_pos =
                    (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
                                                       : &state->qualifiers_pos;
               complete_type = make_reference_to_reference(
-                                complete_type, rvalue_ref_case, tracking_ref,
+                                complete_type, rvalue_ref_case,
+                                /*tracking_ref=*/FALSE,
                                 state->qualifiers, qual_pos, (a_boolean*)NULL);
               state->unused_qualifiers = FALSE;
             } else {
