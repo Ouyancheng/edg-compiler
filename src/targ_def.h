@@ -3113,12 +3113,11 @@ regard.)  This is the initial value of the use_empty_struct_in_generated_c
 global variable.
 */
 #ifndef USE_EMPTY_STRUCT_IN_GENERATED_C
-#if BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET && \
-    TARG_SIZEOF_POINTER == 8
+#if GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8
 #define USE_EMPTY_STRUCT_IN_GENERATED_C TRUE
-#else /* !(BACK_END_IS_C_GEN_BE && ...) */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8) */
 #define USE_EMPTY_STRUCT_IN_GENERATED_C FALSE
-#endif /* BACK_END_IS_C_GEN_BE && ... */
+#endif /* GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8 */
 #endif /* USE_EMPTY_STRUCT_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
 

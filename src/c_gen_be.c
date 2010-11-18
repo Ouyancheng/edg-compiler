@@ -3015,7 +3015,7 @@ padding in the generated code.
            f_skip_typerefs(underlying_array_element_type(field_type))->
                                                   generated_as_empty_struct)) {
         /* The layout of the containing struct was calculated assuming that
-           the base type this member was a one-byte struct.  Since that
+           the base type of this member was a one-byte struct.  Since that
            type was actually generated with zero length, we need to add a
            padding member to compensate.  (We can't use the normal field
            padding mechanism because that only adds padding before members
