@@ -14378,45 +14378,66 @@ by pos.
 */
 {
   a_symbol_ptr getput_sym = NULL;
-  char         *getput_property_name;
 
   check_assertion(field_is_property(field));
-  check_assertion_str(field->property_descr->is_declspec_property,
-                      "C++/CLI properties not implemented yet");
-  if (put) {
-    getput_property_name = field->property_descr->set_routine.name;
-  } else {
-    getput_property_name = field->property_descr->get_routine.name;
-  }  /* if */
-  if (getput_property_name == NULL) {
-    if (must_be_present) {
-      expr_pos_error(put ? ec_no_put_property : ec_no_get_property, pos);
+  if (field->property_descr->is_declspec_property) {
+    char *getput_property_name;
+    if (put) {
+      getput_property_name = field->property_descr->set_routine.name;
+    } else {
+      getput_property_name = field->property_descr->get_routine.name;
+    }  /* if */
+    if (getput_property_name == NULL) {
+      if (must_be_present) {
+        expr_pos_error(put ? ec_no_put_property : ec_no_get_property, pos);
+      }  /* if */
+    } else {
+      a_symbol_locator locator;
+      a_type_ptr       class_type;
+
+      /* Look up the "get" or "put" function name in the symbol table to get
+         the locator set. */
+      clear_locator(&locator, pos);
+      (void)find_symbol(getput_property_name,
+                        (sizeof_t)strlen(getput_property_name),
+                        &locator);
+      class_type = parent_class_of(field);
+      /* Look for the "get" or "put" function by name in the class. */
+      getput_sym = class_qualified_id_lookup(&locator, class_type,
+                                             IDL_NO_OPTIONS);
+      if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
+        if (must_be_present &&
+            expr_error_should_be_issued()) {
+          pos_st_error(put ? ec_put_property_function_missing :
+                             ec_get_property_function_missing,
+                       pos, getput_property_name);
+        }  /* if */
+        getput_sym = NULL;
+      } else {
+        /* Use a projection symbol if there is one. */
+        getput_sym = locator.specific_symbol;
+      }  /* if */
     }  /* if */
   } else {
-    a_symbol_locator locator;
-    a_type_ptr       class_type;
-
-    /* Look up the "get" or "put" function name in the symbol table to get
-       the locator set. */
-    clear_locator(&locator, pos);
-    (void)find_symbol(getput_property_name,
-                      (sizeof_t)strlen(getput_property_name),
-                      &locator);
-    class_type = parent_class_of(field);
-    /* Look for the "get" or "put" function by name in the class. */
-    getput_sym = class_qualified_id_lookup(&locator, class_type,
-                                           IDL_NO_OPTIONS);
-    if (getput_sym == NULL || !is_member_function_symbol(getput_sym)) {
+    /* C++/CLI property. */
+    a_routine_ptr getput_routine;
+    if (put) {
+      getput_routine = field->property_descr->set_routine.ptr;
+    } else {
+      getput_routine = field->property_descr->get_routine.ptr;
+    }  /* if */
+    if (getput_routine == NULL) {
       if (must_be_present &&
           expr_error_should_be_issued()) {
-        pos_st_error(put ? ec_put_property_function_missing :
-                           ec_get_property_function_missing,
-                     pos, getput_property_name);
+        pos_st_error(put ? ec_cli_put_property_function_missing :
+                           ec_cli_get_property_function_missing,
+                     pos, unmangled_name_of(&field->source_corresp));
       }  /* if */
       getput_sym = NULL;
     } else {
-      /* Use a projection symbol if there is one. */
-      getput_sym = locator.specific_symbol;
+      getput_sym = symbol_for(getput_routine);
+      check_assertion(getput_sym != NULL &&
+                      is_member_function_symbol(getput_sym));
     }  /* if */
   }  /* if */
   return getput_sym;
