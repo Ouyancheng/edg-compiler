@@ -4761,6 +4761,71 @@ type of the variable to which it refers.
 #endif /* !STANDALONE_C_GEN_BE */
 #endif /* CHECKING */
 
+static a_boolean cast_to_ptr_to_empty_struct(a_type_ptr type,
+                                             a_boolean  *parens_needed)
+/*
+If the given type (the result type of an expression) is a pointer to a
+struct that has been generated as empty, put out a cast to the specified
+type and return TRUE.  If *parens_needed is FALSE, precede the cast with
+a left parenthesis and set *parens_needed to TRUE.  This is used to
+reverse the effect of casting operands of the expression to char * to
+allow them to be used in pointer arithmetic in spite of the zero size.
+*/
+{
+  a_boolean did_cast = FALSE;
+
+  if (is_pointer_type(type) &&
+      skip_typerefs(type_pointed_to(type))->generated_as_empty_struct) {
+    if (!*parens_needed) {
+      /* We must supply parentheses to enclose the added cast. */
+      *parens_needed = TRUE;
+      write_tok_ch('(');
+    }  /* if */
+    dump_cast(type);
+    write_tok_ch('(');
+    did_cast = TRUE;
+  }  /* if */
+  return did_cast;
+}  /* cast_to_ptr_to_empty_struct */
+
+
+static void dump_lvalue_ptr_to_empty_struct(an_expr_node_ptr expr)
+/*
+expr is an lvalue node whose type is a pointer to a struct that has been
+generated as empty.  In order for this lvalue to be usable in pointer
+arithmetic expressions, it must be cast to an lvalue pointer to char *,
+which this function does.
+*/
+{
+  check_assertion(is_pointer_type(expr->type) &&
+                  skip_typerefs(type_pointed_to(expr->type))->
+                                                   generated_as_empty_struct &&
+                  expr->is_lvalue);
+  write_tok_str("(*(char **)&");
+  dump_expr_with_parens(expr);
+  write_tok_ch(')');
+}  /* dump_lvalue_ptr_to_empty_struct */
+
+
+static void dump_possible_ptr_to_empty_struct(an_expr_node_ptr expr)
+/*
+expr is an operand of a pointer arithmetic operation (it need not be the
+pointer operand).  If it is a pointer to struct that has been generated as
+empty, cast it to char * to give it the right element size for the
+computation.  Otherwise, just dump the expression normally.
+*/
+{
+  if (is_pointer_type(expr->type) &&
+      skip_typerefs(type_pointed_to(expr->type))->generated_as_empty_struct) {
+    write_tok_str("((char *)");
+    dump_expr_with_parens(expr);
+    write_tok_ch(')');
+  } else {
+    dump_expr_with_parens(expr);
+  }  /* if */
+}  /* dump_possible_ptr_to_empty_struct */
+
+
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
 /*
@@ -4789,6 +4854,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean                      remainder_special_case = FALSE;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+  a_boolean                      ptr_to_empty_struct_case = FALSE;
+  a_boolean                      pointer_arithmetic_op = FALSE;
+  an_expr_node_ptr               ptr_operand;
 
   check_assertion_str(expr != NULL, "dump_expr: NULL expression");
   check_assertion_str(!is_nullptr_type(expr->type),
@@ -4949,8 +5017,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              truncate/adjust the result of the assignment. */
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          dump_expr_with_parens(operand_1);
+          ptr_to_empty_struct_case = cast_to_ptr_to_empty_struct(expr->type,
+                                                                 &need_parens);
+          if (ptr_to_empty_struct_case) {
+            dump_lvalue_ptr_to_empty_struct(operand_1);
+          } else {
+            dump_expr_with_parens(operand_1);
+          }  /* if */
           write_tok_str("++");
+          if (ptr_to_empty_struct_case) {
+            write_tok_ch(')');
+          }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -4962,8 +5039,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              truncate/adjust the result of the assignment. */
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          ptr_to_empty_struct_case = cast_to_ptr_to_empty_struct(expr->type,
+                                                                 &need_parens);
           write_tok_str("++");
-          dump_expr_with_parens(operand_1);
+          if (ptr_to_empty_struct_case) {
+            dump_lvalue_ptr_to_empty_struct(operand_1);
+            write_tok_ch(')');
+          } else {
+            dump_expr_with_parens(operand_1);
+          }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -4975,8 +5059,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              truncate/adjust the result of the assignment. */
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          dump_expr_with_parens(operand_1);
+          ptr_to_empty_struct_case = cast_to_ptr_to_empty_struct(expr->type,
+                                                                 &need_parens);
+          if (ptr_to_empty_struct_case) {
+            dump_lvalue_ptr_to_empty_struct(operand_1);
+          } else {
+            dump_expr_with_parens(operand_1);
+          }  /* if */
           write_tok_str("--");
+          if (ptr_to_empty_struct_case) {
+            write_tok_ch(')');
+          }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -4988,8 +5081,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              truncate/adjust the result of the assignment. */
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+          ptr_to_empty_struct_case = cast_to_ptr_to_empty_struct(expr->type,
+                                                                 &need_parens);
           write_tok_str("--");
-          dump_expr_with_parens(operand_1);
+          if (ptr_to_empty_struct_case) {
+            dump_lvalue_ptr_to_empty_struct(operand_1);
+            write_tok_ch(')');
+          } else {
+            dump_expr_with_parens(operand_1);
+          }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -5014,21 +5114,25 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(")");
           goto done_with_unary_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case eok_padd:
+          pointer_arithmetic_op = TRUE;
+          /*FALLTHROUGH*/
         case eok_add:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_fjadd:
         case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_padd:
           opstr = "+";
           break;
+        case eok_psubtract:
+        case eok_pdiff:
+          pointer_arithmetic_op = TRUE;
+          /*FALLTHROUGH*/
         case eok_subtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_fjsubtract:
         case eok_jfsubtract:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_psubtract:
-        case eok_pdiff:
           opstr = "-";
           break;
         case eok_multiply:
@@ -5097,12 +5201,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_assign:
           opstr = "=";
           goto process_assignment;
-        case eok_add_assign:
         case eok_padd_assign:
+          pointer_arithmetic_op = TRUE;
+          /*FALLTHROUGH*/
+        case eok_add_assign:
           opstr = "+=";
           goto process_assignment;
-        case eok_subtract_assign:
         case eok_psubtract_assign:
+          pointer_arithmetic_op = TRUE;
+          /*FALLTHROUGH*/
+        case eok_subtract_assign:
           opstr = "-=";
           goto process_assignment;
         case eok_multiply_assign:
@@ -5148,7 +5256,16 @@ process_assignment:
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           /* Write the left operand. */
-          dump_expr_with_parens(operand_1);
+          if (pointer_arithmetic_op) {
+            ptr_to_empty_struct_case =
+                                     cast_to_ptr_to_empty_struct(expr->type,
+                                                                 &need_parens);
+          }  /* if */
+          if (ptr_to_empty_struct_case) {
+            dump_lvalue_ptr_to_empty_struct(operand_1);
+          } else {
+            dump_expr_with_parens(operand_1);
+          }  /* if */
           /* Write the operation string and the right operand. */
           m_write_space();
           m_write_tok_str(opstr);
@@ -5161,6 +5278,9 @@ process_assignment:
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           dump_expr_with_parens(operand_2);
+          if (ptr_to_empty_struct_case) {
+            write_tok_ch(')');
+          }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
           if (remainder_special_case) write_tok_ch(')');
           /* If the destination is a bit field, finish off the sign-extension/
@@ -5204,10 +5324,34 @@ process_assignment:
           }  /* if */
           goto done_with_binary_operation;
         case eok_subscript:
-          dump_expr_with_parens(operand_1);
-          write_tok_ch('[');
-          dump_expr_with_parens(operand_2);
-          write_tok_ch(']');
+          ptr_operand = subscript_or_padd_pointer_operand(expr);
+          check_assertion(is_pointer_type(ptr_operand->type));
+          if (skip_typerefs(type_pointed_to(ptr_operand->type))->
+                                                   generated_as_empty_struct) {
+            /* In order to do the pointer arithmetic required for the
+               subscripting operation, the pointer must be cast to char *
+               to get the appropriate size for the elements, and the result
+               must be cast back to the appropriate element type.  It's
+               easier to deal with the casts in the pointer-addition form,
+               so we use that instead of the subscript notation: if p is a
+               pointer to S, p[i] becomes (*(S *)(((char *)p)+i)). */
+            if (!need_parens) {
+              write_tok_ch('(');
+              need_parens = TRUE;
+            }  /* if */
+            write_tok_ch('*');
+            dump_cast(ptr_operand->type);
+            write_tok_ch('(');
+            dump_possible_ptr_to_empty_struct(operand_1);
+            write_tok_str(" + ");
+            dump_possible_ptr_to_empty_struct(operand_2);
+            write_tok_ch(')');
+          } else {
+            dump_expr_with_parens(operand_1);
+            write_tok_ch('[');
+            dump_expr_with_parens(operand_2);
+            write_tok_ch(']');
+          }  /* if */
           goto done_with_binary_operation;
         case eok_dot_field:
         case eok_points_to_field:
@@ -5474,6 +5618,10 @@ process_assignment:
         }  /* if */
       }  /* if */
       /* General-case processing: */
+      if (pointer_arithmetic_op) {
+        ptr_to_empty_struct_case = cast_to_ptr_to_empty_struct(expr->type,
+                                                               &need_parens);
+      }  /* if */
       if (is_unary) {
         /* Unary operator; operator goes first. */
         m_write_tok_str(opstr);
@@ -5485,7 +5633,11 @@ process_assignment:
            the second can be made to line up with it. */
         comma_column = curr_output_column;
       }  /* if */
-      dump_expr_with_parens(operand_1);
+      if (pointer_arithmetic_op) {
+        dump_possible_ptr_to_empty_struct(operand_1);
+      } else {
+        dump_expr_with_parens(operand_1);
+      }  /* if */
       if (!is_unary) {
         /* Two-operand operator. */
         m_write_space();
@@ -5499,7 +5651,14 @@ process_assignment:
           m_write_space();
         }  /* if */
         if (pointer_comparison) write_tok_str(pointer_comparison_cast);
-        dump_expr_with_parens(operand_2);
+        if (pointer_arithmetic_op) {
+          dump_possible_ptr_to_empty_struct(operand_2);
+        } else {
+          dump_expr_with_parens(operand_2);
+        }  /* if */
+      }  /* if */
+      if (ptr_to_empty_struct_case) {
+        write_tok_ch(')');
       }  /* if */
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
       /* Check number of operands. */
