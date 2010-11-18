@@ -4775,7 +4775,7 @@ allow them to be used in pointer arithmetic in spite of the zero size.
   a_boolean did_cast = FALSE;
 
   if (is_pointer_type(type) &&
-      skip_typerefs(type_pointed_to(type))->generated_as_empty_struct) {
+      f_skip_typerefs(type_pointed_to(type))->generated_as_empty_struct) {
     if (!*parens_needed) {
       /* We must supply parentheses to enclose the added cast. */
       *parens_needed = TRUE;
@@ -4798,7 +4798,7 @@ which this function does.
 */
 {
   check_assertion(is_pointer_type(expr->type) &&
-                  skip_typerefs(type_pointed_to(expr->type))->
+                  f_skip_typerefs(type_pointed_to(expr->type))->
                                                    generated_as_empty_struct &&
                   expr->is_lvalue);
   write_tok_str("(*(char **)&");
@@ -4816,7 +4816,8 @@ computation.  Otherwise, just dump the expression normally.
 */
 {
   if (is_pointer_type(expr->type) &&
-      skip_typerefs(type_pointed_to(expr->type))->generated_as_empty_struct) {
+      f_skip_typerefs(type_pointed_to(expr->type))->
+                                                   generated_as_empty_struct) {
     write_tok_str("((char *)");
     dump_expr_with_parens(expr);
     write_tok_ch(')');
@@ -5326,7 +5327,7 @@ process_assignment:
         case eok_subscript:
           ptr_operand = subscript_or_padd_pointer_operand(expr);
           check_assertion(is_pointer_type(ptr_operand->type));
-          if (skip_typerefs(type_pointed_to(ptr_operand->type))->
+          if (f_skip_typerefs(type_pointed_to(ptr_operand->type))->
                                                    generated_as_empty_struct) {
             /* In order to do the pointer arithmetic required for the
                subscripting operation, the pointer must be cast to char *
