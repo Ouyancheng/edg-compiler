@@ -1007,6 +1007,13 @@ Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 #ifndef CPPCLI_ENABLING_POSSIBLE
 #define CPPCLI_ENABLING_POSSIBLE 1
 #endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
+#if CPPCLI_ENABLING_POSSIBLE
+#if !defined(CP_GEN_BE_VERSION) || !CP_GEN_BE_VERSION
+#if !defined(DEMO_VERSION) || !DEMO_VERSION
+#define ALLOW_CPPCLI_WITH_LOWERING 1
+#endif /* !defined(DEMO_VERSION) || !DEMO_VERSION */
+#endif /* !defined(CP_GEN_BE_VERSION) || !CP_GEN_BE_VERSION */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* defined(MICROSOFT_EXTENSIONS_ALLOWED) &&
           MICROSOFT_EXTENSIONS_ALLOWED */
 

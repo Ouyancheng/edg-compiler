@@ -3955,6 +3955,11 @@ file.
 #else /* !defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
   comment_undefined_macro_name(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C);
 #endif /* defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
+#if defined(ALLOW_CPPCLI_WITH_LOWERING)
+  define_numeric_valued_macro(ALLOW_CPPCLI_WITH_LOWERING);
+#else /* !defined(ALLOW_CPPCLI_WITH_LOWERING) */
+  comment_undefined_macro_name(ALLOW_CPPCLI_WITH_LOWERING);
+#endif /* defined(ALLOW_CPPCLI_WITH_LOWERING) */
 #if defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C)
   define_numeric_valued_macro(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C);
 #else /* !defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
@@ -8561,6 +8566,23 @@ enable_microsoft_mode:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
+#if DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE
+  /* IL lowering cannot handle C++/CLI constructs, so if we are accepting
+     C++/CLI disable lowering.  (This is possible only when a special
+     "trust me" macro is set explicitly.) */
+#if !ALLOW_CPPCLI_WITH_LOWERING
+/* host_envir.h checks this too, so if we fail here someone has broken the
+   test there. */
+ #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
+#endif /* !ALLOW_CPPCLI_WITH_LOWERING */
+  if (cppcli_enabled) {
+    suppress_il_lowering = TRUE;
+    suppress_back_end = TRUE;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    suppress_il_file_write = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  }  /* if */
+#endif /* DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
 #if SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
   /* Suppress typeinfo variables when RTTI is disabled. */
