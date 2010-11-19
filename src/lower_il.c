@@ -14561,12 +14561,12 @@ at the end of a full expression.
 #endif /* !MINIMAL_INLINING */
 void lower_full_expr(an_expr_node_ptr expr,
                      a_statement_ptr  statement,
-                     a_boolean        lvalue_expr_is_discarded)
+                     a_boolean        expr_result_is_discarded)
 /*
 Lower a full expression, i.e., a top-level expression, one that is not
 inside another expression.  If the expression is the one in an
 expression statement, statement points to the statement; otherwise, it is NULL.
-When lvalue_expr_is_discarded is TRUE, it is assumed that a top-level
+When expr_result_is_discarded is TRUE, it is assumed that a top-level
 lvalue can be discarded (i.e., re-written as an rvalue) -- that is the case
 with most top-level expressions (but may not be for expressions that appear,
 for example, in asm statements).
@@ -14594,7 +14594,7 @@ for example, in asm statements).
       expr->type = make_unqualified_type(expr->type);
     }  /* if */
   }  /* if */
-  if (expr->is_lvalue && lvalue_expr_is_discarded) {
+  if (expr->is_lvalue && expr_result_is_discarded) {
 #if DEBUG
     if (db_flag_is_set("rewrite_expr")) {
       (void)fprintf(f_debug, "Top level lvalue expression before re-writing");
@@ -14862,7 +14862,7 @@ is_full_expr is TRUE.
   }  /* if */
   if (is_full_expr) {
     lower_full_expr(expr, (a_statement_ptr)NULL,
-                    /*lvalue_expr_is_discarded=*/TRUE);
+                    /*expr_result_is_discarded=*/TRUE);
   } else {
     lower_expr(expr);
   }  /* if */
@@ -16223,7 +16223,7 @@ Lower an stmk_return statement.
        a reference type. */
     return_type = routine_type->variant.routine.return_type;
     lower_full_expr(return_expr, (a_statement_ptr)NULL,
-                    /*lvalue_expr_is_discarded=*/TRUE);
+                    /*expr_result_is_discarded=*/TRUE);
 #if CTORS_RETURN_THIS
   } else if (routine->special_kind==(a_special_function_kind)sfk_constructor) {
     /* A constructor returns "this". */
@@ -16437,14 +16437,14 @@ handled).
         loop_info = statement->variant.for_loop.extra_info;
         if (loop_info->increment != NULL) {
           lower_full_expr(loop_info->increment, (a_statement_ptr)NULL,
-                          /*lvalue_expr_is_discarded=*/TRUE);
+                          /*expr_result_is_discarded=*/TRUE);
         }  /* if */
       }  /* if */
     } else {
       /* Switch statement. */
       check_assertion(expr != NULL);
       lower_full_expr(expr, (a_statement_ptr)NULL,
-                      /*lvalue_expr_is_discarded=*/TRUE);
+                      /*expr_result_is_discarded=*/TRUE);
       lower_statement(statement->variant.switch_stmt.body_statement);
     }  /* if */
   } else {
@@ -16581,7 +16581,7 @@ handled).
     value_expr = csp->expr;
     if (is_switch_stmt) {
       lower_full_expr(value_expr, (a_statement_ptr)NULL,
-                      /*lvalue_expr_is_discarded=*/TRUE);
+                      /*expr_result_is_discarded=*/TRUE);
     } else {
       lower_boolean_controlling_expr(value_expr, /*is_full_expr=*/TRUE);
     }  /* if */
@@ -16645,7 +16645,7 @@ handled).
                                     insert_expr_statement(loop_info->increment,
                                                           &insert_location);
           lower_full_expr(loop_info->increment, incr_stmt,
-                          /*lvalue_expr_is_discarded=*/TRUE);
+                          /*expr_result_is_discarded=*/TRUE);
           loop_info->increment = NULL;
         }  /* if */
       } else {
@@ -16788,7 +16788,7 @@ under it.  Used in both C++ and C mode.
          gnu_version < 40000).  Typically, top-level expressions that return
          lvalues are discarded, but not in this case. */
       lower_full_expr(aop->expression, statement,
-                      /*lvalue_expr_is_discarded=*/FALSE);
+                      /*expr_result_is_discarded=*/FALSE);
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -16838,7 +16838,7 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_expr:
         lower_full_expr(stmt_expr, statement,
-                        /*lvalue_expr_is_discarded=*/TRUE);
+                        /*expr_result_is_discarded=*/TRUE);
         break;
       case stmk_goto:
         /* Generate any cleanup actions required on exit from any blocks
@@ -16899,7 +16899,7 @@ Do IL lowering of the indicated statement and everything under it.
         if (statement->variant.microsoft_try->except_expr != NULL) {
           lower_full_expr(statement->variant.microsoft_try->except_expr,
                           (a_statement_ptr)NULL,
-                          /*lvalue_expr_is_discarded=*/TRUE);
+                          /*expr_result_is_discarded=*/TRUE);
         }  /* if */
         lower_statement(statement->variant.microsoft_try->cleanup_statement);
         break;
