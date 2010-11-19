@@ -394,11 +394,13 @@ typedef struct a_struct_stmt_stack_entry {
 			   statements currently on the stack. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position
-		start_pos;
-			/* The source position of the start of the current
-			   dependent statement.  This could be the position of
-			   a GNU __extension__ keyword or of a prefix
-			   attribute. */
+		*p_start_pos;
+			/* If non-NULL, this points to the starting position
+			   of the current dependent statement.  This could be
+			   the position of a GNU __extension__ keyword or of a
+			   prefix attribute.  Used by add_statement when one
+			   or more prefix tokens of a statement were consumed
+			   before the statement entry is added. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
@@ -415,6 +417,8 @@ EXTERN a_struct_stmt_stack_entry_ptr
 EXTERN int	depth_stmt_stack;
 			/* Index of the current entry in struct_stmt_stack.
 			   -1 if the stack is empty. */
+
+#define struct_stmt_stack_top()  (struct_stmt_stack[depth_stmt_stack])
 
 extern a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
                                                  a_source_position  *stmt_pos);

@@ -1763,8 +1763,9 @@ the current statement sequence.
   } else {
     /* Anything else is an executable statement.  Set a flag indicating
        that an executable statement has been seen in the current block. */
-    struct_stmt_stack[depth_stmt_stack].any_exec_statement_seen = TRUE;
+    struct_stmt_stack_top().any_exec_statement_seen = TRUE;
   }  /* if */
+  struct_stmt_stack_top().p_start_pos = NULL;
   db_exit();
   return(sp);
 }  /* add_statement_at_stmt_pos */
@@ -1776,8 +1777,9 @@ position.
 */
 #define add_statement(kind)                                                  \
   add_statement_at_stmt_pos((kind),                                          \
-                            &struct_stmt_stack[depth_stmt_stack].start_pos)
-
+                            struct_stmt_stack_top().p_start_pos != NULL ?    \
+                                         struct_stmt_stack_top().p_start_pos \
+                                       : &pos_curr_token)
 
 void update_init_statement_control_flow(a_statement_ptr  sp)
 /*
@@ -1833,15 +1835,8 @@ for GNU statement expressions).  If marked_as_gnu_extension is TRUE, the
 __extension__ keyword was scanned just before the upcoming declaration.
 */
 {
-  a_struct_stmt_stack_entry_ptr  sssep;
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
 
-  sssep = &struct_stmt_stack[depth_stmt_stack];
-  if (!marked_as_gnu_extension) {
-    sssep->start_pos = pos_curr_token;
-  } else {
-    /* The caller already set the starting position prior to consuming the
-       __extension__ token. */
-  }  /* if */
   sssep->curr_decl_statement = add_statement((a_statement_kind)stmk_decl);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char*)sssep->curr_decl_statement,
@@ -2654,8 +2649,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   }  /* if */
   if (kind == ssk_microsoft_try) sssep->num_microsoft_trys_inside_of++;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  sssep->start_pos = null_source_position;
-  sssep->start_pos.column = SP_COL_ERROR;
+  sssep->p_start_pos = NULL;
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
     db_ssse_with_indentation(kind, "pushing ");
@@ -3376,8 +3370,8 @@ and pushes a generated block statement.
                        scope_stack[depth_scope_stack-1].curr_construct_pragmas;
     /* Propagate the position of the iteration or selection statement that is
        being wrapped in an implicit block to the new stack entry. */
-    struct_stmt_stack[depth_stmt_stack].start_pos =
-                              struct_stmt_stack[depth_stmt_stack-1].start_pos;
+    struct_stmt_stack_top().p_start_pos =
+                                     (&struct_stmt_stack_top()-1)->p_start_pos;
     scope_stack[depth_scope_stack-1].curr_construct_pragmas = NULL;
   }  /* if */
 }  /* push_c99_statement_scope */
@@ -4111,14 +4105,8 @@ the statement was preceded by the GNU C __extension__ keyword.
   a_statement_ptr  sp;
   an_expr_node_ptr expr;
   a_boolean        is_statement_expr =
-                         struct_stmt_stack[depth_stmt_stack].is_statement_expr;
+                                    struct_stmt_stack_top().is_statement_expr;
 
-  if (!marked_as_gnu_extension) {
-    struct_stmt_stack[depth_stmt_stack].start_pos = pos_curr_token;
-  } else {
-    /* The caller already set the starting position prior to consuming the
-       __extension__ token. */
-  }  /* if */
   sp = add_statement((a_statement_kind)stmk_expr);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
@@ -4183,11 +4171,9 @@ Scan the initializing expression or, in C++ or C99, declaration of a for
 statement.
 */
 {
-  a_struct_stmt_stack_entry_ptr sssep;
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
 
   db_enter(3, "for_init_statement");
-  sssep = &struct_stmt_stack[depth_stmt_stack];
-  sssep->start_pos = pos_curr_token;
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
   sssep->for_init = TRUE;
@@ -6017,17 +6003,19 @@ statement (of an "if", etc.).  If marked_as_gnu_extension is TRUE,
 this statement was preceded by the GNU keyword __extension__.
 */
 {
-  a_boolean  prev_was_label = FALSE;
-  a_boolean  get_another_statement;
+  a_boolean          prev_was_label = FALSE;
+  a_boolean          get_another_statement;
+  a_source_position  start_pos;
 
   db_enter(3, "statement");
 
 rescan_statement:
-  if (!marked_as_gnu_extension) {
-    struct_stmt_stack[depth_stmt_stack].start_pos = pos_curr_token;
-  } else {
-    /* The caller already set the starting position prior to consuming the
-       __extension__ token. */
+  if (struct_stmt_stack_top().p_start_pos == NULL) {
+      /* Record the start of the statement for add_statement: This takes into
+       account leading attributes of GNU __extension__ keywords (which are
+       consumed before calling add_statement). */
+    start_pos = pos_curr_token;
+    struct_stmt_stack_top().p_start_pos = &start_pos;
   }  /* if */
   if (std_attribute_tokens_next()) {
     a_struct_stmt_stack_entry_ptr
@@ -6464,10 +6452,15 @@ e.g., ({ ... }).
          label statements may look like the start of a declaration, so we
          have to check for ident followed by ":".  In C99 and GNU C modes,
          declarations may be interspersed with statements. */
-      a_boolean  marked_as_gnu_extension = FALSE;
+      a_boolean          marked_as_gnu_extension = FALSE;
+      a_source_position  gnu_extension_pos;
       if (curr_token == tok_extension) {
+        /* Record the presence of the __extension__ keyword and ensure that
+           its position will be used as the starting position of the
+           statement. */
         marked_as_gnu_extension = TRUE;
-        struct_stmt_stack[depth_stmt_stack].start_pos = pos_curr_token;
+        gnu_extension_pos = pos_curr_token;
+        struct_stmt_stack_top().p_start_pos = &gnu_extension_pos;
         (void)get_token();
       }  /* if */
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
