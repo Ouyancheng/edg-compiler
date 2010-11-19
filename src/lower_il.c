@@ -12701,33 +12701,17 @@ harmless.
 {
   an_expr_or_stmt_traversal_block tblock;
 
-  an_expr_node_ptr                orig_expr = NULL;
-
-  if (is_operation_node(expr) &&
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-    /* C++-style lvalues are converted to C-style lvalues
-       during the lowering post pass, but
-       lower_operations_returning_lvalue_instead_of_usual_rvalue doesn't
-       convert certain top-level C++-style lvalues (because they can only be
-       properly converted when there is an operator on top of the C++-style
-       lvalue operation).  This doesn't happen often because most top-level
-       C++-style lvalues are re-written as rvalues (i.e., their values are
-       discarded) as part of the lowering process and they never make it to
-       the lowering post pass.  For cases that do (i.e., expressions in asm
-       statements), add an address_of operation on top of this C++-style
-       lvalue so that it can be properly processed, then add an indirection
-       below to convert it back to an lvalue. */
-    orig_expr = expr;
-    expr = add_address_of_to_node(expr);
-  }  /* if */
+  /* Note that a top-level C++-style lvalue "?" or "," operation will not
+     be converted to a C-style lvalue (see
+     lower_operations_returning_lvalue_instead_of_usual_rvalue).  This could
+     occur when an expression is used as an output value in an asm statement
+     (e.g., asm("mov %1,%0":"=r"(i,q) : "r"(b))), but the front end no longer
+     allows compound lvalue expressions in asm statements, so that case is
+     not handled here. */
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = perform_post_pass_on_lowered_node;
   tblock.process_post_expr = perform_post_pass_on_lowered_node_post_expr;
   traverse_expr(expr, &tblock);
-  if (orig_expr != NULL) {
-    /* Undo the address_of operation by performing an indirection. */
-    overwrite_node(orig_expr, add_indirection_to_node(copy_node(expr)));
-  }  /* if */
 }  /* perform_post_pass_on_lowered_expression */
 
 
@@ -14560,16 +14544,11 @@ at the end of a full expression.
 /*ARGSUSED*/  /* <-- statement is not used in that case. */
 #endif /* !MINIMAL_INLINING */
 void lower_full_expr(an_expr_node_ptr expr,
-                     a_statement_ptr  statement,
-                     a_boolean        expr_result_is_discarded)
+                     a_statement_ptr  statement)
 /*
 Lower a full expression, i.e., a top-level expression, one that is not
 inside another expression.  If the expression is the one in an
 expression statement, statement points to the statement; otherwise, it is NULL.
-When expr_result_is_discarded is TRUE, it is assumed that a top-level
-lvalue can be discarded (i.e., re-written as an rvalue) -- that is the case
-with most top-level expressions (but may not be for expressions that appear,
-for example, in asm statements).
 */
 {
   a_context              context;
@@ -14594,7 +14573,7 @@ for example, in asm statements).
       expr->type = make_unqualified_type(expr->type);
     }  /* if */
   }  /* if */
-  if (expr->is_lvalue && expr_result_is_discarded) {
+  if (expr->is_lvalue && expr_to_lower->result_is_not_used) {
 #if DEBUG
     if (db_flag_is_set("rewrite_expr")) {
       (void)fprintf(f_debug, "Top level lvalue expression before re-writing");
@@ -14861,8 +14840,7 @@ is_full_expr is TRUE.
     adjust_bool_operation_types(expr, &adjusted, /*see_if_possible=*/FALSE);
   }  /* if */
   if (is_full_expr) {
-    lower_full_expr(expr, (a_statement_ptr)NULL,
-                    /*expr_result_is_discarded=*/TRUE);
+    lower_full_expr(expr, (a_statement_ptr)NULL);
   } else {
     lower_expr(expr);
   }  /* if */
@@ -16222,8 +16200,7 @@ Lower an stmk_return statement.
     /* Lower the returned expression.  It's an lvalue if the routine returns
        a reference type. */
     return_type = routine_type->variant.routine.return_type;
-    lower_full_expr(return_expr, (a_statement_ptr)NULL,
-                    /*expr_result_is_discarded=*/TRUE);
+    lower_full_expr(return_expr, (a_statement_ptr)NULL);
 #if CTORS_RETURN_THIS
   } else if (routine->special_kind==(a_special_function_kind)sfk_constructor) {
     /* A constructor returns "this". */
@@ -16436,15 +16413,13 @@ handled).
         lower_statement(statement->variant.for_loop.statement);
         loop_info = statement->variant.for_loop.extra_info;
         if (loop_info->increment != NULL) {
-          lower_full_expr(loop_info->increment, (a_statement_ptr)NULL,
-                          /*expr_result_is_discarded=*/TRUE);
+          lower_full_expr(loop_info->increment, (a_statement_ptr)NULL);
         }  /* if */
       }  /* if */
     } else {
       /* Switch statement. */
       check_assertion(expr != NULL);
-      lower_full_expr(expr, (a_statement_ptr)NULL,
-                      /*expr_result_is_discarded=*/TRUE);
+      lower_full_expr(expr, (a_statement_ptr)NULL);
       lower_statement(statement->variant.switch_stmt.body_statement);
     }  /* if */
   } else {
@@ -16580,8 +16555,7 @@ handled).
     /* Lower the value expression. */
     value_expr = csp->expr;
     if (is_switch_stmt) {
-      lower_full_expr(value_expr, (a_statement_ptr)NULL,
-                      /*expr_result_is_discarded=*/TRUE);
+      lower_full_expr(value_expr, (a_statement_ptr)NULL);
     } else {
       lower_boolean_controlling_expr(value_expr, /*is_full_expr=*/TRUE);
     }  /* if */
@@ -16644,8 +16618,7 @@ handled).
           a_statement_ptr incr_stmt =
                                     insert_expr_statement(loop_info->increment,
                                                           &insert_location);
-          lower_full_expr(loop_info->increment, incr_stmt,
-                          /*expr_result_is_discarded=*/TRUE);
+          lower_full_expr(loop_info->increment, incr_stmt);
           loop_info->increment = NULL;
         }  /* if */
       } else {
@@ -16787,8 +16760,7 @@ under it.  Used in both C++ and C mode.
          they are top-level expressions that can have lvalues (when
          gnu_version < 40000).  Typically, top-level expressions that return
          lvalues are discarded, but not in this case. */
-      lower_full_expr(aop->expression, statement,
-                      /*expr_result_is_discarded=*/FALSE);
+      lower_full_expr(aop->expression, statement);
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -16837,8 +16809,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_asm_statement(statement);
         break;
       case stmk_expr:
-        lower_full_expr(stmt_expr, statement,
-                        /*expr_result_is_discarded=*/TRUE);
+        lower_full_expr(stmt_expr, statement);
         break;
       case stmk_goto:
         /* Generate any cleanup actions required on exit from any blocks
@@ -16898,8 +16869,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement(statement->variant.microsoft_try->guarded_statement);
         if (statement->variant.microsoft_try->except_expr != NULL) {
           lower_full_expr(statement->variant.microsoft_try->except_expr,
-                          (a_statement_ptr)NULL,
-                          /*expr_result_is_discarded=*/TRUE);
+                          (a_statement_ptr)NULL);
         }  /* if */
         lower_statement(statement->variant.microsoft_try->cleanup_statement);
         break;

@@ -7398,8 +7398,7 @@ C99 mode for the same reason.
           break;
         }  /* if */
         if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
-          lower_full_expr(source_node, (a_statement_ptr)NULL,
-                          /*expr_result_is_discarded=*/TRUE);
+          lower_full_expr(source_node, (a_statement_ptr)NULL);
         } else {
           /* Normal case: not a full expression. */
           lower_expr(source_node);
@@ -9569,8 +9568,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
         }  /* if */
         break;
       case dik_expression:
-        lower_full_expr(dip->variant.expression, (a_statement_ptr)NULL,
-                        /*expr_result_is_discarded=*/TRUE);
+        lower_full_expr(dip->variant.expression, (a_statement_ptr)NULL);
         if (needs_cast_because_type_has_param_passed_via_cctor(
                                               dip->variant.expression->type)) {
           /* If the expression in the dip has a type that contains a
