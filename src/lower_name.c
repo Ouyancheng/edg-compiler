@@ -8900,7 +8900,8 @@ constructors and conversion functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
         /* FIXME Mangle the static constructor's name appropriately. */
-        /* FALLTHROUGH */
+        unexpected_condition();
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_constructor:
         name = MANGLING_STRING_FOR_CONSTRUCTOR;

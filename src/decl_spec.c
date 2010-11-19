@@ -8416,11 +8416,10 @@ process_class_specifier:
             if (microsoft_mode && !C_mode() && is_member_decl && !err) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
-              a_boolean   is_elaborated_ctor = FALSE, static_case = FALSE;
+              a_boolean   is_elaborated_ctor = FALSE;
               a_type_ptr  class_type = enclosing_class_type(input_flags);
               begin_deferral_of_access_checks();
-              is_elaborated_ctor = is_constructor_decl(
-                                     enclosing_class_type(input_flags), state);
+              is_elaborated_ctor = is_constructor_decl(class_type, state);
               discard_deferred_access_checks();
               end_deferral_of_access_checks();
               if (is_elaborated_ctor) {
