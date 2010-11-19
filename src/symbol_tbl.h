@@ -757,6 +757,12 @@ typedef struct a_class_symbol_supplement {
 			   class has only an implicitly-declared trivial
 			   default constructor and an implicitly-declared
 			   trivial copy constructor. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_symbol_ptr  static_constructor;
+                        /* Pointer to an sk_member_function symbol when there
+                           is a C++/CLI static constructor defined for the
+                           class; NULL if there is none. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_symbol_ptr	trivial_default_constructor;
 			/* When constructor is NULL and is_POD is FALSE,
 			   pointer to an sk_member_function symbol for the
@@ -3654,8 +3660,9 @@ extern void tildize_locator(a_symbol_locator *locator);
 extern a_boolean destructor_name_matches_class_name(a_symbol_ptr class_sym);
 
 extern void change_class_locator_into_constructor_locator(
-                                                  a_symbol_locator   *locator,
-                                                  a_source_position  *pos);
+                                            a_symbol_locator   *locator,
+                                            a_source_position  *pos,
+                                            a_boolean          is_static_ctor);
 
 extern void make_opname_locator(an_opname_kind    opname,
                                 a_symbol_locator  *locator,
@@ -4465,6 +4472,15 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
   (!(cssp)->has_nontrivial_default_constructor &&                    \
    ((cssp)->trivial_default_constructor != NULL ||                   \
     (cssp)->constructor == NULL))
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* Return TRUE if a symbol is a C++/CLI static constructor symbol. */
+#define is_static_constructor_symbol(sym)                             \
+  is_special_function_symbol(sym,                                     \
+                             (a_special_function_kind)sfk_static_constructor)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_static_constructor_symbol(sym) FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \

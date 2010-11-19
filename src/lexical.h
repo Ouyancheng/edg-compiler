@@ -211,6 +211,11 @@ typedef enum /* an_identifier_lookup_mode */ {
 			   IDL_TYPENAME_LOOKUP to do the lookup. */
   ilm_expr,		/* Uses IDL_IS_EXPR_CONTEXT. */
   ilm_declarator,	/* Uses IDL_IS_DECLARATOR. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ilm_static_declarator,
+			/* Uses both IDL_IS_DECLARATOR and
+			   IDL_IS_STATIC_DECL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ilm_last
 } an_identifier_lookup_mode;
 

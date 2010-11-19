@@ -21610,6 +21610,9 @@ for the __PRETTY_FUNCTION__ keyword.
     }  /* if */
   }  /* if */
   if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      rp->special_kind == (a_special_function_kind)sfk_static_constructor ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rp->special_kind == (a_special_function_kind)sfk_destructor ||
       rp->special_kind == (a_special_function_kind)sfk_conversion) {
     /* Constructors, destructors, and conversion functions have no declared 

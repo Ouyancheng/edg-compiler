@@ -253,7 +253,11 @@ abstract or real declarator.
 			/* This bit is set in GNU C++ mode when a right
 			   parenthesis has been seen inside a new-declarator
 			   (which is only possible due to a GNU bug). */
-#define DO_LAST DO_RPAREN_IN_NEW_DECLARATOR
+#define DO_IS_STATIC_CONSTRUCTOR ((a_decl_flag_set)0x400)
+			/* This bit is set if a C++/CLI static constructor
+			   declarator was scanned.  It is FALSE when
+			   DO_IS_CONSTRUCTOR is TRUE and vice versa. */
+#define DO_LAST DO_IS_STATIC_CONSTRUCTOR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/
 

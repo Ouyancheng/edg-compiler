@@ -869,6 +869,12 @@ typedef struct a_member_decl_info {
 			/* TRUE if the current declaration is a constructor.
 			   In unusual cases this value may be different from
 			   (dso_flags & DSO_CONSTRUCTOR). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field   is_static_constructor:1;
+                        /* TRUE if the current declaration is a C++/CLI static
+                           constructor.  If this is TRUE, is_constructor must
+                           be FALSE. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	is_trivial_default_constructor:1;
 			/* TRUE for an implicit declaration of a trivial
 			   default constructor. */
@@ -929,6 +935,9 @@ a class member declaration as it appears.
   clear_decl_pos_block(&mdip->decl_pos_block);
   mdip->is_first_in_declarator_list = TRUE;
   mdip->is_constructor = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  mdip->is_static_constructor = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mdip->is_trivial_default_constructor = FALSE;
   mdip->is_destructor = FALSE;
   mdip->invalid_virtual_specifier = FALSE;
@@ -7822,6 +7831,12 @@ function, set *ambiguous to TRUE.
                                       &class_bitwise_copy);
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sfk_static_constructor:
+        check_assertion(cppcli_enabled);
+        sym = (symbol_supplement_for_class(class_type))->static_constructor;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_destructor:
         /* Destructor. */
         sym = (symbol_supplement_for_class(class_type))->destructor;
@@ -8252,6 +8267,13 @@ set to FALSE (and FALSE is always returned).
           }  /* if */
         }  /* if */
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sfk_static_constructor:
+        /* Static constructors are allowed on C++/CLI managed interface types
+           (e.g. "interface class"), but not on non-CLI "__interface" types. */
+        unexpected_condition();
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
@@ -9035,10 +9057,14 @@ implicitly declared member functions.
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (pdp != NULL && pdp->is_static) {
-    /* The member function declaration appears as part of a static property
-       declaration. */
-    decl_state->storage_class = (a_storage_class)sc_static;
+  if (cppcli_enabled) {
+    if (decl_info->is_static_constructor) {
+      check_assertion(decl_state->storage_class == (a_storage_class)sc_static);
+    } else if (pdp != NULL && pdp->is_static) {
+      /* The member function declaration appears as part of a static property
+         declaration. */
+      decl_state->storage_class = (a_storage_class)sc_static;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state->storage_class == (a_storage_class)sc_static) {
@@ -9139,8 +9165,15 @@ implicitly declared member functions.
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (pdp != NULL) {
-    check_property_accessor(sym, decl_info, class_state);
+  } else if (cppcli_enabled) {
+    if (decl_info->is_static_constructor) {
+      /* A C++/CLI static constructor declaration. */
+      set_routine_special_kind(
+                        rtn, (a_special_function_kind)sfk_static_constructor);
+    } else if (pdp != NULL) {
+      /* A C++/CLI property accessor. */
+      check_property_accessor(sym, decl_info, class_state);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
@@ -9628,6 +9661,14 @@ implicitly declared member functions.
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
       cssp->destructor = sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (rtn->special_kind ==
+                             (a_special_function_kind)sfk_static_constructor) {
+      /* If multiple static constructors are declared in the same class, an
+         error should have been issued. */
+      check_assertion_or_expect_error(cssp->static_constructor == NULL);
+      cssp->static_constructor = sym;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this routine. */
@@ -9949,6 +9990,15 @@ declarations.)
         add_flags_from_dll_attributes(&dps->decl_modifiers.flags,
                                       dps->prefix_attributes);
       }  /* if */
+    }  /* if */
+    if (cppcli_enabled && decl_info->is_static_constructor) {
+      /* A static constructor member template is invalid. */
+      pos_error(ec_static_constructor_member_template,
+                &locator->source_position);
+      /* For error recovery purposes, treat the prototype instance as a static
+         constructor entry. */
+      set_routine_special_kind(
+                        rtn, (a_special_function_kind)sfk_static_constructor);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     update_routine_decl_modifiers(rtn, &dps->decl_modifiers,
@@ -12547,6 +12597,10 @@ operator should be created.  No routine body is generated at this time.
     /* Destructors are given a return type of void. */
     rout_type->variant.routine.return_type = void_type();
     extra_info->assoc_routine_is_dtor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && decl_info->is_static_constructor) {
+    rout_type->variant.routine.return_type = void_type();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Default assignment operators are given a return type of reference
        to class-type. */
@@ -12568,14 +12622,21 @@ operator should be created.  No routine body is generated at this time.
   /* Create a locator for the symbol that will be created. */
   class_decl_pos = &class_type->source_corresp.decl_position;
   if (decl_info->is_constructor || decl_info->is_destructor) {
-    a_symbol_ptr tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
-
+    a_symbol_ptr tag_sym = symbol_for(class_type);
     make_locator_for_symbol(tag_sym, &locator);
     if (decl_info->is_constructor) {
-      change_class_locator_into_constructor_locator(&locator, class_decl_pos);
+      change_class_locator_into_constructor_locator(&locator, class_decl_pos,
+                                                    /*is_static_ctor=*/FALSE);
     } else {
       tildize_locator(&locator);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && decl_info->is_static_constructor) {
+    a_symbol_ptr tag_sym = symbol_for(class_type);
+    make_locator_for_symbol(tag_sym, &locator);
+    change_class_locator_into_constructor_locator(&locator, class_decl_pos,
+                                                  /*is_static_ctor=*/TRUE);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Must be an assignment operator. */
     make_opname_locator((an_opname_kind)onk_assign, &locator, class_decl_pos);
@@ -13203,6 +13264,9 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     declare_copy_asgn_op;
   a_boolean                     declare_copy_ctor;
   a_boolean                     declare_dtor;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                     declare_static_ctor;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
@@ -13240,6 +13304,12 @@ The routine body is not generated until it is known to be needed.
   declare_dtor = (class_state->member_destruction_required ||
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  declare_static_ctor = cppcli_enabled &&
+                        !cli_class_type_kind_is(class_type, cctk_standard) &&
+                        !cli_class_type_kind_is(class_type, cctk_interface) &&
+                        cssp->static_constructor == NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (microsoft_mode && !is_prototype_instantiation_context() &&
       (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
     /* The Microsoft compiler does not implicitly declare some special
@@ -13255,6 +13325,16 @@ The routine body is not generated until it is known to be needed.
                                                  &suppress_copy_ctor,
                                                  &suppress_dtor);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (declare_static_ctor) {
+    /* In C++/CLI reference and value classes, generate an implicit static
+       constructor if none was declared explicitly. */
+    initialize_member_decl_info(&decl_info, pos);
+    decl_info.decl_state.storage_class = (a_storage_class)sc_static;
+    decl_info.is_static_constructor = TRUE;
+    generate_special_function(class_state, &decl_info, (a_param_type_ptr)NULL);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (declare_copy_ctor) {
     if (suppress_copy_ctor) {
       /* Mark this class as having a suppressed copy constructor and do not
@@ -15676,6 +15756,9 @@ passed via template_decl.
   }  /* if */
   decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
   decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  decl_info.is_static_constructor = (dso_flags & DSO_STATIC_CONSTRUCTOR) != 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   is_typedef =
             decl_state->declared_storage_class == (a_storage_class)sc_typedef;
@@ -15803,17 +15886,27 @@ passed via template_decl.
     decl_info.is_unnamed_field = FALSE;
     decl_info.decl_state.sym = NULL;
     if (!decl_info.is_first_in_declarator_list) {
-      /* Check if a secondary declarator declares a constructor or
-         destructor. */
+      /* Check if a secondary declarator declares a constructor or destructor.
+         (In C++/CLI mode, also consider static constructors.) */
       decl_info.is_destructor = decl_info.is_constructor = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      decl_info.is_static_constructor = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (curr_token == tok_compl ||
           (is_generalized_identifier_start(GID_NO_OPTIONS) &&
            locator_for_curr_id.is_destructor_name)) {
         decl_info.is_destructor = TRUE;
         decl_state->type = decl_state->declared_type = unknown_type();
       } else if (curr_token == tok_identifier &&
-                 is_constructor_decl(class_type)) {
-        decl_info.is_constructor = TRUE;
+                 is_constructor_decl(class_type, decl_state)) {
+        if (decl_state->declared_storage_class != (a_storage_class)sc_static) {
+          decl_info.is_constructor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else {
+          check_assertion(cppcli_enabled);
+          decl_info.is_static_constructor = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
         decl_state->type = decl_state->declared_type = unknown_type();
       } else if (no_decl_specifiers) {
         decl_start_pos = pos_curr_token;
@@ -15942,6 +16035,16 @@ passed via template_decl.
         decl_info.is_constructor = (do_flags & DO_IS_CONSTRUCTOR) != 0;
         decl_info.is_destructor = locator.is_destructor_name ||
                                   (do_flags & DO_IS_DESTRUCTOR) != 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && (do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
+          decl_info.is_static_constructor = TRUE;
+          check_assertion(decl_state->type->kind == (a_type_kind)tk_routine);
+          if (function_type_params(decl_state->type) != NULL) {
+            /* C++/CLI static constructors cannot have parameters. */
+            pos_error(ec_static_constructor_with_params, &decl_start_pos);
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       is_function = (!is_typedef && is_function_type(decl_state->type));
 #if GNU_EXTENSIONS_ALLOWED
@@ -15974,6 +16077,11 @@ passed via template_decl.
             locator.is_conversion_name) {
           /* Type specifier is not expected (nor permitted) on constructors,
              destructors, and conversion functions. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled && decl_info.is_static_constructor) {
+          /* Type specifier is not expected (nor permitted) on C++/CLI static
+             constructors. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* Type specifier is missing.  The type defaults to int, but issue
              a diagnostic. */
@@ -16029,6 +16137,12 @@ passed via template_decl.
         } else if (decl_info.is_destructor && !func_info.is_defaulted) {
         /* A POD may not have a user-provided destructor, either. */
           class_state->POD_ruled_out = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (decl_info.is_static_constructor) {
+          /* A user-defined static constructor precludes a class from being an
+             aggregate (at least, that is how Microsoft compilers behave). */
+          class_state->POD_ruled_out = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
       if (friend_specified) {

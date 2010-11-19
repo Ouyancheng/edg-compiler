@@ -9465,6 +9465,11 @@ declaration that must be checked.
            ((state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0) ||
            locator->is_conversion_name)) {
         /* No type specifier is required. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcli_enabled && is_function_type(state->type) &&
+                 (state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0) {
+        /* No type specifier is required on a C++/CLI static constructor. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Error on omitted type specifier. */
         a_boolean  any_decl_specifiers =
@@ -9637,6 +9642,14 @@ information.
            so a storage class may not be specified (as in the nontemplate
            case).  Microsoft compilers simply ignore the "static" keyword
            here. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && 
+            (state->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
+          /* This storage class specification is valid for a C++/CLI static
+             constructor definition given outside of the class. */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
         if (state->declared_storage_class != (a_storage_class)sc_unspecified) {
           an_error_severity  sev = es_error;
           if (microsoft_bugs &&
@@ -10937,6 +10950,10 @@ and create a function instantiation entry to bind the two symbols together.
      overloaded function symbol. */
   if (is_constructor_symbol(rout_sym)) {
     sym = cssp->constructor;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled && is_static_constructor_symbol(rout_sym)) {
+    sym = cssp->static_constructor;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (rout_sym->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_conversion) {
     /* Look through the conversion routines of the prototype instantiation.

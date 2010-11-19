@@ -2272,6 +2272,16 @@ value.  Also clear related variant fields to default values.
       rp->variant.ctor_dtor.base_name_offset = 0;
 #endif /* IA64_ABI && DO_IL_LOWERING */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case sfk_static_constructor:
+      check_assertion(cppcli_enabled);
+      break;
+    case sfk_property_get:
+    case sfk_property_set:
+      rp->variant.property_descr = NULL;
+      check_assertion(cppcli_enabled);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("set_routine_special_kind: bad kind");
   }  /* switch */

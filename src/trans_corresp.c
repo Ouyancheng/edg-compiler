@@ -6984,6 +6984,11 @@ does not set either return value.
       case sfk_constructor:
         *symbols = cssp->constructor;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sfk_static_constructor:
+        *symbols = cssp->static_constructor;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_destructor:
         *symbols = cssp->destructor;
         break;

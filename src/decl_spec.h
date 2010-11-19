@@ -61,7 +61,7 @@ extern void scan_and_discard_extended_decl_modifiers(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern an_assembly_visibility scan_cli_visibility_specifier_if_any(
-                                                       a_source_position  *pos);
+                                                     a_source_position  *pos);
 
 extern void set_cli_visibility(a_type_ptr              type,
                                an_assembly_visibility  declared_visibility,
@@ -113,7 +113,8 @@ extern void typename_specifier(a_type_ptr            *type_ptr,
                                a_boolean             within_using_decl,
                                a_decl_pos_block_ptr  decl_pos_block);
 
-extern a_boolean is_constructor_decl(a_type_ptr  class_type);
+extern a_boolean is_constructor_decl(a_type_ptr          class_type,
+                                     a_decl_parse_state  *dps);
 
 extern void decl_specifiers(a_decl_flag_set             input_flags,
                             a_decl_parse_state          *state,
@@ -310,13 +311,13 @@ extern void decl_spec_one_time_init(void);
 #define DSO_EXPLICIT		((a_decl_flag_set)0x2000)
 			/* If this bit is set the specifier "explicit" was
 			   found. */
-#define DSO_LINKAGE_SPEC_DECL   ((a_decl_flag_set)0x4000)
+#define DSO_LINKAGE_SPEC_DECL	((a_decl_flag_set)0x4000)
                         /* If this bit is set the decl-specifiers included a
                            linkage specifier; this is only accepted in
                            Microsoft mode (and only under restricted
                            circumstances). */
 #if UPC_EXTENSIONS_ALLOWED
-#define DSO_UPC_SHARED_LAYOUT   ((a_decl_flag_set)0x8000)
+#define DSO_UPC_SHARED_LAYOUT	((a_decl_flag_set)0x8000)
 			/* If this bit is set, a UPC "shared" specifier was
 			   found with an explicit block size. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -324,7 +325,12 @@ extern void decl_spec_one_time_init(void);
 			/* This bit is set if and only if the keyword typename
 			   introduced an elaborated type specifier (i.e.,
 			   DSO_ELABORATED_TYPE_SPECIFIER must also be set). */
-#define DSO_LAST DSO_TYPENAME
+#define DSO_STATIC_CONSTRUCTOR	((a_decl_flag_set)0x20000)
+			/* If this bit is set the declaration is for a C++/CLI
+			   static constructor, in which case the type returned
+			   from decl_specifiers is tk_void.  This bit is
+			   mutually exclusive w.r.t. DSO_CONSTRUCTOR. */
+#define DSO_LAST DSO_STATIC_CONSTRUCTOR
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSO_LAST)*/
 #endif /* DECL_SPEC_H */

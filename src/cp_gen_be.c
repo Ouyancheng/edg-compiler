@@ -3768,6 +3768,10 @@ a definition.
       a_routine_ptr rout = (a_routine_ptr)scp;
       if (rout->special_kind == (a_special_function_kind)sfk_conversion ||
           rout->special_kind == (a_special_function_kind)sfk_constructor ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          rout->special_kind ==
+                             (a_special_function_kind)sfk_static_constructor ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           rout->special_kind == (a_special_function_kind)sfk_destructor) {
         /* Parentheses are not needed around a conversion function,
            constructor, or destructor, because they do not have return
@@ -12730,6 +12734,10 @@ declarator (or NULL if it wasn't recorded).
     a_type_ptr saved_routine_type = rout->type;
     if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
         rout->special_kind == (a_special_function_kind)sfk_destructor ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        rout->special_kind ==
+                             (a_special_function_kind)sfk_static_constructor ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         rout->special_kind == (a_special_function_kind)sfk_conversion) {
       /* Do not put out the return type for a constructor, destructor, or
          conversion function. */
@@ -13151,6 +13159,14 @@ handle_as_definition:
   }  /* if */
   /* Determine the proper storage class to display. */
   storage_class = rout->storage_class;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rout->special_kind == (a_special_function_kind)sfk_static_constructor) {
+    /* A C++/CLI static constructor is always declared with the "static"
+       specifier. */
+    storage_class = (a_storage_class)sc_static;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (is_specialization) {
     /* A storage class is never allowed on a specialization. */
     storage_class = (a_storage_class)sc_unspecified;

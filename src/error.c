@@ -1174,6 +1174,9 @@ symbol_name:
       /* Check for special kinds of routines. */
       if (routine != NULL) {
         if (is_constructor_symbol(fund_sym) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            is_static_constructor_symbol(fund_sym) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             is_destructor_symbol(fund_sym) ||
             routine->special_kind == (a_special_function_kind)sfk_conversion) {
           /* The return type is not listed for constructors, destructors, and

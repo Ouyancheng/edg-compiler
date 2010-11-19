@@ -2570,16 +2570,17 @@ Print the name of a special function kind.
   char * s;
 
   switch (kind) {
-    case sfk_none:            s = "sfk_none";          break;
-    case sfk_constructor:     s = "sfk_constructor";   break;
-    case sfk_destructor:      s = "sfk_destructor";    break;
-    case sfk_conversion:      s = "sfk_conversion";    break;
-    case sfk_operator:        s = "sfk_operator";      break;
+    case sfk_none:               s = "sfk_none";               break;
+    case sfk_constructor:        s = "sfk_constructor";        break;
+    case sfk_destructor:         s = "sfk_destructor";         break;
+    case sfk_conversion:         s = "sfk_conversion";         break;
+    case sfk_operator:           s = "sfk_operator";           break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    case sfk_property_get:    s = "sfk_property_get";  break;
-    case sfk_property_set:    s = "sfk_property_set";  break;
+    case sfk_static_constructor: s = "sfk_static_constructor"; break;
+    case sfk_property_get:       s = "sfk_property_get";       break;
+    case sfk_property_set:       s = "sfk_property_set";       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:                  s = "**BAD SPECIAL FUNCTION KIND**";
+    default:                     s = "**BAD SPECIAL FUNCTION KIND**";
   }  /* switch */
   (void)printf("%s", s);
 }  /* disp_special_function_kind_name */

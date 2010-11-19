@@ -5147,6 +5147,9 @@ in which such a return is undefined.
   /* Get a pointer to the current routine entry. */
   rout = current_routine_entry();
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      rout->special_kind == (a_special_function_kind)sfk_static_constructor ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Constructors and destructors have no return value. */
   } else {
@@ -5325,6 +5328,10 @@ See also 3.6.6.4.
     } else {
       /* The expression is present. */
       if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          rout->special_kind ==
+                             (a_special_function_kind)sfk_static_constructor ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           rout->special_kind == (a_special_function_kind)sfk_destructor) {
         /* Constructors and destructors may not return a value (ARM 6.6.3). */
         error(ec_value_returned_in_constructor);

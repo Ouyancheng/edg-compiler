@@ -1560,6 +1560,7 @@ static void cplusplus_function_declarator_trailer(
                                    a_boolean           top_level,
                                    a_boolean           is_nonstatic_member,
                                    a_boolean           is_constructor,
+                                   a_boolean           is_static_constructor,
                                    a_boolean           is_destructor,
                                    a_boolean           disallow_exception_spec,
                                    a_boolean           is_typedef_decl,
@@ -1637,11 +1638,13 @@ this is a helper function.
       err_code = ec_function_qualifier_on_nonmember;
       qualifier_err = TRUE;
     } else if (!is_nonstatic_member && !is_typedef_decl &&
-               function_prototype_scope_is_in_class(parent_type)) {
-      /* This must be the declaration of a static member function inside
-         its class definition.  "const" and "volatile" are not allowed,
-         but with Cfront it's sometimes okay (depending on the return type!)
-         so just put out a warning in cfront mode. */
+               (function_prototype_scope_is_in_class(parent_type) ||
+                is_static_constructor)) {
+      /* This must be the declaration of a static member function inside its
+         class definition (or, possibly, a C++/CLI static constructor outside
+         its class).  "const" and "volatile" are not allowed, but with Cfront
+         it's sometimes okay (depending on the return type!) so just put out a
+         warning in cfront mode. */
       err_code = ec_function_qualifier_on_static_member;
       if (any_cfront_mode() && parent_type != NULL && !is_nonstatic_member) {
         pos_warning(err_code, &qualifier_pos);
@@ -1798,6 +1801,7 @@ static void function_declarator(a_decl_parse_state  *state,
                                 a_type_ptr          parent_type,
                                 a_boolean           is_nonstatic_member,
                                 a_boolean           is_constructor,
+                                a_boolean           is_static_constructor,
                                 a_boolean           is_destructor,
                                 a_boolean           disallow_default_args,
                                 a_boolean           disallow_exception_spec,
@@ -1819,11 +1823,12 @@ parent_type is a pointer to the class (or struct or union) type of which
 it is a member; otherwise it is NULL.  When it is non-NULL,
 is_nonstatic_member will distinguish static from nonstatic
 member functions when the current scope is that of a class definition.
-is_constructor or is_destructor is TRUE if previous processing had
-determined that this is a constructor or destructor declaration,
-respectively.  If disallow_default_args is TRUE issue an error if a
-default argument expression is encountered.  is_friend_decl is TRUE
-if this is the function declarator in a friend function declaration.
+is_constructor, is_static_constructor, and is_destructor indicate that
+previous processing determined that this is a constructor, a C++/CLI static
+constructor, or a destructor declaration, respectively.  If
+disallow_default_args is TRUE issue an error if a default argument
+expression is encountered.  is_friend_decl is TRUE if this is the
+function declarator in a friend function declaration.
 */
 {
   a_param_type_ptr        ptp;
@@ -2730,7 +2735,8 @@ if this is the function declarator in a friend function declaration.
                                           locator, parent_type,
                                           is_top_level_declarator,
                                           is_nonstatic_member,
-                                          is_constructor, is_destructor,
+                                          is_constructor,
+                                          is_static_constructor, is_destructor,
                                           disallow_exception_spec,
                                           is_typedef_decl, decl_pos_block);
   }  /* if */
@@ -2765,7 +2771,9 @@ the left parenthesis introducing the declarator-like construct.
   function_declarator(dps, &func_type, func_info, &loc,
                       lambda->closure_class,
                       /*is_nonstatic_member=*/TRUE,
-                      /*is_constructor=*/FALSE, /*is_destructor=*/FALSE,
+                      /*is_constructor=*/FALSE, 
+                      /*is_static_constructor=*/FALSE,
+                      /*is_destructor=*/FALSE,
                       /*disallow_default_args=*/TRUE,
                       /*disallow_exception_spec=*/FALSE,
                       /*is_typedef_decl=*/FALSE, /*is_friend_decl=*/FALSE,
@@ -4396,6 +4404,7 @@ static void scan_real_declarator_id(
                         a_decl_flag_set     *output_flags,
                         a_symbol_locator    *locator,
                         a_boolean           *is_constructor,
+                        a_boolean           *is_static_constructor,
                         a_boolean           *is_destructor,
                         a_boolean           *parenthesized_initializer_allowed,
                         a_boolean           *not_a_function_declarator,
@@ -4408,9 +4417,10 @@ beginning of the name (usually but not always an identifier).  dps points to a
 structure describing various properties of the current declaration.
 input_flags is the set of flags passed in to declarator, and *output_flags is
 the set of flags that will be returned to declarator's caller.  *locator is
-returned with the locator for the name, *p_member_parent_type is the class
-type when this is a qualified name, *is_constructor or *is_destructor is
-returned TRUE when the name is a constructor or destructor name,
+returned with the locator for the name.  *p_member_parent_type is the class
+type when this is a qualified name.  *is_constructor, *is_static_constructor,
+or *is_destructor is set to TRUE if the name is for a constructor, a C++/CLI
+static constructor, or a destructor name  respectively.
 *parenthesized_initializer_allowed is set to FALSE if the entity being
 declared is not initializable, and *not_a_function_declarator is set if the
 declared entity is known to not be a function.
@@ -4492,6 +4502,13 @@ declared entity is known to not be a function.
   if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
       (!locator_for_curr_id.is_destructor_name ||
        locator_for_curr_id.is_qualified_name)) {
+    an_identifier_lookup_mode  lookup_mode = ilm_declarator;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        dps->declared_storage_class == (a_storage_class)sc_static) {
+      lookup_mode = ilm_static_declarator;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (any_cfront_mode()) {
       /* Provide support for an exploitable cfront bug. */
       if (locator_for_curr_id.is_qualified_name &&
@@ -4653,7 +4670,7 @@ declared entity is known to not be a function.
       }  /* if */
     }  /* if */
     /* The declarator may be a qualified name or a normal name. */
-    if (coalesce_and_lookup_qualified_name(options, ilm_declarator, &err)) {
+    if (coalesce_and_lookup_qualified_name(options, lookup_mode, &err)) {
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (err) {
         /* The locator will be set to an error locator below. */
@@ -4683,6 +4700,10 @@ declared entity is known to not be a function.
               *is_constructor = TRUE;
             } else if (is_destructor_symbol(sym)) {
               *is_destructor = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (is_static_constructor_symbol(sym)) {
+              *is_static_constructor = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
           } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
             /* The dimensions of static data members (if any) are scanned
@@ -4747,8 +4768,13 @@ declared entity is known to not be a function.
              Note that destructors aren't a problem because of the distinctive
              leading tilde. */
           if (!err && (input_flags & DI_NO_TYPE_SPECIFIERS) != 0 &&
-              is_constructor_decl(ssep->assoc_type)) {
-            *is_constructor = TRUE;
+              is_constructor_decl(ssep->assoc_type, dps)) {
+            if (cppcli_enabled &&
+                dps->declared_storage_class == (a_storage_class)sc_static) {
+              *is_static_constructor = TRUE;
+            } else {
+              *is_constructor = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -5033,6 +5059,7 @@ static void r_declarator(
                   a_type_ptr                  *p_complete_type,
                   a_type_ptr                  *p_bottom_derived_type,
                   a_boolean                   *is_constructor,
+                  a_boolean                   *is_static_constructor,
                   a_boolean                   *is_destructor,
                   a_call_conv_descr_ptr       p_left_call_conv,
                   a_call_conv_descr_ptr       p_unbound_call_conv,
@@ -5285,8 +5312,8 @@ The syntax is:
     r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                  &local_do_flags, state, /*specifiers_type=*/(a_type_ptr)NULL,
                  member_parent_type, locator, &derived_type,
-                 &bottom_derived_type, is_constructor, is_destructor,
-                 &inner_left_call_conv, &unbound_call_conv,
+                 &bottom_derived_type, is_constructor, is_static_constructor, 
+                 is_destructor, &inner_left_call_conv, &unbound_call_conv,
                  &inner_left_qualifiers, &unbound_qualifiers,
                  declarator_ssep, func_info, decl_pos_block);
     state->in_nested_declarator = saved_in_nested_declarator;
@@ -5325,8 +5352,9 @@ The syntax is:
          declaration can be marked as a constructor or destructor but
          member_parent_type will be NULL.  In other cases of parenthesized
          declarators member_parent_type must be updated from the locator. */
-      if (is_error_locator(*locator) && (*is_constructor || *is_destructor)) {
-        *is_constructor = *is_destructor = FALSE;
+      if (is_error_locator(*locator) &&
+          (*is_constructor || *is_static_constructor || *is_destructor)) {
+        *is_constructor = *is_static_constructor = *is_destructor = FALSE;
       } else {
         member_parent_type = qualifier_class_type(*locator);
       }  /* if */
@@ -5409,7 +5437,8 @@ The syntax is:
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the name declared here. */
       scan_real_declarator_id(state, input_flags, output_flags, locator,
-                              is_constructor, is_destructor,
+                              is_constructor, is_static_constructor, 
+                              is_destructor, 
                               &parenthesized_initializer_allowed,
                               &not_a_function_declarator,
                               &member_parent_type, decl_pos_block);
@@ -5422,8 +5451,8 @@ The syntax is:
          declarator-id.  Doing this after the call to scan_real_declarator_id
          ensures the position is that of the main identifier (and not e.g.
          a qualifier). */
-     declarator_pos = locator->source_position;
-     decl_pos_block->decl_pos = declarator_pos;
+      declarator_pos = locator->source_position;
+      decl_pos_block->decl_pos = declarator_pos;
     }  /* if */
   }  /* if */
   consume_any_stray_microsoft_rparen();
@@ -5553,7 +5582,7 @@ function_lparen:
             member_parent_type = NULL;
           }  /* if */
           local_func_info = NULL;
-          *is_constructor = *is_destructor = FALSE;
+          *is_constructor = *is_static_constructor = *is_destructor = FALSE;
         } else if (*output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
           check_assertion(func_info == NULL);
           is_nonstatic_member_function = TRUE;
@@ -5571,6 +5600,10 @@ function_lparen:
                                       : ec_bad_destructor_decl,
                       &state->declarator_start_pos);
           }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (*is_static_constructor) {
+          is_nonstatic_member_function = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           if (input_flags & DI_NONSTATIC_MEMBER) {
             if (locator->is_operator_name &&
@@ -5663,7 +5696,8 @@ function_lparen:
       }  /* if */
       function_declarator(state, &new_type_ptr, local_func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
-                          *is_constructor, *is_destructor,
+                          *is_constructor, *is_static_constructor,
+                          *is_destructor,
                           disallow_default_args, disallow_exception_spec,
                           (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
                           (input_flags & DI_IS_FRIEND_DECL) != 0,
@@ -5859,7 +5893,7 @@ function_lparen:
       /* Do error checking on the conversion function declaration. */
       process_conversion_function_declarator(locator, state, input_flags,
                                              derived_type, &complete_type);
-    } else if (*is_constructor) {
+    } else if (*is_constructor || *is_static_constructor) {
       /* Return type should be "unknown" at this point, unless the declarator
          was parenthesized in which case decl_specifiers will have thought we
          are in an "implicit int" case.  Change it to void. */
@@ -6117,9 +6151,15 @@ the parameters.
 */
 {
   a_type_ptr         bottom_derived_type = NULL;
-  a_boolean          is_constructor = FALSE, is_destructor = FALSE;
+  a_boolean          is_constructor = FALSE, is_destructor = FALSE,
+                     is_static_constructor = FALSE;
 
   is_constructor = (input_flags & DI_IS_CONSTRUCTOR) != 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && (state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0) {
+    is_static_constructor = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If DI_IS_CONSTRUCTOR is set, the parent class should be provided. */
   check_assertion_str(!is_constructor || member_parent_type != NULL ||
                       (input_flags & DI_IS_FRIEND_DECL),
@@ -6158,16 +6198,26 @@ the parameters.
   }  /* if */
   r_declarator(input_flags, &state->do_flags, state, state->type,
                member_parent_type, locator, &state->declared_type,
-               &bottom_derived_type, &is_constructor, &is_destructor,
-               (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
-               (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
-               &state->source_sequence_entry, func_info, decl_pos_block);
+               &bottom_derived_type, &is_constructor, &is_static_constructor, 
+               &is_destructor, (a_call_conv_descr_ptr)NULL, 
+               (a_call_conv_descr_ptr)NULL, (a_type_qualifier_set *)NULL, 
+               (a_type_qualifier_set *)NULL, &state->source_sequence_entry, 
+               func_info, decl_pos_block);
   if (is_constructor) {
     state->do_flags |= DO_IS_CONSTRUCTOR;
   }  /* if */
   if (is_destructor) {
     state->do_flags |= DO_IS_DESTRUCTOR;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Static constructors only occur in C++/CLI mode. */
+  check_assertion(cppcli_enabled || !is_static_constructor);
+  /* is_constructor and is_static_constructor cannot both be TRUE. */
+  check_assertion(!(is_constructor && is_static_constructor));
+  if (cppcli_enabled && is_static_constructor) {
+    state->do_flags |= DO_IS_STATIC_CONSTRUCTOR;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (state->do_flags & DO_HAS_PTR_TO_MEMBER_COMPONENT) {
     (void)check_for_vla_in_pointer_to_member(state->declared_type,
                                              &state->declarator_start_pos);

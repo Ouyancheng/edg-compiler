@@ -5460,11 +5460,40 @@ group in the given cache.
 }  /* cache_std_attribute_group */
 
 
-a_boolean is_constructor_decl(a_type_ptr    class_type)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* dps is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static a_symbol_ptr lookup_class_member_decl(a_type_ptr          class_type,
+                                             a_decl_parse_state  *dps)
 /*
-class_type is a pointer to the class that is currently being defined.  Return
-TRUE and modify locator_for_curr_id appropriately if the current declaration
-is a that of a constructor.
+Look up the current identifier in the given class and return the symbol found.
+*dps describes the declaration for which this look-up is done: If its declared
+storage class is "static", consider the C++/CLI static constructor (which is
+unique); otherwise consider for the ordinary constructor (which might be an
+overload set).
+*/
+{
+  an_id_lookup_options_set  idl_options = IDL_DIRECT_CLASS_MEMBERS_ONLY;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      dps->declared_storage_class == (a_storage_class)sc_static) {
+    idl_options |= IDL_IS_STATIC_DECL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  (void)class_qualified_id_lookup(&locator_for_curr_id, class_type,
+                                  idl_options);
+  return locator_for_curr_id.specific_symbol;
+}  /* lookup_class_member_decl */
+
+
+a_boolean is_constructor_decl(a_type_ptr          class_type,
+                              a_decl_parse_state  *dps)
+/*
+dps describes a member declaration being parsed during the definition of the
+given class type.  Return TRUE and modify locator_for_curr_id appropriately if
+the current declaration is that of a constructor (possibly, a C++/CLI static
+constructor).
 */
 {
   a_boolean          is_constructor = FALSE;
@@ -5479,7 +5508,8 @@ is a that of a constructor.
 
   db_enter(4, "is_constructor_decl");
   if (microsoft_mode &&
-      (((curr_token == tok_struct || curr_token == tok_class) &&
+      (((curr_token == tok_struct || curr_token == tok_class
+         or_is_cli_class_type_keyword(curr_token)) &&
         (class_type->kind == (a_type_kind)tk_struct ||
          class_type->kind == (a_type_kind)tk_class)) ||
        (curr_token == tok_union &&
@@ -5619,11 +5649,10 @@ is a that of a constructor.
     if (is_constructor) {
       /* Turn the current locator from a "specific symbol" locator into a
          constructor locator. */
+      a_boolean  is_cli_static_ctor = FALSE;
       clear_specific_symbol(locator_for_curr_id);
       locator_for_curr_id.specific_symbol = NULL;
-      (void)class_qualified_id_lookup(&locator_for_curr_id, class_type,
-                                      IDL_DIRECT_CLASS_MEMBERS_ONLY);
-      sym = locator_for_curr_id.specific_symbol;
+      sym = lookup_class_member_decl(class_type, dps);
       if (sym != tag_sym) {
         /* The symbol one gets by looking up the class name is not the same as
            the class symbol.  This might be okay, but it has to be checked
@@ -5632,6 +5661,10 @@ is a that of a constructor.
           a_type_ptr  sym_type;
           if (is_constructor_symbol(sym)) {
             /* Okay. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (cppcli_enabled && is_static_constructor_symbol(sym)) {
+            /* Okay. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else if (sym->kind == (a_symbol_kind)sk_type &&
                      (sym_type = f_skip_typerefs(sym->variant.type.ptr),
                       same_entities(sym_type, class_type))) {
@@ -5650,8 +5683,14 @@ is a that of a constructor.
         locator_for_curr_id.specific_symbol = tag_sym;
       }  /* if */
       pos = locator_for_curr_id.source_position;
-      change_class_locator_into_constructor_locator(&locator_for_curr_id,
-                                                    &pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          dps->declared_storage_class == (a_storage_class)sc_static) {
+        is_cli_static_ctor = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      change_class_locator_into_constructor_locator(
+                              &locator_for_curr_id, &pos, is_cli_static_ctor);
     }  /* if */
   }  /* if */
   if (cache_in_use) {
@@ -6527,6 +6566,7 @@ Returns NULL in case of error.
   if (ssep->kind != (a_scope_kind)sck_class_struct_union &&
       ssep->kind != (a_scope_kind)sck_class_reactivation) {
     /* Error case of some sort. */
+    expect_error();
   } else {
     result = ssep->assoc_type;
     check_assertion(result != NULL && is_class_struct_union_type(result));
@@ -6834,12 +6874,11 @@ the current identifier is a class member and a template-id.
 /*ARGSUSED*/ /* <-- named_address_space is not used in some configurations. */
 #endif /* !NAMED_ADDRESS_SPACES_ALLOWED */
 static a_boolean process_nontype_identifier(
+                                a_decl_parse_state        *dps,
                                 a_decl_specifiers_set     decl_specifiers_seen,
-                                a_storage_class           storage_class,
                                 a_decl_flag_set           input_flags,
                                 a_basic_type              *basic_type,
                                 a_named_address_space_id  *named_address_space,
-                                a_decl_flag_set           *output_flags,
                                 a_boolean                 *err)
 /*
 The current token is an identifier or (in C++) a global qualification token
@@ -6849,15 +6888,14 @@ cases are handled by the caller.  If the name is not a type name, the work
 is mostly done in this routine.  This includes named memory regions (part of
 the specifiers; an Embedded C/TR 18037 extension) and constructors (part of
 the declarator).
-decl_specifiers_seen describes some of the specifiers (virtual, inline, ...)
-that may have been seen already.  storage_class is the storage class that
-was specified explicitly (if any).  input_flags and output_flags are the
-flag sets passed into and out of decl_specifiers.  *basic_type represents
+dps describes the declaration being parse.  decl_specifiers_seen records some
+of the specifiers (virtual, inline, ...) that may have been seen already.
+input_flags is the flag set passed to decl_specifiers.  *basic_type represents
 the basic type specifier that was seen (if any) and may be set to bt_no_type
-if this is a constructor.  If the current token names an address space,
-*named_address_space is set to represent it; otherwise it is set to zero. 
-Unusual syntax errors (e.g., "::" followed by something unexpected) cause
-*err to be set to TRUE.
+if this is a constructor (or in C++/CLI, a static constructor).  If the current
+token names an address space, *named_address_space is set to represent it;
+otherwise it is set to zero.  Unusual syntax errors (e.g., "::" followed by
+something unexpected) cause *err to be set to TRUE.
 If the identifier is not part of the decl-specifiers (i.e., either part
 of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 */
@@ -6891,16 +6929,27 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
         !(decl_specifiers_seen & ~(DS_VIRTUAL | DS_STORAGE_CLASS |
                                    DS_EXPLICIT | DS_INLINE |
                                    DS_MICROSOFT_INLINE | DS_FORCEINLINE)) &&
-        (storage_class == (a_storage_class)sc_unspecified ||
-         storage_class == (a_storage_class)sc_static)) {
+        (dps->declared_storage_class == (a_storage_class)sc_unspecified ||
+         dps->declared_storage_class == (a_storage_class)sc_static)) {
       a_type_ptr  class_type = enclosing_class_type(input_flags);
+      a_boolean   is_static_ctor = FALSE;
       if (class_type != NULL) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && is_managed_class_type_entry(class_type) &&
+            dps->declared_storage_class == (a_storage_class)sc_static) {
+          is_static_ctor = TRUE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* The following test will not succeed if the constructor
            declaration is parenthesized; in that case, the test is
            repeated in scan_real_declarator_id. */
-        if (is_constructor_decl(class_type)) {
+        if (is_constructor_decl(class_type, dps)) {
           *basic_type = bt_no_type;
-          *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+          if (is_static_ctor) {
+            dps->dso_flags |= DSO_STATIC_CONSTRUCTOR;
+          } else {
+            dps->dso_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+          }  /* if */
           /* Note that with a branch to exit_loop the get_token call
              is bypassed.  This means curr_token will still represent
              the constructor name (= class name) upon return to the
@@ -6911,7 +6960,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
                    implicit_int_member_with_name_of_type()) {
           /* Microsoft and Cfront will accept:
                struct X; struct Y { X(); }; */
-          *output_flags |= DSO_NO_DECL_SPECIFIERS;
+          dps->dso_flags |= DSO_NO_DECL_SPECIFIERS;
           result = TRUE;
         }  /* if */              
       }  /* if */              
@@ -8363,34 +8412,39 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            a_boolean  microsoft_elaborated_ctor = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
             if (microsoft_mode && !C_mode() && is_member_decl && !err) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted.
                  Access checks are disabled during this processing. */
+              a_boolean   is_elaborated_ctor = FALSE, static_case = FALSE;
+              a_type_ptr  class_type = enclosing_class_type(input_flags);
               begin_deferral_of_access_checks();
-              microsoft_elaborated_ctor = is_constructor_decl(
-                                           enclosing_class_type(input_flags));
+              is_elaborated_ctor = is_constructor_decl(
+                                     enclosing_class_type(input_flags), state);
               discard_deferred_access_checks();
               end_deferral_of_access_checks();
-            }  /* if */
-            if (microsoft_elaborated_ctor) {
-              basic_type = bt_no_type;
-              *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
-              /* Skip "class" or "struct". */
-              (void)get_token();
-              goto exit_loop;
-            } else {
-              if (!class_specifier(
-                          state, input_flags, vacuous_decl_allowed,
-                          (decl_specifiers_seen & DS_FRIEND) != 0,
-                          marked_as_gnu_extension, type_ptr,
-                          &declares_something, &defines_something,
-                          decl_pos_block)) {
-                err = TRUE;
+              if (is_elaborated_ctor) {
+                basic_type = bt_no_type;
+                if (*storage_class == (a_storage_class)sc_static) {
+                  *output_flags |= DSO_STATIC_CONSTRUCTOR;
+                } else {
+                  *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+                }  /* if */
+                /* Skip "class" or "struct". */
+                (void)get_token();
+                goto exit_loop;
               }  /* if */
-              basic_type = bt_struct_union;
-              is_elaborated_type_specifier = TRUE;
             }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            if (!class_specifier(state, input_flags, vacuous_decl_allowed,
+                                 (decl_specifiers_seen & DS_FRIEND) != 0,
+                                 marked_as_gnu_extension, type_ptr,
+                                 &declares_something, &defines_something,
+                                 decl_pos_block)) {
+              err = TRUE;
+            }  /* if */
+            basic_type = bt_struct_union;
+            is_elaborated_type_specifier = TRUE;
           } else {
             a_boolean  dummy_flag;
             a_type_ptr dummy_type;
@@ -8570,9 +8624,9 @@ process_enum_specifier:
            just a sign or size (since these are "adjectives" to pcc), but
            not when there is a type specifier. */
         { a_boolean  unexpected_identifier = FALSE;
-          if (process_nontype_identifier(decl_specifiers_seen, *storage_class,
+          if (process_nontype_identifier(state, decl_specifiers_seen,
                                          input_flags, &basic_type,
-                                         &named_address_space, output_flags,
+                                         &named_address_space,
                                          &unexpected_identifier)) {
             if (unexpected_identifier) {
               goto something_unexpected;
@@ -8846,8 +8900,7 @@ process_enum_specifier:
             if (is_enum_type(qual_tp)) {
               sym = enum_qualified_id_lookup(&locator_for_curr_id, qual_tp);
             } else {
-              sym = class_qualified_id_lookup(&locator_for_curr_id, qual_tp,
-                                              IDL_DIRECT_CLASS_MEMBERS_ONLY);
+              sym = lookup_class_member_decl(qual_tp, state);
             }  /* if */
             if (sym != NULL) {
               if (is_constructor_symbol(sym)) {

@@ -8455,6 +8455,8 @@ enum a_special_function_kind_tag {
   sfk_conversion,	/* A conversion operator function. */
   sfk_operator,		/* Any other operator function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  sfk_static_constructor,
+			/* A C++/CLI static constructor. */
   sfk_property_get,	/* A "get" accessor function of a C++/CLI property. */
   sfk_property_set,	/* A "set" accessor function of a C++/CLI property. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8472,7 +8474,7 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 = {
    "none", "constructor", "destructor", "conversion", "operator",
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   "property getter", "property setter",
+   "static constructor", "property getter", "property setter",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }

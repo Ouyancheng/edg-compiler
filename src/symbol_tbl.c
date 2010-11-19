@@ -2799,6 +2799,9 @@ state.
            check_anonymous_union_symbols (class_decl.c). */
         cssp->symbols = NULL;
         cssp->constructor = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        cssp->static_constructor = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->trivial_default_constructor = NULL;
         cssp->destructor = NULL;
         cssp->assignment_operator = NULL;
@@ -6370,13 +6373,16 @@ class.
 }  /* class_sym_is_for_closure_class */
 
 
-void change_class_locator_into_constructor_locator(a_symbol_locator  *locator,
-                                                   a_source_position *pos)
+void change_class_locator_into_constructor_locator(
+                                              a_symbol_locator  *locator,
+                                              a_source_position *pos,
+                                              a_boolean         is_static_ctor)
 /*
 Change a locator for a class name into the locator for the constructor for
 the class.  The original locator must be for a specific symbol.  pos_curr_token
-is used as the source position in the new locator.  This routine is only
-used in C++ mode.
+is used as the source position in the new locator.  If is_static_ctor is
+TRUE, the locator is modified to have the symbol header of the C++/CLI
+static constructor.  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr                  class_symbol = locator->specific_symbol;
@@ -6393,6 +6399,7 @@ used in C++ mode.
     internal_error(
        "change_class_locator_into_constructor_locator: locator not for class");
   }  /* if */
+  check_assertion(!is_static_ctor || cppcli_enabled);
 #endif /* CHECKING */
   if (locator->symbol_header == unnamed_tag_symbol_header) {
     /* Let the symbols for an unnamed class and its constructor share the
@@ -6400,9 +6407,15 @@ used in C++ mode.
     hdr_ptr = locator->symbol_header;
   } else {
     extra_info = class_symbol->variant.class_struct_union.extra_info;
-    if (extra_info->constructor != NULL) {
+    if (!is_static_ctor && extra_info->constructor != NULL) {
       /* A constructor exists already, so get the header pointer from it. */
       hdr_ptr = extra_info->constructor->header;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_static_ctor && extra_info->static_constructor != NULL) {
+      /* A C++/CLI static constructor exists already, so get the header pointer
+         from it. */
+      hdr_ptr = extra_info->static_constructor->header;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* The class has no constructor yet, so create a new header. */
       hdr_ptr = alloc_symbol_header();

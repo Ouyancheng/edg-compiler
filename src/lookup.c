@@ -4147,7 +4147,15 @@ bypass_inactive_search:
       if (locator->symbol_header == class_symbol->header) {
         /* Looking up the class name within itself.  Return the constructor if
            there is one. */
-        sym = cssp->constructor;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if ((options & IDL_IS_STATIC_DECL) != 0) {
+          sym = cssp->static_constructor;
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          sym = cssp->constructor;
+        }  /* if */
         if (sym != NULL) {
           /* There is a constructor.  Change the locator symbol header to
              the header for the constructor rather than the header for the

@@ -8897,6 +8897,11 @@ constructors and conversion functions.
     add_leading_underscores = TRUE;
 #endif /* !IA64_ABI */
     switch (special_kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case sfk_static_constructor:
+        /* FIXME Mangle the static constructor's name appropriately. */
+        /* FALLTHROUGH */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_constructor:
         name = MANGLING_STRING_FOR_CONSTRUCTOR;
 #if IA64_ABI

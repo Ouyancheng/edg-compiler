@@ -13683,6 +13683,13 @@ proceed after the call.
         locator->specific_symbol->is_class_member) {
       /* This is the definition of a static member function.  No storage
          class specifier (not even "static") is permitted. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          (state->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
+        /* C++/CLI static constructors are an exception. */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
       if (state->declared_storage_class != (a_storage_class)sc_unspecified) {
         an_error_severity  severity = es_error;
         if (!extern_inline_allowed && inline_specified &&
@@ -13742,7 +13749,8 @@ proceed after the call.
            remark (except in pcc mode and except for C++ constructors,
            destructors, and conversion operators). */
         if (C_dialect != C_dialect_pcc &&
-            !(state->do_flags & (DO_IS_CONSTRUCTOR|DO_IS_DESTRUCTOR)) &&
+            !(state->do_flags & (DO_IS_CONSTRUCTOR|DO_IS_DESTRUCTOR|
+                                 DO_IS_STATIC_CONSTRUCTOR)) &&
             !locator->is_conversion_name &&
             !(locator->is_error && looks_like_ctor_or_dtor(locator))) {
           report_missing_type_specifier(&state->declarator_start_pos,

@@ -174,13 +174,21 @@ represented as a bit set:
 				   using the Microsoft __super directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_USE_PROTOTYPE_NOT_NONREAL 0x4000000
-			/* Specifies that a reference such as
-			   A<T>::X should be considered to refer to the
-			   prototype instantiation X, not the nonreal
-			   version of the same name. */
+				/* Specifies that a reference such as
+				   A<T>::X should be considered to refer to the
+				   prototype instantiation X, not the nonreal
+				   version of the same name. */
 #define IDL_IS_DECLARATOR 0x8000000
-			/* TRUE when looking up a qualified name in a
-			   declarator. */
+				/* TRUE when looking up a qualified name in a
+				   declarator. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define IDL_IS_STATIC_DECL 0x10000000
+				/* Flag indicating that the keyword "static"
+				   was seen prior to the declarator, and that
+				   therefore static constructors (a C++/CLI
+				   feature) should be considered instead of
+				   ordinary constructors. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

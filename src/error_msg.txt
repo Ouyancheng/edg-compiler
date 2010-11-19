@@ -2027,6 +2027,8 @@ ec_initonly_requires_managed_class;;"initonly data members can only be members o
 ec_initonly_const_has_no_effect;;"const has no effect on an initonly data member"
 ec_cli_get_property_function_missing;;"property %sq has no \"get\" function"
 ec_cli_put_property_function_missing;;"property %sq has no \"put\" function"
+ec_static_constructor_with_params;;"a static constructor cannot have parameters"
+ec_static_constructor_member_template;;"a static constructor cannot be a member template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
