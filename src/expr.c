@@ -6555,13 +6555,24 @@ are TRUE, the operand is first read from and then written to.
        that are known to be accepted on at least one version. */
     a_type_ptr         type = result.type;
     an_error_severity  sev = es_none;
+    an_error_code      diag = ec_expr_not_a_modifiable_lvalue;
+    an_expr_node_ptr   expr;
     revert_gcc_rvalue_to_lvalue_if_possible_full(&result,
                                                  /*ignore_casts=*/TRUE,
                                                 /*drop_same_size_casts=*/TRUE);
     complete_type_is_needed(type);
     if (!is_an_lvalue(&result)) {
       sev = es_error;
-      conv_to_error_operand(&result);
+    } else if (is_expression_operand(&result) &&
+               (expr = skip_parens(result.variant.expression),
+                is_operation_node(expr) &&
+                expr->variant.operation.
+                                     returns_lvalue_instead_of_usual_rvalue)) {
+      /* Don't allow operators that return lvalues (like "?") as asm output
+         operands, in part because IL lowering doesn't rewrite them as
+         C lvalues (and, if they are bit fields, wouldn't be able to). */
+      sev = es_error;
+      diag = ec_compound_lvalue_as_asm_operand;
     } else if (is_void_type(type)) {
       sev = gcc_mode ? es_warning : es_error;
     } else if (is_incomplete_type(type)) {
@@ -6573,11 +6584,12 @@ are TRUE, the operand is first read from and then written to.
       sev = es_warning;
     }  /* if */
     if (sev != es_none) {
-      expr_pos_diagnostic(sev, ec_expr_not_a_modifiable_lvalue,
-                          &result.position);
+      expr_pos_diagnostic(sev, diag, &result.position);
     }  /* if */
     if ((int)sev <= (int)es_warning) {
       modifying_lvalue(&result, /*value_used=*/input);
+    } else {
+      conv_to_error_operand(&result);
     }  /* if */
   }  /* if */
   expression = make_node_from_operand(&result);

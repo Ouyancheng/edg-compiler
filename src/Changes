@@ -146,16 +146,13 @@ so we have turned the emulation off for corresponding values of gnu_version.
     (i, j) = 1;  // Now an error in gcc mode with gnu_version >= 40000
   }
 
-Additionally, a change has been made when lowering asm statements that contain
-C++-style lvalue producing expressions (e.g., when gnu_version < 40000) to
-convert these lvalue expressions to C-style lvalue expressions.  For example,
-this case had caused an "lvalue-returning operation" assertion failure, but now
-compiles without error:
-
-  void f() {
-    int b = 10, i = 0, q;
-    asm("mov %1,%0":"=r"(i,q) : "r"(b));
-  }
+Additionally, compound lvalues like the above are no longer allowed
+as asm output operands, even in C++ mode (an error is issued).
+Given that IL lowering has not lowered such expressions properly when
+they are asm operands, it is unlikely that such cases are widely used.
+IL lowering could handle most of the cases, but has no way to
+represent the lowered cases if the result is a bit field, so it seems
+wiser to disallow them until a need is demonstrated.
 
 
 11/2/10  [EDGcpfe/11105]
