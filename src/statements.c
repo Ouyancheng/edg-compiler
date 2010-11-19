@@ -4113,6 +4113,12 @@ the statement was preceded by the GNU C __extension__ keyword.
   a_boolean        is_statement_expr =
                          struct_stmt_stack[depth_stmt_stack].is_statement_expr;
 
+  if (!marked_as_gnu_extension) {
+    sssep->start_pos = pos_curr_token;
+  } else {
+    /* The caller already set the starting position prior to consuming the
+       __extension__ token. */
+  }  /* if */
   sp = add_statement((a_statement_kind)stmk_expr);
   stmt_update_source_sequence_list(sp);
   /* Do processing required for any pragmas that are bound to the current
