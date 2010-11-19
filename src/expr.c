@@ -15205,7 +15205,8 @@ in *rcblock).
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
-static void scan_gnu_statement_expression(an_operand *result)
+static void scan_gnu_statement_expression(an_operand        *result,
+                                          a_source_position *start_position)
 /*
 Scan the GNU statement expression:
 
@@ -15213,22 +15214,18 @@ Scan the GNU statement expression:
 
 Return an operand for the expression in *result.  This is allowed in
 both C and C++ modes.
+start_position points to the position of the left parenthesis, which has
+already been consumed.
 */
 {
   a_boolean         err = FALSE;
   a_statement_ptr   sp;
-  a_source_position start_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_source_position left_brace_position;
 
-  start_position = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_position = null_source_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  left_brace_position = pos_curr_token;
   if (curr_expr_kind_is_const()) {
     /* Not allowed in a constant expression. */
-    expr_pos_error(ec_expr_not_constant, &start_position);
+    expr_pos_error(ec_expr_not_constant, &left_brace_position);
     err = TRUE;
   }  /* if */
   if (!is_local_scope_kind(scope_stack_top().kind) ||
@@ -15245,9 +15242,9 @@ both C and C++ modes.
     if (!err) {
       if (!expr_stack->is_default_arg_expression) {
         expr_pos_error(ec_statement_expression_in_function_only,
-                       &start_position);
+                       &left_brace_position);
       } else {
-        expr_pos_error(ec_statement_expr_in_default_arg, &start_position);
+        expr_pos_error(ec_statement_expr_in_default_arg, &left_brace_position);
       }  /* if */
       err = TRUE;
     }  /* if */
@@ -15288,9 +15285,6 @@ both C and C++ modes.
                             /*explicit_return_type=*/FALSE,
                             /*is_catch_clause=*/FALSE,
                             /*is_statement_expr=*/TRUE);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    set_position_from_stmt_source_position(end_position, sp->end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     restore_expr_stack(saved_expr_stack);
     curr_object_lifetime = saved_curr_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -15301,7 +15295,7 @@ both C and C++ modes.
          statement. */
       if (sp->variant.block.extra_info->assoc_scope != NULL &&
           sp->variant.block.extra_info->assoc_scope->lifetime != NULL) {
-        expr_pos_error(ec_destr_in_statement_expr, &start_position);
+        expr_pos_error(ec_destr_in_statement_expr, &left_brace_position);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15331,7 +15325,7 @@ both C and C++ modes.
       /* Do not allow a statement expression to have a variably-modified type.
          (It's an unlikely case that would cause undue difficulties during IL
          lowering.) */
-      expr_pos_error(ec_statement_expr_with_vla_type, &start_position);
+      expr_pos_error(ec_statement_expr_with_vla_type, &left_brace_position);
       make_error_operand(result);
     } else {
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
@@ -15339,13 +15333,13 @@ both C and C++ modes.
       expr->type = expr_type;
       make_expression_operand(expr, result);
       current_routine_entry()->contains_statement_expression = TRUE;
-      report_gnu_extension_if_needed(&start_position,
+      report_gnu_extension_if_needed(&left_brace_position,
                                      ec_statement_expression_is_gnu_extension);
     }  /* if */
   }  /* if */
+  set_operand_position(result, start_position, &pos_curr_token,
+                       start_position);
   (void)required_token(tok_rparen, ec_exp_rparen);
-  set_operand_position(result, &start_position, &end_position,
-                       &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* scan_gnu_statement_expression */
 
@@ -15546,7 +15540,7 @@ Also scans GNU statement expressions:
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && curr_token == tok_lbrace) {
     /* GNU statement expression, ({...}). */
-    scan_gnu_statement_expression(result);
+    scan_gnu_statement_expression(result, &start_position);
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

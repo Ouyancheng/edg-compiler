@@ -1718,6 +1718,7 @@ the current statement sequence.
   a_statement_ptr  sp;
 
   db_enter(5, "add_statement_at_stmt_pos");
+  check_assertion(stmt_pos->seq != 0 || stmt_pos->column != SP_COL_ERROR);
   /* Maintain the code reachable flag.  Labels are always reachable. */
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
@@ -1773,7 +1774,9 @@ the current statement sequence.
 Call add_statement_at_stmt_pos using pos_curr_token as statement source
 position.
 */
-#define add_statement(kind) add_statement_at_stmt_pos((kind), &pos_curr_token)
+#define add_statement(kind)                                                  \
+  add_statement_at_stmt_pos((kind),                                          \
+                            &struct_stmt_stack[depth_stmt_stack].start_pos)
 
 
 void update_init_statement_control_flow(a_statement_ptr  sp)
@@ -1833,6 +1836,12 @@ __extension__ keyword was scanned just before the upcoming declaration.
   a_struct_stmt_stack_entry_ptr  sssep;
 
   sssep = &struct_stmt_stack[depth_stmt_stack];
+  if (!marked_as_gnu_extension) {
+    sssep->start_pos = pos_curr_token;
+  } else {
+    /* The caller already set the starting position prior to consuming the
+       __extension__ token. */
+  }  /* if */
   sssep->curr_decl_statement = add_statement((a_statement_kind)stmk_decl);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char*)sssep->curr_decl_statement,
@@ -2645,6 +2654,8 @@ statement is the top block of a GNU statement expression ({ ... }).
   }  /* if */
   if (kind == ssk_microsoft_try) sssep->num_microsoft_trys_inside_of++;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sssep->start_pos = null_source_position;
+  sssep->start_pos.column = SP_COL_ERROR;
 #if DEBUG
   if (db_flag_is_set("dump_control_flow")) {
     db_ssse_with_indentation(kind, "pushing ");
@@ -3123,7 +3134,10 @@ block under the "try" in a function try block.
   /* Do not insert code here. */
   {
     /* Allocate a block statement and add it to the statements list. */
-    block_stmt = add_statement((a_statement_kind)stmk_block);
+    block_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_block,
+                                           generated_statement ?
+                                                       &null_source_position :
+                                                       &pos_curr_token);
   }  /* if */
   stmt_update_source_sequence_list(block_stmt);
   if (!generated_statement) {
@@ -3360,6 +3374,10 @@ and pushes a generated block statement.
        "statement") to the new level in the scope stack. */
     scope_stack[depth_scope_stack].curr_construct_pragmas =
                        scope_stack[depth_scope_stack-1].curr_construct_pragmas;
+    /* Propagate the position of the iteration or selection statement that is
+       being wrapped in an implicit block to the new stack entry. */
+    struct_stmt_stack[depth_stmt_stack].start_pos =
+                              struct_stmt_stack[depth_stmt_stack-1].start_pos;
     scope_stack[depth_scope_stack-1].curr_construct_pragmas = NULL;
   }  /* if */
 }  /* push_c99_statement_scope */
@@ -4163,6 +4181,7 @@ statement.
 
   db_enter(3, "for_init_statement");
   sssep = &struct_stmt_stack[depth_stmt_stack];
+  sssep->start_pos = pos_curr_token;
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
   sssep->for_init = TRUE;
@@ -5985,12 +6004,18 @@ statement (of an "if", etc.).  If marked_as_gnu_extension is TRUE,
 this statement was preceded by the GNU keyword __extension__.
 */
 {
-  a_boolean        prev_was_label = FALSE;
-  a_boolean        get_another_statement;
+  a_boolean  prev_was_label = FALSE;
+  a_boolean  get_another_statement;
 
   db_enter(3, "statement");
 
 rescan_statement:
+  if (!marked_as_gnu_extension) {
+    struct_stmt_stack[depth_stmt_stack].start_pos = pos_curr_token;
+  } else {
+    /* The caller already set the starting position prior to consuming the
+       __extension__ token. */
+  }  /* if */
   if (std_attribute_tokens_next()) {
     a_struct_stmt_stack_entry_ptr
                    sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -6237,7 +6262,10 @@ expr_statement:
       break;
   }  /* switch */
   /* Loop if we just got a label and not an actual statement. */
-  if (get_another_statement) goto rescan_statement;
+  if (get_another_statement) {
+    marked_as_gnu_extension = FALSE;
+    goto rescan_statement;
+  }  /* switch */
 
   db_exit();
 }  /* statement */
@@ -6426,6 +6454,7 @@ e.g., ({ ... }).
       a_boolean  marked_as_gnu_extension = FALSE;
       if (curr_token == tok_extension) {
         marked_as_gnu_extension = TRUE;
+        struct_stmt_stack[depth_stmt_stack].start_pos = pos_curr_token;
         (void)get_token();
       }  /* if */
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&

@@ -393,6 +393,12 @@ typedef struct a_struct_stmt_stack_entry {
 			/* Number of Microsoft try-finally or try-except
 			   statements currently on the stack. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_source_position
+		start_pos;
+			/* The source position of the start of the current
+			   dependent statement.  This could be the position of
+			   a GNU __extension__ keyword or of a prefix
+			   attribute. */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr

@@ -1,5 +1,25 @@
 Version 4.3
 
+11/18/10 [EDGcpfe/11155]
+Position information with GNU statements
+
+Two changes have been made to the position information recorded for GNU
+statements.  First, the position of a prefix "__extension__" token is now
+consistently recorded as the start of the associated statement.  Second, for
+a GNU statement expression, the starting and ending positions recorded in the
+associated enk_statement node now correspond to the positions of the
+parentheses; previously, the position of the braces was recorded instead.
+For example:
+
+  void f() {
+    __extension__({ 1; });
+      // The starting position of the outer stmk_expr statement is now
+      // that of the "__extension__" token.  The enk_statement node
+      // representing "({ 1; })" now record the positions of the "(" and
+      // ")" as the starting and ending positions.
+  }
+
+
 11/17/10 [EDGcpfe/11128]
 asm operand marked with "+" now treated as both used and modified
 
