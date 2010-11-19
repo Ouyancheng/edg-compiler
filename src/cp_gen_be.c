@@ -5782,23 +5782,22 @@ declaration following this one is such a continuation.
   /* Advance past the source sequence entry for the field. */
   adv_curr_source_sequence_entry();
   set_output_position(&field->source_corresp.decl_position);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (field_is_property(field) &&
-      !field->property_descr->is_declspec_property) {
-    /* The field represents a C++/CLI property declaration.  Render any
-       appropriate prefix specifiers. */
-    check_assertion(!suppress_specifiers);
-    if (field->property_descr->is_virtual) write_tok_str("virtual ");
-    write_tok_str("property ");
-  } else if (field->is_initonly) {
-    write_tok_str("initonly ");
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!suppress_specifiers) {
     /* This is the first (or only) field in the list: put out the
        per-declaration specifiers and attributes. */
     gen_member_access_specifier_for_decl_of(&field->source_corresp);
     gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (field_is_property(field) &&
+        !field->property_descr->is_declspec_property) {
+      /* The field represents a C++/CLI property declaration.  Render any
+         appropriate prefix specifiers. */
+      if (field->property_descr->is_virtual) write_tok_str("virtual ");
+      write_tok_str("property ");
+    } else if (field->is_initonly) {
+      write_tok_str("initonly ");
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
     if (field->source_corresp.marked_as_gnu_extension) {
       write_tok_str("__extension__ ");
