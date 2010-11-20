@@ -798,10 +798,6 @@ following, indicating something special:
 #define SP_COL_PREDEFINED_MACRO 3
 			/* The position is in a predefined macro. */
 
-#define SP_COL_ERROR 4
-			/* A position that cannot ever be recorded in the
-			   IL.  Used for consistency checking. */
-
 /* Macro to copy a source position. */
 #define copy_source_position(from, to) ((to) = (from))
 

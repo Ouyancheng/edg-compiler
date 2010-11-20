@@ -1718,7 +1718,6 @@ the current statement sequence.
   a_statement_ptr  sp;
 
   db_enter(5, "add_statement_at_stmt_pos");
-  check_assertion(stmt_pos->seq != 0 || stmt_pos->column != SP_COL_ERROR);
   /* Maintain the code reachable flag.  Labels are always reachable. */
   if (kind == (a_statement_kind)stmk_label) {
     set_reachable(curr_reachability);
@@ -6011,8 +6010,8 @@ this statement was preceded by the GNU keyword __extension__.
 
 rescan_statement:
   if (struct_stmt_stack_top().p_start_pos == NULL) {
-      /* Record the start of the statement for add_statement: This takes into
-       account leading attributes of GNU __extension__ keywords (which are
+    /* Record the start of the statement for add_statement: This takes into
+       account leading attributes or GNU __extension__ keywords (which are
        consumed before calling add_statement). */
     start_pos = pos_curr_token;
     struct_stmt_stack_top().p_start_pos = &start_pos;

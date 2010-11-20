@@ -398,9 +398,9 @@ typedef struct a_struct_stmt_stack_entry {
 			/* If non-NULL, this points to the starting position
 			   of the current dependent statement.  This could be
 			   the position of a GNU __extension__ keyword or of a
-			   prefix attribute.  Used by add_statement when one
-			   or more prefix tokens of a statement were consumed
-			   before the statement entry is added. */
+			   prefix attribute.  Determines the statement position
+			   used by add_statement (if NULL, pos_curr_token is
+			   used). */
 } a_struct_stmt_stack_entry;
 
 EXTERN a_struct_stmt_stack_entry_ptr
