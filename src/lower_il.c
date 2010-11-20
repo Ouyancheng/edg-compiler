@@ -16756,10 +16756,6 @@ under it.  Used in both C++ and C mode.
     an_asm_entry_ptr   aep = statement->variant.asm_entry;
     an_asm_operand_ptr aop;
     for (aop = aep->operands; aop != NULL; aop = aop->next) {
-      /* Expressions that appear in asm statements are somewhat unique in that
-         they are top-level expressions that can have lvalues whose values
-         are not discarded.  The front end does not allow such compound
-         lvalues in asm statements (they can cause issues for lowering). */
       lower_full_expr(aop->expression, statement);
     }  /* for */
   }  /* if */
