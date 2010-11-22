@@ -15519,6 +15519,7 @@ being parsed), *decl_info describes the current member declaration, and
 */
 {
   a_decl_parse_state    *dps = &decl_info->decl_state;
+  a_type_ptr            class_type = class_state->class_type;
   a_decl_flag_set       dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                                     DSI_NO_TAG_DEFINITION |
                                     DSI_VACUOUS_TAG_DECL_ALLOWED |
@@ -15552,6 +15553,9 @@ being parsed), *decl_info describes the current member declaration, and
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->property_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (!is_managed_class_type_entry(class_type)) {
+    pos_error(ec_property_requires_managed_class, &pos_curr_token);
+  }  /* if */
   (void)get_token();
   type_pos = pos_curr_token;
   decl_specifiers(dsi_flags, dps, decl_pos_block);
@@ -15602,7 +15606,7 @@ being parsed), *decl_info describes the current member declaration, and
                                                     class_state, decl_info,
                                                     depth_scope_stack);
   }  /* if */
-  class_type_supp(class_state->class_type)->has_direct_property_member = TRUE;
+  class_type_supp(class_type)->has_direct_property_member = TRUE;
   (void)get_token();
   if (curr_token == tok_lbracket) {
     scan_cli_property_indices(pdp);

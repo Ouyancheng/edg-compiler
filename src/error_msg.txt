@@ -2030,6 +2030,7 @@ ec_cli_put_property_function_missing;;"property %sq has no \"put\" function"
 ec_static_constructor_with_params;;"a static constructor cannot have parameters"
 ec_static_constructor_member_template;;"a static constructor cannot be a member template"
 ec_compound_lvalue_as_asm_operand;;"a compound lvalue is not allowed as an asm output operand"
+ec_property_requires_managed_class;;"properties can only be members of managed types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
