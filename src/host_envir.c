@@ -4964,10 +4964,6 @@ This is done before command line processing.
   temp_text_buffer = NULL;
   size_temp_text_buffer = 0;
   dir_name_list_general = NULL;
-  /* Get the current directory name. */
-  ptr = get_curr_dir_name();
-  current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
-  (void)strcpy(current_directory_name, ptr);
   preinclude_file_list = NULL;
   macro_preinclude_file_list = NULL;
   preinclude_file_tail = NULL;
@@ -4993,6 +4989,10 @@ This is done before command line processing.
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+  /* Get the current directory name. */
+  ptr = get_curr_dir_name();
+  current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
+  (void)strcpy(current_directory_name, ptr);
   /* Get the name of the EDG_BASE directory.  This may be overridden by
      a command-line option.  If the environment variable is not set, use
      a built-time default value. */

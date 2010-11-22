@@ -1,5 +1,14 @@
 Version 4.3
 
+11/22/10 [EDGcpfe/11169]
+Microsoft compatibility: incorrect locale used for current directory name
+
+The incorrect locale was used for translating the current directory name
+into the internal encoding used in the front end.  This could result in the
+failure to find include files in the current directory when the current
+directory contains multibyte characters.  Now fixed.
+
+
 11/18/10 [EDGcpfe/11155]
 Position information with GNU statements
 
