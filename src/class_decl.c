@@ -15901,8 +15901,10 @@ passed via template_decl.
       /* Check if a secondary declarator declares a constructor or destructor.
          (In C++/CLI mode, also consider static constructors.) */
       decl_info.is_destructor = decl_info.is_constructor = FALSE;
+      decl_state->dso_flags &= ~(DSO_CONSTRUCTOR | DSO_DESTRUCTOR);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       decl_info.is_static_constructor = FALSE;
+      decl_state->dso_flags &= ~DSO_STATIC_CONSTRUCTOR;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (curr_token == tok_compl ||
           (is_generalized_identifier_start(GID_NO_OPTIONS) &&

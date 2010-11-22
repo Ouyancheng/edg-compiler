@@ -13162,7 +13162,9 @@ handle_as_definition:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (rout->special_kind == (a_special_function_kind)sfk_static_constructor) {
     /* A C++/CLI static constructor is always declared with the "static"
-       specifier. */
+       specifier.  Note that this is a case where a storage class specifier
+       may validly follow the "friend" keyword. */
+    if (friend_decl) write_tok_str("friend ");
     storage_class = (a_storage_class)sc_static;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
