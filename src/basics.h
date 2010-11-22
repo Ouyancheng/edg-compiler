@@ -697,7 +697,7 @@ in order to be effective for conditional fields in a_source_position.
 #endif /* MACRO_INVOCATION_TREE_IN_IL && !RECORD_MACROS_IN_IL */
 
 #if MACRO_INVOCATION_TREE_IN_IL && !FULLY_RESOLVED_MACRO_POSITIONS
- #error -- FULLY_DEFINED_MACRO_POSITIONS must be TRUE when \
+ #error -- FULLY_RESOLVED_MACRO_POSITIONS must be TRUE when \
            MACRO_INVOCATION_TREE_IN_IL is set.
 #endif /* MACRO_INVOCATION_TREE_IN_IL && !FULLY_RESOLVED_MACRO_POSITIONS */
 
