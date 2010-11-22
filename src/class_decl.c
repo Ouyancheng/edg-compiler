@@ -7012,7 +7012,14 @@ possibility.
     if (sym == NULL && locator->is_template_id) {
       /* If this is a template-id for which the symbol has not yet been
          found, look it up now. */
-      sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
+      an_id_lookup_options_set  idl_options = IDL_FRIEND_LOOKUP;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcli_enabled &&
+          state->declared_storage_class == (a_storage_class)sc_static) {
+        idl_options |= IDL_IS_STATIC_DECL;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      sym = normal_id_lookup(locator, idl_options);
     }  /* if */
     if (is_template_dependent_context()) {
       if (func_info->is_definition && locator->is_qualified_name) {
@@ -7181,11 +7188,6 @@ possibility.
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_self_friendship);
       }  /* if */
-      if (microsoft_mode &&
-          state->storage_class != (a_storage_class)sc_unspecified) {
-        /* Member function -- storage class is not allowed. */
-        pos_warning(ec_storage_class_not_allowed, &state->start_pos);
-      }  /* if */
       /* It's a member function.  Find the right type signature for this
          member function name.  This could potentially be an instance of
          a member function template.  If none can be found, NULL is
@@ -7201,6 +7203,16 @@ possibility.
            issued by find_matching_template_instance. */
         set_to_error_locator(*locator);
       } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode &&
+            state->declared_storage_class != (a_storage_class)sc_unspecified) {
+          /* Member function -- a storage class is not allowed, except for
+             C++/CLI static constructors. */
+          if (!is_static_constructor_symbol(sym)) {
+            pos_warning(ec_storage_class_not_allowed, &state->start_pos);
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* "inline" may not be introduced by this declaration. */
         if (func_info->is_inline && !func_info->is_definition &&
             !sym->variant.routine.ptr->is_inline) {

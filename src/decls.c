@@ -496,9 +496,9 @@ routines used for disambiguation.  This flag suppresses errors that
 might result from class template names that are missing argument lists.
 */
 {
-  a_symbol_ptr			assoc_symbol;
-  a_boolean   			err;
-  an_identifier_options_set	options;
+  a_symbol_ptr               assoc_symbol;
+  a_boolean                  err;
+  an_identifier_options_set  options;
 
   assoc_symbol = NULL;
   /* Set the options.  Since this call is a "probe" to determine if the
@@ -522,15 +522,21 @@ might result from class template names that are missing argument lists.
          them in symbol entry later.  Defer any access errors that may occur
          because we may actually be scanning something that is not a type
          (e.g., a declarator). */
+      a_symbol_locator  saved_locator;
+      /* Save locator_for_curr_id: If the lookup finds something that is not a
+         type, we will restore the saved value.  This is more thorough than a
+         call to clear_specific_symbol to account for e.g. changes to the
+         symbol_header field when a constructor is found (constructors have
+         their own symbol header not in the main symbol table). */
+      saved_locator = locator_for_curr_id;
       assoc_symbol =
           coalesce_and_lookup_generalized_identifier(options,
                                                      ilm_tentative_type, &err);
       if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
-        /* Symbol was found, but it is not a type name symbol.  Return NULL. */
+        /* Symbol was found, but it is not a type name symbol.  Return NULL
+           and restore locator_for_curr_id.. */
         assoc_symbol = NULL;
-        /* Clear the specific_symbol pointer in the locator, to avoid
-           biasing subsequent lookup of this identifier. */
-        clear_specific_symbol(locator_for_curr_id);
+        locator_for_curr_id = saved_locator;
       }  /* if */
       /* Check to see if this is a pack reference. */
       if (assoc_symbol != NULL) {
