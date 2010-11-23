@@ -542,7 +542,7 @@ might result from class template names that are missing argument lists.
         locator_for_curr_id.symbol_header = saved_header;
       }  /* if */
       /* Check to see if this is a pack reference. */
-      if (assoc_symbol != NULL) {
+      if (!in_prescan && assoc_symbol != NULL) {
         record_potential_pack_reference(assoc_symbol, &pos_curr_token);
       }  /* if */
     }  /* if */

@@ -8810,6 +8810,7 @@ following the pack expansion and return NULL.
     new_pack_list = new_prp;
     if (prp->symbol->kind == (a_symbol_kind)sk_variable) {
       /* FIXME: variables not implemented yet. */
+      elements_for_pack = 0;
     } else {
       a_template_arg_ptr	tap;
       tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
@@ -9231,12 +9232,19 @@ source position of the use of the symbols is indicated by position.
       a_pack_reference_ptr		prp;
       check_assertion(pack_expansion_stack != NULL);
       pedp = pack_expansion_stack->expansion_descr;
-      prp = alloc_pack_reference(pack_symbol->kind ==
+      /* Look for an existing expansion of this symbol. */
+      for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
+        if (prp->symbol == pack_symbol) break;
+       }  /* for */
+      if (prp == NULL) {
+        /* An existing entry was not found.  Create a new one. */
+        prp = alloc_pack_reference(pack_symbol->kind ==
                                                    (a_symbol_kind)sk_variable);
-      prp->symbol = pack_symbol;
-      prp->position = *position;
-      prp->next = pedp->packs_referenced;
-      pedp->packs_referenced = prp;
+        prp->symbol = pack_symbol;
+        prp->position = *position;
+        prp->next = pedp->packs_referenced;
+        pedp->packs_referenced = prp;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* record_potential_pack_reference */
