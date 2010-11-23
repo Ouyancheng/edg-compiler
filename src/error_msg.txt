@@ -2031,6 +2031,9 @@ ec_static_constructor_with_params;;"a static constructor cannot have parameters"
 ec_static_constructor_member_template;;"a static constructor cannot be a member template"
 ec_compound_lvalue_as_asm_operand;;"a compound lvalue is not allowed as an asm output operand"
 ec_property_requires_managed_class;;"properties can only be members of managed types"
+ec_qualifier_not_allowed_on_managed_member_function;;"a type qualifier is not allowed on a member function of a managed class"
+ec_pointer_to_managed_type;;"an ordinary pointer to a managed type is not allowed"
+ec_reference_to_managed_type;;"an ordinary reference to a managed type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -848,11 +848,11 @@ the specifiers and declarator that formed the new type.
         (*bottom_derived_type)->variant.array.element_type = new_type_ptr;
       } else if (is_pointer_or_handle_type(*bottom_derived_type)) {
         /* Pointer or handle (C++/CLI) type. */
-        if (is_member_function_typedef
+        a_boolean  is_handle = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            && !(cppcli_enabled && is_handle_type(*bottom_derived_type))
+        is_handle = cppcli_enabled && is_handle_type(*bottom_derived_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                      ) {
+        if (is_member_function_typedef && !is_handle) {
           /* The code contains "T*" where "T" names a member function typedef.
              It points to a routine type in which the implicit this-param
              type pointer identifies the parent class, say "S".  Then "T*" is
@@ -869,13 +869,28 @@ the specifiers and declarator that formed the new type.
           new_type_ptr = mft_rout_type;
           tkind = (a_type_kind)tk_ptr_to_member;
         } else {
-          if (is_any_reference_type(skip_typerefs(new_type_ptr))) {
-            /* Pointer to reference is illegal. */
-            error(ec_pointer_to_reference);
-            new_type_ptr = error_type();
+          if (!is_handle) {
+            /* An ordinary pointer (as opposed to a C++/CLI handle). */
+            if (is_any_reference_type(new_type_ptr)) {
+              /* Pointer to reference is illegal. */
+              error(ec_pointer_to_reference);
+              new_type_ptr = error_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled && is_handle_type(*bottom_derived_type)) {
-            if (is_function_type(new_type_ptr)) {
+            } else if (cppcli_enabled && is_cli_managed_type(new_type_ptr) &&
+                       !is_handle_type(new_type_ptr)) {
+              /* Attempting to form a type "pointer to managed type" is only
+                 valid if the managed type is a handle. */
+              pos_error(ec_pointer_to_managed_type, &pos_curr_token);
+              err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else {
+            /* A C++/CLI handle type. */
+            if (is_any_ptr_or_ref_type(new_type_ptr)) {
+              pos_error(ec_handle_to_address_type, &error_position);
+              new_type_ptr = error_type();
+            } else if (is_function_type(new_type_ptr)) {
               /* A handle-to-function type is invalid. */
               pos_error(ec_handle_to_function, &error_position);
               new_type_ptr = error_type();
@@ -898,20 +913,28 @@ the specifiers and declarator that formed the new type.
 	  /* Reference to void is illegal. */
           error(ec_reference_to_void);
 	  err = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
-                   is_tracking_reference_type(*bottom_derived_type)) {
-          if (is_function_type(new_type_ptr)) {
-            /* A tracking-reference-to-function type is invalid. */
-            pos_error(ec_tracking_reference_to_function, &error_position);
-            new_type_ptr = error_type();
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (is_member_function_typedef) {
           /* A cfront member function typedef type can only be used in
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (cppcli_enabled) {
+          if (is_tracking_reference_type(*bottom_derived_type)) {
+            if (is_function_type(new_type_ptr)) {
+              /* A tracking-reference-to-function type is invalid. */
+              pos_error(ec_tracking_reference_to_function, &error_position);
+              err = TRUE;
+            }  /* if */
+          } else {
+            if (is_cli_managed_type(temp_type) && !is_handle_type(temp_type)) {
+              /* Attempting to form a type "reference to managed type" is only
+                 valid if the managed type is a handle. */
+              error(ec_reference_to_managed_type);
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         if (err) new_type_ptr = error_type();
         check_for_restrict_qualifier_on_derived_type(new_type_ptr,
@@ -1652,6 +1675,9 @@ this is a helper function.
         qualifier_err = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcli_enabled && is_nonstatic_member) {
+      err_code = ec_qualifier_not_allowed_on_managed_member_function;
+      qualifier_err = TRUE;
     } else if (microsoft_mode && is_destructor && qualifiers == TQ_RESTRICT) {
       /* Microsoft compilers allow destructors to be qualified with
          "__restrict".  This affects the signature (i.e., mangling) of the
@@ -4034,6 +4060,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            } else if (cppcli_enabled && is_cli_managed_type(temp_type) &&
+                       !is_handle_type(temp_type)) {
+              /* Attempting to form a type "pointer to managed type" is only
+                 valid if the managed type is a handle. */
+              error(ec_pointer_to_managed_type);
+              err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
             /* Make the pointer type. */
             complete_type = make_pointer_type(err ? error_type()
@@ -4068,6 +4102,14 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                forming a pointer-to-member type. */
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (cppcli_enabled && is_cli_managed_type(temp_type) &&
+                     !is_handle_type(temp_type)) {
+            /* Attempting to form a type "reference to managed type" is only
+               valid if the managed type is a handle. */
+            error(ec_reference_to_managed_type);
+            err = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* Make the reference type. */
             complete_type =
