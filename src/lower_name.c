@@ -156,6 +156,7 @@ differs (see the IA-64 ABI spec for details).
 */
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "U8__trkref"
 #define MANGLING_STRING_FOR_HANDLE "U8__handle"
+#define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "C8"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #else /* !IA64_ABI */
@@ -276,6 +277,7 @@ differs (see the IA-64 ABI spec for details).
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define MANGLING_STRING_FOR_TRACKING_REFERENCE "Tr"
 #define MANGLING_STRING_FOR_HANDLE "H"
+#define MANGLING_STRING_FOR_STATIC_CONSTRUCTOR "st"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
@@ -8899,8 +8901,7 @@ constructors and conversion functions.
     switch (special_kind) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
-        /* FIXME Mangle the static constructor's name appropriately. */
-        name = MANGLING_STRING_FOR_CONSTRUCTOR;
+        name = MANGLING_STRING_FOR_STATIC_CONSTRUCTOR;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_constructor:

@@ -1940,8 +1940,9 @@ template parameters.
   if (get_char(ptr, dctl) == '_' && get_char(ptr+1, dctl) == '_') {
     /* Name beginning with two underscores. */
     p = ptr + 2;
-    if (start_of_id_is("ct__", p, dctl)) {
-      /* Constructor. */
+    if (start_of_id_is("ct__", p, dctl) ||
+        start_of_id_is("st__", p, dctl)) {
+      /* Constructor or C++/CLI static constructor. */
       end_ptr = p + 2;
       if (mclass == NULL) {
         /* The mangled name for the class is not provided, so handle this as
@@ -1954,6 +1955,10 @@ template parameters.
                                               (a_template_param_block_ptr)NULL,
                                       /*is_destructor_name=*/FALSE,
                                       dctl);
+        if (start_of_id_is("st__", p, dctl)) {
+          /* Add an indication that this is a C++/CLI static constructor. */
+          write_id_str("[static]", dctl);
+        }  /* if */
       }  /* if */
     } else if (start_of_id_is("dt__", p, dctl)) {
       /* Destructor. */
@@ -6116,11 +6121,13 @@ substitution, the name of the last component in the substitution is used.
           (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
           /* Check that the second character of the constructor/destructor
              name is a valid digit. */
+          /* '8' is the code used by the EDG C++ Front End for C++/CLI
+             static constructors.  It's not part of the ABI spec. */
           /* '9' is the code used by the EDG C++ Front End for the
              underlying routine called by the various entry points.
              It's not part of the ABI spec. */
           if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
-              (ptr[0] == 'C' ? ptr[1] == '3' :
+              (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8') :
                                ptr[1] == '0')) {
             /* Okay. */
             *ctor_dtor_kind = ptr[1];
@@ -6818,6 +6825,10 @@ non-template functions).
         break;
       case '3':
         write_id_str(" [allocating]", dctl);
+        break;
+      case '8':
+        /* An EDG extension for C++/CLI static constructors. */
+        write_id_str(" [static]", dctl);
         break;
       case '9':
         /* The EDG front end uses '9' for the routine called by the
