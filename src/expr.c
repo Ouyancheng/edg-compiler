@@ -7106,7 +7106,8 @@ previously-scanned sizeof expression, and return the result in *result
          to be the size of the type. */
       if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT) &&
           next_token() != tok_lparen &&
-          curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE)) {
+          curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE,
+                           /*in_type_check=*/FALSE)) {
         /* Something like
              typedef int I;
              sizeof I;

@@ -8665,7 +8665,8 @@ process_enum_specifier:
            looked up. */
         curr_token_type_symbol =
                     curr_type_symbol((input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                                     /*in_prescan=*/FALSE);
+                                     /*in_prescan=*/FALSE,
+                                     /*in_type_check=*/FALSE);
         if (!C_mode() && is_member_decl &&
             (decl_specifiers_seen & DS_TYPE) == 0 &&
             curr_token_type_symbol != NULL &&

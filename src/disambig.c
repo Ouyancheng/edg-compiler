@@ -80,7 +80,8 @@ Macro that is TRUE if the current token (which must be an identifier or
 the "::" at the start of a qualified name) is a type name.
 */
 #define prescan_curr_id_is_type_name()					\
-  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE) != NULL)
+  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE,	\
+                    /*in_type_check=*/FALSE) != NULL)
 
 /*
 Macros to test bits in a disambiguation flag set.
