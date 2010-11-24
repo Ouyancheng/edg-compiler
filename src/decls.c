@@ -485,7 +485,8 @@ assembler code.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
-                              a_boolean in_prescan)
+                              a_boolean in_prescan,
+                              a_boolean in_type_check)
 /*
 If the current token is an identifier or, in C++, the "::" at the start of a
 global qualified name, and if it starts the name of a type (a typedef name or,
@@ -494,6 +495,8 @@ the symbol.  Otherwise, return NULL.  Ambiguity and access control checking
 is not done.  in_prescan is TRUE when we are called from the prescanning
 routines used for disambiguation.  This flag suppresses errors that
 might result from class template names that are missing argument lists.
+in_type_check is used when this routine is called directly or indirectly
+from places such as is_type_start.
 */
 {
   a_symbol_ptr               assoc_symbol;
@@ -542,7 +545,7 @@ might result from class template names that are missing argument lists.
         locator_for_curr_id.symbol_header = saved_header;
       }  /* if */
       /* Check to see if this is a pack reference. */
-      if (!in_prescan && assoc_symbol != NULL) {
+      if (!in_prescan && !in_type_check && assoc_symbol != NULL) {
         record_potential_pack_reference(assoc_symbol, &pos_curr_token);
       }  /* if */
     }  /* if */

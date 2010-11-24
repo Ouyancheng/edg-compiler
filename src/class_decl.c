@@ -15395,7 +15395,8 @@ encountered (i.e., which kind of context-sensitive keyword appeared:
       /* An identifier naming a type, on the other hand, could be
          a declarator-id. */
       if (curr_type_symbol(/*is_new_type_name=*/FALSE,
-                           /*in_prescan=*/TRUE) == NULL) {
+                           /*in_prescan=*/TRUE,
+                           /*in_type_check=*/FALSE) == NULL) {
         /* The current identifier is not a type.  So it must be a declarator-id
            and the potential context-sensitive keyword must be a type name. */
         break;

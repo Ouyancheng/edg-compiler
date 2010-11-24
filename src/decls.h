@@ -36,14 +36,16 @@ typedef enum /*an_id_linkage_kind*/ {
 
 /* Return the symbol if the current token is a type name identifier. */
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
-                              a_boolean in_prescan);
+                              a_boolean in_prescan,
+                              a_boolean in_type_check);
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
 the "::" at the start of a qualified name) is a type name.
 */
 #define curr_id_is_type_name()						\
-  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE) != NULL)
+  (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/FALSE,   \
+                    /*in_type_check=*/TRUE) != NULL)
 
 /* Test whether or not the current token is the start of a type. */
 extern a_boolean is_type_start(a_boolean is_expr_context);
